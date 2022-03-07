@@ -1,0 +1,38 @@
+---
+input:
+  xtrack_line: 'HL_LHC_v1p5_line.json'
+  collimator_file: 'CollDB_HL_relaxed_b1.data'
+  bdsim_config: 'settings_hllhc.gmad'
+  tfs_file: 'collonly_LHC_b1_7000GeV_thinXing.twiss'
+
+  material_rename_map:
+    # Mapping short names in the CollDB to actual materials
+    # The materials must be built-in or defined in BDSIM input
+    C: 'AC150GPH'
+    MoGR: 'MG6403Fc'
+    CU: 'Cu'
+    CuCD: 'CUDIAM75'
+    Iner: 'INERM180'
+
+beam:
+  pdg_id: 2212
+  momentum: 7000 # GeV
+  mass: 0.93827231 # GeV
+  emittance: 2.5e-6 # m
+  start_element: "tcp.c6l7.b1"
+
+dist:
+  kind: gpdist
+  file: "unshifted_initial.dat"
+
+run:
+  energy_cut: 0.15
+  batch_mode: True
+  seed: 1993
+  turns: 700
+  outputfile: "Outputdata/part.hdf"
+  max_particles: 50e3
+
+lossmap:
+  make_lossmap: True
+  aperture_binwidth: 0.1 # m

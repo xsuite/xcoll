@@ -1,0 +1,15 @@
+beam, particle="proton", energy=7000*GeV;
+
+option, physicsList = "g4FTFP_BERT";
+!option, physicsList = "em decay muon hadronic_elastic ftfp_bert ion ion_elastic ion_em_dissociation";
+!rangecut=10*cm;
+!option, prodCutPhotons   = rangecut,
+!        prodCutElectrons = rangecut,
+!        prodCutPositrons = rangecut,
+!        defaultRangeCut  = rangecut;
+
+! Material defintions for collimation (matching materials used in FLUKA)
+INERM180 : matdef, density=18.0, components=["W", "Ni", "Cu"], componentsFractions={0.95, 0.035, 0.015};
+MG6403Fc : matdef, density=2.55, components=["Mo", "C", "Ti"], componentsFractions={0.130012156609076, 0.8675206104800844, 0.002467232910839576};
+AC150GPH : matdef, Z=6.0, A=12.011, density=1.67;
+CUDIAM75 : matdef, density=5.4, components=["Cu", "C", "B"], componentsFractions={0.6205462018968333, 0.3752917530367507, 0.004162045066415989};
