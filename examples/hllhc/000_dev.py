@@ -75,7 +75,9 @@ assert len(s_twiss) == len(locations) * n_coll
 print('Start twiss')
 tw = tracker.twiss(at_s=s_twiss)
 
-
+for ill, ll in enumerate(locations):
+    for nn in parameters_to_be_extracted_from_twiss:
+        colldf[ll, nn] = tw[nn][ill*n_coll:(ill+1)*n_coll]
 
 
 
