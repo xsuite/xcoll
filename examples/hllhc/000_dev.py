@@ -75,9 +75,22 @@ assert len(s_twiss) == len(locations) * n_coll
 print('Start twiss')
 tw = tracker.twiss(at_s=s_twiss)
 
+# Extract optics info
 for ill, ll in enumerate(locations):
     for nn in parameters_to_be_extracted_from_twiss:
         colldf[ll, nn] = tw[nn][ill*n_coll:(ill+1)*n_coll]
 
+# Compute betatron beam sizes
+nemitt_x_ref = 2.5e-6
+nemitt_y_ref = 2.5e-6
+beta0_gamma0 = (tracker.particle_ref._xobject.beta0[0]
+                * tracker.particle_ref.gamma0[0])
+for ll in locations:
+    colldf[ll, 'sigmax'] = np.sqrt(colldf[ll, 'betx']*nemitt_x_ref/beta0_gamma0)
+    colldf[ll, 'sigmay'] = np.sqrt(colldf[ll, 'bety']*nemitt_x_ref/beta0_gamma0)
 
+# Compute halfgap
+colldf['halfgap_m'] = colldf['nsigma'].values * np.sqrt(
+      (colldf['at_center_active_part', 'sigmax']*np.cos(np.float_(colldf['angle'].values)))**2
+    + (colldf['at_center_active_part', 'sigmay']*np.sin(np.float_(colldf['angle'].values)))**2)
 
