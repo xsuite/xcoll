@@ -12,7 +12,7 @@ extensions = []
 #########
 
 setup(
-    name='xcol'
+    name='xcol',
     version='0.0.0',
     description='Xsuite collimation package',
     url='https://github.com/xsuite/xcol',
