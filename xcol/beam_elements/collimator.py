@@ -11,10 +11,10 @@ class Collimator(xt.BeamElement):
         'active_length': xo.Float64,
         'inactive_length_at_end': xo.Float64,
         'n_slices': xo.Int64,
-        'a_max': xo.Float64,
         'a_min': xo.Float64,
-        'b_max': xo.Float64,
+        'a_max': xo.Float64,
         'b_min': xo.Float64,
+        'b_max': xo.Float64,
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
     }

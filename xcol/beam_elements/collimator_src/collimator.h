@@ -77,10 +77,10 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
             double const y = LocalParticle_get_y(part);
 
             is_alive = (int64_t)(
-                      (x >= a_max) &&
-		              (x <= a_min) &&
-		              (y >= b_max) &&
-		              (y <= b_min) );
+                      (x >= a_min) &&
+		              (x <= a_max) &&
+		              (y >= b_min) &&
+		              (y <= b_max) );
             if (!is_alive){break;}
 
             drift_for_collimator(part, slice_length/2);
