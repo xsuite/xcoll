@@ -94,3 +94,28 @@ colldf['halfgap_m'] = colldf['nsigma'].values * np.sqrt(
       (colldf['at_center_active_part', 'sigmax']*np.cos(np.float_(colldf['angle'].values)))**2
     + (colldf['at_center_active_part', 'sigmay']*np.sin(np.float_(colldf['angle'].values)))**2)
 
+# Machine aperture without collimators
+n_sigmas = 30
+n_part = 10000
+
+x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
+y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
+
+part = xp.build_particles(tracker=tracker, x_norm=x_norm, y_norm=y_norm,
+                          scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                          at_element = 'ip3')
+
+part0 = part.copy()
+
+tracker.track(part, num_turns=5)
+
+
+state_sorted = part.state.copy()
+state_sorted[part.particle_id] = part.state
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(x_norm, y_norm, '.', color='red')
+plt.plot(x_norm[state_sorted>0], y_norm[state_sorted>0], '.', color='green')
+plt.axis('equal')
+plt.show()
