@@ -54,8 +54,11 @@ colldf = temp_dfs[0]
 for dd in temp_dfs[1:]:
     colldf = colldf.join(dd)
 
+# Get collimator info from input
 for cc in inputcolldf.columns[::-1]: #Try to get a nice ordering...
     colldf.insert(0, column=cc, value=inputcolldf[cc])
+
+assert np.all(colldf['offset']==0), "Halfgap offset not implemented"
 
 colldf['angle_rad'] = colldf['angle']
 colldf['angle_deg'] = colldf['angle']*180/np.pi
@@ -122,9 +125,16 @@ colldf['halfgap_m'] = colldf['nsigma'].values * np.sqrt(
     + (colldf['at_center_active_part', 'sigmay']*np.sin(np.float_(colldf['angle_rad'].values)))**2)
 
 
+# Configure collimators
+for nn in colldf.index.values:
+    line[nn].dx = colldf['at_center_active_part', 'x'][nn]
+    line[nn].dy = colldf['at_center_active_part', 'y'][nn]
+    line[nn].a_max = colldf['halfgap_m'][nn]
+    line[nn].a_min = -colldf['halfgap_m'][nn]
+
 # Machine aperture
 n_sigmas = 30
-n_part = 10000
+n_part = 100000
 
 x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
