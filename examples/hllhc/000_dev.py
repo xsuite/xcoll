@@ -134,7 +134,7 @@ for nn in colldf.index.values:
 
 # Machine aperture
 n_sigmas = 30
-n_part = 100000
+n_part = 10000
 
 x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
