@@ -69,17 +69,22 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
 
     double const sin_z = CollimatorData_get_sin_z(el);
     double const cos_z = CollimatorData_get_cos_z(el);
+    double const dx = CollimatorData_get_dx(el);
+    double const dy = CollimatorData_get_dy(el);
 
     //start_per_particle_block (part0->part)
 
         int64_t is_alive;
 
-        // Drift before active length
-
+        // Go to collimator reference system
+        LocalParticle_add_to_x(part, -dx);
+        LocalParticle_add_to_y(part, -dy);
         rotation_for_collimator(part, sin_z, cos_z);
 
+        // Drift before active length
         drift_for_collimator(part, inactive_length_at_start);
 
+        // Drifts and checks in the active part
         for (int64_t islice=0; islice<n_slices; islice++){
 
             is_alive = is_within_aperture(part, a_min, a_max, b_min, b_max);
@@ -90,11 +95,15 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
         }
         is_alive = is_within_aperture(part, a_min, a_max, b_min, b_max);
 
+        // Drift after active length
         if (is_alive){
             drift_for_collimator(part, inactive_length_at_end);
         }
 
+        // Back from collimator reference system
         rotation_for_collimator(part, -sin_z, cos_z);
+        LocalParticle_add_to_x(part, dx);
+        LocalParticle_add_to_y(part, dy);
 
         if (!is_alive){
            LocalParticle_set_state(part, -333);
