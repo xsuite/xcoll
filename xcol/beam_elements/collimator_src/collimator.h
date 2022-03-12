@@ -2,8 +2,18 @@
 #define XCOL_COLLIMATOR_H
 
 /*gpufun*/
-void drift_for_collimator(LocalParticle* part, double const length){
+int64_t is_within_aperture(
+                LocalParticle* part,
+                double a_min, double a_max, double b_min, double b_max){
 
+    double const x = LocalParticle_get_x(part);
+    double const y = LocalParticle_get_y(part);
+    return (int64_t)((x >= a_min) && (x <= a_max) &&
+                     (y >= b_min) && (y <= b_max) );
+}
+
+/*gpufun*/
+void drift_for_collimator(LocalParticle* part, double const length){
 
     double const rpp    = LocalParticle_get_rpp(part);
     double const xp     = LocalParticle_get_px(part) * rpp;
@@ -71,20 +81,14 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
         drift_for_collimator(part, inactive_length_at_start);
 
         for (int64_t islice=0; islice<n_slices; islice++){
-            drift_for_collimator(part, slice_length/2);
 
-            double const x = LocalParticle_get_x(part);
-            double const y = LocalParticle_get_y(part);
-
-            is_alive = (int64_t)(
-                      (x >= a_min) &&
-		              (x <= a_max) &&
-		              (y >= b_min) &&
-		              (y <= b_max) );
+            is_alive = is_within_aperture(part, a_min, a_max, b_min, b_max);
             if (!is_alive){break;}
 
-            drift_for_collimator(part, slice_length/2);
+            drift_for_collimator(part, slice_length);
+
         }
+        is_alive = is_within_aperture(part, a_min, a_max, b_min, b_max);
 
         if (is_alive){
             drift_for_collimator(part, inactive_length_at_end);

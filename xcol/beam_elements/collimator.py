@@ -15,9 +15,14 @@ class Collimator(xt.BeamElement):
         'a_max': xo.Float64,
         'b_min': xo.Float64,
         'b_max': xo.Float64,
+        'dx': xo.Float64,
+        'dy': xo.Float64,
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
     }
+
+    isthick = True
+    behaves_like_drift = True
 
     def __init__(self, angle=0, **kwargs):
         anglerad = angle / 180 * np.pi
@@ -28,6 +33,11 @@ class Collimator(xt.BeamElement):
     @property
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
+
+    @property
+    def length(self):
+        return (self.inactive_length_at_start + self.active_length
+                + self.inactive_length_at_start)
 
 Collimator.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/collimator_src/collimator.h')]

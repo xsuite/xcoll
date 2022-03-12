@@ -5,6 +5,7 @@ import pandas as pd
 
 import xtrack as xt
 import xpart as xp
+import xcol as xc
 
 from temp_load_db import temp_load_colldb
 
@@ -18,12 +19,13 @@ line = xt.Line.from_dict(dct)
 # Attach reference particle (a proton a 7 TeV)
 line.particle_ref = xp.Particles(mass0 = xp.PROTON_MASS_EV, p0c=7e12)
 
-# Build tracker
-tracker = xt.Tracker(line=line)
+
 
 # Switch on RF (needed to twiss)
 line['acsca.a5l4.b1'].voltage = 16e6
 line['acsca.a5l4.b1'].frequency = 1e6
+
+line0 = line.copy()
 
 colldb = temp_load_colldb('HL_LHC_v1p5_clean_feb2022/CollDB_HL_relaxed_b1.data')
 
@@ -33,8 +35,9 @@ for kk in colldb.keys():
 # Assumes marker in the the line is at the center of the active length
 inputcolldf = pd.DataFrame.from_dict(colldb).transpose()\
                      .rename(columns={'length': 'active_length'})
-inputcolldf['inactive_length_at_start'] = 1e-2
-inputcolldf['inactive_length_at_end'] = 1e-2
+inputcolldf['inactive_length_at_start'] = 1e-3
+inputcolldf['inactive_length_at_end'] = 1e-3
+
 
 parameters_to_be_extracted_from_twiss = (
     'x y px py betx bety alfx alfy gamx gamy dx dpx dy dpy mux muy'.split())
@@ -54,6 +57,10 @@ for dd in temp_dfs[1:]:
 for cc in inputcolldf.columns[::-1]: #Try to get a nice ordering...
     colldf.insert(0, column=cc, value=inputcolldf[cc])
 
+colldf['angle_rad'] = colldf['angle']
+colldf['angle_deg'] = colldf['angle']*180/np.pi
+colldf.drop('angle', axis=1, inplace=True, level=0)
+
 colldf['length'] = (colldf['active_length']
                     + colldf['inactive_length_at_start']
                     + colldf['inactive_length_at_end'])
@@ -64,6 +71,24 @@ colldf['at_start_active_part', 's'] = (
     colldf['at_center_active_part', 's'] - colldf['active_length']/2)
 colldf['at_start_element', 's'] = (
     colldf['at_start_active_part', 's'] - colldf['inactive_length_at_start'])
+
+
+for nn in colldf.index.values:
+    print(nn)
+    newcoll = xc.Collimator(
+            inactive_length_at_start=colldf.loc[nn, 'inactive_length_at_start'],
+            inactive_length_at_end=colldf.loc[nn, 'inactive_length_at_end'],
+            active_length=colldf.loc[nn, 'active_length'],
+            n_slices=10, angle=colldf.loc[nn, 'angle_deg'].values[0],
+            a_min=-1, a_max=1,
+            b_min=-1, b_max=1
+            )
+    print(newcoll.to_dict())
+    s_insert = colldf['at_start_element', 's'][nn]
+    line.insert_element(element=newcoll, name=nn, at_s=s_insert)
+
+# Build tracker
+tracker = xt.Tracker(line=line)
 
 s_twiss = []
 for ll in locations:
@@ -89,12 +114,15 @@ for ll in locations:
     colldf[ll, 'sigmax'] = np.sqrt(colldf[ll, 'betx']*nemitt_x_ref/beta0_gamma0)
     colldf[ll, 'sigmay'] = np.sqrt(colldf[ll, 'bety']*nemitt_x_ref/beta0_gamma0)
 
+
+
 # Compute halfgap
 colldf['halfgap_m'] = colldf['nsigma'].values * np.sqrt(
-      (colldf['at_center_active_part', 'sigmax']*np.cos(np.float_(colldf['angle'].values)))**2
-    + (colldf['at_center_active_part', 'sigmay']*np.sin(np.float_(colldf['angle'].values)))**2)
+      (colldf['at_center_active_part', 'sigmax']*np.cos(np.float_(colldf['angle_rad'].values)))**2
+    + (colldf['at_center_active_part', 'sigmay']*np.sin(np.float_(colldf['angle_rad'].values)))**2)
 
-# Machine aperture without collimators
+
+# Machine aperture
 n_sigmas = 30
 n_part = 10000
 
