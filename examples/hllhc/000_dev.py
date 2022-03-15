@@ -5,7 +5,7 @@ import pandas as pd
 
 import xtrack as xt
 import xpart as xp
-import xcol as xc
+import xcoll as xc
 
 from temp_load_db import temp_load_colldb
 

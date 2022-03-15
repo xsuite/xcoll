@@ -12,11 +12,11 @@ extensions = []
 #########
 
 setup(
-    name='xcol',
+    name='xcoll',
     version='0.0.0',
     description='Xsuite collimation package',
-    url='https://github.com/xsuite/xcol',
-    author='Giovanni Iadarola, A. Abramov, F. Van Der Veken',
+    url='https://github.com/xsuite/xcoll',
+    author='Giovanni Iadarola, A. Abramov, F. Van der Veken',
     packages=find_packages(),
     ext_modules = extensions,
     include_package_data=True,
