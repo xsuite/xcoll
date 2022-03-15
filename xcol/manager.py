@@ -127,7 +127,6 @@ class CollimatorManager:
 
         self.compute_optics_at_collimators()
 
-        tracker = self.line.tracker
         colldf = self.table
 
         # Compute halfgap

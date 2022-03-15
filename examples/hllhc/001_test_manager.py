@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 import xtrack as xt
 import xpart as xp
@@ -22,11 +23,25 @@ coll_manager = xc.CollimatorManager(
     coll_db_txt_file='HL_LHC_v1p5_clean_feb2022/CollDB_HL_relaxed_b1.data',
     nemitt_ref_x=2.5e-6, nemitt_ref_y=2.5e-6)
 
-coll_manager.install_collimators_in_line(line=line)
+coll_manager.install_collimators_in_line(line=line) # They are left open
 
+# Build tracker
 tracker = line.build_tracker()
 
+# Compute half-gaps and close collimators (black absorbers)
 coll_manager.set_collimator_openings(collimator_names='all')
+
+# Characterize machine aperture
+n_sigmas = 30
+n_part = 10000
+x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
+y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
+part = xp.build_particles(tracker=tracker, x_norm=x_norm, y_norm=y_norm,
+                          scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                         )
+tracker.track(part, num_turns=5)
+
+
 
 # Serializeable
 
@@ -50,6 +65,16 @@ coll_manager.set_collimator_openings(collimator_names='all')
 #                         )
 
 
+
+state_sorted = part.state.copy()
+state_sorted[part.particle_id] = part.state
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(x_norm, y_norm, '.', color='red')
+plt.plot(x_norm[state_sorted>0], y_norm[state_sorted>0], '.', color='green')
+plt.axis('equal')
+plt.show()
 
 
 
