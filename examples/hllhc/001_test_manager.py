@@ -2,7 +2,7 @@ import json
 
 import xtrack as xt
 import xpart as xp
-import xcol as xc
+import xcoll as xc
 
 
 print('Load file...')

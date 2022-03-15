@@ -1,6 +1,6 @@
 import numpy as np
 
-import xcol as xc
+import xcoll as xc
 import xpart as xp
 
 coll = xc.Collimator(inactive_length_at_start=3.,
