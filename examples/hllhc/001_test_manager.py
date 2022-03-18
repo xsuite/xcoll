@@ -46,7 +46,7 @@ tracker.track(part, num_turns=5)
 # Serializeable
 
 # coll_manager.initialize_geant4_engine(.....)
-# coll_manager_initialize_k2_engine(....)
+# coll_manager.initialize_k2_engine(....)
 # 
 # coll_manager.set_engine(engine='k2', names='all')
 # coll_manager.set_engine(engine='k2', names=('tcp.d6l7.b1', 'tcp.c6l7.b1', 'tcp.b6l7.b1',))

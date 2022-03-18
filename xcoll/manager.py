@@ -56,11 +56,14 @@ class CollimatorManager:
     def collimator_names(self):
         return list(self.table.index.values)
 
-    def install_collimators_in_line(self, line):
+    def install_collimators_in_line(self, line, marker_positions='center_active'):
 
         assert self.line is None, (
             "A line is already associated to this collimator manager")
 
+        if marker_positions != 'center_active':
+            raise NotImplementedError
+            
         for kk in self.collimator_names:
             assert kk in line.element_names
 
@@ -137,7 +140,7 @@ class CollimatorManager:
         line = self.line
 
         # Configure collimators
-        for nn in colldf.index.values:
+        for nn in self.collimator_names:
             line[nn].dx = colldf['at_center_active_part', 'x'][nn]
             line[nn].dy = colldf['at_center_active_part', 'y'][nn]
             line[nn].a_max = colldf['halfgap_m'][nn]
