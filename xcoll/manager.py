@@ -140,12 +140,12 @@ class CollimatorManager:
         )
 
         # Configure collimators
-        for name in df.index:
+        for name in colldb.index:
             if isinstance(line[name], Collimator):
-                line[name].dx = df['x'][name]
-                line[name].dy = df['y'][name]
-                line[name].jaw_R = -df['opening'][name]
-                line[name].jaw_L = df['opening'][name]
+                line[name].dx = colldb['x'][name]
+                line[name].dy = colldb['y'][name]
+                line[name].jaw_R = -colldb['opening'][name]
+                line[name].jaw_L = colldb['opening'][name]
             elif isinstance(line[name], K2Collimator):
                 pass
             else:
@@ -185,7 +185,7 @@ def _load_colldb(filename):
     #df['angle'] = df['angle']
     df = df[['name', 'opening', 'length', 'angle', 'material', 'offset']]
     df.insert(5,'stage', df['opening'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
-    df.insert(0,'gap', df['opening'].apply(lambda s: family_settings.get(s, s)))
+    df.insert(0,'gap', df['opening'].apply(lambda s: float(family_settings.get(s, s))))
     df['onesided'] = df['name'].apply(lambda s: onesided.get(s, 0))
     df['tilt_left'] = 0
     df['tilt_right'] = 0
