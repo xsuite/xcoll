@@ -13,9 +13,6 @@ class CollDB:
         self.gamma_rel = None
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
-            self._colldb.insert(2,'s_center', None)
-            self._colldb.insert(2,'opening', None)
-            self._colldb['type'] = None
         else:
             self._colldb = None
 
@@ -99,19 +96,7 @@ class CollDB:
     
     @onesided.setter
     def onesided(self, sides):
-        df = self._colldb
-        if isinstance(sides, dict):
-            for name, side in sides.items():
-                if name not in self.name:
-                    raise ValueError(f"Collimator {name} not found in CollDB!")
-                df.loc[name, 'onesided'] = side
-        elif isinstance(sides, pd.Series) or isinstance(sides, list) or isinstance(sides, np.ndarray):
-            if len(sides) != len(self.name):
-                raise ValueError("The variable `sides` has a different length than the number of collimators in the CollDB. "
-                                + "Use a dictionary instead.")
-            df['onesided'] = sides
-        else:
-            raise ValueError("Variable `gaps` needs to be a pandas Series, dict, numpy array, or list!")
+        self._set_property('onesided', sides)
         df['onesided'] = [ 'both' if s==0 else s for s in df['onesided'] ]    
         df['onesided'] = [ 'left' if s==1 else s for s in df['onesided'] ]
         df['onesided'] = [ 'right' if s==2 else s for s in df['onesided'] ]
@@ -124,8 +109,36 @@ class CollDB:
         return pd.Series(sigma.T, index=self._colldb.index, dtype=object) 
 
     @property
+    def active_length(self):
+        return self._colldb['active_length']
+    
+    @active_length.setter
+    def active_length(self, lengths):
+        self._set_property('active_length', lengths)
+
+            
+    
+    
+    @property
     def total_length(self):
         return self._colldb['active_length'] +  self._colldb['inactive_front'] + self._colldb['inactive_back']
+    
+    
+    
+    def _set_property(self, prop, vals):
+        df = self._colldb
+        if isinstance(vals, dict):
+            for name, val in vals.items():
+                if name not in self.name:
+                    raise ValueError(f"Collimator {name} not found in CollDB!")
+                df.loc[name, prop] = val
+        elif isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
+            if len(vals) != len(self.name):
+                raise ValueError(f"The variable `{prop}` has a different length than the number of collimators in the CollDB. "
+                                + "Use a dictionary instead.")
+            df[prop] = vals
+        else:
+            raise ValueError(f"Variable `{prop}` needs to be a pandas Series, dict, numpy array, or list!")
     
     
     def _compute_opening(self):
@@ -139,11 +152,11 @@ class CollDB:
             
             
     def _initialise_None(self):
-        fields = {'gap_L': None, 'gap_R': None, 'opening_L': None, 'opening_R': None, 'active_length': 0}
-        fields += {'angle': 0, 'onesided': 0, 'material': None, 'stage': None, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0}
-        fields += {'inactive_front': 0, 'inactive_back': 0}
-        fields += {'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0}
-        fields += {'betx': None, 'bety': None, 'x': None, 'px': None, 'y': None, 'py': None, 'sigma_x': None, 'sigma_y': None}
+        fields = {'s_center':None, 'gap_L': None, 'gap_R': None, 'opening_L': None, 'opening_R': None, 'active_length': 0}
+        fields.update({'angle': 0, 'onesided': 0, 'material': None, 'stage': None, 'type':None, 'tilt_L': 0, 'tilt_R': 0})
+        fields.update({'offset': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
+        fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+        fields.update({'betx': None, 'bety': None, 'x': None, 'px': None, 'y': None, 'py': None})
         for f, val in fields.items():
             if f not in self._colldb.columns:
                 self._colldb[f] = val
@@ -179,31 +192,31 @@ class CollDB:
                         index_col=False, names=names)
 
         df = df[['name', 'opening', 'length', 'angle', 'material', 'offset']]
-        df.insert(5,'stage', df['opening'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
+        df.insert(5,'stage', df['opening'].apply(lambda s: family_types.get(s, 'UNKNOWN')))   
         
-        
-        
-        df['onesided'] = df['name'].apply(lambda s: onesided.get(s, 0))
-        df['onesided'] = [ 'left' if s==1 else s for s in df['onesided'] ]
-        df['onesided'] = [ 'right' if s==2 else s for s in df['onesided'] ]
-        df['tilt_left'] = 0
-        df['tilt_right'] = 0
-        df['inactive_front'] = 0
-        df['inactive_back'] = 0
-        df['total_length'] = df['length']
-        df['crystal'] = None
-        df['bend'] = None
-        df['xdim'] = None
-        df['ydim'] = None
-        df['miscut'] = None
-        df['thick'] = None
+        sides = df['name'].apply(lambda s: onesided.get(s, 0))
+#         df['onesided'] = [ 'left' if s==1 else s for s in df['onesided'] ]
+#         df['onesided'] = [ 'right' if s==2 else s for s in df['onesided'] ]
+#         df['tilt_left'] = 0
+#         df['tilt_right'] = 0
+#         df['inactive_front'] = 0
+#         df['inactive_back'] = 0
+#         df['total_length'] = df['length']
+#         df['crystal'] = None
+#         df['bend'] = None
+#         df['xdim'] = None
+#         df['ydim'] = None
+#         df['miscut'] = None
+#         df['thick'] = None
 
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df.rename(columns={'length':'active_length'}, inplace=True)
         df = df.set_index('name')
-        
         self._colldb = df.drop('opening', 1)
+        
+        self._initialise_None()
         self.gap = df['opening'].apply(lambda s: float(family_settings.get(s, s)))
+        self.onesided = sides
 
         # Check if collimator active
         # Check if gap is list (assymetric jaws)
