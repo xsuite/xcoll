@@ -7,14 +7,13 @@ from ..general import _pkg_root
 
 class Collimator(xt.BeamElement):
     _xofields = {
-        'inactive_length_at_start': xo.Float64,
+        'inactive_front': xo.Float64,
         'active_length': xo.Float64,
-        'inactive_length_at_end': xo.Float64,
-        'n_slices': xo.Int64,
-        'a_min': xo.Float64,
-        'a_max': xo.Float64,
-        'b_min': xo.Float64,
-        'b_max': xo.Float64,
+        'inactive_back': xo.Float64,
+        'jaw_L': xo.Float64,
+        'jaw_R': xo.Float64,
+        'jaw_U': xo.Float64,
+        'jaw_D': xo.Float64,
         'dx': xo.Float64,
         'dy': xo.Float64,
         'cos_z': xo.Float64,
@@ -36,8 +35,7 @@ class Collimator(xt.BeamElement):
 
     @property
     def length(self):
-        return (self.inactive_length_at_start + self.active_length
-                + self.inactive_length_at_start)
+        return (self.inactive_front + self.active_length + self.inactive_back)
 
 Collimator.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/collimator_src/collimator.h')]
