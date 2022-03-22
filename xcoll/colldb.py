@@ -10,7 +10,7 @@ class CollDB:
     def __init__(self, *, emitx, emity=None, sixtrack_file=None):
         self._emitx = emitx
         self._emity = emitx if emity is None else emity
-        self._betagamma_rel = None
+        self._beta_gamma_rel = None
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
         else:
@@ -19,6 +19,7 @@ class CollDB:
     def show(self):
         return pd.DataFrame({
                 'gap':             self.gap,
+                'opening':         self.opening,
                 's_center':        self.s_center,
                 'angle':           self.angle,
                 'material':        self.material,
@@ -275,9 +276,9 @@ class CollDB:
         
         df.gap_L = df.gap_L.astype('object', copy=False)
         df.gap_R = df.gap_R.astype('object', copy=False)
-            
+
         # Recompute openings
-        self._compute_opening
+        self._compute_opening()
 
     @property
     def opening(self):
@@ -524,7 +525,7 @@ class CollDB:
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df.rename(columns={'length':'active_length'}, inplace=True)
         df = df.set_index('name')
-        self._colldb = df.drop('opening', 1)
+        self._colldb = df.drop('opening', axis=1)
         
         self._initialise_None()
         self.gap = gaps.values

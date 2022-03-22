@@ -14,8 +14,12 @@ class CollimatorManager:
     def collimator_names(self):
         return list(self.colldb.name)
 
+    @property
+    def s_start_active(self):
+        return self.colldb.s_center - self.colldb.active_length/2
 
-    def install_black_absorbers(self, names=None, verbose=False):
+
+    def install_black_absorbers(self, names=None, *, verbose=False):
         line = self.line
         df = self.colldb._colldb
         if names is None:
@@ -52,7 +56,7 @@ class CollimatorManager:
                 line.insert_element(element=newcoll, name=name, at_s=s_install)
 
 
-    def install_k2_collimators(self, names=None, verbose=False):
+    def install_k2_collimators(self, names=None, *, verbose=False):
         line = self.line
         df = self.colldb._colldb
         if names is None:
@@ -112,10 +116,10 @@ class CollimatorManager:
             tw = tracker.twiss(at_s=df['s_center'])
             for opt in opt_funcs:
                 df[opt] = tw[opt]
-            self.colldb.gamma_rel = tracker.particle_ref._xobject.beta0[0] * tracker.particle_ref._xobject.gamma0[0]
+            self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
 
 
-    def set_openings(self, gaps={}, recompute_optics=False):
+    def set_openings(self, gaps={}, *, recompute_optics=False):
         line = self.line
         if line is None or line.tracker is None:
             raise Exception("Please build tracker before calling this method!")
@@ -123,6 +127,7 @@ class CollimatorManager:
         if any([ x is None for x in colldb.collimator_type ]):
             raise ValueError("Some collimators have not yet been installed. "
                              + "Please install all collimators before setting the openings.")
+        gaps_OLD = colldb.gap
         colldb.gap = gaps
             
         # Compute halfgap
@@ -133,11 +138,13 @@ class CollimatorManager:
             if isinstance(line[name], Collimator):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].jaw_R = -colldb._colldb['opening_L'][name] + colldb.offset[name]
-                line[name].jaw_L = colldb._colldb['opening_R'][name] + colldb.offset[name]
+                # The jaw positions are wrt the closed orbit  =>  (x, y) or (x, px, y, py) ?
+                line[name].jaw_R = -colldb._colldb['opening_R'][name] + colldb.offset[name]
+                line[name].jaw_L = colldb._colldb['opening_L'][name] + colldb.offset[name]
             elif isinstance(line[name], K2Collimator):
                 pass
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
+        colldb.gap = gaps_OLD
 
 
