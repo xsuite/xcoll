@@ -228,8 +228,10 @@ class CollDB:
                 gaps = dict(zip(self.name, gaps))
             # All gaps are single values: use pandas-style assignment
             else:
-                mask_L = df.onesided.isin(['both','left'])
-                mask_R = df.onesided.isin(['both','right'])
+                # mask those that have an active side for the gap under consideration
+                # and have a setting less than 900; the others are set to None
+                mask_L = np.logical_and(df.onesided.isin(['both','left']), ~(gaps >= 900))
+                mask_R = np.logical_and(df.onesided.isin(['both','right']), ~(gaps >= 900))
                 df.loc[mask_L, 'gap_L'] = gaps[mask_L]
                 df.loc[~mask_L, 'gap_L'] = None
                 df.loc[mask_R, 'gap_R'] = gaps[mask_R]
@@ -263,6 +265,8 @@ class CollDB:
                 else:
                     gap_L = gap if side in ['both','left'] else None
                     gap_R = gap if side in ['both','right'] else None
+                gap_L = None if (gap_L is not None and gap_L >= 900) else gap_L
+                gap_R = None if (gap_R is not None and gap_R >= 900) else gap_R
                 df.loc[name, 'gap_L'] = gap_L
                 df.loc[name, 'gap_R'] = gap_R
 
@@ -515,9 +519,7 @@ class CollDB:
         df.insert(5,'stage', df['opening'].apply(lambda s: family_types.get(s, 'UNKNOWN')))   
         
         sides = df['name'].apply(lambda s: onesided.get(s, 0))
-        gaps = df.astype('object', copy=False)['opening'].apply(
-            lambda s: None if float(family_settings.get(s, s)) >= 900 else float(family_settings.get(s, s))
-        ).astype('object', copy=False)
+        gaps = df['opening'].apply(lambda s: float(family_settings.get(s, s)))
 
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df.rename(columns={'length':'active_length'}, inplace=True)
@@ -525,11 +527,8 @@ class CollDB:
         self._colldb = df.drop('opening', 1)
         
         self._initialise_None()
-        print([ type(gap) for gap in gaps.values])
         self.gap = gaps.values
         self.onesided = sides.values
 
         # Check if collimator active
         # Check if gap is list (assymetric jaws)
-
-        return
