@@ -77,8 +77,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         // Go to collimator reference system
         LocalParticle_add_to_x(part, -dx);
         LocalParticle_add_to_y(part, -dy);
-//         LocalParticle_add_to_px(part, -dpx);
-//         LocalParticle_add_to_py(part, -dpy);
+        LocalParticle_add_to_px(part, -dpx);
+        LocalParticle_add_to_py(part, -dpy);
         rotation_for_collimator(part, sin_z, cos_z);
 
         // Drift before active length
@@ -100,8 +100,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         rotation_for_collimator(part, -sin_z, cos_z);
         LocalParticle_add_to_x(part, dx);
         LocalParticle_add_to_y(part, dy);
-//         LocalParticle_add_to_px(part, dpx);
-//         LocalParticle_add_to_py(part, dpy);
+        LocalParticle_add_to_px(part, dpx);
+        LocalParticle_add_to_py(part, dpy);
 
         if (!is_alive){
            LocalParticle_set_state(part, -333);

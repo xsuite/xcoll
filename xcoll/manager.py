@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import Collimator
+from .beam_elements import BlackAbsorber
 from .colldb import CollDB
 from pyk2 import K2Collimator
 
@@ -35,7 +35,7 @@ class CollimatorManager:
         df.loc[mask,'collimator_type'] = 'BlackAbsorber'
 
         for name in names:
-            if isinstance(line[name], Collimator):
+            if isinstance(line[name], BlackAbsorber):
                 if verbose:
                     print(f"Collimator {name} already installed. Skipping...")
             elif isinstance(line[name], K2Collimator):
@@ -44,7 +44,7 @@ class CollimatorManager:
                 if verbose:
                     print(f"Installing {name}")
                 thiscoll = df.loc[name]
-                newcoll = Collimator(
+                newcoll = BlackAbsorber(
                         inactive_front=thiscoll['inactive_front'],
                         inactive_back=thiscoll['inactive_back'],
                         active_length=thiscoll['active_length'],
@@ -75,7 +75,7 @@ class CollimatorManager:
             if isinstance(line[name], K2Collimator):
                 if verbose:
                     print(f"Collimator {name} already installed. Skipping...")
-            elif isinstance(line[name], Collimator):
+            elif isinstance(line[name], BlackAbsorber):
                 raise ValueError(f"Collimator {name} already installed as BlackAbsorber! Please reconstruct the line.")
             else:
                 if verbose:
@@ -135,11 +135,11 @@ class CollimatorManager:
 
         # Configure collimators
         for name in self.collimator_names:
-            if isinstance(line[name], Collimator):
+            if isinstance(line[name], BlackAbsorber):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].dpx = colldb.px[name]
-                line[name].dpy = colldb.py[name]
+                line[name].dpx = 0
+                line[name].dpy = 0
                 line[name].angle = colldb.angle[name]
                 line[name].jaw_R = -colldb._colldb['opening_R'][name] + colldb.offset[name]
                 line[name].jaw_L = colldb._colldb['opening_L'][name] + colldb.offset[name]

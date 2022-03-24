@@ -319,7 +319,7 @@ class CollDB:
             elif len(emit) == 2:
                 self._emitx = emit[0]
                 self._emity = emit[1]
-            elif len(val) == 1:
+            elif len(emit) == 1:
                 self._emitx = emit[0]
                 self._emity = emit[0]
             else:
