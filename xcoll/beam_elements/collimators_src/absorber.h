@@ -1,5 +1,5 @@
-#ifndef XCOL_COLLIMATOR_H
-#define XCOL_COLLIMATOR_H
+#ifndef XCOLL_ABSORBER_H
+#define XCOLL_ABSORBER_H
 
 /*gpufun*/
 int64_t is_within_aperture(
@@ -52,21 +52,23 @@ void rotation_for_collimator(LocalParticle* part,
 
 }
 
-void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
+void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
-    double const inactive_front = CollimatorData_get_inactive_front(el);
-    double const inactive_back = CollimatorData_get_inactive_back(el);
-    double const active_length = CollimatorData_get_active_length(el);
+    double const inactive_front = BlackAbsorberData_get_inactive_front(el);
+    double const inactive_back = BlackAbsorberData_get_inactive_back(el);
+    double const active_length = BlackAbsorberData_get_active_length(el);
 
-    double const jaw_L = CollimatorData_get_jaw_L(el);
-    double const jaw_R = CollimatorData_get_jaw_R(el);
-    double const jaw_U = CollimatorData_get_jaw_U(el);
-    double const jaw_D = CollimatorData_get_jaw_D(el);
+    double const jaw_L = BlackAbsorberData_get_jaw_L(el);
+    double const jaw_R = BlackAbsorberData_get_jaw_R(el);
+    double const jaw_U = BlackAbsorberData_get_jaw_U(el);
+    double const jaw_D = BlackAbsorberData_get_jaw_D(el);
 
-    double const sin_z = CollimatorData_get_sin_z(el);
-    double const cos_z = CollimatorData_get_cos_z(el);
-    double const dx = CollimatorData_get_dx(el);
-    double const dy = CollimatorData_get_dy(el);
+    double const sin_z = BlackAbsorberData_get_sin_z(el);
+    double const cos_z = BlackAbsorberData_get_cos_z(el);
+    double const dx = BlackAbsorberData_get_dx(el);
+    double const dy = BlackAbsorberData_get_dy(el);
+    double const dpx = BlackAbsorberData_get_dpx(el);
+    double const dpy = BlackAbsorberData_get_dpy(el);
 
     //start_per_particle_block (part0->part)
 
@@ -75,6 +77,8 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
         // Go to collimator reference system
         LocalParticle_add_to_x(part, -dx);
         LocalParticle_add_to_y(part, -dy);
+//         LocalParticle_add_to_px(part, -dpx);
+//         LocalParticle_add_to_py(part, -dpy);
         rotation_for_collimator(part, sin_z, cos_z);
 
         // Drift before active length
@@ -96,6 +100,8 @@ void Collimator_track_local_particle(CollimatorData el, LocalParticle* part0){
         rotation_for_collimator(part, -sin_z, cos_z);
         LocalParticle_add_to_x(part, dx);
         LocalParticle_add_to_y(part, dy);
+//         LocalParticle_add_to_px(part, dpx);
+//         LocalParticle_add_to_py(part, dpy);
 
         if (!is_alive){
            LocalParticle_set_state(part, -333);

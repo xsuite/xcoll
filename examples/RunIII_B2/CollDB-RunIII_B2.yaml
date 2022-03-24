@@ -1,0 +1,93 @@
+%YAML 1.2
+---
+Families:
+  # Momentum cleaning
+  TCP3:    { gap: 15,     type: PRIMARY   }
+  TCSG3:   { gap: 18,     type: SECONDARY }
+  TCLA3:   { gap: 20,     type: TERTIARY  }
+  # Betatron cleaning
+  TCP7:    { gap: 5,      type: PRIMARY   }
+  TCSG7:   { gap: 6.5,    type: SECONDARY }
+  TCLA7:   { gap: 10,     type: TERTIARY  }
+  # Injection protection
+  TCLI:    { gap: null,   type: TERTIARY  }
+  TDI:     { gap: null,   type: TERTIARY  }
+  # Dump protection
+  TCDQ:    { gap: 7.2,    type: TERTIARY  }
+  TCSTCDQ: { gap: 7.2,    type: SECONDARY }
+  # Physics background minimalisation
+  TCTh1:   { gap: 8.5,    type: TERTIARY  }
+  TCTv1:   { gap: 8.5,    type: TERTIARY  }
+  TCTh2:   { gap: 37,     type: TERTIARY  }
+  TCTv2:   { gap: 37,     type: TERTIARY  }
+  TCTh5:   { gap: 8.5,    type: TERTIARY  }
+  TCTv5:   { gap: 8.5,    type: TERTIARY  }
+  TCTh8:   { gap: 15,     type: TERTIARY  }
+  TCTv8:   { gap: 15,     type: TERTIARY  }
+  # Physics debris
+  TCL4:    { gap: 17,     type: TERTIARY  }
+  TCL5:    { gap: 42,     type: TERTIARY  }
+  TCL6:    { gap: 20,     type: TERTIARY  }
+  # Physics debris in ALICE (only for ions)
+  TCLD:    { gap: null,   type: TERTIARY  }
+
+Collimators:
+  # length [m], angle [deg], offset [m], tilt_left [deg], tilt_right [deg], onesided [left/right], inactive [bool]
+  tcl.4l1.b2:         { gap: 17.0,      material: CU,     length: 1,       angle:   0                          }
+  tcl.5l1.b2:         { gap: 42.0,      material: CU,     length: 1,       angle:   0                          }
+  tcl.6l1.b2:         { gap: 20.0,      material: Iner,   length: 1,       angle:   0                          }
+  tctph.4r8.b2:       { gap: TCTh8,     material: Iner,   length: 1,       angle:   0                          }
+  tctpv.4r8.b2:       { gap: TCTv8,     material: Iner,   length: 1,       angle:  90                          }
+  tdisa.a4r8.b2:      { gap: TDI,       material: CU,     length: 1.565,   angle:  90                          }
+  tdisb.a4r8.b2:      { gap: TDI,       material: CU,     length: 1.565,   angle:  90                          }
+  tdisc.a4r8.b2:      { gap: TDI,       material: CU,     length: 1.565,   angle:  90                          }
+  tclia.4l8:          { gap: TCLI,      material: C,      length: 1,       angle:  90                          }
+  tclib.6l8.b2:       { gap: TCLI,      material: C,      length: 1,       angle:  90                          }
+  tcp.d6r7.b2:        { gap: TCP7,      material: MoGR,   length: 0.6,     angle:  90                          }
+  tcp.c6r7.b2:        { gap: TCP7,      material: MoGR,   length: 0.6,     angle:   0                          }
+  tcp.b6r7.b2:        { gap: TCP7,      material: C,      length: 0.6,     angle: 126.910152                   }
+  tcsg.a6r7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle: 141.100024                   }
+  #tcpcv.a6r7.b2:      { crystal }
+  tcsg.b5r7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle: 143.500145                   }
+  tcsg.a5r7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle:  40.700057                   }
+  #tcpch.a5r7.b2:      { crystal }
+  tcsg.d4r7.b2:       { gap: TCSG7,     material: MoGR,   length: 1,       angle:  90                          }
+  tcspm.d4r7.b2:      { gap: null,      material: MoGR,   length: 1,       angle:  90,         active: false   } # prototype
+  tcsg.b4r7.b2:       { gap: null,      material: C,      length: 1,       angle:   0,         active: false   }
+  tcspm.b4r7.b2:      { gap: TCSG7,     material: MoGR,   length: 1,       angle:   0                          }
+  tcsg.a4r7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle: 134.599818                   }
+  tcsg.a4l7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle:  46.300146                   }
+  tcsg.b5l7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle: 141.499949                   }
+  tcsg.d5l7.b2:       { gap: TCSG7,     material: C,      length: 1,       angle:  51.400044                   }
+  tcsg.e5l7.b2:       { gap: null,      material: C,      length: 1,       angle: 130.499732,  active: false   }
+  tcspm.e5l7.b2:      { gap: TCSG7,     material: MoGR,   length: 1,       angle: 130.499732                   }
+  tcsg.6l7.b2:        { gap: null,      material: C,      length: 1,       angle:   0.500192,  active: false   }
+  tcspm.6l7.b2:       { gap: TCSG7,     material: MoGR,   length: 1,       angle:   0.500192                   }
+  tcla.a6l7.b2:       { gap: TCLA7,     material: Iner,   length: 1,       angle:  90                          }
+  tcla.b6l7.b2:       { gap: TCLA7,     material: Iner,   length: 1,       angle:   0                          }
+  tcla.c6l7.b2:       { gap: TCLA7,     material: Iner,   length: 1,       angle:  90                          }
+  tcla.d6l7.b2:       { gap: TCLA7,     material: Iner,   length: 1,       angle:   0                          }
+  tcla.a7l7.b2:       { gap: TCLA7,     material: Iner,   length: 1,       angle:   0                          }
+  tcdqa.a4l6.b2:      { gap: TCDQ,      material: C,      length: 3,       angle:   0,         onesided: right }
+  tcdqa.c4l6.b2:      { gap: TCDQ,      material: C,      length: 3,       angle:   0,         onesided: right }
+  tcdqa.b4l6.b2:      { gap: TCDQ,      material: C,      length: 3,       angle:   0,         onesided: right }
+  tcsp.a4l6.b2:       { gap: TCSTCDQ,   material: C,      length: 1,       angle:   0                          }
+  tctph.4r5.b2:       { gap: 8.5,     material: Iner,   length: 1,       angle:   0                          }
+  tctpv.4r5.b2:       { gap: 8.5,     material: Iner,   length: 1,       angle:  90                          }
+  tcl.4l5.b2:         { gap: 17.0,      material: CU,     length: 1,       angle:   0                          }
+  tcl.5l5.b2:         { gap: 42.0,      material: CU,     length: 1,       angle:   0                          }
+  tcl.6l5.b2:         { gap: 20.0,      material: Iner,   length: 1,       angle:   0                          }
+  tcp.6r3.b2:         { gap: TCP3,      material: C,      length: 0.6,     angle:   0                          }
+  tcsg.5r3.b2:        { gap: TCSG3,     material: C,      length: 1,       angle:   0                          }
+  tcsg.4l3.b2:        { gap: TCSG3,     material: C,      length: 1,       angle:   0                          }
+  tcsg.a5l3.b2:       { gap: TCSG3,     material: C,      length: 1,       angle: 170.799865                   }
+  tcsg.b5l3.b2:       { gap: TCSG3,     material: C,      length: 1,       angle:  11.4                        }
+  tcla.a5l3.b2:       { gap: TCLA3,     material: Iner,   length: 1,       angle:  90                          }
+  tcla.b5l3.b2:       { gap: TCLA3,     material: Iner,   length: 1,       angle:   0                          }
+  tcla.6l3.b2:        { gap: TCLA3,     material: Iner,   length: 1,       angle:   0                          }
+  tcla.7l3.b2:        { gap: TCLA3,     material: Iner,   length: 1,       angle:   0                          }
+  tctph.4r2.b2:       { gap: TCTh2,     material: Iner,   length: 1,       angle:   0                          }
+  tctpv.4r2.b2:       { gap: TCTv2,     material: Iner,   length: 1,       angle:  90                          }
+  tcld.a11l2.b2:      { gap: TCLD,      material: Iner,   length: 0.6,     angle:   0                          }
+  tctph.4r1.b2:       { gap: 8.5,     material: Iner,   length: 1,       angle:   0                          }
+  tctpv.4r1.b2:       { gap: 8.5,     material: Iner,   length: 1,       angle:  90                          }

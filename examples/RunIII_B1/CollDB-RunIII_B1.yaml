@@ -65,8 +65,8 @@ Collimators:
   tcp.6l3.b1:         { <<: *TCP3,   angle:   0          }
   tcsg.5l3.b1:        { <<: *TCSG3,  angle:   0          }
   tcsg.4r3.b1:        { <<: *TCSG3,  angle:   0          }
-  tcsg.a5r3.b1:       { <<: *TCSG3,  angle: 170.799865   }
-  tcsg.b5r3.b1:       { <<: *TCSG3,  angle:  11.4        }
+  tcsg.a5r3.b1:       { <<: *TCSG3,  angle: 170.7        }
+  tcsg.b5r3.b1:       { <<: *TCSG3,  angle:  10.8        }
   tcla.a5r3.b1:       { <<: *TCLA3,  angle:  90          }
   tcla.b5r3.b1:       { <<: *TCLA3,  angle:   0          }
   tcla.6r3.b1:        { <<: *TCLA3,  angle:   0          }
@@ -82,23 +82,23 @@ Collimators:
   tcsp.a4r6.b1:       { <<: *TCSTCDQ                     }
   tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,         material: MoGR  }
   tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,         material: MoGR  }
-  tcp.b6l7.b1:        { <<: *TCP7,   angle: 126.910152   }
-  tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.100024   }
+  tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5        }
+  tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1        }
   tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,         bend: 85.10,  xdim: 5.0e-3,  ydim: 30.0e-3  }
-  tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.500145   }
-  tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.700057   }
+  tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.5        }
+  tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.7        }
   tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,         material: MoGR  }
   tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,         bend: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
   tcsg.b4l7.b1:       { <<: *TCSG7,  angle:   0,         active: false   }
   tcspm.b4l7.b1:      { <<: *TCSG7,  angle:   0,         material: MoGR  }
-  tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.599818   }
-  tcsg.a4r7.b1:       { <<: *TCSG7,  angle:  46.300146   }
-  tcsg.b5r7.b1:       { <<: *TCSG7,  angle: 141.499949   }
-  tcsg.d5r7.b1:       { <<: *TCSG7,  angle:  51.400044   }
-  tcsg.e5r7.b1:       { <<: *TCSG7,  angle: 130.499732,  active: false   }
-  tcspm.e5r7.b1:      { <<: *TCSG7,  angle: 130.499732,  material: MoGR  }
-  tcsg.6r7.b1:        { <<: *TCSG7,  angle:   0.500192,  active: false   }
-  tcspm.6r7.b1:       { <<: *TCSG7,  angle:   0.500192,  material: MoGR  }
+  tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.6        }
+  tcsg.a4r7.b1:       { <<: *TCSG7,  angle:  46.3        }
+  tcsg.b5r7.b1:       { <<: *TCSG7,  angle: 141.5        }
+  tcsg.d5r7.b1:       { <<: *TCSG7,  angle:  51.4        }
+  tcsg.e5r7.b1:       { <<: *TCSG7,  angle: 130.5,       active: false   }
+  tcspm.e5r7.b1:      { <<: *TCSG7,  angle: 130.5,       material: MoGR  }
+  tcsg.6r7.b1:        { <<: *TCSG7,  angle:   0.5,       active: false   }
+  tcspm.6r7.b1:       { <<: *TCSG7,  angle:   0.5,       material: MoGR  }
   tcla.a6r7.b1:       { <<: *TCLA7,  angle:  90          }
   tcla.b6r7.b1:       { <<: *TCLA7,  angle:   0          }
   tcla.c6r7.b1:       { <<: *TCLA7,  angle:  90          }

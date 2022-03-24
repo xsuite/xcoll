@@ -1,0 +1,107 @@
+######################################
+#########      Families      #########
+######################################
+#
+# Momentum cleaning
+NSIG_FAM TCP3                 15.0 PRIMARY
+NSIG_FAM TCSG3                18.0 SECONDARY
+NSIG_FAM TCLA3                20.0 TERTIARY
+# Betatron cleaning
+NSIG_FAM TCP7                  5.0 PRIMARY
+NSIG_FAM TCSG7                 6.5 SECONDARY
+NSIG_FAM TCLA7                10.0 TERTIARY
+# Injection protection
+NSIG_FAM TCLI                999.0 TERTIARY
+NSIG_FAM TDI                 999.0 TERTIARY
+# Dump protection
+NSIG_FAM TCDQ                  7.2 TERTIARY
+NSIG_FAM TCSTCDQ               7.2 SECONDARY
+# Physics background minimalisation
+NSIG_FAM TCTh1                 8.5 TERTIARY
+NSIG_FAM TCTv1                 8.5 TERTIARY
+NSIG_FAM TCTh2                37.0 TERTIARY
+NSIG_FAM TCTv2                37.0 TERTIARY
+NSIG_FAM TCTh5                 8.5 TERTIARY
+NSIG_FAM TCTv5                 8.5 TERTIARY
+NSIG_FAM TCTh8                15.0 TERTIARY
+NSIG_FAM TCTv8                15.0 TERTIARY
+# Physics debris
+NSIG_FAM TCL4                 17.0 TERTIARY
+NSIG_FAM TCL5                 42.0 TERTIARY
+NSIG_FAM TCL6                 20.0 TERTIARY
+# Physics debris in ALICE (only for ions)
+NSIG_FAM TCLD                999.0 TERTIARY
+#
+######################################
+#########    Collimators     #########
+######################################
+#
+# name                                                opening/fam mat.     length[m]    angle[deg]     offset[m]
+tcl.4l1.b2                                              17.0 CU        1.000000      0.000000      0.000000
+tcl.5l1.b2                                              42.0 CU        1.000000      0.000000      0.000000
+tcl.6l1.b2                                              20.0 Iner      1.000000      0.000000      0.000000
+tctph.4r8.b2                                                TCTh8 Iner      1.000000      0.000000      0.000000
+tctpv.4r8.b2                                                TCTv8 Iner      1.000000     90.000000      0.000000
+tdisa.a4r8.b2                                                 TDI CU        1.565000     90.000000      0.000000
+tdisb.a4r8.b2                                                 TDI CU        1.565000     90.000000      0.000000
+tdisc.a4r8.b2                                                 TDI CU        1.565000     90.000000      0.000000
+tclia.4l8                                                    TCLI C         1.000000     90.000000      0.000000
+tclib.6l8.b2                                                 TCLI C         1.000000     90.000000      0.000000
+tcp.d6r7.b2                                                  TCP7 MoGR      0.600000     90.000000      0.000000
+tcp.c6r7.b2                                                  TCP7 MoGR      0.600000      0.000000      0.000000
+tcp.b6r7.b2                                                  TCP7 C         0.600000    126.910152      0.000000
+tcsg.a6r7.b2                                                TCSG7 C         1.000000    141.100024      0.000000
+tcsg.b5r7.b2                                                TCSG7 C         1.000000    143.500145      0.000000
+tcsg.a5r7.b2                                                TCSG7 C         1.000000     40.700057      0.000000
+tcsg.d4r7.b2                                                TCSG7 MoGR      1.000000     90.000000      0.000000
+tcspm.b4r7.b2                                               TCSG7 MoGR      1.000000      0.000000      0.000000
+tcsg.a4r7.b2                                                TCSG7 C         1.000000    134.599818      0.000000
+tcsg.a4l7.b2                                                TCSG7 C         1.000000     46.300146      0.000000
+tcsg.b5l7.b2                                                TCSG7 C         1.000000    141.499949      0.000000
+tcsg.d5l7.b2                                                TCSG7 C         1.000000     51.400044      0.000000
+tcspm.e5l7.b2                                               TCSG7 MoGR      1.000000    130.499732      0.000000
+tcspm.6l7.b2                                                TCSG7 MoGR      1.000000      0.500192      0.000000
+tcla.a6l7.b2                                                TCLA7 Iner      1.000000     90.000000      0.000000
+tcla.b6l7.b2                                                TCLA7 Iner      1.000000      0.000000      0.000000
+tcla.c6l7.b2                                                TCLA7 Iner      1.000000     90.000000      0.000000
+tcla.d6l7.b2                                                TCLA7 Iner      1.000000      0.000000      0.000000
+tcla.a7l7.b2                                                TCLA7 Iner      1.000000      0.000000      0.000000
+tcdqa.a4l6.b2                                                TCDQ C         3.000000      0.000000      0.000000
+tcdqa.c4l6.b2                                                TCDQ C         3.000000      0.000000      0.000000
+tcdqa.b4l6.b2                                                TCDQ C         3.000000      0.000000      0.000000
+tcsp.a4l6.b2                                              TCSTCDQ C         1.000000      0.000000      0.000000
+tctph.4r5.b2                                            8.5 Iner      1.000000      0.000000      0.000000
+tctpv.4r5.b2                                            8.5 Iner      1.000000     90.000000      0.000000
+tcl.4l5.b2                                              17.0 CU        1.000000      0.000000      0.000000
+tcl.5l5.b2                                              42.0 CU        1.000000      0.000000      0.000000
+tcl.6l5.b2                                              20.0 Iner      1.000000      0.000000      0.000000
+tcp.6r3.b2                                                   TCP3 C         0.600000      0.000000      0.000000
+tcsg.5r3.b2                                                 TCSG3 C         1.000000      0.000000      0.000000
+tcsg.4l3.b2                                                 TCSG3 C         1.000000      0.000000      0.000000
+tcsg.a5l3.b2                                                TCSG3 C         1.000000    170.799865      0.000000
+tcsg.b5l3.b2                                                TCSG3 C         1.000000     11.400000      0.000000
+tcla.a5l3.b2                                                TCLA3 Iner      1.000000     90.000000      0.000000
+tcla.b5l3.b2                                                TCLA3 Iner      1.000000      0.000000      0.000000
+tcla.6l3.b2                                                 TCLA3 Iner      1.000000      0.000000      0.000000
+tcla.7l3.b2                                                 TCLA3 Iner      1.000000      0.000000      0.000000
+tctph.4r2.b2                                                TCTh2 Iner      1.000000      0.000000      0.000000
+tctpv.4r2.b2                                                TCTv2 Iner      1.000000     90.000000      0.000000
+tcld.a11l2.b2                                                TCLD Iner      0.600000      0.000000      0.000000
+tctph.4r1.b2                                            8.5 Iner      1.000000      0.000000      0.000000
+tctpv.4r1.b2                                            8.5 Iner      1.000000     90.000000      0.000000
+#
+# Old collimators still present in the machine but not in normal use (first one is the prototype):
+tcspm.d4r7.b2                                               999.0 MoGR      1.000000     90.000000      0.000000
+tcsg.b4r7.b2                                                999.0 C         1.000000      0.000000      0.000000
+tcsg.e5l7.b2                                                999.0 C         1.000000    130.499732      0.000000
+tcsg.6l7.b2                                                 999.0 C         1.000000      0.500192      0.000000
+#
+#
+#
+######################################
+### Additional Collimator Settings ###
+######################################
+SETTINGS
+ONESIDED tcdqa.a4l6.b2                                    1
+ONESIDED tcdqa.c4l6.b2                                    1
+ONESIDED tcdqa.b4l6.b2                                    1

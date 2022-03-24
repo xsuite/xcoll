@@ -1,1 +1,1 @@
-from .collimator import Collimator
+from .collimators import BlackAbsorber

@@ -3,13 +3,13 @@ import pandas as pd
 import io
 
 
-def load_SixTrack_colldb(filename, emitx, emity=None):
+def load_SixTrack_colldb(filename, *, emitx, emity):
     return CollDB(emitx=emitx, emity=emity, sixtrack_file=filename)
     
 class CollDB:
-    def __init__(self, *, emitx, emity=None, sixtrack_file=None):
+    def __init__(self, *, emitx, emity, sixtrack_file=None):
         self._emitx = emitx
-        self._emity = emitx if emity is None else emity
+        self._emity = emity
         self._beta_gamma_rel = None
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)

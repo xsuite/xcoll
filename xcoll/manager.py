@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from pyk2 import K2Collimator
 
 from .beam_elements import Collimator
 from .colldb import CollDB
+from pyk2 import K2Collimator
 
 class CollimatorManager:
     def __init__(self, *, line, colldb: CollDB):        
@@ -138,7 +138,9 @@ class CollimatorManager:
             if isinstance(line[name], Collimator):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                # The jaw positions are wrt the closed orbit  =>  (x, y) or (x, px, y, py) ?
+                line[name].dpx = colldb.px[name]
+                line[name].dpy = colldb.py[name]
+                line[name].angle = colldb.angle[name]
                 line[name].jaw_R = -colldb._colldb['opening_R'][name] + colldb.offset[name]
                 line[name].jaw_L = colldb._colldb['opening_L'][name] + colldb.offset[name]
             elif isinstance(line[name], K2Collimator):

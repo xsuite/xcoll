@@ -12,7 +12,7 @@ import sixtracktools as st
 
 
 # Import Run III lattice
-line = xt.Line.from_sixinput(st.SixInput('./'))
+line = xt.Line.from_sixinput(st.SixInput('./RunIII_B1'))
 
 # Attach reference particle (a proton at 6.8 TeV)
 line.particle_ref = xp.Particles(mass0 = xp.PROTON_MASS_EV, p0c=6.8e12)
@@ -24,7 +24,7 @@ line['acsca.d5l4.b1'].frequency = 1e6
 # Initialise collmanager
 coll_manager = xc.CollimatorManager(
     line=line,
-    colldb=xc.load_SixTrack_colldb('CollDB-RunIII_B1.dat', 3.5e-6)
+    colldb=xc.load_SixTrack_colldb('RunIII_B1/CollDB-RunIII_B1.dat', emitx=3.5e-6, emity=3.5e-6)
     )
 
 # Install collimators in line as black absorbers
