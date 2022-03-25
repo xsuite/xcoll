@@ -387,6 +387,7 @@ class CollDB:
                 + (df['sigmay']*np.sin(np.float_(df['angle'].values)*np.pi/180))**2
             )
 
+    # parking is defined with respect to beam centre
     def _compute_opening(self):
         df = self._colldb
         incomplete = np.any([ np.any([ x is None for x in df[opt] ]) for opt in ['betx', 'bety'] ])
@@ -437,7 +438,7 @@ class CollDB:
                 df[prop + "_L"] = vals
                 df[prop + "_R"] = vals
         
-        # The variable gaps is a dictionary
+        # The variable vals is a dictionary
         if isinstance(vals, dict):
             correct_format = True
             for name, val in vals.items():
@@ -469,7 +470,7 @@ class CollDB:
             
     def _initialise_None(self):
         fields = {'s_center':None, 'gap_L': None, 'gap_R': None, 'opening_L': None, 'opening_R': None, 'angle': 0, 'offset': 0}
-        fields.update({'parking': 0.025})
+        fields.update({'parking': None})
         fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'tilt_L': 0, 'tilt_R': 0})
         fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
         fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
@@ -518,15 +519,18 @@ class CollDB:
 
         df = df[['name', 'opening', 'length', 'angle', 'material', 'offset']]
         df.insert(5,'stage', df['opening'].apply(lambda s: family_types.get(s, 'UNKNOWN')))   
-        
+
         sides = df['name'].apply(lambda s: onesided.get(s, 0))
         gaps = df['opening'].apply(lambda s: float(family_settings.get(s, s)))
 
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df.rename(columns={'length':'active_length'}, inplace=True)
+        df['parking'] = 0.025
+        df.loc[df.name.str[:3] == 'tct', 'parking'] = 0.04
+
         df = df.set_index('name')
         self._colldb = df.drop('opening', axis=1)
-        
+
         self._initialise_None()
         self.gap = gaps.values
         self.onesided = sides.values
