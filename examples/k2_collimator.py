@@ -31,8 +31,8 @@ coll_manager = xc.CollimatorManager(
     )
 
 # Install collimators in line as black absorbers
-print("Installing black absorbers.. ")
-coll_manager.install_black_absorbers(verbose=True)
+print("Installing K2 collimators.. ")
+coll_manager.install_k2_collimators(colldb_filename='RunIIIexample/CollDB-RunIII_B1.dat',verbose=True)
 
 # Build the tracker
 tracker = line.build_tracker()
@@ -119,4 +119,9 @@ plt.plot(x_norm[surv>0], y_norm[surv>0], '.', color='green')
 plt.axis('equal')
 plt.axis([n_sigmas, -n_sigmas, -n_sigmas, n_sigmas])
 plt.show()
+
+# Remove spurious SixTrack output files
+from pathlib import Path
+for f in list(Path('./').glob('fort.*')) + list(Path('./').glob('MaterialInformation.txt')):
+    f.unlink()
 
