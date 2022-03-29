@@ -142,8 +142,10 @@ class CollimatorManager:
         incomplete = np.any([ np.any([ x is None for x in df[opt] ]) for opt in opt_funcs ])
         if recompute or incomplete:
             tracker = line.tracker
-            df['opening_L'] = 1
-            df['opening_R'] = 1
+            df['opening_upstr_L'] = 1
+            df['opening_upstr_R'] = 1
+            df['opening_downstr_L'] = 1
+            df['opening_downstr_R'] = 1
             tw = tracker.twiss(at_s=df['s_center'])
             for opt in opt_funcs:
                 df[opt] = tw[opt]
@@ -182,8 +184,10 @@ class CollimatorManager:
         for name in names:
             # Override openings if opening fully
             if full_open and name not in gaps.keys():
-                colldb._colldb.loc[name,'opening_L'] = 1
-                colldb._colldb.loc[name,'opening_R'] = 1
+                colldb._colldb.loc[name,'opening_upstr_L'] = 1
+                colldb._colldb.loc[name,'opening_upstr_R'] = 1
+                colldb._colldb.loc[name,'opening_downstr_L'] = 1
+                colldb._colldb.loc[name,'opening_downstr_R'] = 1
 
             # Apply settings to element
             if isinstance(line[name], BlackAbsorber):
@@ -192,15 +196,15 @@ class CollimatorManager:
                 line[name].dpx = 0
                 line[name].dpy = 0
                 line[name].angle = colldb.angle[name]
-                line[name].jaw_R = -colldb._colldb.opening_R[name] + colldb.offset[name]
-                line[name].jaw_L = colldb._colldb.opening_L[name] + colldb.offset[name]
+                line[name].jaw_R = -colldb._colldb.opening_upstr_R[name] + colldb.offset[name]
+                line[name].jaw_L = colldb._colldb.opening_upstr_L[name] + colldb.offset[name]
             elif isinstance(line[name], K2Collimator):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].dpx = colldb.px[name]
                 line[name].dpy = colldb.py[name]
                 line[name].angle = colldb.angle[name]
-                line[name].jaw = colldb._colldb.opening_L[name]
+                line[name].jaw = colldb._colldb.opening_upstr_L[name]
                 if colldb.onesided[name] == 'both':
                     line[name].onesided = False
                 elif colldb.onesided[name] == 'left':

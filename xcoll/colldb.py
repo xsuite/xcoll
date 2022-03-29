@@ -18,9 +18,10 @@ class CollDB:
 
     def show(self):
         return pd.DataFrame({
+                's_center':        self.s_center,
                 'gap':             self.gap,
                 'opening':         self.opening,
-                's_center':        self.s_center,
+#                 'align':           self.align,
                 'angle':           self.angle,
                 'material':        self.material,
                 'offset':          self.offset,
@@ -92,6 +93,7 @@ class CollDB:
     def material(self, material):
         self._set_property('material', material)
 
+    # TODO: should offset also go into opening calculation? And in gap?
     @property
     def offset(self):
         return self._colldb['offset']
@@ -100,6 +102,7 @@ class CollDB:
     def offset(self, offset):
         self._set_property('offset', offset)
 
+    # TODO: should tilt also go into opening calculation? And in gap?
     @property
     def tilt(self):
         tilts = np.array([self._colldb.tilt_L.values,self._colldb.tilt_R.values])
@@ -282,8 +285,15 @@ class CollDB:
 
     @property
     def opening(self):
-        openings = np.array([self._colldb.opening_L.values,self._colldb.opening_R.values])
-        return pd.Series([ L if L == R else [L,R] for L, R in openings.T ], index=self._colldb.index, dtype=object)
+        openings = np.array([
+                        self._colldb.opening_upstr_L.values,
+                        self._colldb.opening_upstr_R.values,
+                        self._colldb.opening_downstr_L.values,
+                        self._colldb.opening_downstr_R.values
+                    ])
+        return pd.Series([ 
+                        Lu if Lu == Ru == Ld == Rd else  [[Lu,Ru],[Ld,Rd]] for Lu, Ru, Ld, Rd in openings.T
+                    ], index=self._colldb.index, dtype=object)
     
     @property
     def onesided(self):
@@ -396,8 +406,10 @@ class CollDB:
         else:
             df['sigmax'] = np.sqrt(df['betx']*self._emitx/self._beta_gamma_rel)
             df['sigmay'] = np.sqrt(df['bety']*self._emity/self._beta_gamma_rel)
-            df['opening_L'] = df['parking'] if df['gap_L'] is None else np.minimum(df['gap_L']*self.beam_size,df['parking'])
-            df['opening_R'] = df['parking'] if df['gap_R'] is None else np.minimum(df['gap_R']*self.beam_size,df['parking'])
+            df['opening_upstr_L'] = df['parking'] if df['gap_L'] is None else np.minimum(df['gap_L']*self.beam_size,df['parking'])
+            df['opening_upstr_R'] = df['parking'] if df['gap_R'] is None else np.minimum(df['gap_R']*self.beam_size,df['parking'])
+            df['opening_downstr_L'] = df['parking'] if df['gap_L'] is None else np.minimum(df['gap_L']*self.beam_size,df['parking'])
+            df['opening_downstr_R'] = df['parking'] if df['gap_R'] is None else np.minimum(df['gap_R']*self.beam_size,df['parking'])
 
 
 
@@ -469,8 +481,8 @@ class CollDB:
                 
             
     def _initialise_None(self):
-        fields = {'s_center':None, 'gap_L': None, 'gap_R': None, 'opening_L': None, 'opening_R': None, 'angle': 0, 'offset': 0}
-        fields.update({'parking': None})
+        fields = {'s_center':None, 'align': None, 'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'parking': None}
+        fields.update({'opening_upstr_L': None, 'opening_upstr_R': None, 'opening_downstr_L': None, 'opening_downstr_R': None})
         fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'tilt_L': 0, 'tilt_R': 0})
         fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
         fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
