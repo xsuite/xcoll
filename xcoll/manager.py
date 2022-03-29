@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber
+from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
 from .colldb import CollDB
-from pyk2 import K2Collimator, K2Engine
 
 _all_collimator_types = { BlackAbsorber, K2Collimator }
 
