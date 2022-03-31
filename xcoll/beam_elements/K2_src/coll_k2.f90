@@ -450,12 +450,6 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
 
   end do ! End of loop over all particles
 
-! write out energy change over this collimator
-  if((ien0-ien1) > one) then
-    write(unit208,"(2(i6,1x),e24.16)") icoll, (nnuc0-nnuc1), c1m3*(ien0-ien1)
-    flush(unit208)
-  end if
-
 end subroutine k2coll_collimate
 
 !>

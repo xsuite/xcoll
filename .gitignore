@@ -1,0 +1,16 @@
+*.o
+*.obj
+*.mod
+*.a
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+fort.??*
+*.so
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+
