@@ -616,16 +616,6 @@ subroutine k2coll_jaw(s, nabs, ipart)
   nabs = 0
   nabs_tmp = nabs
 
-  if(mat == nmat) then ! Collimator treated as black absorber
-    nabs = 1
-    s    = zero
-    return
-  else if(mat == nmat-1) then ! Collimator treated as drift
-    s = zlm
-    x = x+s*xp
-    z = z+s*zp
-    return
-  end if
 
   ! Initialize the interaction length to input interaction length
   rlen = zlm
