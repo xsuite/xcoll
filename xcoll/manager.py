@@ -198,6 +198,7 @@ class CollimatorManager:
                 line[name].jaw_R = -colldb._colldb.opening_upstr_R[name] + colldb.offset[name]
                 line[name].jaw_L = colldb._colldb.opening_upstr_L[name] + colldb.offset[name]
             elif isinstance(line[name], K2Collimator):
+                line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].dpx = colldb.px[name]

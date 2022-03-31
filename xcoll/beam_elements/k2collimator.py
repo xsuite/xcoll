@@ -12,7 +12,7 @@ class K2Engine:
         else:
             self.random_generator_seed = random_generator_seed
 
-        import pyk2
+        import xcoll.beam_elements.pyk2 as pyk2
         pyk2.pyk2_init(n_alloc=n_alloc, colldb_input_fname=colldb_filename,
                random_generator_seed=self.random_generator_seed)
         pyk2._active_engine = self
@@ -42,7 +42,7 @@ class K2Collimator:
 #     behaves_like_drift = True
 
     def __init__(self, *, k2engine, icoll, active_length, inactive_front, inactive_back, angle,
-                 jaw, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=None):
+                 jaw, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=None, material=None):
 
         self._k2engine = k2engine
         self.icoll = icoll
@@ -58,6 +58,7 @@ class K2Collimator:
         self.dpy = dpy
         self.offset = offset
         self.tilt = tilt
+        self.material = material
 
     @property
     def k2engine(self):
@@ -69,7 +70,7 @@ class K2Collimator:
 
     def track(self, particles):
 
-        import pyk2
+        import xcoll.beam_elements.pyk2 as pyk2
         if pyk2._active_engine is not self.k2engine:
             raise ValueError(f"Collimator has different K2Engine than the main initiated one!")
         npart = particles._num_active_particles
@@ -111,6 +112,8 @@ class K2Collimator:
         # `linside` is an array of logicals in fortran. Beware of the fortran converion:
         # True <=> -1 (https://stackoverflow.com/questions/39454349/numerical-equivalent-of-true-is-1)
 
+        matID = pyk2.materials[self.material]['ID']
+
         pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
                       y_particles=y_part,
@@ -127,7 +130,9 @@ class K2Collimator:
                       nhit_stage=nhit_stage,
                       nabs_type=nabs_type,
                       linside=linside,
-                      icoll=self.icoll,
+                      matid=matID,
+                      is_crystal=False,
+                    #   icoll=self.icoll,
                       ie=1,                            # ignore: structure element index
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
