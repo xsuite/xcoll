@@ -27,7 +27,7 @@ line['acsca.d5l4.b1'].frequency = 1e6
 # Initialise collmanager
 coll_manager = xc.CollimatorManager(
     line=line,
-    colldb=xc.load_SixTrack_colldb('RunIII_B1/CollDB-RunIII_B1.dat', emitx=3.5e-6, emity=3.5e-6)
+    colldb=xc.load_SixTrack_colldb('RunIII_B1/CollDB-RunIII_B1.dat', emit=3.5e-6)
     )
 
 # Install collimators in line as black absorbers
@@ -36,6 +36,9 @@ coll_manager.install_black_absorbers(verbose=True)
 
 # Build the tracker
 tracker = line.build_tracker()
+
+# Align the collimators
+coll_manager.align_collimators_to('front')
 
 # Set the collimator openings based on the colldb,
 # or manually override with the option gaps={collname: gap}
@@ -60,7 +63,7 @@ y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 part = xp.build_particles(tracker=tracker, x_norm=x_norm, y_norm=y_norm,
                           scale_with_transverse_norm_emitt=(3.5e-6, 3.5e-6),
                           at_element='tcp.d6l7.b1',
-                          match_at_s=coll_manager.s_start_active['tcp.d6l7.b1']
+                          match_at_s=coll_manager.s_match['tcp.d6l7.b1']
                          )
 
 # Track

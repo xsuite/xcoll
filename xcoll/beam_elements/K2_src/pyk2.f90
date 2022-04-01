@@ -14,7 +14,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed)
   use coll_db        ! for cdb_readCollDB
   use coll_k2        ! for scattering
 
-  use files  ! for testing
+!  use files  ! for testing
 
   implicit none
 
@@ -64,7 +64,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   use coll_db        ! for cdb_readCollDB
   use coll_k2        ! for scattering
 
-  use files  ! for testing
+ ! use files  ! for testing
 
   implicit none
 

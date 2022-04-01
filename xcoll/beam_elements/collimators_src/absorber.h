@@ -54,12 +54,15 @@ void rotation_for_collimator(LocalParticle* part,
 
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
+    double const is_active = BlackAbsorberData_get_active(el);
     double const inactive_front = BlackAbsorberData_get_inactive_front(el);
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
 
-    double const jaw_L = BlackAbsorberData_get_jaw_L(el);
-    double const jaw_R = BlackAbsorberData_get_jaw_R(el);
+    double const jaw_F_L = BlackAbsorberData_get_jaw_F_L(el);
+    double const jaw_F_R = BlackAbsorberData_get_jaw_F_R(el);
+    double const jaw_B_L = BlackAbsorberData_get_jaw_B_L(el);
+    double const jaw_B_R = BlackAbsorberData_get_jaw_B_R(el);
     double const jaw_U = BlackAbsorberData_get_jaw_U(el);
     double const jaw_D = BlackAbsorberData_get_jaw_D(el);
 
@@ -81,19 +84,24 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         LocalParticle_add_to_py(part, -dpy);
         rotation_for_collimator(part, sin_z, cos_z);
 
-        // Drift before active length
-        drift_for_collimator(part, inactive_front);
+        if (!is_active){
+            drift_for_collimator(part, inactive_front + active_length + inactive_back);
+            is_alive = (int64_t)1;
+	    } else {
+            // Drift before active length
+            drift_for_collimator(part, inactive_front);
 
-        // Drifts and checks in the active part
-        is_alive = is_within_aperture(part, jaw_L, jaw_R, jaw_D, jaw_U);
-        if (is_alive){
-            drift_for_collimator(part, active_length);
-        }
-        is_alive = is_within_aperture(part, jaw_L, jaw_R, jaw_D, jaw_U);
+            // Drifts and checks in the active part
+            is_alive = is_within_aperture(part, jaw_F_L, jaw_F_R, jaw_D, jaw_U);
+            if (is_alive){
+                drift_for_collimator(part, active_length);
+            }
+            is_alive = is_within_aperture(part, jaw_B_L, jaw_B_R, jaw_D, jaw_U);
 
-        // Drift after active length
-        if (is_alive){
-            drift_for_collimator(part, inactive_back);
+            // Drift after active length
+            if (is_alive){
+                drift_for_collimator(part, inactive_back);
+            }
         }
 
         // Back from collimator reference system
