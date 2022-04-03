@@ -147,7 +147,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 LocalParticle_set_state(part, -333);
                 // Record data
                 if (record_impacts){
-//                     // GPU-proof way (though did not work):
+//                     // TODO: GPU-proof way (though did not work):
 //                     BlackAbsorberData_add_to_impacts__row_id(el, 1);
 //                     int64_t record_index = BlackAbsorberData_get_impacts__row_id(el);
 
@@ -160,7 +160,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     double q = LocalParticle_get_charge_ratio(part) * LocalParticle_get_q0(part);
                     double energy = (LocalParticle_get_ptau(part) + 1) * mass_ratio * LocalParticle_get_p0c(part);
 
+                    BlackAbsorberData_set_impacts_at_element(el, record_index, LocalParticle_get_at_element(part));
                     BlackAbsorberData_set_impacts_s(el, record_index, LocalParticle_get_s(part));
+                    // TODO: turn is zero; does that make sense?
                     BlackAbsorberData_set_impacts_turn(el, record_index, LocalParticle_get_at_turn(part));
 //                     BlackAbsorberData_set_impacts_interaction_type(el, record_index, 0);
 

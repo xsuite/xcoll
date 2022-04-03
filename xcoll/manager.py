@@ -37,7 +37,22 @@ class CollimatorManager:
 
     @property
     def impacts(self):
-        pass # return view on CollimatorImpacts
+        n_rows = self._impacts._row_id + 1
+        df = pd.DataFrame({
+                # TODO: name instead of element ID. How to pass xo.String to absorber.h?
+                'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
+                's':                 self._impacts.s[:n_rows],
+                'turn':              self._impacts.turn[:n_rows],
+                'interaction_type':  self._impacts.interaction_type[:n_rows],
+            })
+        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'm', 'q'] #, 'a', 'pdgid']
+        for particle in ['parent', 'child']:
+            multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
+            newdf = pd.DataFrame(index=df.index, columns=multicols)
+            for col in cols:
+                newdf[particle, col] = getattr(self._impacts,col + '_' + particle)[:n_rows]
+            df = pd.concat([df, newdf], axis=1)
+        return df
 
     @property
     def record_impacts(self):
@@ -79,8 +94,8 @@ class CollimatorManager:
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
             return BlackAbsorber(
-                    _buffer = self._buffer,
-                    impacts = self._impacts,
+                    _buffer=self._buffer,
+                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],

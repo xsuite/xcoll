@@ -84,7 +84,7 @@ class K2Collimator:
     def length(self):
         return self.active_length + self.inactive_front + self.inactive_back
 
-    def track(self, particles):
+    def track(self, particles):  # TODO: write impacts
         from .pyk2 import pyk2_run
         npart = particles._num_active_particles
         if npart > self.k2engine.n_alloc:

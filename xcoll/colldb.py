@@ -18,8 +18,7 @@ class CollDB:
         else:
             self._colldb = None
 
-    @property
-    def summary(self):
+    def to_pandas(self):
         return pd.DataFrame({
                 's_center':        self.s_center,
                 'gap':             self.gap,
@@ -306,7 +305,7 @@ class CollDB:
                     ]).T)
         for i, jaw in enumerate(jaws):
             # All 4 jaw points are the same
-            if jaw[0] == jaw[1] == jaw[2] == jaw[3]:
+            if jaw[0] == -jaw[1] == jaw[2] == -jaw[3]:
                 jaws[i] = jaw[0]
             # Upstream and downstream jaws are the same
             # (all cases except angular alignment and/or tilt)
