@@ -47,3 +47,9 @@ cmake_install.cmake
 
 # SixTrack
 fort.??*
+*.so
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg

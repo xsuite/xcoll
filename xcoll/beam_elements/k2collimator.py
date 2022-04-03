@@ -13,8 +13,8 @@ class K2Engine:
         else:
             self.random_generator_seed = random_generator_seed
 
-        from .pyk2 import pyk2_init
-        pyk2_init(n_alloc=n_alloc, colldb_input_fname=colldb_filename,
+        import xcoll.beam_elements.pyk2 as pyk2
+        pyk2.pyk2_init(n_alloc=n_alloc, colldb_input_fname=colldb_filename,
                random_generator_seed=self.random_generator_seed)
         
         
@@ -42,7 +42,7 @@ class K2Collimator:
 #     behaves_like_drift = True
 
     def __init__(self, *, k2engine, icoll, active_length, inactive_front, inactive_back, angle, is_active=True,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=0):
+                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=0, material=None):
 
         self._k2engine = k2engine
         self.icoll = icoll
@@ -62,6 +62,7 @@ class K2Collimator:
         self.offset = offset
         self.tilt = tilt
         self._active = is_active
+        self.material = material
 
     @property
     def k2engine(self):
@@ -85,7 +86,7 @@ class K2Collimator:
         return self.active_length + self.inactive_front + self.inactive_back
 
     def track(self, particles):  # TODO: write impacts
-        from .pyk2 import pyk2_run
+        import xcoll.beam_elements.pyk2 as pyk2
         npart = particles._num_active_particles
         if npart > self.k2engine.n_alloc:
             raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
@@ -143,7 +144,9 @@ class K2Collimator:
             opening = self.jaw_F_L - self.jaw_F_R
             offset = self.offset + ( self.jaw_F_L + self.jaw_F_R )/2
 
-            pyk2_run(x_particles=x_part,
+            matID = pyk2.materials[self.material]['ID']
+
+            pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
                       y_particles=y_part,
                       yp_particles=yp_part,
@@ -159,7 +162,9 @@ class K2Collimator:
                       nhit_stage=nhit_stage,
                       nabs_type=nabs_type,
                       linside=linside,
-                      icoll=self.icoll,
+                      matid=matID,
+                      is_crystal=False,
+                    #   icoll=self.icoll,
                       ie=1,                            # ignore: structure element index
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,

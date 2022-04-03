@@ -47,7 +47,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 p_particles, part_hit_pos, part_hit_turn, &
                 part_abs_pos, part_abs_turn, part_impact, &
                 part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
-                icoll, ie, c_length, c_rotation, c_aperture, c_offset, &
+                matid, is_crystal, ie, c_length, c_rotation, c_aperture, c_offset, &
                 c_tilt, c_enom, onesided, random_generator_seed)
 
   use floatPrecision
@@ -91,7 +91,9 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   integer(kind=4)  , intent(inout) :: nhit_stage(num_particles)
   integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
   logical(kind=4)  , intent(inout) :: linside(num_particles)
-  integer(kind=4)  , intent(in):: icoll
+  ! integer(kind=4)  , intent(in):: icoll
+  integer(kind=4)  , intent(in):: matid
+  logical(kind=4)  , intent(in):: is_crystal
   integer(kind=4)  , intent(in):: ie
   real(kind=8) , intent(in):: c_length
   real(kind=8) , intent(in):: c_rotation
@@ -139,7 +141,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 
   call k2coll_collimate( &
-     icoll, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
+     matid, is_crystal, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom*c1m3, part_hit_pos, part_hit_turn, part_abs_pos, part_abs_turn, &
      part_impact, part_indiv, part_linteract, &

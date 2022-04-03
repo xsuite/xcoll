@@ -65,7 +65,7 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
+subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit_pos, lhit_turn, part_abs_pos_local,             &
   part_abs_turn_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
@@ -81,7 +81,9 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
   use mathlib_bouncer
   use mod_ranlux
 
-  integer,          intent(in)    :: icoll        ! Collimator ID
+  ! integer,          intent(in)    :: icoll        ! Collimator ID
+  integer,          intent(in)    :: matid        ! Material ID
+  logical,          intent(in)    :: is_crystal
   integer,          intent(in)    :: ie           ! Structure element index
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -127,7 +129,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
   integer(kind=int16) :: nnuc0,nnuc1
 
   ! Initilaisation
-  mat    = cdb_cMaterialID(icoll)
+  mat = matid
   length = c_length
   p0     = enom
 
@@ -237,7 +239,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
     keeps = zero
     zlm   = -one*length
 
-    if(cdb_isCrystal(icoll)) then ! This is a crystal collimator
+    if(is_crystal) then ! This is a crystal collimator
 
       call cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
         part_abs_pos_local,part_abs_turn_local,impact,indiv,c_length)
@@ -436,7 +438,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
       nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
       ien1        = ien1  + rcp(j) * c1e3                   ! outcoming energy
 
-      if(cdb_isCrystal(icoll)) then
+      if(is_crystal) then
         p_in(j) = p
         s_in(j) = s_in(j) + s
       else
@@ -449,12 +451,6 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
     end if
 
   end do ! End of loop over all particles
-
-! write out energy change over this collimator
-  if((ien0-ien1) > one) then
-    write(unit208,"(2(i6,1x),e24.16)") icoll, (nnuc0-nnuc1), c1m3*(ien0-ien1)
-    flush(unit208)
-  end if
 
 end subroutine k2coll_collimate
 
@@ -620,16 +616,6 @@ subroutine k2coll_jaw(s, nabs, ipart)
   nabs = 0
   nabs_tmp = nabs
 
-  if(mat == nmat) then ! Collimator treated as black absorber
-    nabs = 1
-    s    = zero
-    return
-  else if(mat == nmat-1) then ! Collimator treated as drift
-    s = zlm
-    x = x+s*xp
-    z = z+s*zp
-    return
-  end if
 
   ! Initialize the interaction length to input interaction length
   rlen = zlm

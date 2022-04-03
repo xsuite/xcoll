@@ -280,6 +280,7 @@ class CollimatorManager:
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.active[name]
             elif isinstance(line[name], K2Collimator):
+                line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
