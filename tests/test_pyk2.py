@@ -1,5 +1,5 @@
 import numpy as np
-from Pathlib import Path
+from pathlib import Path
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
@@ -9,8 +9,8 @@ from xcoll.general import _pkg_root
 
 path = Path(_pkg_root / ".." / "tests" / "pyk2_data")
 
-k2_engine = xc.K2Engine(n_alloc=100000,
-        colldb_filename= str(_pkg_root) + "../tests/pyk2_data/CollDB-RunIII.dat", random_generator_seed=7569)
+k2_engine = xc.K2Engine(n_alloc=200000,
+        colldb_filename= "pyk2_data/CollDB-RunIII.dat", random_generator_seed=7569)
 
 x_test = np.loadtxt("pyk2_data/rcx.dump")
 xp_test = np.loadtxt("pyk2_data/rcxp.dump")
@@ -20,12 +20,12 @@ s_test = np.loadtxt("pyk2_data/rcs.dump")
 p_test = np.loadtxt("pyk2_data/rcp.dump")
 
 npart = len(x_test)
-part = xp.Particles(p0c=7e12, x=x_test, y=y_test)
-part.ptau = (p_test*1e9 - part.energy0)/(part.energy0*part.beta0)
-rpp_test = part.rpp.copy()
-part.px = xp_test/part.rpp
-part.py = yp_test/part.rpp
-part_test = part.copy()
+# part = xp.Particles(p0c=7e12, x=x_test, y=y_test)
+# part.ptau = (p_test*1e9 - part.energy0)/(part.energy0*part.beta0)
+# rpp_test = part.rpp.copy()
+# part.px = xp_test/part.rpp
+# part.py = yp_test/part.rpp
+# part_test = part.copy()
 
 part_hit_pos = np.zeros(npart, dtype=np.int32)
 part_hit_turn = np.zeros(npart, dtype=np.int32)
