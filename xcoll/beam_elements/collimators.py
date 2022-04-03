@@ -4,6 +4,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
+from ..collimator_impacts import CollimatorImpactsData
 
 class BlackAbsorber(xt.BeamElement):
     _xofields = {
@@ -18,18 +19,34 @@ class BlackAbsorber(xt.BeamElement):
         'jaw_D': xo.Float64,
         'dx': xo.Float64,
         'dy': xo.Float64,
-        'dpx': xo.Float64,
-        'dpy': xo.Float64,
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
         'active': xo.Int8,
+        '_record_impacts': xo.Int8,
+        'impacts': xo.Ref(CollimatorImpactsData)
     }
 
     isthick = True
     behaves_like_drift = True
 
-    def __init__(self, angle=0, is_active=True, **kwargs):
+    def __init__(self, angle=0, is_active=True, impacts=None,
+                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, jaw_U=1, jaw_D=-1,
+                 **kwargs):
         super().__init__(**kwargs)
+        self.angle = angle
+        self.jaw_F_L = jaw_F_L
+        self.jaw_F_R = jaw_F_R
+        self.jaw_B_L = jaw_B_L
+        self.jaw_B_R = jaw_B_R
+        self.jaw_U   = jaw_U
+        self.jaw_D   = jaw_D
+        self.is_active = is_active
+        if impacts is None:
+            self._record_impacts = 0
+        else:
+            self._record_impacts = 1
+        self.impacts = impacts
+        
 
     @property
     def angle(self):
@@ -37,20 +54,24 @@ class BlackAbsorber(xt.BeamElement):
     
     @angle.setter
     def angle(self, angle):
-        anglerad = angle / 180 * np.pi
+        anglerad = angle / 180. * np.pi
         self.cos_z = np.cos(anglerad)
         self.sin_z = np.sin(anglerad)
+
     @property
     def is_active(self):
         return self.active
 
     @is_active.setter
     def is_active(self, is_active):
+        is_active = 1 if is_active == True else is_active
+        is_active = 0 if is_active == False else is_active
         self.active = is_active
-        self.jaw_F_L = 1
-        self.jaw_F_R = -1
-        self.jaw_B_L = 1
-        self.jaw_B_R = -1
+        if is_active <= 0:
+            self.jaw_F_L = 1
+            self.jaw_F_R = -1
+            self.jaw_B_L = 1
+            self.jaw_B_R = -1
 
     @property
     def length(self):

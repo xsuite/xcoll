@@ -3,12 +3,16 @@ import pandas as pd
 
 from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
 from .colldb import CollDB
+from .collimator_impacts import CollimatorImpacts
+
 import xtrack as xt
+import xobjects as xo
 
 _all_collimator_types = { BlackAbsorber, K2Collimator }
 
+
 class CollimatorManager:
-    def __init__(self, *, line, colldb: CollDB):        
+    def __init__(self, *, line, colldb: CollDB, _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
@@ -18,6 +22,31 @@ class CollimatorManager:
         else:
             self.line = line
         self._k2engine = None   # only needed for FORTRAN K2Collimator
+        
+        if _buffer is None:
+            if _context is None:
+                _context = xo.ContextCpu()
+            _buffer = _context.new_buffer()
+        self._buffer = _buffer
+        self._record_impacts = record_impacts
+        if record_impacts:
+            self._impacts = CollimatorImpacts(_capacity=storage_capacity, _buffer=_buffer)
+        else:
+            self._impacts = None
+
+
+    @property
+    def impacts(self):
+        pass # return view on CollimatorImpacts
+
+    @property
+    def record_impacts(self):
+        return self._record_impacts
+    
+    @record_impacts.setter
+    def record_impacts(self, record_impacts):
+        # TODO: if not collimators installed:   else error
+        self._record_impacts = record_impacts
 
     @property
     def collimator_names(self):
@@ -43,16 +72,20 @@ class CollimatorManager:
     def s_end(self):
         return self.colldb.s_center + self.colldb.active_length/2 + self.colldb.inactive_back
 
+    @property
+    def s_match(self):
+        return self.colldb.s_match
 
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
             return BlackAbsorber(
+                    _buffer = self._buffer,
+                    impacts = self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    is_active=True,
-                    jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1
+                    is_active=False
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
@@ -85,8 +118,7 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    is_active=True,
-                    jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1
+                    is_active=False
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
         
@@ -151,6 +183,10 @@ class CollimatorManager:
         self.colldb.align_to = align
 
 
+    def build_tracker(self):
+        return self.line.build_tracker(_buffer=self._buffer)
+
+    
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:
@@ -222,19 +258,17 @@ class CollimatorManager:
             elif isinstance(line[name], BlackAbsorber):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].dpx = 0
-                line[name].dpy = 0
                 line[name].angle = colldb.angle[name]
                 line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                line[name].is_active = colldb.active
+                line[name].is_active = colldb.active[name]
             elif isinstance(line[name], K2Collimator):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].dpx = colldb.px[name]
-                line[name].dpy = colldb.py[name]
+                line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
+                line[name].dpy = colldb.py[name]   # This is a K2 curiosity; we don't want it in our future code
                 line[name].angle = colldb.angle[name]
                 line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
@@ -246,8 +280,7 @@ class CollimatorManager:
                     line[name].onesided = True
                 elif colldb.onesided[name] == 'right':
                     raise ValueError(f"Right-sided collimators not implemented for K2Collimator {name}!")
-                line[name].offset = colldb.offset[name]
-                line[name].is_active = colldb.active
+                line[name].is_active = colldb.active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD

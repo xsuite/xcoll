@@ -18,7 +18,8 @@ class CollDB:
         else:
             self._colldb = None
 
-    def show(self):
+    @property
+    def summary(self):
         return pd.DataFrame({
                 's_center':        self.s_center,
                 'gap':             self.gap,
@@ -390,7 +391,7 @@ class CollDB:
 
     @property
     def s_match(self):
-        return self._colldb.s_align_front.values
+        return self._colldb.s_align_front
 
     # Optics
     @property
@@ -458,14 +459,17 @@ class CollDB:
     def _beam_size_front(self):
         df = self._colldb
         opt = self._optics
+#         import pdb ; pdb.set_trace()
         betx = opt.loc[df.s_align_front,'betx']
         bety = opt.loc[df.s_align_front,'bety']
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
-        return np.sqrt(
-                    (sigmax*np.cos(float(df.angle.values)*np.pi/180))**2
-                    + (sigmay*np.sin(float(df.angle.values)*np.pi/180))**2
+        result = np.sqrt(
+                    (sigmax*np.cos(np.float_(df.angle.values)*np.pi/180))**2
+                    + (sigmay*np.sin(np.float_(df.angle.values)*np.pi/180))**2
                 )
+        result.index = self._colldb.index
+        return result
 
     @property
     def _beam_size_back(self):
@@ -475,10 +479,12 @@ class CollDB:
         bety = opt.loc[df.s_align_back,'bety']
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
-        return np.sqrt(
-                    (sigmax*np.cos(float(df.angle.values)*np.pi/180))**2
-                    + (sigmay*np.sin(float(df.angle.values)*np.pi/180))**2
+        result = np.sqrt(
+                    (sigmax*np.cos(np.float_(df.angle.values)*np.pi/180))**2
+                    + (sigmay*np.sin(np.float_(df.angle.values)*np.pi/180))**2
                 )
+        result.index = self._colldb.index
+        return result
 
     # parking is defined with respect to closed orbit
     # TODO: tilt
@@ -634,10 +640,11 @@ class CollDB:
 
         self._initialise_None()
         self.gap = gaps.values
-        self.onesided = sides.values
+        self._colldb.onesided = sides.values
         self._colldb.onesided = [ 'both' if s==0 else s for s in self._colldb.onesided ]
         self._colldb.onesided = [ 'left' if s==1 else s for s in self._colldb.onesided ]
         self._colldb.onesided = [ 'right' if s==2 else s for s in self._colldb.onesided ]
+        
         self.gap = self.gap
 
         # Check if collimator active

@@ -42,7 +42,7 @@ class K2Collimator:
 #     behaves_like_drift = True
 
     def __init__(self, *, k2engine, icoll, active_length, inactive_front, inactive_back, angle, is_active=True,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=None):
+                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0):
 
         self._k2engine = k2engine
         self.icoll = icoll
@@ -61,7 +61,7 @@ class K2Collimator:
         self.dpy = dpy
         self.offset = offset
         self.tilt = tilt
-        self._is_active = is_active
+        self.active = is_active
 
     @property
     def k2engine(self):
@@ -73,11 +73,12 @@ class K2Collimator:
 
     @is_active.setter
     def is_active(self, is_active):
-        self._is_active = is_active
-        self.jaw_F_L = 1
-        self.jaw_F_R = -1
-        self.jaw_B_L = 1
-        self.jaw_B_R = -1
+        self.active = is_active
+        if not is_active:
+            self.jaw_F_L = 1
+            self.jaw_F_R = -1
+            self.jaw_B_L = 1
+            self.jaw_B_R = -1
 
     @property
     def length(self):

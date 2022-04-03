@@ -1,12 +1,16 @@
 import numpy as np
-
+from Pathlib import Path
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
+
 from xcoll.beam_elements.pyk2 import pyk2_run
+from xcoll.general import _pkg_root
+
+path = Path(_pkg_root / ".." / "tests" / "pyk2_data")
 
 k2_engine = xc.K2Engine(n_alloc=100000,
-        colldb_filename="pyk2_data/CollDB-RunIII.dat", random_generator_seed=7569)
+        colldb_filename= str(_pkg_root) + "../tests/pyk2_data/CollDB-RunIII.dat", random_generator_seed=7569)
 
 x_test = np.loadtxt("pyk2_data/rcx.dump")
 xp_test = np.loadtxt("pyk2_data/rcxp.dump")
