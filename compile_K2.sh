@@ -9,11 +9,13 @@ rm *.mod *.o
 # compile libraries
 cd crlibm
 make clean
+rm -r CMakeCache.txt CMakeFiles Makefile cmake_install.cmak &> /dev/null
 cmake .
 make CFLAGS=-fPIC
 mv libcrlibm.a ../
 cd ../roundctl
 make clean
+rm -r CMakeCache.txt CMakeFiles Makefile cmake_install.cmak &> /dev/null
 cmake .
 make CFLAGS=-fPIC
 mv libroundctl.a ../
@@ -29,14 +31,14 @@ gfortran -fpic -c \
  string_tools.f90  \
  mod_units.f90  \
  bouncy_castle.f90  \
+ libcrlibm.a \
+ libroundctl.a \
  coll_jawfit.f90  \
  coll_common.f90  \
- coll_db.f90  \
  mod_ranlux.f90  \
  mod_funlux.f90  \
  coll_crystal.f90  \
  coll_k2.f90 \
- files.f90 
 
 # link fortran
 f2py -m pyk2f -c pyk2.f90 \
@@ -52,14 +54,10 @@ f2py -m pyk2f -c pyk2.f90 \
  libroundctl.a  \
  coll_jawfit.o  \
  coll_common.o  \
- coll_db.o  \
  mod_ranlux.o  \
  mod_funlux.o  \
  coll_crystal.o  \
  coll_k2.o \
- files.o  \
- libcrlibm.a  \
- libroundctl.a  
 
 mv pyk2f.*.so ../pyk2
 

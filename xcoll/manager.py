@@ -3,14 +3,65 @@ import pandas as pd
 
 from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
 from .colldb import CollDB
+from .collimator_impacts import CollimatorImpacts
+
+import xtrack as xt
+import xobjects as xo
 
 _all_collimator_types = { BlackAbsorber, K2Collimator }
 
+
 class CollimatorManager:
-    def __init__(self, *, line, colldb: CollDB):        
-        self.colldb = colldb
-        self.line = line
+    def __init__(self, *, line, colldb: CollDB, _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
+        if not isinstance(colldb, CollDB):
+            raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
+        else:
+            self.colldb = colldb
+        if not isinstance(line, xt.Line):
+            raise ValueError("The variable 'line' needs to be an xtrack Line object!")
+        else:
+            self.line = line
         self._k2engine = None   # only needed for FORTRAN K2Collimator
+        
+        if _buffer is None:
+            if _context is None:
+                _context = xo.ContextCpu()
+            _buffer = _context.new_buffer()
+        self._buffer = _buffer
+        self._record_impacts = record_impacts
+        if record_impacts:
+            self._impacts = CollimatorImpacts(_capacity=storage_capacity, _buffer=_buffer)
+        else:
+            self._impacts = None
+
+
+    @property
+    def impacts(self):
+        n_rows = self._impacts._row_id + 1
+        df = pd.DataFrame({
+                # TODO: name instead of element ID. How to pass xo.String to absorber.h?
+                'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
+                's':                 self._impacts.s[:n_rows],
+                'turn':              self._impacts.turn[:n_rows],
+                'interaction_type':  self._impacts.interaction_type[:n_rows],
+            })
+        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'm', 'q'] #, 'a', 'pdgid']
+        for particle in ['parent', 'child']:
+            multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
+            newdf = pd.DataFrame(index=df.index, columns=multicols)
+            for col in cols:
+                newdf[particle, col] = getattr(self._impacts,col + '_' + particle)[:n_rows]
+            df = pd.concat([df, newdf], axis=1)
+        return df
+
+    @property
+    def record_impacts(self):
+        return self._record_impacts
+    
+    @record_impacts.setter
+    def record_impacts(self, record_impacts):
+        # TODO: if not collimators installed:   else error
+        self._record_impacts = record_impacts
 
     @property
     def collimator_names(self):
@@ -36,48 +87,46 @@ class CollimatorManager:
     def s_end(self):
         return self.colldb.s_center + self.colldb.active_length/2 + self.colldb.inactive_back
 
+    @property
+    def s_match(self):
+        return self.colldb.s_match
 
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
             return BlackAbsorber(
+                    _buffer=self._buffer,
+                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    jaw_L=1, jaw_R=-1, jaw_U=1, jaw_D=-1
+                    is_active=False
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, colldb_filename, max_part=50000, seed=None, verbose=False):        
+    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):        
         # Check for the existence of a K2Engine; warn if settings are different
         # (only one instance of K2Engine should exist).
         if self._k2engine is None:
-            self._k2engine = K2Engine(n_alloc=max_part, colldb_filename=colldb_filename, random_generator_seed=seed)
+            self._k2engine = K2Engine(n_alloc=max_part, random_generator_seed=seed)
         else:
             if self._k2engine.n_alloc != max_part:
                 print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine.n_alloc} particles.\n"
                       + f"Ignoring the requested max_part={max_part}.")
-            if self._k2engine.colldb_filename != colldb_filename:
-                print(f"Warning: K2 already initiated from the file {self._k2engine.colldb_filename}.\n"
-                      + f"Ignoring the requested colldb_filename={colldb_filename}.")
             if self._k2engine.random_generator_seed != seed:
                 print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
                       + f"Ignoring the requested seed={seed}.")
-        
-        # Enumerate the collimators as expected by K2
-        icolls = { name: icoll for icoll, name in enumerate(self.collimator_names, start=1) }
-        
+
         # Do the installation
         def install_func(thiscoll, name):
             return K2Collimator(
                     k2engine=self._k2engine,
-                    icoll=icolls[name],
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    jaw=1
+                    is_active=False
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
         
@@ -114,6 +163,10 @@ class CollimatorManager:
 
             # Check that collimator is not installed previously
             if isinstance(line[name], collimator_class):
+                if df.loc[name,'collimator_type'] != collimator_class.__name__:
+                    raise Exception(f"Something is wrong: Collimator {name} already installed in line "
+                                    + f"as {collimator_class.__name__} element, but registered in CollDB "
+                                    + f"as {df.loc[name,'collimator_type']}. Please reconstruct the line.")
                 if verbose:
                     print(f"Collimator {name} already installed. Skipping...")
             else:
@@ -131,23 +184,46 @@ class CollimatorManager:
                 line.insert_element(element=newcoll, name=name, at_s=s_install)
 
 
+    def align_collimators_to(self, align):
+        if any([ x is None for x in self.colldb.collimator_type ]):
+            raise ValueError("Some collimators have not yet been installed.\n"
+                             + "Please install all collimators before aligning the collimators.")
+        self.colldb.align_to = align
+
+
+    def build_tracker(self):
+        return self.line.build_tracker(_buffer=self._buffer)
+
+    
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:
-            raise Exception("Please build tracker before calling this method!")
-        opt_funcs = ['betx', 'bety', 'x', 'px', 'y', 'py'] 
+            raise Exception("Please build tracker before computing the optics for the openings!")
+        if np.any(
+            [x is None for x in self.colldb._colldb.s_align_front]
+            + [ x is None for x in self.colldb._colldb.s_align_back]
+        ):
+            raise Exception("Not all collimators are aligned! Please call 'align_collimators_to' "
+                            + "on the CollimationManager before computing the optics for the openings!")
 
-        df = self.colldb._colldb
-        incomplete = np.any([ np.any([ x is None for x in df[opt] ]) for opt in opt_funcs ])
-        if recompute or incomplete:
+        pos = self.colldb._optics_positions_to_calculate
+        if recompute or pos != {}:
             tracker = line.tracker
-            df['opening_upstr_L'] = 1
-            df['opening_upstr_R'] = 1
-            df['opening_downstr_L'] = 1
-            df['opening_downstr_R'] = 1
-            tw = tracker.twiss(at_s=df['s_center'])
-            for opt in opt_funcs:
-                df[opt] = tw[opt]
+            # Calculate optics without collimators
+            old_val = {}
+            for name in self.collimator_names:
+                old_val[name] = line[name].is_active
+                line[name].is_active = False
+            tw = tracker.twiss(at_s=pos)
+            self.colldb._optics = pd.concat([
+                                    self.colldb._optics,
+                                    pd.DataFrame({
+                                        opt: tw[opt] for opt in self.colldb._optics.columns
+                                    },index=pos)
+                                ])
+            for name in self.collimator_names:
+                line[name].is_active = old_val[name]
+            self.colldb._optics_positions_to_calculate = {}
             self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
 
 
@@ -178,40 +254,42 @@ class CollimatorManager:
 
         # Get the optics (to compute the opening)
         self._compute_optics(recompute=recompute_optics)
+        if not self.colldb._optics_is_ready:
+            raise Exception("Something is wrong: not all optics needed for the jaw openings are calculated!")
 
         # Configure collimators
         for name in names:
             # Override openings if opening fully
             if full_open and name not in gaps.keys():
-                colldb._colldb.loc[name,'opening_upstr_L'] = 1
-                colldb._colldb.loc[name,'opening_upstr_R'] = 1
-                colldb._colldb.loc[name,'opening_downstr_L'] = 1
-                colldb._colldb.loc[name,'opening_downstr_R'] = 1
-
+                line[name].is_active = False
             # Apply settings to element
-            if isinstance(line[name], BlackAbsorber):
+            elif isinstance(line[name], BlackAbsorber):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].dpx = 0
-                line[name].dpy = 0
                 line[name].angle = colldb.angle[name]
-                line[name].jaw_R = -colldb._colldb.opening_upstr_R[name] + colldb.offset[name]
-                line[name].jaw_L = colldb._colldb.opening_upstr_L[name] + colldb.offset[name]
+                line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
+                line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
+                line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
+                line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
+                line[name].is_active = colldb.active[name]
             elif isinstance(line[name], K2Collimator):
                 line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
-                line[name].dpx = colldb.px[name]
-                line[name].dpy = colldb.py[name]
+                line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
+                line[name].dpy = colldb.py[name]   # This is a K2 curiosity; we don't want it in our future code
                 line[name].angle = colldb.angle[name]
-                line[name].jaw = colldb._colldb.opening_upstr_L[name]
+                line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
+                line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
+                line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
+                line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 if colldb.onesided[name] == 'both':
                     line[name].onesided = False
                 elif colldb.onesided[name] == 'left':
                     line[name].onesided = True
                 elif colldb.onesided[name] == 'right':
                     raise ValueError(f"Right-sided collimators not implemented for K2Collimator {name}!")
-                line[name].offset = colldb.offset[name]
+                line[name].is_active = colldb.active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD

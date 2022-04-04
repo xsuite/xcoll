@@ -65,14 +65,14 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
+subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit_pos, lhit_turn, part_abs_pos_local,             &
   part_abs_turn_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
   use crcoall
-  use coll_db
+  !use coll_db
   use coll_common
   use coll_crystal, only : cry_doCrystal
   use coll_materials
@@ -81,10 +81,8 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
   use mathlib_bouncer
   use mod_ranlux
 
-  ! integer,          intent(in)    :: icoll        ! Collimator ID
   integer,          intent(in)    :: matid        ! Material ID
   logical,          intent(in)    :: is_crystal
-  integer,          intent(in)    :: ie           ! Structure element index
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
   real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
@@ -241,12 +239,12 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
 
     if(is_crystal) then ! This is a crystal collimator
 
-      call cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
+      call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
         part_abs_pos_local,part_abs_turn_local,impact,indiv,c_length)
 
       if(nabs /= 0) then
-        part_abs_pos_local(j)  = ie
-        part_abs_turn_local(j) = 100
+        part_abs_pos_local(j)  = 50  ! some random element number
+        part_abs_turn_local(j) = 100 ! some random turn number
         lint(j)                = zlm
       end if
 
@@ -324,7 +322,7 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
         call k2coll_jaw(s,nabs,partID(j))
 
         nabs_type(j) = nabs
-        lhit_pos(j)  = ie
+        lhit_pos(j)  = 50
         lhit_turn(j) = 100
 
         isImp = .true.
@@ -367,7 +365,7 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
             x       = 99.99e-3_fPrec
             z       = 99.99e-3_fPrec
             lint(j) = zlm
-            part_abs_pos_local(j)  = ie
+            part_abs_pos_local(j)  = 50
             part_abs_turn_local(j) = 100
           end if
         end if
@@ -539,44 +537,6 @@ subroutine k2coll_scatin(plab)
   cprob(1,nmat)   = one
   xintl(nmat-1)   = c1e12
   xintl(nmat)     = zero
-
-!! Debugging for collimation cross sections
-!! Write out at runtime the core constants, (plab, pptot, etc)
-!! dump the material cross section table each run for every material
-
-  call f_requestUnit(cs_fileName, csUnit)
-  call f_open(unit=csUnit,file=cs_fileName,formatted=.true.,mode="w",err=csErr,status="replace")
-  if(csErr) then
-    write(lerr,"(a)") "COLL> ERROR Could not open the CS debugging file '"//trim(cs_fileName)//"'"
-    !call prror
-  end if
-
-  write(csUnit,'(a,e24.16)') 'plab:  ', plab
-  write(csUnit,'(a,e24.16)') 'pmap:  ', pmap
-  write(csUnit,'(a,e24.16)') 'ecmsq: ', ecmsq
-  write(csUnit,'(a,e24.16)') 'pptot: ', pptot
-  write(csUnit,'(a,e24.16)') 'ppel:  ', ppel
-  write(csUnit,'(a,e24.16)') 'ppsd:  ', ppsd
-  write(csUnit,'(a,e24.16)') 'bpp:   ', bpp
-  write(csUnit,'(a,e24.16)') 'fnavo: ', fnavo
-  write(csUnit,'(a,e24.16)') 'freeco:', freeco
-
-! print cs header
-  write(csUnit,'(a)') ''
-  write(csUnit,'(a4,6(1x,a24))') '#mat','total','inelastic','nuclear el','nucleon el','single diffractive','coulomb'
-  do ma=1,nrmat
-    write(csUnit,'(a4,6(1x,e24.16))') colmats(ma),csect(0,ma),csect(1,ma),csect(2,ma),csect(3,ma),csect(4,ma),csect(5,ma)
-  end do
-
-! print other paramter header
-  write(csUnit,'(a)') ''
-  write(csUnit,'(a4,6(1x,a24))') '#mat','freep','b_nref','b_n','rho','emr','interactL'
-  do ma=1,nrmat
-    write(csUnit,'(a4,6(1x,e24.16))') colmats(ma), freep(ma), bnref(ma), bn(ma), rho(ma), emr(ma), xintl(ma)
-  end do
-
-  flush(csUnit)
-  call f_close(csUnit)
 
 end subroutine k2coll_scatin
 

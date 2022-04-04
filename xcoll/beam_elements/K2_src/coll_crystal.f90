@@ -147,52 +147,65 @@ end subroutine cry_init
 ! ================================================================================================ !
 !  Initialise a crystal collimator
 ! ================================================================================================ !
-subroutine cry_startElement(icoll, ie, emitX, emitY, o_tilt, o_length)
-
+subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
+   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
   use crcoall
-  use coll_db
+!  use coll_db
   use coll_common
   use coll_materials
   use mathlib_bouncer
   use mod_common_track
 
-  integer,          intent(in)    :: icoll, ie
+  integer(kind=4),  intent(in)    :: matid
   real(kind=fPrec), intent(in)    :: emitX, emitY
   real(kind=fPrec), intent(inout) :: o_tilt
   real(kind=fPrec), intent(inout) :: o_length
+  real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
+  real(kind=fPrec), intent(in)    :: Nsig
+  real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
+  real(kind=fPrec), intent(in)    :: cryTilt
+  real(kind=fPrec), intent(in)    :: cryBend
+  real(kind=fPrec), intent(in)    :: cryThick
+  real(kind=fPrec), intent(in)    :: cryXDim
+  real(kind=fPrec), intent(in)    :: cryYDim
+  real(kind=fPrec), intent(in)    :: cryOrient
+  real(kind=fPrec), intent(in)    :: cryMiscut
+
 
   integer mat
-  real(kind=fPrec) bendAng,cry_tilt0
+  integer ie
+  real(kind=fPrec) bendAng, cry_tilt0
 
-  mat = cdb_cMaterialID(icoll)
+  mat = matid
   if(validMat(mat) .eqv. .false.) then
     write(lerr,"(a)") "COLL> ERROR Crystal collimation not supported for material '"//trim(colmats(mat))//"'"
     !call prror
   end if
 
-  if(modulo(cdb_cRotation(icoll),pi) < c1m9) then
-    cry_tilt0 = -(sqrt(emitX/tbetax(ie))*talphax(ie))*cdb_cNSig(icoll)
-  elseif (modulo(cdb_cRotation(icoll)-pi2,pi) < c1m9) then
-    cry_tilt0 = -(sqrt(emitY/tbetay(ie))*talphay(ie))*cdb_cNSig(icoll)
+  ie = 50   ! does not work! need optics at element ie ... 
+  if(modulo(c_rotation,pi) < c1m9) then
+    cry_tilt0 = -(sqrt(emitX/tbetax(ie))*talphax(ie))*Nsig
+  elseif (modulo(c_rotation-pi2,pi) < c1m9) then
+    cry_tilt0 = -(sqrt(emitY/tbetay(ie))*talphay(ie))*Nsig
   else
     write(lerr,"(a)") "COLL> ERROR Crystal collimator has to be horizontal or vertical"
     !call prror
   end if
 
-  cry_tilt = cdb_cryTilt(icoll) + cry_tilt0
-  bendAng  = cdb_cLength(icoll)/cdb_cryBend(icoll)
+  cry_tilt = cryTilt + cry_tilt0
+  bendAng  = c_length/cryBend
   if(cry_tilt >= (-one)*bendAng) then
-    cry_length = cdb_cryBend(icoll)*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
+    cry_length = cryBend*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
   else
-    cry_length = cdb_cryBend(icoll)*(sin_mb(bendAng - cry_tilt) + sin_mb(cry_tilt))
+    cry_length = cryBend*(sin_mb(bendAng - cry_tilt) + sin_mb(cry_tilt))
   end if
 
-  c_rcurv  = cdb_cryBend(icoll)
-  c_alayer = cdb_cryThick(icoll)
-  c_xmax   = cdb_cryXDim(icoll)
-  c_ymax   = cdb_cryYDim(icoll)
-  c_orient = cdb_cryOrient(icoll)
-  c_miscut = cdb_cryMiscut(icoll)
+  c_rcurv  = cryBend
+  c_alayer = cryThick
+  c_xmax   = cryXDim
+  c_ymax   = cryYDim
+  c_orient = cryOrient
+  c_miscut = cryMiscut
   cry_bend = cry_length/c_rcurv
   c_cBend  = cos_mb(cry_bend)
   c_sBend  = sin_mb(cry_bend)
@@ -215,14 +228,13 @@ end subroutine cry_startElement
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   lhit,lhit_turn,part_abs,part_abs_turn,impact,indiv,c_length)
 
   use parpro
   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
   use mathlib_bouncer
 
-  integer,          intent(in)    :: ie
   integer,          intent(in)    :: j
   integer,          intent(in)    :: mat
 
@@ -316,7 +328,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
     if(iProc /= proc_out) then
       isImp        = .true.
       nhit         = nhit + 1
-      lhit(j)      = ie
+      lhit(j)      = 50
       lhit_turn(j) = 100
       impact(j)    = x0
       indiv(j)     = xp0
@@ -386,7 +398,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
 
           isImp        = .true.
           nhit         = nhit + 1
-          lhit(j)      = ie
+          lhit(j)      = 50
           lhit_turn(j) = 100
           impact(j)    = x0
           indiv(j)     = xp0

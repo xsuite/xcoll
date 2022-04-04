@@ -40,7 +40,7 @@ materials = {
 
 # Tungsten
   'W': {
-        'ID': 3,
+        'ID': 4,
         'exenergy': 727.0e-9,
         'anuc': 183.85,
         'zatom': 74.00,
@@ -53,7 +53,7 @@ materials = {
 
 # Lead
   'PB': {
-        'ID': 4,
+        'ID': 5,
         'exenergy': 823.0e-9,
         'anuc': 207.19,
         'zatom': 82.00,
@@ -66,7 +66,7 @@ materials = {
 
 # Carbon
   'C': {
-        'ID': 5,
+        'ID': 6,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -79,20 +79,7 @@ materials = {
 
 # Carbon2
   'C2': {
-        'ID': 6,
-        'exenergy': 78.0e-9,
-        'anuc': 12.01,
-        'zatom': 6.00,
-        'rho': 4.52,
-        'emr': 0.25,
-        'hcut': 0.02,
-        'radl': 0.094,
-        'bnref': 70.0
-        },
-
-# Carbon2
-  'C2': {
-        'ID': 6,
+        'ID': 7,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -105,7 +92,7 @@ materials = {
 
 # Silicon
   'Si': {
-        'ID': 7,
+        'ID': 8,
         'exenergy': 173.0e-9,
         'anuc': 28.08,
         'zatom': 14.00,
@@ -118,7 +105,7 @@ materials = {
 
 # Germanium
   'Ge': {
-        'ID': 8,
+        'ID': 9,
         'exenergy': 350.0e-9,
         'anuc': 72.63,
         'zatom': 32.00,
@@ -131,7 +118,7 @@ materials = {
 
 # 
   'MoGR': {
-        'ID': 9,
+        'ID': 10,
         'exenergy': 87.1e-9,
         'anuc': 13.53,
         'zatom': 6.65,
@@ -144,7 +131,7 @@ materials = {
 
 # 
   'CuCD': {
-        'ID': 10,
+        'ID': 11,
         'exenergy': 152.9e-9,
         'anuc': 25.24,
         'zatom': 11.90,
@@ -157,7 +144,7 @@ materials = {
 
 # 
   'Mo': {
-        'ID': 11,
+        'ID': 12,
         'exenergy': 424.0e-9,
         'anuc': 95.96,
         'zatom': 42.00,
@@ -170,7 +157,7 @@ materials = {
 
 # 
   'Glid': {
-        'ID': 12,
+        'ID': 13,
         'exenergy': 320.8e-9,
         'anuc': 63.15,
         'zatom': 28.80,
@@ -183,7 +170,7 @@ materials = {
 
 # 
   'Iner': {
-        'ID': 13,
+        'ID': 14,
         'exenergy': 682.2e-9,
         'anuc': 166.70,
         'zatom': 67.70,
