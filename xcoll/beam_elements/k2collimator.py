@@ -157,8 +157,6 @@ class K2Collimator:
                       linside=linside,
                       matid=matID,
                       is_crystal=False,
-                    #   icoll=self.icoll,
-                      ie=1,                            # ignore: structure element index
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
                       c_aperture=opening,

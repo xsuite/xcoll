@@ -147,7 +147,7 @@ end subroutine cry_init
 ! ================================================================================================ !
 !  Initialise a crystal collimator
 ! ================================================================================================ !
-subroutine cry_startElement(matid, ie, emitX, emitY, o_tilt, o_length, c_rotation, &
+subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
    Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
   use crcoall
 !  use coll_db
@@ -157,7 +157,6 @@ subroutine cry_startElement(matid, ie, emitX, emitY, o_tilt, o_length, c_rotatio
   use mod_common_track
 
   integer(kind=4),  intent(in)    :: matid
-  integer,          intent(in)    :: ie
   real(kind=fPrec), intent(in)    :: emitX, emitY
   real(kind=fPrec), intent(inout) :: o_tilt
   real(kind=fPrec), intent(inout) :: o_length
@@ -174,6 +173,7 @@ subroutine cry_startElement(matid, ie, emitX, emitY, o_tilt, o_length, c_rotatio
 
 
   integer mat
+  integer ie
   real(kind=fPrec) bendAng, cry_tilt0
 
   mat = matid
@@ -182,6 +182,7 @@ subroutine cry_startElement(matid, ie, emitX, emitY, o_tilt, o_length, c_rotatio
     !call prror
   end if
 
+  ie = 50   ! does not work! need optics at element ie ... 
   if(modulo(c_rotation,pi) < c1m9) then
     cry_tilt0 = -(sqrt(emitX/tbetax(ie))*talphax(ie))*Nsig
   elseif (modulo(c_rotation-pi2,pi) < c1m9) then
@@ -227,14 +228,13 @@ end subroutine cry_startElement
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   lhit,lhit_turn,part_abs,part_abs_turn,impact,indiv,c_length)
 
   use parpro
   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
   use mathlib_bouncer
 
-  integer,          intent(in)    :: ie
   integer,          intent(in)    :: j
   integer,          intent(in)    :: mat
 
@@ -328,7 +328,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
     if(iProc /= proc_out) then
       isImp        = .true.
       nhit         = nhit + 1
-      lhit(j)      = ie
+      lhit(j)      = 50
       lhit_turn(j) = 100
       impact(j)    = x0
       indiv(j)     = xp0
@@ -398,7 +398,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
 
           isImp        = .true.
           nhit         = nhit + 1
-          lhit(j)      = ie
+          lhit(j)      = 50
           lhit_turn(j) = 100
           impact(j)    = x0
           indiv(j)     = xp0

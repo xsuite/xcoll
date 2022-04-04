@@ -55,7 +55,6 @@ pyk2_run(x_particles=x_test,
           linside=linside,
           matid=10,
           is_crystal=False,
-          ie=1,                            # ignore: structure element index
           c_length=0.59999999999999998,
           c_rotation=0,
           c_aperture=0.0025711021962573095,
@@ -90,9 +89,9 @@ part_linteract_ref = np.loadtxt("pyk2_data/part_linteract.dump_after_REF")
 nhit_stage_ref = np.loadtxt("pyk2_data/nhit_stage.dump_after_REF")
 nabs_type_ref = np.loadtxt("pyk2_data/nabs_type.dump_after_REF")
 
-assert np.allclose(part_hit_pos, part_hit_pos_ref, atol=1e-9, rtol=0)
+assert np.allclose(part_hit_pos/50, part_hit_pos_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_hit_turn/100, part_hit_turn_ref, atol=1e-9, rtol=0)
-assert np.allclose(part_abs_pos, part_abs_pos_ref, atol=1e-9, rtol=0)
+assert np.allclose(part_abs_pos/50, part_abs_pos_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_abs_turn/100, part_abs_turn_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_impact, part_impact_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_indiv, part_indiv_ref, atol=1e-9, rtol=0)

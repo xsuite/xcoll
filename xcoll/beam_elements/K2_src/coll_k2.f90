@@ -65,7 +65,7 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
+subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit_pos, lhit_turn, part_abs_pos_local,             &
   part_abs_turn_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
@@ -83,7 +83,6 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
 
   integer,          intent(in)    :: matid        ! Material ID
   logical,          intent(in)    :: is_crystal
-  integer,          intent(in)    :: ie           ! Structure element index
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
   real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
@@ -240,12 +239,12 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
 
     if(is_crystal) then ! This is a crystal collimator
 
-      call cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
+      call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
         part_abs_pos_local,part_abs_turn_local,impact,indiv,c_length)
 
       if(nabs /= 0) then
-        part_abs_pos_local(j)  = ie
-        part_abs_turn_local(j) = 100
+        part_abs_pos_local(j)  = 50  ! some random element number
+        part_abs_turn_local(j) = 100 ! some random turn number
         lint(j)                = zlm
       end if
 
@@ -323,7 +322,7 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
         call k2coll_jaw(s,nabs,partID(j))
 
         nabs_type(j) = nabs
-        lhit_pos(j)  = ie
+        lhit_pos(j)  = 50
         lhit_turn(j) = 100
 
         isImp = .true.
@@ -366,7 +365,7 @@ subroutine k2coll_collimate(matid, is_crystal, ie, c_length, c_rotation, c_apert
             x       = 99.99e-3_fPrec
             z       = 99.99e-3_fPrec
             lint(j) = zlm
-            part_abs_pos_local(j)  = ie
+            part_abs_pos_local(j)  = 50
             part_abs_turn_local(j) = 100
           end if
         end if
