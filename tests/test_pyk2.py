@@ -26,10 +26,8 @@ npart = len(x_test)
 # part.py = yp_test/part.rpp
 # part_test = part.copy()
 
-part_hit_pos = np.zeros(npart, dtype=np.int32)
-part_hit_turn = np.zeros(npart, dtype=np.int32)
-part_abs_pos = np.zeros(npart, dtype=np.int32)
-part_abs_turn = np.zeros(npart, dtype=np.int32)
+part_hit = np.zeros(npart, dtype=np.int32)
+part_abs = np.zeros(npart, dtype=np.int32)
 part_impact = np.zeros(npart, dtype=float)
 part_indiv = np.zeros(npart, dtype=float)
 part_linteract = np.zeros(npart, dtype=float)
@@ -43,10 +41,8 @@ pyk2_run(x_particles=x_test,
           yp_particles=yp_test,
           s_particles=s_test,
           p_particles=p_test,              # confusing: this is ENERGY not momentum
-          part_hit_pos=part_hit_pos,       # ignore: sixtrack element of impact
-          part_hit_turn=part_hit_turn,     # ignore: turn of impact
-          part_abs_pos=part_abs_pos,       # ignore: sixtrack element of absorption
-          part_abs_turn=part_abs_turn,     # ignore: turn of absorption
+          part_hit=part_hit,
+          part_abs=part_abs,
           part_impact=part_impact,         # impact parameter
           part_indiv=part_indiv,           # particle divergence
           part_linteract=part_linteract,   # interaction length
@@ -80,19 +76,15 @@ assert np.allclose(s_test, s_ref, atol=2e-4, rtol=0)
 assert np.allclose(p_test, p_ref, atol=0, rtol=1e-7)
 
 part_hit_pos_ref = np.loadtxt("pyk2_data/part_hit_pos.dump_after_REF")
-part_hit_turn_ref = np.loadtxt("pyk2_data/part_hit_turn.dump_after_REF")
 part_abs_pos_ref = np.loadtxt("pyk2_data/part_abs_pos.dump_after_REF")
-part_abs_turn_ref = np.loadtxt("pyk2_data/part_abs_turn.dump_after_REF")
 part_impact_ref = np.loadtxt("pyk2_data/part_impact.dump_after_REF")
 part_indiv_ref = np.loadtxt("pyk2_data/part_indiv.dump_after_REF")
 part_linteract_ref = np.loadtxt("pyk2_data/part_linteract.dump_after_REF")
 nhit_stage_ref = np.loadtxt("pyk2_data/nhit_stage.dump_after_REF")
 nabs_type_ref = np.loadtxt("pyk2_data/nabs_type.dump_after_REF")
 
-assert np.allclose(part_hit_pos/50, part_hit_pos_ref, atol=1e-9, rtol=0)
-assert np.allclose(part_hit_turn/100, part_hit_turn_ref, atol=1e-9, rtol=0)
-assert np.allclose(part_abs_pos/50, part_abs_pos_ref, atol=1e-9, rtol=0)
-assert np.allclose(part_abs_turn/100, part_abs_turn_ref, atol=1e-9, rtol=0)
+assert np.allclose(part_hit, part_hit_pos_ref, atol=1e-9, rtol=0)
+assert np.allclose(part_abs, part_abs_pos_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_impact, part_impact_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_indiv, part_indiv_ref, atol=1e-9, rtol=0)
 assert np.allclose(part_linteract, part_linteract_ref, atol=2e-4, rtol=0)

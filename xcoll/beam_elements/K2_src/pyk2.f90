@@ -18,7 +18,6 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   integer, intent(in)          :: n_alloc
   integer, intent(in)          :: random_generator_seed
 
-
   ! Set default values for collimator materials
   call collmat_init
 
@@ -39,8 +38,8 @@ end subroutine
  
 subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 y_particles, yp_particles, s_particles, &
-                p_particles, part_hit_pos, part_hit_turn, &
-                part_abs_pos, part_abs_turn, part_impact, &
+                p_particles, part_hit, &
+                part_abs, part_impact, &
                 part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
                 matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
                 c_tilt, c_enom, onesided, random_generator_seed)
@@ -61,9 +60,9 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   implicit none
 
 
-  ! ####################
-  ! ## test variables ##
-  ! ####################
+  ! ############################
+  ! ## variables declarations ##
+  ! ############################
 
   integer, intent(in)       :: num_particles
   real(kind=8), intent(inout)  :: x_particles(num_particles)
@@ -73,10 +72,8 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8), intent(inout)  :: s_particles(num_particles)
   real(kind=8), intent(inout)  :: p_particles(num_particles)
 
-  integer(kind=4)  , intent(inout) :: part_hit_pos(num_particles)
-  integer(kind=4)  , intent(inout) :: part_hit_turn(num_particles)
-  integer(kind=4)  , intent(inout) :: part_abs_pos(num_particles)
-  integer(kind=4)  , intent(inout) :: part_abs_turn(num_particles)
+  integer(kind=4)  , intent(inout) :: part_hit(num_particles)
+  integer(kind=4)  , intent(inout) :: part_abs(num_particles)
   real(kind=8) , intent(inout) :: part_impact(num_particles)
   real(kind=8) , intent(inout) :: part_indiv(num_particles)
   real(kind=8) , intent(inout) :: part_linteract(num_particles)
@@ -133,7 +130,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   call k2coll_collimate( &
      matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
-     c_enom*c1m3, part_hit_pos, part_hit_turn, part_abs_pos, part_abs_turn, &
+     c_enom*c1m3, part_hit, part_abs, &
      part_impact, part_indiv, part_linteract, &
      onesided, nhit_stage, 1, nabs_type, linside)
 

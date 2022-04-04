@@ -118,10 +118,8 @@ class K2Collimator:
             p_part = particles.energy[:npart] / 1e9 # Energy (not momentum) in GeV
 
             # Initialise arrays for FORTRAN call
-            part_hit_pos = np.zeros(len(x_part), dtype=np.int32)
-            part_hit_turn = np.zeros(len(x_part), dtype=np.int32)
-            part_abs_pos = np.zeros(len(x_part), dtype=np.int32)
-            part_abs_turn = np.zeros(len(x_part), dtype=np.int32)
+            part_hit = np.zeros(len(x_part), dtype=np.int32)
+            part_abs = np.zeros(len(x_part), dtype=np.int32)
             part_impact = np.zeros(len(x_part), dtype=np.float)
             part_indiv = np.zeros(len(x_part), dtype=np.float)
             part_linteract = np.zeros(len(x_part), dtype=np.float)
@@ -145,10 +143,8 @@ class K2Collimator:
                       yp_particles=yp_part,
                       s_particles=s_part,
                       p_particles=p_part,              # confusing: this is ENERGY not momentum
-                      part_hit_pos=part_hit_pos,       # ignore: sixtrack element of impact
-                      part_hit_turn=part_hit_turn,     # ignore: turn of impact
-                      part_abs_pos=part_abs_pos,       # ignore: sixtrack element of absorption
-                      part_abs_turn=part_abs_turn,     # ignore: turn of absorption
+                      part_hit=part_hit,
+                      part_abs=part_abs,
                       part_impact=part_impact,         # impact parameter
                       part_indiv=part_indiv,           # particle divergence
                       part_linteract=part_linteract,   # interaction length
@@ -168,8 +164,8 @@ class K2Collimator:
                       )
 
             # Masks of hit and survived particles
-            mask_lost = part_abs_turn > 0
-            mask_hit = part_hit_turn > 0
+            mask_lost = part_abs > 0
+            mask_hit = part_hit > 0
             mask_not_hit = ~mask_hit
             mask_survived_hit = mask_hit & (~mask_lost)
 
