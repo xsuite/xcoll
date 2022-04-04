@@ -3,10 +3,9 @@ import numpy as np
 
 class K2Engine:
 
-    def __init__(self, n_alloc, colldb_filename, random_generator_seed=None):
+    def __init__(self, n_alloc, random_generator_seed=None):
 
         self._n_alloc = n_alloc
-        self._colldb_filename = colldb_filename
 
         if random_generator_seed is None:
             self.random_generator_seed = np.random.randint(1, 100000)
@@ -14,8 +13,7 @@ class K2Engine:
             self.random_generator_seed = random_generator_seed
 
         import xcoll.beam_elements.pyk2 as pyk2
-        pyk2.pyk2_init(n_alloc=n_alloc, colldb_input_fname=colldb_filename,
-               random_generator_seed=self.random_generator_seed)
+        pyk2.pyk2_init(n_alloc=n_alloc, random_generator_seed=self.random_generator_seed)
         
         
 # call collmat_init                   ! Set default values for collimator materials
@@ -30,10 +28,6 @@ class K2Engine:
     def n_alloc(self):
         return self._n_alloc
 
-    @property
-    def colldb_filename(self):
-        return self._colldb_filename
-
 
 class K2Collimator:
 
@@ -41,11 +35,10 @@ class K2Collimator:
     isthick = True
 #     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, icoll, active_length, inactive_front, inactive_back, angle, is_active=True,
+    def __init__(self, *, k2engine, active_length, inactive_front, inactive_back, angle, is_active=True,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=0, material=None):
 
         self._k2engine = k2engine
-        self.icoll = icoll
         self.active_length = active_length
         self.inactive_front = inactive_front
         self.inactive_back = inactive_back

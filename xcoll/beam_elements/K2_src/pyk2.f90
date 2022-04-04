@@ -1,4 +1,4 @@
-subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed)
+subroutine pyk2_init(n_alloc, random_generator_seed)
   use floatPrecision
   use numerical_constants
   ! use crcoall    NODIG ??
@@ -11,21 +11,16 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed)
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
   use coll_materials ! for collmat_init
-  use coll_db        ! for cdb_readCollDB
   use coll_k2        ! for scattering
-
-!  use files  ! for testing
 
   implicit none
 
   integer, intent(in)          :: n_alloc
   integer, intent(in)          :: random_generator_seed
-  character(100), intent(in)   :: colldb_input_fname
+
 
   ! Set default values for collimator materials
   call collmat_init
-  cdb_fileName=colldb_input_fname
-  call cdb_readCollDB
 
   rnd_seed = random_generator_seed
 
@@ -52,7 +47,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
 
   use floatPrecision
   use numerical_constants
-  ! use crcoall    NODIG ??
+
   use parpro ,           only : npart
   use mod_alloc ,        only : alloc      ! to allocate partID etc
   use mod_common ,       only : iexact, napx, unit208, aa0
@@ -61,10 +56,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
   use coll_materials ! for collmat_init
-  use coll_db        ! for cdb_readCollDB
   use coll_k2        ! for scattering
-
- ! use files  ! for testing
 
   implicit none
 
@@ -91,7 +83,6 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   integer(kind=4)  , intent(inout) :: nhit_stage(num_particles)
   integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
   logical(kind=4)  , intent(inout) :: linside(num_particles)
-  ! integer(kind=4)  , intent(in):: icoll
   integer(kind=4)  , intent(in):: matid
   logical(kind=4)  , intent(in):: is_crystal
   integer(kind=4)  , intent(in):: ie

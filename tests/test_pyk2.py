@@ -9,8 +9,7 @@ from xcoll.general import _pkg_root
 
 path = Path(_pkg_root / ".." / "tests" / "pyk2_data")
 
-k2_engine = xc.K2Engine(n_alloc=200000,
-        colldb_filename= "pyk2_data/CollDB-RunIII.dat", random_generator_seed=7569)
+k2_engine = xc.K2Engine(n_alloc=200000, random_generator_seed=7569)
 
 x_test = np.loadtxt("pyk2_data/rcx.dump")
 xp_test = np.loadtxt("pyk2_data/rcxp.dump")

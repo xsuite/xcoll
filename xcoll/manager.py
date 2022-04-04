@@ -105,30 +105,23 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, colldb_filename, max_part=50000, seed=None, verbose=False):        
+    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):        
         # Check for the existence of a K2Engine; warn if settings are different
         # (only one instance of K2Engine should exist).
         if self._k2engine is None:
-            self._k2engine = K2Engine(n_alloc=max_part, colldb_filename=colldb_filename, random_generator_seed=seed)
+            self._k2engine = K2Engine(n_alloc=max_part, random_generator_seed=seed)
         else:
             if self._k2engine.n_alloc != max_part:
                 print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine.n_alloc} particles.\n"
                       + f"Ignoring the requested max_part={max_part}.")
-            if self._k2engine.colldb_filename != colldb_filename:
-                print(f"Warning: K2 already initiated from the file {self._k2engine.colldb_filename}.\n"
-                      + f"Ignoring the requested colldb_filename={colldb_filename}.")
             if self._k2engine.random_generator_seed != seed:
                 print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
                       + f"Ignoring the requested seed={seed}.")
-        
-        # Enumerate the collimators as expected by K2
-        icolls = { name: icoll for icoll, name in enumerate(self.collimator_names, start=1) }
-        
+
         # Do the installation
         def install_func(thiscoll, name):
             return K2Collimator(
                     k2engine=self._k2engine,
-                    icoll=icolls[name],
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
