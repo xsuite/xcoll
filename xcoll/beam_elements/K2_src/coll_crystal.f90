@@ -229,7 +229,7 @@ end subroutine cry_startElement
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
 subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
-  lhit,lhit_turn,part_abs,part_abs_turn,impact,indiv,c_length)
+  lhit,part_abs,impact,indiv,c_length)
 
   use parpro
   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
@@ -245,9 +245,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=fPrec), intent(inout) :: zlm,s_imp
   integer,          intent(inout) :: nhit,nabs
   integer,          intent(inout) :: lhit(npart)
-  integer,          intent(inout) :: lhit_turn(npart)
   integer,          intent(inout) :: part_abs(npart)
-  integer,          intent(inout) :: part_abs_turn(npart)
   real(kind=fPrec), intent(inout) :: impact(npart)
   real(kind=fPrec), intent(inout) :: indiv(npart)
   real(kind=fPrec), intent(in)    :: c_length
@@ -328,8 +326,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
     if(iProc /= proc_out) then
       isImp        = .true.
       nhit         = nhit + 1
-      lhit(j)      = 50
-      lhit_turn(j) = 100
+      lhit(j)      = 1
       impact(j)    = x0
       indiv(j)     = xp0
     end if
@@ -398,8 +395,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
 
           isImp        = .true.
           nhit         = nhit + 1
-          lhit(j)      = 50
-          lhit_turn(j) = 100
+          lhit(j)      = 1
           impact(j)    = x0
           indiv(j)     = xp0
         end if
@@ -469,7 +465,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   else if(iProc == proc_CH) then
     n_chan = n_Chan + 1
   else if(iProc == proc_absorbed) then
-    nabs = 1
+    nabs = 1   ! TODO: do we need to set part_abs_pos etc?
   else if(iProc == proc_ch_absorbed) then
     nabs = 1
   end if

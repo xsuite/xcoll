@@ -66,8 +66,8 @@ end subroutine k2coll_init
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
 subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
-  x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit_pos, lhit_turn, part_abs_pos_local,             &
-  part_abs_turn_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
+  x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local,             &
+  impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
@@ -100,10 +100,8 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
   real(kind=fPrec), intent(in)    :: enom         ! Reference momentum in GeV
   logical,          intent(in)    :: onesided
 
-  integer,          intent(inout) :: lhit_pos(npart)
-  integer,          intent(inout) :: lhit_turn(npart)
-  integer,          intent(inout) :: part_abs_pos_local(npart)
-  integer,          intent(inout) :: part_abs_turn_local(npart)
+  integer,          intent(inout) :: lhit(npart)
+  integer,          intent(inout) :: part_abs_local(npart)
   integer,          intent(inout) :: nabs_type(npart)
   integer,          intent(inout) :: nhit_stage(npart)
   real(kind=fPrec), intent(inout) :: indiv(npart)
@@ -153,7 +151,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
 
   do j=1,napx
 
-    if(part_abs_pos_local(j) /= 0 .and. part_abs_turn_local(j) /= 0) then
+    if(part_abs_local(j) /= 0) then
       ! Don't do scattering process for particles already absorbed
       cycle
     end if
@@ -239,12 +237,11 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
 
     if(is_crystal) then ! This is a crystal collimator
 
-      call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
-        part_abs_pos_local,part_abs_turn_local,impact,indiv,c_length)
+      call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
+        part_abs_local,impact,indiv,c_length)
 
       if(nabs /= 0) then
-        part_abs_pos_local(j)  = 50  ! some random element number
-        part_abs_turn_local(j) = 100 ! some random turn number
+        part_abs_local(j)  = 1
         lint(j)                = zlm
       end if
 
@@ -322,8 +319,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
         call k2coll_jaw(s,nabs,partID(j))
 
         nabs_type(j) = nabs
-        lhit_pos(j)  = 50
-        lhit_turn(j) = 100
+        lhit(j)  = 1
 
         isImp = .true.
         sImp  = s_impact+(real(j_slices,fPrec)-one)*c_length
@@ -365,8 +361,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
             x       = 99.99e-3_fPrec
             z       = 99.99e-3_fPrec
             lint(j) = zlm
-            part_abs_pos_local(j)  = 50
-            part_abs_turn_local(j) = 100
+            part_abs_local(j)  = 1
           end if
         end if
       end if ! Collimator jaw interaction
