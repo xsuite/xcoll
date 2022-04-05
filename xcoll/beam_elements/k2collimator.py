@@ -35,7 +35,7 @@ class K2Collimator:
     isthick = True
 #     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, inactive_front, inactive_back, angle, is_active=True,
+    def __init__(self, *, k2engine, active_length, inactive_front, inactive_back, angle, is_active=True, record_impacts=False,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=0, material=None):
 
         self._k2engine = k2engine
@@ -54,8 +54,9 @@ class K2Collimator:
         self.dpy = dpy
         self.offset = offset
         self.tilt = tilt
-        self._active = is_active
+        self.active = is_active
         self.material = material
+        self._record_impacts = record_impacts
 
     @property
     def k2engine(self):
@@ -63,11 +64,11 @@ class K2Collimator:
 
     @property
     def is_active(self):
-        return self._active
+        return self.active
 
     @is_active.setter
     def is_active(self, is_active):
-        self._active = is_active
+        self.active = is_active
         if not is_active:
             self.jaw_F_L = 1
             self.jaw_F_R = -1
@@ -84,7 +85,7 @@ class K2Collimator:
         if npart > self.k2engine.n_alloc:
             raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
         
-        if not self._active:
+        if not self.active:
             # Drift full length
             L = self.length
             if L > 0:
