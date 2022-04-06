@@ -13,6 +13,7 @@ module coll_k2
 
   integer,          private, save :: mat   ! Current material
   integer,          private, save :: mcurr ! Current material, used for Rutherford scattering integration
+  real(kind=fPrec), private, save :: zatomcurr ! Current zatom, used for Rutherford scattering integration
   real(kind=fPrec), private, save :: zlm
   real(kind=fPrec), private, save :: zlm1
   real(kind=fPrec), private, save :: p0
@@ -141,7 +142,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, is_crystal, 
   p0     = enom
 
   ! Initialise scattering processes
-  call k2coll_scatin(p0,coll_anuc,coll_rho,zatom_4,zatom_5)
+  call k2coll_scatin(p0,coll_anuc,coll_rho,zatom_4,zatom_5,coll_zatom)
 
   nhit   = 0
   nabs   = 0
@@ -462,7 +463,7 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5, scat_zatom)
 
   use mod_funlux
   use coll_common
@@ -477,6 +478,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5)
   real(kind=fPrec), intent(in) :: sc_rho
   real(kind=fPrec), intent(in) :: anuc4
   real(kind=fPrec), intent(in) :: anuc5
+  real(kind=fPrec), intent(in) :: scat_zatom
+  
 
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
   integer ma,i
@@ -502,14 +505,15 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5)
   bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
   emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
 
+  mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
+  ! Prepare for Rutherford differential distribution
+  zatomcurr = scat_zatom
+  call funlxp(k2coll_ruth, cgen(1,mat), tlcut, hcut(mat))
+
   ! Compute cross-sections (CS) and probabilities + Interaction length
   ! Last two material treated below statement number 100
   do ma=1,nrmat
   ! WHEN ALL DEPENDENCIES ARE REMOVED THERE WON'T BE NEED FOR THE ma VARIABLE
-
-    mcurr = ma
-    ! Prepare for Rutherford differential distribution
-    call funlxp(k2coll_ruth, cgen(1,ma), tlcut, hcut(ma))
 
     ! freep: number of nucleons involved in single scattering
     freep(ma) = freeco * sc_anuc**(one/three)
@@ -996,19 +1000,21 @@ end subroutine k2coll_iterat
 !! k2coll_ruth(t)
 !! Calculate the rutherford scattering cross section
 !<
-real(kind=fPrec) function k2coll_ruth(t,ru_zatom)
+! HACK coll_zatom is used as global; it cannot be passed as a function argument
+! because this function is passed into funlxp which builds the random distribution
+! However, the latter expects a function with one argument
+real(kind=fPrec) function k2coll_ruth(t)
 
   use mathlib_bouncer
   use coll_materials
 
   real(kind=fPrec), intent(in) :: t
-  real(kind=fPrec), intent(in) :: ru_zatom
 
   ! DM: changed 2.607d-4 to 2.607d-5 to fix Rutherford bug
   real(kind=fPrec), parameter :: cnorm  = 2.607e-5_fPrec
   real(kind=fPrec), parameter :: cnform = 0.8561e3_fPrec
 
-  k2coll_ruth = (cnorm*exp_mb(((-one*t)*cnform)*emr(mcurr)**2)) * (ru_zatom/t)**2
+  k2coll_ruth = (cnorm*exp_mb(((-one*t)*cnform)*emr(mcurr)**2)) * (zatomcurr/t)**2
 
 end function k2coll_ruth
 
@@ -1018,6 +1024,7 @@ end function k2coll_ruth
 !! Note: For single-diffractive scattering the vector p of momentum
 !! is modified (energy loss is applied)
 !<
+! XMAT AND MAT ARE THE SAME, EQUAL TO MAIN MATID
 real(kind=fPrec) function k2coll_gettran(inter, xmat, p)
 
   use mathlib_bouncer
