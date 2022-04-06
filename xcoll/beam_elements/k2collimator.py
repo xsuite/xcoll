@@ -136,6 +136,9 @@ class K2Collimator:
             offset = self.offset + ( self.jaw_F_L + self.jaw_F_R )/2
 
             matID = pyk2.materials[self.material]['ID']
+            anuc = pyk2.materials[self.material]['anuc']
+            zatom = pyk2.materials[self.material]['zatom']
+            rho = pyk2.materials[self.material]['rho']
 
             pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
@@ -152,6 +155,9 @@ class K2Collimator:
                       nabs_type=nabs_type,
                       linside=linside,
                       matid=matID,
+                      anuc=anuc,
+                      zatom=zatom,
+                      rho=rho,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,

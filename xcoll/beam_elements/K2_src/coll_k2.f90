@@ -38,15 +38,19 @@ contains
 !! This routine pre-calcuates some varibles for
 !! the nuclear properties
 !<
-subroutine k2coll_merlinInit
+subroutine k2coll_merlinInit(me_anuc, me_zatom, me_rho)
 
   use coll_materials
+
+  real(kind=fPrec), intent(in)    :: me_anuc    ! 
+  real(kind=fPrec), intent(in)    :: me_zatom   ! 
+  real(kind=fPrec), intent(in)    :: me_rho     ! 
 
   integer i
 
   ! Compute the electron densnity and plasma energy for each material
   do i=1, nmat
-    edens(i) = k2coll_calcElectronDensity(zatom(i),rho(i),anuc(i))
+    edens(i) = k2coll_calcElectronDensity(me_zatom,me_rho,me_anuc)
     pleng(i) = k2coll_calcPlasmaEnergy(edens(i))
   end do
 
@@ -65,8 +69,9 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
-  x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local,             &
+subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, is_crystal, & 
+  c_length, c_rotation, c_aperture, c_offset, c_tilt, zatom_4, zatom_5, &
+  x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
   impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
@@ -82,6 +87,9 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
   use mod_ranlux
 
   integer,          intent(in)    :: matid        ! Material ID
+  real(kind=fPrec), intent(in)    :: coll_anuc    ! 
+  real(kind=fPrec), intent(in)    :: coll_zatom   ! 
+  real(kind=fPrec), intent(in)    :: coll_rho     ! 
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -90,6 +98,9 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
   real(kind=fPrec), intent(in)    :: c_offset     ! Collimator offset in m
   real(kind=fPrec), intent(inout) :: c_tilt(2)    ! Collimator tilt in radians
 
+  real(kind=fPrec), intent(in)    :: zatom_4      ! 
+  real(kind=fPrec), intent(in)    :: zatom_5      ! 
+  
   real(kind=fPrec), intent(inout) :: x_in(npart)  ! Particle coordinate
   real(kind=fPrec), intent(inout) :: xp_in(npart) ! Particle coordinate
   real(kind=fPrec), intent(inout) :: y_in(npart)  ! Particle coordinate
@@ -130,7 +141,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
   p0     = enom
 
   ! Initialise scattering processes
-  call k2coll_scatin(p0)
+  call k2coll_scatin(p0,coll_anuc,coll_rho,zatom_4,zatom_5)
 
   nhit   = 0
   nabs   = 0
@@ -238,7 +249,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
     if(is_crystal) then ! This is a crystal collimator
 
       call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
-        part_abs_local,impact,indiv,c_length)
+        part_abs_local,impact,indiv,c_length,coll_anuc,coll_zatom,coll_rho)
 
       if(nabs /= 0) then
         part_abs_local(j)  = 1
@@ -316,7 +327,7 @@ subroutine k2coll_collimate(matid, is_crystal, c_length, c_rotation, c_aperture,
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j))
+        call k2coll_jaw(s,nabs,partID(j),coll_anuc,coll_zatom,coll_rho)
 
         nabs_type(j) = nabs
         lhit(j)  = 1
@@ -451,7 +462,7 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5)
 
   use mod_funlux
   use coll_common
@@ -462,6 +473,10 @@ subroutine k2coll_scatin(plab)
   use crcoall
 
   real(kind=fPrec), intent(in) :: plab
+  real(kind=fPrec), intent(in) :: sc_anuc
+  real(kind=fPrec), intent(in) :: sc_rho
+  real(kind=fPrec), intent(in) :: anuc4
+  real(kind=fPrec), intent(in) :: anuc5
 
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
   integer ma,i
@@ -484,19 +499,20 @@ subroutine k2coll_scatin(plab)
   bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
 
   ! Unmeasured tungsten data, computed with lead data and power laws
-  bnref(4) = bnref(5)*(anuc(4)/anuc(5))**(two/three)
-  emr(4)   = emr(5)  *(anuc(4)/anuc(5))**(one/three)
+  bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
+  emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
 
   ! Compute cross-sections (CS) and probabilities + Interaction length
   ! Last two material treated below statement number 100
   do ma=1,nrmat
+  ! WHEN ALL DEPENDENCIES ARE REMOVED THERE WON'T BE NEED FOR THE ma VARIABLE
 
     mcurr = ma
     ! Prepare for Rutherford differential distribution
     call funlxp(k2coll_ruth, cgen(1,ma), tlcut, hcut(ma))
 
     ! freep: number of nucleons involved in single scattering
-    freep(ma) = freeco * anuc(ma)**(one/three)
+    freep(ma) = freeco * sc_anuc**(one/three)
 
     ! compute pp and pn el+single diff contributions to cross-section
     ! (both added : quasi-elastic or qel later)
@@ -519,7 +535,7 @@ subroutine k2coll_scatin(plab)
     csect(0,ma) = csect(0,ma) + csect(5,ma)
 
     ! Interaction length in meter
-    xintl(ma) = (c1m2*anuc(ma))/(((fnavo * rho(ma))*csect(0,ma))*1e-24_fPrec)
+    xintl(ma) = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0,ma))*1e-24_fPrec)
 
     ! Filling CProb with cumulated normalised Cross-sections
     do i=1,4
@@ -552,7 +568,7 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart)
+subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
 
   use mod_ranlux
   use coll_common
@@ -562,6 +578,9 @@ subroutine k2coll_jaw(s, nabs, ipart)
   real(kind=fPrec), intent(inout) :: s
   integer,          intent(inout) :: nabs
   integer,          intent(in)    :: ipart
+  real(kind=fPrec), intent(in)    :: j_anuc
+  real(kind=fPrec), intent(in)    :: j_zatom
+  real(kind=fPrec), intent(in)    :: j_rho
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
   integer inter,nabs_tmp
@@ -592,7 +611,7 @@ subroutine k2coll_jaw(s, nabs, ipart)
     zlm1 = rlen
     call k2coll_mcs(s)
     s = (zlm-rlen)+s
-    call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)  ! DM routine to include tail
+    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
     p = p-m_dpodx*s
 
     dpop = (p-p0)/p0
@@ -610,7 +629,7 @@ subroutine k2coll_jaw(s, nabs, ipart)
   if(x <= zero) then
     s = (zlm-rlen)+s
 
-    call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)
+    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
     dpop = (p-p0)/p0
 
@@ -636,7 +655,7 @@ subroutine k2coll_jaw(s, nabs, ipart)
   if(inter == 1) then
     s = (zlm-rlen)+zlm1
 
-    call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)
+    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
 
     dpop = (p-p0)/p0
@@ -748,7 +767,7 @@ subroutine k2coll_mcs(s)
 end subroutine k2coll_mcs
 
 !>
-!! k2coll_calcIonLoss(IS,PC,DZ,EnLo)
+!! k2coll_calcIonLoss(IS,PC,DZ,il_anuc,il_zatom,il_rho,EnLo)
 !! subroutine for the calculazion of the energy loss by ionization
 !! Either mean energy loss from Bethe-Bloch, or higher energy loss, according to finite probability from cross section
 !! Written by DM for crystals, introduced in main code by RB
@@ -977,18 +996,19 @@ end subroutine k2coll_iterat
 !! k2coll_ruth(t)
 !! Calculate the rutherford scattering cross section
 !<
-real(kind=fPrec) function k2coll_ruth(t)
+real(kind=fPrec) function k2coll_ruth(t,ru_zatom)
 
   use mathlib_bouncer
   use coll_materials
 
   real(kind=fPrec), intent(in) :: t
+  real(kind=fPrec), intent(in) :: ru_zatom
 
   ! DM: changed 2.607d-4 to 2.607d-5 to fix Rutherford bug
   real(kind=fPrec), parameter :: cnorm  = 2.607e-5_fPrec
   real(kind=fPrec), parameter :: cnform = 0.8561e3_fPrec
 
-  k2coll_ruth = (cnorm*exp_mb(((-one*t)*cnform)*emr(mcurr)**2)) * (zatom(mcurr)/t)**2
+  k2coll_ruth = (cnorm*exp_mb(((-one*t)*cnform)*emr(mcurr)**2)) * (ru_zatom/t)**2
 
 end function k2coll_ruth
 
