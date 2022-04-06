@@ -4,7 +4,7 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xcoll.beam_elements.pyk2 import pyk2_run
+from xcoll.beam_elements.pyk2 import pyk2_run, materials
 from xcoll.general import _pkg_root
 
 path = Path(_pkg_root / ".." / "tests" / "pyk2_data")
@@ -35,6 +35,13 @@ nhit_stage = np.zeros(npart, dtype=np.int32)
 nabs_type = np.zeros(npart, dtype=np.int32)
 linside = np.zeros(npart, dtype=np.int32)
 
+matID = materials['MoGR']['ID']
+anuc = materials['MoGR']['anuc']
+zatom = materials['MoGR']['zatom']
+rho = materials['MoGR']['rho']
+zatom4 = materials['W']['zatom']
+zatom5 = materials['PB']['zatom']
+
 pyk2_run(x_particles=x_test,
           xp_particles=xp_test,
           y_particles=y_test,
@@ -49,7 +56,10 @@ pyk2_run(x_particles=x_test,
           nhit_stage=nhit_stage,
           nabs_type=nabs_type,
           linside=linside,
-          matid=10,
+          matid=matID,
+          run_anuc=anuc,
+          run_zatom=zatom,
+          run_rho=rho,
           is_crystal=False,
           c_length=0.59999999999999998,
           c_rotation=0,
@@ -59,6 +69,8 @@ pyk2_run(x_particles=x_test,
           c_enom=7000000, # Reference energy
           onesided=False,
           random_generator_seed=-1, # skips rng re-initlization
+          run_zatom4=zatom4,
+          run_zatom5=zatom5
           )
 
 x_ref = np.loadtxt("pyk2_data/rcx.dump_after_REF")

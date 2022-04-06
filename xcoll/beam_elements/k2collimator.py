@@ -139,6 +139,8 @@ class K2Collimator:
             anuc = pyk2.materials[self.material]['anuc']
             zatom = pyk2.materials[self.material]['zatom']
             rho = pyk2.materials[self.material]['rho']
+            zatom4 = pyk2.materials['W']['zatom']
+            zatom5 = pyk2.materials['PB']['zatom']
 
             pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
@@ -155,9 +157,9 @@ class K2Collimator:
                       nabs_type=nabs_type,
                       linside=linside,
                       matid=matID,
-                      anuc=anuc,
-                      zatom=zatom,
-                      rho=rho,
+                      run_anuc=anuc,
+                      run_zatom=zatom,
+                      run_rho=rho,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
@@ -167,6 +169,8 @@ class K2Collimator:
                       c_enom=particles.energy0[0]/1e6, # Reference energy
                       onesided=self.onesided,
                       random_generator_seed=-1, # skips rng re-initlization
+                      run_zatom4=zatom4,
+                      run_zatom5=zatom5
                       )
 
             # Masks of hit and survived particles

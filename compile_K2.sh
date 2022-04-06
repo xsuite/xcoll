@@ -9,13 +9,13 @@ rm *.mod *.o
 # compile libraries
 cd crlibm
 make clean
-rm -r CMakeCache.txt CMakeFiles Makefile cmake_install.cmak &> /dev/null
+rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install.cmak &> /dev/null
 cmake .
 make CFLAGS=-fPIC
 mv libcrlibm.a ../
 cd ../roundctl
 make clean
-rm -r CMakeCache.txt CMakeFiles Makefile cmake_install.cmak &> /dev/null
+rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install.cmak &> /dev/null
 cmake .
 make CFLAGS=-fPIC
 mv libroundctl.a ../
