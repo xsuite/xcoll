@@ -141,8 +141,6 @@ class K2Collimator:
             rho = pyk2.materials[self.material]['rho']
             hcut = pyk2.materials[self.material]['hcut']
             bnref = pyk2.materials[self.material]['bnref']
-            zatom4 = pyk2.materials['W']['zatom']
-            zatom5 = pyk2.materials['PB']['zatom']
 
             pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
@@ -173,8 +171,6 @@ class K2Collimator:
                       c_enom=particles.energy0[0]/1e6, # Reference energy
                       onesided=self.onesided,
                       random_generator_seed=-1, # skips rng re-initlization
-                      run_zatom4=zatom4,
-                      run_zatom5=zatom5
                       )
 
             # Masks of hit and survived particles

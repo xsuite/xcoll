@@ -71,7 +71,7 @@ end subroutine k2coll_init
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
 subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, coll_bnref, & 
-  is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, zatom_4, zatom_5, &
+  is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
   impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
@@ -100,9 +100,6 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, c
   real(kind=fPrec), intent(in)    :: c_aperture   ! Collimator aperture in m
   real(kind=fPrec), intent(in)    :: c_offset     ! Collimator offset in m
   real(kind=fPrec), intent(inout) :: c_tilt(2)    ! Collimator tilt in radians
-
-  real(kind=fPrec), intent(in)    :: zatom_4      ! 
-  real(kind=fPrec), intent(in)    :: zatom_5      ! 
   
   real(kind=fPrec), intent(inout) :: x_in(npart)  ! Particle coordinate
   real(kind=fPrec), intent(inout) :: xp_in(npart) ! Particle coordinate
@@ -144,7 +141,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, c
   p0     = enom
 
   ! Initialise scattering processes
-  call k2coll_scatin(p0,coll_anuc,coll_rho,zatom_4,zatom_5,coll_zatom)
+  call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom)
 
   nhit   = 0
   nabs   = 0
@@ -465,7 +462,7 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5,scat_zatom)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,scat_zatom)
 
   use mod_funlux
   use coll_common
@@ -478,8 +475,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5,scat_zatom)
   real(kind=fPrec), intent(in) :: plab
   real(kind=fPrec), intent(in) :: sc_anuc
   real(kind=fPrec), intent(in) :: sc_rho
-  real(kind=fPrec), intent(in) :: anuc4
-  real(kind=fPrec), intent(in) :: anuc5
+  ! real(kind=fPrec), intent(in) :: anuc4
+  ! real(kind=fPrec), intent(in) :: anuc5
   real(kind=fPrec), intent(in) :: scat_zatom
   
 
@@ -504,8 +501,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5,scat_zatom)
   bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
 
   ! Unmeasured tungsten data, computed with lead data and power laws
-  bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
-  emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
+  ! bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
+  ! emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
 
   mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
   ! Prepare for Rutherford differential distribution

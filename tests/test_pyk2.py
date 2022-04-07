@@ -41,8 +41,6 @@ zatom = materials['MoGR']['zatom']
 rho = materials['MoGR']['rho']
 hcut = materials['MoGR']['hcut']
 bnref = materials['MoGR']['bnref']
-zatom4 = materials['W']['zatom']
-zatom5 = materials['PB']['zatom']
 
 pyk2_run(x_particles=x_test,
           xp_particles=xp_test,
@@ -72,9 +70,7 @@ pyk2_run(x_particles=x_test,
           c_tilt=np.array([0,0], dtype=np.float64),
           c_enom=7000000, # Reference energy
           onesided=False,
-          random_generator_seed=-1, # skips rng re-initlization
-          run_zatom4=zatom4,
-          run_zatom5=zatom5
+          random_generator_seed=-1 # skips rng re-initlization
           )
 
 x_ref = np.loadtxt("pyk2_data/rcx.dump_after_REF")

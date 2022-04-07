@@ -43,8 +43,8 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
                 matid, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, is_crystal, &
                 c_length, c_rotation, c_aperture, c_offset, &
-                c_tilt, c_enom, onesided, random_generator_seed, &
-                run_zatom4, run_zatom5)
+                c_tilt, c_enom, onesided, random_generator_seed &
+              )
 
   use floatPrecision
   use numerical_constants
@@ -97,8 +97,6 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8) ,    intent(in) :: c_enom
   logical(kind=4) ,  intent(in):: onesided
   integer, intent(in)          :: random_generator_seed
-  real(kind=8) , intent(in):: run_zatom4
-  real(kind=8) , intent(in):: run_zatom5
 
   integer j
 
@@ -139,7 +137,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   call k2coll_collimate( &
      matid, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, is_crystal, &
      c_length, c_rotation, c_aperture, c_offset, c_tilt, &
-     run_zatom4, run_zatom5, rcx, rcxp, rcy, rcyp, rcp, rcs, &
+     rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom*c1m3, part_hit, part_abs, &
      part_impact, part_indiv, part_linteract, &
      onesided, nhit_stage, 1, nabs_type, linside)
