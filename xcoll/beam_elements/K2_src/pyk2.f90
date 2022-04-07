@@ -41,7 +41,8 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 p_particles, part_hit, &
                 part_abs, part_impact, &
                 part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
-                matid, run_anuc, run_zatom, run_rho, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
+                matid, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, is_crystal, &
+                c_length, c_rotation, c_aperture, c_offset, &
                 c_tilt, c_enom, onesided, random_generator_seed, &
                 run_zatom4, run_zatom5)
 
@@ -65,7 +66,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   ! ## variables declarations ##
   ! ############################
 
-  integer, intent(in)       :: num_particles
+  integer, intent(in)          :: num_particles
   real(kind=8), intent(inout)  :: x_particles(num_particles)
   real(kind=8), intent(inout)  :: xp_particles(num_particles)
   real(kind=8), intent(inout)  :: y_particles(num_particles)
@@ -81,18 +82,20 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   integer(kind=4)  , intent(inout) :: nhit_stage(num_particles)
   integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
   logical(kind=4)  , intent(inout) :: linside(num_particles)
-  integer(kind=4)  , intent(in):: matid
+  integer(kind=4)  , intent(in) :: matid
   real(kind=8)     , intent(in) :: run_anuc
   real(kind=8)     , intent(in) :: run_zatom
   real(kind=8)     , intent(in) :: run_rho
-  logical(kind=4)  , intent(in):: is_crystal
-  real(kind=8) , intent(in):: c_length
-  real(kind=8) , intent(in):: c_rotation
-  real(kind=8) , intent(in):: c_aperture
-  real(kind=8) , intent(in):: c_offset
-  real(kind=8) , intent(inout):: c_tilt(2)
-  real(kind=8) , intent(in):: c_enom
-  logical(kind=4) , intent(in):: onesided
+  real(kind=8)     , intent(in) :: run_hcut
+  real(kind=8)     , intent(in) :: run_bnref
+  logical(kind=4)  , intent(in) :: is_crystal
+  real(kind=8) ,    intent(in) :: c_length
+  real(kind=8) ,    intent(in) :: c_rotation
+  real(kind=8) ,    intent(in) :: c_aperture
+  real(kind=8) ,    intent(in) :: c_offset
+  real(kind=8) , intent(inout) :: c_tilt(2)
+  real(kind=8) ,    intent(in) :: c_enom
+  logical(kind=4) ,  intent(in):: onesided
   integer, intent(in)          :: random_generator_seed
   real(kind=8) , intent(in):: run_zatom4
   real(kind=8) , intent(in):: run_zatom5
@@ -134,7 +137,8 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 
   call k2coll_collimate( &
-     matid, run_anuc, run_zatom, run_rho, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
+     matid, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, is_crystal, &
+     c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      run_zatom4, run_zatom5, rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom*c1m3, part_hit, part_abs, &
      part_impact, part_indiv, part_linteract, &

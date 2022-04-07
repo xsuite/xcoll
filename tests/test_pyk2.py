@@ -39,6 +39,8 @@ matID = materials['MoGR']['ID']
 anuc = materials['MoGR']['anuc']
 zatom = materials['MoGR']['zatom']
 rho = materials['MoGR']['rho']
+hcut = materials['MoGR']['hcut']
+bnref = materials['MoGR']['bnref']
 zatom4 = materials['W']['zatom']
 zatom5 = materials['PB']['zatom']
 
@@ -60,6 +62,8 @@ pyk2_run(x_particles=x_test,
           run_anuc=anuc,
           run_zatom=zatom,
           run_rho=rho,
+          run_hcut=hcut,
+          run_bnref=bnref,
           is_crystal=False,
           c_length=0.59999999999999998,
           c_rotation=0,

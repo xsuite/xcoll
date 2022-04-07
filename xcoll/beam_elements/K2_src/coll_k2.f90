@@ -70,8 +70,8 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, is_crystal, & 
-  c_length, c_rotation, c_aperture, c_offset, c_tilt, zatom_4, zatom_5, &
+subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, coll_bnref, & 
+  is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, zatom_4, zatom_5, &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
   impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
@@ -91,6 +91,8 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, is_crystal, 
   real(kind=fPrec), intent(in)    :: coll_anuc    ! 
   real(kind=fPrec), intent(in)    :: coll_zatom   ! 
   real(kind=fPrec), intent(in)    :: coll_rho     ! 
+  real(kind=fPrec), intent(in)    :: coll_hcut    ! 
+  real(kind=fPrec), intent(in)    :: coll_bnref   !
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -250,7 +252,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, is_crystal, 
     if(is_crystal) then ! This is a crystal collimator
 
       call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
-        part_abs_local,impact,indiv,c_length,coll_anuc,coll_zatom,coll_rho)
+        part_abs_local,impact,indiv,c_length,coll_anuc,coll_zatom,coll_rho,coll_hcut,coll_bnref)
 
       if(nabs /= 0) then
         part_abs_local(j)  = 1
@@ -463,7 +465,7 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5, scat_zatom)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,anuc4,anuc5,scat_zatom)
 
   use mod_funlux
   use coll_common

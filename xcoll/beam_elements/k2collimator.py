@@ -139,6 +139,8 @@ class K2Collimator:
             anuc = pyk2.materials[self.material]['anuc']
             zatom = pyk2.materials[self.material]['zatom']
             rho = pyk2.materials[self.material]['rho']
+            hcut = pyk2.materials[self.material]['hcut']
+            bnref = pyk2.materials[self.material]['bnref']
             zatom4 = pyk2.materials['W']['zatom']
             zatom5 = pyk2.materials['PB']['zatom']
 
@@ -160,6 +162,8 @@ class K2Collimator:
                       run_anuc=anuc,
                       run_zatom=zatom,
                       run_rho=rho,
+                      run_hcut=hcut,
+                      run_bnref=bnref,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
