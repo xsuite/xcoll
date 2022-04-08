@@ -1,4 +1,4 @@
-########################## PARAMETERS ###############################
+########################### PARAMETERS ##############################
 # anuc  : standard atomic weight (mass number averaged over isotopes)
 # zatom : number of protons (atomic number)
 # rho   : density / g cm-3
@@ -6,7 +6,9 @@
 # hcut  :
 # radl  : radiation length / m
 # bnref : nuclear interaction length / g cm-2 
-######################################################################
+# csref : 
+# cprob :
+#####################################################################
 
 materials = {
 # Berylium
@@ -19,7 +21,9 @@ materials = {
         'emr': 0.22,
         'hcut': 0.02,
         'radl': 0.353,
-        'bnref': 74.7
+        'bnref': 74.7,
+        'csref': [0.271, 0.192, 0, 0, 0, 0.0035e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Aluminium
@@ -32,7 +36,9 @@ materials = {
         'emr': 0.302,
         'hcut': 0.02,
         'radl': 0.089,
-        'bnref': 120.3
+        'bnref': 120.3,
+        'csref': [0.643, 0.418, 0, 0, 0, 0.0340e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Copper
@@ -45,7 +51,9 @@ materials = {
         'emr': 0.366,
         'hcut': 0.01,
         'radl': 0.0143,
-        'bnref': 217.8
+        'bnref': 217.8,
+        'csref': [1.253, 0.769, 0, 0, 0, 0.1530e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Tungsten
@@ -58,7 +66,9 @@ materials = {
         'emr': 0.5208318900309039, # 0.520,
         'hcut': 0.01,
         'radl': 0.0035,
-        'bnref': 420.4304986267596 # 440.3
+        'bnref': 420.4304986267596, # 440.3
+        'csref': [2.765, 1.591, 0, 0, 0, 0.7680e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Lead
@@ -71,7 +81,9 @@ materials = {
         'emr': 0.542,
         'hcut': 0.01,
         'radl': 0.0056,
-        'bnref': 455.3
+        'bnref': 455.3,
+        'csref': [3.016, 1.724, 0, 0, 0, 0.9070e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Carbon
@@ -84,7 +96,9 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.2557,
-        'bnref': 70.0
+        'bnref': 70.0,
+        'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Carbon2
@@ -97,7 +111,9 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.094,
-        'bnref': 70.0
+        'bnref': 70.0,
+        'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Silicon
@@ -110,7 +126,9 @@ materials = {
         'emr': 0.441,
         'hcut': 0.02,
         'radl': 1,
-        'bnref': 120.14
+        'bnref': 120.14,
+        'csref': [0.664, 0.430, 0, 0, 0, 0.0390e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },
 
 # Germanium
@@ -123,7 +141,9 @@ materials = {
         'emr': 0.605,
         'hcut': 0.02,
         'radl': 1,
-        'bnref': 226.35
+        'bnref': 226.35,
+        'csref': [1.388, 0.844, 0, 0, 0, 0.1860e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },    
 
 # 
@@ -136,7 +156,9 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.1193,
-        'bnref': 76.7
+        'bnref': 76.7,
+        'csref': [0.362, 0.247, 0, 0, 0, 0.0094e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },   
 
 # 
@@ -149,10 +171,12 @@ materials = {
         'emr': 0.308,
         'hcut': 0.02,
         'radl': 0.0316,
-        'bnref': 115.0
+        'bnref': 115.0,
+        'csref': [0.572, 0.370, 0, 0, 0, 0.0279e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },  
 
-# 
+# Molybdium Graphite
   'Mo': {
         'ID': 12,
         'exenergy': 424.0e-9,
@@ -162,7 +186,9 @@ materials = {
         'emr': 0.481,
         'hcut': 0.02,
         'radl': 0.0096,
-        'bnref': 273.9
+        'bnref': 273.9,
+        'csref': [1.713, 1.023, 0, 0, 0, 0.2650e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },     
 
 # 
@@ -175,7 +201,9 @@ materials = {
         'emr': 0.418,
         'hcut': 0.02,
         'radl': 0.0144,
-        'bnref': 208.7
+        'bnref': 208.7,
+        'csref': [1.246, 0.765, 0, 0, 0, 0.1390e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
         },   
 
 # 
@@ -188,6 +216,39 @@ materials = {
         'emr': 0.578,
         'hcut': 0.02,
         'radl': 0.00385,
-        'bnref': 392.1
-        },          
+        'bnref': 392.1,
+        'csref': [2.548, 1.473, 0, 0, 0, 0.5740e-2],
+        'cprob': [0, 0, 0, 0, 0, 1]
+        },        
+
+# Vacuum  
+  'VA': {
+        'ID': 15,
+        'exenergy': 0,
+        'anuc': 0,
+        'zatom': 0,
+        'rho': 0,
+        'emr': 0,
+        'hcut': 0,
+        'radl': 1.0e1,
+        'bnref': 0,
+        'csref': [0, 0, 0, 0, 0, 0],
+        'cprob': [0, 0, 0, 0, 0, 1]
+        },        
+
+# Black Absorber
+  'BL': {
+        'ID': 16,
+        'exenergy': 1.0e10, # c1e10 
+        'anuc': 0,
+        'zatom': 0,
+        'rho': 0,
+        'emr': 0,
+        'hcut': 0,
+        'radl': 1.0e1,
+        'bnref': 0,
+        'csref': [0, 0, 0, 0, 0, 0],
+        'cprob': [0, 0, 0, 0, 0, 1]
+        },    
+  
 }

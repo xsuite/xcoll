@@ -71,8 +71,8 @@ end subroutine k2coll_init
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
 subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_rho, coll_hcut, coll_bnref, & 
-  is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
-  x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
+  coll_csref0, coll_csref1, coll_csref4, coll_csref5, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
+  c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
   impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
@@ -94,6 +94,10 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_rh
   real(kind=fPrec), intent(in)    :: coll_rho     ! 
   real(kind=fPrec), intent(in)    :: coll_hcut    ! 
   real(kind=fPrec), intent(in)    :: coll_bnref   !
+  real(kind=fPrec), intent(in)    :: coll_csref0  ! 
+  real(kind=fPrec), intent(in)    :: coll_csref1  ! 
+  real(kind=fPrec), intent(in)    :: coll_csref4  ! 
+  real(kind=fPrec), intent(in)    :: coll_csref5  !
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -250,7 +254,8 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_rh
     if(is_crystal) then ! This is a crystal collimator
 
       call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
-        part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_hcut,coll_bnref)
+        part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_rho,&
+        coll_hcut,coll_bnref,coll_csref0,coll_csref1,coll_csref4,coll_csref5)
 
       if(nabs /= 0) then
         part_abs_local(j)  = 1
