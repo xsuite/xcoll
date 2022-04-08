@@ -36,6 +36,7 @@ nabs_type = np.zeros(npart, dtype=np.int32)
 linside = np.zeros(npart, dtype=np.int32)
 
 matID = materials['MoGR']['ID']
+exenergy = materials['MoGR']['exenergy']
 anuc = materials['MoGR']['anuc']
 zatom = materials['MoGR']['zatom']
 rho = materials['MoGR']['rho']
@@ -57,6 +58,7 @@ pyk2_run(x_particles=x_test,
           nabs_type=nabs_type,
           linside=linside,
           matid=matID,
+          run_exenergy=exenergy,
           run_anuc=anuc,
           run_zatom=zatom,
           run_rho=rho,

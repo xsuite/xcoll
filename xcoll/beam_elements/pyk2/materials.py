@@ -1,9 +1,19 @@
+########################## PARAMETERS ###############################
+# anuc  : standard atomic weight (mass number averaged over isotopes)
+# zatom : number of protons (atomic number)
+# rho   : density / g cm-3
+# emr   : 
+# hcut  :
+# radl  : radiation length / m
+# bnref : nuclear interaction length / g cm-2 
+######################################################################
+
 materials = {
 # Berylium
   'BE': {
         'ID': 1,
         'exenergy': 63.7e-9,
-        'anuc': 9.01,
+        'anuc': 9.01,         
         'zatom': 4.00,
         'rho': 1.848,
         'emr': 0.22,

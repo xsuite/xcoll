@@ -70,7 +70,7 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, coll_bnref, & 
+subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_rho, coll_hcut, coll_bnref, & 
   is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
   impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
@@ -88,6 +88,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, c
   use mod_ranlux
 
   integer,          intent(in)    :: matid        ! Material ID
+  real(kind=fPrec), intent(inout) :: coll_exenergy!
   real(kind=fPrec), intent(in)    :: coll_anuc    ! 
   real(kind=fPrec), intent(in)    :: coll_zatom   ! 
   real(kind=fPrec), intent(in)    :: coll_rho     ! 
@@ -249,7 +250,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, c
     if(is_crystal) then ! This is a crystal collimator
 
       call cry_doCrystal(j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
-        part_abs_local,impact,indiv,c_length,coll_anuc,coll_zatom,coll_rho,coll_hcut,coll_bnref)
+        part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_hcut,coll_bnref)
 
       if(nabs /= 0) then
         part_abs_local(j)  = 1
@@ -327,7 +328,7 @@ subroutine k2coll_collimate(matid, coll_anuc, coll_zatom, coll_rho, coll_hcut, c
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j),coll_anuc,coll_zatom,coll_rho)
+        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho)
 
         nabs_type(j) = nabs
         lhit(j)  = 1
@@ -571,7 +572,7 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
+subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho)
 
   use mod_ranlux
   use coll_common
@@ -581,6 +582,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
   real(kind=fPrec), intent(inout) :: s
   integer,          intent(inout) :: nabs
   integer,          intent(in)    :: ipart
+  real(kind=fPrec), intent(inout) :: j_exenergy
   real(kind=fPrec), intent(in)    :: j_anuc
   real(kind=fPrec), intent(in)    :: j_zatom
   real(kind=fPrec), intent(in)    :: j_rho
@@ -614,7 +616,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
     zlm1 = rlen
     call k2coll_mcs(s)
     s = (zlm-rlen)+s
-    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
+    call k2coll_calcIonLoss(mat,p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
     p = p-m_dpodx*s
 
     dpop = (p-p0)/p0
@@ -632,7 +634,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
   if(x <= zero) then
     s = (zlm-rlen)+s
 
-    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)
+    call k2coll_calcIonLoss(mat,p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
     dpop = (p-p0)/p0
 
@@ -658,7 +660,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_anuc, j_zatom, j_rho)
   if(inter == 1) then
     s = (zlm-rlen)+zlm1
 
-    call k2coll_calcIonLoss(mat,p,rlen,j_anuc,j_zatom,j_rho,m_dpodx)
+    call k2coll_calcIonLoss(mat,p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
 
     dpop = (p-p0)/p0
@@ -776,20 +778,21 @@ end subroutine k2coll_mcs
 !! Written by DM for crystals, introduced in main code by RB
 !! Updated and improved for numerical stability by VKBO
 !<
-subroutine k2coll_calcIonLoss(IS, PC, DZ, il_anuc, il_zatom, il_rho, EnLo)
+subroutine k2coll_calcIonLoss(IS, PC, DZ, il_exenergy, il_anuc, il_zatom, il_rho, EnLo)
 
   use mod_ranlux
   use coll_materials
   use mathlib_bouncer
   use physical_constants
 
-  integer,          intent(in)  :: IS       ! IS material ID
-  real(kind=fPrec), intent(in)  :: PC       ! PC momentum in GeV
-  real(kind=fPrec), intent(in)  :: DZ       ! DZ length traversed in material (meters)
-  real(kind=fPrec), intent(in)  :: il_anuc  ! il_anuc 
-  real(kind=fPrec), intent(in)  :: il_zatom ! il_zatom
-  real(kind=fPrec), intent(in)  :: il_rho   ! il_rho
-  real(kind=fPrec), intent(out) :: EnLo     ! EnLo energy loss in GeV/meter
+  integer,          intent(in)  :: IS           ! IS material ID
+  real(kind=fPrec), intent(in)  :: PC           ! PC momentum in GeV
+  real(kind=fPrec), intent(in)  :: DZ           ! DZ length traversed in material (meters)
+  real(kind=fPrec), intent(in)  :: il_exenergy  ! il_exenergy
+  real(kind=fPrec), intent(in)  :: il_anuc      ! il_anuc 
+  real(kind=fPrec), intent(in)  :: il_zatom     ! il_zatom
+  real(kind=fPrec), intent(in)  :: il_rho       ! il_rho
+  real(kind=fPrec), intent(out) :: EnLo         ! EnLo energy loss in GeV/meter
 
   real(kind=fPrec) exEn,thl,Tt,cs_tail,prob_tail,enr,mom,betar,gammar,bgr,kine,Tmax,plen
   real(kind=fPrec), parameter :: k = 0.307075_fPrec ! Constant in front of Bethe-Bloch [MeV g^-1 cm^2]
@@ -802,7 +805,7 @@ subroutine k2coll_calcIonLoss(IS, PC, DZ, il_anuc, il_zatom, il_rho, EnLo)
   kine   = ((two*pmae)*bgr)*bgr
 
   ! Mean excitation energy
-  exEn = exenergy(IS)*c1e3 ! [MeV]
+  exEn = il_exenergy*c1e3 ! [MeV]
 
   ! Tmax is max energy loss from kinematics
   Tmax = kine/(one + (two*gammar)*(pmae/pmap) + (pmae/pmap)**2) ! [MeV]
