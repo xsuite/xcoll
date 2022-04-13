@@ -1,4 +1,4 @@
-########################### PARAMETERS ##############################
+############################ PARAMETERS ###############################
 # anuc  : standard atomic weight (mass number averaged over isotopes)
 # zatom : number of protons (atomic number)
 # rho   : density / g cm-3
@@ -8,7 +8,13 @@
 # bnref : nuclear interaction length / g cm-2 
 # csref : 
 # cprob :
-#####################################################################
+# dlri  : Radiation length(m), updated from PDG for Si
+# dlyi  : Nuclear length(m)
+# ai    : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from
+#         initial implementation
+# eUm   : Only for Si(110) and Ge(110) potent. [eV], Ge taken from A. 
+#         Fomin, Si from initial implementation
+########################################################################
 
 materials = {
 # Berylium
@@ -23,7 +29,13 @@ materials = {
         'radl': 0.353,
         'bnref': 74.7,
         'csref': [0.271, 0.192, 0, 0, 0, 0.0035e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },
 
 # Aluminium
@@ -38,7 +50,13 @@ materials = {
         'radl': 0.089,
         'bnref': 120.3,
         'csref': [0.643, 0.418, 0, 0, 0, 0.0340e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },
 
 # Copper
@@ -53,7 +71,13 @@ materials = {
         'radl': 0.0143,
         'bnref': 217.8,
         'csref': [1.253, 0.769, 0, 0, 0, 0.1530e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },
 
 # Tungsten
@@ -68,7 +92,13 @@ materials = {
         'radl': 0.0035,
         'bnref': 420.4304986267596, # 440.3
         'csref': [2.765, 1.591, 0, 0, 0, 0.7680e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': True,
+        'dlri': 0.0035,
+        'dlyi': 0.096,
+        'ai': 0.56e-7,
+        'eUm': 21.0,
+        'collnt': 0
         },
 
 # Lead
@@ -83,7 +113,13 @@ materials = {
         'radl': 0.0056,
         'bnref': 455.3,
         'csref': [3.016, 1.724, 0, 0, 0, 0.9070e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },
 
 # Carbon
@@ -98,7 +134,13 @@ materials = {
         'radl': 0.2557,
         'bnref': 70.0,
         'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': True,
+        'dlri': 0.188,
+        'dlyi': 0.400,
+        'ai': 0.63e-7,
+        'eUm': 21.0,
+        'collnt': 0
         },
 
 # Carbon2
@@ -113,7 +155,13 @@ materials = {
         'radl': 0.094,
         'bnref': 70.0,
         'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },
 
 # Silicon
@@ -128,7 +176,13 @@ materials = {
         'radl': 1,
         'bnref': 120.14,
         'csref': [0.664, 0.430, 0, 0, 0, 0.0390e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': True,
+        'dlri': 0.0937,
+        'dlyi': 0.4652,
+        'ai': 0.96e-7,
+        'eUm': 21.34,
+        'collnt': 0.3016
         },
 
 # Germanium
@@ -143,7 +197,13 @@ materials = {
         'radl': 1,
         'bnref': 226.35,
         'csref': [1.388, 0.844, 0, 0, 0, 0.1860e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': True,
+        'dlri': 0.02302,
+        'dlyi': 0.2686,
+        'ai': 1.0e-7,
+        'eUm': 40.0,
+        'collnt': 0.1632
         },    
 
 # 
@@ -158,7 +218,13 @@ materials = {
         'radl': 0.1193,
         'bnref': 76.7,
         'csref': [0.362, 0.247, 0, 0, 0, 0.0094e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },   
 
 # 
@@ -173,7 +239,13 @@ materials = {
         'radl': 0.0316,
         'bnref': 115.0,
         'csref': [0.572, 0.370, 0, 0, 0, 0.0279e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },  
 
 # Molybdium Graphite
@@ -188,7 +260,13 @@ materials = {
         'radl': 0.0096,
         'bnref': 273.9,
         'csref': [1.713, 1.023, 0, 0, 0, 0.2650e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },     
 
 # 
@@ -203,7 +281,13 @@ materials = {
         'radl': 0.0144,
         'bnref': 208.7,
         'csref': [1.246, 0.765, 0, 0, 0, 0.1390e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },   
 
 # 
@@ -218,7 +302,13 @@ materials = {
         'radl': 0.00385,
         'bnref': 392.1,
         'csref': [2.548, 1.473, 0, 0, 0, 0.5740e-2],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },        
 
 # Vacuum  
@@ -233,7 +323,13 @@ materials = {
         'radl': 1.0e1,
         'bnref': 0,
         'csref': [0, 0, 0, 0, 0, 0],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },        
 
 # Black Absorber
@@ -248,7 +344,13 @@ materials = {
         'radl': 1.0e1,
         'bnref': 0,
         'csref': [0, 0, 0, 0, 0, 0],
-        'cprob': [0, 0, 0, 0, 0, 1]
+        'cprob': [0, 0, 0, 0, 0, 1],
+        'can_be_crystal': False,
+        'dlri': 0,
+        'dlyi': 0,
+        'ai': 0,
+        'eUm': 0,
+        'collnt': 0
         },    
   
 }

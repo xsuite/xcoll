@@ -142,6 +142,9 @@ class K2Collimator:
             hcut = pyk2.materials[self.material]['hcut']
             bnref = pyk2.materials[self.material]['bnref']
 
+            # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
+            #  raise ValueError()
+
             pyk2.pyk2_run(x_particles=x_part,
                       xp_particles=xp_part,
                       y_particles=y_part,

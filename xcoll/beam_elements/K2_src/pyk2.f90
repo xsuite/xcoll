@@ -35,17 +35,49 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   call alloc(pairID, 2, n_alloc, 0, "pairID")
 
 end subroutine
- 
-subroutine pyk2_run(num_particles, x_particles, xp_particles, &
-                y_particles, yp_particles, s_particles, &
-                p_particles, part_hit, &
-                part_abs, part_impact, &
-                part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
-                matid, run_exenergy, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, &
-                run_csref0, run_csref1, run_csref4, run_csref5, &
-                is_crystal, c_length, c_rotation, c_aperture, c_offset, &
-                c_tilt, c_enom, onesided, random_generator_seed &
-              )
+
+subroutine pyk2_run(num_particles, &
+                    x_particles, &
+                    xp_particles, &
+                    y_particles, &
+                    yp_particles, &
+                    s_particles, &
+                    p_particles, &
+                    part_hit, &
+                    part_abs, &
+                    part_impact, &
+                    part_indiv, &
+                    part_linteract, &
+                    nhit_stage, &
+                    nabs_type, &
+                    linside, &
+                    matid, &
+                    run_exenergy, &
+                    run_anuc, &
+                    run_zatom, &
+                    run_emr, &
+                    run_rho, &
+                    run_hcut, &
+                    run_bnref, &
+                    run_csref0, &
+                    run_csref1, &
+                    run_csref4, &
+                    run_csref5, &
+                    run_radl, &
+                    run_dlri, & 
+                    run_dlyi, &
+                    run_eUm, &
+                    run_ai, &
+                    run_collnt, &
+                    is_crystal, &
+                    c_length, &
+                    c_rotation, &
+                    c_aperture, &
+                    c_offset, &
+                    c_tilt, &
+                    c_enom, &
+                    onesided, &
+                    random_generator_seed)
 
   use floatPrecision
   use numerical_constants
@@ -88,6 +120,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8)     , intent(inout) :: run_exenergy
   real(kind=8)     , intent(in) :: run_anuc
   real(kind=8)     , intent(in) :: run_zatom
+  real(kind=8)     , intent(in) :: run_emr
   real(kind=8)     , intent(in) :: run_rho
   real(kind=8)     , intent(in) :: run_hcut
   real(kind=8)     , intent(in) :: run_bnref
@@ -96,6 +129,13 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8)     , intent(in) :: run_csref1
   real(kind=8)     , intent(in) :: run_csref4
   real(kind=8)     , intent(in) :: run_csref5
+
+  real(kind=8)     , intent(in) :: run_radl
+  real(kind=8)     , intent(in) :: run_dlri
+  real(kind=8)     , intent(in) :: run_dlyi
+  real(kind=8)     , intent(in) :: run_eUm
+  real(kind=8)     , intent(in) :: run_ai
+  real(kind=8)     , intent(in) :: run_collnt
 
   logical(kind=4)  , intent(in) :: is_crystal
   real(kind=8) ,    intent(in) :: c_length
@@ -144,8 +184,9 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 
   call k2coll_collimate( &
-     matid, run_exenergy, run_anuc, run_zatom, run_rho, run_hcut, run_bnref, &
-     run_csref0, run_csref1, run_csref4, run_csref5, is_crystal, &
+     matid, run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
+     run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
+     run_dlyi, run_eUm, run_ai, run_collnt, is_crystal, &
      c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom*c1m3, part_hit, part_abs, &

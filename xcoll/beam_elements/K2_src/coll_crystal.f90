@@ -15,7 +15,7 @@ module coll_crystal
 
   use floatPrecision
   use numerical_constants
-  use coll_materials, only : nmat
+  use coll_materials
 
   implicit none
 
@@ -43,8 +43,11 @@ module coll_crystal
 
   ! Rutherford Scatter
   real(kind=fPrec), parameter     :: tlcut_cry = 0.0009982_fPrec
-  real(kind=fPrec), private, save :: cgen_cry(200,nmat)
-  integer,          private, save :: mcurr_cry
+  real(kind=fPrec), private, save :: cgen_cry(200)
+  ! integer,          private, save :: mcurr_cry
+  real(kind=fPrec), private, save :: zatom_curr_cry ! Current zatom, used for Rutherford scattering integration
+  real(kind=fPrec), private, save :: emr_curr_cry ! Current emr, used for Rutherford scattering integration
+  
 
   real(kind=fPrec), private, save :: enr
   real(kind=fPrec), private, save :: mom
@@ -63,12 +66,12 @@ module coll_crystal
   real(kind=fPrec), parameter :: freeco_cry = 1.618_fPrec
 
   ! Crystal Specific Material Arrays
-  logical,          private, save :: validMat(nmat) = .false. ! True for materials the crystal module supports
-  real(kind=fPrec), private, save :: dlri(nmat)     = zero
-  real(kind=fPrec), private, save :: dlyi(nmat)     = zero
-  real(kind=fPrec), private, save :: ai(nmat)       = zero
-  real(kind=fPrec), private, save :: eUm(nmat)      = zero
-  real(kind=fPrec), private, save :: collnt(nmat)   = zero    ! Nuclear Collision length [m]
+  ! logical,          private, save :: validMat(nmat) = .false. ! True for materials the crystal module supports
+  ! real(kind=fPrec), private, save :: dlri     = zero
+  ! real(kind=fPrec), private, save :: dlyi     = zero
+  ! real(kind=fPrec), private, save :: ai       = zero
+  ! real(kind=fPrec), private, save :: eUm      = zero
+  ! real(kind=fPrec), private, save :: collnt   = zero    ! Nuclear Collision length [m]
 
   ! Processes
   integer, parameter :: proc_out         =  -1     ! Crystal not hit
@@ -95,54 +98,54 @@ contains
 ! ================================================================================================ !
 !  Initialise the crystal module
 ! ================================================================================================ !
-subroutine cry_init
+! subroutine cry_init
 
-  use coll_materials
+!   use coll_materials
 
-  integer m
+!   integer m
 
-  ! dlri : Radiation length(m), updated from PDG for Si
-  ! dlyi : Nuclear length(m)
-  ! ai   : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from initial implementation
-  ! eUm  : Only for Si(110) and Ge(110) potent. [eV], Ge taken from A. Fomin, Si from initial implementation
+!   ! dlri : Radiation length(m), updated from PDG for Si
+!   ! dlyi : Nuclear length(m)
+!   ! ai   : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from initial implementation
+!   ! eUm  : Only for Si(110) and Ge(110) potent. [eV], Ge taken from A. Fomin, Si from initial implementation
 
-  ! Si
-  m = collmat_getCollMatID("Si")
-  validMat(m) = .true.
-  dlri(m)     =  0.0937_fPrec
-  dlyi(m)     =  0.4652_fPrec
-  ai(m)       =  0.96e-7_fPrec
-  eUm(m)      = 21.34_fPrec
-  collnt(m)   =  0.3016_fPrec
+!   ! Si
+!   m = collmat_getCollMatID("Si")
+!   validMat(m) = .true.
+!   dlri(m)     =  0.0937_fPrec
+!   dlyi(m)     =  0.4652_fPrec
+!   ai(m)       =  0.96e-7_fPrec
+!   eUm(m)      = 21.34_fPrec
+!   collnt(m)   =  0.3016_fPrec
 
-  ! W
-  m = collmat_getCollMatID("W")
-  validMat(m) = .true.
-  dlri(m)     =  0.0035_fPrec
-  dlyi(m)     =  0.096_fPrec
-  ai(m)       =  0.56e-7_fPrec
-  eUm(m)      = 21.0_fPrec
-  collnt(m)   = zero
+!   ! W
+!   m = collmat_getCollMatID("W")
+!   validMat(m) = .true.
+!   dlri(m)     =  0.0035_fPrec
+!   dlyi(m)     =  0.096_fPrec
+!   ai(m)       =  0.56e-7_fPrec
+!   eUm(m)      = 21.0_fPrec
+!   collnt(m)   = zero
 
-  ! C
-  m = collmat_getCollMatID("C")
-  validMat(m) = .true.
-  dlri(m)     =  0.188_fPrec
-  dlyi(m)     =  0.400_fPrec
-  ai(m)       =  0.63e-7_fPrec
-  eUm(m)      = 21.0_fPrec
-  collnt(m)   = zero
+!   ! C
+!   m = collmat_getCollMatID("C")
+!   validMat(m) = .true.
+!   dlri(m)     =  0.188_fPrec
+!   dlyi(m)     =  0.400_fPrec
+!   ai(m)       =  0.63e-7_fPrec
+!   eUm(m)      = 21.0_fPrec
+!   collnt(m)   = zero
 
-  ! Ge
-  m = collmat_getCollMatID("Ge")
-  validMat(m) = .true.
-  dlri(m)     =  0.02302_fPrec
-  dlyi(m)     =  0.2686_fPrec
-  ai(m)       =  1.0e-7_fPrec
-  eUm(m)      = 40.0_fPrec
-  collnt(m)   =  0.1632_fPrec
+!   ! Ge
+!   m = collmat_getCollMatID("Ge")
+!   validMat(m) = .true.
+!   dlri(m)     =  0.02302_fPrec
+!   dlyi(m)     =  0.2686_fPrec
+!   ai(m)       =  1.0e-7_fPrec
+!   eUm(m)      = 40.0_fPrec
+!   collnt(m)   =  0.1632_fPrec
 
-end subroutine cry_init
+! end subroutine cry_init
 
 ! ================================================================================================ !
 !  Initialise a crystal collimator
@@ -176,11 +179,11 @@ subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
   integer ie
   real(kind=fPrec) bendAng, cry_tilt0
 
-  mat = matid
-  if(validMat(mat) .eqv. .false.) then
-    write(lerr,"(a)") "COLL> ERROR Crystal collimation not supported for material '"//trim(colmats(mat))//"'"
-    !call prror
-  end if
+  ! mat = matid
+  ! if(validMat(mat) .eqv. .false.) then
+  !   write(lerr,"(a)") "COLL> ERROR Crystal collimation not supported for material '"//trim(colmats(mat))//"'"
+  !   !call prror
+  ! end if
 
   ie = 50   ! does not work! need optics at element ie ... 
   if(modulo(c_rotation,pi) < c1m9) then
@@ -228,16 +231,16 @@ end subroutine cry_startElement
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
-  lhit,part_abs,impact,indiv,c_length,cd_exenergy,cd_anuc,cd_zatom,cd_rho,cd_hcut,cd_bnref,&
-  cd_csref0,cd_csref1,cd_csref4,cd_csref5)
+subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+  lhit,part_abs,impact,indiv,c_length,cd_exenergy,cd_anuc,cd_zatom,cd_emr,cd_rho,cd_hcut,cd_bnref,&
+  cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_dlri,cd_dlyi,cd_eUm,cd_ai,cd_collnt)
 
   use parpro
   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
   use mathlib_bouncer
 
   integer,          intent(in)    :: j
-  integer,          intent(in)    :: mat
+  !integer,          intent(in)    :: mat
 
   real(kind=fPrec), intent(inout) :: x,xp
   real(kind=fPrec), intent(inout) :: z,zp
@@ -253,6 +256,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=fPrec), intent(inout) :: cd_exenergy
   real(kind=fPrec), intent(in)    :: cd_anuc
   real(kind=fPrec), intent(in)    :: cd_zatom
+  real(kind=fPrec), intent(in)    :: cd_emr
   real(kind=fPrec), intent(in)    :: cd_rho
   real(kind=fPrec), intent(in)    :: cd_hcut
   real(kind=fPrec), intent(in)    :: cd_bnref
@@ -260,7 +264,11 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=fPrec), intent(in)    :: cd_csref1
   real(kind=fPrec), intent(in)    :: cd_csref4
   real(kind=fPrec), intent(in)    :: cd_csref5
-
+  real(kind=fPrec), intent(in)    :: cd_dlri
+  real(kind=fPrec), intent(in)    :: cd_dlyi
+  real(kind=fPrec), intent(in)    :: cd_eUm
+  real(kind=fPrec), intent(in)    :: cd_ai
+  real(kind=fPrec), intent(in)    :: cd_collnt
 
   logical,          intent(inout) :: isImp
 
@@ -332,8 +340,8 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
     s_P = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
     x_P = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
 
-    call cry_interact(mat,x,xp,z,zp,p,cry_length,s_P,x_P,cd_exenergy,cd_anuc,cd_zatom,cd_rho,cd_hcut,&
-                      cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5)
+    call cry_interact(x,xp,z,zp,p,cry_length,s_P,x_P,cd_exenergy,cd_anuc,cd_zatom,cd_emr,cd_rho,cd_hcut,&
+                      cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_dlri,cd_dlyi,cd_eUm,cd_ai,cd_collnt)
     s   = c_rcurv*c_sBend
     zlm = c_rcurv*c_sBend
     if(iProc /= proc_out) then
@@ -387,8 +395,9 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
         s_P = s_P_tmp*cos_mb(tilt_int) + x_P_tmp*sin_mb(tilt_int)
         x_P = -s_P_tmp*sin_mb(tilt_int) + x_P_tmp*cos_mb(tilt_int)
 
-        call cry_interact(mat,x,xp,z,zp,p,cry_length-(tilt_int*c_rcurv),s_P,x_P,cd_exenergy,cd_anuc,&
-                          cd_zatom,cd_rho,cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5)
+        call cry_interact(x,xp,z,zp,p,cry_length-(tilt_int*c_rcurv),s_P,x_P,cd_exenergy,cd_anuc,&
+                          cd_zatom,cd_emr,cd_rho,cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,&
+                          cd_dlri,cd_dlyi,cd_eUm,cd_ai,cd_collnt)
         s   = c_rcurv*sin_mb(cry_bend - tilt_int)
         zlm = c_rcurv*sin_mb(cry_bend - tilt_int)
         if(iProc /= proc_out) then
@@ -493,8 +502,8 @@ end subroutine cry_doCrystal
 !  Subroutine for the movements of the particles in the crystal
 !  Simple tranport protons in crystal 2
 ! ================================================================================================ !
-subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_zatom,ci_rho,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+subroutine cry_interact(x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_zatom,ci_emr,ci_rho,ci_hcut,ci_bnref,&
+                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_dlri,ci_dlyi,ci_eUm,ci_ai,ci_collnt)
 
   use mod_ranlux
   use mod_funlux
@@ -504,7 +513,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
   use mathlib_bouncer
   use physical_constants
 
-  integer,          intent(in)    :: is  ! Material number
+  !integer,          intent(in)    :: is  ! Material number
   real(kind=fPrec), intent(inout) :: x
   real(kind=fPrec), intent(inout) :: xp
   real(kind=fPrec), intent(inout) :: y
@@ -516,6 +525,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
   real(kind=fPrec), intent(inout) :: ci_exenergy
   real(kind=fPrec), intent(in)    :: ci_anuc
   real(kind=fPrec), intent(in)    :: ci_zatom
+  real(kind=fPrec), intent(in)    :: ci_emr
   real(kind=fPrec), intent(in)    :: ci_rho
   real(kind=fPrec), intent(in)    :: ci_hcut
   real(kind=fPrec), intent(in)    :: ci_bnref
@@ -523,6 +533,11 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
   real(kind=fPrec), intent(in)    :: ci_csref1
   real(kind=fPrec), intent(in)    :: ci_csref4
   real(kind=fPrec), intent(in)    :: ci_csref5
+  real(kind=fPrec), intent(in)    :: ci_dlri
+  real(kind=fPrec), intent(in)    :: ci_dlyi
+  real(kind=fPrec), intent(in)    :: ci_eUm
+  real(kind=fPrec), intent(in)    :: ci_ai
+  real(kind=fPrec), intent(in)    :: ci_collnt
 
   integer nam,zn                        ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
   real(kind=fPrec) ymax,ymin            ! Crystal geometrical parameters
@@ -677,26 +692,26 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
     x     = x0 + xp*s
     y     = y0 + yp*s
     iProc = proc_AM
-    call cry_calcIonLoss(is,pc,am_len,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-    call cry_moveAM(is,nam,am_len,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                    ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+    call cry_calcIonLoss(pc,am_len,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+    call cry_moveAM(nam,am_len,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                    ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
     x = x + xp*(s_length-s)
     y = y + yp*(s_length-s)
     return
 
   else if(x > c_xmax-c_alayer .and. x < c_xmax) then
     iProc = proc_AM
-    call cry_calcIonLoss(is,pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-    call cry_moveAM(is,nam,s_length,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                    ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+    call cry_calcIonLoss(pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+    call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                    ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
     return
 
   end if
 
   ! THIRD CASE: the p interacts with the crystal.
   ! Define typical angles/probabilities for orientation 110
-  xpcrit0 = sqrt((c2m9*eUm(is))/pc)    ! Critical angle (rad) for straight crystals
-  Rcrit   = (pc/(c2m6*eUm(is)))*ai(is) ! Critical curvature radius [m]
+  xpcrit0 = sqrt((c2m9*ci_eUm)/pc)   ! Critical angle (rad) for straight crystals
+  Rcrit   = (pc/(c2m6*ci_eUm))*ci_ai ! Critical curvature radius [m]
 
   ! If R>Rcritical=>no channeling is possible (ratio<1)
   ratio  = c_rcurv/Rcrit
@@ -753,14 +768,14 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
         xp    = xp + Dxp + (two*(coll_rand()-half))*xpcrit
         y     = y  + yp * Sdech
 
-        call cry_calcIonLoss(is,pc,ldech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+        call cry_calcIonLoss(pc,ldech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
         pc = pc - half*dest*Ldech ! Energy loss to ionization while in CH [GeV]
         x  = x  + (half*(s_length-Sdech))*xp
         y  = y  + (half*(s_length-Sdech))*yp
 
-        call cry_calcIonLoss(is,pc,s_length-sdech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-        call cry_moveAM(is,nam,s_length-sdech,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                        ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+        call cry_calcIonLoss(pc,s_length-sdech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+        call cry_moveAM(nam,s_length-sdech,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                        ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
         x = x + (half*(s_length-Sdech))*xp
         y = y + (half*(s_length-Sdech))*yp
       else
@@ -768,8 +783,8 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
         xpin  = XP
         ypin  = YP
 
-        call cry_moveCH(is,nam,l_chan,x,xp,yp,pc,c_rcurv,rcrit,ci_anuc,ci_rho,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5) ! check if a nuclear interaction happen while in CH
+        call cry_moveCH(nam,l_chan,x,xp,yp,pc,c_rcurv,rcrit,ci_zatom,ci_emr,ci_anuc,ci_rho,ci_hcut,ci_bnref,&
+                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt) ! check if a nuclear interaction happen while in CH
         if(iProc /= proc_CH) then
           ! if an nuclear interaction happened, move until the middle with initial xp,yp then
           ! propagate until the "crystal exit" with the new xp,yp accordingly with the rest
@@ -779,7 +794,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
           x = x + (half*L_chan)*XP
           y = y + (half*L_chan)*YP
 
-          call cry_calcIonLoss(is,pc,length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_calcIonLoss(pc,length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
           pc = pc - dest*length ! energy loss to ionization [GeV]
         else
           Dxp = tdefl + (half*ran_gauss(zero))*xpcrit ! Change angle[rad]
@@ -788,7 +803,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
           x   = x + L_chan*(sin_mb(half*Dxp)) ! Trajectory at channeling exit
           y   = y + s_length * yp
 
-          call cry_calcIonLoss(is,pc,length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_calcIonLoss(pc,length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
           pc = pc - (half*dest)*length ! energy loss to ionization [GeV]
         end if
       end if
@@ -802,9 +817,9 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
       x  = x  + (half*s_length)*xp
       y  = y  + (half*s_length)*yp
 
-      call cry_calcIonLoss(is,pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-      call cry_moveAM(is,nam,s_length,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                      ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+      call cry_calcIonLoss(pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+      call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                      ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
 
       x = x + (half*s_length)*xp
       y = y + (half*s_length)*yp
@@ -830,9 +845,9 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
         x     = x  + (half*xp)*(s_length - Srefl)
         y     = y  + (half*yp)*(s_length - Srefl)
 
-        call cry_calcIonLoss(is,pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-        call cry_moveAM(is,nam,s_length-srefl,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                        ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+        call cry_calcIonLoss(pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+        call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                        ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
         x = x + (half*xp)*(s_length - Srefl)
         y = y + (half*yp)*(s_length - Srefl)
 
@@ -857,15 +872,15 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
           x     = x + (half*xp)*Red_S
           y     = y + (half*yp)*Red_S
 
-          call cry_calcIonLoss(is,pc,srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_calcIonLoss(pc,srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
           pc = pc - dest*Srefl ! "added" energy loss before capture
 
-          call cry_calcIonLoss(is,pc,sdech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_calcIonLoss(pc,sdech,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
           pc = pc - (half*dest)*Sdech ! "added" energy loss while captured
 
-          call cry_calcIonLoss(is,pc,red_s,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-          call cry_moveAM(is,nam,red_s,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+          call cry_calcIonLoss(pc,red_s,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_moveAM(nam,red_s,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
           x = x + (half*xp)*Red_S
           y = y + (half*yp)*Red_S
 
@@ -876,13 +891,13 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
           tchan   = Rlength/c_rcurv
           Red_S   = Rlength*cos_mb(xp + half*tchan)
 
-          call cry_calcIonLoss(is,pc,lrefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_calcIonLoss(pc,lrefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
           pc   = pc - dest*Lrefl ! "added" energy loss before capture
           xpin = xp
           ypin = yp
 
-          call cry_moveCH(is,nam,rlength,x,xp,yp,pc,c_rcurv,rcrit,ci_anuc,ci_rho,ci_hcut,ci_bnref,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5) ! Check if a nuclear interaction happen while in ch
+          call cry_moveCH(nam,rlength,x,xp,yp,pc,c_rcurv,rcrit,ci_zatom,ci_emr,ci_anuc,ci_rho,ci_hcut,ci_bnref,&
+                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt) ! Check if a nuclear interaction happen while in ch
           if(iProc /= proc_VC) then
             ! if an nuclear interaction happened, move until the middle with initial xp,yp then propagate until
             ! the "crystal exit" with the new xp,yp accordingly with the rest of the code in "thin lens approx"
@@ -891,7 +906,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
             x = x + (half*Rlength)*XP
             y = y + (half*Rlength)*YP
 
-            call cry_calcIonLoss(is,pc,rlength,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+            call cry_calcIonLoss(pc,rlength,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
             pc = pc - dest*Rlength
           else
             Dxp = (Length-Lrefl)/c_rcurv
@@ -899,7 +914,7 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
             y   = y + red_S*yp
             xp  = tdefl + (half*ran_gauss(zero))*xpcrit ! [mrad]
 
-            call cry_calcIonLoss(is,pc,rlength,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+            call cry_calcIonLoss(pc,rlength,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
             pc = pc - (half*dest)*Rlength  ! "added" energy loss once captured
           end if
         end if
@@ -914,9 +929,9 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
         x     = x + (half*s_length)*xp
         y     = y + (half*s_length)*yp
         if(zn > zero) then
-          call cry_calcIonLoss(is,pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-          call cry_moveAM(is,nam,s_length,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+          call cry_calcIonLoss(pc,s_length,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
         end if
         x = x + (half*s_length)*xp
         y = y + (half*s_length)*yp
@@ -932,24 +947,24 @@ subroutine cry_interact(is,x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_anuc,ci_za
           x   = x + (half*xp)*(s_length-Srefl)
           y   = y + (half*yp)*(s_length-Srefl)
 
-          call cry_calcIonLoss(is,pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-          call cry_moveAM(is,nam,s_length-srefl,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+          call cry_calcIonLoss(pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
           x = x + (half*xp)*(s_length - Srefl)
           y = y + (half*yp)*(s_length - Srefl)
         else
           iProc = proc_TRAM
           x = x + xp*Srefl
           y = y + yp*Srefl
-          Dxp = ((((-one*(13.6_fPrec/pc))*sqrt(s_length/dlri(is)))*c1m3)*xp_rel)/(two*xpcrit) + &
-            (((13.6_fPrec/pc)*sqrt(s_length/DLRi(is)))*c1m3)*(one+(tdefl-c_miscut)/(two*xpcrit))
+          Dxp = ((((-one*(13.6_fPrec/pc))*sqrt(s_length/ci_dlri))*c1m3)*xp_rel)/(two*xpcrit) + &
+            (((13.6_fPrec/pc)*sqrt(s_length/ci_dlri))*c1m3)*(one+(tdefl-c_miscut)/(two*xpcrit))
           xp = xp+Dxp
           x  = x + (half*xp)*(s_length-Srefl)
           y  = y + (half*yp)*(s_length-Srefl)
 
-          call cry_calcIonLoss(is,pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
-          call cry_moveAM(is,nam,s_length-srefl,dest,dlyi(is),dlri(is),xp,yp,pc,ci_anuc,ci_hcut,&
-                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5)
+          call cry_calcIonLoss(pc,s_length-srefl,dest,ci_exenergy,ci_anuc,ci_zatom,ci_rho)
+          call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_zatom,ci_emr,ci_anuc,ci_hcut,&
+                          ci_bnref,ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
           x = x + (half*xp)*(s_length - Srefl)
           y = y + (half*yp)*(s_length - Srefl)
         end if
@@ -962,7 +977,7 @@ end subroutine cry_interact
 ! ================================================================================================ !
 !  Subroutine for the calculazion of the energy loss by ionisation
 ! ================================================================================================ !
-subroutine cry_calcIonLoss(is,pc,dz,EnLo,cc_exenergy,cc_anuc,cc_zatom,cc_rho)
+subroutine cry_calcIonLoss(pc,dz,EnLo,cc_exenergy,cc_anuc,cc_zatom,cc_rho)
 
   use mod_ranlux
   use mod_funlux
@@ -971,7 +986,7 @@ subroutine cry_calcIonLoss(is,pc,dz,EnLo,cc_exenergy,cc_anuc,cc_zatom,cc_rho)
   use mathlib_bouncer
   use physical_constants
 
-  integer,          intent(in)    :: is
+  ! integer,          intent(in)    :: is
   real(kind=fPrec), intent(in)    :: pc
   real(kind=fPrec), intent(in)    :: dz
   real(kind=fPrec), intent(out)   :: EnLo
@@ -1011,17 +1026,17 @@ end subroutine cry_calcIonLoss
 ! ================================================================================================ !
 !  Subroutine for the movement in the amorphous
 ! ================================================================================================ !
-subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
-                      cm_csref0,cm_csref1,cm_csref4,cm_csref5)
+subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_zatom,cm_emr,cm_anuc,cm_hcut,cm_bnref,&
+                      cm_csref0,cm_csref1,cm_csref4,cm_csref5,cm_collnt)
 
   use mod_ranlux
   use mod_funlux
   use floatPrecision
-  use coll_materials, only : hcut, csref
+  ! use coll_materials
   use mathlib_bouncer
   use physical_constants
 
-  integer,          intent(in)    :: is
+  !integer,          intent(in)    :: is
   integer,          intent(in)    :: nam
   real(kind=fPrec), intent(in)    :: dz
   real(kind=fPrec), intent(in)    :: dei
@@ -1030,6 +1045,8 @@ subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
   real(kind=fPrec), intent(inout) :: xp
   real(kind=fPrec), intent(inout) :: yp
   real(kind=fPrec), intent(inout) :: pc
+  real(kind=fPrec), intent(in)    :: cm_zatom
+  real(kind=fPrec), intent(in)    :: cm_emr
   real(kind=fPrec), intent(in)    :: cm_anuc
   real(kind=fPrec), intent(in)    :: cm_hcut
   real(kind=fPrec), intent(in)    :: cm_bnref
@@ -1037,10 +1054,11 @@ subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
   real(kind=fPrec), intent(in)    :: cm_csref1
   real(kind=fPrec), intent(in)    :: cm_csref4
   real(kind=fPrec), intent(in)    :: cm_csref5
+  real(kind=fPrec), intent(in)    :: cm_collnt
 
 
   integer i,length_cry,ichoix
-  real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xm2,xln15s,tz,tx,tlow, &
+  real(kind=fPrec) t,xran_cry(1),cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xm2,xln15s,tz,tx,tlow, &
     thigh,teta,pptot,ppsd,ppel,pc_in,kymcs,kxmcs,ecmsq,dya,bsd,bpp,aran
 
   xp_in = xp
@@ -1060,9 +1078,11 @@ subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
 
   ! Distribution for Ruth. scatt.
   tlow      = tlcut_cry
-  mcurr_cry = is
+  !mcurr_cry = is
   thigh     = cm_hcut
-  call funlxp(cry_ruth,cgen_cry(1,is),tlow,thigh)
+  zatom_curr_cry = cm_zatom
+  emr_curr_cry = cm_emr
+  call funlxp(cry_ruth,cgen_cry(1),tlow,thigh)
 
   ! Cross-section calculation
   ! freep: number of nucleons involved in single scattering
@@ -1109,7 +1129,7 @@ subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
   if(nam == 0) return ! Turn on/off nuclear interactions
 
   ! Can nuclear interaction happen?
-  zlm = -collnt(is)*log_mb(coll_rand())
+  zlm = -cm_collnt*log_mb(coll_rand())
 
   if(zlm < dz) then
     ! Choose nuclear interaction
@@ -1151,7 +1171,9 @@ subroutine cry_moveAM(is,nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_hcut,cm_bnref,&
     case(5)
       iProc      = proc_ruth
       length_cry = 1
-      call funlux(cgen_cry(1,is),xran_cry,length_cry)
+      zatom_curr_cry = cm_zatom
+      emr_curr_cry = cm_emr
+      call funlux(cgen_cry(1),xran_cry,length_cry)
       t = xran_cry(1)
 
     end select
@@ -1179,19 +1201,19 @@ end subroutine cry_moveAM
 ! ================================================================================================ !
 !  Subroutine for check if a nuclear interaction happen while in channeling
 ! ================================================================================================ !
-subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bnref,&
-                      cmc_csref0,cmc_csref1,cmc_csref4,cmc_csref5)
+subroutine cry_moveCH(nam,dz,x,xp,yp,pc,r,rc,cmc_zatom,cmc_emr,cmc_anuc,cmc_rho,cmc_hcut,cmc_bnref,&
+                      cmc_csref0,cmc_csref1,cmc_csref4,cmc_csref5,cmc_eUm,cmc_collnt)
 
   use crcoall
   use mod_ranlux
   use mod_funlux
   use floatPrecision
   use coll_common, only : coll_debug
-  use coll_materials, only : nmat, csref, csect
+  use coll_materials, only : nmat, csect
   use mathlib_bouncer
   use physical_constants
 
-  integer,          intent(in)    :: is
+  !integer,          intent(in)    :: is
   integer,          intent(in)    :: nam
   real(kind=fPrec), intent(in)    :: dz
   real(kind=fPrec), intent(inout) :: x
@@ -1201,6 +1223,8 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
   real(kind=fPrec), intent(in)    :: r
   real(kind=fPrec), intent(in)    :: rc
   real(kind=fPrec), intent(in)    :: cmc_anuc
+  real(kind=fPrec), intent(in)    :: cmc_zatom
+  real(kind=fPrec), intent(in)    :: cmc_emr
   real(kind=fPrec), intent(in)    :: cmc_rho
   real(kind=fPrec), intent(in)    :: cmc_hcut
   real(kind=fPrec), intent(in)    :: cmc_bnref
@@ -1208,7 +1232,8 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
   real(kind=fPrec), intent(in)    :: cmc_csref1
   real(kind=fPrec), intent(in)    :: cmc_csref4
   real(kind=fPrec), intent(in)    :: cmc_csref5
-
+  real(kind=fPrec), intent(in)    :: cmc_eUm
+  real(kind=fPrec), intent(in)    :: cmc_collnt
 
   integer i,np,length_cry,ichoix
   real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
@@ -1233,9 +1258,11 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
 
   ! Distribution for Ruth. scatt.
   tlow      = tlcut_cry
-  mcurr_cry = is
+  !mcurr_cry = is
   thigh     = cmc_hcut
-  call funlxp(cry_ruth,cgen_cry(1,is),tlow,thigh)
+  zatom_curr_cry = cmc_zatom
+  emr_curr_cry = cmc_emr
+  call funlxp(cry_ruth,cgen_cry(1),tlow,thigh)
 
   ! Rescale the total and inelastic cross-section accordigly to the average density seen
   x_i = x
@@ -1244,13 +1271,13 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
   x_i = x_i - (dP/two) ! Rescale the incoming x in the middle of crystalline planes
 
   pv   = pc**2/sqrt(pc**2 + (pmap*c1m3)**2)*c1e9          ! Calculate pv=P/E
-  Ueff = eUm(is)*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
+  Ueff = cmc_eUm*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
   Et   = (pv*xp**2)/two + Ueff                            ! Calculate transverse energy
-  Ec   = (eUm(is)*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
+  Ec   = (cmc_eUm*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
 
   ! To avoid negative Et
-  xminU = ((-dp**2*pc)*c1e9)/(eight*eUm(is)*r)
-  Umin  = abs((eUm(is)*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
+  xminU = ((-dp**2*pc)*c1e9)/(eight*cmc_eUm*r)
+  Umin  = abs((cmc_eUm*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
   Et    = Et + Umin
   Ec    = Ec + Umin
 
@@ -1326,7 +1353,7 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
   if(avrrho == zero) then
     nuc_cl_l = c1e6
   else
-    nuc_cl_l = collnt(is)/avrrho
+    nuc_cl_l = cmc_collnt/avrrho
   end if
   zlm = -nuc_cl_l*log_mb(coll_rand())
 
@@ -1373,7 +1400,9 @@ subroutine cry_moveCH(is,nam,dz,x,xp,yp,pc,r,rc,cmc_anuc,cmc_rho,cmc_hcut,cmc_bn
     case(5)
       iProc      = proc_ch_ruth
       length_cry = 1
-      call funlux(cgen_cry(1,is),xran_cry,length_cry)
+      zatom_curr_cry = cmc_zatom
+      emr_curr_cry = cmc_emr
+      call funlux(cgen_cry(1),xran_cry,length_cry)
       t = xran_cry(1)
 
     end select
@@ -1402,7 +1431,7 @@ end subroutine cry_moveCH
 ! ================================================================================================ !
 ! Definition of rutherford scattering formula
 ! ================================================================================================ !
-function cry_ruth(t_cry,cr_zatom)
+function cry_ruth(t_cry)
 
   use floatPrecision
   use coll_materials
@@ -1411,9 +1440,8 @@ function cry_ruth(t_cry,cr_zatom)
   real(kind=fPrec) cry_ruth,t_cry
   real(kind=fPrec), parameter :: cnorm  = 2.607e-4_fPrec
   real(kind=fPrec), parameter :: cnform = 0.8561e3_fPrec
-  real(kind=fPrec), intent(in):: cr_zatom
 
-  cry_ruth = (cnorm*exp_mb((-t_cry*cnform)*emr(mcurr_cry)**2))*(cr_zatom/t_cry)**2
+  cry_ruth = (cnorm*exp_mb((-t_cry*cnform)*emr_curr_cry**2))*(zatom_curr_cry/t_cry)**2
 
 end function cry_ruth
 
