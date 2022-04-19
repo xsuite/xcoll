@@ -150,7 +150,7 @@ contains
 ! ================================================================================================ !
 !  Initialise a crystal collimator
 ! ================================================================================================ !
-subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
+subroutine cry_startElement(emitX, emitY, o_tilt, o_length, c_rotation, &
    Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
   use crcoall
 !  use coll_db
@@ -159,7 +159,6 @@ subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
   use mathlib_bouncer
   use mod_common_track
 
-  integer(kind=4),  intent(in)    :: matid
   real(kind=fPrec), intent(in)    :: emitX, emitY
   real(kind=fPrec), intent(inout) :: o_tilt
   real(kind=fPrec), intent(inout) :: o_length

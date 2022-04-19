@@ -135,17 +135,29 @@ class K2Collimator:
             opening = self.jaw_F_L - self.jaw_F_R
             offset = self.offset + ( self.jaw_F_L + self.jaw_F_R )/2
 
-            matID = pyk2.materials[self.material]['ID']
-            anuc = pyk2.materials[self.material]['anuc']
-            zatom = pyk2.materials[self.material]['zatom']
-            rho = pyk2.materials[self.material]['rho']
-            hcut = pyk2.materials[self.material]['hcut']
-            bnref = pyk2.materials[self.material]['bnref']
+            exenergy = pyk2.materials[self.material]['exenergy']
+            anuc     = pyk2.materials[self.material]['anuc']
+            zatom    = pyk2.materials[self.material]['zatom']
+            emr      = pyk2.materials[self.material]['emr']
+            rho      = pyk2.materials[self.material]['rho']
+            hcut     = pyk2.materials[self.material]['hcut']
+            bnref    = pyk2.materials[self.material]['bnref']
+            csref0   = pyk2.materials[self.material]['csref'][0]
+            csref1   = pyk2.materials[self.material]['csref'][1]
+            csref4   = pyk2.materials[self.material]['csref'][4]
+            csref5   = pyk2.materials[self.material]['csref'][5]
+            radl     = pyk2.materials[self.material]['radl']
+            dlri     = pyk2.materials[self.material]['dlri']
+            dlyi     = pyk2.materials[self.material]['dlyi']
+            eUm      = pyk2.materials[self.material]['eUm']
+            ai       = pyk2.materials[self.material]['ai']
+            collnt   = pyk2.materials[self.material]['collnt']
 
             # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
             #  raise ValueError()
 
-            pyk2.pyk2_run(x_particles=x_part,
+            pyk2.pyk2_run(num_particles=npart,
+                      x_particles=x_part,
                       xp_particles=xp_part,
                       y_particles=y_part,
                       yp_particles=yp_part,
@@ -159,12 +171,23 @@ class K2Collimator:
                       nhit_stage=nhit_stage,
                       nabs_type=nabs_type,
                       linside=linside,
-                      matid=matID,
+                      run_exenergy=exenergy,
                       run_anuc=anuc,
                       run_zatom=zatom,
+                      run_emr=emr,
                       run_rho=rho,
                       run_hcut=hcut,
                       run_bnref=bnref,
+                      run_csref0=csref0,
+                      run_csref1=csref1,
+                      run_csref4=csref4,
+                      run_csref5=csref5,
+                      run_radl=radl,
+                      run_dlri=dlri,
+                      run_dlyi=dlyi,
+                      run_eum=eUm,
+                      run_ai=ai,
+                      run_collnt=collnt,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,

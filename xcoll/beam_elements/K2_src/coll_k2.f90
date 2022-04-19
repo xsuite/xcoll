@@ -48,7 +48,7 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
+subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
   coll_csref0, coll_csref1, coll_csref4, coll_csref5, coll_radl, coll_dlri, coll_dlyi,coll_eUm, coll_ai, &
   coll_collnt, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, &
   s_in, enom, lhit, part_abs_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
@@ -65,7 +65,6 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_em
   use mathlib_bouncer
   use mod_ranlux
 
-  integer,          intent(in)    :: matid        ! Material ID
   real(kind=fPrec), intent(inout) :: coll_exenergy!
   real(kind=fPrec), intent(in)    :: coll_anuc    ! 
   real(kind=fPrec), intent(in)    :: coll_zatom   !
