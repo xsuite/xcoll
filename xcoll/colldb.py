@@ -7,8 +7,7 @@ def load_SixTrack_colldb(filename, *, emit):
 
 class CollDB:
     def __init__(self, *, emit, sixtrack_file=None):
-        self._emitx = emit
-        self._emity = emit
+        self.emittance = emit
         self._beta_gamma_rel = None
         self._optics = pd.DataFrame(columns=['betx', 'bety', 'x', 'px', 'y', 'py'])
         self._optics_positions_to_calculate = {}
@@ -334,11 +333,11 @@ class CollDB:
         self._compute_jaws()
 
     @property
-    def emit(self):
+    def emittance(self):
         return [self._emitx, self._emity]
     
-    @emit.setter
-    def emit(self, emit):
+    @emittance.setter
+    def emittance(self, emit):
         if hasattr(emit, '__iter__'):
             if isinstance(emit, str):
                 raise ValueError(f"The 'emit' setting has to be a number!")
