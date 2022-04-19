@@ -126,6 +126,7 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_em
   real(kind=fPrec)    :: ien0, ien1
   integer(kind=int16) :: nnuc0,nnuc1
 
+  real(kind=fPrec) cprob(0:5)
   ! Initilaisation
   !mat = matid
   length = c_length
@@ -133,7 +134,7 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_em
 
   ! Initialise scattering processes
   call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,coll_hcut,&
-                     coll_csref0,coll_csref1,coll_csref5,coll_bnref)
+                     coll_csref0,coll_csref1,coll_csref5,coll_bnref, cprob)
 
   nhit   = 0
   nabs   = 0
@@ -321,7 +322,7 @@ subroutine k2coll_collimate(matid, coll_exenergy, coll_anuc, coll_zatom, coll_em
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl)
+        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob)
 
         nabs_type(j) = nabs
         lhit(j)  = 1
@@ -456,7 +457,7 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref,sc_cprob)
 
   use mod_funlux
   use coll_common
@@ -478,6 +479,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   real(kind=fPrec), intent(in) :: sc_csref1
   real(kind=fPrec), intent(in) :: sc_csref5
   real(kind=fPrec), intent(in) :: sc_bnref
+  real(kind=fPrec), intent(out) ::sc_cprob(0:5)
   
 
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
@@ -540,10 +542,11 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
 
   ! Filling CProb with cumulated normalised Cross-sections
+  sc_cprob(:) = zero
+  sc_cprob(5) = one
   do i=1,4
-    cprob(i) = cprob(i-1) + csect(i)/csect(0)
+    sc_cprob(i) = sc_cprob(i-1) + csect(i)/csect(0)
   end do
-  cprob(5) = 1
 
 end subroutine k2coll_scatin
 
@@ -564,7 +567,7 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl)
+subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob)
 
   use mod_ranlux
   use coll_common
@@ -579,6 +582,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   real(kind=fPrec), intent(in)    :: j_zatom
   real(kind=fPrec), intent(in)    :: j_rho
   real(kind=fPrec), intent(in)    :: j_radl
+  real(kind=fPrec), intent(in)   :: j_cprob(0:5)
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
   integer inter,nabs_tmp
@@ -639,7 +643,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   ! and return.
   ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-  inter    = k2coll_ichoix()
+  inter    = k2coll_ichoix(j_cprob)
   nabs     = inter
   nabs_tmp = nabs
 
@@ -1065,10 +1069,11 @@ end function k2coll_gettran
 !! k2coll_ichoix(ma)
 !! Select a scattering type (elastic, sd, inelastic, ...)
 !<
-integer function k2coll_ichoix()
+integer function k2coll_ichoix(ich_cprob)
 
   use mod_ranlux
   use coll_materials
+  real(kind=fPrec), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
 
   !integer, intent(in) :: ma
   integer i
@@ -1077,7 +1082,7 @@ integer function k2coll_ichoix()
   aran = coll_rand()
   i    = 1
 10 continue
-  if(aran > cprob(i)) then
+  if(aran > ich_cprob(i)) then
     i = i+1
     goto 10
   end if

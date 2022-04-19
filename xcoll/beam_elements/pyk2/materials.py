@@ -7,7 +7,6 @@
 # radl  : radiation length / m
 # bnref : nuclear interaction length / g cm-2 
 # csref : 
-# cprob :
 # dlri  : Radiation length(m), updated from PDG for Si
 # dlyi  : Nuclear length(m)
 # ai    : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from
