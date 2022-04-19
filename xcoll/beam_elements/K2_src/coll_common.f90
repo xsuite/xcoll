@@ -175,9 +175,6 @@ module coll_materials
 
   implicit none
 
-  integer, parameter :: nmat  = 16 ! Total number of materials
-  integer, parameter :: nrmat = 14 ! Number of real materials
-
   ! pp cross-sections and parameters for energy dependence
   real(kind=fPrec), parameter :: pptref = 0.04_fPrec
   real(kind=fPrec), parameter :: freeco = 1.618_fPrec
@@ -192,7 +189,6 @@ module coll_materials
   ! real(kind=fPrec), public, save :: hcut(nmat)      ! T cut (upper)
   ! real(kind=fPrec), public, save :: radl(nmat)      ! Remaining length
   ! real(kind=fPrec), public, save :: bnref(nmat)     ! Nuclear elastic slope from Schiz et al., PRD 21(3010)1980
-  real(kind=fPrec), public, save :: csect(0:5)      ! Cross section
   real(kind=fPrec), public, save :: cprob(0:5)      ! Cprob to choose an interaction in iChoix
   real(kind=fPrec), public, save :: xintl           ! Interaction length
   real(kind=fPrec), public, save :: bn              ! Nuclear elastic related
@@ -247,8 +243,8 @@ module coll_materials
   ! ], shape=[6,nmat])
 
   ! Electron density and plasma energy
-  real(kind=fPrec), public, save :: edens(nmat) = zero
-  real(kind=fPrec), public, save :: pleng(nmat) = zero
+  ! real(kind=fPrec), public, save :: edens(nmat) = zero
+  ! real(kind=fPrec), public, save :: pleng(nmat) = zero
 
 contains
 

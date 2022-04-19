@@ -487,6 +487,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   character(len=23), parameter :: cs_fileName = "MaterialInformation.txt"
   logical csErr
 
+  real(kind=fPrec) csect(0:5)      ! Cross section
+
   ecmsq = (two*(pmap*c1m3)) * plab
   xln15s = log_mb(0.15_fPrec*ecmsq)
   ! Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"

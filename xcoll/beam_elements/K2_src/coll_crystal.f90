@@ -1209,7 +1209,6 @@ subroutine cry_moveCH(nam,dz,x,xp,yp,pc,r,rc,cmc_zatom,cmc_emr,cmc_anuc,cmc_rho,
   use mod_funlux
   use floatPrecision
   use coll_common, only : coll_debug
-  use coll_materials, only : nmat, csect
   use mathlib_bouncer
   use physical_constants
 
