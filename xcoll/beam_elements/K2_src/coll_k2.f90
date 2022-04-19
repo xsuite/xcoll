@@ -36,29 +36,6 @@ module coll_k2
 contains
 
 !>
-!! "Merlin" scattering collimation configuration
-!! This routine pre-calcuates some varibles for
-!! the nuclear properties
-!<
-subroutine k2coll_merlinInit(me_anuc, me_zatom, me_rho)
-
-  use coll_materials
-
-  real(kind=fPrec), intent(in)    :: me_anuc    ! 
-  real(kind=fPrec), intent(in)    :: me_zatom   ! 
-  real(kind=fPrec), intent(in)    :: me_rho     ! 
-
-  integer i
-
-  ! Compute the electron densnity and plasma energy for each material
-  do i=1, nmat
-    edens(i) = k2coll_calcElectronDensity(me_zatom,me_rho,me_anuc)
-    pleng(i) = k2coll_calcPlasmaEnergy(edens(i))
-  end do
-
-end subroutine k2coll_merlinInit
-
-!>
 !! K2 scattering collimation configuration
 !<
 subroutine k2coll_init
@@ -564,6 +541,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   do i=1,4
     cprob(i) = cprob(i-1) + csect(i)/csect(0)
   end do
+  cprob(5) = 1
 
 end subroutine k2coll_scatin
 
@@ -802,7 +780,7 @@ subroutine k2coll_calcIonLoss(PC, DZ, il_exenergy, il_anuc, il_zatom, il_rho, En
   !integer,          intent(in)  :: IS           ! IS material ID
   real(kind=fPrec), intent(in)  :: PC           ! PC momentum in GeV
   real(kind=fPrec), intent(in)  :: DZ           ! DZ length traversed in material (meters)
-  real(kind=fPrec), intent(in)  :: il_exenergy  ! il_exenergy
+  real(kind=fPrec), intent(inout)  :: il_exenergy  ! il_exenergy
   real(kind=fPrec), intent(in)  :: il_anuc      ! il_anuc 
   real(kind=fPrec), intent(in)  :: il_zatom     ! il_zatom
   real(kind=fPrec), intent(in)  :: il_rho       ! il_rho
