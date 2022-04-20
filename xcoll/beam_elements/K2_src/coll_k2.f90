@@ -126,6 +126,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   integer(kind=int16) :: nnuc0,nnuc1
 
   real(kind=fPrec) cprob(0:5)
+  real(kind=fPrec) xintl 
   ! Initilaisation
   !mat = matid
   length = c_length
@@ -133,7 +134,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
   ! Initialise scattering processes
   call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,coll_hcut,&
-                     coll_csref0,coll_csref1,coll_csref5,coll_bnref, cprob)
+                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl)
 
   nhit   = 0
   nabs   = 0
@@ -321,7 +322,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob)
+        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob,xintl)
 
         nabs_type(j) = nabs
         lhit(j)  = 1
@@ -456,7 +457,8 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref,sc_cprob)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
+                         sc_cprob,sc_xintl)
 
   use mod_funlux
   use coll_common
@@ -478,7 +480,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   real(kind=fPrec), intent(in) :: sc_csref1
   real(kind=fPrec), intent(in) :: sc_csref5
   real(kind=fPrec), intent(in) :: sc_bnref
-  real(kind=fPrec), intent(out) ::sc_cprob(0:5)
+  real(kind=fPrec), intent(out) :: sc_cprob(0:5)
+  real(kind=fPrec), intent(out) :: sc_xintl
   
 
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
@@ -538,7 +541,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   csect(0) = csect(0) + csect(5)
 
   ! Interaction length in meter
-  xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
+  sc_xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
 
   ! Filling CProb with cumulated normalised Cross-sections
   sc_cprob(:) = zero
@@ -566,7 +569,7 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob)
+subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob, j_xintl)
 
   use mod_ranlux
   use coll_common
@@ -581,7 +584,8 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   real(kind=fPrec), intent(in)    :: j_zatom
   real(kind=fPrec), intent(in)    :: j_rho
   real(kind=fPrec), intent(in)    :: j_radl
-  real(kind=fPrec), intent(in)   :: j_cprob(0:5)
+  real(kind=fPrec), intent(in)    :: j_cprob(0:5)
+  real(kind=fPrec), intent(in)    :: j_xintl
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
   integer inter,nabs_tmp
@@ -598,7 +602,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   ! Do a step for a point-like interaction.
   ! Get monte-carlo interaction length.
 10 continue
-  zlm1     = (-one*xintl)*log_mb(coll_rand())
+  zlm1     = (-one*j_xintl)*log_mb(coll_rand())
   nabs_tmp = 0  ! type of interaction reset before following scattering process
   xpBef    = xp ! save angles and momentum before scattering
   zpBef    = zp
