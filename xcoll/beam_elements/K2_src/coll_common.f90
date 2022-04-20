@@ -191,7 +191,7 @@ module coll_materials
   ! real(kind=fPrec), public, save :: bnref(nmat)     ! Nuclear elastic slope from Schiz et al., PRD 21(3010)1980
   ! real(kind=fPrec), public, save :: cprob(0:5)      ! Cprob to choose an interaction in iChoix
   ! real(kind=fPrec), public, save :: xintl           ! Interaction length
-  real(kind=fPrec), public, save :: bn              ! Nuclear elastic related
+  ! real(kind=fPrec), public, save :: bn              ! Nuclear elastic related
   real(kind=fPrec), public, save :: freep           ! Number of nucleons involved in single scattering
   real(kind=fPrec), public, save :: cgen(200)       ! Used by FUNLUX / Rutherford routine
 
