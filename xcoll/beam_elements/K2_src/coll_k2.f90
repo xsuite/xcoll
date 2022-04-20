@@ -491,7 +491,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   integer csUnit
   character(len=23), parameter :: cs_fileName = "MaterialInformation.txt"
   logical csErr
-
+  real(kind=fPrec) freep
   real(kind=fPrec) csect(0:5)      ! Cross section
 
   ecmsq = (two*(pmap*c1m3)) * plab
@@ -516,7 +516,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   zatom_curr = sc_zatom
   emr_curr = sc_emr
   call funlxp(k2coll_ruth, cgen(1), tlcut, sc_hcut)
-
+  
   ! freep: number of nucleons involved in single scattering
   freep = freeco * sc_anuc**(one/three)
 
