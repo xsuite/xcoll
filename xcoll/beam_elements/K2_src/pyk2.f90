@@ -10,7 +10,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
-  use coll_materials ! for collmat_init
+  !use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none
@@ -19,7 +19,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   integer, intent(in)          :: random_generator_seed
 
   ! Set default values for collimator materials
-  call collmat_init
+ ! call collmat_init
 
   rnd_seed = random_generator_seed
 
@@ -88,7 +88,7 @@ subroutine pyk2_run(num_particles, &
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
-  use coll_materials ! for collmat_init
+  ! use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none

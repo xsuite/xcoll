@@ -59,7 +59,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   !use coll_db
   use coll_common
   use coll_crystal, only : cry_doCrystal
-  use coll_materials
+  !use coll_materials
   use mod_common, only : iexact, napx, unit208
   use mod_common_main, only : partID, naa
   use mathlib_bouncer
@@ -465,7 +465,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
 
   use mod_funlux
   use coll_common
-  use coll_materials
+  !use coll_materials
   use mathlib_bouncer
   use physical_constants
   use mod_units
@@ -489,6 +489,9 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   real(kind=fPrec), intent(out) :: sc_cgen(200)
   
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
+  ! pp cross-sections and parameters for energy dependence
+  real(kind=fPrec), parameter ::  pptref = 0.04_fPrec
+  real(kind=fPrec), parameter ::  freeco = 1.618_fPrec
   integer i
 
   integer csUnit
@@ -496,7 +499,6 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   logical csErr
   real(kind=fPrec) freep
   real(kind=fPrec) csect(0:5)      ! Cross section
-
 
   ecmsq = (two*(pmap*c1m3)) * plab
   xln15s = log_mb(0.15_fPrec*ecmsq)
@@ -578,7 +580,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
 
   use mod_ranlux
   use coll_common
-  use coll_materials
+  !
   use mathlib_bouncer
 
   real(kind=fPrec), intent(inout) :: s
@@ -728,7 +730,7 @@ end subroutine k2coll_jaw
 !<
 subroutine k2coll_mcs(s, mc_radl)
 
-  use coll_materials
+  !use coll_materials
 
   real(kind=fPrec), intent(inout) :: s
   real(kind=fPrec), intent(in)    :: mc_radl
@@ -789,7 +791,7 @@ end subroutine k2coll_mcs
 subroutine k2coll_calcIonLoss(PC, DZ, il_exenergy, il_anuc, il_zatom, il_rho, EnLo)
 
   use mod_ranlux
-  use coll_materials
+  !use coll_materials
   use mathlib_bouncer
   use physical_constants
 
@@ -1016,7 +1018,7 @@ end subroutine k2coll_iterat
 real(kind=fPrec) function k2coll_ruth(t)
 
   use mathlib_bouncer
-  use coll_materials
+  !use coll_materials
 
   real(kind=fPrec), intent(in) :: t
   !real(kind=fPrec), intent(in) :: ru_emr
@@ -1041,7 +1043,7 @@ real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen)
   use mathlib_bouncer
   use mod_ranlux
   use mod_funlux
-  use coll_materials
+  !use coll_materials
 
   integer,          intent(in)    :: inter
   real(kind=fPrec), intent(inout) :: p
@@ -1083,7 +1085,7 @@ end function k2coll_gettran
 integer function k2coll_ichoix(ich_cprob)
 
   use mod_ranlux
-  use coll_materials
+  !use coll_materials
   real(kind=fPrec), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
 
   !integer, intent(in) :: ma

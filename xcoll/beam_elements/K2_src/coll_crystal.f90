@@ -15,7 +15,7 @@ module coll_crystal
 
   use floatPrecision
   use numerical_constants
-  use coll_materials
+  !use coll_materials
 
   implicit none
 
@@ -155,7 +155,7 @@ subroutine cry_startElement(emitX, emitY, o_tilt, o_length, c_rotation, &
   use crcoall
 !  use coll_db
   use coll_common
-  use coll_materials
+ ! use coll_materials
   use mathlib_bouncer
   use mod_common_track
 
@@ -1435,7 +1435,7 @@ end subroutine cry_moveCH
 function cry_ruth(t_cry)
 
   use floatPrecision
-  use coll_materials
+ ! use coll_materials
   use mathlib_bouncer
 
   real(kind=fPrec) cry_ruth,t_cry
