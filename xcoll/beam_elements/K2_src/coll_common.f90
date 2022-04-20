@@ -193,7 +193,7 @@ module coll_materials
   ! real(kind=fPrec), public, save :: xintl           ! Interaction length
   ! real(kind=fPrec), public, save :: bn              ! Nuclear elastic related
   ! real(kind=fPrec), public, save :: freep           ! Number of nucleons involved in single scattering
-  real(kind=fPrec), public, save :: cgen(200)       ! Used by FUNLUX / Rutherford routine
+  ! real(kind=fPrec), public, save :: cgen(200)       ! Used by FUNLUX / Rutherford routine
 
   ! All cross-sections are in barns. Nuclear values from RPP at 20 GeV
   ! Coulomb is integerated above t=tLcut[Gev2] (+-1% out Gauss mcs)

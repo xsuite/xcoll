@@ -128,6 +128,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec) cprob(0:5)
   real(kind=fPrec) xintl
   real(kind=fPrec) bn 
+  real(kind=fPrec) cgen(200)
+
   ! Initilaisation
   !mat = matid
   length = c_length
@@ -135,7 +137,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
   ! Initialise scattering processes
   call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,coll_hcut,&
-                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
+                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn,cgen)
 
   nhit   = 0
   nabs   = 0
@@ -323,7 +325,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob,xintl,bn)
+        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob,xintl,bn,cgen)
 
         nabs_type(j) = nabs
         lhit(j)  = 1
@@ -459,7 +461,7 @@ end subroutine k2coll_collimate
 !! Configure the K2 scattering routine cross sections
 !<
 subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
-                         sc_cprob,sc_xintl,sc_bn)
+                         sc_cprob,sc_xintl,sc_bn,sc_cgen)
 
   use mod_funlux
   use coll_common
@@ -484,6 +486,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   real(kind=fPrec), intent(out) :: sc_cprob(0:5)
   real(kind=fPrec), intent(out) :: sc_xintl
   real(kind=fPrec), intent(out) :: sc_bn
+  real(kind=fPrec), intent(out) :: sc_cgen(200)
   
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
   integer i
@@ -493,6 +496,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   logical csErr
   real(kind=fPrec) freep
   real(kind=fPrec) csect(0:5)      ! Cross section
+
 
   ecmsq = (two*(pmap*c1m3)) * plab
   xln15s = log_mb(0.15_fPrec*ecmsq)
@@ -515,7 +519,7 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
   zatom_curr = sc_zatom
   emr_curr = sc_emr
-  call funlxp(k2coll_ruth, cgen(1), tlcut, sc_hcut)
+  call funlxp(k2coll_ruth, sc_cgen(1), tlcut, sc_hcut)
   
   ! freep: number of nucleons involved in single scattering
   freep = freeco * sc_anuc**(one/three)
@@ -570,7 +574,7 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob, j_xintl, j_bn)
+subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob, j_xintl, j_bn, j_cgen)
 
   use mod_ranlux
   use coll_common
@@ -588,6 +592,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   real(kind=fPrec), intent(in)    :: j_cprob(0:5)
   real(kind=fPrec), intent(in)    :: j_xintl
   real(kind=fPrec), intent(in)    :: j_bn
+  real(kind=fPrec), intent(in)    :: j_cgen(200)
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
   integer inter,nabs_tmp
@@ -681,7 +686,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   p1 = p
 
   ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
-  t = k2coll_gettran(inter,p,j_bn)
+  t = k2coll_gettran(inter,p,j_bn,j_cgen)
 
   ! Tetat calculates from the rms transverse momentum transfer in
   ! monte-carlo fashion the angle changes for x and z planes. The
@@ -1031,7 +1036,7 @@ end function k2coll_ruth
 !! is modified (energy loss is applied)
 !<
 ! XMAT AND MAT ARE THE SAME, EQUAL TO MAIN MATID
-real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn)
+real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen)
 
   use mathlib_bouncer
   use mod_ranlux
@@ -1040,7 +1045,8 @@ real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn)
 
   integer,          intent(in)    :: inter
   real(kind=fPrec), intent(inout) :: p
-  real(kind=fPrec),          intent(in)    :: tt_bn
+  real(kind=fPrec), intent(in)    :: tt_bn
+  real(kind=fPrec), intent(in)    :: tt_cgen(200)
 
   real(kind=fPrec) xm2,bsd,xran(1)
 
@@ -1064,7 +1070,7 @@ real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn)
     end if
     k2coll_gettran = (-one*log_mb(coll_rand()))/bsd
   case(5) ! Coulomb
-    call funlux(cgen(1), xran, 1)
+    call funlux(tt_cgen(1), xran, 1)
     k2coll_gettran = xran(1)
   end select
 
