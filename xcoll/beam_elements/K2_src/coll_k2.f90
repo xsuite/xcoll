@@ -64,6 +64,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   use mod_common_main, only : partID, naa
   use mathlib_bouncer
   use mod_ranlux
+  use mod_funlux
 
   real(kind=fPrec), intent(inout) :: coll_exenergy!
   real(kind=fPrec), intent(in)    :: coll_anuc    ! 
@@ -130,14 +131,25 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec) bn 
   real(kind=fPrec) cgen(200)
 
+  real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
+
+
+  ! Prepare for Rutherford differential distribution
+  !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
+  zatom_curr = coll_zatom
+  emr_curr = coll_emr
+  call funlxp(k2coll_ruth, cgen(1), tlcut, coll_hcut)
+
+
   ! Initilaisation
   !mat = matid
   length = c_length
   p0     = enom
 
+
   ! Initialise scattering processes
-  call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,coll_hcut,&
-                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn,cgen)
+  call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
+                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
 
   nhit   = 0
   nabs   = 0
@@ -460,10 +472,10 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
-                         sc_cprob,sc_xintl,sc_bn,sc_cgen)
+subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
+                         sc_cprob,sc_xintl,sc_bn)
 
-  use mod_funlux
+  !use mod_funlux
   use coll_common
   !use coll_materials
   use mathlib_bouncer
@@ -478,7 +490,6 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   ! real(kind=fPrec), intent(in) :: anuc5
   real(kind=fPrec), intent(in) :: sc_zatom
   real(kind=fPrec), intent(in) :: sc_emr
-  real(kind=fPrec), intent(in) :: sc_hcut
   real(kind=fPrec), intent(in) :: sc_csref0
   real(kind=fPrec), intent(in) :: sc_csref1
   real(kind=fPrec), intent(in) :: sc_csref5
@@ -486,9 +497,8 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   real(kind=fPrec), intent(out) :: sc_cprob(0:5)
   real(kind=fPrec), intent(out) :: sc_xintl
   real(kind=fPrec), intent(out) :: sc_bn
-  real(kind=fPrec), intent(out) :: sc_cgen(200)
   
-  real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
+  ! real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
   ! pp cross-sections and parameters for energy dependence
   real(kind=fPrec), parameter ::  pptref = 0.04_fPrec
   real(kind=fPrec), parameter ::  freeco = 1.618_fPrec
@@ -516,12 +526,6 @@ subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_hcut,sc_csref0,s
   ! Unmeasured tungsten data, computed with lead data and power laws
   ! bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
   ! emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
-
-  ! Prepare for Rutherford differential distribution
-  !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
-  zatom_curr = sc_zatom
-  emr_curr = sc_emr
-  call funlxp(k2coll_ruth, sc_cgen(1), tlcut, sc_hcut)
   
   ! freep: number of nucleons involved in single scattering
   freep = freeco * sc_anuc**(one/three)
