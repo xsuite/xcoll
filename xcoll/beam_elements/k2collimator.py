@@ -117,6 +117,8 @@ class K2Collimator:
             s_part = 0 * x_part
             p_part = particles.energy[:npart] / 1e9 # Energy (not momentum) in GeV
 
+            enom = particles.energy0[0]/1e9 # Reference energy
+
             # Initialise arrays for FORTRAN call
             part_hit = np.zeros(len(x_part), dtype=np.int32)
             part_abs = np.zeros(len(x_part), dtype=np.int32)
@@ -155,7 +157,7 @@ class K2Collimator:
 
             # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
             #  raise ValueError()
-
+            cprob, xintl, bn = pyk2.calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
             pyk2.pyk2_run(num_particles=npart,
                       x_particles=x_part,
                       xp_particles=xp_part,
@@ -188,13 +190,16 @@ class K2Collimator:
                       run_eum=eUm,
                       run_ai=ai,
                       run_collnt=collnt,
+                      run_cprob=cprob,
+                      run_xintl=xintl,
+                      run_bn=bn,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
                       c_aperture=opening,
                       c_offset=offset,
                       c_tilt=np.array([0,0], dtype=np.float64),
-                      c_enom=particles.energy0[0]/1e6, # Reference energy
+                      c_enom=enom, # Reference energy
                       onesided=self.onesided,
                       random_generator_seed=-1, # skips rng re-initlization
                       )

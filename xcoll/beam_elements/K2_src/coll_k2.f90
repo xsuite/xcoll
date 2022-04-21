@@ -50,8 +50,9 @@ end subroutine k2coll_init
 ! ================================================================================================ !
 subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
   coll_csref0, coll_csref1, coll_csref4, coll_csref5, coll_radl, coll_dlri, coll_dlyi,coll_eUm, coll_ai, &
-  coll_collnt, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, &
-  s_in, enom, lhit, part_abs_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
+  coll_collnt, coll_cprob, coll_xintl, coll_bn, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
+  c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, impact, indiv, lint, onesided, &
+  nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
@@ -84,6 +85,9 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec), intent(in)    :: coll_eUm
   real(kind=fPrec), intent(in)    :: coll_ai
   real(kind=fPrec), intent(in)    :: coll_collnt
+  real(kind=fPrec), intent(in)    :: coll_cprob(0:5)
+  real(kind=fPrec), intent(in)    :: coll_xintl
+  real(kind=fPrec), intent(in)    :: coll_bn
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -129,11 +133,9 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec) cprob(0:5)
   real(kind=fPrec) xintl
   real(kind=fPrec) bn 
+
   real(kind=fPrec) cgen(200)
-
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
-
-
   ! Prepare for Rutherford differential distribution
   !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
   zatom_curr = coll_zatom

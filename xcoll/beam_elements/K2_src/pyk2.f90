@@ -68,6 +68,9 @@ subroutine pyk2_run(num_particles, &
                     run_eUm, &
                     run_ai, &
                     run_collnt, &
+                    run_cprob, &
+                    run_xintl, &
+                    run_bn, &
                     is_crystal, &
                     c_length, &
                     c_rotation, &
@@ -88,7 +91,7 @@ subroutine pyk2_run(num_particles, &
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
-  ! use coll_materials ! for collmat_init
+  ! //use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none
@@ -134,6 +137,9 @@ subroutine pyk2_run(num_particles, &
   real(kind=8)     , intent(in) :: run_eUm
   real(kind=8)     , intent(in) :: run_ai
   real(kind=8)     , intent(in) :: run_collnt
+  real(kind=8)     , intent(in) :: run_cprob(0:5)
+  real(kind=8)     , intent(in) :: run_xintl
+  real(kind=8)     , intent(in) :: run_bn
 
   logical(kind=4)  , intent(in) :: is_crystal
   real(kind=8) ,    intent(in) :: c_length
@@ -184,10 +190,10 @@ subroutine pyk2_run(num_particles, &
   call k2coll_collimate( &
      run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
      run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
-     run_dlyi, run_eUm, run_ai, run_collnt, is_crystal, &
+     run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, is_crystal, &
      c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
-     c_enom*c1m3, part_hit, part_abs, &
+     c_enom, part_hit, part_abs, &
      part_impact, part_indiv, part_linteract, &
      onesided, nhit_stage, 1, nabs_type, linside)
 
