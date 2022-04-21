@@ -56,7 +56,7 @@ eUm = materials['MoGR']['eUm']
 ai = materials['MoGR']['ai']
 collnt = materials['MoGR']['collnt']
 
-cprob, xintl, bn = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
 pyk2_run(num_particles=npart,
           x_particles=x_test,
@@ -93,6 +93,9 @@ pyk2_run(num_particles=npart,
           run_cprob=cprob,
           run_xintl=xintl,
           run_bn=bn,
+          run_ecmsq=ecmsq,
+          run_xln15s=xln15s,
+          run_bpp=bpp,
           is_crystal=False,
           c_length=0.59999999999999998,
           c_rotation=0,

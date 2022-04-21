@@ -50,9 +50,9 @@ end subroutine k2coll_init
 ! ================================================================================================ !
 subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
   coll_csref0, coll_csref1, coll_csref4, coll_csref5, coll_radl, coll_dlri, coll_dlyi,coll_eUm, coll_ai, &
-  coll_collnt, coll_cprob, coll_xintl, coll_bn, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
-  c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, impact, indiv, lint, onesided, &
-  nhit_stage, j_slices, nabs_type, linside)
+  coll_collnt, coll_cprob, coll_xintl, coll_bn, coll_ecmsq, coll_xln15s, coll_bpp, is_crystal, c_length, &
+  c_rotation, c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit, part_abs_local, &
+  impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
@@ -87,7 +87,10 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec), intent(in)    :: coll_collnt
   real(kind=fPrec), intent(in)    :: coll_cprob(0:5)
   real(kind=fPrec), intent(in)    :: coll_xintl
-  real(kind=fPrec), intent(in)    :: coll_bn
+  real(kind=fPrec), intent(inout) :: coll_bn
+  real(kind=fPrec), intent(in)    :: coll_ecmsq
+  real(kind=fPrec), intent(in)    :: coll_xln15s
+  real(kind=fPrec), intent(in)    :: coll_bpp
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -130,16 +133,14 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec)    :: ien0, ien1
   integer(kind=int16) :: nnuc0,nnuc1
 
-  real(kind=fPrec) cprob(0:5)
-  real(kind=fPrec) xintl
-  real(kind=fPrec) bn 
-
   real(kind=fPrec) cgen(200)
   real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
   ! Prepare for Rutherford differential distribution
   !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
   zatom_curr = coll_zatom
   emr_curr = coll_emr
+
+
   call funlxp(k2coll_ruth, cgen(1), tlcut, coll_hcut)
 
 
@@ -150,8 +151,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
 
   ! Initialise scattering processes
-  call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
-                     coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
+  ! call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
+  !                    coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
 
   nhit   = 0
   nabs   = 0
@@ -261,7 +262,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
       call cry_doCrystal(j,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
         part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_emr,coll_rho,&
         coll_hcut,coll_bnref,coll_csref0,coll_csref1,coll_csref4,coll_csref5,coll_dlri,coll_dlyi,&
-        coll_eUm,coll_ai,coll_collnt,bn)
+        coll_eUm,coll_ai,coll_collnt,coll_bn)
 
       if(nabs /= 0) then
         part_abs_local(j)  = 1
@@ -339,8 +340,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,cprob,xintl,bn,cgen)
-
+        call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,&
+                          coll_cprob,coll_xintl,coll_bn,cgen,coll_ecmsq,coll_xln15s,coll_bpp)
         nabs_type(j) = nabs
         lhit(j)  = 1
 
@@ -474,96 +475,96 @@ end subroutine k2coll_collimate
 !! k2coll_scatin(plab)
 !! Configure the K2 scattering routine cross sections
 !<
-subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
-                         sc_cprob,sc_xintl,sc_bn)
+! subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
+!                          sc_cprob,sc_xintl,sc_bn)
 
-  !use mod_funlux
-  use coll_common
-  !use coll_materials
-  use mathlib_bouncer
-  use physical_constants
-  use mod_units
-  use crcoall
+!   !use mod_funlux
+!   use coll_common
+!   !use coll_materials
+!   use mathlib_bouncer
+!   use physical_constants
+!   use mod_units
+!   use crcoall
 
-  real(kind=fPrec), intent(in) :: plab
-  real(kind=fPrec), intent(in) :: sc_anuc
-  real(kind=fPrec), intent(in) :: sc_rho
-  ! real(kind=fPrec), intent(in) :: anuc4
-  ! real(kind=fPrec), intent(in) :: anuc5
-  real(kind=fPrec), intent(in) :: sc_zatom
-  real(kind=fPrec), intent(in) :: sc_emr
-  real(kind=fPrec), intent(in) :: sc_csref0
-  real(kind=fPrec), intent(in) :: sc_csref1
-  real(kind=fPrec), intent(in) :: sc_csref5
-  real(kind=fPrec), intent(in) :: sc_bnref
-  real(kind=fPrec), intent(out) :: sc_cprob(0:5)
-  real(kind=fPrec), intent(out) :: sc_xintl
-  real(kind=fPrec), intent(out) :: sc_bn
+!   real(kind=fPrec), intent(in) :: plab
+!   real(kind=fPrec), intent(in) :: sc_anuc
+!   real(kind=fPrec), intent(in) :: sc_rho
+!   ! real(kind=fPrec), intent(in) :: anuc4
+!   ! real(kind=fPrec), intent(in) :: anuc5
+!   real(kind=fPrec), intent(in) :: sc_zatom
+!   real(kind=fPrec), intent(in) :: sc_emr
+!   real(kind=fPrec), intent(in) :: sc_csref0
+!   real(kind=fPrec), intent(in) :: sc_csref1
+!   real(kind=fPrec), intent(in) :: sc_csref5
+!   real(kind=fPrec), intent(in) :: sc_bnref
+!   real(kind=fPrec), intent(out) :: sc_cprob(0:5)
+!   real(kind=fPrec), intent(out) :: sc_xintl
+!   real(kind=fPrec), intent(out) :: sc_bn
   
-  ! real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
-  ! pp cross-sections and parameters for energy dependence
-  real(kind=fPrec), parameter ::  pptref = 0.04_fPrec
-  real(kind=fPrec), parameter ::  freeco = 1.618_fPrec
-  integer i
+!   ! real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
+!   ! pp cross-sections and parameters for energy dependence
+!   real(kind=fPrec), parameter ::  pptref = 0.04_fPrec
+!   real(kind=fPrec), parameter ::  freeco = 1.618_fPrec
+!   integer i
 
-  integer csUnit
-  character(len=23), parameter :: cs_fileName = "MaterialInformation.txt"
-  logical csErr
-  real(kind=fPrec) freep
-  real(kind=fPrec) csect(0:5)      ! Cross section
+!   integer csUnit
+!   character(len=23), parameter :: cs_fileName = "MaterialInformation.txt"
+!   logical csErr
+!   real(kind=fPrec) freep
+!   real(kind=fPrec) csect(0:5)      ! Cross section
 
-  ecmsq = (two*(pmap*c1m3)) * plab
-  xln15s = log_mb(0.15_fPrec*ecmsq)
-  ! Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-  pptot = 0.041084_fPrec-0.0023302_fPrec*log_mb(ecmsq)+0.00031514_fPrec*log_mb(ecmsq)**2
-  ! Claudia used the fit from TOTEM for ppel (in barn)
-  ppel = (11.7_fPrec-1.59_fPrec*log_mb(ecmsq)+0.134_fPrec*log_mb(ecmsq)**2)/c1e3
-  ! Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
-  ppsd = (4.3_fPrec+0.3_fPrec*log_mb(ecmsq))/c1e3
+!   ecmsq = (two*(pmap*c1m3)) * plab
+!   xln15s = log_mb(0.15_fPrec*ecmsq)
+!   ! Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
+!   pptot = 0.041084_fPrec-0.0023302_fPrec*log_mb(ecmsq)+0.00031514_fPrec*log_mb(ecmsq)**2
+!   ! Claudia used the fit from TOTEM for ppel (in barn)
+!   ppel = (11.7_fPrec-1.59_fPrec*log_mb(ecmsq)+0.134_fPrec*log_mb(ecmsq)**2)/c1e3
+!   ! Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
+!   ppsd = (4.3_fPrec+0.3_fPrec*log_mb(ecmsq))/c1e3
 
 
-  ! Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
-  bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
+!   ! Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
+!   bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
 
-  ! Unmeasured tungsten data, computed with lead data and power laws
-  ! bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
-  ! emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
+!   ! Unmeasured tungsten data, computed with lead data and power laws
+!   ! bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
+!   ! emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
   
-  ! freep: number of nucleons involved in single scattering
-  freep = freeco * sc_anuc**(one/three)
+!   ! freep: number of nucleons involved in single scattering
+!   freep = freeco * sc_anuc**(one/three)
 
 
-! compute pp and pn el+single diff contributions to cross-section
-! (both added : quasi-elastic or qel later)
-  csect(3) = freep * ppel
-  csect(4) = freep * ppsd
+! ! compute pp and pn el+single diff contributions to cross-section
+! ! (both added : quasi-elastic or qel later)
+!   csect(3) = freep * ppel
+!   csect(4) = freep * ppsd
 
-! correct TOT-CSec for energy dependence of qel
-! TOT CS is here without a Coulomb contribution
-  csect(0) = sc_csref0 + freep * (pptot - pptref)
-  sc_bn       = (sc_bnref * csect(0)) / sc_csref0
+! ! correct TOT-CSec for energy dependence of qel
+! ! TOT CS is here without a Coulomb contribution
+!   csect(0) = sc_csref0 + freep * (pptot - pptref)
+!   sc_bn       = (sc_bnref * csect(0)) / sc_csref0
 
-  ! also correct inel-CS
-  csect(1) = (sc_csref1 * csect(0)) / sc_csref0
+!   ! also correct inel-CS
+!   csect(1) = (sc_csref1 * csect(0)) / sc_csref0
 
-  ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-  csect(2) = ((csect(0) - csect(1)) - csect(3)) - csect(4)
-  csect(5) = sc_csref5
+!   ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+!   csect(2) = ((csect(0) - csect(1)) - csect(3)) - csect(4)
+!   csect(5) = sc_csref5
 
-  ! Now add Coulomb
-  csect(0) = csect(0) + csect(5)
+!   ! Now add Coulomb
+!   csect(0) = csect(0) + csect(5)
 
-  ! Interaction length in meter
-  sc_xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
+!   ! Interaction length in meter
+!   sc_xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
 
-  ! Filling CProb with cumulated normalised Cross-sections
-  sc_cprob(:) = zero
-  sc_cprob(5) = one
-  do i=1,4
-    sc_cprob(i) = sc_cprob(i-1) + csect(i)/csect(0)
-  end do
+!   ! Filling CProb with cumulated normalised Cross-sections
+!   sc_cprob(:) = zero
+!   sc_cprob(5) = one
+!   do i=1,4
+!     sc_cprob(i) = sc_cprob(i-1) + csect(i)/csect(0)
+!   end do
 
-end subroutine k2coll_scatin
+! end subroutine k2coll_scatin
 
 !>
 !! jaw(s,nabs,icoll,iturn,ipart)
@@ -582,7 +583,8 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, j_cprob, j_xintl, j_bn, j_cgen)
+subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, &
+                    j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp)
 
   use mod_ranlux
   use coll_common
@@ -601,6 +603,9 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   real(kind=fPrec), intent(in)    :: j_xintl
   real(kind=fPrec), intent(in)    :: j_bn
   real(kind=fPrec), intent(in)    :: j_cgen(200)
+  real(kind=fPrec), intent(in)    :: j_ecmsq
+  real(kind=fPrec), intent(in)    :: j_xln15s
+  real(kind=fPrec), intent(in)    :: j_bpp
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
   integer inter,nabs_tmp
@@ -692,15 +697,13 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
 
   ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
   p1 = p
-
   ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
-  t = k2coll_gettran(inter,p,j_bn,j_cgen)
+  t = k2coll_gettran(inter,p,j_bn,j_cgen, j_ecmsq, j_xln15s, j_bpp)
 
   ! Tetat calculates from the rms transverse momentum transfer in
   ! monte-carlo fashion the angle changes for x and z planes. The
   ! angle change is proportional to SQRT(t) and 1/p, as expected.
   call k2coll_tetat(t,p,dxp,dzp)
-
   ! Apply angle changes
   xp = xp+dxp
   zp = zp+dzp
@@ -748,8 +751,9 @@ subroutine k2coll_mcs(s, mc_radl)
   real(kind=fPrec), parameter :: bn0 = 0.4330127019_fPrec
 
   ! radl_mat = mc_radl
-  theta    = 13.6e-3_fPrec/(p0*(one+dpop))
+  theta    = 13.6e-3_fPrec/(p0*(one+dpop)) ! dpop   = (p - p0)/p0
   rad_len  = mc_radl
+
 
   x     = (x/theta)/mc_radl
   xp    = xp/theta
@@ -866,6 +870,7 @@ subroutine k2coll_calcIonLoss(PC, DZ, il_exenergy, il_anuc, il_zatom, il_rho, En
     EnLo = EnLo/DZ  ! [GeV/m]
   end if
 
+
 end subroutine k2coll_calcIonLoss
 
 !>
@@ -884,7 +889,6 @@ subroutine k2coll_tetat(t, p, tx, tz)
   real(kind=fPrec) va,vb,va2,vb2,r2,teta
 
   teta = sqrt(t)/p
-
 10 continue
   va  = two*coll_rand() - one
   vb  = coll_rand()
@@ -1044,7 +1048,7 @@ end function k2coll_ruth
 !! is modified (energy loss is applied)
 !<
 ! XMAT AND MAT ARE THE SAME, EQUAL TO MAIN MATID
-real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen)
+real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen, tt_ecmsq, tt_xln15s, tt_bpp)
 
   use mathlib_bouncer
   use mod_ranlux
@@ -1055,26 +1059,30 @@ real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen)
   real(kind=fPrec), intent(inout) :: p
   real(kind=fPrec), intent(in)    :: tt_bn
   real(kind=fPrec), intent(in)    :: tt_cgen(200)
+  real(kind=fPrec), intent(in)    :: tt_xln15s
+  real(kind=fPrec), intent(in)    :: tt_ecmsq
+  real(kind=fPrec), intent(in)    :: tt_bpp
 
   real(kind=fPrec) xm2,bsd,xran(1)
 
   ! Neither if-statements below have an else, so defaulting function return to zero.
   k2coll_gettran = zero
 
+
   select case(inter)
   case(2) ! Nuclear Elastic
     k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bn
   case(3) ! pp Elastic
-    k2coll_gettran = (-one*log_mb(coll_rand()))/bpp
+    k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bpp
   case(4) ! Single Diffractive
-    xm2 = exp_mb(coll_rand() * xln15s)
-    p   = p * (one - xm2/ecmsq)
+    xm2 = exp_mb(coll_rand() * tt_xln15s)
+    p   = p * (one - xm2/tt_ecmsq)
     if(xm2 < two) then
-      bsd = two * bpp
+      bsd = two * tt_bpp
     else if(xm2 >= two .and. xm2 <= five) then
-      bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*bpp)/36.0_fPrec
+      bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*tt_bpp)/36.0_fPrec
     else
-      bsd = (seven*bpp)/12.0_fPrec
+      bsd = (seven*tt_bpp)/12.0_fPrec
     end if
     k2coll_gettran = (-one*log_mb(coll_rand()))/bsd
   case(5) ! Coulomb

@@ -71,6 +71,9 @@ subroutine pyk2_run(num_particles, &
                     run_cprob, &
                     run_xintl, &
                     run_bn, &
+                    run_ecmsq, &
+                    run_xln15s, &
+                    run_bpp, &
                     is_crystal, &
                     c_length, &
                     c_rotation, &
@@ -139,7 +142,10 @@ subroutine pyk2_run(num_particles, &
   real(kind=8)     , intent(in) :: run_collnt
   real(kind=8)     , intent(in) :: run_cprob(0:5)
   real(kind=8)     , intent(in) :: run_xintl
-  real(kind=8)     , intent(in) :: run_bn
+  real(kind=8)     , intent(inout) :: run_bn
+  real(kind=8)     , intent(in) :: run_ecmsq
+  real(kind=8)     , intent(in) :: run_xln15s
+  real(kind=8)     , intent(in) :: run_bpp
 
   logical(kind=4)  , intent(in) :: is_crystal
   real(kind=8) ,    intent(in) :: c_length
@@ -190,7 +196,8 @@ subroutine pyk2_run(num_particles, &
   call k2coll_collimate( &
      run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
      run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
-     run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, is_crystal, &
+     run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, &
+     run_ecmsq, run_xln15s, run_bpp, is_crystal, &
      c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom, part_hit, part_abs, &

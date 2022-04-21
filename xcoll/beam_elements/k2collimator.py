@@ -157,7 +157,7 @@ class K2Collimator:
 
             # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
             #  raise ValueError()
-            cprob, xintl, bn = pyk2.calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+            cprob, xintl, bn, ecmsq, xln15s, bpp = pyk2.calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
             pyk2.pyk2_run(num_particles=npart,
                       x_particles=x_part,
                       xp_particles=xp_part,
@@ -193,6 +193,9 @@ class K2Collimator:
                       run_cprob=cprob,
                       run_xintl=xintl,
                       run_bn=bn,
+                      run_ecmsq=ecmsq,
+                      run_xln15s=xln15s,
+                      run_bpp=bpp,
                       is_crystal=False,
                       c_length=self.active_length,
                       c_rotation=self.angle/180.*np.pi,
