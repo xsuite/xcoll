@@ -7,15 +7,15 @@ def load_SixTrack_colldb(filename, *, emit):
 
 class CollDB:
     def __init__(self, *, emit, sixtrack_file=None):
-        self.emittance = emit
-        self._beta_gamma_rel = None
         self._optics = pd.DataFrame(columns=['betx', 'bety', 'x', 'px', 'y', 'py'])
         self._optics_positions_to_calculate = {}
-        
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
         else:
             self._colldb = None
+        self.emittance = emit
+        self._beta_gamma_rel = None
+
 
     def to_pandas(self):
         return pd.DataFrame({
