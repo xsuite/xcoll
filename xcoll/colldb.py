@@ -133,12 +133,12 @@ class CollDB:
         self._compute_jaws()
 
     @property
-    def active(self):
-        return self._colldb['active']
+    def is_active(self):
+        return self._colldb['is_active']
 
-    @active.setter
-    def active(self, active):
-        self._set_property('active', active, single_default_allowed=True)
+    @is_active.setter
+    def is_active(self, is_active):
+        self._set_property('is_active', is_active, single_default_allowed=True)
 
 #     @property
 #     def crystal(self):
@@ -302,9 +302,12 @@ class CollDB:
                         self._colldb.jaw_B_L.values,
                         self._colldb.jaw_B_R.values
                     ]).T)
+        # Need special treatment if there are None's
+        def flip(jaw):
+            return None if jaw is None else -jaw
         for i, jaw in enumerate(jaws):
             # All 4 jaw points are the same
-            if jaw[0] == -jaw[1] == jaw[2] == -jaw[3]:
+            if jaw[0] == flip(jaw[1]) == jaw[2] == flip(jaw[3]):
                 jaws[i] = jaw[0]
             # Upstream and downstream jaws are the same
             # (all cases except angular alignment and/or tilt)
@@ -457,9 +460,8 @@ class CollDB:
     def _beam_size_front(self):
         df = self._colldb
         opt = self._optics
-#         import pdb ; pdb.set_trace()
-        betx = opt.loc[df.s_align_front,'betx']
-        bety = opt.loc[df.s_align_front,'bety']
+        betx = opt.loc[df.s_align_front,'betx'].astype(float)
+        bety = opt.loc[df.s_align_front,'bety'].astype(float)
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
         result = np.sqrt(
@@ -473,8 +475,8 @@ class CollDB:
     def _beam_size_back(self):
         df = self._colldb
         opt = self._optics
-        betx = opt.loc[df.s_align_back,'betx']
-        bety = opt.loc[df.s_align_back,'bety']
+        betx = opt.loc[df.s_align_back,'betx'].astype(float)
+        bety = opt.loc[df.s_align_back,'bety'].astype(float)
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
         result = np.sqrt(
@@ -577,7 +579,7 @@ class CollDB:
         fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
         fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': None})
         fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None})
-        fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
+        fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
         fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
         fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
         for f, val in fields.items():
@@ -604,7 +606,7 @@ class CollDB:
                     continue # Comment
 
                 sline = line.split()
-                if len(sline) < 6:
+                if len(sline) > 0 and len(sline) < 6:
                     if sline[0].lower() == 'nsig_fam':
                         family_settings[sline[1]] = float(sline[2])
                         family_types[sline[1]] = sline[3]

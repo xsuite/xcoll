@@ -271,7 +271,7 @@ class CollimatorManager:
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                line[name].is_active = colldb.active[name]
+                line[name].is_active = colldb.is_active[name]
             elif isinstance(line[name], K2Collimator):
                 line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
@@ -289,7 +289,7 @@ class CollimatorManager:
                     line[name].onesided = True
                 elif colldb.onesided[name] == 'right':
                     raise ValueError(f"Right-sided collimators not implemented for K2Collimator {name}!")
-                line[name].is_active = colldb.active[name]
+                line[name].is_active = colldb.is_active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
