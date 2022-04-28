@@ -187,6 +187,9 @@ class K2Collimator:
             mask_not_hit = ~mask_hit
             mask_survived_hit = mask_hit & (~mask_lost)
 
+            self.mask_lost = mask_lost
+            self.mask_hit = mask_hit
+
             state_out = particles.state[:npart].copy()
             state_out[mask_lost] = -333
             particles.state[:npart] = state_out
@@ -274,7 +277,7 @@ class K2Collimator:
 
 
     @classmethod
-    def from_dict(cls, thisdict, engine=None):
+    def from_dict(cls, thisdict, *, engine=None):
         if engine is None:
             print("Warning: no engine given! Creating a new one...")
             engine = K2Engine(thisdict['n_alloc'], thisdict['random_generator_seed'])
