@@ -109,106 +109,10 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            # Go to collimator reference system (subtract closed orbit)
-            x_part = particles.x[:npart] - self.dx
-            xp_part = (particles.px[:npart] - self.dpx) * particles.rpp[:npart]
-            y_part = particles.y[:npart] - self.dy
-            yp_part = (particles.py[:npart] - self.dpy) * particles.rpp[:npart]
-            s_part = 0 * x_part
-            p_part = particles.energy[:npart] / 1e9 # Energy (not momentum) in GeV
-
-            enom = particles.energy0[0]/1e9 # Reference energy
-
-            # Initialise arrays for FORTRAN call
-            part_hit = np.zeros(len(x_part), dtype=np.int32)
-            part_abs = np.zeros(len(x_part), dtype=np.int32)
-            part_impact = np.zeros(len(x_part), dtype=np.float)
-            part_indiv = np.zeros(len(x_part), dtype=np.float)
-            part_linteract = np.zeros(len(x_part), dtype=np.float)
-            nhit_stage = np.zeros(len(x_part), dtype=np.int32)
-            nabs_type = np.zeros(len(x_part), dtype=np.int32)
-            linside = np.zeros(len(x_part), dtype=np.int32)
-
-            # `linside` is an array of logicals in fortran. Beware of the fortran converion:
-            # True <=> -1 (https://stackoverflow.com/questions/39454349/numerical-equivalent-of-true-is-1)
-
-            if self.jaw_F_L != self.jaw_B_L or self.jaw_F_R != self.jaw_B_R:
-                raise NotImplementedError
-            opening = self.jaw_F_L - self.jaw_F_R
-            offset = self.offset + ( self.jaw_F_L + self.jaw_F_R )/2
-
-            exenergy = pyk2.materials[self.material]['exenergy']
-            anuc     = pyk2.materials[self.material]['anuc']
-            zatom    = pyk2.materials[self.material]['zatom']
-            emr      = pyk2.materials[self.material]['emr']
-            rho      = pyk2.materials[self.material]['rho']
-            hcut     = pyk2.materials[self.material]['hcut']
-            bnref    = pyk2.materials[self.material]['bnref']
-            csref0   = pyk2.materials[self.material]['csref'][0]
-            csref1   = pyk2.materials[self.material]['csref'][1]
-            csref4   = pyk2.materials[self.material]['csref'][4]
-            csref5   = pyk2.materials[self.material]['csref'][5]
-            radl     = pyk2.materials[self.material]['radl']
-            dlri     = pyk2.materials[self.material]['dlri']
-            dlyi     = pyk2.materials[self.material]['dlyi']
-            eUm      = pyk2.materials[self.material]['eUm']
-            ai       = pyk2.materials[self.material]['ai']
-            collnt   = pyk2.materials[self.material]['collnt']
-
-            # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
-            #  raise ValueError()
-            cprob, xintl, bn, ecmsq, xln15s, bpp = pyk2.calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
-            pyk2.pyk2_run(num_particles=npart,
-                      x_particles=x_part,
-                      xp_particles=xp_part,
-                      y_particles=y_part,
-                      yp_particles=yp_part,
-                      s_particles=s_part,
-                      p_particles=p_part,              # confusing: this is ENERGY not momentum
-                      part_hit=part_hit,
-                      part_abs=part_abs,
-                      part_impact=part_impact,         # impact parameter
-                      part_indiv=part_indiv,           # particle divergence
-                      part_linteract=part_linteract,   # interaction length
-                      nhit_stage=nhit_stage,
-                      nabs_type=nabs_type,
-                      linside=linside,
-                      run_exenergy=exenergy,
-                      run_anuc=anuc,
-                      run_zatom=zatom,
-                      run_emr=emr,
-                      run_rho=rho,
-                      run_hcut=hcut,
-                      run_bnref=bnref,
-                      run_csref0=csref0,
-                      run_csref1=csref1,
-                      run_csref4=csref4,
-                      run_csref5=csref5,
-                      run_radl=radl,
-                      run_dlri=dlri,
-                      run_dlyi=dlyi,
-                      run_eum=eUm,
-                      run_ai=ai,
-                      run_collnt=collnt,
-                      run_cprob=cprob,
-                      run_xintl=xintl,
-                      run_bn=bn,
-                      run_ecmsq=ecmsq,
-                      run_xln15s=xln15s,
-                      run_bpp=bpp,
-                      is_crystal=False,
-                      c_length=self.active_length,
-                      c_rotation=self.angle/180.*np.pi,
-                      c_aperture=opening,
-                      c_offset=offset,
-                      c_tilt=np.array([0,0], dtype=np.float64),
-                      c_enom=enom, # Reference energy
-                      onesided=self.onesided,
-                      random_generator_seed=-1, # skips rng re-initlization
-                      )
-
+            hit, abs = k2_track(material=self.material, particles=particles )
+            
             # Masks of hit and survived particles
-            mask_lost = part_abs > 0
+            mask_lost = abs > 0
             mask_hit = part_hit > 0
             mask_not_hit = ~mask_hit
             mask_survived_hit = mask_hit & (~mask_lost)

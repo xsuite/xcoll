@@ -11,7 +11,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
   !use coll_materials ! for collmat_init
-  use coll_k2        ! for scattering
+  use coll_k2         ! for scattering
 
   implicit none
 
@@ -35,6 +35,131 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   call alloc(pairID, 2, n_alloc, 0, "pairID")
 
 end subroutine
+
+
+
+
+
+
+
+
+subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr)
+  use floatPrecision
+  use numerical_constants
+
+  use parpro ,           only : npart
+  use mod_common ,       only : napx, unit208
+  use mod_common_main ,  only : partID, parentID, pairID, naa
+  use mod_funlux,        only : funlxp
+  
+  implicit none
+
+  integer, intent(in)             :: num_particles
+  real(kind=fPrec), intent(inout) :: cgen(200)
+  real(kind=fPrec), intent(in)    :: zatom   !
+  real(kind=fPrec), intent(in)    :: emr     !
+  real(kind=fPrec), intent(in)    :: hcut    ! 
+  
+  npart=num_particles
+  unit208=109 
+
+  do j=1,npart
+    naa(j) = aa0
+    partID(j)   = j
+    parentID(j) = j
+    pairID(1,j) = (j+1)/2    ! The pairID of particle j
+    pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
+  end do
+  
+  napx=npart  ! this decreases after absorptions!
+
+  
+  real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
+  ! Prepare for Rutherford differential distribution
+  !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
+  zatom_curr = coll_zatom
+  emr_curr = coll_emr
+
+  call funlxp(k2coll_ruth, cgen(1), tlcut, coll_hcut)
+  
+end subroutine
+
+
+subroutine pyk2_doCrystal(j,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
+  part_abs_local,impact,indiv,c_length,run_exenergy,run_anuc,run_zatom,run_emr,run_rho,&
+  run_hcut,run_bnref,run_csref0,run_csref1,run_csref4,run_csref5,run_dlri,run_dlyi,&
+  run_eUm,run_ai,run_runnt,run_bn)
+
+  ! ... all variable definitions go here ...
+  integer,          intent(in)    :: j
+  real(kind=fPrec), intent(inout) :: x,xp
+  real(kind=fPrec), intent(inout) :: z,zp
+  real(kind=fPrec), intent(inout) :: s,p
+  real(kind=fPrec), intent(inout) :: x0,xp0
+  real(kind=fPrec), intent(inout) :: zlm,s_imp
+  integer,          intent(inout) :: nhit,nabs
+  integer,          intent(inout) :: lhit(npart)
+  integer,          intent(inout) :: part_abs(npart)
+  real(kind=fPrec), intent(inout) :: impact(npart)
+  real(kind=fPrec), intent(inout) :: indiv(npart)
+  real(kind=fPrec), intent(in)    :: c_length
+  real(kind=fPrec), intent(inout) :: run_exenergy
+  real(kind=fPrec), intent(in)    :: run_anuc
+  real(kind=fPrec), intent(in)    :: run_zatom
+  real(kind=fPrec), intent(in)    :: run_emr
+  real(kind=fPrec), intent(in)    :: run_rho
+  real(kind=fPrec), intent(in)    :: run_hcut
+  real(kind=fPrec), intent(in)    :: run_bnref
+  real(kind=fPrec), intent(in)    :: run_csref0
+  real(kind=fPrec), intent(in)    :: run_csref1
+  real(kind=fPrec), intent(in)    :: run_csref4
+  real(kind=fPrec), intent(in)    :: run_csref5
+  real(kind=fPrec), intent(in)    :: run_dlri
+  real(kind=fPrec), intent(in)    :: run_dlyi
+  real(kind=fPrec), intent(in)    :: run_eUm
+  real(kind=fPrec), intent(in)    :: run_ai
+  real(kind=fPrec), intent(in)    :: run_collnt
+  real(kind=fPrec), intent(inout) :: run_bn
+
+  logical,          intent(inout) :: isImp
+
+  use module coll_crystal
+
+  do j=1,npart
+    rcx(j) = x_particles(j)
+    rcxp(j) = xp_particles(j)
+    rcy(j) = y_particles(j)
+    rcyp(j) = yp_particles(j)
+    rcs(j) = s_particles(j)
+    rcp(j) = p_particles(j)
+  end do
+
+  call cry_doCrystal(j,rcx,rcxp,rcz,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
+  part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_emr,coll_rho,&
+  coll_hcut,coll_bnref,coll_csref0,coll_csref1,coll_csref4,coll_csref5,coll_dlri,coll_dlyi,&
+  coll_eUm,coll_ai,coll_collnt,coll_bn)
+
+  do j=1,npart
+    x_particles(j) = rcx(j)
+    xp_particles(j) = rcxp(j)
+    y_particles(j) = rcy(j)
+    yp_particles(j) = rcyp(j)
+    s_particles(j) = rcs(j)
+    p_particles(j) = rcp(j)
+ end do
+end subroutine
+
+
+subroutine pyk2_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, &
+  j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp)
+
+end subroutine pyk2_jaw
+
+
+
+
+
+
 
 subroutine pyk2_run(num_particles, &
                     x_particles, &
@@ -182,7 +307,7 @@ subroutine pyk2_run(num_particles, &
   end do
   
   napx=npart  ! this decreases after absorptions!
-  unit208=109
+  unit208=109 
 
   do j=1,npart
     rcx(j) = x_particles(j)
@@ -213,4 +338,3 @@ subroutine pyk2_run(num_particles, &
      p_particles(j) = rcp(j)
   end do
 end subroutine 
-
