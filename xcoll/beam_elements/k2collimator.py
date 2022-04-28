@@ -1,5 +1,5 @@
 import numpy as np
-
+from pyk2 import k2_track
 
 class K2Engine:
 
@@ -109,7 +109,10 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            hit, abs = k2_track(material=self.material, particles=particles )
+            hit, abs = k2_track(material=self.material, particles=particles, 
+                                closed_orbit=[self.dx,self.dy,self.dpx,self.dpy],
+                                jaws=[self.jaw_F_L,self.jaw_F_R,self.jaw_B_L,self.jaw_B_R]
+                                offset=self.offset )
             
             # Masks of hit and survived particles
             mask_lost = abs > 0
