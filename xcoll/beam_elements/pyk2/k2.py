@@ -1,7 +1,7 @@
 import numpy as np
 from materials import materials
 
-def k2_track(*, material, particles, closed_orbit, jaws, offset):
+def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, is_crystal):
 
     # Go to collimator reference system (subtract closed orbit)
     dx = closed_orbit[0]
@@ -15,7 +15,7 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset):
     s_part = 0 * x_part
     p_part = particles.energy[:npart] / 1e9 # Energy (not momentum) in GeV
 
-    enom = particles.energy0[0]/1e9 # Reference energy
+    p0 = particles.energy0[0]/1e9 # Reference energy
 
     # `linside` is an array of logicals in fortran. Beware of the fortran converion:
     # True <=> -1 (https://stackoverflow.com/questions/39454349/numerical-equivalent-of-true-is-1)
@@ -39,6 +39,7 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset):
     nabs_type = np.zeros(len(x_part), dtype=np.int32)
     linside = np.zeros(len(x_part), dtype=np.int32)
 
+    # Get material parameters
     exenergy = materials[material]['exenergy']
     anuc     = materials[material]['anuc']
     zatom    = materials[material]['zatom']
@@ -58,69 +59,103 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset):
     collnt   = materials[material]['collnt']
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #   raise ValueError()
-    cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
-    
+
+    # Prepare random generator in FORTRAN
     cgen = np.zeros(len(200), dtype=np.float)
-    pyk2.pyk2_start_run(particles, cgen, hcut, zatom, emr)
+    pyk2.pyk2_start_run(npart, cgen, hcut, zatom, emr,
+                       x_part=x_part, xp_part=xp_part, y_part=y_part, yp_part=yp_part, p_part=p_part, s_part=s_part)
 
-    #... preparation (k2 line 147 - 172)
-#   ! Initilaisation
-#   !mat = matid
-    length = c_length
-    p0     = enom
-#   ! Initialise scattering processes
-#   ! call k2scatin(p0,anuc,rho,zatom,emr,&
-#   !                    csref0,csref1,csref5,bnref,cprob,xintl,bn)
+    # Prepare scattering parameters (was k2coll_scatin)
+    cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
+    # Initialise number of hits and absorptions
     nhit   = 0
     nabs   = 0
-    fracab = 0
-    mirror = 1
+    fracab = 0.
+    mirror = 1.
 
-#   ! Compute rotation factors for collimator rotation
+    # Compute rotation factors for collimator rotation
     cRot   = np.cos(c_rotation)
     sRot   = np.sin(c_rotation)
     cRRot  = np.cos(-c_rotation)
     sRRot  = np.sin(-c_rotation)
 
-#   !Set energy and nucleon change variables as with the coupling
+    # Set energy and nucleon change variables as with the coupling
+    # ien0,ien1: particle energy entering/leaving the collimator
     nnuc0 = 0
-    ien0  = 0
+    ien0  = 0.
     nnuc1 = 0
-    ien1  = 0
+    ien1  = 0.
 
+    # Main loop over particles
     for this_part in range(npart,1):
 
         pyk2.pyk2_per_particle(
             j=this_part,
             cgen=cgen,
-            p0=p0,
-            nhit,
-            nabs,
-            fracab,
-            mirror,
-            cRot,
-            sRot,
-            cRRot,
-            sRRot,
-            nnuc0,
-            ien0,
-            nnuc1,
-            ien1,
-
-
-            run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
-     run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
-     run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, &
-     run_ecmsq, run_xln15s, run_bpp, is_crystal, &
-     c_length, c_aperture, c_offset, c_tilt, &
-     rcx, rcxp, rcy, rcyp, rcp, rcs, &
-     c_enom, part_hit, part_abs, &
-     part_impact, part_indiv, part_linteract, &
-     onesided, nhit_stage, 1, nabs_type, linside
+            thisp0=p0,
+            nhit=nhit,
+            nabs=nabs,
+            fracab=fracab,
+            mirror=mirror,
+            cRot=cRot,
+            sRot=sRot,
+            cRRot=cRRot,
+            sRRot=sRRot,
+            nnuc0=nnuc0,
+            ien0=ien0,
+            nnuc1=nnuc1,
+            ien1=ien1,
+            coll_exenergy=exenergy,
+            coll_anuc=anuc,
+            coll_zatom=zatom,
+            coll_emr=emr,
+            coll_rho=rho,
+            coll_hcut=hcut,
+            coll_bnref=bnref,
+            coll_csref0=csref0,
+            coll_csref1=csref1,
+            coll_csref4=csref4,
+            coll_csref5=csref5,
+            coll_radl=radl,
+            coll_dlri=dlri,
+            coll_dlyi=dlyi,
+            coll_eUm=eUm,
+            coll_ai=ai,
+            coll_collnt=collnt,
+            coll_cprob=cprob,
+            coll_xintl=xintl,
+            coll_bn=bn,
+            coll_ecmsq=ecmsq,
+            coll_xln15s=xln15s,
+            coll_bpp=bpp,
+            is_crystal=is_crystal,
+            c_length=length,
+            c_aperture=opening,
+            c_offset=offset,
+            c_tilt=np.array([0,0], dtype=np.float64),
+            x_in=x_part,
+            xp_in=xp_part,
+            y_in=y_part,
+            yp_in=yp_part,
+            p_in=p_part,
+            s_in=s_part,
+            lhit=part_hit,
+            part_abs_local=part_abs,
+            impact=part_impact,
+            indiv=part_indiv,
+            lint=part_linteract,
+            onesided=onesided,
+            nhit_stage=nhit_stage,
+            j_slices=1,
+            nabs_type=nabs_type,
+            linside=linside
         )
 
-    return part_hit, part_abs
+    # Retrieve results
+    pyk2.pyk2_finish(npart, x_part=x_part, xp_part=xp_part, y_part=y_part, yp_part=yp_part, p_part=p_part, s_part=s_part)
+
+    return x_part, xp_part, y_part, yp_part, p_part, s_part, part_hit, part_abs
 #         #... preparation (coll_k2 line 176 - 258)
 #         if (part_abs_local[this_part]) != 0):
 #             continue

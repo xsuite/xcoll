@@ -13,25 +13,25 @@ module coll_k2
 
   !integer,          private, save :: mat   ! Current material
   ! integer,          private, save :: mcurr ! Current material, used for Rutherford scattering integration
-  real(kind=fPrec), private, save :: zatom_curr ! Current zatom, used for Rutherford scattering integration
-  real(kind=fPrec), private, save :: emr_curr ! Current emr, used for Rutherford scattering integration
-  real(kind=fPrec), private, save :: zlm
-  real(kind=fPrec), private, save :: zlm1
-  real(kind=fPrec), private, save :: p0
-  real(kind=fPrec), private, save :: length
-  real(kind=fPrec), private, save :: xln15s
-  real(kind=fPrec), private, save :: pptot
-  real(kind=fPrec), private, save :: ppsd
-  real(kind=fPrec), private, save :: ppel
-  real(kind=fPrec), private, save :: ecmsq
-  real(kind=fPrec), private, save :: bpp
-  real(kind=fPrec), private, save :: xpsd
-  real(kind=fPrec), private, save :: zpsd
-  real(kind=fPrec), private, save :: psd
+  real(kind=fPrec), save :: zatom_curr ! Current zatom, used for Rutherford scattering integration
+  real(kind=fPrec), save :: emr_curr ! Current emr, used for Rutherford scattering integration
+  real(kind=fPrec), save :: zlm
+  real(kind=fPrec), save :: zlm1
+  real(kind=fPrec), save :: p0
+  real(kind=fPrec), save :: length
+  ! real(kind=fPrec), private, save :: xln15s
+  real(kind=fPrec), save :: pptot
+  real(kind=fPrec), save :: ppsd
+  real(kind=fPrec), save :: ppel
+  ! real(kind=fPrec), private, save :: ecmsq
+  ! real(kind=fPrec), private, save :: bpp
+  real(kind=fPrec), save :: xpsd
+  real(kind=fPrec), save :: zpsd
+  real(kind=fPrec), save :: psd
 
   ! RB DM 2014 added variables for FLUKA output
-  real(kind=fPrec), private, save :: xInt,xpInt,yInt,ypInt,sInt
-  real(kind=fPrec), private, save :: x,xp,z,zp,dpop
+  real(kind=fPrec), save :: xInt,xpInt,yInt,ypInt,sInt
+  real(kind=fPrec), save :: x,xp,z,zp,dpop
 
 contains
 

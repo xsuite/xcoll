@@ -56,6 +56,7 @@ class K2Collimator:
         self.tilt = tilt
         self._active = is_active
         self.material = material
+        self.is_crystal = False
 
     @property
     def k2engine(self):
@@ -109,10 +110,15 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            hit, abs = k2_track(material=self.material, particles=particles, 
-                                closed_orbit=[self.dx,self.dy,self.dpx,self.dpy],
-                                jaws=[self.jaw_F_L,self.jaw_F_R,self.jaw_B_L,self.jaw_B_R]
-                                offset=self.offset )
+            x_part, xp_part, y_part, yp_part, p_part, s_part, part_hit, part_abs = k2_track(
+                            material=self.material,
+                            particles=particles,
+                            closed_orbit=[self.dx,self.dy,self.dpx,self.dpy],
+                            jaws=[self.jaw_F_L,self.jaw_F_R,self.jaw_B_L,self.jaw_B_R]
+                            offset=self.offset, npart=npart, length=self.active_length,
+                            is_crystal=self.is_crystal,
+                            onesided=self.onesided
+                        )
             
             # Masks of hit and survived particles
             mask_lost = abs > 0
