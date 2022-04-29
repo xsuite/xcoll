@@ -41,7 +41,7 @@ end subroutine
 
 
 
-subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr, &
+subroutine pyk2_start_run(num_particles, hcut, zatom, emr, &
                   x_part, xp_part, y_part, yp_part, s_part, p_part)
 
   use floatPrecision
@@ -51,16 +51,15 @@ subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr, &
   use mod_common ,       only : napx, unit208, aa0
   use mod_common_main ,  only : partID, parentID, pairID, naa
   use mod_funlux,        only : funlxp
-  use coll_k2,           only : zatom_curr, emr_curr, k2coll_ruth
+  use coll_k2,           only : zatom_curr, emr_curr, k2coll_ruth, cgen
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs
   
   implicit none
 
   integer, intent(in)             :: num_particles
-  real(kind=fPrec), intent(inout) :: cgen(200)
-  real(kind=fPrec), intent(in)    :: zatom   !
-  real(kind=fPrec), intent(in)    :: emr     !
-  real(kind=fPrec), intent(in)    :: hcut    !
+  real(kind=8), intent(in)    :: zatom   !
+  real(kind=8), intent(in)    :: emr     !
+  real(kind=8), intent(in)    :: hcut    !
   real(kind=8),    intent(inout)  :: x_part(num_particles)
   real(kind=8),    intent(inout)  :: xp_part(num_particles)
   real(kind=8),    intent(inout)  :: y_part(num_particles)
@@ -69,7 +68,7 @@ subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr, &
   real(kind=8),    intent(inout)  :: p_part(num_particles)
 
   integer j
-  real(kind=fPrec), parameter :: tlcut = 0.0009982
+  real(kind=8), parameter :: tlcut = 0.0009982
 
   npart=num_particles
   unit208=109 
@@ -80,6 +79,12 @@ subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr, &
     parentID(j) = j
     pairID(1,j) = (j+1)/2    ! The pairID of particle j
     pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
+    rcx(j) = x_part(j)
+    rcxp(j) = xp_part(j)
+    rcy(j) = y_part(j)
+    rcyp(j) = yp_part(j)
+    rcs(j) = s_part(j)
+    rcp(j) = p_part(j)
   end do
   
   napx=npart  ! this decreases after absorptions!
@@ -90,16 +95,7 @@ subroutine pyk2_start_run(num_particles, cgen, hcut, zatom, emr, &
   emr_curr = emr
 
   call funlxp(k2coll_ruth, cgen(1), tlcut, hcut)
-  
-  do j=1,npart
-    rcx(j) = x_particles(j)
-    rcxp(j) = xp_particles(j)
-    rcy(j) = y_particles(j)
-    rcyp(j) = yp_particles(j)
-    rcs(j) = s_particles(j)
-    rcp(j) = p_particles(j)
-  end do
-  
+
 end subroutine
 
 
@@ -107,16 +103,16 @@ end subroutine
 
 
 
-subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, &
+subroutine pyk2_per_particle(j, num_particles, thisp0, nhit, nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, &
             nnuc0, ien0, nnuc1, ien1, &
             coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
             coll_csref0, coll_csref1, coll_csref4, coll_csref5, coll_radl, coll_dlri, coll_dlyi,coll_eUm, coll_ai, &
             coll_collnt, coll_cprob, coll_xintl, coll_bn, coll_ecmsq, coll_xln15s, coll_bpp, is_crystal, c_length, &
             c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, lhit, part_abs_local, &
-            impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
+            impact, indiv, lint, onesided, nhit_stage, nabs_type, linside)
 
 
-    use, intrinsic :: iso_fortran_env, only : int16
+    !use, intrinsic :: iso_fortran_env, only : int16
     use parpro
     use crcoall
     !use coll_db
@@ -133,86 +129,85 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
     implicit none
 
     integer(kind=4) , intent(in)    :: j
-    real(kind=fPrec), intent(inout) :: cgen(200)
-    real(kind=fPrec), intent(in)    :: thisp0           ! Reference momentum in GeV
+    integer, intent(in)             :: num_particles
+    real(kind=8), intent(in)    :: thisp0           ! Reference momentum in GeV
     integer(kind=4),  intent(inout) :: nhit
     integer(kind=4),  intent(inout) :: nabs
-    real(kind=fPrec), intent(inout) :: fracab
-    real(kind=fPrec), intent(inout) :: mirror
-    real(kind=fPrec), intent(in)    :: cRot
-    real(kind=fPrec), intent(in)    :: sRot
-    real(kind=fPrec), intent(in)    :: cRRot
-    real(kind=fPrec), intent(in)    :: sRRot
+    real(kind=8), intent(inout) :: fracab
+    real(kind=8), intent(inout) :: mirror
+    real(kind=8), intent(in)    :: cRot
+    real(kind=8), intent(in)    :: sRot
+    real(kind=8), intent(in)    :: cRRot
+    real(kind=8), intent(in)    :: sRRot
     integer(kind=4) , intent(inout) :: nnuc0
-    real(kind=fPrec), intent(inout) :: ien0
+    real(kind=8), intent(inout) :: ien0
     integer(kind=4) , intent(inout) :: nnuc1
-    real(kind=fPrec), intent(inout) :: ien1
+    real(kind=8), intent(inout) :: ien1
 
-    real(kind=fPrec), intent(inout) :: coll_exenergy!
-    real(kind=fPrec), intent(in)    :: coll_anuc    ! 
-    real(kind=fPrec), intent(in)    :: coll_zatom   !
-    real(kind=fPrec), intent(in)    :: coll_emr     !
-    real(kind=fPrec), intent(in)    :: coll_rho     ! 
-    real(kind=fPrec), intent(in)    :: coll_hcut    ! 
-    real(kind=fPrec), intent(in)    :: coll_bnref   !
-    real(kind=fPrec), intent(in)    :: coll_csref0  ! 
-    real(kind=fPrec), intent(in)    :: coll_csref1  ! 
-    real(kind=fPrec), intent(in)    :: coll_csref4  ! 
-    real(kind=fPrec), intent(in)    :: coll_csref5  !
-    real(kind=fPrec), intent(in)    :: coll_radl    !
+    real(kind=8), intent(inout) :: coll_exenergy!
+    real(kind=8), intent(in)    :: coll_anuc    ! 
+    real(kind=8), intent(in)    :: coll_zatom   !
+    real(kind=8), intent(in)    :: coll_emr     !
+    real(kind=8), intent(in)    :: coll_rho     ! 
+    real(kind=8), intent(in)    :: coll_hcut    ! 
+    real(kind=8), intent(in)    :: coll_bnref   !
+    real(kind=8), intent(in)    :: coll_csref0  ! 
+    real(kind=8), intent(in)    :: coll_csref1  ! 
+    real(kind=8), intent(in)    :: coll_csref4  ! 
+    real(kind=8), intent(in)    :: coll_csref5  !
+    real(kind=8), intent(in)    :: coll_radl    !
 
-    real(kind=fPrec), intent(in)    :: coll_dlri
-    real(kind=fPrec), intent(in)    :: coll_dlyi
-    real(kind=fPrec), intent(in)    :: coll_eUm
-    real(kind=fPrec), intent(in)    :: coll_ai
-    real(kind=fPrec), intent(in)    :: coll_collnt
-    real(kind=fPrec), intent(in)    :: coll_cprob(0:5)
-    real(kind=fPrec), intent(in)    :: coll_xintl
-    real(kind=fPrec), intent(inout) :: coll_bn
-    real(kind=fPrec), intent(in)    :: coll_ecmsq
-    real(kind=fPrec), intent(in)    :: coll_xln15s
-    real(kind=fPrec), intent(in)    :: coll_bpp
+    real(kind=8), intent(in)    :: coll_dlri
+    real(kind=8), intent(in)    :: coll_dlyi
+    real(kind=8), intent(in)    :: coll_eUm
+    real(kind=8), intent(in)    :: coll_ai
+    real(kind=8), intent(in)    :: coll_collnt
+    real(kind=8), intent(in)    :: coll_cprob(0:5)
+    real(kind=8), intent(in)    :: coll_xintl
+    real(kind=8), intent(inout) :: coll_bn
+    real(kind=8), intent(in)    :: coll_ecmsq
+    real(kind=8), intent(in)    :: coll_xln15s
+    real(kind=8), intent(in)    :: coll_bpp
     logical,          intent(in)    :: is_crystal
 
-    real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
-    real(kind=fPrec), intent(in)    :: c_aperture   ! Collimator aperture in m
-    real(kind=fPrec), intent(in)    :: c_offset     ! Collimator offset in m
-    real(kind=fPrec), intent(inout) :: c_tilt(2)    ! Collimator tilt in radians
+    real(kind=8),     intent(in)    :: c_length     ! Collimator length in m
+    real(kind=8),     intent(in)    :: c_aperture   ! Collimator aperture in m
+    real(kind=8),     intent(in)    :: c_offset     ! Collimator offset in m
+    real(kind=8),     intent(inout) :: c_tilt(2)    ! Collimator tilt in radians
 
-    real(kind=fPrec), intent(inout) :: x_in(npart)
-    real(kind=fPrec), intent(inout) :: xp_in(npart)
-    real(kind=fPrec), intent(inout) :: y_in(npart)
-    real(kind=fPrec), intent(inout) :: yp_in(npart)
-    real(kind=fPrec), intent(inout) :: p_in(npart)
-    real(kind=fPrec), intent(inout) :: s_in(npart)
+    real(kind=8),     intent(inout) :: x_in(num_particles)
+    real(kind=8),     intent(inout) :: xp_in(num_particles)
+    real(kind=8),     intent(inout) :: y_in(num_particles)
+    real(kind=8),     intent(inout) :: yp_in(num_particles)
+    real(kind=8),     intent(inout) :: p_in(num_particles)
+    real(kind=8),     intent(inout) :: s_in(num_particles)
 
     logical,          intent(in)    :: onesided
 
-    integer,          intent(inout) :: lhit(npart)
-    integer,          intent(inout) :: part_abs_local(npart)
-    integer,          intent(inout) :: nabs_type(npart)
-    integer,          intent(inout) :: nhit_stage(npart)
-    real(kind=fPrec), intent(inout) :: indiv(npart)
-    real(kind=fPrec), intent(inout) :: lint(npart)
-    real(kind=fPrec), intent(inout) :: impact(npart)
-    logical,          intent(inout) :: linside(npart)
+    integer,          intent(inout) :: lhit(num_particles)
+    integer,          intent(inout) :: part_abs_local(num_particles)
+    integer,          intent(inout) :: nabs_type(num_particles)
+    integer,          intent(inout) :: nhit_stage(num_particles)
+    real(kind=8),     intent(inout) :: indiv(num_particles)
+    real(kind=8),     intent(inout) :: lint(num_particles)
+    real(kind=8),     intent(inout) :: impact(num_particles)
+    logical,          intent(inout) :: linside(num_particles)
 
     logical isImp
-    integer j_slices
-    real(kind=fPrec) keeps,drift_length,tiltangle
-    real(kind=fPrec) x00,z00,p,sp,s,s_impact
-    real(kind=fPrec) x_flk,xp_flk,y_flk,yp_flk,s_flk,zpj
-    real(kind=fPrec) x_Dump,xpDump,y_Dump,ypDump,s_Dump
-    real(kind=fPrec) xIn,xpIn,yIn,ypIn,xOut,xpOut,yOut,ypOut,sImp,sOut
-    real(kind=fPrec) x_in0,xp_in0
+    real(kind=8) keeps,drift_length,tiltangle
+    real(kind=8) x00,z00,p,sp,s,s_impact
+    real(kind=8) x_flk,xp_flk,y_flk,yp_flk,s_flk,zpj
+    real(kind=8) x_Dump,xpDump,y_Dump,ypDump,s_Dump
+    real(kind=8) xIn,xpIn,yIn,ypIn,xOut,xpOut,yOut,ypOut,sImp,sOut
+    real(kind=8) x_in0,xp_in0
 
 
 
     length = c_length
+    p0 = thisp0
 
-    if(part_abs_local == 0) then
-      ! Only do scattering process for particles not already absorbed
-
+    if(part_abs_local(j) == 0) then
+        ! Only do scattering process for particles not already absorbed
         impact(j) = -one
         lint(j)   = -one
         indiv(j)  = -one
@@ -232,18 +227,17 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
 
         ! Transform particle coordinates to get into collimator coordinate  system
         ! First do rotation into collimator frame
-        x  =  x_in(j)*cRot + sRot(j)*y_in
-        z  =  y_in(j)*cRot - sRot(j)*x_in
-        xp = xp_in(j)*cRot + sRot(j)*yp_in
-        zp = yp_in(j)*cRot - sRot(j)*xp_in
+        x  =  x_in(j)*cRot + y_in(j)*sRot
+        z  =  y_in(j)*cRot - x_in(j)*sRot
+        xp = xp_in(j)*cRot + yp_in(j)*sRot
+        zp = yp_in(j)*cRot - xp_in(j)*sRot
 
         ! For one-sided collimators consider only positive X. For negative X jump to the next particle
         if(.not. onesided .or. x >= zero) then
-
+        
             ! Log input energy + nucleons as per the FLUKA coupling
             nnuc0   = nnuc0 + naa(j)
             ien0    = ien0 + rcp(j) * c1e3
-
 
             ! Now mirror at the horizontal axis for negative X offset
             if(x < zero) then
@@ -255,7 +249,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
             end if
             x  = mirror*x
             xp = mirror*xp
-
+            
             ! Shift with opening and offset
             x = (x - c_aperture/two) - mirror*c_offset
 
@@ -336,7 +330,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
                   zlm = zero
                 end if
               end if
-
+              
               ! First do the drift part
               ! DRIFT PART
               drift_length = c_length - zlm
@@ -355,6 +349,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
 
               ! Now do the scattering part
               if(zlm > zero) then
+
                 if(.not.linside(j)) then
                   ! first time particle hits collimator: entering jaw
                   linside(j) = .true.
@@ -367,20 +362,23 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
                     xpDump = (xp + tiltangle)*mirror
                     y_Dump = z
                     ypDump = zp
-                    s_Dump = sp+real(j_slices-1,fPrec)*c_length
+                    s_Dump = sp
                   end if
                 end if
 
                 s_impact = sp
                 nhit = nhit + 1
+
+
                 call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,&
                                   coll_cprob,coll_xintl,coll_bn,cgen,coll_ecmsq,coll_xln15s,coll_bpp)
+
                 nabs_type(j) = nabs
                 lhit(j)  = 1
 
                 isImp = .true.
-                sImp  = s_impact+(real(j_slices,fPrec)-one)*c_length
-                sOut  = (s+sp)+(real(j_slices,fPrec)-one)*c_length
+                sImp  = s_impact
+                sOut  = (s+sp)
                 xOut  = x
                 xpOut = xp
                 yOut  = z
@@ -410,15 +408,16 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
                   yp_flk = ( ypInt*cRRot - xp_flk*sRRot)*c1e3
                   x_flk  = ( x_flk*cRRot +   yInt*sRRot)*c1e3
                   xp_flk = (xp_flk*cRRot +  ypInt*sRRot)*c1e3
-                  s_flk  = (sInt+sp)+(real(j_slices,fPrec)-one)*c_length
+                  s_flk  = (sInt+sp)
 
                   ! Finally, the actual coordinate change to 99 mm
                   if(nabs == 1) then
                     fracab  = fracab + 1
-                    x       = 99.99e-3_fPrec
-                    z       = 99.99e-3_fPrec
+                    x       = 99.99e-3
+                    z       = 99.99e-3
                     lint(j) = zlm
                     part_abs_local(j)  = 1
+
                   end if
                 end if
               end if ! Collimator jaw interaction
@@ -437,7 +436,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
                     xpDump = (xp+tiltangle)*mirror
                     y_Dump = z
                     ypDump = zp
-                    s_Dump = s+sp+real(j_slices-1,fPrec)*c_length
+                    s_Dump = s+sp
 
                   end if
                   if(iexact) then
@@ -457,7 +456,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
             end if ! Collimator isCrystal
 
             ! Transform back to particle coordinates with opening and offset
-            if(x < 99.0e-3_fPrec) then
+            if(x < 99.0e-3) then
               ! Include collimator tilt
               if(tiltangle > zero) then
                 x  = x  + tiltangle*c_length
@@ -493,7 +492,7 @@ subroutine pyk2_per_particle(j, cgen, thisp0, nhit, nabs, fracab, mirror, cRot, 
                 s_in(j) = s_in(j) + s
               else
                 p_in(j) = (one + dpop) * p0
-                s_in(j) = sp + (real(j_slices,fPrec)-one) * c_length
+                s_in(j) = sp
               end if
             else
               x_in(j) = x
@@ -508,28 +507,18 @@ end subroutine
 
 
 
-
-
-
-
-
-
-
 subroutine pyk2_finish(num_particles, &
-                    x_particles, &
-                    xp_particles, &
-                    y_particles, &
-                    yp_particles, &
-                    s_particles, &
-                    p_particles)
-  use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
+                    x_part, &
+                    xp_part, &
+                    y_part, &
+                    yp_part, &
+                    s_part, &
+                    p_part)
+
+  use parpro ,           only : npart
+  use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs
 
   implicit none
-
-
-  ! ############################
-  ! ## variables declarations ##
-  ! ############################
 
   integer, intent(in)          :: num_particles
   real(kind=8), intent(inout)  :: x_part(num_particles)
@@ -538,23 +527,18 @@ subroutine pyk2_finish(num_particles, &
   real(kind=8), intent(inout)  :: yp_part(num_particles)
   real(kind=8), intent(inout)  :: s_part(num_particles)
   real(kind=8), intent(inout)  :: p_part(num_particles)
+  integer j
 
   do j=1,npart
-     x_particles(j) = rcx(j)
-     xp_particles(j) = rcxp(j)
-     y_particles(j) = rcy(j)
-     yp_particles(j) = rcyp(j)
-     s_particles(j) = rcs(j)
-     p_particles(j) = rcp(j)
+     x_part(j) = rcx(j)
+     xp_part(j) = rcxp(j)
+     y_part(j) = rcy(j)
+     yp_part(j) = rcyp(j)
+     s_part(j) = rcs(j)
+     p_part(j) = rcp(j)
   end do
+
 end subroutine 
-
-
-
-
-
-
-
 
 
 

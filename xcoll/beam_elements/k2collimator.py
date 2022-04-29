@@ -1,5 +1,5 @@
 import numpy as np
-from pyk2 import k2_track
+from .pyk2 import k2_track
 
 class K2Engine:
 
@@ -12,8 +12,8 @@ class K2Engine:
         else:
             self.random_generator_seed = random_generator_seed
 
-        import xcoll.beam_elements.pyk2 as pyk2
-        pyk2.pyk2_init(n_alloc=n_alloc, random_generator_seed=self.random_generator_seed)
+        from .pyk2.pyk2f import pyk2_init
+        pyk2_init(n_alloc=n_alloc, random_generator_seed=self.random_generator_seed)
         
         
 # call collmat_init                   ! Set default values for collimator materials
@@ -80,7 +80,6 @@ class K2Collimator:
         return self.active_length + self.inactive_front + self.inactive_back
 
     def track(self, particles):  # TODO: write impacts
-        import xcoll.beam_elements.pyk2 as pyk2
         npart = particles._num_active_particles
         if npart > self.k2engine.n_alloc:
             raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
@@ -114,14 +113,17 @@ class K2Collimator:
                             material=self.material,
                             particles=particles,
                             closed_orbit=[self.dx,self.dy,self.dpx,self.dpy],
-                            jaws=[self.jaw_F_L,self.jaw_F_R,self.jaw_B_L,self.jaw_B_R]
-                            offset=self.offset, npart=npart, length=self.active_length,
+                            angle=self.angle,
+                            jaws=[self.jaw_F_L,self.jaw_F_R,self.jaw_B_L,self.jaw_B_R],
+                            offset=self.offset,
+                            npart=npart,
+                            length=self.active_length,
                             is_crystal=self.is_crystal,
                             onesided=self.onesided
                         )
             
             # Masks of hit and survived particles
-            mask_lost = abs > 0
+            mask_lost = part_abs > 0
             mask_hit = part_hit > 0
             mask_not_hit = ~mask_hit
             mask_survived_hit = mask_hit & (~mask_lost)

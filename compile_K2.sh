@@ -7,19 +7,19 @@ rm *.mod *.o
 
 
 # compile libraries
-cd crlibm
-make clean
-rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
-cmake .
-make CFLAGS=-fPIC
-mv libcrlibm.a ../
-cd ../roundctl
-make clean
-rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
-cmake .
-make CFLAGS=-fPIC
-mv libroundctl.a ../
-cd ..
+#cd crlibm
+#make clean
+#rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
+#cmake .
+#make CFLAGS=-fPIC
+#mv libcrlibm.a ../
+#cd ../roundctl
+#make clean
+#rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
+#cmake .
+#make CFLAGS=-fPIC
+#mv libroundctl.a ../
+#cd ..
 
 # compile fortran
 gfortran -fpic -c \

@@ -1,7 +1,8 @@
 import numpy as np
-from materials import materials
+from .materials import materials
 
-def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, is_crystal):
+def k2_track(*, material, particles, closed_orbit, angle, jaws, offset, npart, length, is_crystal, onesided):
+    from .pyk2f import pyk2_run, pyk2_start_run, pyk2_per_particle, pyk2_finish
 
     # Go to collimator reference system (subtract closed orbit)
     dx = closed_orbit[0]
@@ -61,12 +62,11 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, 
     #   raise ValueError()
 
     # Prepare random generator in FORTRAN
-    cgen = np.zeros(len(200), dtype=np.float)
-    pyk2.pyk2_start_run(npart, cgen, hcut, zatom, emr,
+    pyk2_start_run(num_particles=npart, hcut=hcut, zatom=zatom, emr=emr,
                        x_part=x_part, xp_part=xp_part, y_part=y_part, yp_part=yp_part, p_part=p_part, s_part=s_part)
 
     # Prepare scattering parameters (was k2coll_scatin)
-    cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(p0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
     # Initialise number of hits and absorptions
     nhit   = 0
@@ -75,10 +75,10 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, 
     mirror = 1.
 
     # Compute rotation factors for collimator rotation
-    cRot   = np.cos(c_rotation)
-    sRot   = np.sin(c_rotation)
-    cRRot  = np.cos(-c_rotation)
-    sRRot  = np.sin(-c_rotation)
+    cRot   = np.cos(angle/180.*np.pi)
+    sRot   = np.sin(angle/180.*np.pi)
+    cRRot  = np.cos(-angle/180.*np.pi)
+    sRRot  = np.sin(-angle/180.*np.pi)
 
     # Set energy and nucleon change variables as with the coupling
     # ien0,ien1: particle energy entering/leaving the collimator
@@ -88,20 +88,20 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, 
     ien1  = 0.
 
     # Main loop over particles
-    for this_part in range(npart,1):
-
-        pyk2.pyk2_per_particle(
+    for this_part in range(1,npart):
+        print(this_part)
+        pyk2_per_particle(
             j=this_part,
-            cgen=cgen,
+            num_particles=npart,
             thisp0=p0,
             nhit=nhit,
             nabs=nabs,
             fracab=fracab,
             mirror=mirror,
-            cRot=cRot,
-            sRot=sRot,
-            cRRot=cRRot,
-            sRRot=sRRot,
+            crot=cRot,
+            srot=sRot,
+            crrot=cRRot,
+            srrot=sRRot,
             nnuc0=nnuc0,
             ien0=ien0,
             nnuc1=nnuc1,
@@ -120,7 +120,7 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, 
             coll_radl=radl,
             coll_dlri=dlri,
             coll_dlyi=dlyi,
-            coll_eUm=eUm,
+            coll_eum=eUm,
             coll_ai=ai,
             coll_collnt=collnt,
             coll_cprob=cprob,
@@ -147,15 +147,18 @@ def k2_track(*, material, particles, closed_orbit, jaws, offset, npart, length, 
             lint=part_linteract,
             onesided=onesided,
             nhit_stage=nhit_stage,
-            j_slices=1,
             nabs_type=nabs_type,
             linside=linside
         )
 
     # Retrieve results
-    pyk2.pyk2_finish(npart, x_part=x_part, xp_part=xp_part, y_part=y_part, yp_part=yp_part, p_part=p_part, s_part=s_part)
+    pyk2_finish(num_particles=npart, x_part=x_part, xp_part=xp_part, y_part=y_part, yp_part=yp_part, p_part=p_part, s_part=s_part)
 
     return x_part, xp_part, y_part, yp_part, p_part, s_part, part_hit, part_abs
+
+
+
+
 #         #... preparation (coll_k2 line 176 - 258)
 #         if (part_abs_local[this_part]) != 0):
 #             continue

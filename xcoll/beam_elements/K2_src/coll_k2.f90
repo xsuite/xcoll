@@ -28,6 +28,7 @@ module coll_k2
   real(kind=fPrec), save :: xpsd
   real(kind=fPrec), save :: zpsd
   real(kind=fPrec), save :: psd
+  real(kind=fPrec), save :: cgen(200)
 
   ! RB DM 2014 added variables for FLUKA output
   real(kind=fPrec), save :: xInt,xpInt,yInt,ypInt,sInt
@@ -638,7 +639,6 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
     s = (zlm-rlen)+s
     call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
     p = p-m_dpodx*s
-
     dpop = (p-p0)/p0
     return
   end if
@@ -665,7 +665,6 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   ! longitudinal position (s), reduce momentum (output as dpop)
   ! and return.
   ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
-
   inter    = k2coll_ichoix(j_cprob)
   nabs     = inter
   nabs_tmp = nabs
