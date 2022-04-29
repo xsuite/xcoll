@@ -47,7 +47,7 @@ Without compilation, K2 Collimators can be installed in a `Line`, but not tracke
 
 ## Authors
 
-* [Frederik Van der Veken](https://github.com/freddieknets)
+* [Frederik Van der Veken](https://github.com/freddieknets) (frederik@cern.ch)
 * [Despina Demetriadou](https://github.com/ddemetriadou)
 * [Andrey Abramov](https://github.com/anabramo)
 * [Giovanni Iadarola](https://github.com/giadarol)
