@@ -28,7 +28,9 @@ print("Setting openings...")
 coll_manager.set_openings()
 
 print("Dumping json's...")
-for name in coll_manager.collimator_names:
+with open(Path(path, 'collimators'), 'r') as fid:
+    collimators = [ x.strip() for x in fid.readlines()]
+for name in collimators:
     file = Path(Path.cwd(),'Collimators',name + '.json')
     with open(file, 'w') as fid:
         json.dump(line[name].to_dict(), fid, cls=xo.JEncoder)
@@ -53,7 +55,9 @@ print("Setting openings...")
 coll_manager.set_openings()
 
 print("Dumping json's...")
-for name in coll_manager.collimator_names:
+with open(Path(path, 'collimators'), 'r') as fid:
+    collimators = [ x.strip() for x in fid.readlines()]
+for name in collimators:
     file = Path(Path.cwd(),'Collimators',name + '.json')
     with open(file, 'w') as fid:
         json.dump(line[name].to_dict(), fid, cls=xo.JEncoder)
