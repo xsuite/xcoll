@@ -191,8 +191,10 @@ class CollimatorManager:
         self.colldb.align_to = align
 
 
-    def build_tracker(self):
-        return self.line.build_tracker(_buffer=self._buffer)
+    def build_tracker(self, **kwargs):
+        kwargs.setdefault('_buffer', self._buffer)
+        self.tracker = self.line.build_tracker(**kwargs)
+        return self.tracker
 
     
     def _compute_optics(self, recompute=False):
@@ -293,5 +295,9 @@ class CollimatorManager:
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
+
+
+    def track(self, *args, **kwargs):
+        self.tracker.track(*args, **kwargs)
 
 

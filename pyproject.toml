@@ -4,7 +4,7 @@ version = "0.0.1"
 description = "Xsuite collimation package"
 repository = "https://github.com/xsuite/xcoll"
 authors = [
-           "Frederik F. Van der Veken <frederik.van.der.veken@cern.ch>",
+           "Frederik F. Van der Veken <frederik@cern.ch>",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
            "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
@@ -24,6 +24,11 @@ xtrack = "^0.11.4"
 pytest = "^5.2"
 jupyter = "^1.0.0"
 ipykernel = "^6.13.0"
+
+[pytest]
+testpaths = tests
+python_files = test_*.py
+python_functions = test_*
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
