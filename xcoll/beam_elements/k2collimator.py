@@ -102,6 +102,8 @@ class K2Collimator:
         if self.material is None:
             raise ValueError("Cannot track if material is not set!")
         
+        # TODO: when in C, drifting should call routine from drift element
+        #       such that can be exact etc
         if not self.is_active:
             # Drift full length
             L = self.length
@@ -127,13 +129,28 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
+
+            # =================================================================== #
+            # ===============================  K2  ============================== #
+            # =================================================================== #
+            #  Even though K2 has info on the length of the collimator, and even  #
+            #  uses that info, it is still a thin element in the original code.   #
+            #  Hence, our thick tracking will always be equivalent to:            #
+            #    - drift first half length                                        #
+            #    - scatter                                                        #
+            #    - drift second half length                                       #
+            # =================================================================== #
+
             # Go to collimator reference system (subtract closed orbit)
-            x_part = particles.x[:npart] - self.dx
+            # For standard K2, the CO and gap should be taken in the centre
+            x_part  = particles.x[:npart] - self.dx
             xp_part = (particles.px[:npart] - self.dpx) * particles.rpp[:npart]
-            y_part = particles.y[:npart] - self.dy
+            y_part  = particles.y[:npart] - self.dy
             yp_part = (particles.py[:npart] - self.dpy) * particles.rpp[:npart]
-            s_part = 0 * x_part
-            p_part = particles.energy[:npart] / 1e9 # Energy (not momentum) in GeV
+            s_part  = 0 * x_part
+            e_part  = particles.energy[:npart].copy() / 1e9 # Energy in GeV
+            rpp_in  = particles.rpp[:npart].copy()
+            rvv_in  = particles.rvv[:npart].copy()
 
             # Initialise arrays for FORTRAN call
             part_hit = np.zeros(len(x_part), dtype=np.int32)
@@ -144,9 +161,6 @@ class K2Collimator:
             nhit_stage = np.zeros(len(x_part), dtype=np.int32)
             nabs_type = np.zeros(len(x_part), dtype=np.int32)
             linside = np.zeros(len(x_part), dtype=np.int32)
-
-            # `linside` is an array of logicals in fortran. Beware of the fortran converion:
-            # True <=> -1 (https://stackoverflow.com/questions/39454349/numerical-equivalent-of-true-is-1)
 
             if self.jaw_F_L != self.jaw_B_L or self.jaw_F_R != self.jaw_B_R:
                 raise NotImplementedError
@@ -160,7 +174,7 @@ class K2Collimator:
                       y_particles=y_part,
                       yp_particles=yp_part,
                       s_particles=s_part,
-                      p_particles=p_part,              # confusing: this is ENERGY not momentum
+                      p_particles=e_part,              # confusing: this is ENERGY not momentum
                       part_hit=part_hit,
                       part_abs=part_abs,
                       part_impact=part_impact,         # impact parameter
@@ -182,59 +196,114 @@ class K2Collimator:
                       )
 
             # Masks of hit and survived particles
-            mask_lost = part_abs > 0
-            mask_hit = part_hit > 0
-            mask_not_hit = ~mask_hit
-            mask_survived_hit = mask_hit & (~mask_lost)
+            lost = part_abs > 0
+            hit = part_hit > 0
+            not_hit = ~hit
+            not_lost = ~lost
+            survived_hit = hit & (~lost)
+            
+#             print(lost[:40])
+#             print(hit[:40])
+#             print(survived_hit[:40])
+#             print(part_impact[:40])
+#             print(part_indiv[:40])
+#             print(part_linteract[:40])  #  This is how much of the collimator it traversed -- correct? Or only what was left?
+#             print(nabs_type[:40])
 
-            self.mask_lost = mask_lost
-            self.mask_hit = mask_hit
-
-            state_out = particles.state[:npart].copy()
-            state_out[mask_lost] = -333
-            particles.state[:npart] = state_out
-
-            # Update particle energy
-            ptau_out = particles.ptau[:npart].copy()
+            # Update energy    ---------------------------------------------------
+            # Only particles that hit the jaw and survived need to be updated
+            ptau_out = particles.ptau[:npart]
             e0 = particles.energy0[:npart]
             beta0 = particles.beta0[:npart]
-            ptau_out[mask_survived_hit] = (
-                    p_part[mask_survived_hit] * 1e9 - e0[mask_survived_hit]
+            ptau_out[survived_hit] = (
+                    e_part[survived_hit] * 1e9 - e0[survived_hit]
                 ) / (
-                    e0[mask_survived_hit] * beta0[mask_survived_hit]
+                    e0[survived_hit] * beta0[survived_hit]
                 )
             particles.ptau[:npart] = ptau_out
 
-            # Update transversal coordinates (moving back from collimator frame)
-            x_part_out = particles.x[:npart].copy()
-            x_part_out[~mask_lost] = x_part[~mask_lost] + self.dx
-            particles.x[:npart] = x_part_out
+#             # Sanity check: non-hit particles get no angle correction:
+#             print(np.allclose(rvv_in[not_hit], particles.rvv[not_hit], atol=1e-15, rtol=0))
+#             print(np.allclose(rpp_in[not_hit], particles.rpp[not_hit], atol=1e-15, rtol=0))
 
-            y_part_out = particles.y[:npart].copy()
-            y_part_out[~mask_lost] = y_part[~mask_lost] + self.dy
-            particles.y[:npart] = y_part_out
+            # Update momenta    --------------------------------------------------
+            # Absorbed particles get coordinates set to the entrance of collimator
+            px_out = particles.px[:npart].copy()
+            py_out = particles.py[:npart].copy()
+            # Non-hit particles are just drifting
+            px_out[not_hit] = xp_part[not_hit]/particles.rpp[not_hit]
+            py_out[not_hit] = yp_part[not_hit]/particles.rpp[not_hit]
+            # Hit and survived particles need correcting:
+            # Note that K2 did not update angles yet with new energy!
+            # So need to do xp' = xp * p_in / p_out
+            # (see collimation.f90 line 1709 and mod_particles.f90 line 210)
+            # and then transform them to px = xp' * p_out/p0 = xp * p_in/p0 = xp / rpp_in
+            px_out[survived_hit] = xp_part[survived_hit]/rpp_in[survived_hit]
+            py_out[survived_hit] = yp_part[survived_hit]/rpp_in[survived_hit]
 
-            rpp_out = particles.rpp[:npart]
-            px_out = particles.px[:npart]
-            px_out[mask_survived_hit] = xp_part[mask_survived_hit]/rpp_out[mask_survived_hit]
+            # Update and correct transversal coordinates    ----------------------
+            # Absorbed particles get coordinates set to the entrance of collimator
+            x_out = particles.x[:npart].copy()
+            y_out = particles.y[:npart].copy()
+            # Non-hit particles are just drifting
+            x_out[not_hit] = x_part[not_hit]
+            y_out[not_hit] = y_part[not_hit]
+            # Hit and survived particles need correcting:
+            # In SixTrack K2, particles are first backtracked to the centre of the collimator,
+            # then the angles are updated, then they are shifted back to the end of the collimator
+            # 1) Backtrack to centre with non-updated angle: x += - xp L/2
+            # 2) Track to end with updated angle: x += xp' L/2
+            # Total: x += xp * L/2 * ( p_in / p_out - 1 )
+            #        x += xp * L/2 * ( rpp / rpp_in - 1 )
+            correction = self.active_length/2*(particles.rpp/rpp_in-1)
+            x_out[survived_hit] = x_part[survived_hit] + xp_part[survived_hit]*correction[survived_hit]
+            y_out[survived_hit] = y_part[survived_hit] + yp_part[survived_hit]*correction[survived_hit]
+            
+            # Move back from collimator frame
+            x_out += self.dx
+            y_out += self.dy
+            px_out += self.dpx
+            py_out += self.dpy
+            particles.x[:npart] = x_out
+            particles.y[:npart] = y_out
             particles.px[:npart] = px_out
-
-            py_out = particles.py[:npart]
-            py_out[mask_survived_hit] = yp_part[mask_survived_hit]/rpp_out[mask_survived_hit]
             particles.py[:npart] = py_out
 
-            # Update longitudinal coordinate zeta
-            # Note: they have NOT been drifted yet in K2, so we have to do that manually
+            # Update longitudinal coordinate zeta    -----------------------------
+            # Absorbed particles get coordinates set to the entrance of collimator
             rvv_out = particles.rvv[:npart]
             zeta_out = particles.zeta[:npart]
-            zeta_out[mask_not_hit] += self.length*(
-                                rvv_out[mask_not_hit] - (1 + ( xp_part[mask_not_hit]**2 + yp_part[mask_not_hit]**2)/2 ) 
+            # Non-hit particles are just drifting (not yet drifted in K2, so do here)
+            zeta_out[not_hit] += self.active_length*(
+                                rvv_out[not_hit] - (1 + ( xp_part[not_hit]**2 + yp_part[not_hit]**2)/2 ) 
                             )
+            # Hit and survived particles need correcting:
+            # First we drift half the length with the old angles, then half the length
+            # with the new angles
+            zeta_out[survived_hit] += self.active_length/2*( rvv_in[survived_hit] - 
+                                        (1 + (xp_part[survived_hit]**2 + yp_part[survived_hit]**2)/2) 
+                                      )
+            correction = particles.rpp[survived_hit]/rpp_in[survived_hit]
+            zeta_out[survived_hit] += self.active_length/2*( rvv_out[survived_hit] -
+                                        (1 + (xp_part[survived_hit]**2 + yp_part[survived_hit]**2)/2*correction**2)
+                                      )
+            # update
             particles.zeta[:npart] = zeta_out
 
+            # Update s    --------------------------------------------------------
             s_out = particles.s[:npart]
-            s_out[mask_not_hit] += self.length
+            s_out[not_lost] += self.length
             particles.s[:npart] = s_out
+
+            # Update state    ----------------------------------------------------
+            state_out = particles.state[:npart].copy()
+            state_out[lost] = -333
+            particles.state[:npart] = state_out
+
+            # TODO update records
+
+            # =================================================================== #
+
 
             # Drift inactive back
             L = self.inactive_back
