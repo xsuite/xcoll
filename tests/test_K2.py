@@ -30,7 +30,6 @@ angles_b1 = {
 lengths_b1 = {
   1.565: 'tdisa.a4l2.b1',
   0.600: 'tcld.a11r2.b1',
-  3.000: 'tcdqa.a4r6.b1',
 }
 
 offsets_b1 = {
