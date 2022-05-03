@@ -10,7 +10,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
-  use coll_materials ! for collmat_init
+  !use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none
@@ -19,7 +19,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   integer, intent(in)          :: random_generator_seed
 
   ! Set default values for collimator materials
-  call collmat_init
+ ! call collmat_init
 
   rnd_seed = random_generator_seed
 
@@ -51,7 +51,6 @@ subroutine pyk2_run(num_particles, &
                     nhit_stage, &
                     nabs_type, &
                     linside, &
-                    matid, &
                     run_exenergy, &
                     run_anuc, &
                     run_zatom, &
@@ -89,7 +88,7 @@ subroutine pyk2_run(num_particles, &
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
-  use coll_materials ! for collmat_init
+  ! use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none
@@ -116,7 +115,6 @@ subroutine pyk2_run(num_particles, &
   integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
   logical(kind=4)  , intent(inout) :: linside(num_particles)
 
-  integer(kind=4)  , intent(in)    :: matid
   real(kind=8)     , intent(inout) :: run_exenergy
   real(kind=8)     , intent(in) :: run_anuc
   real(kind=8)     , intent(in) :: run_zatom
@@ -184,7 +182,7 @@ subroutine pyk2_run(num_particles, &
   end do
 
   call k2coll_collimate( &
-     matid, run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
+     run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
      run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
      run_dlyi, run_eUm, run_ai, run_collnt, is_crystal, &
      c_length, c_rotation, c_aperture, c_offset, c_tilt, &

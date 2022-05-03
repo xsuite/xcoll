@@ -68,7 +68,6 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
-    matID = pyk2.materials[k2collimator.material]['ID']
     exenergy = pyk2.materials[k2collimator.material]['exenergy']
     anuc = pyk2.materials[k2collimator.material]['anuc']
     zatom = pyk2.materials[k2collimator.material]['zatom']
@@ -105,7 +104,6 @@ def track_k2(k2collimator, particles, npart, reset_seed):
                 nhit_stage=nhit_stage,
                 nabs_type=nabs_type,
                 linside=linside,
-                matid=matID,
                 run_exenergy=exenergy,
                 run_anuc=anuc,
                 run_zatom=zatom,

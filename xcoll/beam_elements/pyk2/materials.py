@@ -7,7 +7,6 @@
 # radl  : radiation length / m
 # bnref : nuclear interaction length / g cm-2 
 # csref : 
-# cprob :
 # dlri  : Radiation length(m), updated from PDG for Si
 # dlyi  : Nuclear length(m)
 # ai    : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from
@@ -19,9 +18,8 @@
 materials = {
 # Berylium
   'BE': {
-        'ID': 1,
         'exenergy': 63.7e-9,
-        'anuc': 9.01,         
+        'anuc': 9.01,
         'zatom': 4.00,
         'rho': 1.848,
         'emr': 0.22,
@@ -39,7 +37,6 @@ materials = {
 
 # Aluminium
   'AL': {
-        'ID': 2,
         'exenergy': 166.0e-9,
         'anuc': 26.98,
         'zatom': 13.00,
@@ -59,7 +56,6 @@ materials = {
 
 # Copper
   'CU': {
-        'ID': 3,
         'exenergy': 322.0e-9,
         'anuc': 63.55,
         'zatom': 29.00,
@@ -79,7 +75,6 @@ materials = {
 
 # Tungsten
   'W': {
-        'ID': 4,
         'exenergy': 727.0e-9,
         'anuc': 183.85,
         'zatom': 74.00,
@@ -99,7 +94,6 @@ materials = {
 
 # Lead
   'PB': {
-        'ID': 5,
         'exenergy': 823.0e-9,
         'anuc': 207.19,
         'zatom': 82.00,
@@ -119,7 +113,6 @@ materials = {
 
 # Carbon
   'C': {
-        'ID': 6,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -139,7 +132,6 @@ materials = {
 
 # Carbon2
   'C2': {
-        'ID': 7,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -159,7 +151,6 @@ materials = {
 
 # Silicon
   'Si': {
-        'ID': 8,
         'exenergy': 173.0e-9,
         'anuc': 28.08,
         'zatom': 14.00,
@@ -179,7 +170,6 @@ materials = {
 
 # Germanium
   'Ge': {
-        'ID': 9,
         'exenergy': 350.0e-9,
         'anuc': 72.63,
         'zatom': 32.00,
@@ -195,11 +185,10 @@ materials = {
         'ai': 1.0e-7,
         'eUm': 40.0,
         'collnt': 0.1632
-        },    
+        },
 
-# 
+# Molybdium Graphite
   'MoGR': {
-        'ID': 10,
         'exenergy': 87.1e-9,
         'anuc': 13.53,
         'zatom': 6.65,
@@ -215,11 +204,10 @@ materials = {
         'ai': 0,
         'eUm': 0,
         'collnt': 0
-        },   
+        },
 
-# 
+# Copper Diamond
   'CuCD': {
-        'ID': 11,
         'exenergy': 152.9e-9,
         'anuc': 25.24,
         'zatom': 11.90,
@@ -235,11 +223,10 @@ materials = {
         'ai': 0,
         'eUm': 0,
         'collnt': 0
-        },  
+        },
 
-# Molybdium Graphite
+# Molybdium
   'Mo': {
-        'ID': 12,
         'exenergy': 424.0e-9,
         'anuc': 95.96,
         'zatom': 42.00,
@@ -255,11 +242,10 @@ materials = {
         'ai': 0,
         'eUm': 0,
         'collnt': 0
-        },     
+        },
 
-# 
+#
   'Glid': {
-        'ID': 13,
         'exenergy': 320.8e-9,
         'anuc': 63.15,
         'zatom': 28.80,
@@ -275,11 +261,10 @@ materials = {
         'ai': 0,
         'eUm': 0,
         'collnt': 0
-        },   
+        },
 
-# 
+# InerMet
   'Iner': {
-        'ID': 14,
         'exenergy': 682.2e-9,
         'anuc': 166.70,
         'zatom': 67.70,
@@ -295,5 +280,5 @@ materials = {
         'ai': 0,
         'eUm': 0,
         'collnt': 0
-        }, 
+        },
 }
