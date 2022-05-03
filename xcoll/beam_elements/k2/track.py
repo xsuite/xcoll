@@ -24,8 +24,12 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     return zeta
 
 
-def track_k2(k2collimator, particles, npart, reset_seed):
-    import xcoll.beam_elements.pyk2 as pyk2
+def track(k2collimator, particles, npart, reset_seed):
+    try:
+        import xcoll.beam_elements.pyk2 as pyk2
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    from .materials import materials
 
     length = k2collimator.active_length
 
@@ -68,7 +72,7 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
-    matID = pyk2.materials[k2collimator.material]['ID']
+    matID = materials[k2collimator.material]['ID']
 
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
