@@ -56,9 +56,9 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
     part_abs       = np.zeros(len(x_part), dtype=np.int32)
-    part_impact    = np.zeros(len(x_part), dtype=np.float)
-    part_indiv     = np.zeros(len(x_part), dtype=np.float)
-    part_linteract = np.zeros(len(x_part), dtype=np.float)
+    part_impact    = np.zeros(len(x_part), dtype=float)
+    part_indiv     = np.zeros(len(x_part), dtype=float)
+    part_linteract = np.zeros(len(x_part), dtype=float)
     nhit_stage     = np.zeros(len(x_part), dtype=np.int32)
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
