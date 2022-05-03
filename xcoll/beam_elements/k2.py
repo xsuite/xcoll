@@ -69,44 +69,70 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
     matID = pyk2.materials[k2collimator.material]['ID']
+    exenergy = pyk2.materials[k2collimator.material]['exenergy']
     anuc = pyk2.materials[k2collimator.material]['anuc']
     zatom = pyk2.materials[k2collimator.material]['zatom']
+    emr = pyk2.materials[k2collimator.material]['emr']
     rho = pyk2.materials[k2collimator.material]['rho']
     hcut = pyk2.materials[k2collimator.material]['hcut']
     bnref = pyk2.materials[k2collimator.material]['bnref']
+    csref0 = pyk2.materials[k2collimator.material]['csref'][0]
+    csref1 = pyk2.materials[k2collimator.material]['csref'][1]
+    csref4 = pyk2.materials[k2collimator.material]['csref'][4]
+    csref5 = pyk2.materials[k2collimator.material]['csref'][5]
+    radl = pyk2.materials[k2collimator.material]['radl']
+    dlri = pyk2.materials[k2collimator.material]['dlri']
+    dlyi = pyk2.materials[k2collimator.material]['dlyi']
+    eUm = pyk2.materials[k2collimator.material]['eUm']
+    ai = pyk2.materials[k2collimator.material]['ai']
+    collnt = pyk2.materials[k2collimator.material]['collnt']
+    
+    
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
 
     pyk2.pyk2_run(x_particles=x_part,
-              xp_particles=xp_part,
-              y_particles=y_part,
-              yp_particles=yp_part,
-              s_particles=s_part,
-              p_particles=e_part,              # confusing: this is ENERGY not momentum
-              part_hit=part_hit,
-              part_abs=part_abs,
-              part_impact=part_impact,         # impact parameter
-              part_indiv=part_indiv,           # particle divergence
-              part_linteract=part_linteract,   # interaction length
-              nhit_stage=nhit_stage,
-              nabs_type=nabs_type,
-              linside=linside,
-              matid=matID,
-              run_anuc=anuc,
-              run_zatom=zatom,
-              run_rho=rho,
-              run_hcut=hcut,
-              run_bnref=bnref,
-              is_crystal=False,
-              c_length=length,
-              c_rotation=k2collimator.angle/180.*np.pi,
-              c_aperture=opening,
-              c_offset=offset,
-              c_tilt=k2collimator.tilt,
-              c_enom=particles.energy0[0]/1e6, # Reference energy
-              onesided=k2collimator.onesided,
-              random_generator_seed=reset_seed, # skips rng re-initlization
-              )
+                xp_particles=xp_part,
+                y_particles=y_part,
+                yp_particles=yp_part,
+                s_particles=s_part,
+                p_particles=e_part,              # confusing: this is ENERGY not momentum
+                part_hit=part_hit,
+                part_abs=part_abs,
+                part_impact=part_impact,         # impact parameter
+                part_indiv=part_indiv,           # particle divergence
+                part_linteract=part_linteract,   # interaction length
+                nhit_stage=nhit_stage,
+                nabs_type=nabs_type,
+                linside=linside,
+                matid=matID,
+                run_exenergy=exenergy,
+                run_anuc=anuc,
+                run_zatom=zatom,
+                run_emr=emr,
+                run_rho=rho,
+                run_hcut=hcut,
+                run_bnref=bnref,
+                run_csref0=csref0,
+                run_csref1=csref1,
+                run_csref4=csref4,
+                run_csref5=csref5,
+                run_radl=radl,
+                run_dlri=dlri,
+                run_dlyi=dlyi,
+                run_eum=eUm,
+                run_ai=ai,
+                run_collnt=collnt,
+                is_crystal=False,
+                c_length=length,
+                c_rotation=k2collimator.angle/180.*np.pi,
+                c_aperture=opening,
+                c_offset=offset,
+                c_tilt=k2collimator.tilt,
+                c_enom=particles.energy0[0]/1e6, # Reference energy
+                onesided=k2collimator.onesided,
+                random_generator_seed=reset_seed, # skips rng re-initlization
+                )
 
     # Masks of hit and survived particles
     lost = part_abs > 0
