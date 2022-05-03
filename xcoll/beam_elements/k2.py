@@ -69,11 +69,11 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
     matID = pyk2.materials[k2collimator.material]['ID']
-    anuc = pyk2.materials[self.material]['anuc']
-    zatom = pyk2.materials[self.material]['zatom']
-    rho = pyk2.materials[self.material]['rho']
-    hcut = pyk2.materials[self.material]['hcut']
-    bnref = pyk2.materials[self.material]['bnref']
+    anuc = pyk2.materials[k2collimator.material]['anuc']
+    zatom = pyk2.materials[k2collimator.material]['zatom']
+    rho = pyk2.materials[k2collimator.material]['rho']
+    hcut = pyk2.materials[k2collimator.material]['hcut']
+    bnref = pyk2.materials[k2collimator.material]['bnref']
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
 
