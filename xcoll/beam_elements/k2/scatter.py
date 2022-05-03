@@ -1,4 +1,4 @@
-def scatter(*, x_particles, xp_particles, y_particles, yp_particles, s_particles, p_particles, part_hit,
+def scatter(*, npart, x_particles, xp_particles, y_particles, yp_particles, s_particles, p_particles, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nhit_stage, nabs_type,
                 linside, run_exenergy, run_anuc, run_zatom, run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,
                 run_radl, run_dlri, run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s,
@@ -8,7 +8,11 @@ def scatter(*, x_particles, xp_particles, y_particles, yp_particles, s_particles
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    pyk2.pyk2_run(x_particles=x_particles,
+
+    pyk2.initialise_random(num_particles=npart, random_generator_seed=random_generator_seed)
+
+    pyk2.pyk2_run(num_particles=npart,
+                x_particles=x_particles,
                 xp_particles=xp_particles,
                 y_particles=y_particles,
                 yp_particles=yp_particles,
@@ -53,5 +57,4 @@ def scatter(*, x_particles, xp_particles, y_particles, yp_particles, s_particles
                 c_tilt=c_tilt,
                 c_enom=c_enom,
                 onesided=onesided,
-                random_generator_seed=random_generator_seed,
                 )

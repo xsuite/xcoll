@@ -2,14 +2,12 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   use floatPrecision
   use numerical_constants
   ! use crcoall    NODIG ??
-  use parpro ,           only : npart
   use mod_alloc ,        only : alloc      ! to allocate partID etc
-  use mod_common ,       only : iexact, napx, unit208, aa0
+  use mod_common ,       only : aa0
   use mod_common_main ,  only : partID, parentID, pairID, naa
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
-  use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
-                                coll_expandArrays
+  use coll_common ,      only : rnd_seed, coll_expandArrays
   !use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
@@ -34,6 +32,45 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   call alloc(parentID, n_alloc, 0, "parentID")
   call alloc(pairID, 2, n_alloc, 0, "pairID")
 
+end subroutine
+
+
+
+
+
+subroutine initialise_random(num_particles, random_generator_seed)
+  use parpro ,           only : npart
+  use mod_common ,       only : napx, unit208, aa0
+  use mod_common_main ,  only : partID, parentID, pairID, naa
+  use mod_ranlux ,       only : rluxgo     ! for ranlux init
+
+  integer, intent(in)          :: num_particles
+  integer, intent(in)          :: random_generator_seed
+  integer j
+  ! ####################
+  ! ## initialisation ##
+  ! ####################
+  !character(len=:),    allocatable   :: numpart
+  !numpart="20000"
+  !read(numpart,*) napx
+  ! npart=num_particles
+
+  if(random_generator_seed .ge. 0) then
+        call rluxgo(3, random_generator_seed, 0, 0)
+  end if
+
+  npart = num_particles
+
+  do j=1,npart
+    naa(j) = aa0
+    partID(j)   = j
+    parentID(j) = j
+    pairID(1,j) = (j+1)/2    ! The pairID of particle j
+    pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
+  end do
+  
+  napx=npart  ! this decreases after absorptions!
+  unit208=109
 end subroutine
 
 subroutine pyk2_run(num_particles, &
@@ -81,19 +118,10 @@ subroutine pyk2_run(num_particles, &
                     c_offset, &
                     c_tilt, &
                     c_enom, &
-                    onesided, &
-                    random_generator_seed)
-
-  use floatPrecision
-  use numerical_constants
+                    onesided)
 
   use parpro ,           only : npart
-  use mod_alloc ,        only : alloc      ! to allocate partID etc
-  use mod_common ,       only : iexact, napx, unit208, aa0
-  use mod_common_main ,  only : partID, parentID, pairID, naa
-  use mod_ranlux ,       only : rluxgo     ! for ranlux init
-
-  use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
+  use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
   ! //use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
@@ -155,34 +183,9 @@ subroutine pyk2_run(num_particles, &
   real(kind=8) , intent(inout) :: c_tilt(2)
   real(kind=8) ,    intent(in) :: c_enom
   logical(kind=4) ,  intent(in):: onesided
-  integer, intent(in)          :: random_generator_seed
 
   integer j
 
-
-
-  ! ####################
-  ! ## initialisation ##
-  ! ####################
-  !character(len=:),    allocatable   :: numpart
-  !numpart="20000"
-  !read(numpart,*) napx
-  npart=num_particles
-
-  if(random_generator_seed .ge. 0) then
-        call rluxgo(3, random_generator_seed, 0, 0)
-  end if
-
-  do j=1,npart
-    naa(j) = aa0
-    partID(j)   = j
-    parentID(j) = j
-    pairID(1,j) = (j+1)/2    ! The pairID of particle j
-    pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
-  end do
-  
-  napx=npart  ! this decreases after absorptions!
-  unit208=109
 
   do j=1,npart
     rcx(j) = x_particles(j)

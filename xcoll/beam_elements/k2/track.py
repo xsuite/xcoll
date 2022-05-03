@@ -94,7 +94,8 @@ def track(k2collimator, particles, npart, reset_seed):
     #  raise ValueError()
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
-    scatter(x_particles=x_part,
+    scatter(npart=npart,
+            x_particles=x_part,
             xp_particles=xp_part,
             y_particles=y_part,
             yp_particles=yp_part,
