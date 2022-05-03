@@ -24,11 +24,13 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     return zeta
 
 
-def track_k2(k2collimator, particles, npart, reset_seed):
+def track(k2collimator, particles, npart, reset_seed):
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    from .scatter_init import calculate_scattering
+    from .materials import materials
 
     length = k2collimator.active_length
 
@@ -72,27 +74,29 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
-    exenergy = pyk2.materials[k2collimator.material]['exenergy']
-    anuc = pyk2.materials[k2collimator.material]['anuc']
-    zatom = pyk2.materials[k2collimator.material]['zatom']
-    emr = pyk2.materials[k2collimator.material]['emr']
-    rho = pyk2.materials[k2collimator.material]['rho']
-    hcut = pyk2.materials[k2collimator.material]['hcut']
-    bnref = pyk2.materials[k2collimator.material]['bnref']
-    csref0 = pyk2.materials[k2collimator.material]['csref'][0]
-    csref1 = pyk2.materials[k2collimator.material]['csref'][1]
-    csref4 = pyk2.materials[k2collimator.material]['csref'][4]
-    csref5 = pyk2.materials[k2collimator.material]['csref'][5]
-    radl = pyk2.materials[k2collimator.material]['radl']
-    dlri = pyk2.materials[k2collimator.material]['dlri']
-    dlyi = pyk2.materials[k2collimator.material]['dlyi']
-    eUm = pyk2.materials[k2collimator.material]['eUm']
-    ai = pyk2.materials[k2collimator.material]['ai']
-    collnt = pyk2.materials[k2collimator.material]['collnt']
+    # Get material properties
+    exenergy = materials[k2collimator.material]['exenergy']
+    anuc     = materials[k2collimator.material]['anuc']
+    zatom    = materials[k2collimator.material]['zatom']
+    emr      = materials[k2collimator.material]['emr']
+    rho      = materials[k2collimator.material]['rho']
+    hcut     = materials[k2collimator.material]['hcut']
+    bnref    = materials[k2collimator.material]['bnref']
+    csref0   = materials[k2collimator.material]['csref'][0]
+    csref1   = materials[k2collimator.material]['csref'][1]
+    csref4   = materials[k2collimator.material]['csref'][4]
+    csref5   = materials[k2collimator.material]['csref'][5]
+    radl     = materials[k2collimator.material]['radl']
+    dlri     = materials[k2collimator.material]['dlri']
+    dlyi     = materials[k2collimator.material]['dlyi']
+    eUm      = materials[k2collimator.material]['eUm']
+    ai       = materials[k2collimator.material]['ai']
+    collnt   = materials[k2collimator.material]['collnt']
 
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+
     pyk2.pyk2_run(x_particles=x_part,
                 xp_particles=xp_part,
                 y_particles=y_part,
@@ -235,59 +239,3 @@ def track_k2(k2collimator, particles, npart, reset_seed):
 #             1:Nuclear-Inelastic,2:Nuclear-Elastic,3:pp-Elastic, 4:Single-Diffractive,5:Coulomb
 
 
-def calculate_scattering(p0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref):
-    
-    # Output parameters
-    cprob = np.array([0,0,0,0,0,0], dtype=np.float64)
-    csect = np.array([0,0,0,0,0,0], dtype=np.float64) # Cross section
-    
-    # Constants 
-    pptref = 0.04
-    freeco = 1.618
-    pmap  = 938.271998
-    fnavo  = 6.02214076e23
-
-    ecmsq = (2*(pmap*1.0e-3)) * p0
-    xln15s = np.log(0.15*ecmsq)
-    # Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-    pptot = 0.041084 - 0.0023302*np.log(ecmsq) + 0.00031514*np.log(ecmsq)**2
-    # Claudia used the fit from TOTEM for ppel (in barn)
-    ppel = (11.7-1.59*np.log(ecmsq)+0.134*np.log(ecmsq)**2)/1e3
-    # Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
-    ppsd = (4.3+0.3*np.log(ecmsq))/1e3
-
-    # Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
-    bpp = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
-
-    # freep: number of nucleons involved in single scattering
-    freep = freeco * anuc**(1/3)
-
-    # compute pp and pn el+single diff contributions to cross-section
-    # (both added : quasi-elastic or qel later)
-    csect[3] = freep * ppel
-    csect[4] = freep * ppsd
-
-    # correct TOT-CSec for energy dependence of qel
-    # TOT CS is here without a Coulomb contribution
-    csect[0] = csref0 + freep * (pptot - pptref)
-    bn = (bnref * csect[0]) / csref0
-
-    # also correct inel-CS
-    csect[1] = (csref1 * csect[0]) / csref0
-
-    # Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-    csect[2] = ((csect[0] - csect[1]) - csect[3]) - csect[4]
-    csect[5] = csref5
-
-    # Now add Coulomb
-    csect[0] = csect[0] + csect[5]
-
-    # Interaction length in meter
-    xintl = (1.0e-2*anuc)/(((fnavo * rho)*csect[0])*1e-24)
-
-    # Filling CProb with cumulated normalised Cross-sections
-    cprob[5] = 1
-    for i in range(1,5,1):
-        cprob[i] = cprob[i-1] + csect[i]/csect[0]
-
-    return cprob, xintl, bn, ecmsq, xln15s, bpp

@@ -128,8 +128,8 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            from .k2 import track_k2
-            track_k2(self, particles, npart, reset_seed)
+            from .k2 import track
+            track(self, particles, npart, reset_seed)
 
             # Drift inactive back
             L = self.inactive_back
