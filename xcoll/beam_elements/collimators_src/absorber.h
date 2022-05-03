@@ -51,7 +51,7 @@ void rotation_for_collimator(LocalParticle* part,
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
     // Collimator active and length
-    int8_t const is_active = BlackAbsorberData_get_active(el);
+    int8_t const is_active = BlackAbsorberData_get__active(el);
     double const inactive_front = BlackAbsorberData_get_inactive_front(el);
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
