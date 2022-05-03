@@ -191,8 +191,10 @@ class CollimatorManager:
         self.colldb.align_to = align
 
 
-    def build_tracker(self):
-        return self.line.build_tracker(_buffer=self._buffer)
+    def build_tracker(self, **kwargs):
+        kwargs.setdefault('_buffer', self._buffer)
+        self.tracker = self.line.build_tracker(**kwargs)
+        return self.tracker
 
     
     def _compute_optics(self, recompute=False):
@@ -208,7 +210,7 @@ class CollimatorManager:
 
         pos = self.colldb._optics_positions_to_calculate
         if recompute or pos != {}:
-            tracker = line.tracker
+            tracker = self.tracker
             # Calculate optics without collimators
             old_val = {}
             for name in self.collimator_names:
@@ -271,7 +273,7 @@ class CollimatorManager:
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                line[name].is_active = colldb.active[name]
+                line[name].is_active = colldb.is_active[name]
             elif isinstance(line[name], K2Collimator):
                 line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
@@ -289,9 +291,13 @@ class CollimatorManager:
                     line[name].onesided = True
                 elif colldb.onesided[name] == 'right':
                     raise ValueError(f"Right-sided collimators not implemented for K2Collimator {name}!")
-                line[name].is_active = colldb.active[name]
+                line[name].is_active = colldb.is_active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
+
+
+    def track(self, *args, **kwargs):
+        self.tracker.track(*args, **kwargs)
 
 

@@ -51,7 +51,7 @@ void rotation_for_collimator(LocalParticle* part,
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
     // Collimator active and length
-    int8_t const is_active = BlackAbsorberData_get_active(el);
+    int8_t const is_active = BlackAbsorberData_get__active(el);
     double const inactive_front = BlackAbsorberData_get_inactive_front(el);
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
@@ -69,11 +69,6 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const dy = BlackAbsorberData_get_dy(el);
     // Impact table
     int8_t  const record_impacts = BlackAbsorberData_get__record_impacts(el);
-    if (record_impacts){
-        int64_t const capacity = BlackAbsorberData_get_impacts__capacity(el);
-        assert(record_index < capacity - 1);
-    }
-
 
     //start_per_particle_block (part0->part)
 
@@ -90,13 +85,13 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         } else {
 
             int64_t is_alive;
+           
+            // Drift inactive length before jaw
+            drift_for_collimator(part, inactive_front);
 
             // Store transversal coordinates for potential backtracking later
             double x_F = LocalParticle_get_x(part);
             double y_F = LocalParticle_get_y(part);
-            
-            // Drift inactive length before jaw
-            drift_for_collimator(part, inactive_front);
 
             // Check if hit on the collimator jaw at the front
             is_alive = is_within_aperture(part, jaw_F_L, jaw_F_R, jaw_D, jaw_U);
@@ -136,8 +131,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     } else {
                         length = 0;
                     }
-
-                    drift_for_collimator(part, length);
+                    drift_for_collimator(part, -length);
 
                 }
             }
@@ -155,30 +149,33 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     record_index = record_index + 1;
                     BlackAbsorberData_set_impacts__row_id(el, record_index);
 
-                    double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
-                    double m = LocalParticle_get_mass0(part) * mass_ratio;
-                    double q = LocalParticle_get_charge_ratio(part) * LocalParticle_get_q0(part);
-                    double energy = (LocalParticle_get_ptau(part) + 1) * mass_ratio * LocalParticle_get_p0c(part);
+                    int64_t const capacity = BlackAbsorberData_get_impacts__capacity(el);
+                    if (record_index < capacity){
+                        double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
+                        double m = LocalParticle_get_mass0(part) * mass_ratio;
+                        double q = LocalParticle_get_charge_ratio(part) * LocalParticle_get_q0(part);
+                        double energy = (LocalParticle_get_ptau(part) + 1) * mass_ratio * LocalParticle_get_p0c(part);
 
-                    BlackAbsorberData_set_impacts_at_element(el, record_index, LocalParticle_get_at_element(part));
-                    BlackAbsorberData_set_impacts_s(el, record_index, LocalParticle_get_s(part));
-                    // TODO: turn is zero; does that make sense?
-                    BlackAbsorberData_set_impacts_turn(el, record_index, LocalParticle_get_at_turn(part));
-//                     BlackAbsorberData_set_impacts_interaction_type(el, record_index, 0);
+                        BlackAbsorberData_set_impacts_at_element(el, record_index, LocalParticle_get_at_element(part));
+                        BlackAbsorberData_set_impacts_s(el, record_index, LocalParticle_get_s(part));
+                        // TODO: turn is zero; does that make sense?
+                        BlackAbsorberData_set_impacts_turn(el, record_index, LocalParticle_get_at_turn(part));
+    //                     BlackAbsorberData_set_impacts_interaction_type(el, record_index, 0);
 
-                    BlackAbsorberData_set_impacts_id_parent(el, record_index, LocalParticle_get_particle_id(part));
-                    BlackAbsorberData_set_impacts_id_child(el, record_index, -1);
-                    BlackAbsorberData_set_impacts_x_parent(el, record_index, LocalParticle_get_x(part));
-                    BlackAbsorberData_set_impacts_px_parent(el, record_index, LocalParticle_get_px(part));
-                    BlackAbsorberData_set_impacts_y_parent(el, record_index, LocalParticle_get_y(part));
-                    BlackAbsorberData_set_impacts_py_parent(el, record_index, LocalParticle_get_py(part));
-                    BlackAbsorberData_set_impacts_zeta_parent(el, record_index, LocalParticle_get_zeta(part));
-                    BlackAbsorberData_set_impacts_delta_parent(el, record_index, LocalParticle_get_delta(part));
-                    BlackAbsorberData_set_impacts_energy_parent(el, record_index, energy);
-                    BlackAbsorberData_set_impacts_m_parent(el, record_index, m);
-                    BlackAbsorberData_set_impacts_q_parent(el, record_index, q);
-//                     BlackAbsorberData_set_impacts_a_parent(el, record_index, LocalParticle_get_a(part));
-//                     BlackAbsorberData_set_impacts_pdgid_parent(el, record_index, LocalParticle_get_pdgid(part));
+                        BlackAbsorberData_set_impacts_id_parent(el, record_index, LocalParticle_get_particle_id(part));
+                        BlackAbsorberData_set_impacts_id_child(el, record_index, -1);
+                        BlackAbsorberData_set_impacts_x_parent(el, record_index, LocalParticle_get_x(part));
+                        BlackAbsorberData_set_impacts_px_parent(el, record_index, LocalParticle_get_px(part));
+                        BlackAbsorberData_set_impacts_y_parent(el, record_index, LocalParticle_get_y(part));
+                        BlackAbsorberData_set_impacts_py_parent(el, record_index, LocalParticle_get_py(part));
+                        BlackAbsorberData_set_impacts_zeta_parent(el, record_index, LocalParticle_get_zeta(part));
+                        BlackAbsorberData_set_impacts_delta_parent(el, record_index, LocalParticle_get_delta(part));
+                        BlackAbsorberData_set_impacts_energy_parent(el, record_index, energy);
+                        BlackAbsorberData_set_impacts_m_parent(el, record_index, m);
+                        BlackAbsorberData_set_impacts_q_parent(el, record_index, q);
+    //                     BlackAbsorberData_set_impacts_a_parent(el, record_index, LocalParticle_get_a(part));
+    //                     BlackAbsorberData_set_impacts_pdgid_parent(el, record_index, LocalParticle_get_pdgid(part));
+                    }
                 }
             }
 
