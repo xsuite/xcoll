@@ -25,12 +25,9 @@ def drift_zeta(zeta, rvv, xp, yp, length):
 
 
 def track(k2collimator, particles, npart, reset_seed):
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
     from .scatter_init import calculate_scattering
     from .materials import materials
+    from .scatter import scatter
 
     length = k2collimator.active_length
 
@@ -97,53 +94,53 @@ def track(k2collimator, particles, npart, reset_seed):
     #  raise ValueError()
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
-    pyk2.pyk2_run(x_particles=x_part,
-                xp_particles=xp_part,
-                y_particles=y_part,
-                yp_particles=yp_part,
-                s_particles=s_part,
-                p_particles=e_part,              # confusing: this is ENERGY not momentum
-                part_hit=part_hit,
-                part_abs=part_abs,
-                part_impact=part_impact,         # impact parameter
-                part_indiv=part_indiv,           # particle divergence
-                part_linteract=part_linteract,   # interaction length
-                nhit_stage=nhit_stage,
-                nabs_type=nabs_type,
-                linside=linside,
-                run_exenergy=exenergy,
-                run_anuc=anuc,
-                run_zatom=zatom,
-                run_emr=emr,
-                run_rho=rho,
-                run_hcut=hcut,
-                run_bnref=bnref,
-                run_csref0=csref0,
-                run_csref1=csref1,
-                run_csref4=csref4,
-                run_csref5=csref5,
-                run_radl=radl,
-                run_dlri=dlri,
-                run_dlyi=dlyi,
-                run_eum=eUm,
-                run_ai=ai,
-                run_collnt=collnt,
-                run_cprob=cprob,
-                run_xintl=xintl,
-                run_bn=bn,
-                run_ecmsq=ecmsq,
-                run_xln15s=xln15s,
-                run_bpp=bpp,
-                is_crystal=False,
-                c_length=length,
-                c_rotation=k2collimator.angle/180.*np.pi,
-                c_aperture=opening,
-                c_offset=offset,
-                c_tilt=k2collimator.tilt,
-                c_enom=e0_ref, # Reference energy in MeV
-                onesided=k2collimator.onesided,
-                random_generator_seed=reset_seed, # skips rng re-initlization
-                )
+    scatter(x_particles=x_part,
+            xp_particles=xp_part,
+            y_particles=y_part,
+            yp_particles=yp_part,
+            s_particles=s_part,
+            p_particles=e_part,              # confusing: this is ENERGY not momentum
+            part_hit=part_hit,
+            part_abs=part_abs,
+            part_impact=part_impact,         # impact parameter
+            part_indiv=part_indiv,           # particle divergence
+            part_linteract=part_linteract,   # interaction length
+            nhit_stage=nhit_stage,
+            nabs_type=nabs_type,
+            linside=linside,
+            run_exenergy=exenergy,
+            run_anuc=anuc,
+            run_zatom=zatom,
+            run_emr=emr,
+            run_rho=rho,
+            run_hcut=hcut,
+            run_bnref=bnref,
+            run_csref0=csref0,
+            run_csref1=csref1,
+            run_csref4=csref4,
+            run_csref5=csref5,
+            run_radl=radl,
+            run_dlri=dlri,
+            run_dlyi=dlyi,
+            run_eum=eUm,
+            run_ai=ai,
+            run_collnt=collnt,
+            run_cprob=cprob,
+            run_xintl=xintl,
+            run_bn=bn,
+            run_ecmsq=ecmsq,
+            run_xln15s=xln15s,
+            run_bpp=bpp,
+            is_crystal=False,
+            c_length=length,
+            c_rotation=k2collimator.angle/180.*np.pi,
+            c_aperture=opening,
+            c_offset=offset,
+            c_tilt=k2collimator.tilt,
+            c_enom=e0_ref, # Reference energy in MeV
+            onesided=k2collimator.onesided,
+            random_generator_seed=reset_seed, # skips rng re-initlization
+            )
 
     # Masks of hit and survived particles
     lost = part_abs > 0
