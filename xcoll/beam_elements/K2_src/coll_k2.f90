@@ -30,8 +30,8 @@ module coll_k2
   ! real(kind=fPrec), private, save :: psd
 
   ! RB DM 2014 added variables for FLUKA output
-  real(kind=fPrec), private, save :: xInt,xpInt,yInt,ypInt,sInt
-  real(kind=fPrec), private, save :: x,xp,z,zp,dpop
+  !real(kind=fPrec), private, save :: xInt,xpInt,yInt,ypInt,sInt
+  !real(kind=fPrec), private, save :: x,xp,z,zp,dpop
 
 contains
 
@@ -129,6 +129,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec) cRot,sRot,cRRot,sRRot
   real(kind=fPrec) xIn,xpIn,yIn,ypIn,xOut,xpOut,yOut,ypOut,sImp,sOut
   real(kind=fPrec) x_in0,xp_in0,coll_zlm,coll_p0
+  real(kind=fPrec) xInt,xpInt,yInt,ypInt,sInt
+  real(kind=fPrec) x,xp,z,zp,dpop
 
   ! ien0,ien1: particle energy entering/leaving the collimator
   ! energy in MeV
@@ -343,7 +345,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         s_impact = sp
         nhit = nhit + 1
         call k2coll_jaw(s,nabs,partID(j),coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,&
-                          coll_cprob,coll_xintl,coll_bn,cgen,coll_ecmsq,coll_xln15s,coll_bpp,coll_zlm,coll_p0)
+                          coll_cprob,coll_xintl,coll_bn,cgen,coll_ecmsq,coll_xln15s,coll_bpp,coll_zlm,coll_p0,&
+                          x,xp,z,zp,dpop,xInt,xpInt,yInt,ypInt,sInt)
         nabs_type(j) = nabs
         lhit(j)  = 1
 
@@ -586,7 +589,8 @@ end subroutine k2coll_collimate
 !!           Is that justified???
 !<
 subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, &
-                    j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp, j_zlm, j_p0)
+                    j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp, j_zlm, &
+                    j_p0, j_x, j_xp, j_z, j_zp, j_dpop, j_xInt, j_xpInt, j_yInt, j_ypInt, j_sInt)
 
   use mod_ranlux, only : coll_rand
   use coll_common
@@ -611,11 +615,23 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   real(kind=fPrec), intent(in)    :: j_zlm
   real(kind=fPrec), intent(in)    :: j_p0
 
+  real(kind=fPrec), intent(inout) :: j_xInt
+  real(kind=fPrec), intent(inout) :: j_xpInt
+  real(kind=fPrec), intent(inout) :: j_yInt
+  real(kind=fPrec), intent(inout) :: j_ypInt
+  real(kind=fPrec), intent(inout) :: j_sInt
+
+  real(kind=fPrec), intent(inout) :: j_x
+  real(kind=fPrec), intent(inout) :: j_xp
+  real(kind=fPrec), intent(inout) :: j_z
+  real(kind=fPrec), intent(inout) :: j_zp
+  real(kind=fPrec), intent(inout) :: j_dpop
+
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,j_zlm1,xpsd,zpsd,psd
   integer inter,nabs_tmp
 
   ! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-  p    = j_p0*(one+dpop)
+  p    = j_p0*(one+j_dpop)
   nabs = 0
   nabs_tmp = nabs
 
@@ -628,8 +644,8 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
 10 continue
   j_zlm1     = (-one*j_xintl)*log_mb(coll_rand())
   nabs_tmp = 0  ! type of interaction reset before following scattering process
-  xpBef    = xp ! save angles and momentum before scattering
-  zpBef    = zp
+  xpBef    = j_xp ! save angles and momentum before scattering
+  zpBef    = j_zp
   pBef     = p
 
   ! If the monte-carlo interaction length is longer than the
@@ -638,29 +654,29 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   ! LAST STEP IN ITERATION LOOP
   if(j_zlm1 > rlen) then
     j_zlm1 = rlen
-    call k2coll_mcs(s,j_radl,j_zlm1,j_p0)
+    call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
     s = (j_zlm-rlen)+s
     call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
     p = p-m_dpodx*s
 
-    dpop = (p-j_p0)/j_p0
+    j_dpop = (p-j_p0)/j_p0
     return
   end if
 
   ! Otherwise do multi-coulomb scattering.
   ! REGULAR STEP IN ITERATION LOOP
-  call k2coll_mcs(s,j_radl,j_zlm1,j_p0)
+  call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
 
   ! Check if particle is outside of collimator (X.LT.0) after
   ! MCS. If yes, calculate output longitudinal position (s),
   ! reduce momentum (output as dpop) and return.
   ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
-  if(x <= zero) then
+  if(j_x <= zero) then
     s = (j_zlm-rlen)+s
 
     call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
-    dpop = (p-j_p0)/j_p0
+    j_dpop = (p-j_p0)/j_p0
 
     return
   end if
@@ -675,11 +691,11 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   nabs_tmp = nabs
 
   ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
-  xInt  = x
-  xpInt = xp
-  yInt  = z
-  ypInt = zp
-  sInt  = (j_zlm-rlen)+j_zlm1
+  j_xInt  = j_x
+  j_xpInt = j_xp
+  j_yInt  = j_z
+  j_ypInt = j_zp
+  j_sInt  = (j_zlm-rlen)+j_zlm1
 
   if(inter == 1) then
     s = (j_zlm-rlen)+j_zlm1
@@ -687,7 +703,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
     call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
     p = p-m_dpodx*s
 
-    dpop = (p-j_p0)/j_p0
+    j_dpop = (p-j_p0)/j_p0
 
     return
   end if
@@ -709,8 +725,8 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
   ! angle change is proportional to SQRT(t) and 1/p, as expected.
   call k2coll_tetat(t,p,dxp,dzp)
   ! Apply angle changes
-  xp = xp+dxp
-  zp = zp+dzp
+  j_xp = j_xp+dxp
+  j_zp = j_zp+dzp
 
   ! Treat single-diffractive scattering.
   if(inter == 4) then
@@ -722,7 +738,7 @@ subroutine k2coll_jaw(s, nabs, ipart, j_exenergy, j_anuc, j_zatom, j_rho, j_radl
     psd  = p1
 
     ! Add this code to get the momentum transfer also in the calling routine
-    dpop = (p-j_p0)/j_p0
+    j_dpop = (p-j_p0)/j_p0
   end if
 
   ! Calculate the remaining interaction length and close the iteration loop.
@@ -741,7 +757,7 @@ end subroutine k2coll_jaw
 !!
 !!     collimator: x>0 and y<zlm1
 !<
-subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0)
+subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop)
 
   !use coll_materials
 
@@ -749,6 +765,12 @@ subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0)
   real(kind=fPrec), intent(in)    :: mc_radl
   real(kind=fPrec), intent(in)    :: mc_zlm1
   real(kind=fPrec), intent(in)    :: mc_p0
+
+  real(kind=fPrec), intent(inout) :: mc_x
+  real(kind=fPrec), intent(inout) :: mc_xp
+  real(kind=fPrec), intent(inout) :: mc_z
+  real(kind=fPrec), intent(inout) :: mc_zp
+  real(kind=fPrec), intent(inout) :: mc_dpop
 
   real(kind=fPrec) theta,rlen0,rlen,ae,be,rad_len
 
@@ -758,26 +780,26 @@ subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0)
 
 
   ! radl_mat = mc_radl
-  theta    = 13.6e-3_fPrec/(mc_p0*(one+dpop)) ! dpop   = (p - p0)/p0
+  theta    = 13.6e-3_fPrec/(mc_p0*(one+mc_dpop)) ! dpop   = (p - p0)/p0
   rad_len  = mc_radl
 
 
-  x     = (x/theta)/mc_radl
-  xp    = xp/theta
-  z     = (z/theta)/mc_radl
-  zp    = zp/theta
+  mc_x     = (mc_x/theta)/mc_radl
+  mc_xp    = mc_xp/theta
+  mc_z     = (mc_z/theta)/mc_radl
+  mc_zp    = mc_zp/theta
   rlen0 = mc_zlm1/mc_radl
   rlen  = rlen0
 
 10 continue
-  ae = bn0*x
-  be = bn0*xp
+  ae = bn0*mc_x
+  be = bn0*mc_xp
 
   call k2coll_soln3(ae,be,dh,rlen,s)
   if(s < h) s = h
 
-  call k2coll_scamcs(x,xp,s)
-  if(x <= zero) then
+  call k2coll_scamcs(mc_x,mc_xp,s)
+  if(mc_x <= zero) then
     s = (rlen0-rlen)+s
     goto 20
   end if
@@ -789,12 +811,12 @@ subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0)
   goto 10
 
 20 continue
-  call k2coll_scamcs(z,zp,s)
+  call k2coll_scamcs(mc_z,mc_zp,s)
   s  = s*mc_radl
-  x  = (x*theta)*mc_radl
-  xp = xp*theta
-  z  = (z*theta)*mc_radl
-  zp = zp*theta
+  mc_x  = (mc_x*theta)*mc_radl
+  mc_xp = mc_xp*theta
+  mc_z  = (mc_z*theta)*mc_radl
+  mc_zp = mc_zp*theta
 
 end subroutine k2coll_mcs
 
