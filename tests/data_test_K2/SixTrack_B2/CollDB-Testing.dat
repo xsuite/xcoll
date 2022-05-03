@@ -63,7 +63,7 @@ tcdqa.b4l6.b2                                         2.5         MoGR      3.00
 tcsp.a4l6.b2                                          2.5         Ge        1.000      0.0         0.
 tctph.4r5.b2                                          1.0         MoGR      1.000      0.0         0.
 tctpv.4r5.b2                                          1.8         MoGR      1.000     90.0         0.
-tcl.4l5.b2                                            2.0         CUCD      1.000      0.0         0.
+tcl.4l5.b2                                            2.0         CuCD      1.000      0.0         0.
 tcl.5l5.b2                                            4.0         Mo        1.000      0.0         0.
 tcl.6l5.b2                                           18.0         Glid      1.000      0.0         0.
 tcp.6r3.b2                                            TCP3        MoGR      0.600      0.0         0.

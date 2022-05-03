@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.constants import c as clight
 import xpart as xp
 
+mp = 938.272088e6
 
 # Note: SixTrack initial.dat is with respect to the closed orbit when using TRAC,
 #       but in the lab frame when using SIMU
@@ -38,7 +39,7 @@ def particles_to_sixtrack_initial(part, filename):
         
         
         
-def sixtrack_initial_to_particles(sixtrack_input_file, p0c, *, mass0=xp.PROTON_MASS_EV, q0=1):
+def sixtrack_initial_to_particles(sixtrack_input_file, p0c, *, mass0=mp, q0=1):
     data = pd.read_csv(sixtrack_input_file, delim_whitespace=True, header=None,
                    names=['pid','parent','weight','x','y','z','xp','yp','zp', 'A', 'Z', 'm', 'p', 'dt'])
 
@@ -58,7 +59,7 @@ def sixtrack_initial_to_particles(sixtrack_input_file, p0c, *, mass0=xp.PROTON_M
     )
 
 
-def sixtrack_dump2_to_particles(sixtrack_dump_file, p0c, *, mass0=xp.PROTON_MASS_EV):
+def sixtrack_dump2_to_particles(sixtrack_dump_file, p0c, *, mass0=mp):
     header = pd.read_csv(sixtrack_dump_file, delim_whitespace=True, header=None, nrows=2).loc[1][1:11].values
     data = pd.read_csv(sixtrack_dump_file, delim_whitespace=True, header=None, skiprows=2, names=header)
     data['state'] = 1
@@ -74,8 +75,8 @@ def sixtrack_dump2_to_particles(sixtrack_dump_file, p0c, *, mass0=xp.PROTON_MASS
 
     x = np.array(data['x[mm]'])*1e-3
     y = np.array(data['y[mm]'])*1e-3
-    px = np.array(data['xp[mrad]']*1e-3*delta_plus_1)
-    py = np.array(data['yp[mrad]']*1e-3*delta_plus_1)
+    px = np.array(data['xp[mrad]']*1e-3*e_over_e0)
+    py = np.array(data['yp[mrad]']*1e-3*e_over_e0)
     # zeta = beta / beta0 * sigma = (pc/e) / (p0c/e0) * sigma = (pc/p0c) / (e/e0) * sigma
     sigma_to_zeta = np.sqrt(1 + m0_over_p0**2 - m0_over_p0**2 / e_over_e0**2)
     zeta = np.array(sigma_to_zeta * data['sigma[mm]']*1e-3)

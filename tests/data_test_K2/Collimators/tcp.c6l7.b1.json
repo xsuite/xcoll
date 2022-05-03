@@ -1,0 +1,6 @@
+{"__class__": "K2Collimator", "n_alloc": 50000, "random_generator_seed": 6574654,
+    "active_length": 0.59999999999999998, "inactive_front": 0, "inactive_back": 0, "angle": 0.0000000000000000,
+    "jaw_F_L": 1.3043224415774414E-003, "jaw_F_R": -1.3043224415774414E-003, "jaw_B_L": 1.3043224415774414E-003, "jaw_B_R": -1.3043224415774414E-003, 
+    "dx": -3.8698396635413992E-004, "dpx": 6.0950648017955219E-007, "dy": 2.4921572918658303E-004, "dpy": 8.4420401529006253E-006,
+    "offset": 0.0000000000000000, "tilt": [0.0, 0.0], "is_active": 1, "record_impacts": 0,
+    "onesided": 0, "material": "MoGR"}

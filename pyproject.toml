@@ -12,23 +12,18 @@ authors = [
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11" # The upper bound is required by scipy
-numpy = "^1.22.3"
-pandas = "^1.4.2"
-scipy = "^1.8.0"
-xobjects = "^0.1.12"
-xdeps = "^0.0.5"
-xpart = "^0.6.1"
-xtrack = "^0.11.4"
+numpy = ">=1.22.3"
+pandas = ">=1.4.2"
+scipy = ">=1.8.0"
+xobjects = ">=0.1.12"
+xdeps = ">=0.0.5"
+xpart = ">=0.6.1"
+xtrack = ">=0.12.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 jupyter = "^1.0.0"
 ipykernel = "^6.13.0"
-
-[pytest]
-testpaths = tests
-python_files = test_*.py
-python_functions = test_*
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
