@@ -1,0 +1,172 @@
+######################################
+#########      Families      #########
+######################################
+#
+# Momentum cleaning
+NSIG_FAM TCP3                 5.0 PRIMARY
+NSIG_FAM TCSG3                5.0 SECONDARY
+NSIG_FAM TCLA3                5.0 TERTIARY
+# Betatron cleaning
+NSIG_FAM TCP7                 5.0 PRIMARY
+NSIG_FAM TCSG7                5.0 SECONDARY
+NSIG_FAM TCLA7                5.0 TERTIARY
+# Injection protection
+NSIG_FAM TCLI                 5.0 TERTIARY
+NSIG_FAM TDI                  5.0 TERTIARY
+# Dump protection
+NSIG_FAM TCDQ                 5.0 TERTIARY
+NSIG_FAM TCSTCDQ              5.0 SECONDARY
+# Physics background minimalisation
+NSIG_FAM TCT                  5.0 TERTIARY
+# Physics debris
+NSIG_FAM TCL                  5.0 TERTIARY
+# Physics debris in ALICE (only for ions)
+NSIG_FAM TCLD                 5.0 TERTIARY
+#
+######################################
+#########    Collimators     #########
+######################################
+#
+# name                                                opening/fam mat.      length[m]  angle[deg]  offset[m]
+tcl.4l1.b2                                            2.0         BE        1.000      0.0         0.
+tcl.5l1.b2                                            4.0         AL        1.000      0.0         0.
+tcl.6l1.b2                                           18.0         CU        1.000      0.0         0.
+tctph.4r8.b2                                          TCT         W         1.000      0.0         0.
+tctpv.4r8.b2                                          TCT         MoGR      1.000     90.0         0.
+tdisa.a4r8.b2                                         TDI         MoGR      1.565     90.0         0.
+tdisb.a4r8.b2                                         TDI         MoGR      1.565     90.0         0.
+tdisc.a4r8.b2                                         TDI         MoGR      1.565     90.0         0.
+tclia.4l8                                             4.0         MoGR      1.000     90.0         0.
+tclib.6l8.b2                                          6.0         MoGR      1.000     90.0         0.
+tcp.d6r7.b2                                           TCP7        MoGR      0.600     90.0         0.
+tcp.c6r7.b2                                           TCP7        MoGR      0.600      0.0         0.
+tcp.b6r7.b2                                           TCP7        MoGR      0.600    127.5         0.
+tcsg.a6r7.b2                                          TCSG7       MoGR      1.000    141.1         0.
+tcsg.b5r7.b2                                          TCSG7       MoGR      1.000    143.5         0.
+tcsg.a5r7.b2                                          TCSG7       MoGR      1.000     40.7         0.
+tcsg.d4r7.b2                                          TCSG7       MoGR      1.000     90.0         0.
+tcspm.b4r7.b2                                         2.5         PB        1.000      0.0         0.
+tcsg.a4r7.b2                                          TCSG7       MoGR      1.000    134.6         0.
+tcsg.a4l7.b2                                          TCSG7       MoGR      1.000     46.3         0.
+tcsg.b5l7.b2                                          TCSG7       MoGR      1.000    141.5         0.
+tcsg.d5l7.b2                                          TCSG7       MoGR      1.000     51.4         0.
+tcspm.e5l7.b2                                         TCSG7       MoGR      1.000    130.5         0.
+tcspm.6l7.b2                                          3.5         MoGR      1.000      0.5         0.
+tcla.a6l7.b2                                          TCLA7       MoGR      1.000     90.0         0.
+tcla.b6l7.b2                                          2.5         C         1.000      0.0         0.
+tcla.c6l7.b2                                          TCLA7       MoGR      1.000     90.0         0.
+tcla.d6l7.b2                                          TCLA7       C2        1.000      0.0         0.
+tcla.a7l7.b2                                          TCLA7       Si        1.000      0.0         0.
+tcdqa.a4l6.b2                                         2.5         MoGR      3.000      0.0         0.
+tcdqa.c4l6.b2                                         2.5         MoGR      3.000      0.0         0.
+tcdqa.b4l6.b2                                         2.5         MoGR      3.000      0.0         0.
+tcsp.a4l6.b2                                          2.5         Ge        1.000      0.0         0.
+tctph.4r5.b2                                          1.0         MoGR      1.000      0.0         0.
+tctpv.4r5.b2                                          1.8         MoGR      1.000     90.0         0.
+tcl.4l5.b2                                            2.0         CuCD      1.000      0.0         0.
+tcl.5l5.b2                                            4.0         Mo        1.000      0.0         0.
+tcl.6l5.b2                                           18.0         Glid      1.000      0.0         0.
+tcp.6r3.b2                                            TCP3        MoGR      0.600      0.0         0.
+tcsg.5r3.b2                                           7.0         Iner      1.000      0.0         0.
+tcsg.4l3.b2                                          10.0         MoGR      1.000      0.0         0.00297
+tcsg.a5l3.b2                                          8.0         MoGR      1.000    170.7         0.
+tcsg.b5l3.b2                                          7.0         MoGR      1.000     10.8         -0.000346
+tcla.a5l3.b2                                          4.0         MoGR      1.000     90.0         0.
+tcla.b5l3.b2                                          TCLA3       MoGR      1.000      0.0         0.
+tcla.6l3.b2                                           TCLA3       MoGR      1.000      0.0         0.
+tcla.7l3.b2                                           TCLA3       MoGR      1.000      0.0         0.
+tctph.4r2.b2                                          TCT         MoGR      1.000      0.0         0.
+tctpv.4r2.b2                                          TCT         MoGR      1.000     90.0         0.
+tcld.a11l2.b2                                         6.0         MoGR      0.600      0.0         0.
+tctph.4r1.b2                                          1.0         MoGR      1.000      0.0         0.
+tctpv.4r1.b2                                          1.8         MoGR      1.000     90.0         0.
+#
+# Old collimators still present in the machine but not in normal use (first one is the prototype):
+tcspm.d4r7.b2                                         TCSG7       MoGR      1.000     90.0         0.
+tcsg.b4r7.b2                                          TCSG7       MoGR      1.000      0.0         0.
+tcsg.e5l7.b2                                          TCSG7       MoGR      1.000    130.4         0.
+tcsg.6l7.b2                                           3.0         MoGR      1.000      0.5         0.
+#
+#
+#
+######################################
+### Additional Collimator Settings ###
+######################################
+SETTINGS
+ONESIDED tcdqa.a4l6.b2                                    1
+ONESIDED tcdqa.c4l6.b2                                    1
+ONESIDED tcdqa.b4l6.b2                                    1
+
+
+######################################
+########### Testing Setup ############
+######################################
+
+# Materials:
+#   BE:    tcl.4l1.b2
+#   AL:    tcl.5l1.b2
+#   CU:    tcl.6l1.b2
+#   W:     tctph.4r8.b2
+#   PB:    tcspm.b4r7.b2
+#   C:     tcla.b6l7.b2
+#   C2:    tcla.d6l7.b2
+#   Si:    tcla.a7l7.b2
+#   Ge:    tcsp.a4l6.b2
+#   MoGR:  tctph.4r5.b2
+#   CUCD:  tcl.4l5.b2
+#   Mo:    tcl.5l5.b2
+#   Glid:  tcl.6l5.b2
+#   Iner:  tcsg.5r3.b2
+
+# Different angle (material is MoGR):
+#   90.0:  tctpv.4r8.b2
+#   90.0:  tclia.4l8
+#   90.0:  tclib.6l8.b2
+#   141.1: tcsg.a6r7.b2
+#   143.5: tcsg.b5r7.b2
+#   40.7:  tcsg.a5r7.b2
+#   90.0:  tcsg.d4r7.b2
+#   134.6: tcsg.a4r7.b2
+#   46.3:  tcsg.a4l7.b2
+#   141.5: tcsg.b5l7.b2
+#   51.4:  tcsg.d5l7.b2
+#   130.5: tcspm.e5l7.b2
+#   0.5:   tcspm.6l7.b2
+#   90.0:  tcla.a6l7.b2
+#   90.0:  tcla.c6l7.b2
+#   90.0:  tctpv.4r5.b2
+#   170.7: tcsg.a5l3.b2
+#   10.8:  tcsg.b5l3.b2
+#   90.0:  tcla.a5l3.b2
+#   90.0:  tctpv.4r2.b2
+#   90.0:  tctpv.4r1.b2
+#   90.0:  tcspm.d4r7.b2
+#   130.4: tcsg.e5l7.b2
+#   0.5:   tcsg.6l7.b2
+
+# Different length (and angle can vary too, material is MoGR))
+#   1.565:   90.0:  tdisa.a4r8.b2
+#   1.565:   90.0:  tdisb.a4r8.b2
+#   1.565:   90.0:  tdisc.a4r8.b2
+#   3.000:    0.0:  tcdqa.a4l6.b2
+#   3.000:    0.0:  tcdqa.c4l6.b2
+#   3.000:    0.0:  tcdqa.b4l6.b2
+#   0.600:    0.0:  tcld.a11l2.b2
+
+# Offset (and angle):
+#   0.00297:     0.0:  tcsg.4l3.b2
+#   -0.000346:  10.8:  tcsg.b5l3.b2
+
+# Tilt (and length, and angle) - all primaries:
+#   10.000004285756797:    0.600:   90.0:  tcp.d6r7.b2
+#   10.000004285756797:    0.600:    0.0:  tcp.c6r7.b2
+#   10.000004285756797:    0.600:  127.5:  tcp.b6r7.b2
+#   10.000004285756797:    0.600:    0.0:  tcp.6r3.b2
+
+# Spare (for other tests later):
+#   tcla.b5l3.b2
+#   tcla.6l3.b2
+#   tcla.7l3.b2
+#   tctph.4r2.b2
+#   tctph.4r1.b2
+#   tcsg.b4r7.b2

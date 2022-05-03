@@ -21,7 +21,7 @@ class BlackAbsorber(xt.BeamElement):
         'dy': xo.Float64,
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
-        'active': xo.Int8,
+        '_active': xo.Int8,
         '_record_impacts': xo.Int8,
         'impacts': xo.Ref(CollimatorImpactsData)
     }
@@ -60,13 +60,13 @@ class BlackAbsorber(xt.BeamElement):
 
     @property
     def is_active(self):
-        return self.active
+        return True if self._active == 1 else False
 
     @is_active.setter
     def is_active(self, is_active):
         is_active = 1 if is_active == True else is_active
         is_active = 0 if is_active == False else is_active
-        self.active = is_active
+        self._active = is_active
         if is_active <= 0:
             self.jaw_F_L = 1
             self.jaw_F_R = -1

@@ -297,7 +297,7 @@ subroutine rluxgo(lux,ins,k1,k2)
 
   if(luxlev <= maxlev) then
     nskip = ndskip(luxlev)
-    write(lout,"(a,i0,a,i0)") "RANLUX> Luxury level set by rluxgo: ",luxlev," P = ",nskip+24
+!    write(lout,"(a,i0,a,i0)") "RANLUX> Luxury level set by rluxgo: ",luxlev," P = ",nskip+24
   else
     nskip = luxlev - 24
     write(lout,"(a,i0)") "RANLUX> P-value set by rluxgo to ",luxlev
@@ -308,10 +308,10 @@ subroutine rluxgo(lux,ins,k1,k2)
   if(ins < 0) write(lout,"(a)") "RANLUX> Illegal initialisation by RLUXGO, negative input seed"
   if(ins > 0) then
     jseed = ins
-    write(lout,"(a,3(1x,i0))") "RANLUX> Initialised by rluxgo from seeds ",jseed,k1,k2
+!    write(lout,"(a,3(1x,i0))") "RANLUX> Initialised by rluxgo from seeds ",jseed,k1,k2
   else
     jseed = jsdflt
-    write(lout,"(a)") "RANLUX> Initialised by rluxgo from default seed"
+!    write(lout,"(a)") "RANLUX> Initialised by rluxgo from default seed"
   end if
 
   inseed = jseed
