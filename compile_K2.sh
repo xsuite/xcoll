@@ -2,7 +2,7 @@
 
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 
-cd xcoll/beam_elements/K2_src
+cd xcoll/beam_elements/pyk2/K2_src
 rm *.mod *.o
 
 
@@ -59,6 +59,6 @@ f2py -m pyk2f -c pyk2.f90 \
  coll_crystal.o  \
  coll_k2.o \
 
-mv pyk2f.*.so ../pyk2
+mv pyk2f.*.so ../
 
-cd ../../..
+cd ../../../..
