@@ -17,5 +17,4 @@ git commit -m "Updated version number to v"${new_ver}"."
 git tag v${new_ver}
 git push origin --tags
 
-poetry build
-poetry publish
+poetry publish --build
