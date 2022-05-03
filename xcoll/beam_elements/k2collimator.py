@@ -15,7 +15,7 @@ class K2Engine:
         try:
             import xcoll.beam_elements.pyk2 as pyk2
         except ImportError:
-            print("Warning: Failed importing pyK2 (did you compile?)." \
+            print("Warning: Failed importing pyK2 (did you compile?). " \
                   + "K2collimators will be installed but are not trackable.")
         else:
             pyk2.pyk2_init(n_alloc=n_alloc, random_generator_seed=self.random_generator_seed)
