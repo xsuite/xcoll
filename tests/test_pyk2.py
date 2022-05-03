@@ -4,7 +4,7 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xcoll.beam_elements.pyk2 import pyk2_run, materials
+from xcoll.beam_elements.pyk2 import pyk2_run, materials, calculate_scattering
 from xcoll.general import _pkg_root
 
 path = Path(_pkg_root / ".." / "tests" / "pyk2_data")
@@ -18,6 +18,7 @@ yp_test = np.loadtxt("pyk2_data/rcyp.dump")
 s_test = np.loadtxt("pyk2_data/rcs.dump")
 p_test = np.loadtxt("pyk2_data/rcp.dump")
 
+enom = 7000 # Reference energy
 npart = len(x_test)
 # part = xp.Particles(p0c=7e12, x=x_test, y=y_test)
 # part.ptau = (p_test*1e9 - part.energy0)/(part.energy0*part.beta0)
@@ -55,6 +56,8 @@ eUm = materials['MoGR']['eUm']
 ai = materials['MoGR']['ai']
 collnt = materials['MoGR']['collnt']
 
+cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(enom,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+
 pyk2_run(num_particles=npart,
           x_particles=x_test,
           xp_particles=xp_test,
@@ -87,13 +90,19 @@ pyk2_run(num_particles=npart,
           run_eum=eUm,
           run_ai=ai,
           run_collnt=collnt,
+          run_cprob=cprob,
+          run_xintl=xintl,
+          run_bn=bn,
+          run_ecmsq=ecmsq,
+          run_xln15s=xln15s,
+          run_bpp=bpp,
           is_crystal=False,
           c_length=0.59999999999999998,
           c_rotation=0,
           c_aperture=0.0025711021962573095,
           c_offset=0,
           c_tilt=np.array([0,0], dtype=np.float64),
-          c_enom=7000000, # Reference energy
+          c_enom=enom, # Reference energy
           onesided=False,
           random_generator_seed=-1 # skips rng re-initlization
           )

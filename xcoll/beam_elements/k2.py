@@ -35,6 +35,7 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     xp_part = particles.px[:npart] * particles.rpp[:npart]
     yp_part = particles.py[:npart] * particles.rpp[:npart]
     s_part  = 0 * x_part
+    e0_ref  = particles.energy0[0] / 1e9    # Reference energy in GeV
     e_part  = particles.energy[:npart].copy() / 1e9 # Energy in GeV
     rpp_in  = particles.rpp[:npart].copy()
     rvv_in  = particles.rvv[:npart].copy()
@@ -85,11 +86,10 @@ def track_k2(k2collimator, particles, npart, reset_seed):
     eUm = pyk2.materials[k2collimator.material]['eUm']
     ai = pyk2.materials[k2collimator.material]['ai']
     collnt = pyk2.materials[k2collimator.material]['collnt']
-    
-    
+
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
-
+    cprob, xintl, bn, ecmsq, xln15s, bpp = pyk2.calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
     pyk2.pyk2_run(x_particles=x_part,
                 xp_particles=xp_part,
                 y_particles=y_part,
@@ -121,13 +121,19 @@ def track_k2(k2collimator, particles, npart, reset_seed):
                 run_eum=eUm,
                 run_ai=ai,
                 run_collnt=collnt,
+                run_cprob=cprob,
+                run_xintl=xintl,
+                run_bn=bn,
+                run_ecmsq=ecmsq,
+                run_xln15s=xln15s,
+                run_bpp=bpp,
                 is_crystal=False,
                 c_length=length,
                 c_rotation=k2collimator.angle/180.*np.pi,
                 c_aperture=opening,
                 c_offset=offset,
                 c_tilt=k2collimator.tilt,
-                c_enom=particles.energy0[0]/1e6, # Reference energy
+                c_enom=e0_ref, # Reference energy in MeV
                 onesided=k2collimator.onesided,
                 random_generator_seed=reset_seed, # skips rng re-initlization
                 )
