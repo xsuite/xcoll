@@ -27,7 +27,7 @@ class CollimatorManager:
             if _context is None:
                 _context = xo.ContextCpu()
             _buffer = _context.new_buffer()
-        elif _buffer.context != _context:
+        elif _context is not None and _buffer.context != _context:
             raise ValueError("The provided buffer and context do not match! "
                              + "Make sure the buffer is generated inside the provided context, or alternatively, "
                              + "only pass one of _buffer or _context.")
