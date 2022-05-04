@@ -119,7 +119,7 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
         colldict = json.load(fid)
     coll = xc.K2Collimator.from_dict(colldict)
     coll.track(part)
-    part.reshuffle()
+    _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
     part_ref.reshuffle()
@@ -130,8 +130,14 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
     assert np.allclose(part.py[part.state>0],    part_ref.py[part_ref.state>0], atol=atolpy, rtol=0)
     assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
-        
-        
-        
-        
-        
+
+def _reshuffle(part):
+    # part._move_to(_context=xo.ContextCpu())
+    if part.lost_particles_are_hidden:
+        part.unhide_lost_particles()
+
+    sort = np.argsort(part.particle_id)
+    with part._bypass_linked_vars():
+        for tt, nn in part._structure['per_particle_vars']:
+            vv = getattr(part, nn)
+            vv[:] = vv[sort]
