@@ -3,7 +3,7 @@ import pandas as pd
 
 from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
 from .colldb import CollDB
-from .collimator_impacts import CollimatorImpacts
+from .tables import CollimatorImpacts
 
 import xtrack as xt
 import xobjects as xo
@@ -27,25 +27,28 @@ class CollimatorManager:
             if _context is None:
                 _context = xo.ContextCpu()
             _buffer = _context.new_buffer()
+        elif _buffer.context != _context:
+            raise ValueError("The provided buffer and context do not match! "
+                             + "Make sure the buffer is generated inside the provided context, or alternatively, "
+                             + "only pass one of _buffer or _context.")
         self._buffer = _buffer
-        self._record_impacts = record_impacts
-        if record_impacts:
-            self._impacts = CollimatorImpacts(_capacity=storage_capacity, _buffer=_buffer)
-        else:
-            self._impacts = None
+        self.storage_capacity = storage_capacity
+        self.record_impacts = record_impacts
 
 
     @property
     def impacts(self):
+        interactions = {
+            -1: 'Black', 1: 'Nuclear-Inelastic', 2: 'Nuclear-Elastic', 3: 'pp-Elastic', 4: 'Single-Diffractive', 5: 'Coulomb'
+        }
         n_rows = self._impacts._row_id + 1
         df = pd.DataFrame({
-                # TODO: name instead of element ID. How to pass xo.String to absorber.h?
                 'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
                 's':                 self._impacts.s[:n_rows],
                 'turn':              self._impacts.turn[:n_rows],
-                'interaction_type':  self._impacts.interaction_type[:n_rows],
+                'interaction_type':  [ interactions[int_id] for int_id in self._impacts.interaction_type[:n_rows] ],
             })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'm', 'q'] #, 'a', 'pdgid']
+        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy']
         for particle in ['parent', 'child']:
             multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
             newdf = pd.DataFrame(index=df.index, columns=multicols)
@@ -60,8 +63,15 @@ class CollimatorManager:
     
     @record_impacts.setter
     def record_impacts(self, record_impacts):
-        # TODO: if not collimators installed:   else error
         self._record_impacts = record_impacts
+        if record_impacts:
+            self._impacts = CollimatorImpacts(_capacity=self.storage_capacity, _buffer=self._buffer)
+        else:
+            self._impacts = None
+        # Update the xo.Ref to the CollimatorImpacts for the installed collimators
+        for name in self.collimator_names:
+            if self.colldb._colldb.loc[name,'collimator_type'] is not None:
+                self.line[name].impacts = self._impacts
 
     @property
     def collimator_names(self):
@@ -122,6 +132,7 @@ class CollimatorManager:
         def install_func(thiscoll, name):
             return K2Collimator(
                     k2engine=self._k2engine,
+                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -193,6 +204,10 @@ class CollimatorManager:
 
     def build_tracker(self, **kwargs):
         kwargs.setdefault('_buffer', self._buffer)
+        if kwargs['_buffer'] != self._buffer:
+            raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+        if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
+            raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 

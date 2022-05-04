@@ -4,7 +4,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from ..collimator_impacts import CollimatorImpactsData
+from ..tables import CollimatorImpactsData, CollimatorImpacts
 
 class BlackAbsorber(xt.BeamElement):
     _xofields = {
@@ -23,35 +23,44 @@ class BlackAbsorber(xt.BeamElement):
         'sin_z': xo.Float64,
         '_active': xo.Int8,
         '_record_impacts': xo.Int8,
-        'impacts': xo.Ref(CollimatorImpactsData)
+        '_impacts': xo.Ref(CollimatorImpactsData)
     }
 
     isthick = True
     behaves_like_drift = True
+    # TODO: how to pass _impacts to from_dict()... ?
+    _skip_in_to_dict = ['_impacts', '_active', '_record_impacts']
+    _store_in_to_dict = ['angle', 'is_active']
 
-    def __init__(self, angle=0, is_active=True, impacts=None,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, jaw_U=1, jaw_D=-1,
-                 **kwargs):
-        super().__init__(**kwargs)
-        self.angle = angle
-        self.jaw_F_L = jaw_F_L
-        self.jaw_F_R = jaw_F_R
-        self.jaw_B_L = jaw_B_L
-        self.jaw_B_R = jaw_B_R
-        self.jaw_U   = jaw_U
-        self.jaw_D   = jaw_D
-        self.is_active = is_active
+    def __init__(self, angle=0, is_active=True, impacts=None, **kwargs):
+        kwargs.setdefault('jaw_F_L', 1)
+        kwargs.setdefault('jaw_F_R', -1)
+        kwargs.setdefault('jaw_B_L', 1)
+        kwargs.setdefault('jaw_B_R', -1)
+        kwargs.setdefault('jaw_U', 1)
+        kwargs.setdefault('jaw_D', -1)
+        kwargs.setdefault('inactive_front', 0)
+        kwargs.setdefault('inactive_back', 0)
+        kwargs.setdefault('dx', 0)
+        kwargs.setdefault('dy', 0)
+        anglerad = angle / 180. * np.pi
+        kwargs['cos_z'] = np.cos(anglerad)
+        kwargs['sin_z'] = np.sin(anglerad)
+        is_active = 1 if is_active == True else is_active
+        is_active = 0 if is_active == False else is_active
+        kwargs['_active'] = is_active
         if impacts is None:
-            self._record_impacts = 0
+            kwargs['_record_impacts'] = 0
         else:
-            self._record_impacts = 1
-        self.impacts = impacts
-        
+            kwargs['_record_impacts'] = 1
+        kwargs['_impacts'] = impacts
+        super().__init__(**kwargs)
+
 
     @property
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
-    
+
     @angle.setter
     def angle(self, angle):
         anglerad = angle / 180. * np.pi
@@ -76,6 +85,21 @@ class BlackAbsorber(xt.BeamElement):
     @property
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
+
+    @property
+    def impacts(self):
+        return self._impacts
+
+    @impacts.setter
+    def impacts(self, impacts):
+        if impacts is None:
+            self._record_impacts = 0
+        elif isinstance(impacts, CollimatorImpacts):
+            self._record_impacts = 1
+        else:
+            raise ValueError("The variable 'impacts' needs to be a CollimatorImpacts object!")
+        self._impacts = impacts
+
 
 BlackAbsorber.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')]

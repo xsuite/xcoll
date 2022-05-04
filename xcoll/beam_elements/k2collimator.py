@@ -33,7 +33,7 @@ class K2Collimator:
 
     def __init__(self, *, k2engine, active_length, angle, inactive_front=0, inactive_back=0,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
-                 is_active=True, record_impacts=False, material=None):
+                 is_active=True, impacts=None, material=None):
 
         self._k2engine = k2engine
         self.active_length = active_length
@@ -60,8 +60,17 @@ class K2Collimator:
         self.tilt = np.array(tilt, dtype=np.float64)
         self.is_active = is_active
         self.material = material
-        self.record_impacts = record_impacts
+        self.impacts = impacts
         self._reset_random_seed = False
+
+    @property
+    def impacts(self):
+        return self._impacts
+
+    @impacts.setter
+    def impacts(self, impacts):
+        self._record_impacts = False if impacts is None else True
+        self._impacts = impacts
 
     @property
     def k2engine(self):
