@@ -122,7 +122,7 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
-    part_ref.reshuffle()
+    _reshuffle(part_ref)
     assert np.array_equal(part.particle_id[part.state<1], part_ref.particle_id[part_ref.state<1])
     assert np.allclose(part.x[part.state>0],     part_ref.x[part_ref.state>0], atol=atolx, rtol=0)
     assert np.allclose(part.y[part.state>0],     part_ref.y[part_ref.state>0], atol=atoly, rtol=0)
