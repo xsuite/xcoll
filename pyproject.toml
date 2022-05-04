@@ -12,13 +12,13 @@ authors = [
 
 [tool.poetry.dependencies]
 python = ">=3.8" # The upper bound is required by scipy
-numpy = ">=1.22.0"
-pandas = ">=1.4.0"
-scipy = ">=1.8.0"
-xobjects = ">=0.1.12"
-xdeps = ">=0.0.5"
-xpart = ">=0.6.0"
-xtrack = ">=0.12.0"
+#numpy
+#pandas
+#scipy
+#xobjects
+#xdeps
+#xpart
+#xtrack
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

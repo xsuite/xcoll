@@ -12,7 +12,9 @@ def test_horizontal_parallel():
         print(f"Test {context.__class__}")
         jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(_context=context)
         part, x, _, _, _ = _generate_particles()
+        part._move_to(_context=context)
         coll.track(part)
+        part._move_to(_context=xo.ContextCpu())
         part.reshuffle()
         # As the angles are zero, only particles that started in front of the jaw are lost
         mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)

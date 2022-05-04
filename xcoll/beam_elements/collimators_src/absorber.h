@@ -48,6 +48,7 @@ void rotation_for_collimator(LocalParticle* part,
 
 }
 
+/*gpufun*/
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
     // Collimator active and length
