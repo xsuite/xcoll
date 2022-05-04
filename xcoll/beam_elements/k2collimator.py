@@ -67,6 +67,10 @@ class K2Collimator:
     def impacts(self):
         return self._impacts
 
+    @property
+    def record_impacts(self):
+        return self._record_impacts
+
     @impacts.setter
     def impacts(self, impacts):
         self._record_impacts = False if impacts is None else True
@@ -155,6 +159,7 @@ class K2Collimator:
             particles.reorganize()
         
     def to_dict(self):
+        # TODO how to save ref to impacts?
         thisdict = {}
         thisdict['__class__'] = 'K2Collimator'
         thisdict['n_alloc'] = self._k2engine.n_alloc
@@ -175,13 +180,13 @@ class K2Collimator:
         thisdict['offset'] = self.offset
         thisdict['tilt'] = self.tilt
         thisdict['is_active'] = 1 if self.is_active else 0
-        thisdict['record_impacts'] = 1 if self.record_impacts else 0
         thisdict['material'] = self.material
         return thisdict
 
 
     @classmethod
     def from_dict(cls, thisdict, *, engine=None):
+         # TODO how to get ref to impacts?
         if engine is None:
             print("Warning: no engine given! Creating a new one...")
             engine = K2Engine(thisdict['n_alloc'], thisdict['random_generator_seed'])
@@ -210,7 +215,6 @@ class K2Collimator:
             offset = thisdict['offset'],
             tilt = thisdict['tilt'],
             is_active = True if thisdict['is_active']==1 else False,
-            record_impacts = True if thisdict['record_impacts']==1 else False,
             material = thisdict['material']
         )
             
