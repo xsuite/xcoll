@@ -60,4 +60,4 @@ Without compilation, K2 Collimators can be installed in a `Line`, but not tracke
 
 ## License
 
-This project is licensed under the GPLv3 License - see the LICENSE.md file for details
+This project is licensed under the  Apache License 2.0 - see the LICENSE file for details
