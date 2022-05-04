@@ -1,0 +1,3 @@
+dist/** -linguist-detectable
+examples/** -linguist-detectable
+tests/** -linguist-detectable
