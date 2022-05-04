@@ -14,7 +14,8 @@ sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/" tests/test_version.py
 git reset
 git add pyproject.toml xcoll/__init__.py tests/test_version.py
 git commit -m "Updated version number to v"${new_ver}"."
+git push
 git tag v${new_ver}
-git push origin --tags
+git push origin v${new_ver}
 
-poetry publish --build
+#poetry publish --build
