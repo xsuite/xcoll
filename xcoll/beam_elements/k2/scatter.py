@@ -43,12 +43,12 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
     for i in range(npart):
 
-        x_in = x_part[i]
-        xp_in = xp_part[i]
-        y_in = y_part[i]
-        yp_in = yp_part[i]
-        s_in = s_part[i]
-        p_in = p_part[i]
+        x_in = np.array(x_part[i])
+        xp_in = np.array(xp_part[i])
+        y_in = np.array(y_part[i])
+        yp_in = np.array(yp_part[i])
+        s_in = np.array(s_part[i])
+        p_in = np.array(p_part[i])
         val_part_hit = np.array(part_hit[i])
         val_part_abs = np.array(part_abs[i])
         val_part_impact = np.array(part_impact[i])

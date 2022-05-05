@@ -24,18 +24,18 @@ module coll_common
   ! Various Variables
   integer, save :: rnd_seed   = 0
 
-  ! Collimation Particle Arrays
-  real(kind=fPrec), allocatable, save :: rcx(:)
-  real(kind=fPrec), allocatable, save :: rcxp(:)
-  real(kind=fPrec), allocatable, save :: rcy(:)
-  real(kind=fPrec), allocatable, save :: rcyp(:)
-  real(kind=fPrec), allocatable, save :: rcp(:)
-  real(kind=fPrec), allocatable, save :: rcs(:)
+  ! ! Collimation Particle Arrays
+  ! real(kind=fPrec), allocatable, save :: rcx(:)
+  ! real(kind=fPrec), allocatable, save :: rcxp(:)
+  ! real(kind=fPrec), allocatable, save :: rcy(:)
+  ! real(kind=fPrec), allocatable, save :: rcyp(:)
+  ! real(kind=fPrec), allocatable, save :: rcp(:)
+  ! real(kind=fPrec), allocatable, save :: rcs(:)
 
-  ! Process index for interaction with crystals
-  integer, allocatable, save :: cry_proc(:)
-  integer, allocatable, save :: cry_proc_prev(:)
-  integer, allocatable, save :: cry_proc_tmp(:)
+  ! ! Process index for interaction with crystals
+  ! integer, allocatable, save :: cry_proc(:)
+  ! integer, allocatable, save :: cry_proc_prev(:)
+  ! integer, allocatable, save :: cry_proc_tmp(:)
 
   ! Pencil Beam
   integer,          save :: ipencil       = 0
@@ -119,25 +119,25 @@ module coll_common
 
 contains
 
-subroutine coll_expandArrays(npart_new)
+! subroutine coll_expandArrays(npart_new)
 
-  use mod_alloc
-  use numerical_constants
+!   use mod_alloc
+!   use numerical_constants
 
-  integer, intent(in) :: npart_new
+!   integer, intent(in) :: npart_new
 
-  call alloc(rcx,  npart_new, zero, "rcx")
-  call alloc(rcxp, npart_new, zero, "rcxp")
-  call alloc(rcy,  npart_new, zero, "rcy")
-  call alloc(rcyp, npart_new, zero, "rcyp")
-  call alloc(rcp,  npart_new, zero, "rcp")
-  call alloc(rcs,  npart_new, zero, "rcs")
+!   call alloc(rcx,  npart_new, zero, "rcx")
+!   call alloc(rcxp, npart_new, zero, "rcxp")
+!   call alloc(rcy,  npart_new, zero, "rcy")
+!   call alloc(rcyp, npart_new, zero, "rcyp")
+!   call alloc(rcp,  npart_new, zero, "rcp")
+!   call alloc(rcs,  npart_new, zero, "rcs")
 
-  call alloc(cry_proc, npart_new, -1, "cry_proc")
-  call alloc(cry_proc_prev, npart_new, -1, "cry_proc_prev")
-  call alloc(cry_proc_tmp, npart_new, -1, "cry_proc_tmp")
+!   call alloc(cry_proc, npart_new, -1, "cry_proc")
+!   call alloc(cry_proc_prev, npart_new, -1, "cry_proc_prev")
+!   call alloc(cry_proc_tmp, npart_new, -1, "cry_proc_tmp")
 
-end subroutine coll_expandArrays
+! end subroutine coll_expandArrays
 
 subroutine coll_expandNColl(nColl)
 
