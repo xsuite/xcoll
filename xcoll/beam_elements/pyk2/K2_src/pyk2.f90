@@ -1,19 +1,18 @@
-subroutine pyk2_init(n_alloc, random_generator_seed)
-  use floatPrecision
-  use numerical_constants
+!subroutine pyk2_init(n_alloc, random_generator_seed)
+subroutine pyk2_init(random_generator_seed)
+  
+  !use floatPrecision
+  !use numerical_constants
   ! use crcoall    NODIG ??
-  use mod_alloc ,        only : alloc      ! to allocate partID etc
-  use mod_common ,       only : aa0
-  use mod_common_main ,  only : partID, parentID, pairID, naa
+  !use mod_alloc ,        only : alloc      !to allocate partID etc
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
-
-  use coll_common ,      only : rnd_seed, coll_expandArrays
+  use coll_common ,      only : rnd_seed !, coll_expandArrays
   !use coll_materials ! for collmat_init
-  use coll_k2        ! for scattering
+  !use coll_k2        ! for scattering
 
   implicit none
 
-  integer, intent(in)          :: n_alloc
+  ! integer, intent(in)          :: n_alloc
   integer, intent(in)          :: random_generator_seed
 
   ! Set default values for collimator materials
@@ -26,27 +25,29 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   if(rnd_seed <  0) rnd_seed = abs(rnd_seed)
   call rluxgo(3, rnd_seed, 0, 0)
 
-  call coll_expandArrays(n_alloc)
-  call alloc(naa, n_alloc, aa0, "naa")
-  call alloc(partID, n_alloc, 0, "partID")
-  call alloc(parentID, n_alloc, 0, "parentID")
-  call alloc(pairID, 2, n_alloc, 0, "pairID")
-
+  ! call coll_expandArrays(n_alloc)
 end subroutine
 
 
-
-
-
-subroutine initialise_random(num_particles, random_generator_seed)
-  use parpro ,           only : npart
-  use mod_common ,       only : napx, unit208, aa0
-  use mod_common_main ,  only : partID, parentID, pairID, naa
+subroutine initialise_random(random_generator_seed, cgen, zatom, emr, hcut)
+  ! use parpro ,           only : npart
+  ! use mod_common ,       only : napx !, aa0
+  !use mod_common_main ,  only : partID, parentID, pairID, naa
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
+  use mod_funlux
+  use coll_k2,           only : k2coll_ruth, zatom_curr, emr_curr
 
-  integer, intent(in)          :: num_particles
-  integer, intent(in)          :: random_generator_seed
-  integer j
+  implicit none
+
+  integer, intent(in)         :: random_generator_seed
+  real(kind=8), intent(inout) :: cgen(200)
+  real(kind=8), intent(in)    :: zatom
+  real(kind=8), intent(in)    :: emr
+  real(kind=8), intent(in)    :: hcut
+
+  real(kind=8), parameter     :: tlcut = 0.0009982
+  !integer j
+
   ! ####################
   ! ## initialisation ##
   ! ####################
@@ -59,35 +60,35 @@ subroutine initialise_random(num_particles, random_generator_seed)
         call rluxgo(3, random_generator_seed, 0, 0)
   end if
 
-  npart = num_particles
-
-  do j=1,npart
-    naa(j) = aa0
-    partID(j)   = j
-    parentID(j) = j
-    pairID(1,j) = (j+1)/2    ! The pairID of particle j
-    pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
-  end do
+  ! npart = num_particles
   
-  napx=npart  ! this decreases after absorptions!
-  unit208=109
+  ! napx=npart  ! this decreases after absorptions!
+
+  ! Prepare for Rutherford differential distribution
+  !mcurr = mat ! HACK> mcurr is global, and coll_zatom too which is used inside k2coll_ruth
+  zatom_curr = zatom
+  emr_curr = emr
+  call funlxp(k2coll_ruth, cgen(1), tlcut, hcut)
+
 end subroutine
 
-subroutine pyk2_run(num_particles, &
-                    x_particles, &
-                    xp_particles, &
-                    y_particles, &
-                    yp_particles, &
-                    s_particles, &
-                    p_particles, &
-                    part_hit, &
-                    part_abs, &
-                    part_impact, &
-                    part_indiv, &
-                    part_linteract, &
-                    nhit_stage, &
-                    nabs_type, &
-                    linside, &
+! subroutine crystal_collimation()
+
+
+subroutine pyk2_run( &
+                    x_in, &
+                    xp_in, &
+                    y_in, &
+                    yp_in, &
+                    s_in, &
+                    p_in, &
+                    val_part_hit, &
+                    val_part_abs, &
+                    val_part_impact, &
+                    val_part_indiv, &
+                    val_part_linteract, &
+                    val_nabs_type, &
+                    val_linside, &
                     run_exenergy, &
                     run_anuc, &
                     run_zatom, &
@@ -111,17 +112,30 @@ subroutine pyk2_run(num_particles, &
                     run_ecmsq, &
                     run_xln15s, &
                     run_bpp, &
+                    run_cgen, &
                     is_crystal, &
                     c_length, &
-                    c_rotation, &
                     c_aperture, &
                     c_offset, &
                     c_tilt, &
-                    c_enom, &
-                    onesided)
+                    onesided, &
+                    length, &
+                    p0, &
+                    nhit, &
+                    nabs, &
+                    fracab, &
+                    mirror, &
+                    cRot, &
+                    sRot, &
+                    cRRot, &
+                    sRRot, &
+                    nnuc0, &
+                    nnuc1, &
+                    ien0, &
+                    ien1)
 
-  use parpro ,           only : npart
-  use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
+  ! use parpro ,           only : npart
+  ! use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
   ! //use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
@@ -132,22 +146,21 @@ subroutine pyk2_run(num_particles, &
   ! ## variables declarations ##
   ! ############################
 
-  integer, intent(in)          :: num_particles
-  real(kind=8), intent(inout)  :: x_particles(num_particles)
-  real(kind=8), intent(inout)  :: xp_particles(num_particles)
-  real(kind=8), intent(inout)  :: y_particles(num_particles)
-  real(kind=8), intent(inout)  :: yp_particles(num_particles)
-  real(kind=8), intent(inout)  :: s_particles(num_particles)
-  real(kind=8), intent(inout)  :: p_particles(num_particles)
+  ! integer, intent(in)          :: npart
+  real(kind=8), intent(inout)  :: x_in
+  real(kind=8), intent(inout)  :: xp_in
+  real(kind=8), intent(inout)  :: y_in
+  real(kind=8), intent(inout)  :: yp_in
+  real(kind=8), intent(inout)  :: s_in
+  real(kind=8), intent(inout)  :: p_in
 
-  integer(kind=4)  , intent(inout) :: part_hit(num_particles)
-  integer(kind=4)  , intent(inout) :: part_abs(num_particles)
-  real(kind=8) , intent(inout) :: part_impact(num_particles)
-  real(kind=8) , intent(inout) :: part_indiv(num_particles)
-  real(kind=8) , intent(inout) :: part_linteract(num_particles)
-  integer(kind=4)  , intent(inout) :: nhit_stage(num_particles)
-  integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
-  logical(kind=4)  , intent(inout) :: linside(num_particles)
+  integer(kind=4)  , intent(inout) :: val_part_hit
+  integer(kind=4)  , intent(inout) :: val_part_abs
+  real(kind=8) , intent(inout) :: val_part_impact
+  real(kind=8) , intent(inout) :: val_part_indiv
+  real(kind=8) , intent(inout) :: val_part_linteract
+  integer(kind=4)  , intent(inout) :: val_nabs_type
+  logical(kind=4)  , intent(inout) :: val_linside
 
   real(kind=8)     , intent(inout) :: run_exenergy
   real(kind=8)     , intent(in) :: run_anuc
@@ -174,46 +187,48 @@ subroutine pyk2_run(num_particles, &
   real(kind=8)     , intent(in) :: run_ecmsq
   real(kind=8)     , intent(in) :: run_xln15s
   real(kind=8)     , intent(in) :: run_bpp
+  real(kind=8)     , intent(in) :: run_cgen(200)
 
   logical(kind=4)  , intent(in) :: is_crystal
   real(kind=8) ,    intent(in) :: c_length
-  real(kind=8) ,    intent(in) :: c_rotation
   real(kind=8) ,    intent(in) :: c_aperture
   real(kind=8) ,    intent(in) :: c_offset
   real(kind=8) , intent(inout) :: c_tilt(2)
-  real(kind=8) ,    intent(in) :: c_enom
   logical(kind=4) ,  intent(in):: onesided
+  real(kind=8),  intent(inout) :: length
+  real(kind=8),  intent(inout) :: p0
 
-  integer j
+  integer,          intent(inout) :: nhit
+  integer,          intent(inout) :: nabs
+  integer(kind=8),          intent(inout) :: nnuc0
+  integer(kind=8),          intent(inout) :: nnuc1
+  real(kind=8), intent(inout) :: ien0
+  real(kind=8), intent(inout) :: ien1
+  real(kind=8), intent(inout) :: fracab
+  real(kind=8), intent(inout) :: mirror
+  real(kind=8), intent(inout) :: cRot
+  real(kind=8), intent(inout) :: sRot
+  real(kind=8), intent(inout) :: cRRot
+  real(kind=8), intent(inout) :: sRRot
 
-
-  do j=1,npart
-    rcx(j) = x_particles(j)
-    rcxp(j) = xp_particles(j)
-    rcy(j) = y_particles(j)
-    rcyp(j) = yp_particles(j)
-    rcs(j) = s_particles(j)
-    rcp(j) = p_particles(j)
-  end do
+  ! needs to be passed from cry_startElement
+  integer cry_proc, cry_proc_prev, cry_proc_tmp
+  cry_proc = -1
+  cry_proc_prev = -1
+  cry_proc_tmp = -1
 
   call k2coll_collimate( &
      run_exenergy, run_anuc, run_zatom, run_emr, run_rho, run_hcut, run_bnref, &
      run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
      run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, &
-     run_ecmsq, run_xln15s, run_bpp, is_crystal, &
-     c_length, c_rotation, c_aperture, c_offset, c_tilt, &
-     rcx, rcxp, rcy, rcyp, rcp, rcs, &
-     c_enom, part_hit, part_abs, &
-     part_impact, part_indiv, part_linteract, &
-     onesided, nhit_stage, 1, nabs_type, linside)
+     run_ecmsq, run_xln15s, run_bpp, run_cgen, is_crystal, &
+     c_length, c_aperture, c_offset, c_tilt, &
+     x_in, xp_in, y_in, yp_in, p_in, s_in, &
+     val_part_hit, val_part_abs, &
+     val_part_impact, val_part_indiv, val_part_linteract, &
+     onesided, 1, val_nabs_type, val_linside, length, p0, nhit, &
+     nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, nnuc0, &
+    nnuc1, ien0, ien1, cry_proc, cry_proc_prev, cry_proc_tmp)
 
-  do j=1,npart
-     x_particles(j) = rcx(j)
-     xp_particles(j) = rcxp(j)
-     y_particles(j) = rcy(j)
-     yp_particles(j) = rcyp(j)
-     s_particles(j) = rcs(j)
-     p_particles(j) = rcp(j)
-  end do
 end subroutine 
 

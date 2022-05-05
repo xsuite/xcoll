@@ -151,7 +151,9 @@ contains
 !  Initialise a crystal collimator
 ! ================================================================================================ !
 subroutine cry_startElement(emitX, emitY, o_tilt, o_length, c_rotation, &
-   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
+   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut, &
+   cry_proc, cry_proc_prev, cry_proc_tmp)
+
   use crcoall
 !  use coll_db
   use coll_common
@@ -172,6 +174,9 @@ subroutine cry_startElement(emitX, emitY, o_tilt, o_length, c_rotation, &
   real(kind=fPrec), intent(in)    :: cryYDim
   real(kind=fPrec), intent(in)    :: cryOrient
   real(kind=fPrec), intent(in)    :: cryMiscut
+  integer,          intent(inout) :: cry_proc
+  integer,          intent(inout) :: cry_proc_prev
+  integer,          intent(inout) :: cry_proc_tmp
 
 
   integer mat
@@ -220,7 +225,9 @@ subroutine cry_startElement(emitX, emitY, o_tilt, o_length, c_rotation, &
   n_VR        = 0
   n_amorphous = 0
 
-  cry_proc(:) = proc_out
+  cry_proc = proc_out
+  cry_proc_tmp = proc_out
+  cry_proc_prev = proc_out
 
   o_tilt   = cry_tilt
   o_length = cry_length
@@ -230,15 +237,16 @@ end subroutine cry_startElement
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+subroutine cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   lhit,part_abs,impact,indiv,c_length,cd_exenergy,cd_anuc,cd_zatom,cd_emr,cd_rho,cd_hcut,cd_bnref,&
-  cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_dlri,cd_dlyi,cd_eUm,cd_ai,cd_collnt,cd_bn)
+  cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_dlri,cd_dlyi,cd_eUm,cd_ai,cd_collnt,cd_bn, &
+  cry_proc, cry_proc_prev, cry_proc_tmp)
 
   use parpro
-  use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
+  ! use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
   use mathlib_bouncer
 
-  integer,          intent(in)    :: j
+  ! integer,          intent(in)    :: j
   !integer,          intent(in)    :: mat
 
   real(kind=fPrec), intent(inout) :: x,xp
@@ -247,10 +255,10 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=fPrec), intent(inout) :: x0,xp0
   real(kind=fPrec), intent(inout) :: zlm,s_imp
   integer,          intent(inout) :: nhit,nabs
-  integer,          intent(inout) :: lhit(npart)
-  integer,          intent(inout) :: part_abs(npart)
-  real(kind=fPrec), intent(inout) :: impact(npart)
-  real(kind=fPrec), intent(inout) :: indiv(npart)
+  integer,          intent(inout) :: lhit
+  integer,          intent(inout) :: part_abs
+  real(kind=fPrec), intent(inout) :: impact
+  real(kind=fPrec), intent(inout) :: indiv
   real(kind=fPrec), intent(in)    :: c_length
   real(kind=fPrec), intent(inout) :: cd_exenergy
   real(kind=fPrec), intent(in)    :: cd_anuc
@@ -271,6 +279,9 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=fPrec), intent(inout)    :: cd_bn
 
   logical,          intent(inout) :: isImp
+  integer,          intent(inout) :: cry_proc
+  integer,          intent(inout) :: cry_proc_prev
+  integer,          intent(inout) :: cry_proc_tmp
 
   real(kind=fPrec) s_temp,s_shift,s_rot,s_int
   real(kind=fPrec) x_temp,x_shift,x_rot,x_int
@@ -301,12 +312,12 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
 
 
   ! Determining if particle previously interacted with a crystal and storing the process ID
-  if(cry_proc_tmp(j) /= proc_out) then
-    cry_proc_prev(j) = cry_proc_tmp(j)
+  if(cry_proc_tmp /= proc_out) then
+    cry_proc_prev = cry_proc_tmp
   end if
 
   iProc       = proc_out
-  cry_proc(j) = proc_out
+  cry_proc    = proc_out
 
   ! Transform in the crystal reference system
   ! 1st transformation: shift of the center of the reference frame
@@ -347,9 +358,9 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
     if(iProc /= proc_out) then
       isImp        = .true.
       nhit         = nhit + 1
-      lhit(j)      = 1
-      impact(j)    = x0
-      indiv(j)     = xp0
+      lhit      = 1
+      impact    = x0
+      indiv     = xp0
     end if
 
   else
@@ -418,9 +429,9 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
 
           isImp        = .true.
           nhit         = nhit + 1
-          lhit(j)      = 1
-          impact(j)    = x0
-          indiv(j)     = xp0
+          lhit      = 1
+          impact    = x0
+          indiv     = xp0
         end if
 
         ! un-rotate
@@ -480,7 +491,7 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   s = c_length
 
   nabs = 0
-  cry_proc(j) = iProc
+  cry_proc = iProc
   if(iProc == proc_AM) then
     n_amorphous = n_amorphous + 1
   else if(iProc == proc_VR) then
@@ -494,7 +505,7 @@ subroutine cry_doCrystal(j,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   end if
 
   ! Storing the process ID for the next interaction
-  cry_proc_tmp(j) = cry_proc(j)
+  cry_proc_tmp = cry_proc
 
 end subroutine cry_doCrystal
 

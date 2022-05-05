@@ -59,10 +59,9 @@ def track(k2collimator, particles, npart, reset_seed):
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
     part_abs       = np.zeros(len(x_part), dtype=np.int32)
-    part_impact    = np.zeros(len(x_part), dtype=float)
-    part_indiv     = np.zeros(len(x_part), dtype=float)
-    part_linteract = np.zeros(len(x_part), dtype=float)
-    nhit_stage     = np.zeros(len(x_part), dtype=np.int32)
+    part_impact    = np.zeros(len(x_part), dtype=np.float64)
+    part_indiv     = np.zeros(len(x_part), dtype=np.float64)
+    part_linteract = np.zeros(len(x_part), dtype=np.float64)
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
@@ -95,18 +94,17 @@ def track(k2collimator, particles, npart, reset_seed):
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
     scatter(npart=npart,
-            x_particles=x_part,
-            xp_particles=xp_part,
-            y_particles=y_part,
-            yp_particles=yp_part,
-            s_particles=s_part,
-            p_particles=e_part,              # confusing: this is ENERGY not momentum
+            x_part=x_part,
+            xp_part=xp_part,
+            y_part=y_part,
+            yp_part=yp_part,
+            s_part=s_part,
+            p_part=e_part,              # confusing: this is ENERGY not momentum
             part_hit=part_hit,
             part_abs=part_abs,
             part_impact=part_impact,         # impact parameter
             part_indiv=part_indiv,           # particle divergence
             part_linteract=part_linteract,   # interaction length
-            nhit_stage=nhit_stage,
             nabs_type=nabs_type,
             linside=linside,
             run_exenergy=exenergy,
@@ -141,6 +139,7 @@ def track(k2collimator, particles, npart, reset_seed):
             c_enom=e0_ref, # Reference energy in MeV
             onesided=k2collimator.onesided,
             random_generator_seed=reset_seed, # skips rng re-initlization
+            length=length,
             )
 
     # Masks of hit and survived particles
