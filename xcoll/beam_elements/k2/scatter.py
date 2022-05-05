@@ -1,9 +1,9 @@
 import numpy as np
 
 def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
-                part_abs, part_impact, part_indiv, part_linteract, nabs_type,
-                linside, run_exenergy, run_anuc, run_zatom, run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,
-                run_radl, run_dlri, run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
+                part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
+                run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
+                run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
                 c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, random_generator_seed, length):
     try:
         import xcoll.beam_elements.pyk2 as pyk2
@@ -56,6 +56,110 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         val_part_linteract = np.array(part_linteract[i])
         val_nabs_type = np.array(nabs_type[i])
         val_linside = np.array(linside[i])
+
+        if (val_part_abs != 0):
+            continue
+
+        
+        val_part_impact = -1
+        val_part_linteract = -1
+        val_part_indiv = -1
+
+        x = x_in
+        xp = xp_in
+        xp_in0 = xp_in
+        z = y_in
+        zp = yp_in
+        p = p_in
+        sp = 0
+        dpop = (p - p0)/p0
+        x_flk = 0
+        y_flk = 0
+        xp_flk = 0
+        yp_flk = 0
+
+        # Transform particle coordinates to get into collimator coordinate  system
+        # First do rotation into collimator frame
+        x  =  x_in*cRot + sRot*y_in
+        z  =  y_in*cRot - sRot*x_in
+        xp = xp_in*cRot + sRot*yp_in
+        zp = yp_in*cRot - sRot*xp_in
+        
+        # For one-sided collimators consider only positive X. For negative X jump to the next particle
+        if (onesided & (x < 0)):
+            continue
+
+        # Log input energy + nucleons as per the FLUKA coupling
+        nnuc0   = nnuc0 + 1
+        ien0    = ien0 + p_in * 1.0e3
+
+        # Now mirror at the horizontal axis for negative X offset
+        if (x < 0):
+            mirror    = -1
+            tiltangle = -1*c_tilt[1]
+        else:
+            mirror    = 1
+            tiltangle = c_tilt[0]
+    
+        x  = mirror*x
+        xp = mirror*xp
+
+        # Shift with opening and offset
+        x = (x - c_aperture/2) - mirror*c_offset
+
+        # Include collimator tilt
+        if(tiltangle > 0):
+            xp = xp - tiltangle
+        
+        if(tiltangle < 0):
+            x  = x + np.sin(tiltangle) * c_length
+            xp = xp - tiltangle
+
+
+        # CRY Only: x_in0 has to be assigned after the change of reference frame
+        x_in0 = x
+
+        # After finishing the coordinate transformation, or the coordinate manipulations in case of pencil beams,
+        # save the initial coordinates of the impacting particles
+        xin  = x
+        xpin = xp
+        yin  = z
+        ypin = zp
+
+        # particle passing above the jaw are discarded => take new event
+        # entering by the face, shorten the length (zlm) and keep track of
+        # entrance longitudinal coordinate (keeps) for histograms
+
+        # The definition is that the collimator jaw is at x>=0.
+
+        # 1) Check whether particle hits the collimator
+        isimp = False
+        s     = 0
+        keeps = 0
+        zlm = -1*length
+
+
+        isimp = np.array(isimp)
+        s = np.array(s)
+        zlm = np.array(zlm)
+        sp = np.array(sp)
+        x_flk = np.array(x_flk)
+        y_flk = np.array(y_flk)
+        xp_flk = np.array(xp_flk)
+        yp_flk = np.array(yp_flk)
+
+        x = np.array(x)
+        xp = np.array(xp)
+        xp_in0 = np.array(xp_in0)
+        z = np.array(z)
+        zp = np.array(zp)
+        p = np.array(p)
+        dpop = np.array(dpop)
+        x_in0 = np.array(x_in0)
+        xin = np.array(xin)
+        xpin = np.array(xpin)
+        yin = np.array(yin)
+        ypin = np.array(ypin)
 
         pyk2.pyk2_run(
                     x_in=x_in,
@@ -114,7 +218,29 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     nnuc0=nnuc0,
                     nnuc1=nnuc1,
                     ien0=ien0,
-                    ien1=ien1
+                    ien1=ien1,
+                    isimp=isimp,
+                    s=s,
+                    keeps=keeps,
+                    zlm=zlm,
+                    x=x,
+                    xp=xp,
+                    xp_in0=xp_in0,
+                    z=z,
+                    zp=zp,
+                    p=p,
+                    sp=sp,
+                    dpop=dpop,
+                    x_flk=x_flk,
+                    y_flk=y_flk,
+                    xp_flk=xp_flk,
+                    yp_flk=yp_flk,
+                    x_in0=x_in0,
+                    xin=xin,
+                    xpin=xpin,
+                    yin=yin,
+                    ypin=ypin,
+                    tiltangle=tiltangle
                     )
 
         x_part[i] = x_in

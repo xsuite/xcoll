@@ -132,7 +132,29 @@ subroutine pyk2_run( &
                     nnuc0, &
                     nnuc1, &
                     ien0, &
-                    ien1)
+                    ien1, &
+                    isImp, &
+                    s, &
+                    keeps, &
+                    zlm, &
+                    x, &
+                    xp, &
+                    xp_in0, &
+                    z, &
+                    zp, &
+                    p, &
+                    sp, &
+                    dpop, &
+                    x_flk, &
+                    y_flk, &
+                    xp_flk, &
+                    yp_flk, &
+                    x_in0, &
+                    xIn, &
+                    xpIn, &
+                    yIn, &
+                    ypIn, &
+                    tiltangle)
 
   ! use parpro ,           only : npart
   ! use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
@@ -211,6 +233,31 @@ subroutine pyk2_run( &
   real(kind=8), intent(inout) :: cRRot
   real(kind=8), intent(inout) :: sRRot
 
+  logical(kind=4), intent(inout) :: isImp
+  real(kind=8),    intent(inout) :: s
+  real(kind=8),    intent(in) :: keeps
+  real(kind=8),    intent(inout) :: zlm
+  real(kind=8),    intent(inout) :: sp
+  real(kind=8),    intent(inout) :: x_flk
+  real(kind=8),    intent(inout) :: y_flk
+  real(kind=8),    intent(inout) :: xp_flk
+  real(kind=8),    intent(inout) :: yp_flk
+
+  real(kind=8),    intent(inout) :: x
+  real(kind=8),    intent(inout) :: xp
+  real(kind=8),    intent(inout) :: xp_in0
+  real(kind=8),    intent(inout) :: z
+  real(kind=8),    intent(inout) :: zp
+  real(kind=8),    intent(inout) :: p
+  real(kind=8),    intent(inout) :: dpop  
+  real(kind=8),    intent(inout) :: x_in0
+  real(kind=8),    intent(inout) :: xIn
+  real(kind=8),    intent(inout) :: xpIn
+  real(kind=8),    intent(inout) :: yIn
+  real(kind=8),    intent(inout) :: ypIn
+  real(kind=8),    intent(in)    :: tiltangle
+
+
   ! needs to be passed from cry_startElement
   integer cry_proc, cry_proc_prev, cry_proc_tmp
   cry_proc = -1
@@ -228,7 +275,9 @@ subroutine pyk2_run( &
      val_part_impact, val_part_indiv, val_part_linteract, &
      onesided, 1, val_nabs_type, val_linside, length, p0, nhit, &
      nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, nnuc0, &
-    nnuc1, ien0, ien1, cry_proc, cry_proc_prev, cry_proc_tmp)
+    nnuc1, ien0, ien1, cry_proc, cry_proc_prev, cry_proc_tmp, &
+    isImp, s, keeps, zlm, sp, x_flk, y_flk, xp_flk, yp_flk, &
+    x, xp, xp_in0, z, zp, p, dpop, x_in0, xIn, xpIn, yIn, ypIn, tiltangle)
 
 end subroutine 
 

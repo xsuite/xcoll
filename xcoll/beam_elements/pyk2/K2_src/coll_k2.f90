@@ -11,33 +11,11 @@ module coll_k2
 
   implicit none
 
-  !integer,          private, save :: mat   ! Current material
-  ! integer,          private, save :: mcurr ! Current material, used for Rutherford scattering integration
   real(kind=fPrec), save :: zatom_curr ! Current zatom, used for Rutherford scattering integration
   real(kind=fPrec), save :: emr_curr ! Current emr, used for Rutherford scattering integration
-  ! real(kind=fPrec), private, save :: zlm
-  ! real(kind=fPrec), private, save :: zlm1
-  ! real(kind=fPrec), private, save :: p0
-  ! real(kind=fPrec), private, save :: length
-  ! real(kind=fPrec), private, save :: xln15s
-  ! real(kind=fPrec), private, save :: pptot
-  ! real(kind=fPrec), private, save :: ppsd
-  ! real(kind=fPrec), private, save :: ppel
-  ! real(kind=fPrec), private, save :: ecmsq
-  ! real(kind=fPrec), private, save :: bpp
-  ! real(kind=fPrec), private, save :: xpsd
-  ! real(kind=fPrec), private, save :: zpsd
-  ! real(kind=fPrec), private, save :: psd
-
-  ! RB DM 2014 added variables for FLUKA output
-  !real(kind=fPrec), private, save :: xInt,xpInt,yInt,ypInt,sInt
-  !real(kind=fPrec), private, save :: x,xp,z,zp,dpop
 
 contains
 
-!>
-!! K2 scattering collimation configuration
-!<
 subroutine k2coll_init
 !nothing currently
 end subroutine k2coll_init
@@ -54,17 +32,14 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   c_length, c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, lhit, part_abs_local, &
   impact, indiv, lint, onesided, j_slices, nabs_type, linside, length, coll_p0, &
   nhit, nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, nnuc0, nnuc1, ien0, ien1, &
-  cry_proc, cry_proc_prev, cry_proc_tmp)
+  cry_proc, cry_proc_prev, cry_proc_tmp, isImp, s, keeps, zlm, sp, x_flk, y_flk, xp_flk, yp_flk, &
+  x, xp, xp_in0, z, zp, p, dpop, x_in0, xIn, xpIn, yIn, ypIn, tiltangle)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
   use crcoall
-  !use coll_db
   use coll_common
   use coll_crystal, only : cry_doCrystal
-  !use coll_materials
-  ! use mod_common, only : iexact, napx
-  ! use mod_common_main, only : partID
   use mathlib_bouncer
   use mod_ranlux
   use mod_funlux
@@ -110,6 +85,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec), intent(inout) :: s_in  ! Particle coordinate
 
   logical,          intent(in)    :: onesided
+  integer,          intent(in)    :: j_slices
 
   integer,          intent(inout) :: lhit
   integer,          intent(inout) :: part_abs_local
@@ -119,8 +95,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=fPrec), intent(inout) :: impact
   logical,          intent(inout) :: linside
   real(kind=fPrec), intent(inout) :: length
-  real(kind=fPrec), intent(inout) :: coll_p0
-  !real(kind=fPrec), intent(in)    :: coll_zlm   
+  real(kind=fPrec), intent(inout) :: coll_p0 
   
   integer,          intent(inout) :: nhit
   integer,          intent(inout) :: nabs
@@ -138,139 +113,50 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   integer,          intent(inout) :: cry_proc_prev
   integer,          intent(inout) :: cry_proc_tmp
   
+  logical(kind=4), intent(inout) :: isImp
+  real(kind=8),    intent(inout) :: s
+  real(kind=8),    intent(in) :: keeps
+  real(kind=8),    intent(inout) :: zlm
+  real(kind=8),    intent(inout) :: sp
+  real(kind=8),    intent(inout) :: x_flk
+  real(kind=8),    intent(inout) :: y_flk
+  real(kind=8),    intent(inout) :: xp_flk
+  real(kind=8),    intent(inout) :: yp_flk
+
+  real(kind=8),    intent(inout) :: x
+  real(kind=8),    intent(inout) :: xp
+  real(kind=8),    intent(inout) :: xp_in0
+  real(kind=8),    intent(inout) :: z
+  real(kind=8),    intent(inout) :: zp
+  real(kind=8),    intent(inout) :: p
+  real(kind=8),    intent(inout) :: dpop  
+  real(kind=8),    intent(inout) :: x_in0
+  real(kind=8),    intent(inout) :: xIn
+  real(kind=8),    intent(inout) :: xpIn
+  real(kind=8),    intent(inout) :: yIn
+  real(kind=8),    intent(inout) :: ypIn
+  real(kind=8),    intent(in) :: tiltangle
    
 
-  logical isImp
-  integer j_slices
-  real(kind=fPrec) keeps,drift_length,tiltangle
-  real(kind=fPrec) x00,z00,p,sp,s,s_impact
-  real(kind=fPrec) x_flk,xp_flk,y_flk,yp_flk,s_flk,zpj
+
+  real(kind=fPrec) x00,z00,s_impact,drift_length
+  real(kind=fPrec) s_flk
   real(kind=fPrec) x_Dump,xpDump,y_Dump,ypDump,s_Dump
-  real(kind=fPrec) xIn,xpIn,yIn,ypIn,xOut,xpOut,yOut,ypOut,sImp,sOut
-  real(kind=fPrec) x_in0,xp_in0,coll_zlm
+  real(kind=fPrec) xOut,xpOut,yOut,ypOut,sImp,sOut
   real(kind=fPrec) xInt,xpInt,yInt,ypInt,sInt
-  real(kind=fPrec) x,xp,z,zp,dpop
+  
 
-
-  ! Initilaisation
-  !mat = matid
-  ! length  = c_length
-  ! coll_p0 = enom
-
-
-  ! ! Initialise scattering processes
-  ! ! call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
-  ! !                    coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
-
-  ! nhit   = 0
-  ! nabs   = 0
-  ! fracab = zero
-  ! mirror = one
-
-  ! ! Compute rotation factors for collimator rotation
-  ! cRot   = cos_mb(c_rotation)
-  ! sRot   = sin_mb(c_rotation)
-  ! cRRot  = cos_mb(-c_rotation)
-  ! sRRot  = sin_mb(-c_rotation)
-
-  ! !Set energy and nucleon change variables as with the coupling
-  ! nnuc0 = 0
-  ! ien0  = zero
-  ! nnuc1 = 0
-  ! ien1  = zero
-
-    if(part_abs_local /= 0) then
-      ! Don't do scattering process for particles already absorbed
-      return
-    end if
-
-    impact = -one
-    lint   = -one
-    indiv  = -one
-
-    x      = x_in
-    xp     = xp_in
-    xp_in0 = xp_in
-    z      = y_in
-    zp     = yp_in
-    p      = p_in
-    sp     = zero
-    dpop   = (p - coll_p0)/coll_p0
-    x_flk  = zero
-    y_flk  = zero
-    xp_flk = zero
-    yp_flk = zero
-
-    ! Transform particle coordinates to get into collimator coordinate  system
-    ! First do rotation into collimator frame
-    x  =  x_in*cRot + sRot*y_in
-    z  =  y_in*cRot - sRot*x_in
-    xp = xp_in*cRot + sRot*yp_in
-    zp = yp_in*cRot - sRot*xp_in
-
-    ! For one-sided collimators consider only positive X. For negative X jump to the next particle
-    if(onesided .and. x < zero) then
-      return
-    end if
-! Log input energy + nucleons as per the FLUKA coupling
-    nnuc0   = nnuc0 + 1
-    ien0    = ien0 + p_in * c1e3
-
-    ! Now mirror at the horizontal axis for negative X offset
-    if(x < zero) then
-      mirror    = -one
-      tiltangle = -one*c_tilt(2)
-    else
-      mirror    = one
-      tiltangle = c_tilt(1)
-    end if
-    x  = mirror*x
-    xp = mirror*xp
-
-    ! Shift with opening and offset
-    x = (x - c_aperture/two) - mirror*c_offset
-
-    ! Include collimator tilt
-    if(tiltangle > zero) then
-      xp = xp - tiltangle
-    end if
-    if(tiltangle < zero) then
-      x  = x + sin_mb(tiltangle) * c_length
-      xp = xp - tiltangle
-    end if
-
-    ! CRY Only: x_in0 has to be assigned after the change of reference frame
-    x_in0 = x
-
-    ! After finishing the coordinate transformation, or the coordinate manipulations in case of pencil beams,
-    ! save the initial coordinates of the impacting particles
-    xIn  = x
-    xpIn = xp
-    yIn  = z
-    ypIn = zp
-
-    ! particle passing above the jaw are discarded => take new event
-    ! entering by the face, shorten the length (zlm) and keep track of
-    ! entrance longitudinal coordinate (keeps) for histograms
-
-    ! The definition is that the collimator jaw is at x>=0.
-
-    ! 1) Check whether particle hits the collimator
-    isImp = .false.
-    s     = zero
-    keeps = zero
-    coll_zlm   = -one*length
-
+  
     if(is_crystal) then ! This is a crystal collimator
 
-      call cry_doCrystal(x,xp,z,zp,s,p,x_in0,xp_in0,coll_zlm,sImp,isImp,nhit,nabs,lhit,&
+      call cry_doCrystal(x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit,&
         part_abs_local,impact,indiv,c_length,coll_exenergy,coll_anuc,coll_zatom,coll_emr,coll_rho,&
         coll_hcut,coll_bnref,coll_csref0,coll_csref1,coll_csref4,coll_csref5,coll_dlri,coll_dlyi,&
         coll_eUm,coll_ai,coll_collnt,coll_bn, cry_proc, cry_proc_prev, cry_proc_tmp)
 
       if(nabs /= 0) then
         part_abs_local  = 1
-        lint            = coll_zlm
+        lint            = zlm
       end if
 
       sImp  = (s - c_length) + sImp
@@ -286,12 +172,12 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         ! Particle hits collimator and we assume interaction length ZLM equal
         ! to collimator length (what if it would leave collimator after
         ! small length due to angle???)
-        coll_zlm  = length
+        zlm  = length
         impact = x
         indiv  = xp
       else if(xp <= zero) then
         ! Particle does not hit collimator. Interaction length ZLM is zero.
-        coll_zlm = zero
+        zlm = zero
       else
         ! Calculate s-coordinate of interaction point
         s = (-one*x)/xp
@@ -300,17 +186,17 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
           !call prror
         end if
         if(s < length) then
-          coll_zlm       = length - s
+          zlm       = length - s
           impact = zero
           indiv  = xp
         else
-          coll_zlm = zero
+          zlm = zero
         end if
       end if
 
       ! First do the drift part
       ! DRIFT PART
-      drift_length = length - coll_zlm
+      drift_length = length - zlm
       if(drift_length > zero) then
         x  = x  + xp* drift_length
         z  = z  + zp * drift_length
@@ -318,7 +204,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
       end if
 
       ! Now do the scattering part
-      if(coll_zlm > zero) then
+      if(zlm > zero) then
         if(.not.linside) then
           ! first time particle hits collimator: entering jaw
           linside = .true.
@@ -338,7 +224,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         s_impact = sp
         nhit = nhit + 1
         call k2coll_jaw(s,nabs,coll_exenergy,coll_anuc,coll_zatom,coll_rho,coll_radl,&
-                          coll_cprob,coll_xintl,coll_bn,coll_cgen,coll_ecmsq,coll_xln15s,coll_bpp,coll_zlm,coll_p0,&
+                          coll_cprob,coll_xintl,coll_bn,coll_cgen,coll_ecmsq,coll_xln15s,coll_bpp,zlm,coll_p0,&
                           x,xp,z,zp,dpop,xInt,xpInt,yInt,ypInt,sInt)
         nabs_type = nabs
         lhit  = 1
@@ -382,13 +268,13 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
             fracab  = fracab + 1
             x       = 99.99e-3_fPrec
             z       = 99.99e-3_fPrec
-            lint = coll_zlm
+            lint = zlm
             part_abs_local  = 1
           end if
         end if
       end if ! Collimator jaw interaction
 
-      if(nabs /= 1 .and. coll_zlm > zero) then
+      if(nabs /= 1 .and. zlm > zero) then
         ! Do the rest drift, if particle left collimator early
         drift_length = (length-(s+sp))
         if(drift_length > c1m15) then
@@ -409,7 +295,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
           z  = z  + zp * drift_length
           sp = sp + drift_length
         end if
-        lint = coll_zlm - drift_length
+        lint = zlm - drift_length
       end if
 
     end if ! Collimator isCrystal
