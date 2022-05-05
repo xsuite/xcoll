@@ -43,12 +43,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
     for i in range(npart):
 
-        x_in = np.array(x_part[i])
-        xp_in = np.array(xp_part[i])
-        y_in = np.array(y_part[i])
-        yp_in = np.array(yp_part[i])
-        s_in = np.array(s_part[i])
-        p_in = np.array(p_part[i])
         val_part_hit = np.array(part_hit[i])
         val_part_abs = np.array(part_abs[i])
         val_part_impact = np.array(part_impact[i])
@@ -60,6 +54,12 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         if (val_part_abs != 0):
             continue
 
+        x_in = x_part[i]
+        xp_in = xp_part[i]
+        y_in = y_part[i]
+        yp_in = yp_part[i]
+        s_in = s_part[i]
+        p_in = p_part[i]
         
         val_part_impact = -1
         val_part_linteract = -1
@@ -73,10 +73,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         p = p_in
         sp = 0
         dpop = (p - p0)/p0
-        x_flk = 0
-        y_flk = 0
-        xp_flk = 0
-        yp_flk = 0
 
         # Transform particle coordinates to get into collimator coordinate  system
         # First do rotation into collimator frame
@@ -119,13 +115,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         # CRY Only: x_in0 has to be assigned after the change of reference frame
         x_in0 = x
 
-        # After finishing the coordinate transformation, or the coordinate manipulations in case of pencil beams,
-        # save the initial coordinates of the impacting particles
-        xin  = x
-        xpin = xp
-        yin  = z
-        ypin = zp
-
         # particle passing above the jaw are discarded => take new event
         # entering by the face, shorten the length (zlm) and keep track of
         # entrance longitudinal coordinate (keeps) for histograms
@@ -135,7 +124,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         # 1) Check whether particle hits the collimator
         isimp = False
         s     = 0
-        keeps = 0
         zlm = -1*length
 
 
@@ -143,10 +131,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         s = np.array(s)
         zlm = np.array(zlm)
         sp = np.array(sp)
-        x_flk = np.array(x_flk)
-        y_flk = np.array(y_flk)
-        xp_flk = np.array(xp_flk)
-        yp_flk = np.array(yp_flk)
 
         x = np.array(x)
         xp = np.array(xp)
@@ -156,18 +140,8 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         p = np.array(p)
         dpop = np.array(dpop)
         x_in0 = np.array(x_in0)
-        xin = np.array(xin)
-        xpin = np.array(xpin)
-        yin = np.array(yin)
-        ypin = np.array(ypin)
 
         pyk2.pyk2_run(
-                    x_in=x_in,
-                    xp_in=xp_in,
-                    y_in=y_in,
-                    yp_in=yp_in,
-                    s_in=s_in,
-                    p_in=p_in,
                     val_part_hit=val_part_hit,
                     val_part_abs=val_part_abs,
                     val_part_impact=val_part_impact,
@@ -201,27 +175,13 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     run_cgen=cgen,
                     is_crystal=is_crystal,
                     c_length=c_length,
-                    c_aperture=c_aperture,
-                    c_offset=c_offset,
-                    c_tilt=c_tilt,
-                    onesided=onesided,
                     length=length,
                     p0=p0,
                     nhit=nhit,
                     nabs=nabs,
                     fracab=fracab,
-                    mirror=mirror,
-                    crot=cRot,
-                    srot=sRot,
-                    crrot=cRRot,
-                    srrot=sRRot,
-                    nnuc0=nnuc0,
-                    nnuc1=nnuc1,
-                    ien0=ien0,
-                    ien1=ien1,
                     isimp=isimp,
                     s=s,
-                    keeps=keeps,
                     zlm=zlm,
                     x=x,
                     xp=xp,
@@ -231,17 +191,50 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     p=p,
                     sp=sp,
                     dpop=dpop,
-                    x_flk=x_flk,
-                    y_flk=y_flk,
-                    xp_flk=xp_flk,
-                    yp_flk=yp_flk,
-                    x_in0=x_in0,
-                    xin=xin,
-                    xpin=xpin,
-                    yin=yin,
-                    ypin=ypin,
-                    tiltangle=tiltangle
+                    x_in0=x_in0
                     )
+
+        # Transform back to particle coordinates with opening and offset
+        if(x < 99.0e-3):
+            # Include collimator tilt
+            if(tiltangle > 0):
+                x  = x  + tiltangle*c_length
+                xp = xp + tiltangle
+            elif(tiltangle < 0):
+                x  = x  + tiltangle*c_length
+                xp = xp + tiltangle
+                x  = x  - np.sin(tiltangle) * c_length
+
+            # Transform back to particle coordinates with opening and offset
+            z00 = z
+            x00 = x + mirror*c_offset
+            x   = (x + c_aperture/2) + mirror*c_offset
+
+            # Now mirror at the horizontal axis for negative X offset
+            x  = mirror * x
+            xp = mirror * xp
+
+            # Last do rotation into collimator frame
+            x_in  =  x*cRRot +  z*sRRot
+            y_in  =  z*cRRot -  x*sRRot
+            xp_in = xp*cRRot + zp*sRRot
+            yp_in = zp*cRRot - xp*sRRot
+
+            # Log output energy + nucleons as per the FLUKA coupling
+            # Do not log dead particles
+            nnuc1       = nnuc1 + 1                           # outcoming nucleons
+            ien1        = ien1  + p_in * 1e3                 # outcoming energy
+
+            if(is_crystal):
+                p_in = p
+                s_in = s_in + s
+            else:
+                p_in = (1 + dpop) * p0
+                s_in = sp
+
+        else:
+            x_in = x
+            y_in = z
 
         x_part[i] = x_in
         xp_part[i] = xp_in

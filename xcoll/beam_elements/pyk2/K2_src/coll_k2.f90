@@ -29,11 +29,11 @@ end subroutine k2coll_init
 subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll_rho, coll_hcut, coll_bnref, & 
   coll_csref0, coll_csref1, coll_csref4, coll_csref5, coll_radl, coll_dlri, coll_dlyi,coll_eUm, coll_ai, &
   coll_collnt, coll_cprob, coll_xintl, coll_bn, coll_ecmsq, coll_xln15s, coll_bpp, coll_cgen, is_crystal, &
-  c_length, c_aperture, c_offset, c_tilt, x_in, xp_in, y_in, yp_in, p_in, s_in, lhit, part_abs_local, &
-  impact, indiv, lint, onesided, j_slices, nabs_type, linside, length, coll_p0, &
-  nhit, nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, nnuc0, nnuc1, ien0, ien1, &
-  cry_proc, cry_proc_prev, cry_proc_tmp, isImp, s, keeps, zlm, sp, x_flk, y_flk, xp_flk, yp_flk, &
-  x, xp, xp_in0, z, zp, p, dpop, x_in0, xIn, xpIn, yIn, ypIn, tiltangle)
+  c_length, lhit, part_abs_local, &
+  impact, indiv, lint, nabs_type, linside, length, coll_p0, &
+  nhit, nabs, fracab, &
+  cry_proc, cry_proc_prev, cry_proc_tmp, isImp, s, zlm, sp, &
+  x, xp, xp_in0, z, zp, p, dpop, x_in0)
 
   use, intrinsic :: iso_fortran_env, only : int16
   use parpro
@@ -73,19 +73,6 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   logical,          intent(in)    :: is_crystal
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
-  real(kind=fPrec), intent(in)    :: c_aperture   ! Collimator aperture in m
-  real(kind=fPrec), intent(in)    :: c_offset     ! Collimator offset in m
-  real(kind=fPrec), intent(inout) :: c_tilt(2)    ! Collimator tilt in radians
-  
-  real(kind=fPrec), intent(inout) :: x_in  ! Particle coordinate
-  real(kind=fPrec), intent(inout) :: xp_in ! Particle coordinate
-  real(kind=fPrec), intent(inout) :: y_in  ! Particle coordinate
-  real(kind=fPrec), intent(inout) :: yp_in ! Particle coordinate
-  real(kind=fPrec), intent(inout) :: p_in  ! Particle coordinate
-  real(kind=fPrec), intent(inout) :: s_in  ! Particle coordinate
-
-  logical,          intent(in)    :: onesided
-  integer,          intent(in)    :: j_slices
 
   integer,          intent(inout) :: lhit
   integer,          intent(inout) :: part_abs_local
@@ -99,29 +86,15 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   
   integer,          intent(inout) :: nhit
   integer,          intent(inout) :: nabs
-  integer(kind=8),          intent(inout) :: nnuc0
-  integer(kind=8),          intent(inout) :: nnuc1
-  real(kind=fPrec), intent(inout) :: ien0
-  real(kind=fPrec), intent(inout) :: ien1
   real(kind=fPrec), intent(inout) :: fracab
-  real(kind=fPrec), intent(inout) :: mirror
-  real(kind=fPrec), intent(inout) :: cRot
-  real(kind=fPrec), intent(inout) :: sRot
-  real(kind=fPrec), intent(inout) :: cRRot
-  real(kind=fPrec), intent(inout) :: sRRot
   integer,          intent(inout) :: cry_proc
   integer,          intent(inout) :: cry_proc_prev
   integer,          intent(inout) :: cry_proc_tmp
   
   logical(kind=4), intent(inout) :: isImp
   real(kind=8),    intent(inout) :: s
-  real(kind=8),    intent(in) :: keeps
   real(kind=8),    intent(inout) :: zlm
   real(kind=8),    intent(inout) :: sp
-  real(kind=8),    intent(inout) :: x_flk
-  real(kind=8),    intent(inout) :: y_flk
-  real(kind=8),    intent(inout) :: xp_flk
-  real(kind=8),    intent(inout) :: yp_flk
 
   real(kind=8),    intent(inout) :: x
   real(kind=8),    intent(inout) :: xp
@@ -131,17 +104,10 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
   real(kind=8),    intent(inout) :: p
   real(kind=8),    intent(inout) :: dpop  
   real(kind=8),    intent(inout) :: x_in0
-  real(kind=8),    intent(inout) :: xIn
-  real(kind=8),    intent(inout) :: xpIn
-  real(kind=8),    intent(inout) :: yIn
-  real(kind=8),    intent(inout) :: ypIn
-  real(kind=8),    intent(in) :: tiltangle
    
 
 
   real(kind=fPrec) x00,z00,s_impact,drift_length
-  real(kind=fPrec) s_flk
-  real(kind=fPrec) x_Dump,xpDump,y_Dump,ypDump,s_Dump
   real(kind=fPrec) xOut,xpOut,yOut,ypOut,sImp,sOut
   real(kind=fPrec) xInt,xpInt,yInt,ypInt,sInt
   
@@ -208,17 +174,6 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         if(.not.linside) then
           ! first time particle hits collimator: entering jaw
           linside = .true.
-          if(dowrite_impact) then
-            if(tiltangle > zero) then
-              x_Dump = (x + c_aperture/two + tiltangle*sp)*mirror + c_offset
-            else
-              x_Dump = (x + c_aperture/two + tiltangle*(sp - c_length))*mirror + c_offset
-            end if
-            xpDump = (xp + tiltangle)*mirror
-            y_Dump = z
-            ypDump = zp
-            s_Dump = sp+real(j_slices-1,fPrec)*c_length
-          end if
         end if
 
         s_impact = sp
@@ -230,8 +185,8 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         lhit  = 1
 
         isImp = .true.
-        sImp  = s_impact+(real(j_slices,fPrec)-one)*c_length
-        sOut  = (s+sp)+(real(j_slices,fPrec)-one)*c_length
+        sImp  = s_impact
+        sOut  = (s+sp)
         xOut  = x
         xpOut = xp
         yOut  = z
@@ -239,29 +194,9 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
         ! Writeout should be done for both inelastic and single diffractive. doing all transformations
         ! in x_flk and making the set to 99.99 mm conditional for nabs=1
-        if(dowrite_impact .or. nabs == 1 .or. nabs == 4) then
+        if(nabs == 1 .or. nabs == 4) then
           ! Transform back to lab system for writeout.
           ! keep x,y,xp,yp unchanged for continued tracking, store lab system variables in x_flk etc
-
-          x_flk  = xInt
-          xp_flk = xpInt
-
-          if(tiltangle > zero) then
-            x_flk  = x_flk  + tiltangle*(sInt+sp)
-            xp_flk = xp_flk + tiltangle
-          else if(tiltangle < zero) then
-            xp_flk = xp_flk + tiltangle
-            x_flk  = x_flk  - sin_mb(tiltangle) * (length-(sInt+sp))
-          end if
-
-          x_flk  = (x_flk + c_aperture/two) + mirror*c_offset
-          x_flk  = mirror*x_flk
-          xp_flk = mirror*xp_flk
-          y_flk  = (  yInt*cRRot -  x_flk*sRRot)*c1e3
-          yp_flk = ( ypInt*cRRot - xp_flk*sRRot)*c1e3
-          x_flk  = ( x_flk*cRRot +   yInt*sRRot)*c1e3
-          xp_flk = (xp_flk*cRRot +  ypInt*sRRot)*c1e3
-          s_flk  = (sInt+sp)+(real(j_slices,fPrec)-one)*c_length
 
           ! Finally, the actual coordinate change to 99 mm
           if(nabs == 1) then
@@ -279,18 +214,6 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
         drift_length = (length-(s+sp))
         if(drift_length > c1m15) then
           linside = .false.
-          if(dowrite_impact) then
-            if(tiltangle > zero) then
-              x_Dump = (x + c_aperture/two + tiltangle*(s+sp))*mirror + c_offset
-            else
-              x_Dump = (x + c_aperture/two + tiltangle*(s+sp-c_length))*mirror + c_offset
-            end if
-            xpDump = (xp+tiltangle)*mirror
-            y_Dump = z
-            ypDump = zp
-            s_Dump = s+sp+real(j_slices-1,fPrec)*c_length
-
-          end if
           x  = x  + xp * drift_length
           z  = z  + zp * drift_length
           sp = sp + drift_length
@@ -300,146 +223,7 @@ subroutine k2coll_collimate(coll_exenergy, coll_anuc, coll_zatom, coll_emr, coll
 
     end if ! Collimator isCrystal
 
-    ! Transform back to particle coordinates with opening and offset
-    if(x < 99.0e-3_fPrec) then
-      ! Include collimator tilt
-      if(tiltangle > zero) then
-        x  = x  + tiltangle*c_length
-        xp = xp + tiltangle
-      else if(tiltangle < zero) then
-        x  = x  + tiltangle*c_length
-        xp = xp + tiltangle
-        x  = x  - sin_mb(tiltangle) * c_length
-      end if
-
-      ! Transform back to particle coordinates with opening and offset
-      z00 = z
-      x00 = x + mirror*c_offset
-      x   = (x + c_aperture/two) + mirror*c_offset
-
-      ! Now mirror at the horizontal axis for negative X offset
-      x  = mirror * x
-      xp = mirror * xp
-
-      ! Last do rotation into collimator frame
-      x_in  =  x*cRRot +  z*sRRot
-      y_in  =  z*cRRot -  x*sRRot
-      xp_in = xp*cRRot + zp*sRRot
-      yp_in = zp*cRRot - xp*sRRot
-
-! Log output energy + nucleons as per the FLUKA coupling
-! Do not log dead particles
-      nnuc1       = nnuc1 + 1                           ! outcoming nucleons
-      ien1        = ien1  + p_in * c1e3                   ! outcoming energy
-
-      if(is_crystal) then
-        p_in = p
-        s_in = s_in + s
-      else
-        p_in = (one + dpop) * coll_p0
-        s_in = sp + (real(j_slices,fPrec)-one) * c_length
-      end if
-    else
-      x_in = x
-      y_in = z
-    end if
-
 end subroutine k2coll_collimate
-
-!>
-!! k2coll_scatin(plab)
-!! Configure the K2 scattering routine cross sections
-!<
-! subroutine k2coll_scatin(plab,sc_anuc,sc_rho,sc_zatom,sc_emr,sc_csref0,sc_csref1,sc_csref5,sc_bnref,&
-!                          sc_cprob,sc_xintl,sc_bn)
-
-!   !use mod_funlux
-!   use coll_common
-!   !use coll_materials
-!   use mathlib_bouncer
-!   use physical_constants
-!   use mod_units
-!   use crcoall
-
-!   real(kind=fPrec), intent(in) :: plab
-!   real(kind=fPrec), intent(in) :: sc_anuc
-!   real(kind=fPrec), intent(in) :: sc_rho
-!   ! real(kind=fPrec), intent(in) :: anuc4
-!   ! real(kind=fPrec), intent(in) :: anuc5
-!   real(kind=fPrec), intent(in) :: sc_zatom
-!   real(kind=fPrec), intent(in) :: sc_emr
-!   real(kind=fPrec), intent(in) :: sc_csref0
-!   real(kind=fPrec), intent(in) :: sc_csref1
-!   real(kind=fPrec), intent(in) :: sc_csref5
-!   real(kind=fPrec), intent(in) :: sc_bnref
-!   real(kind=fPrec), intent(out) :: sc_cprob(0:5)
-!   real(kind=fPrec), intent(out) :: sc_xintl
-!   real(kind=fPrec), intent(out) :: sc_bn
-  
-!   ! real(kind=fPrec), parameter :: tlcut = 0.0009982_fPrec
-!   ! pp cross-sections and parameters for energy dependence
-!   real(kind=fPrec), parameter ::  pptref = 0.04_fPrec
-!   real(kind=fPrec), parameter ::  freeco = 1.618_fPrec
-!   integer i
-
-!   integer csUnit
-!   character(len=23), parameter :: cs_fileName = "MaterialInformation.txt"
-!   logical csErr
-!   real(kind=fPrec) freep
-!   real(kind=fPrec) csect(0:5)      ! Cross section
-
-!   ecmsq = (two*(pmap*c1m3)) * plab
-!   xln15s = log_mb(0.15_fPrec*ecmsq)
-!   ! Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-!   pptot = 0.041084_fPrec-0.0023302_fPrec*log_mb(ecmsq)+0.00031514_fPrec*log_mb(ecmsq)**2
-!   ! Claudia used the fit from TOTEM for ppel (in barn)
-!   ppel = (11.7_fPrec-1.59_fPrec*log_mb(ecmsq)+0.134_fPrec*log_mb(ecmsq)**2)/c1e3
-!   ! Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
-!   ppsd = (4.3_fPrec+0.3_fPrec*log_mb(ecmsq))/c1e3
-
-
-!   ! Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
-!   bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
-
-!   ! Unmeasured tungsten data, computed with lead data and power laws
-!   ! bnref(4) = bnref(5)*(anuc4/anuc5)**(two/three)
-!   ! emr(4)   = emr(5)  *(anuc4/anuc5)**(one/three)
-  
-!   ! freep: number of nucleons involved in single scattering
-!   freep = freeco * sc_anuc**(one/three)
-
-
-! ! compute pp and pn el+single diff contributions to cross-section
-! ! (both added : quasi-elastic or qel later)
-!   csect(3) = freep * ppel
-!   csect(4) = freep * ppsd
-
-! ! correct TOT-CSec for energy dependence of qel
-! ! TOT CS is here without a Coulomb contribution
-!   csect(0) = sc_csref0 + freep * (pptot - pptref)
-!   sc_bn       = (sc_bnref * csect(0)) / sc_csref0
-
-!   ! also correct inel-CS
-!   csect(1) = (sc_csref1 * csect(0)) / sc_csref0
-
-!   ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-!   csect(2) = ((csect(0) - csect(1)) - csect(3)) - csect(4)
-!   csect(5) = sc_csref5
-
-!   ! Now add Coulomb
-!   csect(0) = csect(0) + csect(5)
-
-!   ! Interaction length in meter
-!   sc_xintl = (c1m2*sc_anuc)/(((fnavo * sc_rho)*csect(0))*1e-24_fPrec)
-
-!   ! Filling CProb with cumulated normalised Cross-sections
-!   sc_cprob(:) = zero
-!   sc_cprob(5) = one
-!   do i=1,4
-!     sc_cprob(i) = sc_cprob(i-1) + csect(i)/csect(0)
-!   end do
-
-! end subroutine k2coll_scatin
 
 !>
 !! jaw(s,nabs,icoll,iturn,ipart)
@@ -1007,58 +791,6 @@ integer function k2coll_ichoix(ich_cprob)
   k2coll_ichoix = i
 
 end function k2coll_ichoix
-
-!>
-!! k2coll_calcElectronDensity(AtomicNumber, Density, AtomicMass)
-!! Function to calculate the electron density in a material
-!! Should give the number per cubic meter
-!<
-real(kind=fPrec) function k2coll_calcElectronDensity(AtomicNumber,Density,AtomicMass)
-
-  real(kind=fPrec) , intent(in) :: AtomicNumber
-  real(kind=fPrec) , intent(in) :: Density
-  real(kind=fPrec) , intent(in) :: AtomicMass
-
-  real(kind=fPrec), parameter :: Avogadro = 6.022140857e23_fPrec
-  real(kind=fPrec) PartA, PartB
-
-  PartA = (AtomicNumber*Avogadro) * Density
-  PartB = AtomicMass * c1m6 ! 1e-6 factor converts to n/m^-3
-  k2coll_calcElectronDensity = PartA/PartB
-
-end function k2coll_calcElectronDensity
-
-!>
-!! k2coll_calcPlasmaEnergy(ElectronDensity)
-!! Function to calculate the plasma energy in a material
-!! CalculatePlasmaEnergy = (PlanckConstantBar * sqrt((ElectronDensity *(ElectronCharge**2)) / &
-!!& (ElectronMass * FreeSpacePermittivity)))/ElectronCharge*eV;
-!<
-real(kind=fPrec) function k2coll_calcPlasmaEnergy(ElectronDensity)
-
-  use physical_constants
-
-  real(kind=fPrec), intent(in) :: ElectronDensity
-
-  real(kind=fPrec) sqrtAB,PartA
-
-  ! Values from the 2016 PDG
-  real(kind=fPrec), parameter :: PlanckConstantBar = 1.054571800e-34_fPrec
-  real(kind=fPrec), parameter :: ElectronCharge = echarge 
-  real(kind=fPrec), parameter :: ElectronCharge2 = ElectronCharge*ElectronCharge
-  real(kind=fPrec), parameter :: ElectronMass = 9.10938356e-31_fPrec
-  real(kind=fPrec), parameter :: SpeedOfLight2 = clight*clight
-  real(kind=fPrec), parameter :: FreeSpacePermeability = 16.0e-7_fPrec*atan(one)
-  real(kind=fPrec), parameter :: FSPC2 = FreeSpacePermeability*SpeedOfLight2
-  real(kind=fPrec), parameter :: FreeSpacePermittivity = one/FSPC2
-  real(kind=fPrec), parameter :: PartB = ElectronMass * FreeSpacePermittivity
-
-  PartA  = ElectronDensity * ElectronCharge2
-  sqrtAB = sqrt(PartA/PartB)
-
-  k2coll_calcPlasmaEnergy = ((PlanckConstantBar*sqrtAB)/ElectronCharge)*c1m9
-
-end function k2coll_calcPlasmaEnergy
 
 
 end module coll_k2

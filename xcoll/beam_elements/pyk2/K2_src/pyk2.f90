@@ -76,12 +76,6 @@ end subroutine
 
 
 subroutine pyk2_run( &
-                    x_in, &
-                    xp_in, &
-                    y_in, &
-                    yp_in, &
-                    s_in, &
-                    p_in, &
                     val_part_hit, &
                     val_part_abs, &
                     val_part_impact, &
@@ -115,27 +109,13 @@ subroutine pyk2_run( &
                     run_cgen, &
                     is_crystal, &
                     c_length, &
-                    c_aperture, &
-                    c_offset, &
-                    c_tilt, &
-                    onesided, &
                     length, &
                     p0, &
                     nhit, &
                     nabs, &
                     fracab, &
-                    mirror, &
-                    cRot, &
-                    sRot, &
-                    cRRot, &
-                    sRRot, &
-                    nnuc0, &
-                    nnuc1, &
-                    ien0, &
-                    ien1, &
                     isImp, &
                     s, &
-                    keeps, &
                     zlm, &
                     x, &
                     xp, &
@@ -145,20 +125,8 @@ subroutine pyk2_run( &
                     p, &
                     sp, &
                     dpop, &
-                    x_flk, &
-                    y_flk, &
-                    xp_flk, &
-                    yp_flk, &
-                    x_in0, &
-                    xIn, &
-                    xpIn, &
-                    yIn, &
-                    ypIn, &
-                    tiltangle)
+                    x_in0)
 
-  ! use parpro ,           only : npart
-  ! use coll_common ,      only : rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
-  ! //use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
 
   implicit none
@@ -167,14 +135,6 @@ subroutine pyk2_run( &
   ! ############################
   ! ## variables declarations ##
   ! ############################
-
-  ! integer, intent(in)          :: npart
-  real(kind=8), intent(inout)  :: x_in
-  real(kind=8), intent(inout)  :: xp_in
-  real(kind=8), intent(inout)  :: y_in
-  real(kind=8), intent(inout)  :: yp_in
-  real(kind=8), intent(inout)  :: s_in
-  real(kind=8), intent(inout)  :: p_in
 
   integer(kind=4)  , intent(inout) :: val_part_hit
   integer(kind=4)  , intent(inout) :: val_part_abs
@@ -213,35 +173,17 @@ subroutine pyk2_run( &
 
   logical(kind=4)  , intent(in) :: is_crystal
   real(kind=8) ,    intent(in) :: c_length
-  real(kind=8) ,    intent(in) :: c_aperture
-  real(kind=8) ,    intent(in) :: c_offset
-  real(kind=8) , intent(inout) :: c_tilt(2)
-  logical(kind=4) ,  intent(in):: onesided
   real(kind=8),  intent(inout) :: length
   real(kind=8),  intent(inout) :: p0
 
   integer,          intent(inout) :: nhit
   integer,          intent(inout) :: nabs
-  integer(kind=8),          intent(inout) :: nnuc0
-  integer(kind=8),          intent(inout) :: nnuc1
-  real(kind=8), intent(inout) :: ien0
-  real(kind=8), intent(inout) :: ien1
   real(kind=8), intent(inout) :: fracab
-  real(kind=8), intent(inout) :: mirror
-  real(kind=8), intent(inout) :: cRot
-  real(kind=8), intent(inout) :: sRot
-  real(kind=8), intent(inout) :: cRRot
-  real(kind=8), intent(inout) :: sRRot
 
   logical(kind=4), intent(inout) :: isImp
   real(kind=8),    intent(inout) :: s
-  real(kind=8),    intent(in) :: keeps
   real(kind=8),    intent(inout) :: zlm
   real(kind=8),    intent(inout) :: sp
-  real(kind=8),    intent(inout) :: x_flk
-  real(kind=8),    intent(inout) :: y_flk
-  real(kind=8),    intent(inout) :: xp_flk
-  real(kind=8),    intent(inout) :: yp_flk
 
   real(kind=8),    intent(inout) :: x
   real(kind=8),    intent(inout) :: xp
@@ -251,11 +193,6 @@ subroutine pyk2_run( &
   real(kind=8),    intent(inout) :: p
   real(kind=8),    intent(inout) :: dpop  
   real(kind=8),    intent(inout) :: x_in0
-  real(kind=8),    intent(inout) :: xIn
-  real(kind=8),    intent(inout) :: xpIn
-  real(kind=8),    intent(inout) :: yIn
-  real(kind=8),    intent(inout) :: ypIn
-  real(kind=8),    intent(in)    :: tiltangle
 
 
   ! needs to be passed from cry_startElement
@@ -269,15 +206,13 @@ subroutine pyk2_run( &
      run_csref0, run_csref1, run_csref4, run_csref5, run_radl, run_dlri, &
      run_dlyi, run_eUm, run_ai, run_collnt, run_cprob, run_xintl, run_bn, &
      run_ecmsq, run_xln15s, run_bpp, run_cgen, is_crystal, &
-     c_length, c_aperture, c_offset, c_tilt, &
-     x_in, xp_in, y_in, yp_in, p_in, s_in, &
-     val_part_hit, val_part_abs, &
+     c_length, val_part_hit, val_part_abs, &
      val_part_impact, val_part_indiv, val_part_linteract, &
-     onesided, 1, val_nabs_type, val_linside, length, p0, nhit, &
-     nabs, fracab, mirror, cRot, sRot, cRRot, sRRot, nnuc0, &
-    nnuc1, ien0, ien1, cry_proc, cry_proc_prev, cry_proc_tmp, &
-    isImp, s, keeps, zlm, sp, x_flk, y_flk, xp_flk, yp_flk, &
-    x, xp, xp_in0, z, zp, p, dpop, x_in0, xIn, xpIn, yIn, ypIn, tiltangle)
+     val_nabs_type, val_linside, length, p0, nhit, &
+     nabs, fracab, &
+    cry_proc, cry_proc_prev, cry_proc_tmp, &
+    isImp, s, zlm, sp, &
+    x, xp, xp_in0, z, zp, p, dpop, x_in0)
 
 end subroutine 
 
