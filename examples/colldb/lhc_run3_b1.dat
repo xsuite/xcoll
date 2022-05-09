@@ -1,0 +1,101 @@
+######################################
+#########      Families      #########
+######################################
+#
+# Momentum cleaning
+NSIG_FAM TCP3                 15.0 PRIMARY
+NSIG_FAM TCSG3                18.0 SECONDARY
+NSIG_FAM TCLA3                20.0 TERTIARY
+# Betatron cleaning
+NSIG_FAM TCP7                  5.0 PRIMARY
+NSIG_FAM TCSG7                 6.5 SECONDARY
+NSIG_FAM TCLA7                10.0 TERTIARY
+# Injection protection
+NSIG_FAM TCLI                999.0 TERTIARY
+NSIG_FAM TDI                 999.0 TERTIARY
+# Dump protection
+NSIG_FAM TCDQ                  7.3 TERTIARY
+NSIG_FAM TCSTCDQ               7.3 SECONDARY
+# Physics background minimalisation
+NSIG_FAM TCT15                 8.5 TERTIARY
+NSIG_FAM TCT2                 37.0 TERTIARY
+NSIG_FAM TCT8                 15.0 TERTIARY
+# Physics debris
+NSIG_FAM TCL4                 17.0 TERTIARY
+NSIG_FAM TCL5                 42.0 TERTIARY
+NSIG_FAM TCL6                 20.0 TERTIARY
+# Physics debris in ALICE (only for ions)
+NSIG_FAM TCLD                999.0 TERTIARY
+#
+######################################
+#########    Collimators     #########
+######################################
+#
+# name                                                opening/fam mat.      length[m]  angle[deg]  offset[m]
+tcl.4r1.b1                                                   TCL4 CU        1.000      0.0         0.
+tcl.5r1.b1                                                   TCL5 CU        1.000      0.0         0.
+tcl.6r1.b1                                                   TCL6 Iner      1.000      0.0         0.
+tctph.4l2.b1                                                 TCT2 Iner      1.000      0.0         0.
+tctpv.4l2.b1                                                 TCT2 Iner      1.000     90.0         0.
+tdisa.a4l2.b1                                                 TDI CU        1.565     90.0         0.
+tdisb.a4l2.b1                                                 TDI CU        1.565     90.0         0.
+tdisc.a4l2.b1                                                 TDI CU        1.565     90.0         0.
+tclia.4r2                                                    TCLI C         1.000     90.0         0.
+tclib.6r2.b1                                                 TCLI C         1.000     90.0         0.
+tcld.a11r2.b1                                                TCLD Iner      0.600      0.0         0.
+tcp.6l3.b1                                                   TCP3 C         0.600      0.0         0.
+tcsg.5l3.b1                                                 TCSG3 C         1.000      0.0         0.
+tcsg.4r3.b1                                                 TCSG3 C         1.000      0.0         0.
+tcsg.a5r3.b1                                                TCSG3 C         1.000    170.7         0.
+tcsg.b5r3.b1                                                TCSG3 C         1.000     10.8         0.
+tcla.a5r3.b1                                                TCLA3 Iner      1.000     90.0         0.
+tcla.b5r3.b1                                                TCLA3 Iner      1.000      0.0         0.
+tcla.6r3.b1                                                 TCLA3 Iner      1.000      0.0         0.
+tcla.7r3.b1                                                 TCLA3 Iner      1.000      0.0         0.
+tctph.4l5.b1                                                TCT15 Iner      1.000      0.0         0.
+tctpv.4l5.b1                                                TCT15 Iner      1.000     90.0         0.
+tcl.4r5.b1                                                   TCL4 CU        1.000      0.0         0.
+tcl.5r5.b1                                                   TCL5 CU        1.000      0.0         0.
+tcl.6r5.b1                                                   TCL6 Iner      1.000      0.0         0.
+tcdqa.a4r6.b1                                                TCDQ C         3.000      0.0         0.
+tcdqa.c4r6.b1                                                TCDQ C         3.000      0.0         0.
+tcdqa.b4r6.b1                                                TCDQ C         3.000      0.0         0.
+tcsp.a4r6.b1                                              TCSTCDQ C         1.000      0.0         0.
+tcp.d6l7.b1                                                  TCP7 MoGR      0.600     90.0         0.
+tcp.c6l7.b1                                                  TCP7 MoGR      0.600      0.0         0.
+tcp.b6l7.b1                                                  TCP7 C         0.600    127.5         0.
+tcsg.a6l7.b1                                                TCSG7 C         1.000    141.1         0.
+tcsg.b5l7.b1                                                TCSG7 C         1.000    143.5         0.
+tcsg.a5l7.b1                                                TCSG7 C         1.000     40.7         0.
+tcsg.d4l7.b1                                                TCSG7 MoGR      1.000     90.0         0.
+tcspm.b4l7.b1                                               TCSG7 MoGR      1.000      0.0         0.
+tcsg.a4l7.b1                                                TCSG7 C         1.000    134.6         0.
+tcsg.a4r7.b1                                                TCSG7 C         1.000     46.3         0.
+tcsg.b5r7.b1                                                TCSG7 C         1.000    141.5         0.
+tcsg.d5r7.b1                                                TCSG7 C         1.000     51.4         0.
+tcspm.e5r7.b1                                               TCSG7 MoGR      1.000    130.5         0.
+tcspm.6r7.b1                                                TCSG7 MoGR      1.000      0.5         0.
+tcla.a6r7.b1                                                TCLA7 Iner      1.000     90.0         0.
+tcla.b6r7.b1                                                TCLA7 Iner      1.000      0.0         0.
+tcla.c6r7.b1                                                TCLA7 Iner      1.000     90.0         0.
+tcla.d6r7.b1                                                TCLA7 Iner      1.000      0.0         0.
+tcla.a7r7.b1                                                TCLA7 Iner      1.000      0.0         0.
+tctph.4l8.b1                                                 TCT8 Iner      1.000      0.0         0.
+tctpv.4l8.b1                                                 TCT8 Iner      1.000     90.0         0.
+tctph.4l1.b1                                                TCT15 Iner      1.000      0.0         0.
+tctpv.4l1.b1                                                TCT15 Iner      1.000     90.0         0.
+#
+# Old collimators still present in the machine but not in normal use:
+tcsg.b4l7.b1                                                999.0 C         1.000      0.0         0.
+tcsg.e5r7.b1                                                999.0 C         1.000    130.5         0.
+tcsg.6r7.b1                                                 999.0 C         1.000      0.5         0.
+#
+#
+#
+######################################
+### Additional Collimator Settings ###
+######################################
+SETTINGS
+ONESIDED tcdqa.a4r6.b1                                    1
+ONESIDED tcdqa.c4r6.b1                                    1
+ONESIDED tcdqa.b4r6.b1                                    1

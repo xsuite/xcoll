@@ -1,0 +1,7 @@
+# name      gap material length angle offset
+pr.tdi47     10       Be    0.1     0      0
+pr.tdi48     10       Be    0.1     0  	   0
+
+SETTINGS
+ONESIDED pr.tdi47 1
+ONESIDED pr.tdi48 1
