@@ -127,12 +127,13 @@ def track(k2collimator, particles, npart, reset_seed):
             e0[survived_hit] * beta0[survived_hit]
         )
     particles.ptau[:npart] = ptau_out
+    rpp_out = particles.rpp[:npart].copy()
 
     # Rescale angles, because K2 did not update angles with new energy!
     # So need to do xp' = xp * p_in / p_out = xp * rpp_out / rpp_in
     # (see collimation.f90 line 1709 and mod_particles.f90 line 210)
-    xp_part *= particles.rpp/rpp_in
-    yp_part *= particles.rpp/rpp_in
+    xp_part *= rpp_out/rpp_in
+    yp_part *= rpp_out/rpp_in
 
     # Drift to end of collimator
     drift_4d(x_part, y_part, xp_part, yp_part, length/2)
@@ -146,8 +147,8 @@ def track(k2collimator, particles, npart, reset_seed):
     # Survived particles get updated coordinates
     x_out[not_lost]  = x_part[not_lost]
     y_out[not_lost]  = y_part[not_lost]
-    px_out[not_lost] = xp_part[not_lost]/particles.rpp[not_lost]
-    py_out[not_lost] = yp_part[not_lost]/particles.rpp[not_lost]
+    px_out[not_lost] = xp_part[not_lost]/rpp_out[not_lost]
+    py_out[not_lost] = yp_part[not_lost]/rpp_out[not_lost]
     # Write updated coordinates
     particles.x[:npart] = x_out
     particles.y[:npart] = y_out
