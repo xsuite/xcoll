@@ -5,6 +5,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
                 c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, random_generator_seed, length):
+    
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
@@ -141,14 +142,67 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         dpop = np.array(dpop)
         x_in0 = np.array(x_in0)
 
-        pyk2.pyk2_run(
+        # pyk2.pyk2_run(
+        #             val_part_hit=val_part_hit,
+        #             val_part_abs=val_part_abs,
+        #             val_part_impact=val_part_impact,
+        #             val_part_indiv=val_part_indiv,
+        #             val_part_linteract=val_part_linteract,
+        #             val_nabs_type=val_nabs_type,
+        #             val_linside=val_linside,
+        #             run_exenergy=run_exenergy,
+        #             run_anuc=run_anuc,
+        #             run_zatom=run_zatom,
+        #             run_emr=run_emr,
+        #             run_rho=run_rho,
+        #             run_hcut=run_hcut,
+        #             run_bnref=run_bnref,
+        #             run_csref0=run_csref0,
+        #             run_csref1=run_csref1,
+        #             run_csref4=run_csref4,
+        #             run_csref5=run_csref5,
+        #             run_radl=run_radl,
+        #             run_dlri=run_dlri,
+        #             run_dlyi=run_dlyi,
+        #             run_eum=run_eum,
+        #             run_ai=run_ai,
+        #             run_collnt=run_collnt,
+        #             run_cprob=run_cprob,
+        #             run_xintl=run_xintl,
+        #             run_bn=run_bn,
+        #             run_ecmsq=run_ecmsq,
+        #             run_xln15s=run_xln15s,
+        #             run_bpp=run_bpp,
+        #             run_cgen=cgen,
+        #             is_crystal=is_crystal,
+        #             c_length=c_length,
+        #             length=length,
+        #             p0=p0,
+        #             nhit=nhit,
+        #             nabs=nabs,
+        #             fracab=fracab,
+        #             isimp=isimp,
+        #             s=s,
+        #             zlm=zlm,
+        #             x=x,
+        #             xp=xp,
+        #             xp_in0=xp_in0,
+        #             z=z,
+        #             zp=zp,
+        #             p=p,
+        #             sp=sp,
+        #             dpop=dpop,
+        #             x_in0=x_in0
+        #             )
+
+
+        if (is_crystal):
+            pyk2.pyk2_crystal(
                     val_part_hit=val_part_hit,
                     val_part_abs=val_part_abs,
                     val_part_impact=val_part_impact,
                     val_part_indiv=val_part_indiv,
                     val_part_linteract=val_part_linteract,
-                    val_nabs_type=val_nabs_type,
-                    val_linside=val_linside,
                     run_exenergy=run_exenergy,
                     run_anuc=run_anuc,
                     run_zatom=run_zatom,
@@ -160,12 +214,40 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     run_csref1=run_csref1,
                     run_csref4=run_csref4,
                     run_csref5=run_csref5,
-                    run_radl=run_radl,
                     run_dlri=run_dlri,
                     run_dlyi=run_dlyi,
                     run_eum=run_eum,
                     run_ai=run_ai,
                     run_collnt=run_collnt,
+                    run_bn=run_bn,
+                    c_length=c_length,
+                    nhit=nhit,
+                    nabs=nabs,
+                    isimp=isimp,
+                    s=s,
+                    zlm=zlm,
+                    x=x,
+                    xp=xp,
+                    xp_in0=xp_in0,
+                    z=z,
+                    zp=zp,
+                    p=p,
+                    x_in0=x_in0
+                    )
+        else:
+            pyk2.pyk2_jaw(
+                    val_part_hit=val_part_hit,
+                    val_part_abs=val_part_abs,
+                    val_part_impact=val_part_impact,
+                    val_part_indiv=val_part_indiv,
+                    val_part_linteract=val_part_linteract,
+                    val_nabs_type=val_nabs_type,
+                    val_linside=val_linside,
+                    run_exenergy=run_exenergy,
+                    run_anuc=run_anuc,
+                    run_zatom=run_zatom,
+                    run_rho=run_rho,
+                    run_radl=run_radl,
                     run_cprob=run_cprob,
                     run_xintl=run_xintl,
                     run_bn=run_bn,
@@ -173,8 +255,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     run_xln15s=run_xln15s,
                     run_bpp=run_bpp,
                     run_cgen=cgen,
-                    is_crystal=is_crystal,
-                    c_length=c_length,
                     length=length,
                     p0=p0,
                     nhit=nhit,
@@ -185,13 +265,10 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     zlm=zlm,
                     x=x,
                     xp=xp,
-                    xp_in0=xp_in0,
                     z=z,
                     zp=zp,
-                    p=p,
                     sp=sp,
-                    dpop=dpop,
-                    x_in0=x_in0
+                    dpop=dpop
                     )
 
         # Transform back to particle coordinates with opening and offset
