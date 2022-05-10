@@ -128,81 +128,36 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         zlm = -1*length
 
 
-        isimp = np.array(isimp)
-        s = np.array(s)
-        zlm = np.array(zlm)
-        sp = np.array(sp)
-
-        x = np.array(x)
-        xp = np.array(xp)
-        xp_in0 = np.array(xp_in0)
-        z = np.array(z)
-        zp = np.array(zp)
-        p = np.array(p)
-        dpop = np.array(dpop)
-        x_in0 = np.array(x_in0)
-
-        # pyk2.pyk2_run(
-        #             val_part_hit=val_part_hit,
-        #             val_part_abs=val_part_abs,
-        #             val_part_impact=val_part_impact,
-        #             val_part_indiv=val_part_indiv,
-        #             val_part_linteract=val_part_linteract,
-        #             val_nabs_type=val_nabs_type,
-        #             val_linside=val_linside,
-        #             run_exenergy=run_exenergy,
-        #             run_anuc=run_anuc,
-        #             run_zatom=run_zatom,
-        #             run_emr=run_emr,
-        #             run_rho=run_rho,
-        #             run_hcut=run_hcut,
-        #             run_bnref=run_bnref,
-        #             run_csref0=run_csref0,
-        #             run_csref1=run_csref1,
-        #             run_csref4=run_csref4,
-        #             run_csref5=run_csref5,
-        #             run_radl=run_radl,
-        #             run_dlri=run_dlri,
-        #             run_dlyi=run_dlyi,
-        #             run_eum=run_eum,
-        #             run_ai=run_ai,
-        #             run_collnt=run_collnt,
-        #             run_cprob=run_cprob,
-        #             run_xintl=run_xintl,
-        #             run_bn=run_bn,
-        #             run_ecmsq=run_ecmsq,
-        #             run_xln15s=run_xln15s,
-        #             run_bpp=run_bpp,
-        #             run_cgen=cgen,
-        #             is_crystal=is_crystal,
-        #             c_length=c_length,
-        #             length=length,
-        #             p0=p0,
-        #             nhit=nhit,
-        #             nabs=nabs,
-        #             fracab=fracab,
-        #             isimp=isimp,
-        #             s=s,
-        #             zlm=zlm,
-        #             x=x,
-        #             xp=xp,
-        #             xp_in0=xp_in0,
-        #             z=z,
-        #             zp=zp,
-        #             p=p,
-        #             sp=sp,
-        #             dpop=dpop,
-        #             x_in0=x_in0
-        #             )
-
-
         if (is_crystal):
+
+            ##########################################
+
+            val_part_hit = np.array(val_part_hit, dtype=np.int64)
+            val_part_abs = np.array(val_part_abs, dtype=np.int64)
+            val_part_impact = np.array(val_part_impact, dtype=np.float64)
+            val_part_indiv = np.array(val_part_indiv, dtype=np.float64)
+            run_exenergy = np.array(run_exenergy, dtype=np.float64)
+            run_bn = np.array(run_bn, dtype=np.float64)
+            nhit = np.array(nhit, dtype=np.int64)
+            nabs = np.array(nabs, dtype=np.int64)
+            isimp = np.array(isimp)
+            s = np.array(s, dtype=np.float64)
+            zlm = np.array(zlm, dtype=np.float64)
+            x = np.array(x, dtype=np.float64)
+            xp = np.array(xp, dtype=np.float64)
+            xp_in0 = np.array(xp_in0, dtype=np.float64)
+            z = np.array(z, dtype=np.float64)
+            zp = np.array(zp, dtype=np.float64)
+            p = np.array(p, dtype=np.float64)
+            x_in = np.array(x_in, dtype=np.float64)
+
+            ##########################################
+
             pyk2.pyk2_crystal(
                     val_part_hit=val_part_hit,
                     val_part_abs=val_part_abs,
                     val_part_impact=val_part_impact,
                     val_part_indiv=val_part_indiv,
-                    val_part_linteract=val_part_linteract,
                     run_exenergy=run_exenergy,
                     run_anuc=run_anuc,
                     run_zatom=run_zatom,
@@ -234,8 +189,96 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     p=p,
                     x_in0=x_in0
                     )
+
+            if (nabs != 0):
+                val_part_abs = 1
+                val_part_linteract = zlm
+
+            simp  = (s - c_length) + simp
+            sout  = s
+            xout  = x
+            xpout = xp
+            yout  = z
+            ypout = zp
+
+##################################################################################################
+
         else:
-            pyk2.pyk2_jaw(
+
+            if (x >= 0):
+            # Particle hits collimator and we assume interaction length ZLM equal
+            # to collimator length (what if it would leave collimator after
+            # small length due to angle???)
+                zlm  = length
+                val_part_impact = x
+                val_part_indiv  = xp
+            
+            elif (xp <= 0):
+            # Particle does not hit collimator. Interaction length ZLM is zero.
+                zlm = 0
+            
+            else:
+            # Calculate s-coordinate of interaction point
+                s = (-1*x)/xp
+                # if(s <= 0):
+                # write(lerr,"(a)") "COLLK2> ERROR S <= zero. This should not happen!"
+                # call prror
+            
+                if (s < length):
+                    zlm = length - s
+                    val_part_impact = 0
+                    val_part_indiv  = xp
+                else:
+                    zlm = 0
+           
+
+            # First do the drift part
+            # DRIFT PART
+            drift_length = length - zlm
+            if (drift_length > 0):
+                x  = x  + xp * drift_length
+                z  = z  + zp * drift_length
+                sp = sp + drift_length
+
+            # Now do the scattering part
+            if (zlm > 0):
+                if (not val_linside):
+                # first time particle hits collimator: entering jaw
+                    val_linside = True
+
+                s_impact = sp
+                nhit = nhit + 1
+
+                ##########################################
+
+               
+                val_part_hit = np.array(val_part_hit, dtype=np.int64)
+                val_part_abs = np.array(val_part_abs, dtype=np.int64)
+                val_part_impact = np.array(val_part_impact, dtype=np.float64)
+                val_part_indiv = np.array(val_part_indiv, dtype=np.float64)
+                val_part_linteract = np.array(val_part_linteract, dtype=np.float64)
+                val_nabs_type = np.array(val_nabs_type, dtype=np.int64)
+                val_linside = np.array(val_linside)
+                run_exenergy = np.array(run_exenergy, dtype=np.float64)
+                run_bn = np.array(run_bn, dtype=np.float64)
+                length = np.array(length, dtype=np.float64)
+                p0 = np.array(p0, dtype=np.float64)
+                nhit = np.array(nhit, dtype=np.int64)
+                nabs = np.array(nabs, dtype=np.int64)
+                fracab = np.array(fracab, dtype=np.float64)
+                isimp = np.array(isimp)
+                s = np.array(s, dtype=np.float64)
+                zlm = np.array(zlm, dtype=np.float64)
+                x = np.array(x, dtype=np.float64)
+                xp = np.array(xp, dtype=np.float64)
+                z = np.array(z, dtype=np.float64)
+                zp = np.array(zp, dtype=np.float64)
+                sp = np.array(sp, dtype=np.float64)
+                dpop = np.array(dpop, dtype=np.float64)
+
+                ##########################################
+
+                pyk2.pyk2_jaw(
                     val_part_hit=val_part_hit,
                     val_part_abs=val_part_abs,
                     val_part_impact=val_part_impact,
@@ -270,6 +313,46 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     sp=sp,
                     dpop=dpop
                     )
+
+                val_nabs_type = nabs
+                val_part_hit  = 1
+
+                isimp = True
+                simp  = s_impact
+                sout  = (s+sp)
+                xout  = x
+                xpout = xp
+                yout  = z
+                ypout = zp
+
+                # Writeout should be done for both inelastic and single diffractive. doing all transformations
+                # in x_flk and making the set to 99.99 mm conditional for nabs=1
+                if (nabs == 1 or nabs == 4):
+                # Transform back to lab system for writeout.
+                # keep x,y,xp,yp unchanged for continued tracking, store lab system variables in x_flk etc
+
+                # Finally, the actual coordinate change to 99 mm
+                    if (nabs == 1):
+                        fracab = fracab + 1
+                        x = 99.99e-3
+                        z = 99.99e-3
+                        val_part_linteract = zlm
+                        val_part_abs = 1
+                    # Collimator jaw interaction
+
+            if (nabs != 1 and zlm > 0):
+            # Do the rest drift, if particle left collimator early
+                drift_length = (length-(s+sp))
+
+                if (drift_length > 1.0e-15):
+                    val_linside = False
+                    x  = x  + xp * drift_length
+                    z  = z  + zp * drift_length
+                    sp = sp + drift_length
+            
+                val_part_linteract = zlm - drift_length
+            
+####################################################################################################################
 
         # Transform back to particle coordinates with opening and offset
         if(x < 99.0e-3):
