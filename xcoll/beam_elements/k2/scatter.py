@@ -220,9 +220,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
             else:
             # Calculate s-coordinate of interaction point
                 s = (-1*x)/xp
-                # if(s <= 0):
-                # write(lerr,"(a)") "COLLK2> ERROR S <= zero. This should not happen!"
-                # call prror
             
                 if (s < length):
                     zlm = length - s
@@ -251,41 +248,21 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
                 ##########################################
 
-               
-                val_part_hit = np.array(val_part_hit, dtype=np.int64)
-                val_part_abs = np.array(val_part_abs, dtype=np.int64)
-                val_part_impact = np.array(val_part_impact, dtype=np.float64)
-                val_part_indiv = np.array(val_part_indiv, dtype=np.float64)
-                val_part_linteract = np.array(val_part_linteract, dtype=np.float64)
-                val_nabs_type = np.array(val_nabs_type, dtype=np.int64)
-                val_linside = np.array(val_linside)
                 run_exenergy = np.array(run_exenergy, dtype=np.float64)
                 run_bn = np.array(run_bn, dtype=np.float64)
-                length = np.array(length, dtype=np.float64)
                 p0 = np.array(p0, dtype=np.float64)
-                nhit = np.array(nhit, dtype=np.int64)
                 nabs = np.array(nabs, dtype=np.int64)
-                fracab = np.array(fracab, dtype=np.float64)
-                isimp = np.array(isimp)
                 s = np.array(s, dtype=np.float64)
                 zlm = np.array(zlm, dtype=np.float64)
                 x = np.array(x, dtype=np.float64)
                 xp = np.array(xp, dtype=np.float64)
                 z = np.array(z, dtype=np.float64)
                 zp = np.array(zp, dtype=np.float64)
-                sp = np.array(sp, dtype=np.float64)
                 dpop = np.array(dpop, dtype=np.float64)
 
                 ##########################################
 
                 pyk2.pyk2_jaw(
-                    val_part_hit=val_part_hit,
-                    val_part_abs=val_part_abs,
-                    val_part_impact=val_part_impact,
-                    val_part_indiv=val_part_indiv,
-                    val_part_linteract=val_part_linteract,
-                    val_nabs_type=val_nabs_type,
-                    val_linside=val_linside,
                     run_exenergy=run_exenergy,
                     run_anuc=run_anuc,
                     run_zatom=run_zatom,
@@ -298,19 +275,14 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                     run_xln15s=run_xln15s,
                     run_bpp=run_bpp,
                     run_cgen=cgen,
-                    length=length,
                     p0=p0,
-                    nhit=nhit,
                     nabs=nabs,
-                    fracab=fracab,
-                    isimp=isimp,
                     s=s,
                     zlm=zlm,
                     x=x,
                     xp=xp,
                     z=z,
                     zp=zp,
-                    sp=sp,
                     dpop=dpop
                     )
 
