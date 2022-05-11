@@ -44,157 +44,157 @@ end subroutine k2coll_init
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, &
-                    j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp, j_zlm, &
-                    j_p0, j_x, j_xp, j_z, j_zp, j_dpop, j_xInt, j_xpInt, j_yInt, j_ypInt, j_sInt)
+! subroutine k2coll_jaw(s, nabs, j_exenergy, j_anuc, j_zatom, j_rho, j_radl, &
+!                     j_cprob, j_xintl, j_bn, j_cgen, j_ecmsq, j_xln15s, j_bpp, j_zlm, &
+!                     j_p0, j_x, j_xp, j_z, j_zp, j_dpop, j_xInt, j_xpInt, j_yInt, j_ypInt, j_sInt)
 
-  use mod_ranlux, only : coll_rand
-  use coll_common
-  !
-  use mathlib_bouncer
+!   use mod_ranlux, only : coll_rand
+!   use coll_common
+!   !
+!   use mathlib_bouncer
 
-  real(kind=fPrec), intent(inout) :: s
-  integer,          intent(inout) :: nabs
-  real(kind=fPrec), intent(inout) :: j_exenergy
-  real(kind=fPrec), intent(in)    :: j_anuc
-  real(kind=fPrec), intent(in)    :: j_zatom
-  real(kind=fPrec), intent(in)    :: j_rho
-  real(kind=fPrec), intent(in)    :: j_radl
-  real(kind=fPrec), intent(in)    :: j_cprob(0:5)
-  real(kind=fPrec), intent(in)    :: j_xintl
-  real(kind=fPrec), intent(in)    :: j_bn
-  real(kind=fPrec), intent(in)    :: j_cgen(200)
-  real(kind=fPrec), intent(in)    :: j_ecmsq
-  real(kind=fPrec), intent(in)    :: j_xln15s
-  real(kind=fPrec), intent(in)    :: j_bpp
-  real(kind=fPrec), intent(in)    :: j_zlm
-  real(kind=fPrec), intent(in)    :: j_p0
+!   real(kind=fPrec), intent(inout) :: s
+!   integer,          intent(inout) :: nabs
+!   real(kind=fPrec), intent(inout) :: j_exenergy
+!   real(kind=fPrec), intent(in)    :: j_anuc
+!   real(kind=fPrec), intent(in)    :: j_zatom
+!   real(kind=fPrec), intent(in)    :: j_rho
+!   real(kind=fPrec), intent(in)    :: j_radl
+!   real(kind=fPrec), intent(in)    :: j_cprob(0:5)
+!   real(kind=fPrec), intent(in)    :: j_xintl
+!   real(kind=fPrec), intent(in)    :: j_bn
+!   real(kind=fPrec), intent(in)    :: j_cgen(200)
+!   real(kind=fPrec), intent(in)    :: j_ecmsq
+!   real(kind=fPrec), intent(in)    :: j_xln15s
+!   real(kind=fPrec), intent(in)    :: j_bpp
+!   real(kind=fPrec), intent(in)    :: j_zlm
+!   real(kind=fPrec), intent(in)    :: j_p0
 
-  real(kind=fPrec), intent(inout) :: j_xInt
-  real(kind=fPrec), intent(inout) :: j_xpInt
-  real(kind=fPrec), intent(inout) :: j_yInt
-  real(kind=fPrec), intent(inout) :: j_ypInt
-  real(kind=fPrec), intent(inout) :: j_sInt
+!   real(kind=fPrec), intent(inout) :: j_xInt
+!   real(kind=fPrec), intent(inout) :: j_xpInt
+!   real(kind=fPrec), intent(inout) :: j_yInt
+!   real(kind=fPrec), intent(inout) :: j_ypInt
+!   real(kind=fPrec), intent(inout) :: j_sInt
 
-  real(kind=fPrec), intent(inout) :: j_x
-  real(kind=fPrec), intent(inout) :: j_xp
-  real(kind=fPrec), intent(inout) :: j_z
-  real(kind=fPrec), intent(inout) :: j_zp
-  real(kind=fPrec), intent(inout) :: j_dpop
+!   real(kind=fPrec), intent(inout) :: j_x
+!   real(kind=fPrec), intent(inout) :: j_xp
+!   real(kind=fPrec), intent(inout) :: j_z
+!   real(kind=fPrec), intent(inout) :: j_zp
+!   real(kind=fPrec), intent(inout) :: j_dpop
 
-  real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,j_zlm1,xpsd,zpsd,psd
-  integer inter,nabs_tmp
+!   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,j_zlm1,xpsd,zpsd,psd
+!   integer inter,nabs_tmp
 
-  ! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-  p    = j_p0*(one+j_dpop)
-  nabs = 0
-  nabs_tmp = nabs
+!   ! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
+!   p    = j_p0*(one+j_dpop)
+!   nabs = 0
+!   nabs_tmp = nabs
     
 
-  ! Initialize the interaction length to input interaction length
-  rlen = j_zlm
+!   ! Initialize the interaction length to input interaction length
+!   rlen = j_zlm
 
-  ! Do a step for a point-like interaction.
-  ! Get monte-carlo interaction length.
-10 continue
-  j_zlm1     = (-one*j_xintl)*log_mb(coll_rand())
-  nabs_tmp = 0  ! type of interaction reset before following scattering process
-  xpBef    = j_xp ! save angles and momentum before scattering
-  zpBef    = j_zp
-  pBef     = p
+!   ! Do a step for a point-like interaction.
+!   ! Get monte-carlo interaction length.
+! 10 continue
+!   j_zlm1     = (-one*j_xintl)*log_mb(coll_rand())
+!   nabs_tmp = 0  ! type of interaction reset before following scattering process
+!   xpBef    = j_xp ! save angles and momentum before scattering
+!   zpBef    = j_zp
+!   pBef     = p
 
-  ! If the monte-carlo interaction length is longer than the
-  ! remaining collimator length, then put it to the remaining
-  ! length, do multiple coulomb scattering and return.
-  ! LAST STEP IN ITERATION LOOP
-  if(j_zlm1 > rlen) then
-    j_zlm1 = rlen
-    call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
-    s = (j_zlm-rlen)+s
-    call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
-    p = p-m_dpodx*s
+!   ! If the monte-carlo interaction length is longer than the
+!   ! remaining collimator length, then put it to the remaining
+!   ! length, do multiple coulomb scattering and return.
+!   ! LAST STEP IN ITERATION LOOP
+!   if(j_zlm1 > rlen) then
+!     j_zlm1 = rlen
+!     call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
+!     s = (j_zlm-rlen)+s
+!     call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)  ! DM routine to include tail
+!     p = p-m_dpodx*s
 
-    j_dpop = (p-j_p0)/j_p0
-    return
-  end if
-    ! Otherwise do multi-coulomb scattering.
-  ! REGULAR STEP IN ITERATION LOOP
-  call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
-    ! Check if particle is outside of collimator (X.LT.0) after
-  ! MCS. If yes, calculate output longitudinal position (s),
-  ! reduce momentum (output as dpop) and return.
-  ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
-  if(j_x <= zero) then
-    s = (j_zlm-rlen)+s
-        call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
-    p = p-m_dpodx*s
-    j_dpop = (p-j_p0)/j_p0
-        return
-  end if
+!     j_dpop = (p-j_p0)/j_p0
+!     return
+!   end if
+!     ! Otherwise do multi-coulomb scattering.
+!   ! REGULAR STEP IN ITERATION LOOP
+  ! call k2coll_mcs(s,j_radl,j_zlm1,j_p0,j_x,j_xp,j_z,j_zp,j_dpop)
+  !   ! Check if particle is outside of collimator (X.LT.0) after
+  ! ! MCS. If yes, calculate output longitudinal position (s),
+  ! ! reduce momentum (output as dpop) and return.
+  ! ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
+  ! if(j_x <= zero) then
+  !   s = (j_zlm-rlen)+s
+  !       call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
+  !   p = p-m_dpodx*s
+  !   j_dpop = (p-j_p0)/j_p0
+  !       return
+  ! end if
 
-  ! Check whether particle is absorbed. If yes, calculate output
-  ! longitudinal position (s), reduce momentum (output as dpop)
-  ! and return.
-  ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
-    inter    = k2coll_ichoix(j_cprob)
-    nabs     = inter
-  nabs_tmp = nabs
+  ! ! Check whether particle is absorbed. If yes, calculate output
+  ! ! longitudinal position (s), reduce momentum (output as dpop)
+  ! ! and return.
+  ! ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
+  !   inter    = k2coll_ichoix(j_cprob)
+  !   nabs     = inter
+  ! nabs_tmp = nabs
 
-  ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
-  j_xInt  = j_x
-  j_xpInt = j_xp
-  j_yInt  = j_z
-  j_ypInt = j_zp
-  j_sInt  = (j_zlm-rlen)+j_zlm1
+  ! ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
+  ! j_xInt  = j_x
+  ! j_xpInt = j_xp
+  ! j_yInt  = j_z
+  ! j_ypInt = j_zp
+  ! j_sInt  = (j_zlm-rlen)+j_zlm1
 
-  if(inter == 1) then
-    s = (j_zlm-rlen)+j_zlm1
-        call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
-        p = p-m_dpodx*s
+  ! if(inter == 1) then
+  !   s = (j_zlm-rlen)+j_zlm1
+  !       call k2coll_calcIonLoss(p,rlen,j_exenergy,j_anuc,j_zatom,j_rho,m_dpodx)
+  !       p = p-m_dpodx*s
 
-    j_dpop = (p-j_p0)/j_p0
+  !   j_dpop = (p-j_p0)/j_p0
 
-    return
-  end if
+  !   return
+  ! end if
 
-  ! Now treat the other types of interaction, as determined by ICHOIX:
+  ! ! Now treat the other types of interaction, as determined by ICHOIX:
 
-  ! Nuclear-Elastic:          inter = 2
-  ! pp Elastic:               inter = 3
-  ! Single-Diffractive:       inter = 4    (changes momentum p)
-  ! Coulomb:                  inter = 5
+  ! ! Nuclear-Elastic:          inter = 2
+  ! ! pp Elastic:               inter = 3
+  ! ! Single-Diffractive:       inter = 4    (changes momentum p)
+  ! ! Coulomb:                  inter = 5
 
-  ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
-  p1 = p
-  ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
-  t = k2coll_gettran(inter,p,j_bn,j_cgen, j_ecmsq, j_xln15s, j_bpp)
+  ! ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
+  ! p1 = p
+  ! ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
+  ! t = k2coll_gettran(inter,p,j_bn,j_cgen, j_ecmsq, j_xln15s, j_bpp)
 
-  ! Tetat calculates from the rms transverse momentum transfer in
-  ! monte-carlo fashion the angle changes for x and z planes. The
-  ! angle change is proportional to SQRT(t) and 1/p, as expected.
-  call k2coll_tetat(t,p,dxp,dzp)
-  ! Apply angle changes
-  j_xp = j_xp+dxp
-  j_zp = j_zp+dzp
+  ! ! Tetat calculates from the rms transverse momentum transfer in
+  ! ! monte-carlo fashion the angle changes for x and z planes. The
+  ! ! angle change is proportional to SQRT(t) and 1/p, as expected.
+  ! call k2coll_tetat(t,p,dxp,dzp)
+  ! ! Apply angle changes
+  ! j_xp = j_xp+dxp
+  ! j_zp = j_zp+dzp
 
-  ! Treat single-diffractive scattering.
-  if(inter == 4) then
+  ! ! Treat single-diffractive scattering.
+  ! if(inter == 4) then
 
-    ! added update for s
-    s    = (j_zlm-rlen)+j_zlm1
-    xpsd = dxp
-    zpsd = dzp
-    psd  = p1
+  !   ! added update for s
+  !   s    = (j_zlm-rlen)+j_zlm1
+  !   xpsd = dxp
+  !   zpsd = dzp
+  !   psd  = p1
 
-    ! Add this code to get the momentum transfer also in the calling routine
-    j_dpop = (p-j_p0)/j_p0
-  end if
+  !   ! Add this code to get the momentum transfer also in the calling routine
+  !   j_dpop = (p-j_p0)/j_p0
+  ! end if
 
-  ! Calculate the remaining interaction length and close the iteration loop.
-  rlen = rlen-j_zlm1
-  goto 10
+  ! ! Calculate the remaining interaction length and close the iteration loop.
+  ! rlen = rlen-j_zlm1
+  ! goto 10
 
-end subroutine k2coll_jaw
+! end subroutine k2coll_jaw
 
 !>
 !! mcs(s)

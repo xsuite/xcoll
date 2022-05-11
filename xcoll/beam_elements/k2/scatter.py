@@ -1,4 +1,6 @@
 import numpy as np
+from .jaw import jaw
+from .crystal import crystal
 
 def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
@@ -27,6 +29,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     nabs   = 0
     fracab = 0
     mirror = 1
+    lhit = 0
 
     # Compute rotation factors for collimator rotation
     cRot   = np.cos(c_rotation)
@@ -130,65 +133,41 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
         if (is_crystal):
 
-            ##########################################
-
-            val_part_hit = np.array(val_part_hit, dtype=np.int64)
-            val_part_abs = np.array(val_part_abs, dtype=np.int64)
-            val_part_impact = np.array(val_part_impact, dtype=np.float64)
-            val_part_indiv = np.array(val_part_indiv, dtype=np.float64)
-            run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            run_bn = np.array(run_bn, dtype=np.float64)
-            nhit = np.array(nhit, dtype=np.int64)
-            nabs = np.array(nabs, dtype=np.int64)
-            isimp = np.array(isimp)
-            s = np.array(s, dtype=np.float64)
-            zlm = np.array(zlm, dtype=np.float64)
-            x = np.array(x, dtype=np.float64)
-            xp = np.array(xp, dtype=np.float64)
-            xp_in0 = np.array(xp_in0, dtype=np.float64)
-            z = np.array(z, dtype=np.float64)
-            zp = np.array(zp, dtype=np.float64)
-            p = np.array(p, dtype=np.float64)
-            x_in = np.array(x_in, dtype=np.float64)
-
-            ##########################################
-
-            pyk2.pyk2_crystal(
-                    val_part_hit=val_part_hit,
-                    val_part_abs=val_part_abs,
-                    val_part_impact=val_part_impact,
-                    val_part_indiv=val_part_indiv,
-                    run_exenergy=run_exenergy,
-                    run_anuc=run_anuc,
-                    run_zatom=run_zatom,
-                    run_emr=run_emr,
-                    run_rho=run_rho,
-                    run_hcut=run_hcut,
-                    run_bnref=run_bnref,
-                    run_csref0=run_csref0,
-                    run_csref1=run_csref1,
-                    run_csref4=run_csref4,
-                    run_csref5=run_csref5,
-                    run_dlri=run_dlri,
-                    run_dlyi=run_dlyi,
-                    run_eum=run_eum,
-                    run_ai=run_ai,
-                    run_collnt=run_collnt,
-                    run_bn=run_bn,
-                    c_length=c_length,
-                    nhit=nhit,
-                    nabs=nabs,
-                    isimp=isimp,
-                    s=s,
-                    zlm=zlm,
-                    x=x,
-                    xp=xp,
-                    xp_in0=xp_in0,
-                    z=z,
-                    zp=zp,
-                    p=p,
-                    x_in0=x_in0
-                    )
+            val_part_hit, val_part_abs, val_part_impact, val_part_indiv, run_exenergy, run_bn, nhit, nabs, lhit, isimp, s, zlm, x, xp, xp_in0, z, zp, p, x_in = crystal(val_part_hit=val_part_hit,
+                                                                                                                                                val_part_abs=val_part_abs,
+                                                                                                                                                val_part_impact=val_part_impact,
+                                                                                                                                                val_part_indiv=val_part_indiv,
+                                                                                                                                                run_exenergy=run_exenergy,
+                                                                                                                                                run_anuc=run_anuc,
+                                                                                                                                                run_zatom=run_zatom,
+                                                                                                                                                run_emr=run_emr,
+                                                                                                                                                run_rho=run_rho,
+                                                                                                                                                run_hcut=run_hcut,
+                                                                                                                                                run_bnref=run_bnref,
+                                                                                                                                                run_csref0=run_csref0,
+                                                                                                                                                run_csref1=run_csref1,
+                                                                                                                                                run_csref4=run_csref4,
+                                                                                                                                                run_csref5=run_csref5,
+                                                                                                                                                run_dlri=run_dlri,
+                                                                                                                                                run_dlyi=run_dlyi,
+                                                                                                                                                run_eum=run_eum,
+                                                                                                                                                run_ai=run_ai,
+                                                                                                                                                run_collnt=run_collnt,
+                                                                                                                                                run_bn=run_bn,
+                                                                                                                                                c_length=c_length,
+                                                                                                                                                nhit=nhit,
+                                                                                                                                                nabs=nabs,
+                                                                                                                                                lhit=lhit,
+                                                                                                                                                isimp=isimp,
+                                                                                                                                                s=s,
+                                                                                                                                                zlm=zlm,
+                                                                                                                                                x=x,
+                                                                                                                                                xp=xp,
+                                                                                                                                                xp_in0=xp_in0,
+                                                                                                                                                z=z,
+                                                                                                                                                zp=zp,
+                                                                                                                                                p=p,
+                                                                                                                                                x_in0=x_in0)
 
             if (nabs != 0):
                 val_part_abs = 1
@@ -246,45 +225,28 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 s_impact = sp
                 nhit = nhit + 1
 
-                ##########################################
-
-                run_exenergy = np.array(run_exenergy, dtype=np.float64)
-                run_bn = np.array(run_bn, dtype=np.float64)
-                p0 = np.array(p0, dtype=np.float64)
-                nabs = np.array(nabs, dtype=np.int64)
-                s = np.array(s, dtype=np.float64)
-                zlm = np.array(zlm, dtype=np.float64)
-                x = np.array(x, dtype=np.float64)
-                xp = np.array(xp, dtype=np.float64)
-                z = np.array(z, dtype=np.float64)
-                zp = np.array(zp, dtype=np.float64)
-                dpop = np.array(dpop, dtype=np.float64)
-
-                ##########################################
-
-                pyk2.pyk2_jaw(
-                    run_exenergy=run_exenergy,
-                    run_anuc=run_anuc,
-                    run_zatom=run_zatom,
-                    run_rho=run_rho,
-                    run_radl=run_radl,
-                    run_cprob=run_cprob,
-                    run_xintl=run_xintl,
-                    run_bn=run_bn,
-                    run_ecmsq=run_ecmsq,
-                    run_xln15s=run_xln15s,
-                    run_bpp=run_bpp,
-                    run_cgen=cgen,
-                    p0=p0,
-                    nabs=nabs,
-                    s=s,
-                    zlm=zlm,
-                    x=x,
-                    xp=xp,
-                    z=z,
-                    zp=zp,
-                    dpop=dpop
-                    )
+                run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop = jaw(
+                                                                            run_exenergy=run_exenergy,
+                                                                            run_anuc=run_anuc,
+                                                                            run_zatom=run_zatom,
+                                                                            run_rho=run_rho,
+                                                                            run_radl=run_radl,
+                                                                            run_cprob=run_cprob,
+                                                                            run_xintl=run_xintl,
+                                                                            run_bn=run_bn,
+                                                                            run_ecmsq=run_ecmsq,
+                                                                            run_xln15s=run_xln15s,
+                                                                            run_bpp=run_bpp,
+                                                                            cgen=cgen,
+                                                                            p0=p0,
+                                                                            nabs=nabs,
+                                                                            s=s,
+                                                                            zlm=zlm,
+                                                                            x=x,
+                                                                            xp=xp,
+                                                                            z=z,
+                                                                            zp=zp,
+                                                                            dpop=dpop)
 
                 val_nabs_type = nabs
                 val_part_hit  = 1
