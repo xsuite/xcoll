@@ -1,15 +1,6 @@
-! module pyk2
-
-!   use floatPrecision
-!   use numerical_constants
-  
-!   implicit none
-
-! contains
-
 subroutine pyk2_init(random_generator_seed)
 
-  use mod_ranlux ,       only : rluxgo     ! for ranlux init
+  use mod_ranlux ,       only : rluxgo, coll_rand  ! for ranlux init
   use coll_common ,      only : rnd_seed !, coll_expandArrays
 
   implicit none
@@ -514,121 +505,121 @@ real(kind=8),    intent(inout) :: zp
 real(kind=8),    intent(inout) :: dpop
 
 real(kind=8) pyk2_gettran 
-integer pyk2_ichoix
+integer pyk2_ichoix, pyk2_coll_rand
 
 real(kind=8) xInt,xpInt,yInt,ypInt,sInt
 real(kind=8) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,run_zlm1,xpsd,zpsd,psd
 integer inter,nabs_tmp
 
-! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-  p    = p0*(1+dpop)
-  nabs = 0
-  nabs_tmp = nabs
+! ! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
+!   p    = p0*(1+dpop)
+!   nabs = 0
+!   nabs_tmp = nabs
                       
                   
-  ! Initialize the interaction length to input interaction length
-  rlen = zlm
+!   ! Initialize the interaction length to input interaction length
+!   rlen = zlm
                   
-  ! Do a step for a point-like interaction.
-  ! Get monte-carlo interaction length.
-10 continue
-  run_zlm1     = (-1*run_xintl)*log_mb(coll_rand())
-  nabs_tmp = 0  ! type of interaction reset before following scattering process
-  xpBef    = xp ! save angles and momentum before scattering
-  zpBef    = zp
-  pBef     = p
+!   ! Do a step for a point-like interaction.
+!   ! Get monte-carlo interaction length.
+! 10 continue
+!   run_zlm1 = (-1*run_xintl)*log_mb(coll_rand())
+!   nabs_tmp = 0  ! type of interaction reset before following scattering process
+!   xpBef    = xp ! save angles and momentum before scattering
+!   zpBef    = zp
+!   pBef     = p
                   
-  ! If the monte-carlo interaction length is longer than the
-  ! remaining collimator length, then put it to the remaining
-  ! length, do multiple coulomb scattering and return.
-  ! LAST STEP IN ITERATION LOOP
-  if(run_zlm1 > rlen) then
-    run_zlm1 = rlen
-    call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-    s = (zlm-rlen)+s
-    call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  ! DM routine to include tail
-    p = p-m_dpodx*s
+!   ! If the monte-carlo interaction length is longer than the
+!   ! remaining collimator length, then put it to the remaining
+!   ! length, do multiple coulomb scattering and return.
+!   ! LAST STEP IN ITERATION LOOP
+!   if(run_zlm1 > rlen) then
+!     run_zlm1 = rlen
+!     call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+!     s = (zlm-rlen)+s
+!     call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  ! DM routine to include tail
+!     p = p-m_dpodx*s
                   
-    dpop = (p-p0)/p0
-    return
-  end if
-    ! Otherwise do multi-coulomb scattering.
-  ! REGULAR STEP IN ITERATION LOOP
+!     dpop = (p-p0)/p0
+!     return
+!   end if
+!     ! Otherwise do multi-coulomb scattering.
+!   ! REGULAR STEP IN ITERATION LOOP
 
-  call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-    ! Check if particle is outside of collimator (X.LT.0) after
-  ! MCS. If yes, calculate output longitudinal position (s),
-  ! reduce momentum (output as dpop) and return.
-  ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
-  if(x <= zero) then
-    s = (zlm-rlen)+s
-        call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-    p = p-m_dpodx*s
-    dpop = (p-p0)/p0
-        return
-  end if
+!   call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+!     ! Check if particle is outside of collimator (X.LT.0) after
+!   ! MCS. If yes, calculate output longitudinal position (s),
+!   ! reduce momentum (output as dpop) and return.
+!   ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
+!   if(x <= zero) then
+!     s = (zlm-rlen)+s
+!         call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
+!     p = p-m_dpodx*s
+!     dpop = (p-p0)/p0
+!         return
+!   end if
 
-  ! Check whether particle is absorbed. If yes, calculate output
-  ! longitudinal position (s), reduce momentum (output as dpop)
-  ! and return.
-  ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
-    inter    = pyk2_ichoix(run_cprob)
-    nabs     = inter
-  nabs_tmp = nabs
+!   ! Check whether particle is absorbed. If yes, calculate output
+!   ! longitudinal position (s), reduce momentum (output as dpop)
+!   ! and return.
+!   ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
+!     inter    = pyk2_ichoix(run_cprob)
+!     nabs     = inter
+!   nabs_tmp = nabs
 
-  ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
-  xInt  = x
-  xpInt = xp
-  yInt  = z
-  ypInt = zp
-  sInt  = (zlm-rlen)+run_zlm1
+!   ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
+!   xInt  = x
+!   xpInt = xp
+!   yInt  = z
+!   ypInt = zp
+!   sInt  = (zlm-rlen)+run_zlm1
 
-  if(inter == 1) then
-    s = (zlm-rlen)+run_zlm1
-        call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-        p = p-m_dpodx*s
+!   if(inter == 1) then
+!     s = (zlm-rlen)+run_zlm1
+!         call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
+!         p = p-m_dpodx*s
 
-    dpop = (p-p0)/p0
+!     dpop = (p-p0)/p0
 
-    return
-  end if
+!     return
+!   end if
 
-  ! Now treat the other types of interaction, as determined by ICHOIX:
+!   ! Now treat the other types of interaction, as determined by ICHOIX:
 
-  ! Nuclear-Elastic:          inter = 2
-  ! pp Elastic:               inter = 3
-  ! Single-Diffractive:       inter = 4    (changes momentum p)
-  ! Coulomb:                  inter = 5
+!   ! Nuclear-Elastic:          inter = 2
+!   ! pp Elastic:               inter = 3
+!   ! Single-Diffractive:       inter = 4    (changes momentum p)
+!   ! Coulomb:                  inter = 5
 
-  ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
-  p1 = p
-  ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
-  t = pyk2_gettran(inter,p,run_bn,run_cgen,run_ecmsq,run_xln15s,run_bpp)
+!   ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
+!   p1 = p
+!   ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
+!   t = pyk2_gettran(inter,p,run_bn,run_cgen,run_ecmsq,run_xln15s,run_bpp)
 
-  ! Tetat calculates from the rms transverse momentum transfer in
-  ! monte-carlo fashion the angle changes for x and z planes. The
-  ! angle change is proportional to SQRT(t) and 1/p, as expected.
-  call pyk2_tetat(t,p,dxp,dzp)
-  ! Apply angle changes
-  xp = xp+dxp
-  zp = zp+dzp
+!   ! Tetat calculates from the rms transverse momentum transfer in
+!   ! monte-carlo fashion the angle changes for x and z planes. The
+!   ! angle change is proportional to SQRT(t) and 1/p, as expected.
+!   call pyk2_tetat(t,p,dxp,dzp)
+!   ! Apply angle changes
+!   xp = xp+dxp
+!   zp = zp+dzp
 
-  ! Treat single-diffractive scattering.
-  if(inter == 4) then
+!   ! Treat single-diffractive scattering.
+!   if(inter == 4) then
 
-    ! added update for s
-    s    = (zlm-rlen)+run_zlm1
-    xpsd = dxp
-    zpsd = dzp
-    psd  = p1
+!     ! added update for s
+!     s    = (zlm-rlen)+run_zlm1
+!     xpsd = dxp
+!     zpsd = dzp
+!     psd  = p1
 
-    ! Add this code to get the momentum transfer also in the calling routine
-    dpop = (p-p0)/p0
-  end if
+!     ! Add this code to get the momentum transfer also in the calling routine
+!     dpop = (p-p0)/p0
+!   end if
 
-  ! Calculate the remaining interaction length and close the iteration loop.
-  rlen = rlen-run_zlm1
-  goto 10
+!   ! Calculate the remaining interaction length and close the iteration loop.
+!   rlen = rlen-run_zlm1
+!   goto 10
 
 
 end subroutine
@@ -656,7 +647,6 @@ subroutine pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
 end subroutine
 
 
-
 subroutine pyk2_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
 
   use coll_k2, only: k2coll_calcIonLoss
@@ -669,7 +659,7 @@ subroutine pyk2_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
   real(kind=8), intent(in)  :: il_anuc      ! il_anuc 
   real(kind=8), intent(in)  :: il_zatom     ! il_zatom
   real(kind=8), intent(in)  :: il_rho       ! il_rho
-  real(kind=8), intent(out) :: EnLo         ! EnLo energy loss in GeV/meter
+  real(kind=8), intent(inout) :: EnLo         ! EnLo energy loss in GeV/meter
 
   call k2coll_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
 
@@ -703,8 +693,8 @@ subroutine pyk2_tetat(t,p,tx,tz)
 
   real(kind=8), intent(in)  :: t
   real(kind=8), intent(in)  :: p
-  real(kind=8), intent(out) :: tx
-  real(kind=8), intent(out) :: tz
+  real(kind=8), intent(inout) :: tx
+  real(kind=8), intent(inout) :: tz
 
   call k2coll_tetat(t,p,tx,tz)
 
@@ -723,4 +713,13 @@ integer function pyk2_ichoix(ich_cprob)
 
 end function pyk2_ichoix
 
-! end module pyk2
+
+real(kind=8) function pyk2_coll_rand() 
+
+  use mod_ranlux, only: coll_rand
+
+  implicit none
+
+  pyk2_coll_rand = coll_rand()
+
+end function pyk2_coll_rand
