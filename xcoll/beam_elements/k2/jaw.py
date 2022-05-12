@@ -6,52 +6,11 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    
-    run_exenergy = np.array(run_exenergy, dtype=np.float64)
-    run_bn = np.array(run_bn, dtype=np.float64)
-    p0 = np.array(p0, dtype=np.float64)
-    nabs = np.array(nabs, dtype=np.int64)
-    s = np.array(s, dtype=np.float64)
-    zlm = np.array(zlm, dtype=np.float64)
-    x = np.array(x, dtype=np.float64)
-    xp = np.array(xp, dtype=np.float64)
-    z = np.array(z, dtype=np.float64)
-    zp = np.array(zp, dtype=np.float64)
-    dpop = np.array(dpop, dtype=np.float64)
-    # run_cgen = np.array(cgen, dtype=np.float64)
-
-
-    # pyk2.pyk2_jaw(
-    #             run_exenergy=run_exenergy,
-    #             run_anuc=run_anuc,
-    #             run_zatom=run_zatom,
-    #             run_rho=run_rho,
-    #             run_radl=run_radl,
-    #             run_cprob=run_cprob,
-    #             run_xintl=run_xintl,
-    #             run_bn=run_bn,
-    #             run_ecmsq=run_ecmsq,
-    #             run_xln15s=run_xln15s,
-    #             run_bpp=run_bpp,
-    #             run_cgen=cgen,
-    #             p0=p0,
-    #             nabs=nabs,
-    #             s=s,
-    #             zlm=zlm,
-    #             x=x,
-    #             xp=xp,
-    #             z=z,
-    #             zp=zp,
-    #             dpop=dpop,
-    #             )
-
 
     # Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
     p    = p0*(1+dpop)
     nabs = 0
-    nabs_tmp = nabs
-                      
-                  
+      
     # Initialize the interaction length to input interaction length
     rlen = zlm
     m_dpodx = 0.
@@ -63,10 +22,6 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
     while (True):
 
         run_zlm1 = (-1*run_xintl)*np.log(pyk2.pyk2_coll_rand())
-        nabs_tmp = 0  # type of interaction reset before following scattering process
-        xpBef    = xp # save angles and momentum before scattering
-        zpBef    = zp
-        pBef     = p
                         
         # If the monte-carlo interaction length is longer than the
         # remaining collimator length, then put it to the remaining
@@ -76,9 +31,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
             
             run_zlm1 = rlen
             
-            run_zlm1 = np.array(run_zlm1, dtype=np.float64)
             s = np.array(s, dtype=np.float64)
-            run_radl = np.array(run_radl, dtype=np.float64)
             p0 = np.array(p0, dtype=np.float64)
             x = np.array(x, dtype=np.float64)
             xp = np.array(xp, dtype=np.float64)
@@ -93,11 +46,6 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
 
             m_dpodx = np.array(m_dpodx, dtype=np.float64)
             run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            run_anuc = np.array(run_anuc, dtype=np.float64)
-            run_zatom = np.array(run_zatom, dtype=np.float64)
-            run_rho = np.array(run_rho, dtype=np.float64)
-            p = np.array(p, dtype=np.float64)
-            rlen = np.array(rlen, dtype=np.float64)
             #############################################################################
             pyk2.pyk2_calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  # DM routine to include tail
             #############################################################################
@@ -108,9 +56,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         # Otherwise do multi-coulomb scattering.
         # REGULAR STEP IN ITERATION LOOP
 
-        run_zlm1 = np.array(run_zlm1, dtype=np.float64)
         s = np.array(s, dtype=np.float64)
-        run_radl = np.array(run_radl, dtype=np.float64)
         p0 = np.array(p0, dtype=np.float64)
         x = np.array(x, dtype=np.float64)
         xp = np.array(xp, dtype=np.float64)
@@ -131,11 +77,6 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
 
             m_dpodx = np.array(m_dpodx, dtype=np.float64)
             run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            run_anuc = np.array(run_anuc, dtype=np.float64)
-            run_zatom = np.array(run_zatom, dtype=np.float64)
-            run_rho = np.array(run_rho, dtype=np.float64)
-            p = np.array(p, dtype=np.float64)
-            rlen = np.array(rlen, dtype=np.float64)
             #############################################################################
             pyk2.pyk2_calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
             #############################################################################
@@ -149,20 +90,11 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         # and return.
         # PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        # run_cprob = np.array(run_cprob, dtype=np.float64)
         ######################################
         inter    = pyk2.pyk2_ichoix(run_cprob)
         ######################################
 
         nabs     = inter
-        nabs_tmp = nabs
-
-        # RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
-        xInt  = x
-        xpInt = xp
-        yInt  = z
-        ypInt = zp
-        sInt  = (zlm-rlen)+run_zlm1
 
         if(inter == 1):
 
@@ -170,11 +102,6 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
 
             m_dpodx = np.array(m_dpodx, dtype=np.float64)
             run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            run_anuc = np.array(run_anuc, dtype=np.float64)
-            run_zatom = np.array(run_zatom, dtype=np.float64)
-            run_rho = np.array(run_rho, dtype=np.float64)
-            p = np.array(p, dtype=np.float64)
-            rlen = np.array(rlen, dtype=np.float64)
             #############################################################################
             pyk2.pyk2_calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
             #############################################################################
@@ -192,17 +119,9 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         # Single-Diffractive:       inter = 4    (changes momentum p)
         # Coulomb:                  inter = 5
 
-        # As the single-diffractive interaction changes the momentum, save input momentum in p1.
-        p1 = p
         # Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        run_bn = np.array(run_bn, dtype=np.float64)
-        run_ecmsq = np.array(run_ecmsq, dtype=np.float64)
-        run_xln15s = np.array(run_xln15s, dtype=np.float64)
-        run_bpp = np.array(run_bpp, dtype=np.float64)
-        # run_cgen = np.array(run_cgen, dtype=np.float64)
         p = np.array(p, dtype=np.float64)
-        inter = np.array(inter, dtype=np.int8)
         ######################################################################
         t = pyk2.pyk2_gettran(inter,p,run_bn,cgen,run_ecmsq,run_xln15s,run_bpp)
         ######################################################################
@@ -225,15 +144,11 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         if(inter == 4):
             # added update for s
             s    = (zlm-rlen)+run_zlm1
-            xpsd = tx
-            zpsd = tz
-            psd  = p1
 
             # Add this code to get the momentum transfer also in the calling routine
             dpop = (p-p0)/p0
 
         # Calculate the remaining interaction length and close the iteration loop.
         rlen = rlen-run_zlm1
-        # break
                   
     return run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop
