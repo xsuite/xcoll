@@ -505,7 +505,7 @@ real(kind=8),    intent(inout) :: zp
 real(kind=8),    intent(inout) :: dpop
 
 real(kind=8) pyk2_gettran 
-integer pyk2_ichoix, pyk2_coll_rand
+integer pyk2_ichoix, pyk2_rand
 
 real(kind=8) xInt,xpInt,yInt,ypInt,sInt
 real(kind=8) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,run_zlm1,xpsd,zpsd,psd
@@ -668,7 +668,9 @@ end subroutine
 
 real(kind=8) function pyk2_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
 
-  use coll_k2, only: k2coll_gettran
+  !use coll_k2, only: k2coll_gettran
+  use mathlib_bouncer
+  use mod_funlux, only: funlux
 
   implicit none
 
@@ -680,7 +682,34 @@ real(kind=8) function pyk2_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_b
   real(kind=8), intent(in)    :: tt_ecmsq
   real(kind=8), intent(in)    :: tt_bpp
 
-  pyk2_gettran = k2coll_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
+  real(kind=8) xm2,bsd,xran(1)
+  real(kind=8) pyk2_rand
+
+  ! Neither if-statements below have an else, so defaulting function return to zero.
+  pyk2_gettran = 0
+
+  select case(inter)
+  case(2) ! Nuclear Elastic
+    pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bn
+  case(3) ! pp Elastic
+    pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bpp
+  case(4) ! Single Diffractive
+    xm2 = exp_mb(pyk2_rand() * tt_xln15s)
+    p   = p * (1 - xm2/tt_ecmsq)
+    if(xm2 < 2) then
+      bsd = 2 * tt_bpp
+    else if(xm2 >= 2 .and. xm2 <= 5) then
+      bsd = ((106.0 - 17.0*xm2)*tt_bpp)/36.0
+    else
+      bsd = (7*tt_bpp)/12.0
+    end if
+    pyk2_gettran = (-1*log_mb(pyk2_rand()))/bsd
+  case(5) ! Coulomb
+    call funlux(tt_cgen(1), xran, 1)
+    pyk2_gettran = xran(1)
+  end select
+
+  !pyk2_gettran = k2coll_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
 
 end function pyk2_gettran
 
@@ -714,12 +743,12 @@ integer function pyk2_ichoix(ich_cprob)
 end function pyk2_ichoix
 
 
-real(kind=8) function pyk2_coll_rand() 
+real(kind=8) function pyk2_rand() 
 
   use mod_ranlux, only: coll_rand
 
   implicit none
 
-  pyk2_coll_rand = coll_rand()
+  pyk2_rand = coll_rand()
 
-end function pyk2_coll_rand
+end function pyk2_rand

@@ -524,49 +524,49 @@ end function k2coll_ruth
 !! is modified (energy loss is applied)
 !<
 ! XMAT AND MAT ARE THE SAME, EQUAL TO MAIN MATID
-real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen, tt_ecmsq, tt_xln15s, tt_bpp)
+! real(kind=fPrec) function k2coll_gettran(inter, p, tt_bn, tt_cgen, tt_ecmsq, tt_xln15s, tt_bpp)
 
-  use mathlib_bouncer
-  use mod_ranlux, only : coll_rand
-  use mod_funlux, only : funlux  
-  !use coll_materials
+!   use mathlib_bouncer
+!   use mod_ranlux, only : coll_rand
+!   use mod_funlux, only : funlux  
+!   !use coll_materials
 
-  integer,          intent(in)    :: inter
-  real(kind=fPrec), intent(inout) :: p
-  real(kind=fPrec), intent(in)    :: tt_bn
-  real(kind=fPrec), intent(in)    :: tt_cgen(200)
-  real(kind=fPrec), intent(in)    :: tt_xln15s
-  real(kind=fPrec), intent(in)    :: tt_ecmsq
-  real(kind=fPrec), intent(in)    :: tt_bpp
+!   integer,          intent(in)    :: inter
+!   real(kind=fPrec), intent(inout) :: p
+!   real(kind=fPrec), intent(in)    :: tt_bn
+!   real(kind=fPrec), intent(in)    :: tt_cgen(200)
+!   real(kind=fPrec), intent(in)    :: tt_xln15s
+!   real(kind=fPrec), intent(in)    :: tt_ecmsq
+!   real(kind=fPrec), intent(in)    :: tt_bpp
 
-  real(kind=fPrec) xm2,bsd,xran(1)
+!   real(kind=fPrec) xm2,bsd,xran(1)
 
-  ! Neither if-statements below have an else, so defaulting function return to zero.
-  k2coll_gettran = zero
+!   ! Neither if-statements below have an else, so defaulting function return to zero.
+!   k2coll_gettran = zero
 
 
-  select case(inter)
-  case(2) ! Nuclear Elastic
-    k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bn
-  case(3) ! pp Elastic
-    k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bpp
-  case(4) ! Single Diffractive
-    xm2 = exp_mb(coll_rand() * tt_xln15s)
-    p   = p * (one - xm2/tt_ecmsq)
-    if(xm2 < two) then
-      bsd = two * tt_bpp
-    else if(xm2 >= two .and. xm2 <= five) then
-      bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*tt_bpp)/36.0_fPrec
-    else
-      bsd = (seven*tt_bpp)/12.0_fPrec
-    end if
-    k2coll_gettran = (-one*log_mb(coll_rand()))/bsd
-  case(5) ! Coulomb
-    call funlux(tt_cgen(1), xran, 1)
-    k2coll_gettran = xran(1)
-  end select
+!   select case(inter)
+!   case(2) ! Nuclear Elastic
+!     k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bn
+!   case(3) ! pp Elastic
+!     k2coll_gettran = (-one*log_mb(coll_rand()))/tt_bpp
+!   case(4) ! Single Diffractive
+!     xm2 = exp_mb(coll_rand() * tt_xln15s)
+!     p   = p * (one - xm2/tt_ecmsq)
+!     if(xm2 < two) then
+!       bsd = two * tt_bpp
+!     else if(xm2 >= two .and. xm2 <= five) then
+!       bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*tt_bpp)/36.0_fPrec
+!     else
+!       bsd = (seven*tt_bpp)/12.0_fPrec
+!     end if
+!     k2coll_gettran = (-one*log_mb(coll_rand()))/bsd
+!   case(5) ! Coulomb
+!     call funlux(tt_cgen(1), xran, 1)
+!     k2coll_gettran = xran(1)
+!   end select
 
-end function k2coll_gettran
+! end function k2coll_gettran
 
 !>
 !! k2coll_ichoix(ma)

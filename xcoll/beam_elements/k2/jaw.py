@@ -21,7 +21,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
     # Get monte-carlo interaction length.
     while (True):
 
-        run_zlm1 = (-1*run_xintl)*np.log(pyk2.pyk2_coll_rand())
+        run_zlm1 = (-1*run_xintl)*np.log(pyk2.pyk2_rand())
                         
         # If the monte-carlo interaction length is longer than the
         # remaining collimator length, then put it to the remaining
