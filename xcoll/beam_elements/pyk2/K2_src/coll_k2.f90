@@ -352,30 +352,30 @@ end subroutine k2coll_mcs
 !>
 !! k2coll_tetat(t,p,tx,tz)
 !! Generate sine and cosine of an angle uniform in [0,2pi](see RPP)
-!<
-subroutine k2coll_tetat(t, p, tx, tz)
+! !<
+! subroutine k2coll_tetat(t, p, tx, tz)
 
-  use mod_ranlux, only : coll_rand
+!   use mod_ranlux, only : coll_rand
 
-  real(kind=fPrec), intent(in)  :: t
-  real(kind=fPrec), intent(in)  :: p
-  real(kind=fPrec), intent(out) :: tx
-  real(kind=fPrec), intent(out) :: tz
+!   real(kind=fPrec), intent(in)  :: t
+!   real(kind=fPrec), intent(in)  :: p
+!   real(kind=fPrec), intent(out) :: tx
+!   real(kind=fPrec), intent(out) :: tz
 
-  real(kind=fPrec) va,vb,va2,vb2,r2,teta
+!   real(kind=fPrec) va,vb,va2,vb2,r2,teta
 
-  teta = sqrt(t)/p
-10 continue
-  va  = two*coll_rand() - one
-  vb  = coll_rand()
-  va2 = va**2
-  vb2 = vb**2
-  r2  = va2 + vb2
-  if(r2 > one) goto 10
-  tx  = (teta*((two*va)*vb))/r2
-  tz  = (teta*(va2 - vb2))/r2
+!   teta = sqrt(t)/p
+! 10 continue
+!   va  = two*coll_rand() - one
+!   vb  = coll_rand()
+!   va2 = va**2
+!   vb2 = vb**2
+!   r2  = va2 + vb2
+!   if(r2 > one) goto 10
+!   tx  = (teta*((two*va)*vb))/r2
+!   tz  = (teta*(va2 - vb2))/r2
 
-end subroutine k2coll_tetat
+! end subroutine k2coll_tetat
 
 !>
 !! k2coll_soln3(a,b,dh,smax,s)
@@ -572,27 +572,27 @@ end function k2coll_ruth
 !! k2coll_ichoix(ma)
 !! Select a scattering type (elastic, sd, inelastic, ...)
 !<
-integer function k2coll_ichoix(ich_cprob)
+! integer function k2coll_ichoix(ich_cprob)
 
-  use mod_ranlux, only : coll_rand 
-  !use coll_materials
-  real(kind=fPrec), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
+!   use mod_ranlux, only : coll_rand 
+!   !use coll_materials
+!   real(kind=fPrec), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
 
-  !integer, intent(in) :: ma
-  integer i
-  real(kind=fPrec) aran
+!   !integer, intent(in) :: ma
+!   integer i
+!   real(kind=fPrec) aran
 
-  aran = coll_rand()
-  i    = 1
-10 continue
-  if(aran > ich_cprob(i)) then
-    i = i+1
-    goto 10
-  end if
+!   aran = coll_rand()
+!   i    = 1
+! 10 continue
+!   if(aran > ich_cprob(i)) then
+!     i = i+1
+!     goto 10
+!   end if
 
-  k2coll_ichoix = i
+!   k2coll_ichoix = i
 
-end function k2coll_ichoix
+! end function k2coll_ichoix
 
 
 end module coll_k2

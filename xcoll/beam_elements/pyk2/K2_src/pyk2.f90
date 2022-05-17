@@ -774,7 +774,7 @@ end function pyk2_gettran
 
 subroutine pyk2_tetat(t,p,tx,tz)
 
-  use coll_k2, only: k2coll_tetat
+  !use coll_k2, only: k2coll_tetat
  
   implicit none
 
@@ -783,20 +783,49 @@ subroutine pyk2_tetat(t,p,tx,tz)
   real(kind=8), intent(inout) :: tx
   real(kind=8), intent(inout) :: tz
 
-  call k2coll_tetat(t,p,tx,tz)
+  !call k2coll_tetat(t,p,tx,tz)
+
+  real(kind=8) va,vb,va2,vb2,r2,teta
+  real(kind=8) pyk2_rand
+
+  teta = sqrt(t)/p
+10 continue
+  va  = 2*pyk2_rand() - 1
+  vb  = pyk2_rand()
+  va2 = va**2
+  vb2 = vb**2
+  r2  = va2 + vb2
+  if(r2 > 1) goto 10
+  tx  = (teta*((2*va)*vb))/r2
+  tz  = (teta*(va2 - vb2))/r2
 
 end subroutine
 
 
 integer function pyk2_ichoix(ich_cprob)
   
-  use coll_k2, only: k2coll_ichoix
+  !use coll_k2, only: k2coll_ichoix
 
   implicit none
 
   real(kind=8), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
+  real(kind=8) pyk2_rand
 
-  pyk2_ichoix = k2coll_ichoix(ich_cprob)
+  !pyk2_ichoix = k2coll_ichoix(ich_cprob)
+
+  !integer, intent(in) :: ma
+  integer i
+  real(kind=8) aran
+
+  aran = pyk2_rand()
+  i    = 1
+10 continue
+  if(aran > ich_cprob(i)) then
+    i = i+1
+    goto 10
+  end if
+
+  pyk2_ichoix = i
 
 end function pyk2_ichoix
 
