@@ -257,7 +257,7 @@ cry_proc_tmp = -1
   ! 1st transformation: shift of the center of the reference frame
   if(cry_tilt < zero) then
     s_shift = s
-    shift   = c_rcurv*(one - c_cpTilt)
+    shift   = c_rcurv*(1 - c_cpTilt)
     if(cry_tilt < -cry_bend) then
       shift = c_rcurv*(c_cnTilt - cos_mb(cry_bend - cry_tilt))
     end if
@@ -300,9 +300,9 @@ cry_proc_tmp = -1
   else
 
     if(x < zero) then ! Crystal can be hit from below
-      xp_tangent = sqrt((-(two*x)*c_rcurv + x**2)/(c_rcurv**2))
+      xp_tangent = sqrt((-(2*x)*c_rcurv + x**2)/(c_rcurv**2))
     else              ! Crystal can be hit from above
-      xp_tangent = asin_mb((c_rcurv*(one - c_cBend) - x)/sqrt(((two*c_rcurv)*(c_rcurv - x))*(one - c_cBend) + x**2))
+      xp_tangent = asin_mb((c_rcurv*(1 - c_cBend) - x)/sqrt(((2*c_rcurv)*(c_rcurv - x))*(1 - c_cBend) + x**2))
     end if
 
     ! If the hit is below, the angle must be greater or equal than the tangent,
@@ -310,11 +310,11 @@ cry_proc_tmp = -1
     if((x < zero .and. xp >= xp_tangent) .or. (x >= zero .and. xp <= xp_tangent)) then
 
 ! If it hits the crystal, calculate in which point and apply the transformation and drift to that point
-      a_eq  = one + xp**2
-      b_eq  = (two*xp)*(x - c_rcurv)
-      c_eq  = -(two*x)*c_rcurv + x**2
-      delta = b_eq**2 - four*(a_eq*c_eq)
-      s_int = (-b_eq - sqrt(delta))/(two*a_eq)
+      a_eq  = 1 + xp**2
+      b_eq  = (2*xp)*(x - c_rcurv)
+      c_eq  = -(2*x)*c_rcurv + x**2
+      delta = b_eq**2 - 4*(a_eq*c_eq)
+      s_int = (-b_eq - sqrt(delta))/(2*a_eq)
       s_imp = s_int
 
       ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
@@ -649,19 +649,77 @@ end subroutine
 
 subroutine pyk2_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
 
-  use coll_k2, only: k2coll_calcIonLoss
+  !use coll_k2, only: k2coll_calcIonLoss
+  use mathlib_bouncer
 
   implicit none
 
-  real(kind=8), intent(in)  :: p           ! PC momentum in GeV
-  real(kind=8), intent(in)  :: rlen           ! DZ length traversed in material (meters)
+  real(kind=8), intent(in)  :: p           ! p momentum in GeV
+  real(kind=8), intent(in)  :: rlen           ! rlen length traversed in material (meters)
   real(kind=8), intent(inout)  :: il_exenergy  ! il_exenergy
   real(kind=8), intent(in)  :: il_anuc      ! il_anuc 
   real(kind=8), intent(in)  :: il_zatom     ! il_zatom
   real(kind=8), intent(in)  :: il_rho       ! il_rho
   real(kind=8), intent(inout) :: EnLo         ! EnLo energy loss in GeV/meter
 
-  call k2coll_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
+  !call k2coll_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
+
+  real(kind=8) exEn,thl,Tt,cs_tail,prob_tail,enr,mom,betar,gammar,bgr,kine,Tmax,plen
+  real(kind=8), parameter :: k = 0.307075 ! Constant in front of Bethe-Bloch [MeV g^-1 cm^2]
+  real(kind=8) pyk2_rand
+
+  mom    = p*1.0e3                     ! [GeV/c] -> [MeV/c]
+  enr    = (mom*mom + 938.271998*938.271998)**0.5 ! [MeV]
+  gammar = enr/938.271998
+  betar  = mom/enr
+  bgr    = betar*gammar
+  kine   = ((2*0.510998902)*bgr)*bgr
+
+  ! Mean excitation energy
+  exEn = il_exenergy*1.0e3 ! [MeV]
+
+  ! Tmax is max energy loss from kinematics
+  Tmax = kine/(1 + (2*gammar)*(0.510998902/938.271998) + (0.510998902/938.271998)**2) ! [MeV]
+
+  ! Plasma energy - see PDG 2010 table 27.1
+  plen = (((il_rho*il_zatom)/il_anuc)**0.5)*28.816e-6 ! [MeV]
+
+  ! Calculate threshold energy
+  ! Above this threshold, the cross section for high energy loss is calculated and then
+  ! a random number is generated to determine if tail energy loss should be applied, or only mean from Bethe-Bloch
+  ! below threshold, only the standard Bethe-Bloch is used (all particles get average energy loss)
+
+  ! thl is 2*width of Landau distribution (as in fig 27.7 in PDG 2010). See Alfredo's presentation for derivation
+  thl = ((((4*(k*il_zatom))*rlen)*1.0e2)*il_rho)/(il_anuc*betar**2) ! [MeV]
+
+  ! Bethe-Bloch mean energy loss
+  EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+    0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + 0.5 &
+  )
+  EnLo = ((EnLo*il_rho)*1.0e-1)*rlen ! [GeV]
+
+  ! Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
+  Tt = EnLo*1.0e3 + thl ! [MeV]
+
+  ! Cross section - see Alfredo's presentation for derivation
+  cs_tail = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+    0.5*((1/Tt)-(1/Tmax)) - (log_mb(Tmax/Tt)*betar**2)/(2*Tmax) + (Tmax-Tt)/((4*gammar**2)*938.271998**2) &
+  )
+
+  ! Probability of being in tail: cross section * density * path length
+  prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2
+
+  ! Determine based on random number if tail energy loss occurs.
+  if(pyk2_rand() < prob_tail) then
+    EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+      0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + &
+      0.5 + TMax**2/((8*gammar**2)*938.271998**2) &
+    )
+    EnLo = (EnLo*il_rho)*1.0e-1 ! [GeV/m]
+  else
+    ! If tail energy loss does not occur, just use the standard Bethe-Bloch
+    EnLo = EnLo/rlen  ! [GeV/m]
+  end if
 
 end subroutine
 
