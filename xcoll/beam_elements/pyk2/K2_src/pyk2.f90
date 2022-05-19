@@ -1,3 +1,6 @@
+!real(kind=8), save :: zatom_curr ! Current zatom, used for Rutherford scattering integration
+!real(kind=8), save :: emr_curr ! Current emr, used for Rutherford scattering integration
+
 subroutine pyk2_init(random_generator_seed)
 
   use mod_ranlux ,       only : rluxgo, coll_rand  ! for ranlux init
@@ -12,13 +15,14 @@ subroutine pyk2_init(random_generator_seed)
   ! Initialize random number generator
   if(rnd_seed <  0) rnd_seed = abs(rnd_seed)
   call rluxgo(3, rnd_seed, 0, 0)
-end subroutine
+
+end subroutine 
 
 
 subroutine initialise_random(random_generator_seed, cgen, zatom, emr, hcut)
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
-  use mod_funlux
-  use coll_k2,           only : k2coll_ruth, zatom_curr, emr_curr
+  use mod_funlux ,       only : funlxp
+  use coll_k2,           only : zatom_curr, emr_curr, k2coll_ruth
 
   implicit none
 
@@ -27,7 +31,6 @@ subroutine initialise_random(random_generator_seed, cgen, zatom, emr, hcut)
   real(kind=8), intent(in)    :: zatom
   real(kind=8), intent(in)    :: emr
   real(kind=8), intent(in)    :: hcut
-
   real(kind=8), parameter     :: tlcut = 0.0009982
 
   if(random_generator_seed .ge. 0) then
@@ -93,44 +96,44 @@ implicit none
 
   ! Shared settings for the currently active crystal
   integer,         save :: c_orient   = 0    ! Crystal orientation [0-2]
-  real(kind=fPrec),save :: c_rcurv    = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec),save :: c_xmax     = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec),save :: c_ymax     = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec),save :: c_alayer   = zero ! Crystal amorphous layer [mm]
-  real(kind=fPrec),save :: c_miscut   = zero ! Crystal miscut angle in rad
-  real(kind=fPrec),save :: c_cpTilt   = zero ! Cosine of positive crystal tilt
-  real(kind=fPrec),save :: c_spTilt   = zero ! Sine of positive crystal tilt
-  real(kind=fPrec),save :: c_cnTilt   = zero ! Cosine of negative crystal tilt
-  real(kind=fPrec),save :: c_snTilt   = zero ! Sine of negative crystal tilt
-  real(kind=fPrec),save :: c_cBend    = zero ! Cosine of crystal bend
-  real(kind=fPrec),save :: c_sBend    = zero ! Sine of crystal bend
-  real(kind=fPrec),save :: cry_tilt   = zero ! Crystal tilt angle in rad
-  real(kind=fPrec),save :: cry_length = zero ! Crystal length [m]
-  real(kind=fPrec),save :: cry_bend   = zero ! Crystal bending angle in rad
+  real(kind=8),save :: c_rcurv    = zero ! Crystal geometrical parameters [m]
+  real(kind=8),save :: c_xmax     = zero ! Crystal geometrical parameters [m]
+  real(kind=8),save :: c_ymax     = zero ! Crystal geometrical parameters [m]
+  real(kind=8),save :: c_alayer   = zero ! Crystal amorphous layer [mm]
+  real(kind=8),save :: c_miscut   = zero ! Crystal miscut angle in rad
+  real(kind=8),save :: c_cpTilt   = zero ! Cosine of positive crystal tilt
+  real(kind=8),save :: c_spTilt   = zero ! Sine of positive crystal tilt
+  real(kind=8),save :: c_cnTilt   = zero ! Cosine of negative crystal tilt
+  real(kind=8),save :: c_snTilt   = zero ! Sine of negative crystal tilt
+  real(kind=8),save :: c_cBend    = zero ! Cosine of crystal bend
+  real(kind=8),save :: c_sBend    = zero ! Sine of crystal bend
+  real(kind=8),save :: cry_tilt   = zero ! Crystal tilt angle in rad
+  real(kind=8),save :: cry_length = zero ! Crystal length [m]
+  real(kind=8),save :: cry_bend   = zero ! Crystal bending angle in rad
 
   ! Rutherford Scatter
-  real(kind=fPrec), parameter     :: tlcut_cry = 0.0009982_fPrec
-  real(kind=fPrec),save :: cgen_cry(200)
+  real(kind=8), parameter     :: tlcut_cry = 0.0009982
+  real(kind=8),save :: cgen_cry(200)
   ! integer,         save :: mcurr_cry
-  real(kind=fPrec),save :: zatom_curr_cry ! Current zatom, used for Rutherford scattering integration
-  real(kind=fPrec),save :: emr_curr_cry ! Current emr, used for Rutherford scattering integration
+  real(kind=8),save :: zatom_curr_cry ! Current zatom, used for Rutherford scattering integration
+  real(kind=8),save :: emr_curr_cry ! Current emr, used for Rutherford scattering integration
   
 
-  real(kind=fPrec),save :: enr
-  real(kind=fPrec),save :: mom
-  real(kind=fPrec),save :: betar
-  real(kind=fPrec),save :: gammar
-  real(kind=fPrec),save :: bgr
-  real(kind=fPrec),save :: tmax
-  real(kind=fPrec),save :: plen
+  real(kind=8),save :: enr
+  real(kind=8),save :: mom
+  real(kind=8),save :: betar
+  real(kind=8),save :: gammar
+  real(kind=8),save :: bgr
+  real(kind=8),save :: tmax
+  real(kind=8),save :: plen
 
-  real(kind=fPrec), parameter :: aTF = 0.194e-10_fPrec ! Screening function [m]
-  real(kind=fPrec), parameter :: dP  = 1.920e-10_fPrec ! Distance between planes (110) [m]
-  real(kind=fPrec), parameter :: u1  = 0.075e-10_fPrec ! Thermal vibrations amplitude
+  real(kind=8), parameter :: aTF = 0.194e-10 ! Screening function [m]
+  real(kind=8), parameter :: dP  = 1.920e-10 ! Distance between planes (110) [m]
+  real(kind=8), parameter :: u1  = 0.075e-10 ! Thermal vibrations amplitude
 
   ! pp cross-sections and parameters for energy dependence
-  real(kind=fPrec), parameter :: pptref_cry = 0.040_fPrec
-  real(kind=fPrec), parameter :: freeco_cry = 1.618_fPrec
+  real(kind=8), parameter :: pptref_cry = 0.040
+  real(kind=8), parameter :: freeco_cry = 1.618
 
   ! Crystal Specific Material Arrays
   ! logical,         save :: validMat(nmat) = .false. ! True for materials the crystal module supports
@@ -469,8 +472,7 @@ subroutine pyk2_jaw( &
   dpop)
 
 ! for scattering
-! use coll_k2, only :  k2coll_ichoix, k2coll_gettran, k2coll_ruth, k2coll_iterat, k2coll_scamcs, &
-!                       k2coll_soln3, k2coll_tetat, k2coll_calcIonLoss, k2coll_mcs
+use coll_k2, only :  k2coll_ruth
                       
 use mod_ranlux, only : coll_rand
 use coll_common
@@ -505,329 +507,331 @@ real(kind=8),    intent(inout) :: zp
 real(kind=8),    intent(inout) :: dpop
 
 real(kind=8) pyk2_gettran 
-integer pyk2_ichoix, pyk2_rand
+integer pyk2_ichoix
 
 real(kind=8) xInt,xpInt,yInt,ypInt,sInt
 real(kind=8) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef,run_zlm1,xpsd,zpsd,psd
 integer inter,nabs_tmp
 
-! ! Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-!   p    = p0*(1+dpop)
-!   nabs = 0
-!   nabs_tmp = nabs
-                      
-                  
-!   ! Initialize the interaction length to input interaction length
-!   rlen = zlm
-                  
-!   ! Do a step for a point-like interaction.
-!   ! Get monte-carlo interaction length.
-! 10 continue
-!   run_zlm1 = (-1*run_xintl)*log_mb(coll_rand())
-!   nabs_tmp = 0  ! type of interaction reset before following scattering process
-!   xpBef    = xp ! save angles and momentum before scattering
-!   zpBef    = zp
-!   pBef     = p
-                  
-!   ! If the monte-carlo interaction length is longer than the
-!   ! remaining collimator length, then put it to the remaining
-!   ! length, do multiple coulomb scattering and return.
-!   ! LAST STEP IN ITERATION LOOP
-!   if(run_zlm1 > rlen) then
-!     run_zlm1 = rlen
-!     call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-!     s = (zlm-rlen)+s
-!     call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  ! DM routine to include tail
-!     p = p-m_dpodx*s
-                  
-!     dpop = (p-p0)/p0
+
+end subroutine
+
+
+! subroutine pyk2_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
+
+!   use mathlib_bouncer
+
+!   implicit none
+
+!   real(kind=8), intent(in)  :: p           ! p momentum in GeV
+!   real(kind=8), intent(in)  :: rlen           ! rlen length traversed in material (meters)
+!   real(kind=8), intent(inout)  :: il_exenergy  ! il_exenergy
+!   real(kind=8), intent(in)  :: il_anuc      ! il_anuc 
+!   real(kind=8), intent(in)  :: il_zatom     ! il_zatom
+!   real(kind=8), intent(in)  :: il_rho       ! il_rho
+!   real(kind=8), intent(inout) :: EnLo         ! EnLo energy loss in GeV/meter
+
+!   !call k2coll_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
+
+!   real(kind=8) exEn,thl,Tt,cs_tail,prob_tail,enr,mom,betar,gammar,bgr,kine,Tmax,plen
+!   real(kind=8), parameter :: k = 0.307075 ! Constant in front of Bethe-Bloch [MeV g^-1 cm^2]
+!   real(kind=8) pyk2_rand
+
+!   mom    = p*1.0e3                     ! [GeV/c] -> [MeV/c]
+!   enr    = (mom*mom + 938.271998*938.271998)**0.5 ! [MeV]
+!   gammar = enr/938.271998
+!   betar  = mom/enr
+!   bgr    = betar*gammar
+!   kine   = ((2*0.510998902)*bgr)*bgr
+
+!   ! Mean excitation energy
+!   exEn = il_exenergy*1.0e3 ! [MeV]
+
+!   ! Tmax is max energy loss from kinematics
+!   Tmax = kine/(1 + (2*gammar)*(0.510998902/938.271998) + (0.510998902/938.271998)**2) ! [MeV]
+
+!   ! Plasma energy - see PDG 2010 table 27.1
+!   plen = (((il_rho*il_zatom)/il_anuc)**0.5)*28.816e-6 ! [MeV]
+
+!   ! Calculate threshold energy
+!   ! Above this threshold, the cross section for high energy loss is calculated and then
+!   ! a random number is generated to determine if tail energy loss should be applied, or only mean from Bethe-Bloch
+!   ! below threshold, only the standard Bethe-Bloch is used (all particles get average energy loss)
+
+!   ! thl is 2*width of Landau distribution (as in fig 27.7 in PDG 2010). See Alfredo's presentation for derivation
+!   thl = ((((4*(k*il_zatom))*rlen)*1.0e2)*il_rho)/(il_anuc*betar**2) ! [MeV]
+
+!   ! Bethe-Bloch mean energy loss
+!   EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+!     0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + 0.5 &
+!   )
+!   EnLo = ((EnLo*il_rho)*1.0e-1)*rlen ! [GeV]
+
+!   ! Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
+!   Tt = EnLo*1.0e3 + thl ! [MeV]
+
+!   ! Cross section - see Alfredo's presentation for derivation
+!   cs_tail = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+!     0.5*((1/Tt)-(1/Tmax)) - (log_mb(Tmax/Tt)*betar**2)/(2*Tmax) + (Tmax-Tt)/((4*gammar**2)*938.271998**2) &
+!   )
+
+!   ! Probability of being in tail: cross section * density * path length
+!   prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2
+
+!   ! Determine based on random number if tail energy loss occurs.
+!   if(pyk2_rand() < prob_tail) then
+!     EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
+!       0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + &
+!       0.5 + TMax**2/((8*gammar**2)*938.271998**2) &
+!     )
+!     EnLo = (EnLo*il_rho)*1.0e-1 ! [GeV/m]
+!   else
+!     ! If tail energy loss does not occur, just use the standard Bethe-Bloch
+!     EnLo = EnLo/rlen  ! [GeV/m]
+!   end if
+
+! end subroutine
+
+
+! real(kind=8) function pyk2_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
+
+!   use mathlib_bouncer
+!   use mod_funlux, only: funlux
+
+!   implicit none
+
+!   integer,       intent(in)    :: inter
+!   real(kind=8), intent(inout) :: p
+!   real(kind=8), intent(in)    :: tt_bn
+!   real(kind=8), intent(in)    :: tt_cgen(200)
+!   real(kind=8), intent(in)    :: tt_xln15s
+!   real(kind=8), intent(in)    :: tt_ecmsq
+!   real(kind=8), intent(in)    :: tt_bpp
+
+!   real(kind=8) xm2,bsd,xran(1)
+!   real(kind=8) pyk2_rand
+
+!   ! Neither if-statements below have an else, so defaulting function return to zero.
+!   pyk2_gettran = 0
+
+!   select case(inter)
+!   case(2) ! Nuclear Elastic
+!     pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bn
+!   case(3) ! pp Elastic
+!     pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bpp
+!   case(4) ! Single Diffractive
+!     xm2 = exp_mb(pyk2_rand() * tt_xln15s)
+!     p   = p * (1 - xm2/tt_ecmsq)
+!     if(xm2 < 2) then
+!       bsd = 2 * tt_bpp
+!     else if(xm2 >= 2 .and. xm2 <= 5) then
+!       bsd = ((106.0 - 17.0*xm2)*tt_bpp)/36.0
+!     else
+!       bsd = (7*tt_bpp)/12.0
+!     end if
+!     pyk2_gettran = (-1*log_mb(pyk2_rand()))/bsd
+!   case(5) ! Coulomb
+!     call funlux(tt_cgen(1), xran, 1)
+!     pyk2_gettran = xran(1)
+!   end select
+
+
+! end function pyk2_gettran
+
+
+! subroutine pyk2_soln3(a, b, dh, smax, s)
+
+!   real(kind=8), intent(in)    :: a
+!   real(kind=8), intent(in)    :: b
+!   real(kind=8), intent(in)    :: dh
+!   real(kind=8), intent(in)    :: smax
+!   real(kind=8), intent(inout) :: s
+
+!   real(kind=8) c
+
+!   if(b == 0) then
+!     s = a**0.6666666666666667
+!   ! s = a**(two/three)
+!     if(s > smax) s = smax
 !     return
 !   end if
-!     ! Otherwise do multi-coulomb scattering.
-!   ! REGULAR STEP IN ITERATION LOOP
 
-!   call pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-!     ! Check if particle is outside of collimator (X.LT.0) after
-!   ! MCS. If yes, calculate output longitudinal position (s),
-!   ! reduce momentum (output as dpop) and return.
-!   ! PARTICLE LEFT COLLIMATOR BEFORE ITS END.
-!   if(x <= zero) then
-!     s = (zlm-rlen)+s
-!         call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-!     p = p-m_dpodx*s
-!     dpop = (p-p0)/p0
+!   if(a == 0) then
+!     if(b > 0) then
+!       s = b**2
+!     else
+!       s = 0
+!     end if
+!     if(s > smax) s=smax
+!     return
+!   end if
+
+!   if(b > 0) then
+!     if(smax**3 <= (a + b*smax)**2) then
+!       s = smax
+!       return
+!     else
+!       s = smax*0.5
+!       call pyk2_iterat(a,b,dh,s)
+!     end if
+!   else
+!     c = (-1*a)/b
+!     if(smax < c) then
+!       if(smax**3 <= (a + b*smax)**2) then
+!         s = smax
 !         return
+!       else
+!         s = smax*0.5
+!         call pyk2_iterat(a,b,dh,s)
+!       end if
+!     else
+!       s = c*0.5
+!       call pyk2_iterat(a,b,dh,s)
+!     end if
 !   end if
 
-!   ! Check whether particle is absorbed. If yes, calculate output
-!   ! longitudinal position (s), reduce momentum (output as dpop)
-!   ! and return.
-!   ! PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
-!     inter    = pyk2_ichoix(run_cprob)
-!     nabs     = inter
-!   nabs_tmp = nabs
+! end subroutine pyk2_soln3
 
-!   ! RB, DM: save coordinates before interaction for writeout to FLUKA_impacts.dat
-!   xInt  = x
-!   xpInt = xp
-!   yInt  = z
-!   ypInt = zp
-!   sInt  = (zlm-rlen)+run_zlm1
 
-!   if(inter == 1) then
-!     s = (zlm-rlen)+run_zlm1
-!         call pyk2_calcIonLoss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-!         p = p-m_dpodx*s
+! subroutine pyk2_iterat(a, b, dh, s)
 
-!     dpop = (p-p0)/p0
+!   real(kind=8), intent(in)    :: a
+!   real(kind=8), intent(in)    :: b
+!   real(kind=8), intent(in)    :: dh
+!   real(kind=8), intent(inout) :: s
 
+!   real(kind=8) ds
+
+!   ds = s
+
+! 10 continue
+!   ds = ds*0.5
+
+!   if(s**3 < (a+b*s)**2) then
+!     s = s+ds
+!   else
+!     s = s-ds
+!   end if
+
+!   if(ds < dh) then
 !     return
+!   else
+!     goto 10
 !   end if
 
-!   ! Now treat the other types of interaction, as determined by ICHOIX:
+! end subroutine pyk2_iterat
 
-!   ! Nuclear-Elastic:          inter = 2
-!   ! pp Elastic:               inter = 3
-!   ! Single-Diffractive:       inter = 4    (changes momentum p)
-!   ! Coulomb:                  inter = 5
 
-!   ! As the single-diffractive interaction changes the momentum, save input momentum in p1.
-!   p1 = p
-!   ! Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
-!   t = pyk2_gettran(inter,p,run_bn,run_cgen,run_ecmsq,run_xln15s,run_bpp)
+! subroutine pyk2_mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop)
 
-!   ! Tetat calculates from the rms transverse momentum transfer in
-!   ! monte-carlo fashion the angle changes for x and z planes. The
-!   ! angle change is proportional to SQRT(t) and 1/p, as expected.
-!   call pyk2_tetat(t,p,dxp,dzp)
-!   ! Apply angle changes
-!   xp = xp+dxp
-!   zp = zp+dzp
+!   real(kind=8), intent(inout) :: s
+!   real(kind=8), intent(in)    :: mc_radl
+!   real(kind=8), intent(in)    :: mc_zlm1
+!   real(kind=8), intent(in)    :: mc_p0
 
-!   ! Treat single-diffractive scattering.
-!   if(inter == 4) then
+!   real(kind=8), intent(inout) :: mc_x
+!   real(kind=8), intent(inout) :: mc_xp
+!   real(kind=8), intent(inout) :: mc_z
+!   real(kind=8), intent(inout) :: mc_zp
+!   real(kind=8), intent(inout) :: mc_dpop
 
-!     ! added update for s
-!     s    = (zlm-rlen)+run_zlm1
-!     xpsd = dxp
-!     zpsd = dzp
-!     psd  = p1
+!   real(kind=8) theta,rlen0,rlen,ae,be,rad_len
 
-!     ! Add this code to get the momentum transfer also in the calling routine
-!     dpop = (p-p0)/p0
+!   real(kind=8), parameter :: h   = 0.001
+!   real(kind=8), parameter :: dh  = 0.0001
+!   real(kind=8), parameter :: bn0 = 0.4330127019
+
+!   ! radl_mat = mc_radl
+!   theta    = 13.6e-3/(mc_p0*(1+mc_dpop)) ! dpop   = (p - p0)/p0
+!   rad_len  = mc_radl
+
+
+!   mc_x     = (mc_x/theta)/mc_radl
+!   mc_xp    = mc_xp/theta
+!   mc_z     = (mc_z/theta)/mc_radl
+!   mc_zp    = mc_zp/theta
+!   rlen0 = mc_zlm1/mc_radl
+!   rlen  = rlen0
+
+! 10 continue
+!   ae = bn0*mc_x
+!   be = bn0*mc_xp
+
+!     call pyk2_soln3(ae,be,dh,rlen,s)
+!     if(s < h) s = h
+!     call pyk2_scamcs(mc_x,mc_xp,s)
+!     if(mc_x <= 0) then
+!     s = (rlen0-rlen)+s
+!     goto 20
 !   end if
-
-!   ! Calculate the remaining interaction length and close the iteration loop.
-!   rlen = rlen-run_zlm1
+!   if(s+dh >= rlen) then
+!     s = rlen0
+!     goto 20
+!   end if
+!   rlen = rlen-s
 !   goto 10
 
+! 20 continue
+!     call pyk2_scamcs(mc_z,mc_zp,s)
+!     s  = s*mc_radl
+!   mc_x  = (mc_x*theta)*mc_radl
+!   mc_xp = mc_xp*theta
+!   mc_z  = (mc_z*theta)*mc_radl
+!   mc_zp = mc_zp*theta
 
-end subroutine
-
-
-subroutine pyk2_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-
-  use coll_k2, only: k2coll_mcs
-
-  implicit none
-
-  real(kind=8),    intent(inout) :: s
-  real(kind=8),    intent(in) :: run_radl
-  real(kind=8),    intent(in) :: run_zlm1
-  real(kind=8),    intent(inout) :: p0
-  real(kind=8),    intent(inout) :: x
-  real(kind=8),    intent(inout) :: xp
-  real(kind=8),    intent(inout) :: z
-  real(kind=8),    intent(inout) :: zp
-  real(kind=8),    intent(inout) :: dpop
+! end subroutine pyk2_mcs
 
 
-  call k2coll_mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
 
-end subroutine
+! subroutine pyk2_tetat(t,p,tx,tz)
 
+!   implicit none
 
-subroutine pyk2_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
+!   real(kind=8), intent(in)  :: t
+!   real(kind=8), intent(in)  :: p
+!   real(kind=8), intent(inout) :: tx
+!   real(kind=8), intent(inout) :: tz
 
-  !use coll_k2, only: k2coll_calcIonLoss
-  use mathlib_bouncer
+!   !call k2coll_tetat(t,p,tx,tz)
 
-  implicit none
+!   real(kind=8) va,vb,va2,vb2,r2,teta
+!   real(kind=8) pyk2_rand
 
-  real(kind=8), intent(in)  :: p           ! p momentum in GeV
-  real(kind=8), intent(in)  :: rlen           ! rlen length traversed in material (meters)
-  real(kind=8), intent(inout)  :: il_exenergy  ! il_exenergy
-  real(kind=8), intent(in)  :: il_anuc      ! il_anuc 
-  real(kind=8), intent(in)  :: il_zatom     ! il_zatom
-  real(kind=8), intent(in)  :: il_rho       ! il_rho
-  real(kind=8), intent(inout) :: EnLo         ! EnLo energy loss in GeV/meter
+!   teta = sqrt(t)/p
+! 10 continue
+!   va  = 2*pyk2_rand() - 1
+!   vb  = pyk2_rand()
+!   va2 = va**2
+!   vb2 = vb**2
+!   r2  = va2 + vb2
+!   if(r2 > 1) goto 10
+!   tx  = (teta*((2*va)*vb))/r2
+!   tz  = (teta*(va2 - vb2))/r2
 
-  !call k2coll_calcIonLoss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,EnLo)
-
-  real(kind=8) exEn,thl,Tt,cs_tail,prob_tail,enr,mom,betar,gammar,bgr,kine,Tmax,plen
-  real(kind=8), parameter :: k = 0.307075 ! Constant in front of Bethe-Bloch [MeV g^-1 cm^2]
-  real(kind=8) pyk2_rand
-
-  mom    = p*1.0e3                     ! [GeV/c] -> [MeV/c]
-  enr    = (mom*mom + 938.271998*938.271998)**0.5 ! [MeV]
-  gammar = enr/938.271998
-  betar  = mom/enr
-  bgr    = betar*gammar
-  kine   = ((2*0.510998902)*bgr)*bgr
-
-  ! Mean excitation energy
-  exEn = il_exenergy*1.0e3 ! [MeV]
-
-  ! Tmax is max energy loss from kinematics
-  Tmax = kine/(1 + (2*gammar)*(0.510998902/938.271998) + (0.510998902/938.271998)**2) ! [MeV]
-
-  ! Plasma energy - see PDG 2010 table 27.1
-  plen = (((il_rho*il_zatom)/il_anuc)**0.5)*28.816e-6 ! [MeV]
-
-  ! Calculate threshold energy
-  ! Above this threshold, the cross section for high energy loss is calculated and then
-  ! a random number is generated to determine if tail energy loss should be applied, or only mean from Bethe-Bloch
-  ! below threshold, only the standard Bethe-Bloch is used (all particles get average energy loss)
-
-  ! thl is 2*width of Landau distribution (as in fig 27.7 in PDG 2010). See Alfredo's presentation for derivation
-  thl = ((((4*(k*il_zatom))*rlen)*1.0e2)*il_rho)/(il_anuc*betar**2) ! [MeV]
-
-  ! Bethe-Bloch mean energy loss
-  EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
-    0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + 0.5 &
-  )
-  EnLo = ((EnLo*il_rho)*1.0e-1)*rlen ! [GeV]
-
-  ! Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
-  Tt = EnLo*1.0e3 + thl ! [MeV]
-
-  ! Cross section - see Alfredo's presentation for derivation
-  cs_tail = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
-    0.5*((1/Tt)-(1/Tmax)) - (log_mb(Tmax/Tt)*betar**2)/(2*Tmax) + (Tmax-Tt)/((4*gammar**2)*938.271998**2) &
-  )
-
-  ! Probability of being in tail: cross section * density * path length
-  prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2
-
-  ! Determine based on random number if tail energy loss occurs.
-  if(pyk2_rand() < prob_tail) then
-    EnLo = ((k*il_zatom)/(il_anuc*betar**2)) * ( &
-      0.5*log_mb((kine*Tmax)/(exEn*exEn)) - betar**2 - log_mb(plen/exEn) - log_mb(bgr) + &
-      0.5 + TMax**2/((8*gammar**2)*938.271998**2) &
-    )
-    EnLo = (EnLo*il_rho)*1.0e-1 ! [GeV/m]
-  else
-    ! If tail energy loss does not occur, just use the standard Bethe-Bloch
-    EnLo = EnLo/rlen  ! [GeV/m]
-  end if
-
-end subroutine
+! end subroutine
 
 
-real(kind=8) function pyk2_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
+! integer function pyk2_ichoix(ich_cprob)
 
-  !use coll_k2, only: k2coll_gettran
-  use mathlib_bouncer
-  use mod_funlux, only: funlux
+!   implicit none
 
-  implicit none
+!   real(kind=8), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
+!   real(kind=8) pyk2_rand
 
-  integer,       intent(in)    :: inter
-  real(kind=8), intent(inout) :: p
-  real(kind=8), intent(in)    :: tt_bn
-  real(kind=8), intent(in)    :: tt_cgen(200)
-  real(kind=8), intent(in)    :: tt_xln15s
-  real(kind=8), intent(in)    :: tt_ecmsq
-  real(kind=8), intent(in)    :: tt_bpp
+!   integer i
+!   real(kind=8) aran
 
-  real(kind=8) xm2,bsd,xran(1)
-  real(kind=8) pyk2_rand
+!   aran = pyk2_rand()
+!   i    = 1
+! 10 continue
+!   if(aran > ich_cprob(i)) then
+!     i = i+1
+!     goto 10
+!   end if
 
-  ! Neither if-statements below have an else, so defaulting function return to zero.
-  pyk2_gettran = 0
+!   pyk2_ichoix = i
 
-  select case(inter)
-  case(2) ! Nuclear Elastic
-    pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bn
-  case(3) ! pp Elastic
-    pyk2_gettran = (-1*log_mb(pyk2_rand()))/tt_bpp
-  case(4) ! Single Diffractive
-    xm2 = exp_mb(pyk2_rand() * tt_xln15s)
-    p   = p * (1 - xm2/tt_ecmsq)
-    if(xm2 < 2) then
-      bsd = 2 * tt_bpp
-    else if(xm2 >= 2 .and. xm2 <= 5) then
-      bsd = ((106.0 - 17.0*xm2)*tt_bpp)/36.0
-    else
-      bsd = (7*tt_bpp)/12.0
-    end if
-    pyk2_gettran = (-1*log_mb(pyk2_rand()))/bsd
-  case(5) ! Coulomb
-    call funlux(tt_cgen(1), xran, 1)
-    pyk2_gettran = xran(1)
-  end select
-
-  !pyk2_gettran = k2coll_gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp)
-
-end function pyk2_gettran
-
-
-subroutine pyk2_tetat(t,p,tx,tz)
-
-  !use coll_k2, only: k2coll_tetat
- 
-  implicit none
-
-  real(kind=8), intent(in)  :: t
-  real(kind=8), intent(in)  :: p
-  real(kind=8), intent(inout) :: tx
-  real(kind=8), intent(inout) :: tz
-
-  !call k2coll_tetat(t,p,tx,tz)
-
-  real(kind=8) va,vb,va2,vb2,r2,teta
-  real(kind=8) pyk2_rand
-
-  teta = sqrt(t)/p
-10 continue
-  va  = 2*pyk2_rand() - 1
-  vb  = pyk2_rand()
-  va2 = va**2
-  vb2 = vb**2
-  r2  = va2 + vb2
-  if(r2 > 1) goto 10
-  tx  = (teta*((2*va)*vb))/r2
-  tz  = (teta*(va2 - vb2))/r2
-
-end subroutine
-
-
-integer function pyk2_ichoix(ich_cprob)
-  
-  !use coll_k2, only: k2coll_ichoix
-
-  implicit none
-
-  real(kind=8), intent(in) :: ich_cprob(0:5)      ! Cprob to choose an interaction in iChoix
-  real(kind=8) pyk2_rand
-
-  !pyk2_ichoix = k2coll_ichoix(ich_cprob)
-
-  !integer, intent(in) :: ma
-  integer i
-  real(kind=8) aran
-
-  aran = pyk2_rand()
-  i    = 1
-10 continue
-  if(aran > ich_cprob(i)) then
-    i = i+1
-    goto 10
-  end if
-
-  pyk2_ichoix = i
-
-end function pyk2_ichoix
+! end function pyk2_ichoix
 
 
 real(kind=8) function pyk2_rand() 
@@ -839,3 +843,36 @@ real(kind=8) function pyk2_rand()
   pyk2_rand = coll_rand()
 
 end function pyk2_rand
+
+
+subroutine pyk2_funlux(array,xran,len) 
+
+  use mod_funlux, only: funlux
+
+  implicit none
+
+  real(kind=8), intent(in)  :: array(200)
+  integer, intent(in)       :: len
+  real(kind=8), intent(inout) :: xran(len)
+
+  call funlux(array,xran,len)
+
+end subroutine pyk2_funlux
+
+
+! real(kind=8) function pyk2_ruth(t)
+
+!   use mathlib_bouncer
+!   !use coll_materials
+!   use coll_k2,           only : zatom_curr, emr_curr
+
+!   real(kind=8), intent(in) :: t
+!   !real(kind=8), intent(in) :: ru_emr
+
+!   ! DM: changed 2.607d-4 to 2.607d-5 to fix Rutherford bug
+!   real(kind=8), parameter :: cnorm  = 2.607e-5
+!   real(kind=8), parameter :: cnform = 0.8561e3
+
+!   pyk2_ruth = (cnorm*exp_mb(((-1*t)*cnform)*emr_curr**2)) * (zatom_curr/t)**2
+
+! end function pyk2_ruth

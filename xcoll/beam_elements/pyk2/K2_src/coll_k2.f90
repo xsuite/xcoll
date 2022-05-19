@@ -206,66 +206,66 @@ end subroutine k2coll_init
 !!
 !!     collimator: x>0 and y<zlm1
 !<
-subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop)
+! subroutine k2coll_mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop)
 
-  !use coll_materials
+!   !use coll_materials
 
-  real(kind=fPrec), intent(inout) :: s
-  real(kind=fPrec), intent(in)    :: mc_radl
-  real(kind=fPrec), intent(in)    :: mc_zlm1
-  real(kind=fPrec), intent(in)    :: mc_p0
+!   real(kind=fPrec), intent(inout) :: s
+!   real(kind=fPrec), intent(in)    :: mc_radl
+!   real(kind=fPrec), intent(in)    :: mc_zlm1
+!   real(kind=fPrec), intent(in)    :: mc_p0
 
-  real(kind=fPrec), intent(inout) :: mc_x
-  real(kind=fPrec), intent(inout) :: mc_xp
-  real(kind=fPrec), intent(inout) :: mc_z
-  real(kind=fPrec), intent(inout) :: mc_zp
-  real(kind=fPrec), intent(inout) :: mc_dpop
+!   real(kind=fPrec), intent(inout) :: mc_x
+!   real(kind=fPrec), intent(inout) :: mc_xp
+!   real(kind=fPrec), intent(inout) :: mc_z
+!   real(kind=fPrec), intent(inout) :: mc_zp
+!   real(kind=fPrec), intent(inout) :: mc_dpop
 
-  real(kind=fPrec) theta,rlen0,rlen,ae,be,rad_len
+!   real(kind=fPrec) theta,rlen0,rlen,ae,be,rad_len
 
-  real(kind=fPrec), parameter :: h   = 0.001_fPrec
-  real(kind=fPrec), parameter :: dh  = 0.0001_fPrec
-  real(kind=fPrec), parameter :: bn0 = 0.4330127019_fPrec
+!   real(kind=fPrec), parameter :: h   = 0.001_fPrec
+!   real(kind=fPrec), parameter :: dh  = 0.0001_fPrec
+!   real(kind=fPrec), parameter :: bn0 = 0.4330127019_fPrec
 
-  ! radl_mat = mc_radl
-  theta    = 13.6e-3_fPrec/(mc_p0*(one+mc_dpop)) ! dpop   = (p - p0)/p0
-  rad_len  = mc_radl
+!   ! radl_mat = mc_radl
+!   theta    = 13.6e-3_fPrec/(mc_p0*(one+mc_dpop)) ! dpop   = (p - p0)/p0
+!   rad_len  = mc_radl
 
 
-  mc_x     = (mc_x/theta)/mc_radl
-  mc_xp    = mc_xp/theta
-  mc_z     = (mc_z/theta)/mc_radl
-  mc_zp    = mc_zp/theta
-  rlen0 = mc_zlm1/mc_radl
-  rlen  = rlen0
+!   mc_x     = (mc_x/theta)/mc_radl
+!   mc_xp    = mc_xp/theta
+!   mc_z     = (mc_z/theta)/mc_radl
+!   mc_zp    = mc_zp/theta
+!   rlen0 = mc_zlm1/mc_radl
+!   rlen  = rlen0
 
-10 continue
-  ae = bn0*mc_x
-  be = bn0*mc_xp
+! 10 continue
+!   ae = bn0*mc_x
+!   be = bn0*mc_xp
 
-    call k2coll_soln3(ae,be,dh,rlen,s)
-    if(s < h) s = h
-    call k2coll_scamcs(mc_x,mc_xp,s)
-    if(mc_x <= zero) then
-    s = (rlen0-rlen)+s
-    goto 20
-  end if
-  if(s+dh >= rlen) then
-    s = rlen0
-    goto 20
-  end if
-  rlen = rlen-s
-  goto 10
+!     call k2coll_soln3(ae,be,dh,rlen,s)
+!     if(s < h) s = h
+!     call k2coll_scamcs(mc_x,mc_xp,s)
+!     if(mc_x <= zero) then
+!     s = (rlen0-rlen)+s
+!     goto 20
+!   end if
+!   if(s+dh >= rlen) then
+!     s = rlen0
+!     goto 20
+!   end if
+!   rlen = rlen-s
+!   goto 10
 
-20 continue
-    call k2coll_scamcs(mc_z,mc_zp,s)
-    s  = s*mc_radl
-  mc_x  = (mc_x*theta)*mc_radl
-  mc_xp = mc_xp*theta
-  mc_z  = (mc_z*theta)*mc_radl
-  mc_zp = mc_zp*theta
+! 20 continue
+!     call k2coll_scamcs(mc_z,mc_zp,s)
+!     s  = s*mc_radl
+!   mc_x  = (mc_x*theta)*mc_radl
+!   mc_xp = mc_xp*theta
+!   mc_z  = (mc_z*theta)*mc_radl
+!   mc_zp = mc_zp*theta
 
-end subroutine k2coll_mcs
+! end subroutine k2coll_mcs
 
 !>
 !! k2coll_calcIonLoss(IS,PC,DZ,il_anuc,il_zatom,il_rho,EnLo)
@@ -380,119 +380,119 @@ end subroutine k2coll_mcs
 !>
 !! k2coll_soln3(a,b,dh,smax,s)
 !<
-subroutine k2coll_soln3(a, b, dh, smax, s)
+! subroutine k2coll_soln3(a, b, dh, smax, s)
 
-  real(kind=fPrec), intent(in)    :: a
-  real(kind=fPrec), intent(in)    :: b
-  real(kind=fPrec), intent(in)    :: dh
-  real(kind=fPrec), intent(in)    :: smax
-  real(kind=fPrec), intent(inout) :: s
+!   real(kind=fPrec), intent(in)    :: a
+!   real(kind=fPrec), intent(in)    :: b
+!   real(kind=fPrec), intent(in)    :: dh
+!   real(kind=fPrec), intent(in)    :: smax
+!   real(kind=fPrec), intent(inout) :: s
 
-  real(kind=fPrec) c
+!   real(kind=fPrec) c
 
-  if(b == zero) then
-    s = a**0.6666666666666667_fPrec
-  ! s = a**(two/three)
-    if(s > smax) s = smax
-    return
-  end if
+!   if(b == zero) then
+!     s = a**0.6666666666666667_fPrec
+!   ! s = a**(two/three)
+!     if(s > smax) s = smax
+!     return
+!   end if
 
-  if(a == zero) then
-    if(b > zero) then
-      s = b**2
-    else
-      s = zero
-    end if
-    if(s > smax) s=smax
-    return
-  end if
+!   if(a == zero) then
+!     if(b > zero) then
+!       s = b**2
+!     else
+!       s = zero
+!     end if
+!     if(s > smax) s=smax
+!     return
+!   end if
 
-  if(b > zero) then
-    if(smax**3 <= (a + b*smax)**2) then
-      s = smax
-      return
-    else
-      s = smax*half
-      call k2coll_iterat(a,b,dh,s)
-    end if
-  else
-    c = (-one*a)/b
-    if(smax < c) then
-      if(smax**3 <= (a + b*smax)**2) then
-        s = smax
-        return
-      else
-        s = smax*half
-        call k2coll_iterat(a,b,dh,s)
-      end if
-    else
-      s = c*half
-      call k2coll_iterat(a,b,dh,s)
-    end if
-  end if
+!   if(b > zero) then
+!     if(smax**3 <= (a + b*smax)**2) then
+!       s = smax
+!       return
+!     else
+!       s = smax*half
+!       call k2coll_iterat(a,b,dh,s)
+!     end if
+!   else
+!     c = (-one*a)/b
+!     if(smax < c) then
+!       if(smax**3 <= (a + b*smax)**2) then
+!         s = smax
+!         return
+!       else
+!         s = smax*half
+!         call k2coll_iterat(a,b,dh,s)
+!       end if
+!     else
+!       s = c*half
+!       call k2coll_iterat(a,b,dh,s)
+!     end if
+!   end if
 
-end subroutine k2coll_soln3
+! end subroutine k2coll_soln3
 
 !>
 !! k2coll_scamcs(xx,xxp,s)
 !<
-subroutine k2coll_scamcs(xx, xxp, s)
+! subroutine k2coll_scamcs(xx, xxp, s)
 
-  use mathlib_bouncer
-  use mod_ranlux
+!   use mathlib_bouncer
+!   use mod_ranlux
 
-  real(kind=fPrec), intent(inout) :: xx
-  real(kind=fPrec), intent(inout) :: xxp
-  real(kind=fPrec), intent(in)    :: s
+!   real(kind=fPrec), intent(inout) :: xx
+!   real(kind=fPrec), intent(inout) :: xxp
+!   real(kind=fPrec), intent(in)    :: s
 
-  real(kind=fPrec) v1,v2,r2,a,z1,z2,ss,x0,xp0,sss
+!   real(kind=fPrec) v1,v2,r2,a,z1,z2,ss,x0,xp0,sss
 
-  x0  = xx
-  xp0 = xxp
+!   x0  = xx
+!   xp0 = xxp
 
-10 continue
-  v1 = two*coll_rand() - one
-  v2 = two*coll_rand() - one
-  r2 = v1**2 + v2**2
-  if(r2 >= one) goto 10
+! 10 continue
+!   v1 = two*coll_rand() - one
+!   v2 = two*coll_rand() - one
+!   r2 = v1**2 + v2**2
+!   if(r2 >= one) goto 10
 
-  a   = sqrt((-two*log_mb(r2))/r2)
-  z1  = v1*a
-  z2  = v2*a
-  ss  = sqrt(s)
-  sss = one + 0.038_fPrec*log_mb(s)
-  xx  = x0  + s*(xp0 + ((half*ss)*sss)*(z2 + z1*0.577350269_fPrec))
-  xxp = xp0 + (ss*z2)*sss
+!   a   = sqrt((-two*log_mb(r2))/r2)
+!   z1  = v1*a
+!   z2  = v2*a
+!   ss  = sqrt(s)
+!   sss = one + 0.038_fPrec*log_mb(s)
+!   xx  = x0  + s*(xp0 + ((half*ss)*sss)*(z2 + z1*0.577350269_fPrec))
+!   xxp = xp0 + (ss*z2)*sss
 
-end subroutine k2coll_scamcs
+! end subroutine k2coll_scamcs
 
-subroutine k2coll_iterat(a, b, dh, s)
+! subroutine k2coll_iterat(a, b, dh, s)
 
-  real(kind=fPrec), intent(in)    :: a
-  real(kind=fPrec), intent(in)    :: b
-  real(kind=fPrec), intent(in)    :: dh
-  real(kind=fPrec), intent(inout) :: s
+!   real(kind=fPrec), intent(in)    :: a
+!   real(kind=fPrec), intent(in)    :: b
+!   real(kind=fPrec), intent(in)    :: dh
+!   real(kind=fPrec), intent(inout) :: s
 
-  real(kind=fPrec) ds
+!   real(kind=fPrec) ds
 
-  ds = s
+!   ds = s
 
-10 continue
-  ds = ds*half
+! 10 continue
+!   ds = ds*half
 
-  if(s**3 < (a+b*s)**2) then
-    s = s+ds
-  else
-    s = s-ds
-  end if
+!   if(s**3 < (a+b*s)**2) then
+!     s = s+ds
+!   else
+!     s = s-ds
+!   end if
 
-  if(ds < dh) then
-    return
-  else
-    goto 10
-  end if
+!   if(ds < dh) then
+!     return
+!   else
+!     goto 10
+!   end if
 
-end subroutine k2coll_iterat
+! end subroutine k2coll_iterat
 
 !>
 !! k2coll_ruth(t)
