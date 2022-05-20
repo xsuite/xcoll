@@ -2,10 +2,12 @@ import numpy as np
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, cgen, p0, nabs, s, zlm, x, xp, z, zp, dpop):
     
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+
+    from .k2_random import get_random
 
     # Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
     p    = p0*(1+dpop)
@@ -21,7 +23,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
     # Get monte-carlo interaction length.
     while (True):
 
-        run_zlm1 = (-1*run_xintl)*np.log(pyk2.pyk2_rand())
+        run_zlm1 = (-1*run_xintl)*np.log(get_random())
                         
         # If the monte-carlo interaction length is longer than the
         # remaining collimator length, then put it to the remaining
@@ -157,10 +159,12 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
    
 def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+
+    from .k2_random import get_random
 
     mom    = p*1.0e3                     #[GeV/c] -> [MeV/c]
     enr    = (mom*mom + 938.271998*938.271998)**0.5 #[MeV]
@@ -201,7 +205,7 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
     prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2
 
     # Determine based on random number if tail energy loss occurs.
-    if (pyk2.pyk2_rand() < prob_tail):
+    if (get_random() < prob_tail):
         enlo = ((k*il_zatom)/(il_anuc*betar**2)) * (0.5*np.log((kine*tmax)/(exEn*exEn)) - betar**2 - np.log(plen/exEn) - np.log(bgr) + 0.5 + tmax**2/((8*gammar**2)*938.271998**2))
         enlo = (enlo*il_rho)*1.0e-1 # [GeV/m]
     else:
@@ -215,23 +219,23 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
 def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    from .k2_random import get_random, get_random_ruth
+
     # Neither if-statements below have an else, so defaulting function return to zero.
-    pyk2_gettran = 0
-    xran = np.zeros(1)
+    result = 0
 
     if (inter==2): # Nuclear Elastic
-        pyk2_gettran = (-1*np.log(pyk2.pyk2_rand()))/tt_bn
+        result = (-1*np.log(get_random()))/tt_bn
     
     elif (inter==3): # pp Elastic
-        pyk2_gettran = (-1*np.log(pyk2.pyk2_rand()))/tt_bpp
+        result = (-1*np.log(get_random()))/tt_bpp
 
     elif (inter==4): # Single Diffractive
-        xm2 = np.exp(pyk2.pyk2_rand() * tt_xln15s)
+        xm2 = np.exp(get_random() * tt_xln15s)
         p   = p * (1 - xm2/tt_ecmsq)
     
         if (xm2 < 2):
@@ -243,31 +247,28 @@ def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
         else:
             bsd = (7*tt_bpp)/12.0
    
-        pyk2_gettran = (-1*np.log(pyk2.pyk2_rand()))/bsd
+        result = (-1*np.log(get_random()))/bsd
 
     elif (inter==5): # Coulomb
-        #############################################
-        this_cgen = np.array(tt_cgen[0], dtype=np.float64)
-        xran = np.array(xran, dtype=np.float64)
-        #############################################
-        pyk2.pyk2_funlux(tt_cgen, xran, 1)
-        pyk2_gettran = xran[0]
+        result = get_random_ruth(tt_cgen)
 
-    return pyk2_gettran, p
+    return result, p
 
 
 
 def tetat(t,p,tx,tz):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+
+    from .k2_random import get_random
 
     teta = np.sqrt(t)/p
     while (True):
-        va  = 2*pyk2.pyk2_rand() - 1
-        vb  = pyk2.pyk2_rand()
+        va  = 2*get_random() - 1
+        vb  = get_random()
         va2 = va**2
         vb2 = vb**2
         r2  = va2 + vb2
@@ -284,10 +285,10 @@ def tetat(t,p,tx,tz):
 
 def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     theta    = 13.6e-3/(mc_p0*(1+mc_dpop)) # dpop   = (p - p0)/p0
     h   = 0.001
@@ -343,17 +344,19 @@ def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
 
 def scamcs(xx, xxp, s):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+
+    from .k2_random import get_random
 
     x0  = xx
     xp0 = xxp
 
     while (True):
-        v1 = 2*pyk2.pyk2_rand() - 1
-        v2 = 2*pyk2.pyk2_rand() - 1
+        v1 = 2*get_random() - 1
+        v2 = 2*get_random() - 1
         r2 = v1**2 + v2**2
 
         if(r2 < 1):
@@ -373,10 +376,10 @@ def scamcs(xx, xxp, s):
 
 def soln3(a, b, dh, smax, s):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     if(b == 0):
         s = a**0.6666666666666667
@@ -449,12 +452,14 @@ def iterat(a, b, dh, s):
 
 def ichoix(ich_cprob):
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    # try:
+    #     import xcoll.beam_elements.pyk2 as pyk2
+    # except ImportError:
+    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
-    aran = pyk2.pyk2_rand()
+    from .k2_random import get_random
+
+    aran = get_random()
     
     for i in range(5):
         i += 1
