@@ -2,32 +2,19 @@ import numpy as np
 from pathlib import Path
 from xcoll import _pkg_root
 
-try:
-    import xcoll.beam_elements.pyk2 as pyk2
-except ImportError:
-    raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    
-
 __pseudo_rands__ = np.load(Path(_pkg_root,'beam_elements','k2','randoms.npy'))
 __index__ = -1
-__n_ruths__ = 0
 
 
 
 def get_random():
     global __index__
     __index__ += 1
-    # a = pyk2.pyk2_rand()
     thisran = __pseudo_rands__[__index__]
-    # if abs(a-thisran) > 0:
-    #     print(__index__, a, thisran)
     return thisran
 
 
 def get_random_ruth(cgen):
-    
-    global __n_ruths__
-    __n_ruths__ += 1
 
     ran = get_random()
     gap=0.010101010091602802 #1./99.

@@ -2,11 +2,6 @@ import numpy as np
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, cgen, p0, nabs, s, zlm, x, xp, z, zp, dpop):
     
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-
     from .k2_random import get_random
 
     # Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
@@ -159,11 +154,6 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
    
 def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-
     from .k2_random import get_random
 
     mom    = p*1.0e3                     #[GeV/c] -> [MeV/c]
@@ -219,10 +209,6 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
 def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
 
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
     from .k2_random import get_random, get_random_ruth
 
     # Neither if-statements below have an else, so defaulting function return to zero.
@@ -258,11 +244,6 @@ def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
 
 def tetat(t,p,tx,tz):
 
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-
     from .k2_random import get_random
 
     teta = np.sqrt(t)/p
@@ -284,11 +265,6 @@ def tetat(t,p,tx,tz):
 
 
 def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
-
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     theta    = 13.6e-3/(mc_p0*(1+mc_dpop)) # dpop   = (p - p0)/p0
     h   = 0.001
@@ -344,11 +320,6 @@ def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
 
 def scamcs(xx, xxp, s):
 
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-
     from .k2_random import get_random
 
     x0  = xx
@@ -375,11 +346,6 @@ def scamcs(xx, xxp, s):
 
 
 def soln3(a, b, dh, smax, s):
-
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     if(b == 0):
         s = a**0.6666666666666667
@@ -451,11 +417,6 @@ def iterat(a, b, dh, s):
 
 
 def ichoix(ich_cprob):
-
-    # try:
-    #     import xcoll.beam_elements.pyk2 as pyk2
-    # except ImportError:
-    #     raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     from .k2_random import get_random
 
