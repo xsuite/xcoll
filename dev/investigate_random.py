@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from xcoll.beam_elements.k2.k2_random import get_random_ruth
+from xcoll.beam_elements.k2.k2_random import get_random,get_random_ruth
 from xcoll.beam_elements.k2.materials import materials
 
 
@@ -9,10 +9,13 @@ no_particles = 10000000
 vals0 = np.zeros(no_particles)
 vals1 = np.zeros(no_particles)
 
-# for i in range(no_particles):
-#     vals0[i] = get_random()
+for i in range(no_particles):
+    vals0[i] = get_random()
 
-cgen=np.array([0.0009982 , 0.00100711, 0.00101619, 0.00102543, 0.00103485,
+plt.hist(vals1, bins=200, density=True, log=True)
+plt.show()
+
+BE_cgen=np.array([0.0009982 , 0.00100711, 0.00101619, 0.00102543, 0.00103485,
        0.00104444, 0.00105422, 0.00106419, 0.00107435, 0.00108471,
        0.00109528, 0.00110606, 0.00111706, 0.00112829, 0.00113975,
        0.00115145, 0.0011634 , 0.00117561, 0.00118808, 0.00120083,
@@ -54,7 +57,7 @@ cgen=np.array([0.0009982 , 0.00100711, 0.00101619, 0.00102543, 0.00103485,
        0.01882992, 0.01910435, 0.01939025, 0.01968848, 0.02      ])
 
 for j in range(no_particles):
-    vals1[j] = get_random_ruth(cgen)
+    vals1[j] = get_random_ruth(BE_cgen)
 
 
 plt.hist(vals1, bins=200, density=True, log=True)
