@@ -6,8 +6,8 @@ __pseudo_rands__ = np.load(Path(_pkg_root,'beam_elements','k2','randoms.npy'))
 __index__ = -1
 
 
-
 def get_random():
+
     global __index__
     __index__ += 1
     thisran = __pseudo_rands__[__index__]
