@@ -53,7 +53,7 @@ num_particles = 50000
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
-x_norm, py_norm, _, _ = xp.generate_2D_pencil(
+x_norm, px_norm, _, _ = xp.generate_2D_pencil(
                              num_particles=num_particles,
                              pos_cut_sigmas=coll_manager.colldb.gap[coll],
                              dr_sigmas=0.002,
@@ -64,7 +64,7 @@ y_norm = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 
 part = xp.build_particles(
-            tracker=coll_manager.tracker,
+            tracker=coll_manager.line.tracker,
             x_norm=x_norm, px_norm=px_norm,
             y_norm=y_norm, py_norm=py_norm,
             scale_with_transverse_norm_emitt=coll_manager.colldb.emittance,

@@ -225,7 +225,7 @@ class CollimatorManager:
 
         pos = self.colldb._optics_positions_to_calculate
         if recompute or pos != {}:
-            tracker = self.tracker
+            tracker = self.line.tracker
             # Calculate optics without collimators
             old_val = {}
             for name in self.collimator_names:

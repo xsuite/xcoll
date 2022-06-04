@@ -1,7 +1,8 @@
 import numpy as np
-
 import matplotlib.pyplot as plt
+import json
 
+import xobjects as xo
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
@@ -13,21 +14,26 @@ import sixtracktools as st
 # -------------------- Initialisation --------------------
 # --------------------------------------------------------
 
-# Import Run III lattice
-print("Loading line from SixTrack.. ")
-line = xt.Line.from_sixinput(st.SixInput('./RunIII_B1'))
+# Make a context and get a buffer
+context = xo.ContextCpu()         # For CPU
+# context = xo.ContextCupy()      # For CUDA GPUs
+# context = xo.ContextPyopencl()  # For OpenCL GPUs
+buffer = context.new_buffer()
 
-# Attach reference particle (a proton at 6.8 TeV)
-line.particle_ref = xp.Particles(mass0 = xp.PROTON_MASS_EV, p0c=6.8e12)
 
-# Switch on RF (needed to twiss)
-line['acsca.d5l4.b1'].voltage = 16e6
-line['acsca.d5l4.b1'].frequency = 1e6
 
-# Initialise collmanager
+# Load from json
+with open('machines/lhc_run3_b1.json', 'r') as fid:
+    loaded_dct = json.load(fid)
+line = xt.Line.from_dict(loaded_dct)
+
+
+
+# Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
     line=line,
-    colldb=xc.load_SixTrack_colldb('RunIII_B1/CollDB-RunIII_B1.dat', emit=3.5e-6)
+    colldb=xc.load_SixTrack_colldb('colldb/lhc_run3_b1.dat', emit=3.5e-6),
+    _buffer=buffer
     )
 
 # Install collimators in line as black absorbers
