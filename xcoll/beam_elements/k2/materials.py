@@ -9,7 +9,8 @@ materials = {
         'emr': 0.22,
         'hcut': 0.02,
         'radl': 0.353,
-        'bnref': 74.7
+        'bnref': 74.7,
+        'can_be_crystal': False
         },
 
 # Aluminium
@@ -22,7 +23,8 @@ materials = {
         'emr': 0.302,
         'hcut': 0.02,
         'radl': 0.089,
-        'bnref': 120.3
+        'bnref': 120.3,
+        'can_be_crystal': False
         },
 
 # Copper
@@ -35,7 +37,8 @@ materials = {
         'emr': 0.366,
         'hcut': 0.01,
         'radl': 0.0143,
-        'bnref': 217.8
+        'bnref': 217.8,
+        'can_be_crystal': False
         },
 
 # Tungsten
@@ -48,7 +51,8 @@ materials = {
         'emr': 0.520,
         'hcut': 0.01,
         'radl': 0.0035,
-        'bnref': 440.3
+        'bnref': 440.3,
+        'can_be_crystal': False
         },
 
 # Lead
@@ -61,7 +65,8 @@ materials = {
         'emr': 0.542,
         'hcut': 0.01,
         'radl': 0.0056,
-        'bnref': 455.3
+        'bnref': 455.3,
+        'can_be_crystal': False
         },
 
 # Carbon
@@ -74,7 +79,8 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.2557,
-        'bnref': 70.0
+        'bnref': 70.0,
+        'can_be_crystal': False
         },
 
 # Carbon2
@@ -87,7 +93,8 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.094,
-        'bnref': 70.0
+        'bnref': 70.0,
+        'can_be_crystal': False
         },
 
 # Silicon
@@ -100,7 +107,8 @@ materials = {
         'emr': 0.441,
         'hcut': 0.02,
         'radl': 1,
-        'bnref': 120.14
+        'bnref': 120.14,
+        'can_be_crystal': True
         },
 
 # Germanium
@@ -113,7 +121,8 @@ materials = {
         'emr': 0.605,
         'hcut': 0.02,
         'radl': 1,
-        'bnref': 226.35
+        'bnref': 226.35,
+        'can_be_crystal': True
         },    
 
 # 
@@ -126,7 +135,8 @@ materials = {
         'emr': 0.25,
         'hcut': 0.02,
         'radl': 0.1193,
-        'bnref': 76.7
+        'bnref': 76.7,
+        'can_be_crystal': False
         },   
 
 # 
@@ -139,7 +149,8 @@ materials = {
         'emr': 0.308,
         'hcut': 0.02,
         'radl': 0.0316,
-        'bnref': 115.0
+        'bnref': 115.0,
+        'can_be_crystal': False
         },  
 
 # 
@@ -152,7 +163,8 @@ materials = {
         'emr': 0.481,
         'hcut': 0.02,
         'radl': 0.0096,
-        'bnref': 273.9
+        'bnref': 273.9,
+        'can_be_crystal': False
         },     
 
 # 
@@ -165,7 +177,8 @@ materials = {
         'emr': 0.418,
         'hcut': 0.02,
         'radl': 0.0144,
-        'bnref': 208.7
+        'bnref': 208.7,
+        'can_be_crystal': False
         },   
 
 # 
@@ -178,6 +191,7 @@ materials = {
         'emr': 0.578,
         'hcut': 0.02,
         'radl': 0.00385,
-        'bnref': 392.1
+        'bnref': 392.1,
+        'can_be_crystal': False
         },          
 }

@@ -24,7 +24,7 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     return zeta
 
 
-def track(k2collimator, particles, npart, reset_seed):
+def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
@@ -89,7 +89,7 @@ def track(k2collimator, particles, npart, reset_seed):
               nabs_type=nabs_type,
               linside=linside,
               matid=matID,
-              is_crystal=False,
+              is_crystal=is_crystal,
               c_length=length,
               c_rotation=k2collimator.angle/180.*np.pi,
               c_aperture=opening,
