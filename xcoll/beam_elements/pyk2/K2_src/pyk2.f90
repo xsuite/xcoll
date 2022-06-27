@@ -12,6 +12,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
                                 coll_expandArrays
   use coll_materials ! for collmat_init
   use coll_k2        ! for scattering
+  use coll_crystal
 
   implicit none
 
@@ -20,6 +21,7 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
 
   ! Set default values for collimator materials
   call collmat_init
+  call cry_init
 
   rnd_seed = random_generator_seed
 
@@ -144,3 +146,26 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 end subroutine 
 
+
+subroutine pyk2_startcry(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
+   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
+  use coll_crystal
+
+  integer(kind=4),  intent(in)    :: matid
+  real(kind=fPrec), intent(in)    :: emitX, emitY
+  real(kind=fPrec), intent(inout) :: o_tilt
+  real(kind=fPrec), intent(inout) :: o_length
+  real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
+  real(kind=fPrec), intent(in)    :: Nsig
+  real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
+  real(kind=fPrec), intent(in)    :: cryTilt
+  real(kind=fPrec), intent(in)    :: cryBend
+  real(kind=fPrec), intent(in)    :: cryThick
+  real(kind=fPrec), intent(in)    :: cryXDim
+  real(kind=fPrec), intent(in)    :: cryYDim
+  real(kind=fPrec), intent(in)    :: cryOrient
+  real(kind=fPrec), intent(in)    :: cryMiscut
+  
+  call cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
+   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
+end subroutine

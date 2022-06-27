@@ -74,6 +74,25 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
 
     matID = materials[k2collimator.material]['ID']
 
+    if is_crystal:
+        pyk2.pyk2_startcry(
+            matid=matID,
+            emitX=,
+            emitY=,
+            o_tilt=,
+            o_length=,
+            c_rotation=,
+            Nsig=,
+            c_length=,
+            cryTilt=,
+            cryBend=,
+            cryThick=,
+            cryXDim=,
+            cryYDim=,
+            cryOrient=,
+            cryMiscut=
+        )
+
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
               y_particles=y_part,

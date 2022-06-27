@@ -52,7 +52,7 @@ materials = {
         'hcut': 0.01,
         'radl': 0.0035,
         'bnref': 440.3,
-        'can_be_crystal': False
+        'can_be_crystal': True
         },
 
 # Lead
@@ -80,7 +80,7 @@ materials = {
         'hcut': 0.02,
         'radl': 0.2557,
         'bnref': 70.0,
-        'can_be_crystal': False
+        'can_be_crystal': True
         },
 
 # Carbon2
