@@ -22,7 +22,14 @@ with open('machines/lhc_run3_b1.json', 'r') as fid:
     loaded_dct = json.load(fid)
 line = xt.Line.from_dict(loaded_dct)
 
-
+line['acsca.d5l4.b1'].frequency = 400e6
+line['acsca.c5l4.b1'].frequency = 400e6
+line['acsca.b5l4.b1'].frequency = 400e6
+line['acsca.a5l4.b1'].frequency = 400e6
+line['acsca.a5r4.b1'].frequency = 400e6
+line['acsca.b5r4.b1'].frequency = 400e6
+line['acsca.c5r4.b1'].frequency = 400e6
+line['acsca.d5r4.b1'].frequency = 400e6
 
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
@@ -49,7 +56,7 @@ coll_manager.set_openings()
 
 
 # Horizontal loss map
-num_particles = 50000
+num_particles = 500
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
@@ -78,10 +85,7 @@ tracker.track(part, num_turns=10)
 
 
 collimator_losses = part.s[part.state==-333]
-aperture_losses = part.s[part.state==-1]
-other_losses = part.s[(part.state<=0) & (part.state!=-333)  & (part.state!=-1)]
-if len(other_losses) > 0:
-    raise Exception("Unexpected losses type. Please investigate.")
+aperture_losses = part.s[part.state==0]
 
 ## Plot histogram of losses along the acceleratores
 ## ------------------------------------------------------------------
@@ -91,7 +95,7 @@ S, count = np.unique(np.floor(aperture_losses/wdth)*wdth, return_counts = True);
 
 fig, ax=plt.subplots(1,1,figsize=(30,7));
 plt.bar(S+wdth*.5, count, width = wdth);
-ax.set_xlim(-10, 650);
+ax.set_xlim(-10, 27000);
 ax.set_xlabel('S [m]');
 ax.set_ylabel('No. of lost particles');
 plt.show()
