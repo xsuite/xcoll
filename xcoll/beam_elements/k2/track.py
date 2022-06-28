@@ -19,7 +19,8 @@ def drift_4d(x, y, xp, yp, length):
     return x, y
 
 def drift_zeta(zeta, rvv, xp, yp, length):
-    dzeta = rvv - (1 + (xp**2 + yp**2)/2 )
+    rv0v = 1./rvv
+    dzeta = 1 - rv0v * (1 + (xp**2 + yp**2)/2 )
     zeta += length * dzeta
     return zeta
 
