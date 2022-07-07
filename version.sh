@@ -14,7 +14,14 @@ sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/" tests/test_version.py
 git reset
 git add pyproject.toml xcoll/__init__.py tests/test_version.py
 git commit -m "Updated version number to v"${new_ver}"."
+git push
 git tag v${new_ver}
-git push origin --tags
+git push origin v${new_ver}
 
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github.v3+json" \
+  https://api.github.com/repos/xsuite/xcoll/releases \
+  -d '{"tag_name":"v'${new_ver}'","target_commitish":"main","name":"'${new_ver}'","body":"","draft":false,"prerelease":false,"generate_release_notes":true}'
 
+#poetry publish --build

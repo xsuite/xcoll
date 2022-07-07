@@ -1,0 +1,4 @@
+dist/** -linguist-detectable
+examples/** -linguist-detectable
+tests/** -linguist-detectable
+xcoll/beam_elements/pyk2/K2_src/** linguist-vendored

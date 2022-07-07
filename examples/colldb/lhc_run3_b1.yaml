@@ -1,0 +1,110 @@
+%YAML 1.2
+---
+# Each collimator is a dictionary, with the following set of keys:
+#   required keys:
+#       gap [sigma], length [m], angle [deg], material [BE/AL/CU/W/PB/C/C2/Si/Ge/MoGR/CuCD/Mo/Glid/Iner/VA/BL], stage
+#       (a gap equal to 'null' disables the collimator from tracking)
+#   optional keys:
+#       offset [m], onesided [left/right], tilt [deg] (or tilt_left and tilt_right if different for each jaw)
+#   special keys:
+#       active [bool] : Whether or not a collimator is still active in operation. If false, the gap is set to null.
+#                       The difference with just manually setting the gap to 'null' is mainly semantic: these are collimators that are in principle no longer used but still present in the machine.
+#       crystal [strip/quasi-mosaic] : Use when the collimator is a crystal of the specified type.
+#                       It allows for some extra keys: bend [m], xdim [m], ydim [m], miscut [deg], thick [m] (the thickness of the amorphous layer)
+# 
+# For ease of use, the collimators can be collected in families using standard YAML syntax.
+# Each family contains the keys for which all members have the same value (though keys can be overwritten again in the individual collimators).
+#
+# YAML syntax refresher:
+#   - indentation matters (spaces, no tabs)
+#   - comments are preceded with #
+#   - lists are represented by one item per line preceded with a dash, or in inline format as [ , ... ]
+#   - dictoraries are represented by one "key : value" per line, or in inline format as { key : value , ... }
+#   - the & represents a unique name tag
+#   - the * dereferences the named element
+#   - the merge operator << merges the subsequent element with the surrounding container (giving higher priority to the other elements in the container than those in the merged element, as to allow overwriting)
+Families:
+  # Momentum cleaning
+  - &TCP3    { gap: 15,    stage: primary,    material: C,     length: 0.6                }
+  - &TCSG3   { gap: 18,    stage: secondary,  material: C,     length: 1                  }
+  - &TCLA3   { gap: 20,    stage: tertiary,   material: Iner,  length: 1                  }
+  # Betatron cleaning
+  - &TCP7    { gap: 5,     stage: primary,    material: C,     length: 0.6                }
+  - &TCSG7   { gap: 6.5,   stage: secondary,  material: C,     length: 1                  }
+  - &TCLA7   { gap: 10,    stage: tertiary,   material: Iner,  length: 1                  }
+  - &CRY7    { gap: null,  stage: special,    material: Si,    length: 0.004,             onesided: left,  crystal: strip }
+  # Injection protection
+  - &TCLI    { gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90  }
+  - &TDI     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90  }
+  # Dump protection
+  - &TCDQ    { gap: 7.3,   stage: tertiary,   material: C,     length: 3,      angle: 0,  onesided: left }
+  - &TCSP    { gap: 7.3,   stage: secondary,  material: C,     length: 1,      angle: 0   }
+  # Physics background minimalisation
+  - &TCT15   { gap: 8.5,   stage: tertiary,   material: Iner,  length: 1                  }
+  - &TCT2    { gap: 37,    stage: tertiary,   material: Iner,  length: 1                  }
+  - &TCT8    { gap: 15,    stage: tertiary,   material: Iner,  length: 1                  }
+  # Physics debris
+  - &TCL4    { gap: 17,    stage: tertiary,   material: CU,    length: 1,      angle: 0   }
+  - &TCL5    { gap: 42,    stage: tertiary,   material: CU,    length: 1,      angle: 0   }
+  - &TCL6    { gap: 20,    stage: tertiary,   material: Iner,  length: 1,      angle: 0   }
+  # Physics debris in ALICE (only for ions)
+  - &TCLD    { gap: null,  stage: tertiary,   material: Iner,  length: 0.6,    angle: 0   }
+
+Collimators:
+  tcl.4r1.b1:         { <<: *TCL4                   }
+  tcl.5r1.b1:         { <<: *TCL5                   }
+  tcl.6r1.b1:         { <<: *TCL6                   }
+  tctph.4l2.b1:       { <<: *TCT2,   angle:   0     }
+  tctpv.4l2.b1:       { <<: *TCT2,   angle:  90     }
+  tdisa.a4l2.b1:      { <<: *TDI                    }
+  tdisb.a4l2.b1:      { <<: *TDI                    }
+  tdisc.a4l2.b1:      { <<: *TDI                    }
+  tclia.4r2:          { <<: *TCLI                   }
+  tclib.6r2.b1:       { <<: *TCLI                   }
+  tcld.a11r2.b1:      { <<: *TCLD                   }
+  tcp.6l3.b1:         { <<: *TCP3,   angle:   0     }
+  tcsg.5l3.b1:        { <<: *TCSG3,  angle:   0     }
+  tcsg.4r3.b1:        { <<: *TCSG3,  angle:   0     }
+  tcsg.a5r3.b1:       { <<: *TCSG3,  angle: 170.7   }
+  tcsg.b5r3.b1:       { <<: *TCSG3,  angle:  10.8   }
+  tcla.a5r3.b1:       { <<: *TCLA3,  angle:  90     }
+  tcla.b5r3.b1:       { <<: *TCLA3,  angle:   0     }
+  tcla.6r3.b1:        { <<: *TCLA3,  angle:   0     }
+  tcla.7r3.b1:        { <<: *TCLA3,  angle:   0     }
+  tctph.4l5.b1:       { <<: *TCT15,  angle:   0     }
+  tctpv.4l5.b1:       { <<: *TCT15,  angle:  90     }
+  tcl.4r5.b1:         { <<: *TCL4,                  }
+  tcl.5r5.b1:         { <<: *TCL5,                  }
+  tcl.6r5.b1:         { <<: *TCL6,                  }
+  tcdqa.a4r6.b1:      { <<: *TCDQ                   }
+  tcdqa.c4r6.b1:      { <<: *TCDQ                   }
+  tcdqa.b4r6.b1:      { <<: *TCDQ                   }
+  tcsp.a4r6.b1:       { <<: *TCSP                   }
+  tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR  }
+  tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR  }
+  tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
+  tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
+  tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bend: 85.10,  xdim: 5.0e-3,  ydim: 30.0e-3  }
+  tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.5   }
+  tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.7   }
+  tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
+  tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bend: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
+  tcsg.b4l7.b1:       { <<: *TCSG7,  angle:   0,    active: false   }
+  tcspm.b4l7.b1:      { <<: *TCSG7,  angle:   0,    material: MoGR  }
+  tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.6   }
+  tcsg.a4r7.b1:       { <<: *TCSG7,  angle:  46.3   }
+  tcsg.b5r7.b1:       { <<: *TCSG7,  angle: 141.5   }
+  tcsg.d5r7.b1:       { <<: *TCSG7,  angle:  51.4   }
+  tcsg.e5r7.b1:       { <<: *TCSG7,  angle: 130.5,  active: false   }
+  tcspm.e5r7.b1:      { <<: *TCSG7,  angle: 130.5,  material: MoGR  }
+  tcsg.6r7.b1:        { <<: *TCSG7,  angle:   0.5,  active: false   }
+  tcspm.6r7.b1:       { <<: *TCSG7,  angle:   0.5,  material: MoGR  }
+  tcla.a6r7.b1:       { <<: *TCLA7,  angle:  90     }
+  tcla.b6r7.b1:       { <<: *TCLA7,  angle:   0     }
+  tcla.c6r7.b1:       { <<: *TCLA7,  angle:  90     }
+  tcla.d6r7.b1:       { <<: *TCLA7,  angle:   0     }
+  tcla.a7r7.b1:       { <<: *TCLA7,  angle:   0     }
+  tctph.4l8.b1:       { <<: *TCT8,   angle:   0     }
+  tctpv.4l8.b1:       { <<: *TCT8,   angle:  90     }
+  tctph.4l1.b1:       { <<: *TCT15,  angle:   0     }
+  tctpv.4l1.b1:       { <<: *TCT15,  angle:  90     }

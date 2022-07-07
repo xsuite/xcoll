@@ -16,7 +16,12 @@ class CollDB:
         self.emittance = emit
         self._beta_gamma_rel = None
 
-
+    def __getitem__(self, name):
+        if isinstance(ii, name):
+            return self._colldb.loc[name]
+        else:
+            return self._colldb.loc[self.name[name]]
+        
     def to_pandas(self):
         return pd.DataFrame({
                 's_center':        self.s_center,
