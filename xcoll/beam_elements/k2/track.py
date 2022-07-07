@@ -139,8 +139,8 @@ def track(k2collimator, particles, npart, reset_seed):
             c_tilt=k2collimator.tilt,
             c_enom=e0_ref, # Reference energy in MeV
             onesided=k2collimator.onesided,
-            random_generator_seed=reset_seed, # skips rng re-initlization
             length=length,
+            material=k2collimator.material,
             )
 
     # Masks of hit and survived particles

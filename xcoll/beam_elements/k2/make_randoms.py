@@ -6,6 +6,7 @@ except ImportError:
 import numpy  as np
 # import json
 from pathlib import Path
+from xcoll.beam_elements.k2.materials import materials
 
 
 seed = 6574654
@@ -18,10 +19,12 @@ for i in range (num):
 
 np.save(Path(Path.cwd(),'randoms.npy'),pseudo_rands)
 
-# pseudo_rands_1 = np.zeros(num, dtype=np.float64)
-# for i in range (num):
-#     xran = np.array(0, dtype=np.float64)
-#     pseudo_rands_1[i] = pyk2.pyk2_funlux()
 
-# np.save(Path(Path.cwd(),'randoms1.npy'),pseudo_rands_1)
+for mat, val in materials.items():
+    cgen = np.zeros(200, dtype=np.float64)
+    zatom = val['zatom']
+    emr = val['emr']
+    hcut = val['hcut']
+    pyk2.initialise_random(random_generator_seed=-1, cgen=cgen, zatom=zatom, emr=emr, hcut=hcut)
+    np.save(Path(Path.cwd(),'cgen_' + mat + '.npy'),cgen)
 

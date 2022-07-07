@@ -1,6 +1,6 @@
 import numpy as np
 
-def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, cgen, p0, nabs, s, zlm, x, xp, z, zp, dpop):
+def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop):
     
     from .k2_random import get_random
 
@@ -120,7 +120,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
 
         p = np.array(p, dtype=np.float64)
         ################################################################
-        t, p = gettran(inter,p,run_bn,cgen,run_ecmsq,run_xln15s,run_bpp)
+        t, p = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp)
         ################################################################
 
         # Tetat calculates from the rms transverse momentum transfer in
@@ -207,7 +207,7 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
 
 
-def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
+def gettran(inter,p,tt_bn,tt_ecmsq,tt_xln15s,tt_bpp):
 
     from .k2_random import get_random, get_random_ruth
 
@@ -236,7 +236,7 @@ def gettran(inter,p,tt_bn,tt_cgen,tt_ecmsq,tt_xln15s,tt_bpp):
         result = (-1*np.log(get_random()))/bsd
 
     elif (inter==5): # Coulomb
-        result = get_random_ruth(tt_cgen)
+        result = get_random_ruth()
 
     return result, p
 

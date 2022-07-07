@@ -1,21 +1,30 @@
 import numpy as np
 from .jaw import jaw
 from .crystal import crystal
+from .k2_random import initialise_random_ruth
+
+
+def rutherford(t, zatom, emr):
+    cnorm  = 2.607e-5
+    cnform = 0.8561e3
+    return (cnorm*np.exp(((-1*t)*cnform)*emr**2)) * (zatom/t)**2
+
 
 def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, random_generator_seed, length):
+                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material):
     
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
-    cgen = np.zeros(200, dtype=np.float64)
-    pyk2.initialise_random(random_generator_seed=random_generator_seed, cgen=cgen, zatom=run_zatom, emr=run_emr, hcut=run_hcut)
+    # pyk2.initialise_random(random_generator_seed=random_generator_seed, cgen=cgen, zatom=run_zatom, emr=run_emr, hcut=run_hcut)
 
+    initialise_random_ruth(material)
+  
     # Initilaisation
     length  = c_length
     p0 = c_enom
@@ -237,7 +246,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                             run_ecmsq=run_ecmsq,
                                                                             run_xln15s=run_xln15s,
                                                                             run_bpp=run_bpp,
-                                                                            cgen=cgen,
                                                                             p0=p0,
                                                                             nabs=nabs,
                                                                             s=s,
