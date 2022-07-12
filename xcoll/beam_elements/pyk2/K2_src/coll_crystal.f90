@@ -147,22 +147,17 @@ end subroutine cry_init
 ! ================================================================================================ !
 !  Initialise a crystal collimator
 ! ================================================================================================ !
-subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
-   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
-  use crcoall
-!  use coll_db
-  use coll_common
-  use coll_materials
+subroutine cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+                            cryYDim, cryOrient, cryMiscut)
+  !use crcoall
+  use coll_common, only: cry_proc
+  !use coll_materials
   use mathlib_bouncer
-  use mod_common_track
+  !use mod_common_track
 
-  integer(kind=4),  intent(in)    :: matid
-  real(kind=fPrec), intent(in)    :: emitX, emitY
-  real(kind=fPrec), intent(inout) :: o_tilt
-  real(kind=fPrec), intent(inout) :: o_length
-  real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
-  real(kind=fPrec), intent(in)    :: Nsig
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
+  real(kind=fPrec), intent(inout) :: new_length
+  real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
   real(kind=fPrec), intent(in)    :: cryTilt
   real(kind=fPrec), intent(in)    :: cryBend
   real(kind=fPrec), intent(in)    :: cryThick
@@ -171,29 +166,11 @@ subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
   real(kind=fPrec), intent(in)    :: cryOrient
   real(kind=fPrec), intent(in)    :: cryMiscut
 
+  real(kind=fPrec) bendAng
 
-  integer mat
-  integer ie
-  real(kind=fPrec) bendAng, cry_tilt0
+  cry_tilt = cryTilt       ! global variable
 
-  mat = matid
-  if(validMat(mat) .eqv. .false.) then
-    write(lerr,"(a)") "COLL> ERROR Crystal collimation not supported for material '"//trim(colmats(mat))//"'"
-    !call prror
-  end if
-
-  ie = 50   ! does not work! need optics at element ie ... 
-  if(modulo(c_rotation,pi) < c1m9) then
-    cry_tilt0 = -(sqrt(emitX/tbetax(ie))*talphax(ie))*Nsig
-  elseif (modulo(c_rotation-pi2,pi) < c1m9) then
-    cry_tilt0 = -(sqrt(emitY/tbetay(ie))*talphay(ie))*Nsig
-  else
-    write(lerr,"(a)") "COLL> ERROR Crystal collimator has to be horizontal or vertical"
-    !call prror
-  end if
-
-  cry_tilt = cryTilt + cry_tilt0
-  bendAng  = c_length/cryBend
+  bendAng  = c_length/cryBend     ! cryBend is bending radius
   if(cry_tilt >= (-one)*bendAng) then
     cry_length = cryBend*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
   else
@@ -220,8 +197,7 @@ subroutine cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
 
   cry_proc(:) = proc_out
 
-  o_tilt   = cry_tilt
-  o_length = cry_length
+  new_length = cry_length
 
 end subroutine cry_startElement
 
@@ -301,7 +277,7 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
     s_shift = s
     x_shift = x
   end if
-
+  
   ! 2nd transformation: rotation
   s_rot  = x_shift*c_spTilt + s_shift*c_cpTilt
   x_rot  = x_shift*c_cpTilt - s_shift*c_spTilt
@@ -312,10 +288,9 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   x  = x_rot - xp_rot*s_rot
   z  = z - zp*s_rot
   s  = zero
-
+  
   ! Check that particle hit the crystal
   if(x >= zero .and. x < c_xmax) then
-
     ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
     s_P = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
     x_P = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)

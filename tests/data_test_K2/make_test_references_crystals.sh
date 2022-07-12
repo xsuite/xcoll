@@ -29,8 +29,10 @@ do
             length=$( head -3 tempcoll | tail -1 | awk '{print $3;}' )
             angle=$( head -4 tempcoll | tail -1 | awk '{print $3;}' )
             offset=$( head -5 tempcoll | tail -1 | awk '{print $3;}' )
+            divx=$( head -14 tempcoll | tail -1 | awk '{print $4;}' )
+            divy=$( head -15 tempcoll | tail -1 | awk '{print $4;}' )
             jaw=$( head -17 tempcoll | tail -1 | awk '{print $4;}' )
-            gap=$( grep -i 'NSIG_FAM CRY7' CollDB-Testing.dat | awk '{print $3;}' )
+            aang=$( awk 'BEGIN{print cos('${angle}')*'${divx}'*1e-6 + sin('${angle}')*'${divy}'*1e-6;}' )
             cryinfo=$( grep -i 'CRYSTAL  '$coll CollDB-Testing.dat )
             bend=$( echo $cryinfo | awk '{print $3;}')
             xdim=$( echo $cryinfo | awk '{print $4;}')
@@ -45,8 +47,8 @@ do
             echo '    "jaw_F_L": '${jaw}', "jaw_F_R": -'${jaw}', "jaw_B_L": '${jaw}', "jaw_B_R": -'${jaw}', ' >> $json
             grep -i ' '$coll linopt_coupled.dat | tail -1 | awk '{print "    \"dx\": "$30", \"dpx\": "$31", \"dy\": "$32", \"dpy\": "$33",";}' >> $json
             echo '    "offset": '${offset}', "tilt": [0.0, 0.0], "is_active": 1, "record_impacts": 0,' >> $json
-            echo '    "bend": '${bend}', "xdim": '${xdim}', "ydim": '${ydim}', "thick": '${thick}', "gap": '${gap}', ' >> $json
-            echo '    "crytilt": '${crytilt}', "miscut": '${miscut}', "orient": '${orient}', "emittance": [3.5e-6,3.5e-6],' >> $json
+            echo '    "bend": '${bend}', "xdim": '${xdim}', "ydim": '${ydim}', "thick": '${thick}', ' >> $json
+            echo '    "crytilt": '${crytilt}', "miscut": '${miscut}', "orient": '${orient}', "align_angle": '${aang}',' >> $json
             echo '    "onesided": 0, "material": "'${material}'"}' >> $json
         cd ..
    #    grep -i tilt six_${coll}.out > tilt_${coll}.out

@@ -4,7 +4,7 @@
     Git SHA Hash: 22d5dde493e111bff5d1d3009539d58d4ed95a53
     Compiler:     gfortran
     Built With:   CRLIBM ZLIB
-    Start Time:   2022-07-12 16:09:11.643
+    Start Time:   2022-07-12 18:53:53.040
 
 ------------------------------------------------------------------------------------------------------------------------------------
 
@@ -65,7 +65,7 @@ FLUC> Read 88 values from fort.8
 
 ------------------------------------------------------------------------------------------------------------------------------------
 RANLUX> Luxury level set by rluxgo: 3 P = 223
-RANLUX> Initialised by rluxgo from seeds  615807356 0 0
+RANLUX> Initialised by rluxgo from seeds  625688757 0 0
 RANLUX> Luxury level set by rluxgo: 3 P = 223
 RANLUX> Initialised by rluxgo from seeds  6884162 0 0
 RANLUX> Luxury level set by rluxgo: 3 P = 223
@@ -487,10 +487,10 @@ MAINCR>      This is controlled by the PARTICLESUMMARY flag in the SETTINGS bloc
 
     Computing Time Summary
   ==========================
-    Preparating Calculations:        6.742 second(s)
-    Particle Tracking:               7.877 second(s)
+    Preparating Calculations:        6.758 second(s)
+    Particle Tracking:               7.933 second(s)
     Post Processing:                 0.000 second(s)
-    Total Time Used:                14.619 second(s)
+    Total Time Used:                14.691 second(s)
     Particle Turns:              10000
 
 ------------------------------------------------------------------------------------------------------------------------------------

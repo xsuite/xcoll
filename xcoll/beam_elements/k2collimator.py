@@ -235,7 +235,7 @@ class K2Crystal:
     isthick = True
     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, angle, emittance, gap, inactive_front=0, inactive_back=0,
+    def __init__(self, *, k2engine, active_length, angle, align_angle, inactive_front=0, inactive_back=0,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
                  bend=0, xdim=0, ydim=0, thick=0, crytilt=0, miscut=0, orient=0,
                  is_active=True, impacts=None, material=None):
@@ -270,10 +270,9 @@ class K2Crystal:
         self.ydim = ydim
         self.thick = thick
         self.crytilt = crytilt
+        self.align_angle = align_angle    #  = - sqrt(eps/beta)*alpha*nsigma
         self.miscut = miscut
         self.orient = orient
-        self.emittance = emittance
-        self.gap = gap
         self.impacts = impacts
         self._reset_random_seed = False
 
@@ -413,8 +412,7 @@ class K2Crystal:
         thisdict['crytilt'] = self.crytilt
         thisdict['miscut'] = self.miscut
         thisdict['orient'] = self.orient
-        thisdict['emittance'] = self.emittance
-        thisdict['gap'] = self.gap
+        thisdict['align_angle'] = self.align_angle
 
         return thisdict
 
@@ -458,6 +456,5 @@ class K2Crystal:
             crytilt = thisdict['crytilt'],
             miscut = thisdict['miscut'],
             orient = thisdict['orient'],
-            emittance = thisdict['emittance'],
-            gap = thisdict['gap']
+            align_angle = thisdict['align_angle']
         )

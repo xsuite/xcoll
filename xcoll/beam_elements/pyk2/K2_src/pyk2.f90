@@ -147,25 +147,21 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
 end subroutine 
 
 
-subroutine pyk2_startcry(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
-   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
-  use coll_crystal
+subroutine pyk2_startcry(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+                         cryYDim, cryOrient, cryMiscut)
+  use coll_crystal, only: cry_startElement
 
-  integer(kind=4),  intent(in)    :: matid
-  real(kind=fPrec), intent(in)    :: emitX, emitY
-  real(kind=fPrec), intent(inout) :: o_tilt
-  real(kind=fPrec), intent(inout) :: o_length
-  real(kind=fPrec), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
-  real(kind=fPrec), intent(in)    :: Nsig
-  real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
-  real(kind=fPrec), intent(in)    :: cryTilt
-  real(kind=fPrec), intent(in)    :: cryBend
-  real(kind=fPrec), intent(in)    :: cryThick
-  real(kind=fPrec), intent(in)    :: cryXDim
-  real(kind=fPrec), intent(in)    :: cryYDim
-  real(kind=fPrec), intent(in)    :: cryOrient
-  real(kind=fPrec), intent(in)    :: cryMiscut
+  real(kind=8), intent(in)    :: c_length     ! Collimator length in m
+  real(kind=8), intent(inout) :: new_length
+  real(kind=8), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
+  real(kind=8), intent(in)    :: cryTilt
+  real(kind=8), intent(in)    :: cryBend
+  real(kind=8), intent(in)    :: cryThick
+  real(kind=8), intent(in)    :: cryXDim
+  real(kind=8), intent(in)    :: cryYDim
+  real(kind=8), intent(in)    :: cryOrient
+  real(kind=8), intent(in)    :: cryMiscut
   
-  call cry_startElement(matid, emitX, emitY, o_tilt, o_length, c_rotation, &
-   Nsig, c_length, cryTilt, cryBend, cryThick, cryXDim, cryYDim, cryOrient, cryMiscut)
+  call cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+                        cryYDim, cryOrient, cryMiscut)
 end subroutine
