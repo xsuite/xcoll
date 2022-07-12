@@ -22,6 +22,8 @@ NSIG_FAM TCT                  5.0 TERTIARY
 NSIG_FAM TCL                  5.0 TERTIARY
 # Physics debris in ALICE (only for ions)
 NSIG_FAM TCLD                 5.0 TERTIARY
+# Crystals
+NSIG_FAM CRY7				  5.7 CRYSTAL
 #
 ######################################
 #########    Collimators     #########
@@ -61,10 +63,12 @@ tcp.d6l7.b1                                           TCP7        MoGR      0.60
 tcp.c6l7.b1                                           TCP7        MoGR      0.600      0.0         0.
 tcp.b6l7.b1                                           TCP7        MoGR      0.600    127.5         0.
 tcsg.a6l7.b1                                          TCSG7       MoGR      1.000    141.1         0.
+tcpcv.a6l7.b1                                         CRY7        Ge        0.004     90.0         0.
 tcsg.b5l7.b1                                          TCSG7       MoGR      1.000    143.5         0.
 tcsg.a5l7.b1                                          TCSG7       MoGR      1.000     40.7         0.
 tcsg.d4l7.b1                                          TCSG7       MoGR      1.000     90.0         0.
 tcspm.b4l7.b1                                         2.5         MoGR      1.000      0.0         -0.0037
+tcpch.a4l7.b1                                         CRY7        Si        0.004      0.0         0.
 tcsg.a4l7.b1                                          TCSG7       MoGR      1.000    134.6         0.
 tcsg.a4r7.b1                                          TCSG7       MoGR      1.000     46.3         0.
 tcsg.b5r7.b1                                          TCSG7       MoGR      1.000    141.5         0.
@@ -92,9 +96,13 @@ tcsg.6r7.b1                                           3.0         MoGR      1.00
 ### Additional Collimator Settings ###
 ######################################
 SETTINGS
-ONESIDED tcdqa.a4r6.b1                                    1
-ONESIDED tcdqa.c4r6.b1                                    1
-ONESIDED tcdqa.b4r6.b1                                    1
+ONESIDED tcdqa.a4r6.b1				1
+ONESIDED tcdqa.c4r6.b1				1
+ONESIDED tcdqa.b4r6.b1				1
+CRYSTAL  tcpcv.a6l7.b1 85.10 5.0e-3 30.0e-3 0.0013 0.0 0.0
+ONESIDED tcpcv.a6l7.b1				1
+CRYSTAL  tcpch.a4l7.b1 80.00 2.0e-3 50.0e-3 0.0 0.0 0.0003 1
+ONESIDED tcpch.a4l7.b1				1
 
 
 ######################################
@@ -159,6 +167,10 @@ ONESIDED tcdqa.b4r6.b1                                    1
 #   10.000004285756797:    0.600:   90.0:  tcp.d6l7.b1
 #   10.000004285756797:    0.600:    0.0:  tcp.c6l7.b1
 #   10.000004285756797:    0.600:  127.5:  tcp.b6l7.b1
+
+# Crystals:
+#   tcpcv.a6l7.b1: material Ge, bend 85.10, xdim 5.0e-3, ydim 30.0e-3, thick 0.0013, tilt 0.0, miscut 0.0   , orient -
+#   tcpch.a4l7.b1: material Si, bend 80.00, xdim 2.0e-3, ydim 50.0e-3, thick 0.0   , tilt 0.0, miscut 0.0003, orient 1
 
 # Spare (for other tests later):
 #  tcla.b6r7.b1

@@ -76,22 +76,24 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     matID = materials[k2collimator.material]['ID']
 
     if is_crystal:
+        if not materials[k2collimator.material]['can_be_crystal']:
+            raise ValueError(f"The collimator material {k2collimator.material} cannot be used as a crystal!")
         pyk2.pyk2_startcry(
             matid=matID,
-            emitX=,
-            emitY=,
-            o_tilt=,
-            o_length=,
-            c_rotation=,
-            Nsig=,
-            c_length=,
-            cryTilt=,
-            cryBend=,
-            cryThick=,
-            cryXDim=,
-            cryYDim=,
-            cryOrient=,
-            cryMiscut=
+            emitx=k2collimator.emittance[0],
+            emity=k2collimator.emittance[1],
+            o_tilt=k2collimator.crytilt,
+            o_length=length,
+            c_rotation=k2collimator.angle/180.*np.pi,
+            nsig=k2collimator.gap,
+            c_length=length,
+            crytilt=k2collimator.crytilt,
+            crybend=k2collimator.bend,
+            crythick=k2collimator.thick,
+            cryxdim=k2collimator.xdim,
+            cryydim=k2collimator.ydim,
+            cryorient=k2collimator.orient,
+            crymiscut=k2collimator.miscut
         )
 
     pyk2.pyk2_run(x_particles=x_part,

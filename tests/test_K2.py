@@ -70,6 +70,17 @@ offsets_b2 = {
   -0.000346: 'tcsg.b5l3.b2',
 }
 
+crystals_b1 = [
+  'tcpcv.a6l7.b1',
+  'tcpch.a4l7.b1'
+]
+
+crystals_b2 = [
+  'tcpcv.a6r7.b2',
+  'tcpch.a5r7.b2'
+]
+
+
 path = Path('./data_test_K2/')
 
 def test_primaries():
@@ -111,13 +122,24 @@ def test_offsets_b2():
     for key, name in offsets_b2.items():
         _track_collimator(name)
 
+def test_crystals_b1():
+    for name in crystals_b1:
+        _track_collimator(name)
+
+def test_crystals_b2():
+    for name in crystals_b2:
+        _track_collimator(name)
+
 
 def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12, atolz=1e-10, atold=1e-10):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    coll = xc.K2Collimator.from_dict(colldict)
+    if colldict['__class__'] == 'K2Collimator':
+        coll = xc.K2Collimator.from_dict(colldict)
+    elif colldict['__class__'] == 'K2Crystal':
+        coll = xc.K2Crystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

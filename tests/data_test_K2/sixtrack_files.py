@@ -16,7 +16,7 @@ def particles_to_sixtrack_initial(part, filename):
         mass = np.array(part.mass0*part.charge_ratio/part.chi)
         part_p = np.array((1+part.delta)*part.p0c)
         # sigma = - beta0*c*dt
-        part_dt = - np.array(part.zeta/part.rvv/part.beta0) / clight
+        part_dt = - np.array(part.zeta/part.beta0) / clight
         data = pd.DataFrame({
             'particle ID':   list(range(1, len(part.state)+1)),
             'parent ID':     list(range(1, len(part.state)+1)),
@@ -49,8 +49,8 @@ def sixtrack_initial_to_particles(sixtrack_input_file, p0c, *, mass0=mp, q0=1):
     y = np.array(data.y)
     px = np.array(data.xp*data.p*1e9/p0c)
     py = np.array(data.yp*data.p*1e9/p0c)
-    beta = data.p / np.sqrt( data.p**2 + data.m**2 )
-    zeta = np.array(-data.dt*1e-3*clight * beta)
+    beta0 = p0c / np.sqrt( p0c**2 + data.m**2 )
+    zeta = np.array(-data.dt*1e-3*clight * beta0)
     delta = np.array( (data.p*1e9 - p0c) / p0c )
 
     return xp.Particles(
@@ -77,9 +77,7 @@ def sixtrack_dump2_to_particles(sixtrack_dump_file, p0c, *, mass0=mp):
     y = np.array(data['y[mm]'])*1e-3
     px = np.array(data['xp[mrad]']*1e-3*e_over_e0)
     py = np.array(data['yp[mrad]']*1e-3*e_over_e0)
-    # zeta = beta / beta0 * sigma = (pc/e) / (p0c/e0) * sigma = (pc/p0c) / (e/e0) * sigma
-    sigma_to_zeta = np.sqrt(1 + m0_over_p0**2 - m0_over_p0**2 / e_over_e0**2)
-    zeta = np.array(sigma_to_zeta * data['sigma[mm]']*1e-3)
+    zeta = np.array(data['sigma[mm]']*1e-3)
     delta = np.array(delta_plus_1 - 1)
 
     return xp.Particles(

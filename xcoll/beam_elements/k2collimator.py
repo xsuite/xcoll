@@ -235,8 +235,9 @@ class K2Crystal:
     isthick = True
     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, angle, inactive_front=0, inactive_back=0,
+    def __init__(self, *, k2engine, active_length, angle, emittance, gap, inactive_front=0, inactive_back=0,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
+                 bend=0, xdim=0, ydim=0, thick=0, crytilt=0, miscut=0, orient=0,
                  is_active=True, impacts=None, material=None):
 
         self._k2engine = k2engine
@@ -264,6 +265,15 @@ class K2Crystal:
         self.tilt = np.array(tilt, dtype=np.float64)
         self.is_active = is_active
         self.material = material
+        self.bend = bend
+        self.xdim = xdim
+        self.ydim = ydim
+        self.thick = thick
+        self.crytilt = crytilt
+        self.miscut = miscut
+        self.orient = orient
+        self.emittance = emittance
+        self.gap = gap
         self.impacts = impacts
         self._reset_random_seed = False
 
@@ -357,7 +367,7 @@ class K2Crystal:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            k2.track(self, particles, npart, reset_seed, is_crystal=True)
+            track(self, particles, npart, reset_seed, is_crystal=True)
 
             # Drift inactive back
             L = self.inactive_back
@@ -396,6 +406,16 @@ class K2Crystal:
         thisdict['tilt'] = self.tilt
         thisdict['is_active'] = 1 if self.is_active else 0
         thisdict['material'] = self.material
+        thisdict['bend'] = self.bend
+        thisdict['xdim'] = self.xdim
+        thisdict['ydim'] = self.ydim
+        thisdict['thick'] = self.thick
+        thisdict['crytilt'] = self.crytilt
+        thisdict['miscut'] = self.miscut
+        thisdict['orient'] = self.orient
+        thisdict['emittance'] = self.emittance
+        thisdict['gap'] = self.gap
+
         return thisdict
 
 
@@ -430,5 +450,14 @@ class K2Crystal:
             offset = thisdict['offset'],
             tilt = thisdict['tilt'],
             is_active = True if thisdict['is_active']==1 else False,
-            material = thisdict['material']
+            material = thisdict['material'],
+            bend = thisdict['bend'],
+            xdim = thisdict['xdim'],
+            ydim = thisdict['ydim'],
+            thick = thisdict['thick'],
+            crytilt = thisdict['crytilt'],
+            miscut = thisdict['miscut'],
+            orient = thisdict['orient'],
+            emittance = thisdict['emittance'],
+            gap = thisdict['gap']
         )

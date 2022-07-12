@@ -45,3 +45,4 @@ do
 done
 python correct_json_colimators.py
 python make_json_references.py
+rm collimators_B?
