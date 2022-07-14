@@ -95,7 +95,7 @@ implicit none
   integer,         save :: n_amorphous = 0
 
   ! Shared settings for the currently active crystal
-  integer,         save :: c_orient   = 0    ! Crystal orientation [0-2]
+  integer,     save :: c_orient   = 0    ! Crystal orientation [0-2]
   real(kind=8),save :: c_rcurv    = zero ! Crystal geometrical parameters [m]
   real(kind=8),save :: c_xmax     = zero ! Crystal geometrical parameters [m]
   real(kind=8),save :: c_ymax     = zero ! Crystal geometrical parameters [m]
