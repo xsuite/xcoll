@@ -255,7 +255,6 @@ subroutine cry_doCrystal(j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   c_eq       = zero
   s_imp      = zero
 
-
   ! Determining if particle previously interacted with a crystal and storing the process ID
   if(cry_proc_tmp(j) /= proc_out) then
     cry_proc_prev(j) = cry_proc_tmp(j)

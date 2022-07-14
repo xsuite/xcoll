@@ -82,7 +82,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
         crytilt = k2collimator.align_angle + k2collimator.crytilt
 
         new_length = np.array(length)
-        print("Length = ",length,"  ",new_length, " ",k2collimator.angle/180.*np.pi," ", crytilt, " ", k2collimator.bend)
         pyk2.pyk2_startcry(
             c_length=length,
             new_length=new_length,
@@ -96,7 +95,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             crymiscut=k2collimator.miscut
         )
         length = new_length
-        print(crytilt, "    ",length)
 
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,

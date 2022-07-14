@@ -124,7 +124,7 @@ def test_offsets_b2():
 
 def test_crystals_b1():
     for name in crystals_b1:
-        _track_collimator(name)
+        _track_collimator(name, atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
 
 def test_crystals_b2():
     for name in crystals_b2:
