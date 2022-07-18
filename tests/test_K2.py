@@ -111,7 +111,6 @@ def test_offsets_b2():
     for key, name in offsets_b2.items():
         _track_collimator(name)
 
-
 def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12, atolz=1e-10, atold=1e-10):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
