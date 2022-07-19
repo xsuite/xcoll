@@ -70,6 +70,16 @@ offsets_b2 = {
   -0.000346: 'tcsg.b5l3.b2',
 }
 
+crystals_b1 = [
+  'tcpcv.a6l7.b1',
+  'tcpch.a4l7.b1'
+]
+
+crystals_b2 = [
+  'tcpcv.a6r7.b2',
+  'tcpch.a5r7.b2'
+]
+
 path = Path('./data_test_K2/')
 
 def test_primaries():
