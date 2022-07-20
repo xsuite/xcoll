@@ -18,6 +18,7 @@
 materials = {
 # Berylium
   'BE': {
+        'ID': 1,
         'exenergy': 63.7e-9,
         'anuc': 9.01,
         'zatom': 4.00,
@@ -27,16 +28,17 @@ materials = {
         'radl': 0.353,
         'bnref': 74.7,
         'csref': [0.271, 0.192, 0, 0, 0, 0.0035e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': False
         },
 
 # Aluminium
   'AL': {
+        'ID': 2,
         'exenergy': 166.0e-9,
         'anuc': 26.98,
         'zatom': 13.00,
@@ -46,16 +48,17 @@ materials = {
         'radl': 0.089,
         'bnref': 120.3,
         'csref': [0.643, 0.418, 0, 0, 0, 0.0340e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': False
         },
 
 # Copper
   'CU': {
+        'ID': 3,
         'exenergy': 322.0e-9,
         'anuc': 63.55,
         'zatom': 29.00,
@@ -65,16 +68,17 @@ materials = {
         'radl': 0.0143,
         'bnref': 217.8,
         'csref': [1.253, 0.769, 0, 0, 0, 0.1530e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': False
         },
 
 # Tungsten
   'W': {
+        'ID': 4,
         'exenergy': 727.0e-9,
         'anuc': 183.85,
         'zatom': 74.00,
@@ -84,16 +88,17 @@ materials = {
         'radl': 0.0035,
         'bnref': 420.4304986267596, # 440.3
         'csref': [2.765, 1.591, 0, 0, 0, 0.7680e-2],
-        'can_be_crystal': True,
         'dlri': 0.0035,
         'dlyi': 0.096,
         'ai': 0.56e-7,
         'eUm': 21.0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': True
         },
 
 # Lead
   'PB': {
+        'ID': 5,
         'exenergy': 823.0e-9,
         'anuc': 207.19,
         'zatom': 82.00,
@@ -103,16 +108,17 @@ materials = {
         'radl': 0.0056,
         'bnref': 455.3,
         'csref': [3.016, 1.724, 0, 0, 0, 0.9070e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': False
         },
 
 # Carbon
   'C': {
+        'ID': 6,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -122,16 +128,17 @@ materials = {
         'radl': 0.2557,
         'bnref': 70.0,
         'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'can_be_crystal': True,
         'dlri': 0.188,
         'dlyi': 0.400,
         'ai': 0.63e-7,
         'eUm': 21.0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': True
         },
 
 # Carbon2
   'C2': {
+        'ID': 7,
         'exenergy': 78.0e-9,
         'anuc': 12.01,
         'zatom': 6.00,
@@ -141,16 +148,17 @@ materials = {
         'radl': 0.094,
         'bnref': 70.0,
         'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
+        'collnt': 0,
+        'can_be_crystal': False
         },
 
 # Silicon
   'Si': {
+        'ID': 8,
         'exenergy': 173.0e-9,
         'anuc': 28.08,
         'zatom': 14.00,
@@ -160,16 +168,17 @@ materials = {
         'radl': 1,
         'bnref': 120.14,
         'csref': [0.664, 0.430, 0, 0, 0, 0.0390e-2],
-        'can_be_crystal': True,
         'dlri': 0.0937,
         'dlyi': 0.4652,
         'ai': 0.96e-7,
         'eUm': 21.34,
-        'collnt': 0.3016
+        'collnt': 0.3016,
+        'can_be_crystal': True
         },
 
 # Germanium
   'Ge': {
+        'ID': 9,
         'exenergy': 350.0e-9,
         'anuc': 72.63,
         'zatom': 32.00,
@@ -179,16 +188,17 @@ materials = {
         'radl': 1,
         'bnref': 226.35,
         'csref': [1.388, 0.844, 0, 0, 0, 0.1860e-2],
-        'can_be_crystal': True,
         'dlri': 0.02302,
         'dlyi': 0.2686,
         'ai': 1.0e-7,
         'eUm': 40.0,
-        'collnt': 0.1632
-        },
+        'collnt': 0.1632,
+        'can_be_crystal': True
+        },    
 
-# Molybdium Graphite
+# 
   'MoGR': {
+        'ID': 10,
         'exenergy': 87.1e-9,
         'anuc': 13.53,
         'zatom': 6.65,
@@ -198,16 +208,17 @@ materials = {
         'radl': 0.1193,
         'bnref': 76.7,
         'csref': [0.362, 0.247, 0, 0, 0, 0.0094e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
-        },
+        'collnt': 0,
+        'can_be_crystal': False
+        },   
 
-# Copper Diamond
+# 
   'CuCD': {
+        'ID': 11,
         'exenergy': 152.9e-9,
         'anuc': 25.24,
         'zatom': 11.90,
@@ -217,16 +228,17 @@ materials = {
         'radl': 0.0316,
         'bnref': 115.0,
         'csref': [0.572, 0.370, 0, 0, 0, 0.0279e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
-        },
+        'collnt': 0,
+        'can_be_crystal': False
+        },  
 
-# Molybdium
+# 
   'Mo': {
+        'ID': 12,
         'exenergy': 424.0e-9,
         'anuc': 95.96,
         'zatom': 42.00,
@@ -236,16 +248,17 @@ materials = {
         'radl': 0.0096,
         'bnref': 273.9,
         'csref': [1.713, 1.023, 0, 0, 0, 0.2650e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
-        },
+        'collnt': 0,
+        'can_be_crystal': False
+        },     
 
-#
+# 
   'Glid': {
+        'ID': 13,
         'exenergy': 320.8e-9,
         'anuc': 63.15,
         'zatom': 28.80,
@@ -255,16 +268,17 @@ materials = {
         'radl': 0.0144,
         'bnref': 208.7,
         'csref': [1.246, 0.765, 0, 0, 0, 0.1390e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
-        },
+        'collnt': 0,
+        'can_be_crystal': False
+        },   
 
-# InerMet
+# 
   'Iner': {
+        'ID': 14,
         'exenergy': 682.2e-9,
         'anuc': 166.70,
         'zatom': 67.70,
@@ -274,11 +288,11 @@ materials = {
         'radl': 0.00385,
         'bnref': 392.1,
         'csref': [2.548, 1.473, 0, 0, 0, 0.5740e-2],
-        'can_be_crystal': False,
         'dlri': 0,
         'dlyi': 0,
         'ai': 0,
         'eUm': 0,
-        'collnt': 0
-        },
+        'collnt': 0,
+        'can_be_crystal': False
+        },          
 }

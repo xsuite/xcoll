@@ -25,7 +25,12 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     return zeta
 
 
-def track(k2collimator, particles, npart, reset_seed):
+    
+def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
+    try:
+        import xcoll.beam_elements.pyk2 as pyk2
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
     from .scatter_init import calculate_scattering
     from .materials import materials
     from .scatter import scatter
@@ -63,6 +68,7 @@ def track(k2collimator, particles, npart, reset_seed):
     part_impact    = np.zeros(len(x_part), dtype=np.float64)
     part_indiv     = np.zeros(len(x_part), dtype=np.float64)
     part_linteract = np.zeros(len(x_part), dtype=np.float64)
+    nhit_stage     = np.zeros(len(x_part), dtype=np.int32)
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
@@ -93,6 +99,28 @@ def track(k2collimator, particles, npart, reset_seed):
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+
+
+    if is_crystal:
+        if not materials[k2collimator.material]['can_be_crystal']:
+            raise ValueError(f"The collimator material {k2collimator.material} cannot be used as a crystal!")
+
+        crytilt = k2collimator.align_angle + k2collimator.crytilt
+
+        new_length = np.array(length)
+        pyk2.pyk2_startcry(
+            c_length=length,
+            new_length=new_length,
+            c_rotation=k2collimator.angle/180.*np.pi,
+            crytilt=crytilt,
+            crybend=k2collimator.bend,
+            crythick=k2collimator.thick,
+            cryxdim=k2collimator.xdim,
+            cryydim=k2collimator.ydim,
+            cryorient=k2collimator.orient,
+            crymiscut=k2collimator.miscut
+        )
+        length = new_length
 
     scatter(npart=npart,
             x_part=x_part,
@@ -131,7 +159,7 @@ def track(k2collimator, particles, npart, reset_seed):
             run_ecmsq=ecmsq,
             run_xln15s=xln15s,
             run_bpp=bpp,
-            is_crystal=False,
+            is_crystal=is_crystal,
             c_length=length,
             c_rotation=k2collimator.angle/180.*np.pi,
             c_aperture=opening,
@@ -140,8 +168,10 @@ def track(k2collimator, particles, npart, reset_seed):
             c_enom=e0_ref, # Reference energy in MeV
             onesided=k2collimator.onesided,
             length=length,
-            material=k2collimator.material,
+            material=k2collimator.material, 
+            matid=materials[k2collimator.material]['ID']
             )
+    
 
     # Masks of hit and survived particles
     lost = part_abs > 0
