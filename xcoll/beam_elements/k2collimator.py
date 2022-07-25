@@ -13,13 +13,13 @@ class K2Engine:
         else:
             self.random_generator_seed = random_generator_seed
 
-        # try:
-        #     import xcoll.beam_elements.pyk2 as pyk2
-        # except ImportError:
-        #     print("Warning: Failed importing pyK2 (did you compile?). " \
-        #           + "K2collimators will be installed but are not trackable.")
-        # else:
-        #     pyk2.pyk2_init(random_generator_seed=self.random_generator_seed)
+        try:
+            import xcoll.beam_elements.pyk2 as pyk2
+        except ImportError:
+            print("Warning: Failed importing pyK2 (did you compile?). " \
+                  + "K2collimators will be installed but are not trackable.")
+        else:
+            pyk2.pyk2_init(n_alloc, random_generator_seed=self.random_generator_seed)
         import xcoll.beam_elements.k2.k2_random as kr
         kr.__index__ = -1
 

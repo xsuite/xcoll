@@ -2,17 +2,17 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   use floatPrecision
   use numerical_constants
   ! use crcoall    NODIG ??
-  use parpro ,           only : npart
-  use mod_alloc ,        only : alloc      ! to allocate partID etc
-  use mod_common ,       only : iexact, napx, unit208, aa0
-  use mod_common_main ,  only : partID, parentID, pairID, naa
+!  use parpro ,           only : npart
+!  use mod_alloc ,        only : alloc      ! to allocate partID etc
+ ! use mod_common ,       only : iexact, napx, unit208, aa0
+ ! use mod_common_main ,  only : partID, parentID, pairID, naa
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
-  use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
-                                coll_expandArrays
+  use coll_common ,      only : rnd_seed !, rcx, rcxp, rcy, rcyp, rcp, rcs, &
+!                                coll_expandArrays
   use coll_materials ! for collmat_init
-  use coll_k2        ! for scattering
-  use coll_crystal
+!  use coll_k2        ! for scattering
+  use coll_crystal, only: cry_init
 
   implicit none
 
@@ -30,11 +30,11 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   if(rnd_seed <  0) rnd_seed = abs(rnd_seed)
   call rluxgo(3, rnd_seed, 0, 0)
 
-  call coll_expandArrays(n_alloc)
-  call alloc(naa, n_alloc, aa0, "naa")
-  call alloc(partID, n_alloc, 0, "partID")
-  call alloc(parentID, n_alloc, 0, "parentID")
-  call alloc(pairID, 2, n_alloc, 0, "pairID")
+!  call coll_expandArrays(n_alloc)
+!  call alloc(naa, n_alloc, aa0, "naa")
+!  call alloc(partID, n_alloc, 0, "partID")
+!  call alloc(parentID, n_alloc, 0, "parentID")
+!  call alloc(pairID, 2, n_alloc, 0, "pairID")
 
 end subroutine
  

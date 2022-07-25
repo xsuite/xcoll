@@ -187,7 +187,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
             x_in0=np.array(x_in0)
             xp_in0=np.array(xp_in0)
             zlm=np.array(zlm)
-            simp=np.array(simp)
+            simp=np.array(0)
             isimp=np.array(isimp)
             nhit=np.array(nhit)
             nabs=np.array(nabs)

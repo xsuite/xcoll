@@ -167,7 +167,7 @@ subroutine cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, 
   real(kind=fPrec), intent(in)    :: cryMiscut
 
   real(kind=fPrec) bendAng
-
+  
   cry_tilt = cryTilt       ! global variable
 
   bendAng  = c_length/cryBend     ! cryBend is bending radius
@@ -195,9 +195,10 @@ subroutine cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, 
   n_VR        = 0
   n_amorphous = 0
 
-  cry_proc(:) = proc_out
+  !cry_proc(:) = proc_out
 
   new_length = cry_length
+
 
 end subroutine cry_startElement
 

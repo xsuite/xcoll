@@ -100,7 +100,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     #  raise ValueError()
     cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
-
     if is_crystal:
         if not materials[k2collimator.material]['can_be_crystal']:
             raise ValueError(f"The collimator material {k2collimator.material} cannot be used as a crystal!")
