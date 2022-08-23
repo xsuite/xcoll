@@ -32,7 +32,7 @@ line['acsca.c5r4.b1'].frequency = 400e6
 line['acsca.d5r4.b1'].frequency = 400e6
 
 for iee in range(len(line.element_names)):
-    if isinstance(line[iee], xt.Multipole):
+    if isinstance(line[iee], xt.Multipole) or isinstance(line[iee], xt.Cavity):
         if line[iee+1].__class__.__name__.startswith('Limit'):
             # Swap multipole and aperture
             (line.element_names[iee], line.element_names[iee+1]
@@ -95,6 +95,5 @@ for iee in range(i_prev_aperture, num_elements):
 elements_df['misses_aperture_upstream'] = ((elements_df['s_aperture_upstream'] != elements_df['s'])
     & ~(np.isnan(elements_df['i_aperture_upstream'])))
 
-elements_df['multipole_with_aperture_attached'] = (
-    (elements_df['element_type']=='Multipole') & (elements_df['i_aperture_downstream'].values==np.array(elements_df.index)+1))
+
 
