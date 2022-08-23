@@ -27,7 +27,7 @@ def run_mask(mask, outfile, sequence):
 
     # Save to json
     with open(outfile, 'w') as fid:
-        json.dump(line.to_dict(), fid, cls=xo.JEncoder)
+        json.dump(line.to_dict(), fid, cls=xo.JEncoder, indent=True)
 
     # Load from json to check
     with open(outfile, 'r') as fid:
