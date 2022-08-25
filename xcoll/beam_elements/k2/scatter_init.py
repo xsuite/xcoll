@@ -55,4 +55,4 @@ def calculate_scattering(p0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref):
     for i in range(1,5,1):
         cprob[i] = cprob[i-1] + csect[i]/csect[0]
 
-    return cprob, xintl, bn, ecmsq, xln15s, bpp
+    return cprob, xintl, bn, ecmsq, xln15s, bpp, csect

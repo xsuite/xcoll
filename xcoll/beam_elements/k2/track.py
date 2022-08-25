@@ -95,10 +95,13 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     eUm      = materials[k2collimator.material]['eUm']
     ai       = materials[k2collimator.material]['ai']
     collnt   = materials[k2collimator.material]['collnt']
+    nmat     = materials[k2collimator.material]['ID']
+
+    csref=[csref0,csref1,0,0,csref4,csref5]
 
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
-    cprob, xintl, bn, ecmsq, xln15s, bpp = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
     if is_crystal:
         if not materials[k2collimator.material]['can_be_crystal']:
@@ -168,7 +171,9 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             onesided=k2collimator.onesided,
             length=length,
             material=k2collimator.material, 
-            matid=materials[k2collimator.material]['ID']
+            matid=materials[k2collimator.material]['ID'],
+            nmat=nmat,
+            run_csect=csect
             )
     
 

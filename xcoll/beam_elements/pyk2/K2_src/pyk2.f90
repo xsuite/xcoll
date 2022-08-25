@@ -58,15 +58,15 @@ subroutine pyk2_startcry(c_length, new_length, c_rotation, cryTilt, cryBend, cry
 end subroutine
 
 
-subroutine pyk2_docrystal(mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
-  lhit,part_abs,impact,indiv,c_length)
+subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+  lhit,part_abs,impact,indiv,c_length,exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt,&
+  hcut,csref0,csref1,csref4,csref5,nmat,bnref,csect)
   
   use coll_crystal, only: cry_doCrystal
   use parpro
   ! use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
   use mathlib_bouncer
 
-  integer,      intent(in)    :: mat
   real(kind=8), intent(inout) :: x,xp
   real(kind=8), intent(inout) :: z,zp
   real(kind=8), intent(inout) :: s,p
@@ -79,7 +79,29 @@ subroutine pyk2_docrystal(mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=8), intent(inout) :: indiv
   real(kind=8), intent(in)    :: c_length
   logical,      intent(inout) :: isImp
+
+  real(kind=8), intent(in)    :: exenergy
+  real(kind=8), intent(in)    :: zatom
+  real(kind=8), intent(in)    :: rho
+  real(kind=8), intent(in)    :: anuc
+
+  real(kind=8), intent(in)    :: dlri
+  real(kind=8), intent(in)    :: dlyi
+  real(kind=8), intent(in)    :: ai
+  real(kind=8), intent(in)    :: eUm
+  real(kind=8), intent(in)    :: collnt
+
+  real(kind=8), intent(in)    :: hcut
+  real(kind=8), intent(in)    :: csref0
+  real(kind=8), intent(in)    :: csref1
+  real(kind=8), intent(in)    :: csref4
+  real(kind=8), intent(in)    :: csref5
+  integer,      intent(in)    :: nmat
+  real(kind=8), intent(in)    :: bnref
+  real(kind=8), intent(in)    :: csect
   
-  call cry_doCrystal(mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,c_length)
+  call cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
+                    c_length,exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt,&
+                    hcut,bnref,csref0,csref1,csref4,csref5,nmat,csect)
 
 end subroutine

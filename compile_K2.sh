@@ -38,7 +38,7 @@ gfortran -fpic -c \
  mod_ranlux.f90  \
  mod_funlux.f90  \
  coll_crystal.f90  \
- coll_k2.f90 \
+#  coll_k2.f90 \
 
 # link fortran
 f2py -m pyk2f -c pyk2.f90 \
@@ -57,7 +57,7 @@ f2py -m pyk2f -c pyk2.f90 \
  mod_ranlux.o  \
  mod_funlux.o  \
  coll_crystal.o  \
- coll_k2.o \
+#  coll_k2.o \
 
 mv pyk2f.*.so ../
 
