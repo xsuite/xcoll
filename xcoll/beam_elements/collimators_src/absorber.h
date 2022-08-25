@@ -69,7 +69,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const dx = BlackAbsorberData_get_dx(el);
     double const dy = BlackAbsorberData_get_dy(el);
     // Impact table
-//     int8_t  const record_impacts = BlackAbsorberData_get__record_impacts(el);
+    int8_t  const record_impacts = BlackAbsorberData_get__record_impacts(el);
 
     //start_per_particle_block (part0->part)
 
@@ -141,38 +141,38 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
                 LocalParticle_set_state(part, -333);
                 // Record data
-//                 if (record_impacts){
-// //                     // TODO: GPU-proof way (though did not work):
-// //                     BlackAbsorberData_add_to__impacts__row_id(el, 1);
-// //                     int64_t record_index = BlackAbsorberData_get__impacts__row_id(el);
-
+                if (record_impacts){
+//                     // TODO: GPU-proof way (though did not work):
+//                     BlackAbsorberData_add_to__impacts__row_id(el, 1);
 //                     int64_t record_index = BlackAbsorberData_get__impacts__row_id(el);
-//                     record_index = record_index + 1;
-//                     BlackAbsorberData_set__impacts__row_id(el, record_index);
 
-//                     int64_t const capacity = BlackAbsorberData_get__impacts__capacity(el);
-//                     if (record_index < capacity){
-//                         double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
-//                         double energy = (
-//                                             LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-//                                          ) * mass_ratio * LocalParticle_get_p0c(part);
+                    int64_t record_index = BlackAbsorberData_get__impacts__row_id(el);
+                    record_index = record_index + 1;
+                    BlackAbsorberData_set__impacts__row_id(el, record_index);
 
-//                         BlackAbsorberData_set__impacts_at_element(el, record_index, LocalParticle_get_at_element(part));
-//                         BlackAbsorberData_set__impacts_s(el, record_index, LocalParticle_get_s(part));
-//                         BlackAbsorberData_set__impacts_turn(el, record_index, LocalParticle_get_at_turn(part));
-//                         BlackAbsorberData_set__impacts_interaction_type(el, record_index, -1);
+                    int64_t const capacity = BlackAbsorberData_get__impacts__capacity(el);
+                    if (record_index < capacity){
+                        double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
+                        double energy = (
+                                            LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                                         ) * mass_ratio * LocalParticle_get_p0c(part);
 
-//                         BlackAbsorberData_set__impacts_id_parent(el, record_index, LocalParticle_get_particle_id(part));
-//                         BlackAbsorberData_set__impacts_id_child(el, record_index, -1);
-//                         BlackAbsorberData_set__impacts_x_parent(el, record_index, LocalParticle_get_x(part));
-//                         BlackAbsorberData_set__impacts_px_parent(el, record_index, LocalParticle_get_px(part));
-//                         BlackAbsorberData_set__impacts_y_parent(el, record_index, LocalParticle_get_y(part));
-//                         BlackAbsorberData_set__impacts_py_parent(el, record_index, LocalParticle_get_py(part));
-//                         BlackAbsorberData_set__impacts_zeta_parent(el, record_index, LocalParticle_get_zeta(part));
-//                         BlackAbsorberData_set__impacts_delta_parent(el, record_index, LocalParticle_get_delta(part));
-//                         BlackAbsorberData_set__impacts_energy_parent(el, record_index, energy);
-//                     }
-//                 }
+                        BlackAbsorberData_set__impacts_at_element(el, record_index, LocalParticle_get_at_element(part));
+                        BlackAbsorberData_set__impacts_s(el, record_index, LocalParticle_get_s(part));
+                        BlackAbsorberData_set__impacts_turn(el, record_index, LocalParticle_get_at_turn(part));
+                        BlackAbsorberData_set__impacts_interaction_type(el, record_index, -1);
+
+                        BlackAbsorberData_set__impacts_id_parent(el, record_index, LocalParticle_get_particle_id(part));
+                        BlackAbsorberData_set__impacts_id_child(el, record_index, -1);
+                        BlackAbsorberData_set__impacts_x_parent(el, record_index, LocalParticle_get_x(part));
+                        BlackAbsorberData_set__impacts_px_parent(el, record_index, LocalParticle_get_px(part));
+                        BlackAbsorberData_set__impacts_y_parent(el, record_index, LocalParticle_get_y(part));
+                        BlackAbsorberData_set__impacts_py_parent(el, record_index, LocalParticle_get_py(part));
+                        BlackAbsorberData_set__impacts_zeta_parent(el, record_index, LocalParticle_get_zeta(part));
+                        BlackAbsorberData_set__impacts_delta_parent(el, record_index, LocalParticle_get_delta(part));
+                        BlackAbsorberData_set__impacts_energy_parent(el, record_index, energy);
+                    }
+                }
             }
 
         }
