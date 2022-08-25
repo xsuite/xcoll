@@ -4,7 +4,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from ..tables import CollimatorImpactsData, CollimatorImpacts
+# from ..tables import CollimatorImpactsData, CollimatorImpacts
 
 class BlackAbsorber(xt.BeamElement):
     _xofields = {
@@ -23,8 +23,12 @@ class BlackAbsorber(xt.BeamElement):
         'sin_z': xo.Float64,
         '_active': xo.Int8,
         '_record_impacts': xo.Int8,
-        '_impacts': xo.Ref(CollimatorImpactsData)
+#         '_impacts': xo.Ref(CollimatorImpactsData)
     }
+    
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
+    ]
 
     isthick = True
     behaves_like_drift = True
@@ -86,20 +90,19 @@ class BlackAbsorber(xt.BeamElement):
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
 
-    @property
-    def impacts(self):
-        return self._impacts
+#     @property
+#     def impacts(self):
+#         return self._impacts
 
-    @impacts.setter
-    def impacts(self, impacts):
-        if impacts is None:
-            self._record_impacts = 0
-        elif isinstance(impacts, CollimatorImpacts):
-            self._record_impacts = 1
-        else:
-            raise ValueError("The variable 'impacts' needs to be a CollimatorImpacts object!")
-        self._impacts = impacts
+#     @impacts.setter
+#     def impacts(self, impacts):
+#         if impacts is None:
+#             self._record_impacts = 0
+#         elif isinstance(impacts, CollimatorImpacts):
+#             self._record_impacts = 1
+#         else:
+#             raise ValueError("The variable 'impacts' needs to be a CollimatorImpacts object!")
+#         self._impacts = impacts
 
 
-BlackAbsorber.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')]
+
