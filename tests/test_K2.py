@@ -132,7 +132,7 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
 
 def _reshuffle(part):
-    # part._move_to(_context=xo.ContextCpu())
+    # part.move(_context=xo.ContextCpu())
     if part.lost_particles_are_hidden:
         part.unhide_lost_particles()
 

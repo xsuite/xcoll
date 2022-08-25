@@ -4,7 +4,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from ..tables import CollimatorImpactsData, CollimatorImpacts
+from ..tables import CollimatorImpacts
 
 class BlackAbsorber(xt.BeamElement):
     _xofields = {
@@ -23,7 +23,7 @@ class BlackAbsorber(xt.BeamElement):
         'sin_z': xo.Float64,
         '_active': xo.Int8,
         '_record_impacts': xo.Int8,
-        '_impacts': xo.Ref(CollimatorImpactsData)
+        '_impacts': xo.Ref(CollimatorImpacts._XoStruct)
     }
     
     _extra_c_sources = [
