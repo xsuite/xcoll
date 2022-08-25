@@ -3,7 +3,7 @@ import pandas as pd
 
 from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
 from .colldb import CollDB
-from .tables import CollimatorImpacts
+# from .tables import CollimatorImpacts
 
 import xtrack as xt
 import xobjects as xo
@@ -64,10 +64,10 @@ class CollimatorManager:
     @record_impacts.setter
     def record_impacts(self, record_impacts):
         self._record_impacts = record_impacts
-        if record_impacts:
-            self._impacts = CollimatorImpacts(_capacity=self.storage_capacity, _buffer=self._buffer)
-        else:
-            self._impacts = None
+#         if record_impacts:
+#             self._impacts = CollimatorImpacts(_capacity=self.storage_capacity, _buffer=self._buffer)
+#         else:
+#             self._impacts = None
         # Update the xo.Ref to the CollimatorImpacts for the installed collimators
         for name in self.collimator_names:
             if self.colldb._colldb.loc[name,'collimator_type'] is not None:
