@@ -30,7 +30,7 @@ def track(k2collimator, particles, npart, reset_seed):
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    from .materials import materials
+#     from .materials import materials
 
     length = k2collimator.active_length
 
@@ -73,8 +73,6 @@ def track(k2collimator, particles, npart, reset_seed):
     opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
-    matID = materials[k2collimator.material]['ID']
-
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
               y_particles=y_part,
@@ -89,7 +87,7 @@ def track(k2collimator, particles, npart, reset_seed):
               nhit_stage=nhit_stage,
               nabs_type=nabs_type,
               linside=linside,
-              matid=matID,
+              matid=k2collimator.material.matid,
               is_crystal=False,
               c_length=length,
               c_rotation=k2collimator.angle/180.*np.pi,
