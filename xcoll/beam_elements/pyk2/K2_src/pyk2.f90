@@ -59,7 +59,7 @@ end subroutine
 
 
 subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
-  lhit,part_abs,impact,indiv,c_length,exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt,&
+  lhit,part_abs,impact,indiv,c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
   hcut,csref0,csref1,csref4,csref5,nmat,bnref,csect)
   
   use coll_crystal, only: cry_doCrystal
@@ -81,9 +81,10 @@ subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   logical,      intent(inout) :: isImp
 
   real(kind=8), intent(in)    :: exenergy
-  real(kind=8), intent(in)    :: zatom
   real(kind=8), intent(in)    :: rho
   real(kind=8), intent(in)    :: anuc
+  real(kind=8), intent(in)    :: zatom
+  real(kind=8), intent(in)    :: emr
 
   real(kind=8), intent(in)    :: dlri
   real(kind=8), intent(in)    :: dlyi
@@ -99,9 +100,9 @@ subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   integer,      intent(in)    :: nmat
   real(kind=8), intent(in)    :: bnref
   real(kind=8), intent(in)    :: csect
-  
+
   call cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
-                    c_length,exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt,&
+                    c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
                     hcut,bnref,csref0,csref1,csref4,csref5,nmat,csect)
 
 end subroutine

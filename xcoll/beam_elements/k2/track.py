@@ -175,7 +175,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             nmat=nmat,
             run_csect=csect
             )
-    
 
     # Masks of hit and survived particles
     lost = part_abs > 0

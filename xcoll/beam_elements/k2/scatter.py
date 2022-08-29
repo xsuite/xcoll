@@ -29,6 +29,8 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     length  = c_length
     p0 = c_enom
 
+    x0 = 0
+    xp0 = 0
 
     # Initialise scattering processes
     # call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
@@ -142,70 +144,51 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
         if (is_crystal):
 
-            # val_part_hit, val_part_abs, val_part_impact, val_part_indiv, run_exenergy, run_bn, nhit, nabs, lhit, isimp, s, zlm, x, xp, xp_in0, z, zp, p, x_in = crystal(val_part_hit=val_part_hit,
-            #                                                                                                                                     val_part_abs=val_part_abs,
-            #                                                                                                                                     val_part_impact=val_part_impact,
-            #                                                                                                                                     val_part_indiv=val_part_indiv,
-            #                                                                                                                                     run_exenergy=run_exenergy,
-            #                                                                                                                                     run_anuc=run_anuc,
-            #                                                                                                                                     run_zatom=run_zatom,
-            #                                                                                                                                     run_emr=run_emr,
-            #                                                                                                                                     run_rho=run_rho,
-            #                                                                                                                                     run_hcut=run_hcut,
-            #                                                                                                                                     run_bnref=run_bnref,
-            #                                                                                                                                     run_csref0=run_csref0,
-            #                                                                                                                                     run_csref1=run_csref1,
-            #                                                                                                                                     run_csref4=run_csref4,
-            #                                                                                                                                     run_csref5=run_csref5,
-            #                                                                                                                                     run_dlri=run_dlri,
-            #                                                                                                                                     run_dlyi=run_dlyi,
-            #                                                                                                                                     run_eum=run_eum,
-            #                                                                                                                                     run_ai=run_ai,
-            #                                                                                                                                     run_collnt=run_collnt,
-            #                                                                                                                                     run_bn=run_bn,
-            #                                                                                                                                     c_length=c_length,
-            #                                                                                                                                     nhit=nhit,
-            #                                                                                                                                     nabs=nabs,
-            #                                                                                                                                     lhit=lhit,
-            #                                                                                                                                     isimp=isimp,
-            #                                                                                                                                     s=s,
-            #                                                                                                                                     zlm=zlm,
-            #                                                                                                                                     x=x,
-            #                                                                                                                                     xp=xp,
-            #                                                                                                                                     xp_in0=xp_in0,
-            #                                                                                                                                     z=z,
-            #                                                                                                                                     zp=zp,
-            #                                                                                                                                     p=p,
-            #                                                                                                                                     x_in0=x_in0)
-            
-            x=np.array(x)
-            xp=np.array(xp)
-            z=np.array(z)
-            zp=np.array(zp)
-            s=np.array(s)
-            p=np.array(p)
-            x_in0=np.array(x_in0)
-            xp_in0=np.array(xp_in0)
-            zlm=np.array(zlm)
             simp=np.array(0)
-            isimp=np.array(isimp)
-            nhit=np.array(nhit)
-            nabs=np.array(nabs)
+            
+            val_part_hit, val_part_abs, val_part_impact, val_part_indiv, nhit, nabs, simp, isimp, s, zlm, x, xp, x0, xp0, z, zp, p = crystal(x=x,
+                                                                                                                            xp=xp,
+                                                                                                                            z=z,
+                                                                                                                            zp=zp,
+                                                                                                                            s=s,
+                                                                                                                            p=p,
+                                                                                                                            x0=x0,
+                                                                                                                            xp0=xp0,
+                                                                                                                            zlm=zlm,
+                                                                                                                            simp=simp,
+                                                                                                                            isimp=isimp,
+                                                                                                                            val_part_hit=val_part_hit, 
+                                                                                                                            val_part_abs=val_part_abs, 
+                                                                                                                            val_part_impact=val_part_impact, 
+                                                                                                                            val_part_indiv=val_part_indiv, 
+                                                                                                                            c_length=c_length, 
+                                                                                                                            exenergy=run_exenergy, 
+                                                                                                                            rho=run_rho, 
+                                                                                                                            anuc=run_anuc, 
+                                                                                                                            zatom=run_zatom, 
+                                                                                                                            emr=run_emr, 
+                                                                                                                            dlri=run_dlri, 
+                                                                                                                            dlyi=run_dlyi, 
+                                                                                                                            ai=run_ai, 
+                                                                                                                            eum=run_eum, 
+                                                                                                                            collnt=run_collnt,                                                                                                                             
+                                                                                                                            hcut=run_hcut, 
+                                                                                                                            bnref=run_bnref, 
+                                                                                                                            csref0=run_csref0, 
+                                                                                                                            csref1=run_csref1, 
+                                                                                                                            csref4=run_csref4, 
+                                                                                                                            csref5=run_csref5, 
+                                                                                                                            csect=run_csect,                                                                                                                            
+                                                                                                                            nhit=nhit, 
+                                                                                                                            nabs=nabs, 
+                                                                                                                            nmat=nmat)
 
-            run_exenergy=np.array(run_exenergy)
-            run_zatom=np.array(run_zatom)
-            run_rho=np.array(run_rho)
-            run_anuc=np.array(run_anuc)
-            run_dlri=np.array(run_dlri)
-            run_dlyi=np.array(run_dlyi)
-            run_ai=np.array(run_ai)
-            run_eum=np.array(run_eum)
-            run_collnt=np.array(run_collnt)
+    
 
-            pyk2.pyk2_docrystal(x=x,xp=xp,z=z,zp=zp,s=s,p=p,x0=x_in0,xp0=xp_in0,zlm=zlm,s_imp=simp,isimp=isimp,nhit=nhit,nabs=nabs,lhit=val_part_hit,part_abs=val_part_abs,
-                                impact=val_part_impact,indiv=val_part_indiv,c_length=length,exenergy=run_exenergy,zatom=run_zatom,rho=run_rho,anuc=run_anuc,dlri=run_dlri,
-                                dlyi=run_dlyi,ai=run_ai,eum=run_eum,collnt=run_collnt,hcut=run_hcut,csref0=run_csref0,csref1=run_csref1,csref4=run_csref4,
-                                csref5=run_csref5,nmat=nmat,bnref=run_bnref,csect=run_csect)
+            # pyk2.pyk2_docrystal(x=x,xp=xp,z=z,zp=zp,s=s,p=p,x0=x_in0,xp0=xp_in0,zlm=zlm,s_imp=simp,isimp=isimp,nhit=nhit,nabs=nabs,lhit=val_part_hit,part_abs=val_part_abs,
+            #                     impact=val_part_impact,indiv=val_part_indiv,c_length=length,exenergy=run_exenergy,zatom=run_zatom,rho=run_rho,anuc=run_anuc,dlri=run_dlri,
+            #                     dlyi=run_dlyi,ai=run_ai,eum=run_eum,collnt=run_collnt,hcut=run_hcut,csref0=run_csref0,csref1=run_csref1,csref4=run_csref4,
+            #                     csref5=run_csref5,nmat=nmat,bnref=run_bnref,csect=run_csect)
 
             
             if (nabs != 0):
