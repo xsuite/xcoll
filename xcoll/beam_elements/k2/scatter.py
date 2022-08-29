@@ -14,14 +14,12 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, matid, nmat,run_csect):
+                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, run_csect):
     
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-
-    # pyk2.initialise_random(random_generator_seed=random_generator_seed, cgen=cgen, zatom=run_zatom, emr=run_emr, hcut=run_hcut)
 
     initialise_random_ruth(material)
   
@@ -32,15 +30,10 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     x0 = 0
     xp0 = 0
 
-    # Initialise scattering processes
-    # call k2coll_scatin(p0,coll_anuc,coll_rho,coll_zatom,coll_emr,&
-    #                   coll_csref0,coll_csref1,coll_csref5,coll_bnref,cprob,xintl,bn)
-
     nhit   = 0
     nabs   = 0
     fracab = 0
     mirror = 1
-    lhit = 0
 
     # Compute rotation factors for collimator rotation
     cRot   = np.cos(c_rotation)
@@ -126,10 +119,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
             x  = x + np.sin(tiltangle) * c_length
             xp = xp - tiltangle
 
-
-        # CRY Only: x_in0 has to be assigned after the change of reference frame
-        x_in0 = x
-
         # particle passing above the jaw are discarded => take new event
         # entering by the face, shorten the length (zlm) and keep track of
         # entrance longitudinal coordinate (keeps) for histograms
@@ -180,27 +169,14 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                                                                             csref5=run_csref5, 
                                                                                                                             csect=run_csect,                                                                                                                            
                                                                                                                             nhit=nhit, 
-                                                                                                                            nabs=nabs, 
-                                                                                                                            nmat=nmat)
-
-    
-
-            # pyk2.pyk2_docrystal(x=x,xp=xp,z=z,zp=zp,s=s,p=p,x0=x_in0,xp0=xp_in0,zlm=zlm,s_imp=simp,isimp=isimp,nhit=nhit,nabs=nabs,lhit=val_part_hit,part_abs=val_part_abs,
-            #                     impact=val_part_impact,indiv=val_part_indiv,c_length=length,exenergy=run_exenergy,zatom=run_zatom,rho=run_rho,anuc=run_anuc,dlri=run_dlri,
-            #                     dlyi=run_dlyi,ai=run_ai,eum=run_eum,collnt=run_collnt,hcut=run_hcut,csref0=run_csref0,csref1=run_csref1,csref4=run_csref4,
-            #                     csref5=run_csref5,nmat=nmat,bnref=run_bnref,csect=run_csect)
-
+                                                                                                                            nabs=nabs 
+                                                                                                                            )
             
             if (nabs != 0):
                 val_part_abs = 1
                 val_part_linteract = zlm
 
             simp  = (s - c_length) + simp
-            sout  = s
-            xout  = x
-            xpout = xp
-            yout  = z
-            ypout = zp
 
 
 ##################################################################################################
@@ -275,11 +251,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
                 isimp = True
                 simp  = s_impact
-                sout  = (s+sp)
-                xout  = x
-                xpout = xp
-                yout  = z
-                ypout = zp
 
                 # Writeout should be done for both inelastic and single diffractive. doing all transformations
                 # in x_flk and making the set to 99.99 mm conditional for nabs=1
@@ -322,8 +293,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 x  = x  - np.sin(tiltangle) * c_length
 
             # Transform back to particle coordinates with opening and offset
-            z00 = z
-            x00 = x + mirror*c_offset
             x   = (x + c_aperture/2) + mirror*c_offset
 
             # Now mirror at the horizontal axis for negative X offset

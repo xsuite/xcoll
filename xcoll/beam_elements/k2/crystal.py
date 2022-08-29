@@ -1,7 +1,7 @@
 import numpy as np
 
 def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,simp,isimp,val_part_hit,val_part_abs,val_part_impact,val_part_indiv,c_length,exenergy,rho,anuc,zatom,emr,
-            dlri,dlyi,ai,eum,collnt,hcut,bnref,csref0,csref1,csref4,csref5,csect,nhit,nabs,nmat):
+            dlri,dlyi,ai,eum,collnt,hcut,bnref,csref0,csref1,csref4,csref5,csect,nhit,nabs):
 
 
     from .k2_random import get_random
@@ -51,7 +51,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,simp,isimp,val_part_hit,val_part_abs,val_
     z = np.array(z)
     zp = np.array(zp)
     p = np.array(p)
-    nmat = np.array(nmat)
     csect = np.array(csect)
 
     ########################################################
@@ -89,7 +88,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,simp,isimp,val_part_hit,val_part_abs,val_
                         csref1=csref1,
                         csref4=csref4,
                         csref5=csref5,
-                        nmat=nmat,
                         bnref=bnref,
                         csect=csect
                         )

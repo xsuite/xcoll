@@ -68,7 +68,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     part_impact    = np.zeros(len(x_part), dtype=np.float64)
     part_indiv     = np.zeros(len(x_part), dtype=np.float64)
     part_linteract = np.zeros(len(x_part), dtype=np.float64)
-    nhit_stage     = np.zeros(len(x_part), dtype=np.int32)
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
@@ -95,9 +94,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     eUm      = materials[k2collimator.material]['eUm']
     ai       = materials[k2collimator.material]['ai']
     collnt   = materials[k2collimator.material]['collnt']
-    nmat     = materials[k2collimator.material]['ID']
-
-    csref=[csref0,csref1,0,0,csref4,csref5]
 
     # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
     #  raise ValueError()
@@ -113,7 +109,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
         pyk2.pyk2_startcry(
             c_length=length,
             new_length=new_length,
-            c_rotation=k2collimator.angle/180.*np.pi,
             crytilt=crytilt,
             crybend=k2collimator.bend,
             crythick=k2collimator.thick,
@@ -171,8 +166,6 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             onesided=k2collimator.onesided,
             length=length,
             material=k2collimator.material, 
-            matid=materials[k2collimator.material]['ID'],
-            nmat=nmat,
             run_csect=csect
             )
 

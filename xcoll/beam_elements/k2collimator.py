@@ -4,9 +4,7 @@ from .k2 import materials
 
 class K2Engine:
 
-    def __init__(self, n_alloc, random_generator_seed=None):
-
-        self._n_alloc = n_alloc
+    def __init__(self, random_generator_seed=None):
 
         if random_generator_seed is None:
             self.random_generator_seed = np.random.randint(1, 100000)
@@ -19,13 +17,9 @@ class K2Engine:
             print("Warning: Failed importing pyK2 (did you compile?). " \
                   + "K2collimators will be installed but are not trackable.")
         else:
-            pyk2.pyk2_init(n_alloc, random_generator_seed=self.random_generator_seed)
+            pyk2.pyk2_init(random_generator_seed=self.random_generator_seed)
         import xcoll.beam_elements.k2.k2_random as kr
         kr.__index__ = -1
-
-    @property
-    def n_alloc(self):
-        return self._n_alloc
 
 
 class K2Collimator:
@@ -115,8 +109,6 @@ class K2Collimator:
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles
-        if npart > self.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
         if npart == 0:
             return
         if self._reset_random_seed == True:
@@ -174,7 +166,6 @@ class K2Collimator:
         # TODO how to save ref to impacts?
         thisdict = {}
         thisdict['__class__'] = 'K2Collimator'
-        thisdict['n_alloc'] = self._k2engine.n_alloc
         thisdict['random_generator_seed'] = self._k2engine.random_generator_seed
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
@@ -201,11 +192,8 @@ class K2Collimator:
          # TODO how to get ref to impacts?
         if engine is None:
             print("Warning: no engine given! Creating a new one...")
-            engine = K2Engine(thisdict['n_alloc'], thisdict['random_generator_seed'])
+            engine = K2Engine(thisdict['random_generator_seed'])
         else:
-            if engine.n_alloc != thisdict['n_alloc']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: n_alloc is different.")
             if engine.random_generator_seed != thisdict['random_generator_seed']:
                 raise ValueError("The provided engine is incompatible with the engine of the "\
                                  "stored element: random_generator_seed is different.")
@@ -329,8 +317,6 @@ class K2Crystal:
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles
-        if npart > self.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
         if npart == 0:
             return
         if self._reset_random_seed == True:
@@ -388,7 +374,6 @@ class K2Crystal:
         # TODO how to save ref to impacts?
         thisdict = {}
         thisdict['__class__'] = 'K2Crystal'
-        thisdict['n_alloc'] = self._k2engine.n_alloc
         thisdict['random_generator_seed'] = self._k2engine.random_generator_seed
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
@@ -424,14 +409,12 @@ class K2Crystal:
          # TODO how to get ref to impacts?
         if engine is None:
             print("Warning: no engine given! Creating a new one...")
-            engine = K2Engine(thisdict['n_alloc'], thisdict['random_generator_seed'])
+            engine = K2Engine(thisdict['random_generator_seed'])
         else:
-            if engine.n_alloc != thisdict['n_alloc']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: n_alloc is different.")
             if engine.random_generator_seed != thisdict['random_generator_seed']:
                 raise ValueError("The provided engine is incompatible with the engine of the "\
                                  "stored element: random_generator_seed is different.")
+
         return cls(
             k2engine = engine,
             active_length = thisdict['active_length'],

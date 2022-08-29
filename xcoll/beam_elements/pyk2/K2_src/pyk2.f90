@@ -1,27 +1,10 @@
-subroutine pyk2_init(n_alloc, random_generator_seed)
-  use floatPrecision
-  use numerical_constants
-  ! use crcoall    NODIG ??
-!  use parpro ,           only : npart
-!  use mod_alloc ,        only : alloc      ! to allocate partID etc
- ! use mod_common ,       only : iexact, napx, unit208, aa0
- ! use mod_common_main ,  only : partID, parentID, pairID, naa
+subroutine pyk2_init(random_generator_seed)
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
-
   use coll_common ,      only : rnd_seed !, rcx, rcxp, rcy, rcyp, rcp, rcs, &
-!                                coll_expandArrays
-  use coll_materials ! for collmat_init
-!  use coll_k2        ! for scattering
-  use coll_crystal, only: cry_init
 
   implicit none
 
-  integer, intent(in)          :: n_alloc
   integer, intent(in)          :: random_generator_seed
-
-  ! Set default values for collimator materials
-  call collmat_init
-  call cry_init
 
   rnd_seed = random_generator_seed
 
@@ -30,37 +13,30 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
   if(rnd_seed <  0) rnd_seed = abs(rnd_seed)
   call rluxgo(3, rnd_seed, 0, 0)
 
-!  call coll_expandArrays(n_alloc)
-!  call alloc(naa, n_alloc, aa0, "naa")
-!  call alloc(partID, n_alloc, 0, "partID")
-!  call alloc(parentID, n_alloc, 0, "parentID")
-!  call alloc(pairID, 2, n_alloc, 0, "pairID")
-
 end subroutine
 
-subroutine pyk2_startcry(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+subroutine pyk2_startcry(c_length, new_length, cryTilt, cryBend, cryThick, cryXDim, &
                          cryYDim, cryOrient, cryMiscut)
   use coll_crystal, only: cry_startElement
 
   real(kind=8), intent(in)    :: c_length     ! Collimator length in m
   real(kind=8), intent(inout) :: new_length
-  real(kind=8), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
   real(kind=8), intent(in)    :: cryTilt
   real(kind=8), intent(in)    :: cryBend
   real(kind=8), intent(in)    :: cryThick
   real(kind=8), intent(in)    :: cryXDim
   real(kind=8), intent(in)    :: cryYDim
-  real(kind=8), intent(in)    :: cryOrient
+  integer,      intent(in)    :: cryOrient
   real(kind=8), intent(in)    :: cryMiscut
   
-  call cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+  call cry_startElement(c_length, new_length, cryTilt, cryBend, cryThick, cryXDim, &
                         cryYDim, cryOrient, cryMiscut)
 end subroutine
 
 
 subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   lhit,part_abs,impact,indiv,c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
-  hcut,csref0,csref1,csref4,csref5,nmat,bnref,csect)
+  hcut,csref0,csref1,csref4,csref5,bnref,csect)
   
   use coll_crystal, only: cry_doCrystal
   use parpro
@@ -97,12 +73,11 @@ subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   real(kind=8), intent(in)    :: csref1
   real(kind=8), intent(in)    :: csref4
   real(kind=8), intent(in)    :: csref5
-  integer,      intent(in)    :: nmat
   real(kind=8), intent(in)    :: bnref
   real(kind=8), intent(in)    :: csect
 
   call cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
                     c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
-                    hcut,bnref,csref0,csref1,csref4,csref5,nmat,csect)
+                    hcut,bnref,csref0,csref1,csref4,csref5,csect)
 
 end subroutine
