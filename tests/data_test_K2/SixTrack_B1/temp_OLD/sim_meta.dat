@@ -1,0 +1,31 @@
+# SixTrack Simulation Meta Data
+################################################################################
+SixTrackVersion                  : 5.5.0
+ReleaseDate                      : 2022-04-04
+GitHash                          : 22d5dde493e111bff5d1d3009539d58d4ed95a53
+Compiler                         : gfortran
+Features                         : CRLIBM ZLIB
+StartTime                        : 2022-07-12 18:18:36.088
+NumParticles                     :       10000
+NumTurns                         :           1
+NumSingleElements                :       10887
+NumBlockElements                 :        1207
+NumStructureElements             :       89783
+MultiColStructBlock              : false
+MachineLengthInput               :  2.6658883200000000E+004
+MachineLengthAccum               :  2.6658883199994842E+004
+MachineLengthStruct              :  2.6658883199994842E+004
+TrackingMethod                   : Thin 4D
+4D_ClosedOrbitCorr_x             : -3.5502280020756739E-004
+4D_ClosedOrbitCorr_xp            :  6.0951420101799575E-007
+4D_ClosedOrbitCorr_y             :  6.9189520953497150E-004
+4D_ClosedOrbitCorr_yp            :  8.4420401504379075E-006
+SymplecticityDeviation           : -1.3773426843518663E-012
+NumParticleTurns                 :       10000
+NumParticleTurnsElement          :            897840000
+AvgParticlesPerTurn              :       10000.000
+CR_RestartCount                  :           0
+CR_KillSwitchCount               :           0
+PeakDynamicMemAlloc[MiB]         :          94.491
+NumDynamicMemAllocCalls          :       13216
+# END

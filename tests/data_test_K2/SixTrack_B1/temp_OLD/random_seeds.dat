@@ -1,0 +1,12 @@
+# Master Seed         : 6574654
+# RANLUX Luxury Level : 3
+#
+# Number Series                   Gen     Action         Seed
+RND:  Time seed ranecu            RANECU  CUSTOM    623571754
+RND:  Time seed ranlux            RANLUX  CUSTOM    623571754
+RND:  General sequence ranecu     RANECU  MASTER      6806785
+RND:  General sequence ranlux     RANLUX  MASTER      6884162
+SCAT: Scattering events           RANECU  MASTER      6961539
+SCAT: Sample particles            RANECU  MASTER      7038916
+DIST: Distribution generator      RANLUX  MASTER      7116293
+COLL: Distribution generator      RANLUX  MASTER      7193670

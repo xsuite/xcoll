@@ -1,0 +1,5 @@
+{"__class__": "K2Collimator", "n_alloc": 50000, "random_generator_seed": 6574654,
+    "active_length": , "inactive_front": 0, "inactive_back": 0, "angle": ,
+    "jaw_F_L": , "jaw_F_R": -, "jaw_B_L": , "jaw_B_R": -, 
+    "offset": , "tilt": [0.0, 0.0], "is_active": 1, "record_impacts": 0,
+    "onesided": 0, "material": ""}

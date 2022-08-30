@@ -53,7 +53,7 @@ do
         cd ..
    #    grep -i tilt six_${coll}.out > tilt_${coll}.out
         rm -r temp
-    done <../collimators_$beam
+    done <../crystals_$beam
     cd ..
 done
 python _correct_json_collimators.py

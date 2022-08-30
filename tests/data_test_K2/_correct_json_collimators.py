@@ -5,6 +5,9 @@ import numpy as np
 import xobjects as xo
 import xcoll as xc
 
+
+print("\n\nCorrecting collimator JSONs.\nThis should be ran only once, to avoid double corrections!\n\n")
+
 for beam in 'B1', 'B2':
     with open(Path(Path.cwd(), 'collimators_' + beam), 'r') as fid:
         collimators = [ x.strip() for x in fid.readlines()]

@@ -51,6 +51,7 @@ def sixtrack_initial_to_particles(sixtrack_input_file, p0c, *, mass0=mp, q0=1):
     py = np.array(data.yp*data.p*1e9/p0c)
     beta0 = p0c / np.sqrt( p0c**2 + data.m**2 )
     zeta = np.array(-data.dt*1e-3*clight * beta0)
+#     zeta = np.array(-data.dt*clight * beta0)
     delta = np.array( (data.p*1e9 - p0c) / p0c )
 
     return xp.Particles(

@@ -1,4 +1,4 @@
-python make_json_from_initial.py
+python _make_json_from_initial.py
 for beam in B1 B2
 do
     cd SixTrack_$beam
@@ -43,6 +43,6 @@ do
     done <../collimators_$beam
     cd ..
 done
-python correct_json_colimators.py
-python make_json_references.py
-rm collimators_B?
+python _correct_json_collimators.py
+python _make_json_references.py
+# rm collimators_B?

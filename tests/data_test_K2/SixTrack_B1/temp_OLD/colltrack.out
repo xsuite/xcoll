@@ -1,0 +1,1352 @@
+
+
+          -------------------------------
+
+          Program      C O L L T R A C K 
+
+             R. Assmann       -    AB/ABP
+              C.Bracco        -    AB/ABP
+            V. Previtali      -    AB/ABP
+            S. Redaelli       -    AB/OP
+       G. Robert-Demolaize    -    BNL
+              A. Rossi        -    AB/ABP
+              T. Weiler       -    IEKP
+
+                  CERN 2001 - 2009
+
+          -------------------------------
+
+
+ INFO>  rnd_seed:      6574654
+  
+ Alignment errors settings (tilt, offset,...)
+  
+ SETTING> c_rmstilt_prim   :    0.0000000000000000     
+ SETTING> c_rmstilt_sec    :    0.0000000000000000     
+ SETTING> c_systilt_prim   :    0.0000000000000000     
+ SETTING> c_systilt_sec    :    0.0000000000000000     
+ SETTING> c_rmsoffset_prim :    0.0000000000000000     
+ SETTING> c_rmsoffset_sec  :    0.0000000000000000     
+ SETTING> c_sysoffset_prim :    0.0000000000000000     
+ SETTING> c_sysoffset_sec  :    0.0000000000000000     
+ SETTING> c_offsettilt seed:            0
+ SETTING> c_rmserror_gap   :    0.0000000000000000     
+ SETTING> do_mingap        :  F
+  
+  
+ Collimator information: 
+  
+ Name:                tcpcv.a6l7.b1                                   
+ Material:            Ge  
+ Length [m]:             4.0000000000000001E-003
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      33.428096720021699     
+ Optics beta y [m]:      255.43636455527050     
+  -4.4822129277489830E-006   1.8974689890840580E-005   0.0000000000000000     
+Collimator number:     34
+ Beam size x [m]:        1.2705734889490009E-004 (from collgap emittance)
+ Beam size y [m]:        3.5122492351944042E-004 (from collgap emittance)
+ Divergence x [urad]:       -4.4822129277489831     
+ Divergence y [urad]:        18.974689890840580     
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     2.0019820640608103E-003
+ Collimator halfgap [sigma]:     5.7000000000000002     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.b5l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.5045474766118629     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     35
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.a5l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:        0.71034900556169223     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     36
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.d4l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     37
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcpch.a4l7.b1                                   
+ Material:            Si  
+ Length [m]:             4.0000000000000001E-003
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     39
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.7000000000000002     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.b4l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     55
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcspm.b4l7.b1                                   
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:            -3.7000000000000002E-003
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     38
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.a4l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.3492131731843675     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     40
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.a4r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:        0.80808744367337448     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     41
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.b5r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.4696408915719763     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     42
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.d5r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:        0.89709923552508541     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     43
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.e5r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.2776546738526000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     56
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcspm.e5r7.b1                                   
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.2776546738526000     
+ Offset [m]:             8.5499999999999997E-004
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     44
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.6r7.b1                                     
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         8.7266462599716477E-003
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     57
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     3.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcspm.6r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         8.7266462599716477E-003
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     45
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     3.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.a6r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     46
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.b6r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     47
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.c6r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     48
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.d6r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     49
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.a7r7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     50
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctph.4l8.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     51
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctpv.4l8.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     52
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctph.4l1.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     53
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     1.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctpv.4l1.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     54
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     1.8000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.4r1.b1                                      
+ Material:            BE  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      1
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.5r1.b1                                      
+ Material:            AL  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      2
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     4.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.6r1.b1                                      
+ Material:            CU  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      3
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     18.000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctph.4l2.b1                                    
+ Material:            W   
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      4
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctpv.4l2.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      5
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tdisa.a4l2.b1                                   
+ Material:            MoGR
+ Length [m]:             1.5649999999999999     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      6
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tdisb.a4l2.b1                                   
+ Material:            MoGR
+ Length [m]:             1.5649999999999999     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      7
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tdisc.a4l2.b1                                   
+ Material:            MoGR
+ Length [m]:             1.5649999999999999     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      8
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tclia.4r2                                       
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:      9
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     4.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tclib.6r2.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     10
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     6.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcld.a11r2.b1                                   
+ Material:            MoGR
+ Length [m]:            0.59999999999999998     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     11
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     6.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcp.6l3.b1                                      
+ Material:            MoGR
+ Length [m]:            0.59999999999999998     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     12
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.5l3.b1                                     
+ Material:            PB  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     13
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     7.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.4r3.b1                                     
+ Material:            C   
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     14
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     10.000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.a5r3.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.9792770331543204     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     15
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     8.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.b5r3.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:        0.18849555921538760     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     16
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     7.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.a5r3.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     17
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     4.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.b5r3.b1                                    
+ Material:            C2  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     18
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.6r3.b1                                     
+ Material:            Si  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     19
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcla.7r3.b1                                     
+ Material:            Ge  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     20
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctph.4l5.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     21
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     1.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tctpv.4l5.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     22
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     1.8000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.4r5.b1                                      
+ Material:            CuCD
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     23
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.5r5.b1                                      
+ Material:            Mo  
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     24
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     4.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcl.6r5.b1                                      
+ Material:            Glid
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     25
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     18.000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcdqa.a4r6.b1                                   
+ Material:            MoGR
+ Length [m]:             3.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     26
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcdqa.c4r6.b1                                   
+ Material:            MoGR
+ Length [m]:             3.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     27
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcdqa.b4r6.b1                                   
+ Material:            MoGR
+ Length [m]:             3.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     28
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsp.a4r6.b1                                    
+ Material:            Iner
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     29
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     2.5000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcp.d6l7.b1                                     
+ Material:            MoGR
+ Length [m]:            0.59999999999999998     
+ Rotation [rad]:         1.5707963267948966     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     30
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcp.c6l7.b1                                     
+ Material:            MoGR
+ Length [m]:            0.59999999999999998     
+ Rotation [rad]:         0.0000000000000000     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     31
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcp.b6l7.b1                                     
+ Material:            MoGR
+ Length [m]:            0.59999999999999998     
+ Rotation [rad]:         2.2252947962927703     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     32
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+  
+ Collimator information: 
+  
+ Name:                tcsg.a6l7.b1                                    
+ Material:            MoGR
+ Length [m]:             1.0000000000000000     
+ Rotation [rad]:         2.4626595745639990     
+ Offset [m]:             0.0000000000000000     
+ Design beta x [m]:      0.0000000000000000     
+ Design beta y [m]:      0.0000000000000000     
+ Optics beta x [m]:      0.0000000000000000     
+ Optics beta y [m]:      0.0000000000000000     
+                       NaN                       NaN   0.0000000000000000     
+Collimator number:     33
+ Beam size x [m]:        0.0000000000000000      (from collgap emittance)
+ Beam size y [m]:        0.0000000000000000      (from collgap emittance)
+ Divergence x [urad]:                            NaN
+ Divergence y [urad]:                            NaN
+ Aperture (nom) [m]:     0.0000000000000000     
+ Aperture (cal) [m]:     0.0000000000000000     
+ Collimator halfgap [sigma]:     5.0000000000000000     
+ RMS error on halfgap [sigma]:     0.0000000000000000     
+  
+ INFO>  Number of impacts             :        10000
+ INFO>  Number of impacts at selected :            0
+ INFO>  Number of surviving particles :            0
+ INFO>  Number of absorbed particles  :        10000
+
+ INFO> Efficiency calculations not enabled

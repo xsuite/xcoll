@@ -22,6 +22,7 @@ for beam in 'B1', 'B2':
     for name in collimators:
         file = Path(path,'output','dump_mt_' + name + '_mken')
         dump_in = sf.sixtrack_dump2_to_particles(file, p0c=p0c)
+        print(name)
         assert np.allclose(part_init.x,     dump_in.x, atol=1e-11, rtol=0)
         assert np.allclose(part_init.y,     dump_in.y, atol=1e-11, rtol=0)
         assert np.allclose(part_init.px,    dump_in.px, atol=1e-15, rtol=0)

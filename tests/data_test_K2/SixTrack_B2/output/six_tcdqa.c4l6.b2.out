@@ -1,0 +1,42 @@
+STOP 1
+DUMP> ERROR Unidentified SINGLE ELEMENT 'mt_tcdqa.c4l6.b2_mken'
+
+ ERROR in fort.3 on line 29
+========O===========================================================================================
+     25 |     READ "initial.dat"
+     26 | NEXT
+     27 | 
+     28 | DUMP----------------------------------------------------------------------------
+>>   29 |     mt_tcdqa.c4l6.b2_mken 1 1 2
+========O===========================================================================================
+
+    SixTrack :: Version 5.5.0 :: Released 2022-04-04
+  ================================================================================================================================
+    Git SHA Hash: 457924a46ce925158ac42509457a30c3b2a16c94
+    Compiler:     gfortran
+    Built With:   CRLIBM ZLIB
+    Start Time:   2022-08-02 10:47:18.869
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+    OOOOOOOOOOOOOOOOOOOOOO
+    OO                  OO
+    OO  SixTrack Input  OO
+    OO                  OO
+    OOOOOOOOOOOOOOOOOOOOOO
+
+    MODE:  Geometry Strength File (fort.2)
+
+------------------------------------------------------------------------------------------------------------------------------------
+INPUT> Parsed 10916 Single Elements
+INPUT> Parsed 1235 Block Elements
+INPUT> Parsed 89869 Structure Elements
+INPUT> SixTrack Quiet level set to: 2
+INPUT> Writing of fort.12 after tracking is DISABLED
+SIMU> NOTE More than 64 particles requested, switching off printing of particle summary.
+
+    +++++++++++++++++++++++++++++
+    +      ERROR DETECTED!      +
+    + RUN TERMINATED ABNORMALLY +
+    +++++++++++++++++++++++++++++
+
