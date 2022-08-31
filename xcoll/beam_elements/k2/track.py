@@ -26,7 +26,7 @@ def drift_zeta(zeta, rvv, xp, yp, length):
 
 
     
-def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
+def track(k2collimator, particles, npart, reset_seed):
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
@@ -95,29 +95,54 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
     ai       = materials[k2collimator.material]['ai']
     collnt   = materials[k2collimator.material]['collnt']
 
-    # if self.is_crystal and not pyk2.materials[self.material]['can_be_crystal']:
-    #  raise ValueError()
-    cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
-
-    if is_crystal:
+    # Get crystal parameters
+    from ..k2collimator import K2Crystal
+    if isinstance(k2collimator,K2Crystal):
         if not materials[k2collimator.material]['can_be_crystal']:
             raise ValueError(f"The collimator material {k2collimator.material} cannot be used as a crystal!")
+        
+        is_crystal = True
 
-        crytilt = k2collimator.align_angle + k2collimator.crytilt
+        bend = k2collimator.bend    # bend is bending radius
+        cry_tilt = k2collimator.align_angle + k2collimator.crytilt
+        bend_ang  = length/bend    # temporary value
+        if cry_tilt >= -bend_ang:
+            length = bend*(np.sin(bend_ang + cry_tilt) - np.sin(cry_tilt))
+        else:
+            length = bend*(np.sin(bend_ang - cry_tilt) + np.sin(cry_tilt))
+    
+        cry_rcurv  = bend
+        cry_bend = length/cry_rcurv  # final value (with corrected length)
+        cry_alayer = k2collimator.thick
+        cry_xmax   = k2collimator.xdim
+        cry_ymax   = k2collimator.ydim
+        cry_orient = k2collimator.orient
+        cry_miscut = k2collimator.miscut
+        cry_cBend  = np.cos(cry_bend)
+        cry_sBend  = np.sin(cry_bend)
+        cry_cpTilt = np.cos(cry_tilt)
+        cry_spTilt = np.sin(cry_tilt)
+        cry_cnTilt = np.cos(-cry_tilt)
+        cry_snTilt = np.sin(-cry_tilt)
 
-        new_length = np.array(length)
-        pyk2.pyk2_startcry(
-            c_length=length,
-            new_length=new_length,
-            crytilt=crytilt,
-            crybend=k2collimator.bend,
-            crythick=k2collimator.thick,
-            cryxdim=k2collimator.xdim,
-            cryydim=k2collimator.ydim,
-            cryorient=k2collimator.orient,
-            crymiscut=k2collimator.miscut
-        )
-        length = new_length
+    else:
+        is_crystal = False
+        cry_tilt = 0
+        cry_rcurv  = 0
+        cry_bend = 0
+        cry_alayer = 0
+        cry_xmax   = 0
+        cry_ymax   = 0
+        cry_orient = 0
+        cry_miscut = 0
+        cry_cBend  = 0
+        cry_sBend  = 0
+        cry_cpTilt = 0
+        cry_spTilt = 0
+        cry_cnTilt = 0
+        cry_snTilt = 0
+
+    cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
     scatter(npart=npart,
             x_part=x_part,
@@ -125,7 +150,7 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             y_part=y_part,
             yp_part=yp_part,
             s_part=s_part,
-            p_part=e_part,              # confusing: this is ENERGY not momentum
+            p_part=e_part,                   # confusing: this is ENERGY not momentum
             part_hit=part_hit,
             part_abs=part_abs,
             part_impact=part_impact,         # impact parameter
@@ -166,7 +191,21 @@ def track(k2collimator, particles, npart, reset_seed, is_crystal=False):
             onesided=k2collimator.onesided,
             length=length,
             material=k2collimator.material, 
-            run_csect=csect
+            run_csect=csect,
+            cry_tilt=cry_tilt,
+            cry_rcurv=cry_rcurv,
+            cry_bend=cry_bend,
+            cry_alayer=cry_alayer,
+            cry_xmax=cry_xmax,
+            cry_ymax=cry_ymax,
+            cry_orient=cry_orient,
+            cry_miscut=cry_miscut,
+            cry_cBend=cry_cBend,
+            cry_sBend=cry_sBend,
+            cry_cpTilt=cry_cpTilt,
+            cry_spTilt=cry_spTilt,
+            cry_cnTilt=cry_cnTilt,
+            cry_snTilt=cry_snTilt
             )
 
     # Masks of hit and survived particles

@@ -354,7 +354,7 @@ class K2Crystal:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            track(self, particles, npart, reset_seed, is_crystal=True)
+            track(self, particles, npart, reset_seed)
 
             # Drift inactive back
             L = self.inactive_back

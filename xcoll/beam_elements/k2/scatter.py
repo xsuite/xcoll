@@ -14,8 +14,11 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, run_csect):
-    
+                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, run_csect,
+                cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
+                cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt
+        ):
+
     try:
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
@@ -42,12 +45,19 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     sRRot  = np.sin(-c_rotation)
 
     # Set energy and nucleon change variables as with the coupling
-    # ien0,ien1: particle energy entering/leaving the collimator
+    # ien0, ien1: particle energy entering/leaving the collimator
     # energy in MeV
     nnuc0 = 0
     ien0  = 0
     nnuc1 = 0
     ien1  = 0
+
+    # Crystal tracking parameters
+    iProc       = 0
+    n_chan      = 0
+    n_VR        = 0
+    n_amorphous = 0
+    s_imp        = 0
 
     for i in range(npart):
 
@@ -133,9 +143,8 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
         if (is_crystal):
 
-            simp=np.array(0)
-            
-            val_part_hit, val_part_abs, val_part_impact, val_part_indiv, nhit, nabs, simp, isimp, s, zlm, x, xp, x0, xp0, z, zp, p = crystal(x=x,
+            val_part_hit, val_part_abs, val_part_impact, val_part_indiv, nhit, nabs, s_imp, isimp, s, zlm, x, xp, x0, xp0, z, zp, p, iProc, n_chan, n_VR, n_amorphous = crystal(
+                                                                                                                            x=x,
                                                                                                                             xp=xp,
                                                                                                                             z=z,
                                                                                                                             zp=zp,
@@ -144,7 +153,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                                                                             x0=x0,
                                                                                                                             xp0=xp0,
                                                                                                                             zlm=zlm,
-                                                                                                                            simp=simp,
+                                                                                                                            s_imp=s_imp,
                                                                                                                             isimp=isimp,
                                                                                                                             val_part_hit=val_part_hit, 
                                                                                                                             val_part_abs=val_part_abs, 
@@ -169,14 +178,32 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                                                                             csref5=run_csref5, 
                                                                                                                             csect=run_csect,                                                                                                                            
                                                                                                                             nhit=nhit, 
-                                                                                                                            nabs=nabs 
+                                                                                                                            nabs=nabs,
+                                                                                                                            cry_tilt=cry_tilt,
+                                                                                                                            cry_rcurv=cry_rcurv,
+                                                                                                                            cry_bend=cry_bend,
+                                                                                                                            cry_alayer=cry_alayer,
+                                                                                                                            cry_xmax=cry_xmax,
+                                                                                                                            cry_ymax=cry_ymax,
+                                                                                                                            cry_orient=cry_orient,
+                                                                                                                            cry_miscut=cry_miscut,
+                                                                                                                            cry_cBend=cry_cBend,
+                                                                                                                            cry_sBend=cry_sBend,
+                                                                                                                            cry_cpTilt=cry_cpTilt,
+                                                                                                                            cry_spTilt=cry_spTilt,
+                                                                                                                            cry_cnTilt=cry_cnTilt,
+                                                                                                                            cry_snTilt=cry_snTilt,
+                                                                                                                            iProc=iProc,
+                                                                                                                            n_chan=n_chan,
+                                                                                                                            n_VR=n_VR,
+                                                                                                                            n_amorphous=n_amorphous
                                                                                                                             )
-            
+
             if (nabs != 0):
                 val_part_abs = 1
                 val_part_linteract = zlm
 
-            simp  = (s - c_length) + simp
+            s_imp  = (s - c_length) + s_imp
 
 
 ##################################################################################################
@@ -250,7 +277,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 val_part_hit  = 1
 
                 isimp = True
-                simp  = s_impact
+                # simp  = s_impact
 
                 # Writeout should be done for both inelastic and single diffractive. doing all transformations
                 # in x_flk and making the set to 99.99 mm conditional for nabs=1

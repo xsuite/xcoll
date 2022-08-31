@@ -18,27 +18,27 @@ module coll_crystal
 
   implicit none
 
-  integer,          private, save :: iProc       = 0
-  integer,          private, save :: n_chan      = 0
-  integer,          private, save :: n_VR        = 0
-  integer,          private, save :: n_amorphous = 0
+  ! integer,          private, save :: iProc       = 0
+  ! integer,          private, save :: n_chan      = 0
+  ! integer,          private, save :: n_VR        = 0
+  ! integer,          private, save :: n_amorphous = 0
 
   ! Shared settings for the currently active crystal
-  integer,          private, save :: c_orient   = 0    ! Crystal orientation [0-2]
-  real(kind=fPrec), private, save :: c_rcurv    = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec), private, save :: c_xmax     = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec), private, save :: c_ymax     = zero ! Crystal geometrical parameters [m]
-  real(kind=fPrec), private, save :: c_alayer   = zero ! Crystal amorphous layer [mm]
-  real(kind=fPrec), private, save :: c_miscut   = zero ! Crystal miscut angle in rad
-  real(kind=fPrec), private, save :: c_cpTilt   = zero ! Cosine of positive crystal tilt
-  real(kind=fPrec), private, save :: c_spTilt   = zero ! Sine of positive crystal tilt
-  real(kind=fPrec), private, save :: c_cnTilt   = zero ! Cosine of negative crystal tilt
-  real(kind=fPrec), private, save :: c_snTilt   = zero ! Sine of negative crystal tilt
-  real(kind=fPrec), private, save :: c_cBend    = zero ! Cosine of crystal bend
-  real(kind=fPrec), private, save :: c_sBend    = zero ! Sine of crystal bend
-  real(kind=fPrec), private, save :: cry_tilt   = zero ! Crystal tilt angle in rad
-  real(kind=fPrec), private, save :: cry_length = zero ! Crystal length [m]
-  real(kind=fPrec), private, save :: cry_bend   = zero ! Crystal bending angle in rad
+  ! integer,          private, save :: c_orient   = 0    ! Crystal orientation [0-2]
+  ! real(kind=fPrec), private, save :: c_rcurv    = zero ! Crystal geometrical parameters [m]
+  ! real(kind=fPrec), private, save :: c_xmax     = zero ! Crystal geometrical parameters [m]
+  ! real(kind=fPrec), private, save :: c_ymax     = zero ! Crystal geometrical parameters [m]
+  ! real(kind=fPrec), private, save :: c_alayer   = zero ! Crystal amorphous layer [mm]
+  ! real(kind=fPrec), private, save :: c_miscut   = zero ! Crystal miscut angle in rad
+  ! real(kind=fPrec), private, save :: c_cpTilt   = zero ! Cosine of positive crystal tilt
+  ! real(kind=fPrec), private, save :: c_spTilt   = zero ! Sine of positive crystal tilt
+  ! real(kind=fPrec), private, save :: c_cnTilt   = zero ! Cosine of negative crystal tilt
+  ! real(kind=fPrec), private, save :: c_snTilt   = zero ! Sine of negative crystal tilt
+  ! real(kind=fPrec), private, save :: c_cBend    = zero ! Cosine of crystal bend
+  ! real(kind=fPrec), private, save :: c_sBend    = zero ! Sine of crystal bend
+  ! real(kind=fPrec), private, save :: cry_tilt   = zero ! Crystal tilt angle in rad
+  ! real(kind=fPrec), private, save :: cry_length = zero ! Crystal length [m]
+  ! real(kind=fPrec), private, save :: cry_bend   = zero ! Crystal bending angle in rad
 
   ! Rutherford Scatter
   real(kind=fPrec), parameter     :: tlcut_cry = 0.0009982_fPrec
@@ -77,63 +77,66 @@ module coll_crystal
 contains
 
 
-! ================================================================================================ !
-!  Initialise a crystal collimator
-! ================================================================================================ !
-subroutine cry_startElement(c_length, new_length, cryTilt, cryBend, cryThick, cryXDim, &
-                            cryYDim, cryOrient, cryMiscut)
-  use mathlib_bouncer
+! ! ================================================================================================ !
+! !  Initialise a crystal collimator
+! ! ================================================================================================ !
+! subroutine cry_startElement(c_length, new_length, cryTilt, cryBend, cryThick, cryXDim, &
+!                             cryYDim, cryOrient, cryMiscut)
+!   use mathlib_bouncer
 
-  real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
-  real(kind=fPrec), intent(inout) :: new_length
-  real(kind=fPrec), intent(in)    :: cryTilt
-  real(kind=fPrec), intent(in)    :: cryBend
-  real(kind=fPrec), intent(in)    :: cryThick
-  real(kind=fPrec), intent(in)    :: cryXDim
-  real(kind=fPrec), intent(in)    :: cryYDim
-  integer,          intent(in)    :: cryOrient
-  real(kind=fPrec), intent(in)    :: cryMiscut
+!   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
+!   real(kind=fPrec), intent(inout) :: new_length
+!   real(kind=fPrec), intent(in)    :: cryTilt
+!   real(kind=fPrec), intent(in)    :: cryBend
+!   real(kind=fPrec), intent(in)    :: cryThick
+!   real(kind=fPrec), intent(in)    :: cryXDim
+!   real(kind=fPrec), intent(in)    :: cryYDim
+!   integer,          intent(in)    :: cryOrient
+!   real(kind=fPrec), intent(in)    :: cryMiscut
 
-  real(kind=fPrec) bendAng
+!   real(kind=fPrec) bendAng
   
-  cry_tilt = cryTilt       ! global variable
+!   cry_tilt = cryTilt       ! global variable
 
-  bendAng  = c_length/cryBend     ! cryBend is bending radius
-  if(cry_tilt >= (-one)*bendAng) then
-    cry_length = cryBend*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
-  else
-    cry_length = cryBend*(sin_mb(bendAng - cry_tilt) + sin_mb(cry_tilt))
-  end if
+!   bendAng  = c_length/cryBend     ! cryBend is bending radius
+!   if(cry_tilt >= (-one)*bendAng) then
+!     cry_length = cryBend*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
+!   else
+!     cry_length = cryBend*(sin_mb(bendAng - cry_tilt) + sin_mb(cry_tilt))
+!   end if
 
-  c_rcurv  = cryBend
-  c_alayer = cryThick
-  c_xmax   = cryXDim
-  c_ymax   = cryYDim
-  c_orient = cryOrient
-  c_miscut = cryMiscut
-  cry_bend = cry_length/c_rcurv
-  c_cBend  = cos_mb(cry_bend)
-  c_sBend  = sin_mb(cry_bend)
-  c_cpTilt = cos_mb(cry_tilt)
-  c_spTilt = sin_mb(cry_tilt)
-  c_cnTilt = cos_mb(-cry_tilt)
-  c_snTilt = sin_mb(-cry_tilt)
+!   c_rcurv  = cryBend
+!   c_alayer = cryThick
+!   c_xmax   = cryXDim
+!   c_ymax   = cryYDim
+!   c_orient = cryOrient
+!   c_miscut = cryMiscut
+!   cry_bend = cry_length/c_rcurv
+!   c_cBend  = cos_mb(cry_bend)
+!   c_sBend  = sin_mb(cry_bend)
+!   c_cpTilt = cos_mb(cry_tilt)
+!   c_spTilt = sin_mb(cry_tilt)
+!   c_cnTilt = cos_mb(-cry_tilt)
+!   c_snTilt = sin_mb(-cry_tilt)
 
-  n_chan      = 0
-  n_VR        = 0
-  n_amorphous = 0
+!   n_chan      = 0
+!   n_VR        = 0
+!   n_amorphous = 0
 
-  new_length = cry_length
+!   new_length = cry_length
 
 
-end subroutine cry_startElement
+! end subroutine cry_startElement
 
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
 subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
                         c_length,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,&
-                        cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_csect)
+                        cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_csect, cry_tilt, c_rcurv, &
+                        c_alayer, c_xmax, c_ymax, c_orient, c_miscut, cry_bend, c_cBend, c_sBend, c_cpTilt, &
+                        c_spTilt, c_cnTilt, c_snTilt, iProc, n_chan, n_VR, n_amorphous)
+                 
 
   use parpro
   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
@@ -174,6 +177,25 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
   real(kind=fPrec), intent(in)    :: cd_csref4
   real(kind=fPrec), intent(in)    :: cd_csref5
 
+  real(kind=fPrec), intent(in)    :: cry_tilt
+  real(kind=fPrec), intent(in)    :: c_rcurv
+  real(kind=fPrec), intent(in)    :: c_alayer
+  real(kind=fPrec), intent(in)    :: c_xmax
+  real(kind=fPrec), intent(in)    :: c_ymax
+  integer,          intent(in)    :: c_orient
+  real(kind=fPrec), intent(in)    :: c_miscut
+  real(kind=fPrec), intent(in)    :: cry_bend
+  real(kind=fPrec), intent(in)    :: c_cBend
+  real(kind=fPrec), intent(in)    :: c_sBend
+  real(kind=fPrec), intent(in)    :: c_cpTilt
+  real(kind=fPrec), intent(in)    :: c_spTilt
+  real(kind=fPrec), intent(in)    :: c_cnTilt
+  real(kind=fPrec), intent(in)    :: c_snTilt
+  integer,          intent(inout) :: iProc
+  integer,          intent(inout) :: n_chan
+  integer,          intent(inout) :: n_VR
+  integer,          intent(inout) :: n_amorphous
+
   logical,          intent(inout) :: isImp
 
   real(kind=fPrec) s_temp,s_shift,s_rot,s_int
@@ -181,6 +203,40 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
   real(kind=fPrec) xp_temp,xp_shift,xp_rot,xp_int,xp_tangent
   real(kind=fPrec) tilt_int,shift,delta,a_eq,b_eq,c_eq
   real(kind=fPrec) s_P, x_P, s_P_tmp, x_P_tmp
+  real(kind=fPrec) cry_length
+  
+  cry_length = c_length ! hack
+
+  ! PYTHON
+  ! cry_tilt = cryTilt       ! global variable
+
+  ! bendAng  = c_length/cryBend     ! cryBend is bending radius
+  ! if(cry_tilt >= (-one)*bendAng) then
+  !   cry_length = cryBend*(sin_mb(bendAng + cry_tilt) - sin_mb(cry_tilt))
+  ! else
+  !   cry_length = cryBend*(sin_mb(bendAng - cry_tilt) + sin_mb(cry_tilt))
+  ! end if
+
+  ! c_rcurv  = cryBend
+  ! c_alayer = cryThick
+  ! c_xmax   = cryXDim
+  ! c_ymax   = cryYDim
+  ! c_orient = cryOrient
+  ! c_miscut = cryMiscut
+  ! cry_bend = cry_length/c_rcurv
+  ! c_cBend  = cos_mb(cry_bend)
+  ! c_sBend  = sin_mb(cry_bend)
+  ! c_cpTilt = cos_mb(cry_tilt)
+  ! c_spTilt = sin_mb(cry_tilt)
+  ! c_cnTilt = cos_mb(-cry_tilt)
+  ! c_snTilt = sin_mb(-cry_tilt)
+
+  ! iProc       = 0
+  ! n_chan      = 0
+  ! n_VR        = 0
+  ! n_amorphous = 0
+
+  ! new_length = cry_length
 
   s_temp     = zero
   s_shift    = zero
@@ -203,7 +259,6 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
   c_eq       = zero
   s_imp      = zero
 
-  
   iProc       = proc_out
   
   ! Transform in the crystal reference system
@@ -238,7 +293,9 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
     x_P = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
 
     call cry_interact(cd_x,cd_xp,z,zp,p,cry_length,s_P,x_P,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,&
-                      cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_bnref,cd_csect)
+                      cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,&
+                      c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,&
+                      c_cnTilt,c_snTilt, iProc)
 
     s   = c_rcurv*c_sBend
     zlm = c_rcurv*c_sBend
@@ -258,7 +315,7 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
       xp_tangent = asin_mb((c_rcurv*(one - c_cBend) - cd_x)/sqrt(((two*c_rcurv)*(c_rcurv - cd_x))*(one - c_cBend) + cd_x**2))
     end if
 
-    ! If the hit is below, the angle must be greater or equal than the tangent,
+    ! If the hit is below,the angle must be greater or equal than the tangent,
     ! or if the hit is above, the angle must be smaller or equal than the tangent
     if((cd_x < zero .and. cd_xp >= xp_tangent) .or. (cd_x >= zero .and. cd_xp <= xp_tangent)) then
 
@@ -295,7 +352,8 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
 
         call cry_interact(cd_x,cd_xp,z,zp,p,cry_length-(tilt_int*c_rcurv),s_P,x_P,cd_exenergy,cd_rho,cd_anuc,&
                           cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,&
-                          cd_csref4,cd_csref5,cd_bnref,cd_csect)
+                          cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,&
+                          c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,c_cnTilt,c_snTilt,iProc)
         s   = c_rcurv*sin_mb(cry_bend - tilt_int)
         zlm = c_rcurv*sin_mb(cry_bend - tilt_int)
         if(iProc /= proc_out) then
@@ -401,7 +459,8 @@ end subroutine cry_doCrystal
 ! ================================================================================================ !
 subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anuc,ci_zatom,ci_emr,&
                       ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt,ci_hcut,ci_csref0,ci_csref1,ci_csref4,&
-                      ci_csref5,ci_bnref,ci_csect)
+                      ci_csref5,ci_bnref,ci_csect,ci_tilt,ci_rcurv,ci_alayer,ci_xmax,ci_ymax,ci_orient,&
+                      ci_miscut,ci_bend,ci_cBend,ci_sBend,ci_cpTilt,ci_spTilt,ci_cnTilt,ci_snTilt,ci_iProc)
 
   use mod_ranlux
   use mod_funlux
@@ -440,6 +499,23 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
 
   real(kind=fPrec), intent(in)    :: ci_bnref
   real(kind=fPrec), intent(in)    :: ci_csect
+
+  real(kind=fPrec), intent(in)    :: ci_tilt
+  real(kind=fPrec), intent(in)    :: ci_rcurv
+  real(kind=fPrec), intent(in)    :: ci_alayer
+  real(kind=fPrec), intent(in)    :: ci_xmax
+  real(kind=fPrec), intent(in)    :: ci_ymax
+  integer,          intent(in)    :: ci_orient
+  real(kind=fPrec), intent(in)    :: ci_miscut
+  real(kind=fPrec), intent(in)    :: ci_bend
+  real(kind=fPrec), intent(in)    :: ci_cBend
+  real(kind=fPrec), intent(in)    :: ci_sBend
+  real(kind=fPrec), intent(in)    :: ci_cpTilt
+  real(kind=fPrec), intent(in)    :: ci_spTilt
+  real(kind=fPrec), intent(in)    :: ci_cnTilt
+  real(kind=fPrec), intent(in)    :: ci_snTilt
+
+  integer,          intent(inout) :: ci_iProc
 
   integer nam,zn                        ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
   real(kind=fPrec) ymax,ymin            ! Crystal geometrical parameters
@@ -503,51 +579,51 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
   const_dech = const_dech*c1e3 ! [m/GeV]
 
   s        = zero
-  s_length = c_rcurv*sin_mb(length/c_rcurv)
+  s_length = ci_rcurv*sin_mb(length/ci_rcurv)
   L_chan   = length
 
   ! MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
-  s_K = c_rcurv*sin_mb(length/c_rcurv)
-  x_K = c_rcurv*(1-cos_mb(length/c_rcurv))
-  s_M = (c_rcurv-c_xmax)*sin_mb(length/c_rcurv)
-  x_M = c_xmax + (c_rcurv-c_xmax)*(1-cos_mb(length/c_rcurv))
+  s_K = ci_rcurv*sin_mb(length/ci_rcurv)
+  x_K = ci_rcurv*(1-cos_mb(length/ci_rcurv))
+  s_M = (ci_rcurv-ci_xmax)*sin_mb(length/ci_rcurv)
+  x_M = ci_xmax + (ci_rcurv-ci_xmax)*(1-cos_mb(length/ci_rcurv))
   r   = sqrt(s_P**2 + (ci_x-x_P)**2)
 
   ! MISCUT third step: F coordinates (exit point) on crystal exit face
-  A_F = (tan_mb(length/c_rcurv))**2 + one
-  B_F = ((-two)*(tan_mb(length/c_rcurv))**2)*c_rcurv + (two*tan_mb(length/c_rcurv))*s_P - two*x_P
-  C_F = ((tan_mb(length/c_rcurv))**2)*(c_rcurv**2) - ((two*tan_mb(length/c_rcurv))*s_P)*c_rcurv + s_P**2 + x_P**2 - r**2
+  A_F = (tan_mb(length/ci_rcurv))**2 + one
+  B_F = ((-two)*(tan_mb(length/ci_rcurv))**2)*ci_rcurv + (two*tan_mb(length/ci_rcurv))*s_P - two*x_P
+  C_F = ((tan_mb(length/ci_rcurv))**2)*(ci_rcurv**2) - ((two*tan_mb(length/ci_rcurv))*s_P)*ci_rcurv + s_P**2 + x_P**2 - r**2
 
   x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
-  s_F = (-tan_mb(length/c_rcurv))*(x_F-c_rcurv)
+  s_F = (-tan_mb(length/ci_rcurv))*(x_F-ci_rcurv)
 
   if(x_F >= x_K .and. x_F <= x_M .and. s_F >= s_M .and. s_F <= s_K) then
     ! No additional steps required for miscut
-  else if (c_miscut == 0 .and. abs(x_F-x_K) <= c1m13 .and. abs(s_F-s_K) <= c1m13) then
+  else if (ci_miscut == 0 .and. abs(x_F-x_K) <= c1m13 .and. abs(s_F-s_K) <= c1m13) then
     ! no miscut, entrance from below: exit point is K (lower edge)
     x_F = x_K
     s_F = s_K
-  else if (c_miscut == 0 .and. abs(x_F-x_M) <= c1m13 .and. abs(s_F-s_M) <= c1m13) then
+  else if (ci_miscut == 0 .and. abs(x_F-x_M) <= c1m13 .and. abs(s_F-s_M) <= c1m13) then
     ! no miscut, entrance from above: exit point is M (upper edge)
     x_F = x_M
     s_F = s_M
   else
 
     ! MISCUT Third step (bis): F coordinates (exit point)  on bent side
-    if(c_miscut < 0) then
+    if(ci_miscut < 0) then
       ! Intersect with bottom side
-      alpha_F = (c_rcurv-x_P)/x_P
+      alpha_F = (ci_rcurv-x_P)/x_P
       beta_F = -(r**2-s_P**2-x_P**2)/(two*s_P)
       A_F = alpha_F**2 + one
-      B_F = two*(alpha_F*beta_F) - two*c_rcurv
+      B_F = two*(alpha_F*beta_F) - two*ci_rcurv
       C_F = beta_F**2
     else
       ! Intersect with top side
-      alpha_F = (c_rcurv-x_P)/s_P
-      beta_F = -(r**2+c_xmax*(c_xmax-(two*c_rcurv))-s_P**2-x_P**2)/(two*s_P)
+      alpha_F = (ci_rcurv-x_P)/s_P
+      beta_F = -(r**2+ci_xmax*(ci_xmax-(two*ci_rcurv))-s_P**2-x_P**2)/(two*s_P)
       A_F = alpha_F**2 + one
-      B_F = two*(alpha_F*beta_F) - two*c_rcurv
-      C_F = beta_F**2 - c_xmax*(c_xmax-two*c_rcurv)
+      B_F = two*(alpha_F*beta_F) - two*ci_rcurv
+      C_F = beta_F**2 - ci_xmax*(ci_xmax-two*ci_rcurv)
     endif
     
     x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
@@ -561,25 +637,25 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
   tdefl = asin_mb((s_f-s_P)/r)
   L_chan = r*tP
 
-  xp_rel = xp - c_miscut
+  xp_rel = xp - ci_miscut
 
-  ymin = -c_ymax/two
-  ymax =  c_ymax/two
+  ymin = -ci_ymax/two
+  ymax =  ci_ymax/two
 
   ! FIRST CASE: p don't interact with crystal
-  if(y < ymin .or. y > ymax .or. ci_x > c_xmax) then
+  if(y < ymin .or. y > ymax .or. ci_x > ci_xmax) then
     ci_x  = ci_x + xp*s_length
     y     = y + yp*s_length
-    iProc = proc_out
+    ci_iProc = proc_out
     return
 
   ! SECOND CASE: p hits the amorphous layer
-  else if(ci_x < c_alayer .or. y-ymin < c_alayer .or. ymax-y < c_alayer) then
+  else if(ci_x < ci_alayer .or. y-ymin < ci_alayer .or. ymax-y < ci_alayer) then
     x0    = ci_x
     y0    = y
     a_eq  = one + xp**2
-    b_eq  = (two*ci_x)*xp - (two*xp)*c_rcurv
-    c_eq  = ci_x**2 - (two*ci_x)*c_rcurv
+    b_eq  = (two*ci_x)*xp - (two*xp)*ci_rcurv
+    c_eq  = ci_x**2 - (two*ci_x)*ci_rcurv
     delta = b_eq**2 - (four*a_eq)*c_eq
     s     = (-b_eq+sqrt(delta))/(two*a_eq)
     if(s >= s_length) then
@@ -601,21 +677,21 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
     s     = s/two
     ci_x  = x0 + xp*s
     y     = y0 + yp*s
-    iProc = proc_AM
+    ci_iProc = proc_AM
     call cry_calcIonLoss(pc,am_len,dest,betar,bgr,gammar,tmax,plen,&
                          ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
     call cry_moveAM(nam,am_len,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                    ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                    ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
     ci_x = ci_x + xp*(s_length-s)
     y = y + yp*(s_length-s)
     return
 
-  else if(ci_x > c_xmax-c_alayer .and. ci_x < c_xmax) then
-    iProc = proc_AM
+  else if(ci_x > ci_xmax-ci_alayer .and. ci_x < ci_xmax) then
+    ci_iProc = proc_AM
     call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
                         ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
     call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                   ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                   ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
     return
 
   end if
@@ -626,8 +702,8 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
   Rcrit   = (pc/(c2m6*ci_eUm))*ci_ai ! Critical curvature radius [m]
 
   ! If R>Rcritical=>no channeling is possible (ratio<1)
-  ratio  = c_rcurv/Rcrit
-  xpcrit = (xpcrit0*(c_rcurv-Rcrit))/c_rcurv ! Critical angle for curved crystal
+  ratio  = ci_rcurv/Rcrit
+  xpcrit = (xpcrit0*(ci_rcurv-Rcrit))/ci_rcurv ! Critical angle for curved crystal
 
   if(ratio <= one) then ! no possibile channeling
     Ang_rms = ((c_v1*0.42_fPrec)*xpcrit0)*sin_mb(1.4_fPrec*ratio) ! RMS scattering
@@ -648,7 +724,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
 
   end if
 
-  if(c_orient == 2) then
+  if(ci_orient == 2) then
     Ang_avr = Ang_avr*0.93_fPrec
     Ang_rms = Ang_rms*1.05_fPrec
     xpcrit  = xpcrit*0.98_fPrec
@@ -673,10 +749,10 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
       ! careful: the dechanneling lentgh is along the trajectory
       ! of the particle -not along the longitudinal coordinate...
       if(ldech < l_chan) then
-        iProc = proc_DC
+        ci_iProc = proc_DC
         Dxp   = Ldech/r ! Change angle from channeling [mrad]
-        Sdech = Ldech*cos_mb(c_miscut + half*Dxp)
-        ci_x  = ci_x  + Ldech*(sin_mb(half*Dxp+c_miscut)) ! Trajectory at channeling exit
+        Sdech = Ldech*cos_mb(ci_miscut + half*Dxp)
+        ci_x  = ci_x  + Ldech*(sin_mb(half*Dxp+ci_miscut)) ! Trajectory at channeling exit
         xp    = xp + Dxp + (two*(coll_rand()-half))*xpcrit
         y     = y  + yp * Sdech
 
@@ -689,17 +765,18 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
         call cry_calcIonLoss(pc,s_length-sdech,dest,betar,bgr,gammar,tmax,plen,&
                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
         call cry_moveAM(nam,s_length-sdech,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
         ci_x = ci_x + (half*(s_length-Sdech))*xp
         y = y + (half*(s_length-Sdech))*yp
       else
-        iProc = proc_CH
+        ci_iProc = proc_CH
         xpin  = XP
         ypin  = YP
 
-        call cry_moveCH(nam,l_chan,ci_x,xp,yp,pc,c_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt) ! check if a nuclear interaction happen while in CH
-        if(iProc /= proc_CH) then
+        ! check if a nuclear interaction happen while in CH
+        call cry_moveCH(nam,l_chan,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
+                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
+        if(ci_iProc /= proc_CH) then
           ! if an nuclear interaction happened, move until the middle with initial xp,yp then
           ! propagate until the "crystal exit" with the new xp,yp accordingly with the rest
           ! of the code in "thin lens approx"
@@ -727,7 +804,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
     else ! Option 2: VR
 
       ! good for channeling but don't channel (1-2)
-      iProc = proc_VR
+      ci_iProc = proc_VR
 
       xp = xp + (0.45_fPrec*(xp_rel/xpcrit + one))*Ang_avr
       ci_x  = ci_x  + (half*s_length)*xp
@@ -736,7 +813,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
       call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
                            ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
       call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                      ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                      ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
 
       ci_x = ci_x + (half*s_length)*xp
       y = y + (half*s_length)*yp
@@ -746,7 +823,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
   else ! case 3-2: no good for channeling. check if the  can VR
 
     Lrefl = xp_rel*r ! Distance of refl. point [m]
-    Srefl = sin_mb(xp_rel/two + c_miscut)*Lrefl
+    Srefl = sin_mb(xp_rel/two + ci_miscut)*Lrefl
 
     if(Lrefl > zero .and. Lrefl < L_chan) then ! VR point inside
 
@@ -754,7 +831,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
 
       if(coll_rand() > Vcapt .or. ZN == zero) then ! Option 1: VR
 
-        iProc = proc_VR
+        ci_iProc = proc_VR
         ci_x  = ci_x + xp*Srefl
         y     = y + yp*Srefl
         Dxp   = Ang_avr
@@ -765,7 +842,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
         call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
         call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
         ci_x = ci_x + (half*xp)*(s_length - Srefl)
         y = y + (half*yp)*(s_length - Srefl)
 
@@ -776,13 +853,13 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
 
         TLdech2 = (const_dech/c1e1)*pc*(one-one/ratio)**2          ! Updated typical dechanneling length(m)
         Ldech   = TLdech2*(sqrt(c1m2 - log_mb(coll_rand())) - c1m1)**2 ! Updated DC length
-        tdech   = Ldech/c_rcurv
+        tdech   = Ldech/ci_rcurv
         Sdech   = Ldech*cos_mb(xp + half*tdech)
 
         if(Ldech < Length-Lrefl) then
 
-          iProc = proc_DC
-          Dxp   = Ldech/c_rcurv + (half*ran_gauss(zero))*xpcrit
+          ci_iProc = proc_DC
+          Dxp   = Ldech/ci_rcurv + (half*ran_gauss(zero))*xpcrit
           ci_x  = ci_x + Ldech*(sin_mb(half*Dxp+xp)) ! Trajectory at channeling exit
           y     = y + Sdech*yp
           xp    =  Dxp
@@ -801,15 +878,15 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
           call cry_calcIonLoss(pc,red_s,dest,betar,bgr,gammar,tmax,plen,&
                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
           call cry_moveAM(nam,red_s,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                          ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                          ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
           ci_x = ci_x + (half*xp)*Red_S
           y = y + (half*yp)*Red_S
 
         else
 
-          iProc   = proc_VC
+          ci_iProc   = proc_VC
           Rlength = Length - Lrefl
-          tchan   = Rlength/c_rcurv
+          tchan   = Rlength/ci_rcurv
           Red_S   = Rlength*cos_mb(xp + half*tchan)
 
           call cry_calcIonLoss(pc,lrefl,dest,betar,bgr,gammar,tmax,plen,&
@@ -818,9 +895,11 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
           xpin = xp
           ypin = yp
 
-          call cry_moveCH(nam,rlength,ci_x,xp,yp,pc,c_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt) ! Check if a nuclear interaction happen while in ch
-          if(iProc /= proc_VC) then
+          ! Check if a nuclear interaction happen while in ch
+          call cry_moveCH(nam,rlength,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
+                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
+                          
+          if(ci_iProc /= proc_VC) then
             ! if an nuclear interaction happened, move until the middle with initial xp,yp then propagate until
             ! the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
             ci_x = ci_x + (half*Rlength)*xpin
@@ -832,7 +911,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
                                  ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
             pc = pc - dest*Rlength
           else
-            Dxp = (Length-Lrefl)/c_rcurv
+            Dxp = (Length-Lrefl)/ci_rcurv
             ci_x = ci_x + sin_mb(half*Dxp+xp)*Rlength ! Trajectory at channeling exit
             y   = y + red_S*yp
             xp  = tdefl + (half*ran_gauss(zero))*xpcrit ! [mrad]
@@ -848,26 +927,26 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
 
       ! Case 3-3: move in amorphous substance (big input angles)
       ! Modified for transition vram daniele
-      if(xp_rel > tdefl-c_miscut + two*xpcrit .or. xp_rel < -xpcrit) then
-        iProc = proc_AM
+      if(xp_rel > tdefl-ci_miscut + two*xpcrit .or. xp_rel < -xpcrit) then
+        ci_iProc = proc_AM
         ci_x  = ci_x + (half*s_length)*xp
         y     = y + (half*s_length)*yp
         if(zn > zero) then
           call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
           call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                          ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                          ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
         end if
         ci_x = ci_x + (half*s_length)*xp
         y = y + (half*s_length)*yp
       else
-        Pvr = (xp_rel-(tdefl-c_miscut))/(two*xpcrit)
+        Pvr = (xp_rel-(tdefl-ci_miscut))/(two*xpcrit)
         if(coll_rand() > Pvr) then
-          iProc = proc_TRVR
+          ci_iProc = proc_TRVR
           ci_x  = ci_x + xp*Srefl
           y     = y + yp*Srefl
 
-          Dxp = (((-three*Ang_rms)*xp_rel)/(two*xpcrit) + Ang_avr) + ((three*Ang_rms)*(tdefl-c_miscut))/(two*xpcrit)
+          Dxp = (((-three*Ang_rms)*xp_rel)/(two*xpcrit) + Ang_avr) + ((three*Ang_rms)*(tdefl-ci_miscut))/(two*xpcrit)
           xp  = xp + Dxp
           ci_x = ci_x + (half*xp)*(s_length-Srefl)
           y   = y + (half*yp)*(s_length-Srefl)
@@ -875,15 +954,15 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
           call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
           call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
           ci_x = ci_x + (half*xp)*(s_length - Srefl)
           y = y + (half*yp)*(s_length - Srefl)
         else
-          iProc = proc_TRAM
+          ci_iProc = proc_TRAM
           ci_x = ci_x + xp*Srefl
           y = y + yp*Srefl
           Dxp = ((((-one*(13.6_fPrec/pc))*sqrt(s_length/ci_dlri))*c1m3)*xp_rel)/(two*xpcrit) + &
-            (((13.6_fPrec/pc)*sqrt(s_length/ci_dlri))*c1m3)*(one+(tdefl-c_miscut)/(two*xpcrit))
+            (((13.6_fPrec/pc)*sqrt(s_length/ci_dlri))*c1m3)*(one+(tdefl-ci_miscut)/(two*xpcrit))
           xp = xp+Dxp
           ci_x  = ci_x + (half*xp)*(s_length-Srefl)
           y  = y + (half*yp)*(s_length-Srefl)
@@ -891,7 +970,7 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
           call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
           call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt)
+                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
           ci_x = ci_x + (half*xp)*(s_length - Srefl)
           y = y + (half*yp)*(s_length - Srefl)
         end if
@@ -967,7 +1046,7 @@ end subroutine cry_calcIonLoss
 !  Subroutine for the movement in the amorphous
 ! ================================================================================================ !
 subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcut,cm_bnref,&
-                    cm_csref0,cm_csref1,cm_csref4,cm_csref5,cm_collnt)
+                    cm_csref0,cm_csref1,cm_csref4,cm_csref5,cm_collnt,cm_iProc)
 
   use mod_ranlux
   use mod_funlux
@@ -997,6 +1076,8 @@ subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcu
   real(kind=fPrec), intent(in)    :: cm_hcut
   real(kind=fPrec), intent(in)    :: cm_bnref
   real(kind=fPrec), intent(in)    :: cm_collnt
+
+  integer,          intent(inout) :: cm_iProc
 
   integer i,length_cry,ichoix
   real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xm2,xln15s,tz,tx,tlow, &
@@ -1085,18 +1166,18 @@ subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcu
     t = 0 ! default value to cover ichoix=1
     select case(ichoix)
     case(1) ! Deep inelastic, impinging p disappeared
-      iProc = proc_absorbed
+      cm_iProc = proc_absorbed
 
     case(2) ! p-n elastic
-      iProc = proc_pne
+      cm_iProc = proc_pne
       t     = -log_mb(coll_rand())/bn
 
     case(3) ! p-p elastic
-      iProc = proc_ppe
+      cm_iProc = proc_ppe
       t     = -log_mb(coll_rand())/bpp
 
     case(4) ! Single diffractive
-      iProc = proc_diff
+      cm_iProc = proc_diff
       xm2   = exp_mb(coll_rand()*xln15s)
       pc    = pc*(one - xm2/ecmsq)
       if(xm2 < two) then
@@ -1109,7 +1190,7 @@ subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcu
       t = -log_mb(coll_rand())/bsd
 
     case(5)
-      iProc      = proc_ruth
+      cm_iProc      = proc_ruth
       length_cry = 1
       call funlux(cgen_cry(1,1),xran_cry,length_cry)
       t = xran_cry(1)
@@ -1140,7 +1221,7 @@ end subroutine cry_moveAM
 !  Subroutine for check if a nuclear interaction happen while in channeling
 ! ================================================================================================ !
 subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
-                      ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt)
+                      ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
 
   use crcoall
   use mod_ranlux
@@ -1174,6 +1255,8 @@ subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,c
   real(kind=fPrec), intent(in)    :: ch_csect
   real(kind=fPrec), intent(in)    :: ch_eUm
   real(kind=fPrec), intent(in)    :: ch_collnt
+
+  integer,          intent(inout) :: ch_iProc
 
   integer i,np,length_cry,ichoix
   real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
@@ -1312,19 +1395,19 @@ subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,c
     t = 0 ! default value to cover ichoix=1
     select case(ichoix)
     case(1) ! deep inelastic, impinging p disappeared
-      iProc = proc_ch_absorbed
+      ch_iProc = proc_ch_absorbed
 
     case(2) ! p-n elastic
-      iProc = proc_ch_pne
+      ch_iProc = proc_ch_pne
       bn    = (ch_bnref*cs(0))/csref_tot_rsc
       t     = -log_mb(coll_rand())/bn
 
     case(3) ! p-p elastic
-      iProc = proc_ch_ppe
+      ch_iProc = proc_ch_ppe
       t     = -log_mb(coll_rand())/bpp
 
     case(4) ! Single diffractive
-      iProc = proc_ch_diff
+      ch_iProc = proc_ch_diff
       xm2   = exp_mb(coll_rand()*xln15s)
       pc    = pc*(one - xm2/ecmsq)
       if(xm2 < two) then
@@ -1337,7 +1420,7 @@ subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,c
       t = -log_mb(coll_rand())/bsd
 
     case(5)
-      iProc      = proc_ch_ruth
+      ch_iProc      = proc_ch_ruth
       length_cry = 1
       call funlux(cgen_cry(1,1),xran_cry,length_cry)
       t = xran_cry(1)
