@@ -131,81 +131,81 @@ contains
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
-                        c_length,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,&
-                        cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_csect, cry_tilt, c_rcurv, &
-                        c_alayer, c_xmax, c_ymax, c_orient, c_miscut, cry_bend, c_cBend, c_sBend, c_cpTilt, &
-                        c_spTilt, c_cnTilt, c_snTilt, iProc, n_chan, n_VR, n_amorphous)
+! subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
+!                         c_length,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,&
+!                         cd_hcut,cd_bnref,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_csect, cry_tilt, c_rcurv, &
+!                         c_alayer, c_xmax, c_ymax, c_orient, c_miscut, cry_bend, c_cBend, c_sBend, c_cpTilt, &
+!                         c_spTilt, c_cnTilt, c_snTilt, iProc, n_chan, n_VR, n_amorphous)
                  
 
-  use parpro
-  use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
-  use mathlib_bouncer
+!   use parpro
+!   use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
+!   use mathlib_bouncer
 
-  ! integer,          intent(in)    :: mat
+!   ! integer,          intent(in)    :: mat
 
-  real(kind=fPrec), intent(inout) :: cd_x,cd_xp
-  real(kind=fPrec), intent(inout) :: z,zp
-  real(kind=fPrec), intent(inout) :: s,p
-  real(kind=fPrec), intent(inout) :: x0,xp0
-  real(kind=fPrec), intent(inout) :: zlm,s_imp
-  integer,          intent(inout) :: nhit,nabs
-  integer,          intent(inout) :: lhit
-  integer,          intent(inout) :: part_abs
-  real(kind=fPrec), intent(inout) :: impact
-  real(kind=fPrec), intent(inout) :: indiv
-  real(kind=fPrec), intent(in)    :: c_length
+!   real(kind=fPrec), intent(inout) :: cd_x,cd_xp
+!   real(kind=fPrec), intent(inout) :: z,zp
+!   real(kind=fPrec), intent(inout) :: s,p
+!   real(kind=fPrec), intent(inout) :: x0,xp0
+!   real(kind=fPrec), intent(inout) :: zlm,s_imp
+!   integer,          intent(inout) :: nhit,nabs
+!   integer,          intent(inout) :: lhit
+!   integer,          intent(inout) :: part_abs
+!   real(kind=fPrec), intent(inout) :: impact
+!   real(kind=fPrec), intent(inout) :: indiv
+!   real(kind=fPrec), intent(in)    :: c_length
 
-  real(kind=fPrec), intent(in)    :: cd_exenergy
-  real(kind=fPrec), intent(in)    :: cd_rho
-  real(kind=fPrec), intent(in)    :: cd_anuc
-  real(kind=fPrec), intent(in)    :: cd_zatom
-  real(kind=fPrec), intent(in)    :: cd_emr
+!   real(kind=fPrec), intent(in)    :: cd_exenergy
+!   real(kind=fPrec), intent(in)    :: cd_rho
+!   real(kind=fPrec), intent(in)    :: cd_anuc
+!   real(kind=fPrec), intent(in)    :: cd_zatom
+!   real(kind=fPrec), intent(in)    :: cd_emr
 
-  real(kind=fPrec), intent(in)    :: cd_dlri
-  real(kind=fPrec), intent(in)    :: cd_dlyi
-  real(kind=fPrec), intent(in)    :: cd_ai
-  real(kind=fPrec), intent(in)    :: cd_eUm
-  real(kind=fPrec), intent(in)    :: cd_collnt
+!   real(kind=fPrec), intent(in)    :: cd_dlri
+!   real(kind=fPrec), intent(in)    :: cd_dlyi
+!   real(kind=fPrec), intent(in)    :: cd_ai
+!   real(kind=fPrec), intent(in)    :: cd_eUm
+!   real(kind=fPrec), intent(in)    :: cd_collnt
 
-  real(kind=fPrec), intent(in)    :: cd_hcut
-  real(kind=fPrec), intent(in)    :: cd_bnref
-  real(kind=fPrec), intent(in)    :: cd_csect
+!   real(kind=fPrec), intent(in)    :: cd_hcut
+!   real(kind=fPrec), intent(in)    :: cd_bnref
+!   real(kind=fPrec), intent(in)    :: cd_csect
 
-  real(kind=fPrec), intent(in)    :: cd_csref0
-  real(kind=fPrec), intent(in)    :: cd_csref1
-  real(kind=fPrec), intent(in)    :: cd_csref4
-  real(kind=fPrec), intent(in)    :: cd_csref5
+!   real(kind=fPrec), intent(in)    :: cd_csref0
+!   real(kind=fPrec), intent(in)    :: cd_csref1
+!   real(kind=fPrec), intent(in)    :: cd_csref4
+!   real(kind=fPrec), intent(in)    :: cd_csref5
 
-  real(kind=fPrec), intent(in)    :: cry_tilt
-  real(kind=fPrec), intent(in)    :: c_rcurv
-  real(kind=fPrec), intent(in)    :: c_alayer
-  real(kind=fPrec), intent(in)    :: c_xmax
-  real(kind=fPrec), intent(in)    :: c_ymax
-  integer,          intent(in)    :: c_orient
-  real(kind=fPrec), intent(in)    :: c_miscut
-  real(kind=fPrec), intent(in)    :: cry_bend
-  real(kind=fPrec), intent(in)    :: c_cBend
-  real(kind=fPrec), intent(in)    :: c_sBend
-  real(kind=fPrec), intent(in)    :: c_cpTilt
-  real(kind=fPrec), intent(in)    :: c_spTilt
-  real(kind=fPrec), intent(in)    :: c_cnTilt
-  real(kind=fPrec), intent(in)    :: c_snTilt
-  integer,          intent(inout) :: iProc
-  integer,          intent(inout) :: n_chan
-  integer,          intent(inout) :: n_VR
-  integer,          intent(inout) :: n_amorphous
+!   real(kind=fPrec), intent(in)    :: cry_tilt
+!   real(kind=fPrec), intent(in)    :: c_rcurv
+!   real(kind=fPrec), intent(in)    :: c_alayer
+!   real(kind=fPrec), intent(in)    :: c_xmax
+!   real(kind=fPrec), intent(in)    :: c_ymax
+!   integer,          intent(in)    :: c_orient
+!   real(kind=fPrec), intent(in)    :: c_miscut
+!   real(kind=fPrec), intent(in)    :: cry_bend
+!   real(kind=fPrec), intent(in)    :: c_cBend
+!   real(kind=fPrec), intent(in)    :: c_sBend
+!   real(kind=fPrec), intent(in)    :: c_cpTilt
+!   real(kind=fPrec), intent(in)    :: c_spTilt
+!   real(kind=fPrec), intent(in)    :: c_cnTilt
+!   real(kind=fPrec), intent(in)    :: c_snTilt
+!   integer,          intent(inout) :: iProc
+!   integer,          intent(inout) :: n_chan
+!   integer,          intent(inout) :: n_VR
+!   integer,          intent(inout) :: n_amorphous
 
-  logical,          intent(inout) :: isImp
+!   logical,          intent(inout) :: isImp
 
-  real(kind=fPrec) s_temp,s_shift,s_rot,s_int
-  real(kind=fPrec) x_temp,x_shift,x_rot,x_int
-  real(kind=fPrec) xp_temp,xp_shift,xp_rot,xp_int,xp_tangent
-  real(kind=fPrec) tilt_int,shift,delta,a_eq,b_eq,c_eq
-  real(kind=fPrec) s_P, x_P, s_P_tmp, x_P_tmp
-  real(kind=fPrec) cry_length
+!   real(kind=fPrec) s_temp,s_shift,s_rot,s_int
+!   real(kind=fPrec) x_temp,x_shift,x_rot,x_int
+!   real(kind=fPrec) xp_temp,xp_shift,xp_rot,xp_int,xp_tangent
+!   real(kind=fPrec) tilt_int,shift,delta,a_eq,b_eq,c_eq
+!   real(kind=fPrec) s_P, x_P, s_P_tmp, x_P_tmp
+!   real(kind=fPrec) cry_length
   
-  cry_length = c_length ! hack
+!   cry_length = c_length ! hack
 
   ! PYTHON
   ! cry_tilt = cryTilt       ! global variable
@@ -238,220 +238,220 @@ subroutine cry_doCrystal(cd_x,cd_xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lh
 
   ! new_length = cry_length
 
-  s_temp     = zero
-  s_shift    = zero
-  s_rot      = zero
-  s_int      = zero
-  x_temp     = zero
-  x_shift    = zero
-  x_rot      = zero
-  x_int      = zero
-  xp_temp    = zero
-  xp_shift   = zero
-  xp_rot     = zero
-  xp_int     = zero
-  xp_tangent = zero
-  tilt_int   = zero
-  shift      = zero
-  delta      = zero
-  a_eq       = zero
-  b_eq       = zero
-  c_eq       = zero
-  s_imp      = zero
+  ! s_temp     = zero
+  ! s_shift    = zero
+  ! s_rot      = zero
+  ! s_int      = zero
+  ! x_temp     = zero
+  ! x_shift    = zero
+  ! x_rot      = zero
+  ! x_int      = zero
+  ! xp_temp    = zero
+  ! xp_shift   = zero
+  ! xp_rot     = zero
+  ! xp_int     = zero
+  ! xp_tangent = zero
+  ! tilt_int   = zero
+  ! shift      = zero
+  ! delta      = zero
+  ! a_eq       = zero
+  ! b_eq       = zero
+  ! c_eq       = zero
+  ! s_imp      = zero
 
-  iProc       = proc_out
+  ! iProc       = proc_out
   
   ! Transform in the crystal reference system
   ! 1st transformation: shift of the center of the reference frame
-  if(cry_tilt < zero) then
-    s_shift = s
-    shift   = c_rcurv*(one - c_cpTilt)
-    if(cry_tilt < -cry_bend) then
-      shift = c_rcurv*(c_cnTilt - cos_mb(cry_bend - cry_tilt))
-    end if
-    x_shift = cd_x - shift
-  else
-    s_shift = s
-    x_shift = cd_x
-  end if
+  ! if(cry_tilt < zero) then
+  !   s_shift = s
+  !   shift   = c_rcurv*(one - c_cpTilt)
+  !   if(cry_tilt < -cry_bend) then
+  !     shift = c_rcurv*(c_cnTilt - cos_mb(cry_bend - cry_tilt))
+  !   end if
+  !   x_shift = cd_x - shift
+  ! else
+  !   s_shift = s
+  !   x_shift = cd_x
+  ! end if
   
-  ! 2nd transformation: rotation
-  s_rot  = x_shift*c_spTilt + s_shift*c_cpTilt
-  x_rot  = x_shift*c_cpTilt - s_shift*c_spTilt
-  xp_rot = cd_xp - cry_tilt
+  ! ! 2nd transformation: rotation
+  ! s_rot  = x_shift*c_spTilt + s_shift*c_cpTilt
+  ! x_rot  = x_shift*c_cpTilt - s_shift*c_spTilt
+  ! xp_rot = cd_xp - cry_tilt
 
-  ! 3rd transformation: drift to the new coordinate s=0
-  cd_xp = xp_rot
-  cd_x  = x_rot - xp_rot*s_rot
-  z  = z - zp*s_rot
-  s  = zero
+  ! ! 3rd transformation: drift to the new coordinate s=0
+  ! cd_xp = xp_rot
+  ! cd_x  = x_rot - xp_rot*s_rot
+  ! z  = z - zp*s_rot
+  ! s  = zero
   
-  ! Check that particle hit the crystal
-  if(cd_x >= zero .and. cd_x < c_xmax) then
-    ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
-    s_P = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
-    x_P = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
+  ! ! Check that particle hit the crystal
+  ! if(cd_x >= zero .and. cd_x < c_xmax) then
+  !   ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
+  !   s_P = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
+  !   x_P = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
 
-    call cry_interact(cd_x,cd_xp,z,zp,p,cry_length,s_P,x_P,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,&
-                      cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,&
-                      c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,&
-                      c_cnTilt,c_snTilt, iProc)
+  !   call cry_interact(cd_x,cd_xp,z,zp,p,cry_length,s_P,x_P,cd_exenergy,cd_rho,cd_anuc,cd_zatom,cd_emr,cd_dlri,cd_dlyi,&
+  !                     cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,&
+  !                     c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,&
+  !                     c_cnTilt,c_snTilt, iProc)
 
-    s   = c_rcurv*c_sBend
-    zlm = c_rcurv*c_sBend
-    if(iProc /= proc_out) then
-      isImp    = .true.
-      nhit     = nhit + 1
-      lhit     = 1
-      impact   = x0
-      indiv    = xp0
-    end if
+  !   s   = c_rcurv*c_sBend
+  !   zlm = c_rcurv*c_sBend
+  !   if(iProc /= proc_out) then
+  !     isImp    = .true.
+  !     nhit     = nhit + 1
+  !     lhit     = 1
+  !     impact   = x0
+  !     indiv    = xp0
+  !   end if
 
-  else
+  ! else
 
-    if(cd_x < zero) then ! Crystal can be hit from below
-      xp_tangent = sqrt((-(two*cd_x)*c_rcurv + cd_x**2)/(c_rcurv**2))
-    else              ! Crystal can be hit from above
-      xp_tangent = asin_mb((c_rcurv*(one - c_cBend) - cd_x)/sqrt(((two*c_rcurv)*(c_rcurv - cd_x))*(one - c_cBend) + cd_x**2))
-    end if
+  !   if(cd_x < zero) then ! Crystal can be hit from below
+  !     xp_tangent = sqrt((-(two*cd_x)*c_rcurv + cd_x**2)/(c_rcurv**2))
+  !   else              ! Crystal can be hit from above
+  !     xp_tangent = asin_mb((c_rcurv*(one - c_cBend) - cd_x)/sqrt(((two*c_rcurv)*(c_rcurv - cd_x))*(one - c_cBend) + cd_x**2))
+  !   end if
 
-    ! If the hit is below,the angle must be greater or equal than the tangent,
-    ! or if the hit is above, the angle must be smaller or equal than the tangent
-    if((cd_x < zero .and. cd_xp >= xp_tangent) .or. (cd_x >= zero .and. cd_xp <= xp_tangent)) then
+  !   ! If the hit is below,the angle must be greater or equal than the tangent,
+  !   ! or if the hit is above, the angle must be smaller or equal than the tangent
+  !   if((cd_x < zero .and. cd_xp >= xp_tangent) .or. (cd_x >= zero .and. cd_xp <= xp_tangent)) then
 
-      ! If it hits the crystal, calculate in which point and apply the transformation and drift to that point
-      a_eq  = one + cd_xp**2
-      b_eq  = (two*cd_xp)*(cd_x - c_rcurv)
-      c_eq  = -(two*cd_x)*c_rcurv + cd_x**2
-      delta = b_eq**2 - four*(a_eq*c_eq)
-      s_int = (-b_eq - sqrt(delta))/(two*a_eq)
-      s_imp = s_int
+  !     ! If it hits the crystal, calculate in which point and apply the transformation and drift to that point
+  !     a_eq  = one + cd_xp**2
+  !     b_eq  = (two*cd_xp)*(cd_x - c_rcurv)
+  !     c_eq  = -(two*cd_x)*c_rcurv + cd_x**2
+  !     delta = b_eq**2 - four*(a_eq*c_eq)
+  !     s_int = (-b_eq - sqrt(delta))/(two*a_eq)
+  !     s_imp = s_int
 
-      ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
-      s_P_tmp = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
-      x_P_tmp = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
+  !     ! MISCUT first step: P coordinates (center of curvature of crystalline planes)
+  !     s_P_tmp = (c_rcurv-c_xmax)*sin_mb(-c_miscut)
+  !     x_P_tmp = c_xmax + (c_rcurv-c_xmax)*cos_mb(-c_miscut)
 
-      if(s_int < c_rcurv*c_sBend) then
-        ! Transform to a new reference system: shift and rotate
-        x_int  = cd_xp*s_int + cd_x
-        xp_int = cd_xp
-        z      = z + zp*s_int
-        cd_x   = zero
-        s      = zero
+  !     if(s_int < c_rcurv*c_sBend) then
+  !       ! Transform to a new reference system: shift and rotate
+  !       x_int  = cd_xp*s_int + cd_x
+  !       xp_int = cd_xp
+  !       z      = z + zp*s_int
+  !       cd_x   = zero
+  !       s      = zero
 
-        tilt_int = s_int/c_rcurv
-        cd_xp    = cd_xp-tilt_int
+  !       tilt_int = s_int/c_rcurv
+  !       cd_xp    = cd_xp-tilt_int
 
-        ! MISCUT first step (bis): transform P in new reference system
-        ! Translation
-        s_P_tmp = s_P_tmp - s_int
-        x_P_tmp = x_P_tmp - x_int
-        ! Rotation
-        s_P = s_P_tmp*cos_mb(tilt_int) + x_P_tmp*sin_mb(tilt_int)
-        x_P = -s_P_tmp*sin_mb(tilt_int) + x_P_tmp*cos_mb(tilt_int)
+  !       ! MISCUT first step (bis): transform P in new reference system
+  !       ! Translation
+  !       s_P_tmp = s_P_tmp - s_int
+  !       x_P_tmp = x_P_tmp - x_int
+  !       ! Rotation
+  !       s_P = s_P_tmp*cos_mb(tilt_int) + x_P_tmp*sin_mb(tilt_int)
+  !       x_P = -s_P_tmp*sin_mb(tilt_int) + x_P_tmp*cos_mb(tilt_int)
 
-        call cry_interact(cd_x,cd_xp,z,zp,p,cry_length-(tilt_int*c_rcurv),s_P,x_P,cd_exenergy,cd_rho,cd_anuc,&
-                          cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,&
-                          cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,&
-                          c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,c_cnTilt,c_snTilt,iProc)
-        s   = c_rcurv*sin_mb(cry_bend - tilt_int)
-        zlm = c_rcurv*sin_mb(cry_bend - tilt_int)
-        if(iProc /= proc_out) then
-          x_rot    = x_int
-          s_rot    = s_int
-          xp_rot   = xp_int
-          s_shift  =  s_rot*c_cnTilt + x_rot*c_snTilt
-          x_shift  = -s_rot*c_snTilt + x_rot*c_cnTilt
-          xp_shift = xp_rot + cry_tilt
+  !       call cry_interact(cd_x,cd_xp,z,zp,p,cry_length-(tilt_int*c_rcurv),s_P,x_P,cd_exenergy,cd_rho,cd_anuc,&
+  !                         cd_zatom,cd_emr,cd_dlri,cd_dlyi,cd_ai,cd_eUm,cd_collnt,cd_hcut,cd_csref0,cd_csref1,&
+  !                         cd_csref4,cd_csref5,cd_bnref,cd_csect,cry_tilt,c_rcurv,c_alayer,c_xmax,c_ymax,c_orient,&
+  !                         c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,c_spTilt,c_cnTilt,c_snTilt,iProc)
+  !       s   = c_rcurv*sin_mb(cry_bend - tilt_int)
+  !       zlm = c_rcurv*sin_mb(cry_bend - tilt_int)
+  !       if(iProc /= proc_out) then
+  !         x_rot    = x_int
+  !         s_rot    = s_int
+  !         xp_rot   = xp_int
+  !         s_shift  =  s_rot*c_cnTilt + x_rot*c_snTilt
+  !         x_shift  = -s_rot*c_snTilt + x_rot*c_cnTilt
+  !         xp_shift = xp_rot + cry_tilt
 
-          if(cry_tilt < zero) then
-            x0  = x_shift + shift
-            xp0 = xp_shift
-          else
-            x0  = x_shift
-            xp0 = xp_shift
-          end if
+  !         if(cry_tilt < zero) then
+  !           x0  = x_shift + shift
+  !           xp0 = xp_shift
+  !         else
+  !           x0  = x_shift
+  !           xp0 = xp_shift
+  !         end if
 
-          isImp     = .true.
-          nhit      = nhit + 1
-          lhit      = 1
-          impact    = x0
-          indiv     = xp0
-        end if
+  !         isImp     = .true.
+  !         nhit      = nhit + 1
+  !         lhit      = 1
+  !         impact    = x0
+  !         indiv     = xp0
+  !       end if
 
-        ! un-rotate
-        x_temp  = cd_x
-        s_temp  = s
-        xp_temp = cd_xp
-        s       =  s_temp*cos_mb(-tilt_int) + x_temp*sin_mb(-tilt_int)
-        cd_x    = -s_temp*sin_mb(-tilt_int) + x_temp*cos_mb(-tilt_int)
-        cd_xp   = xp_temp + tilt_int
+  !       ! un-rotate
+  !       x_temp  = cd_x
+  !       s_temp  = s
+  !       xp_temp = cd_xp
+  !       s       =  s_temp*cos_mb(-tilt_int) + x_temp*sin_mb(-tilt_int)
+  !       cd_x    = -s_temp*sin_mb(-tilt_int) + x_temp*cos_mb(-tilt_int)
+  !       cd_xp   = xp_temp + tilt_int
 
-        ! 2nd: shift back the 2 axis
-        cd_x = cd_x + x_int
-        s = s + s_int
+  !       ! 2nd: shift back the 2 axis
+  !       cd_x = cd_x + x_int
+  !       s = s + s_int
 
-      else
+  !     else
 
-        s = c_rcurv*sin_mb(cry_length/c_rcurv)
-        cd_x = cd_x + s*cd_xp
-        z = z + s*zp
+  !       s = c_rcurv*sin_mb(cry_length/c_rcurv)
+  !       cd_x = cd_x + s*cd_xp
+  !       z = z + s*zp
 
-      end if
+  !     end if
 
-    else
+  !   else
 
-      s = c_rcurv*sin_mb(cry_length/c_rcurv)
-      cd_x = cd_x + s*cd_xp
-      z = z + s*zp
+  !     s = c_rcurv*sin_mb(cry_length/c_rcurv)
+  !     cd_x = cd_x + s*cd_xp
+  !     z = z + s*zp
 
-    end if
+  !   end if
 
-  end if
+  ! end if
 
-  ! transform back from the crystal to the collimator reference system
-  ! 1st: un-rotate the coordinates
-  x_rot  = cd_x
-  s_rot  = s
-  xp_rot = cd_xp
+  ! ! transform back from the crystal to the collimator reference system
+  ! ! 1st: un-rotate the coordinates
+  ! x_rot  = cd_x
+  ! s_rot  = s
+  ! xp_rot = cd_xp
 
-  s_shift  =  s_rot*c_cnTilt + x_rot*c_snTilt
-  x_shift  = -s_rot*c_snTilt + x_rot*c_cnTilt
-  xp_shift = xp_rot + cry_tilt
+  ! s_shift  =  s_rot*c_cnTilt + x_rot*c_snTilt
+  ! x_shift  = -s_rot*c_snTilt + x_rot*c_cnTilt
+  ! xp_shift = xp_rot + cry_tilt
 
-  ! 2nd: shift back the reference frame
-  if(cry_tilt < zero) then
-    s  = s_shift
-    cd_x  = x_shift + shift
-    cd_xp = xp_shift
-  else
-    cd_x  = x_shift
-    s  = s_shift
-    cd_xp = xp_shift
-  end if
+  ! ! 2nd: shift back the reference frame
+  ! if(cry_tilt < zero) then
+  !   s  = s_shift
+  !   cd_x  = x_shift + shift
+  !   cd_xp = xp_shift
+  ! else
+  !   cd_x  = x_shift
+  !   s  = s_shift
+  !   cd_xp = xp_shift
+  ! end if
 
-  ! 3rd: shift to new S=Length position
-  cd_x = cd_xp*(c_length - s) + cd_x
-  z = zp*(c_length - s) + z
-  s = c_length
+  ! ! 3rd: shift to new S=Length position
+  ! cd_x = cd_xp*(c_length - s) + cd_x
+  ! z = zp*(c_length - s) + z
+  ! s = c_length
 
-  nabs = 0
+  ! nabs = 0
   
-  if(iProc == proc_AM) then
-    n_amorphous = n_amorphous + 1
-  else if(iProc == proc_VR) then
-    n_VR = n_VR + 1
-  else if(iProc == proc_CH) then
-    n_chan = n_Chan + 1
-  else if(iProc == proc_absorbed) then
-    nabs = 1   ! TODO: do we need to set part_abs_pos etc?
-  else if(iProc == proc_ch_absorbed) then
-    nabs = 1
-  end if
+  ! if(iProc == proc_AM) then
+  !   n_amorphous = n_amorphous + 1
+  ! else if(iProc == proc_VR) then
+  !   n_VR = n_VR + 1
+  ! else if(iProc == proc_CH) then
+  !   n_chan = n_Chan + 1
+  ! else if(iProc == proc_absorbed) then
+  !   nabs = 1   ! TODO: do we need to set part_abs_pos etc?
+  ! else if(iProc == proc_ch_absorbed) then
+  !   nabs = 1
+  ! end if
 
-  ! Storing the process ID for the next interaction
+  ! ! Storing the process ID for the next interaction
 
-end subroutine cry_doCrystal
+! end subroutine cry_doCrystal
 
 ! ================================================================================================ !
 !  Subroutine for the movements of the particles in the crystal

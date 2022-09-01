@@ -34,78 +34,78 @@ end subroutine
 ! end subroutine
 
 
-subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
-  lhit,part_abs,impact,indiv,c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
-  hcut,csref0,csref1,csref4,csref5,bnref,csect,cry_tilt,c_rcurv,&
-  c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,&
-  c_spTilt,c_cnTilt,c_snTilt,iProc,n_chan,n_VR,n_amorphous)
+! subroutine pyk2_docrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+!   lhit,part_abs,impact,indiv,c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
+!   hcut,csref0,csref1,csref4,csref5,bnref,csect,cry_tilt,c_rcurv,&
+!   c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,&
+!   c_spTilt,c_cnTilt,c_snTilt,iProc,n_chan,n_VR,n_amorphous)
   
-  use coll_crystal, only: cry_doCrystal
-  use parpro
-  ! use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
-  use mathlib_bouncer
+!   use coll_crystal, only: cry_doCrystal
+!   use parpro
+!   ! use coll_common, only : cry_proc, cry_proc_prev, cry_proc_tmp
+!   use mathlib_bouncer
 
-  implicit none
+!   implicit none
 
-  real(kind=8), intent(inout) :: x,xp
-  real(kind=8), intent(inout) :: z,zp
-  real(kind=8), intent(inout) :: s,p
-  real(kind=8), intent(inout) :: x0,xp0
-  real(kind=8), intent(inout) :: zlm,s_imp
-  integer,      intent(inout) :: nhit,nabs
-  integer,      intent(inout) :: lhit
-  integer,      intent(inout) :: part_abs
-  real(kind=8), intent(inout) :: impact
-  real(kind=8), intent(inout) :: indiv
-  real(kind=8), intent(in)    :: c_length
-  logical,      intent(inout) :: isImp
+!   real(kind=8), intent(inout) :: x,xp
+!   real(kind=8), intent(inout) :: z,zp
+!   real(kind=8), intent(inout) :: s,p
+!   real(kind=8), intent(inout) :: x0,xp0
+!   real(kind=8), intent(inout) :: zlm,s_imp
+!   integer,      intent(inout) :: nhit,nabs
+!   integer,      intent(inout) :: lhit
+!   integer,      intent(inout) :: part_abs
+!   real(kind=8), intent(inout) :: impact
+!   real(kind=8), intent(inout) :: indiv
+!   real(kind=8), intent(in)    :: c_length
+!   logical,      intent(inout) :: isImp
 
-  real(kind=8), intent(in)    :: exenergy
-  real(kind=8), intent(in)    :: rho
-  real(kind=8), intent(in)    :: anuc
-  real(kind=8), intent(in)    :: zatom
-  real(kind=8), intent(in)    :: emr
+!   real(kind=8), intent(in)    :: exenergy
+!   real(kind=8), intent(in)    :: rho
+!   real(kind=8), intent(in)    :: anuc
+!   real(kind=8), intent(in)    :: zatom
+!   real(kind=8), intent(in)    :: emr
 
-  real(kind=8), intent(in)    :: dlri
-  real(kind=8), intent(in)    :: dlyi
-  real(kind=8), intent(in)    :: ai
-  real(kind=8), intent(in)    :: eUm
-  real(kind=8), intent(in)    :: collnt
+!   real(kind=8), intent(in)    :: dlri
+!   real(kind=8), intent(in)    :: dlyi
+!   real(kind=8), intent(in)    :: ai
+!   real(kind=8), intent(in)    :: eUm
+!   real(kind=8), intent(in)    :: collnt
 
-  real(kind=8), intent(in)    :: hcut
-  real(kind=8), intent(in)    :: csref0
-  real(kind=8), intent(in)    :: csref1
-  real(kind=8), intent(in)    :: csref4
-  real(kind=8), intent(in)    :: csref5
-  real(kind=8), intent(in)    :: bnref
-  real(kind=8), intent(in)    :: csect
+!   real(kind=8), intent(in)    :: hcut
+!   real(kind=8), intent(in)    :: csref0
+!   real(kind=8), intent(in)    :: csref1
+!   real(kind=8), intent(in)    :: csref4
+!   real(kind=8), intent(in)    :: csref5
+!   real(kind=8), intent(in)    :: bnref
+!   real(kind=8), intent(in)    :: csect
 
-  real(kind=8), intent(in)    :: cry_tilt
-  real(kind=8), intent(in)    :: c_rcurv
-  real(kind=8), intent(in)    :: c_alayer
-  real(kind=8), intent(in)    :: c_xmax
-  real(kind=8), intent(in)    :: c_ymax
-  integer,      intent(in)    :: c_orient
-  real(kind=8), intent(in)    :: c_miscut
-  real(kind=8), intent(in)    :: cry_bend
-  real(kind=8), intent(in)    :: c_cBend
-  real(kind=8), intent(in)    :: c_sBend
-  real(kind=8), intent(in)    :: c_cpTilt
-  real(kind=8), intent(in)    :: c_spTilt
-  real(kind=8), intent(in)    :: c_cnTilt
-  real(kind=8), intent(in)    :: c_snTilt
-  integer,      intent(inout) :: iProc
-  integer,      intent(inout) :: n_chan
-  integer,      intent(inout) :: n_VR
-  integer,      intent(inout) :: n_amorphous
+!   real(kind=8), intent(in)    :: cry_tilt
+!   real(kind=8), intent(in)    :: c_rcurv
+!   real(kind=8), intent(in)    :: c_alayer
+!   real(kind=8), intent(in)    :: c_xmax
+!   real(kind=8), intent(in)    :: c_ymax
+!   integer,      intent(in)    :: c_orient
+!   real(kind=8), intent(in)    :: c_miscut
+!   real(kind=8), intent(in)    :: cry_bend
+!   real(kind=8), intent(in)    :: c_cBend
+!   real(kind=8), intent(in)    :: c_sBend
+!   real(kind=8), intent(in)    :: c_cpTilt
+!   real(kind=8), intent(in)    :: c_spTilt
+!   real(kind=8), intent(in)    :: c_cnTilt
+!   real(kind=8), intent(in)    :: c_snTilt
+!   integer,      intent(inout) :: iProc
+!   integer,      intent(inout) :: n_chan
+!   integer,      intent(inout) :: n_VR
+!   integer,      intent(inout) :: n_amorphous
 
-  call cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
-                    c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
-                    hcut,bnref,csref0,csref1,csref4,csref5,csect,cry_tilt,c_rcurv,&
-                    c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,&
-                    c_spTilt,c_cnTilt,c_snTilt,iProc,n_chan,n_VR,n_amorphous)
+!   call cry_doCrystal(x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs,lhit,part_abs,impact,indiv,&
+!                     c_length,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,&
+!                     hcut,bnref,csref0,csref1,csref4,csref5,csect,cry_tilt,c_rcurv,&
+!                     c_alayer,c_xmax,c_ymax,c_orient,c_miscut,cry_bend,c_cBend,c_sBend,c_cpTilt,&
+!                     c_spTilt,c_cnTilt,c_snTilt,iProc,n_chan,n_VR,n_amorphous)
 
-end subroutine
+! end subroutine
 
 
 subroutine pyk2_cryinteract(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anuc,ci_zatom,ci_emr,&

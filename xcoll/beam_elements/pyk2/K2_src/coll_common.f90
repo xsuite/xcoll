@@ -116,7 +116,6 @@ module coll_common
   integer, save :: coll_cryInterUnit   = -1
 
 
-
 contains
 
 subroutine coll_expandArrays(npart_new)
