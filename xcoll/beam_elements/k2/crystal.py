@@ -329,65 +329,481 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
     elif (iProc == proc_ch_absorbed):
         nabs = 1
     # end if
-
-
-    ########################################################
-
-    # pyk2.pyk2_docrystal(x=x,
-    #                     xp=xp,
-    #                     z=z,
-    #                     zp=zp,
-    #                     s=s,
-    #                     p=p,
-    #                     x0=x0,
-    #                     xp0=xp0, 
-    #                     zlm=zlm,
-    #                     s_imp=s_imp,
-    #                     isimp=isimp,
-    #                     nhit=nhit,
-    #                     nabs=nabs,
-    #                     lhit=val_part_hit,
-    #                     part_abs=val_part_abs,
-    #                     impact=val_part_impact,
-    #                     indiv=val_part_indiv,
-    #                     c_length=c_length,
-    #                     exenergy=exenergy,
-    #                     rho=rho,
-    #                     anuc=anuc,
-    #                     zatom=zatom,
-    #                     emr=emr,
-    #                     dlri=dlri,
-    #                     dlyi=dlyi,
-    #                     ai=ai,
-    #                     eum=eum,
-    #                     collnt=collnt,
-    #                     hcut=hcut,
-    #                     csref0=csref0,
-    #                     csref1=csref1,
-    #                     csref4=csref4,
-    #                     csref5=csref5,
-    #                     bnref=bnref,
-    #                     csect=csect,
-    #                     cry_tilt=cry_tilt,
-    #                     c_rcurv=cry_rcurv,
-    #                     c_alayer=cry_alayer,
-    #                     c_xmax=cry_xmax,
-    #                     c_ymax=cry_ymax,
-    #                     c_orient=cry_orient,
-    #                     c_miscut=cry_miscut,
-    #                     cry_bend=cry_bend,
-    #                     c_cbend=cry_cBend,
-    #                     c_sbend=cry_sBend,
-    #                     c_cptilt=cry_cpTilt,
-    #                     c_sptilt=cry_spTilt,
-    #                     c_cntilt=cry_cnTilt,
-    #                     c_sntilt=cry_snTilt,
-    #                     iproc=iProc,
-    #                     n_chan=n_chan,
-    #                     n_vr=n_VR,
-    #                     n_amorphous=n_amorphous
-    #                     )
-
-    ########################################################
     
     return val_part_hit, val_part_abs, val_part_impact, val_part_indiv, nhit, nabs, s_imp, isimp, s, zlm, x, xp, x0, xp0, z, zp, p, iProc, n_chan, n_VR, n_amorphous
+
+
+
+def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,hcut,csref0,csref1,csref4,
+            csref5,bnref,csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
+            cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
+
+    from .k2_random import get_random
+    
+    try:
+        import xcoll.beam_elements.pyk2 as pyk2
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+
+#   nam,zn               # Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+#   ymax,ymin            # Crystal geometrical parameters
+#   s_length             # Element length along s
+#   DESt                 # Changed energy loss by ionization now calculated and not tabulated
+#   x0,y0                # Coordinates of the particle [m]
+#   s                    # Long coordinates of the particle [m]
+#   a_eq,b_eq,c_eq,delta # Second order equation param.
+#   Ang_rms, Ang_avr     # Volume reflection mean angle [rad]
+#   Dechan               # Probability for dechanneling
+#   Lrefl,Srefl          # Distance of the reflection point [m]
+#   Vcapt                # Volume capture probability
+#   Chann                # Channeling probability
+#   N_atom               # Probability for entering channeling near atomic planes
+#   Dxp                  # Variation in angle
+#   xpcrit               # Critical angle for curved crystal[rad]
+#   xpcrit0              # Critical angle for str. crystal [rad]
+#   Rcrit                # Critical curvature radius [m]
+#   ratio                # X=c_rcurv/Rcrit
+#   TLdech1,TLdech2      # Typical dechanneling length(2) [m]
+#   tdech,Ldech,Sdech    # Angle, lenght, and S coordinate of dechanneling point
+#   Rlength,Red_S        # Reduced length/s coordinate (in case of dechanneling)
+#   am_len               # Amorphous length
+#   len_xs,len_ys        # Amorphous length
+#   xp_rel               # Xp-c_miscut angle in mrad
+#   alpha                # Par for new chann prob
+#   Pvr                  # Prob for VR->AM transition
+
+#   # Quantities for length and deflection calculation
+#   const_dech,xpin,ypin,tchan,tdefl,tP,L_chan,mep
+#   s_K,x_K,s_M,x_M,s_F,x_F,r,a
+#   A_F,B_F,C_F,alpha_F,beta_F
+
+    dest = 0
+    
+    pmap = 938.271998
+    pmae = 0.51099890
+    crade = 2.817940285e-15
+
+    c_v1 =  1.7   # Fitting coefficient
+    c_v2 = -1.5   # Fitting coefficient
+
+    nam = 1 # Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+    zn  = 1
+
+    # dE/dX and dechanneling length calculation
+    mom    = pc*1.0e3                # [GeV]
+    enr    = np.sqrt(mom**2 + pmap**2) # [MeV]
+    gammar = enr/pmap
+    betar  = mom/enr
+    bgr = betar*gammar
+    mep    = pmae/pmap  # Electron/proton
+
+    tmax = (2*pmae*bgr**2)/(1 + 2*gammar*mep + mep**2)  # [MeV]
+    plen = np.sqrt((rho*zatom)/anuc)*28.816e-6 # [MeV]
+
+    const_dech = ((256.0/(9*np.pi**2)) * 
+        (1/(np.log(((2*pmae)*gammar)/(exenergy*1.0e3)) - 1))) * ((aTF*dP)/(crade*pmae)) # [m/MeV]
+    const_dech = const_dech*1.0e3 # [m/GeV]
+
+    s        = 0
+    s_length = cry_rcurv*np.sin(length/cry_rcurv)
+    L_chan   = length
+
+    # MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
+    s_K = cry_rcurv*np.sin(length/cry_rcurv)
+    x_K = cry_rcurv*(1-np.cos(length/cry_rcurv))
+    s_M = (cry_rcurv-cry_xmax)*np.sin(length/cry_rcurv)
+    x_M = cry_xmax + (cry_rcurv-cry_xmax)*(1-np.cos(length/cry_rcurv))
+    r   = np.sqrt(s_P**2 + (x-x_P)**2)
+
+    # MISCUT third step: F coordinates (exit point) on crystal exit face
+    A_F = (np.tan(length/cry_rcurv))**2 + 1
+    B_F = ((-2)*(np.tan(length/cry_rcurv))**2)*cry_rcurv + (2*np.tan(length/cry_rcurv))*s_P - 2*x_P
+    C_F = ((np.tan(length/cry_rcurv))**2)*(cry_rcurv**2) - ((2*np.tan(length/cry_rcurv))*s_P)*cry_rcurv + s_P**2 + x_P**2 - r**2
+
+    x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
+    s_F = (-np.tan(length/cry_rcurv))*(x_F-cry_rcurv)
+
+    # if (x_F >= x_K and x_F <= x_M and s_F >= s_M and s_F <= s_K):
+    # No additional steps required for miscut
+    if (cry_miscut == 0 and abs(x_F-x_K) <= 1.0e-13 and abs(s_F-s_K) <= 1.0e3):
+    # no miscut, entrance from below: exit point is K (lower edge)
+        x_F = x_K
+        s_F = s_K
+    elif (cry_miscut == 0 and abs(x_F-x_M) <= 1.0e3 and abs(s_F-s_M) <= 1.0e3):
+    # no miscut, entrance from above: exit point is M (upper edge)
+        x_F = x_M
+        s_F = s_M
+    else:
+
+    # MISCUT Third step (bis): F coordinates (exit point)  on bent side
+        if (cry_miscut < 0):
+        # Intersect with bottom side
+            alpha_F = (cry_rcurv-x_P)/x_P
+            beta_F = -(r**2-s_P**2-x_P**2)/(2*s_P)
+            A_F = alpha_F**2 + 1
+            B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
+            C_F = beta_F**2
+        else:
+        # Intersect with top side
+            alpha_F = (cry_rcurv-x_P)/s_P
+            beta_F = -(r**2+cry_xmax*(cry_xmax-(2*cry_rcurv))-s_P**2-x_P**2)/(2*s_P)
+            A_F = alpha_F**2 + 1
+            B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
+            C_F = beta_F**2 - cry_xmax*(cry_xmax-2*cry_rcurv)
+        #endif
+        
+        x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
+        s_F = alpha_F*x_F + beta_F
+    #endif
+
+
+    # MISCUT fourth step: deflection and length calculation
+    a = np.sqrt(s_F**2+(x-x_F)**2)
+    tP = np.arccos((2*(r**2)-a**2)/(2*(r**2)))
+    tdefl = np.arcsin((s_f-s_P)/r)
+    L_chan = r*tP
+
+    xp_rel = xp - cry_miscut
+
+    ymin = -cry_ymax/2
+    ymax =  cry_ymax/2
+
+  # FIRST CASE: p don't interact with crystal
+    if (y < ymin or y > ymax or x > cry_xmax):
+        x  = x + xp*s_length
+        y     = y + yp*s_length
+        iProc = proc_out
+        exit
+
+  # SECOND CASE: p hits the amorphous layer
+    elif (x < cry_alayer or y-ymin < cry_alayer or ymax-y < cry_alayer):
+        x0    = x
+        y0    = y
+        a_eq  = 1 + xp**2
+        b_eq  = (2*x)*xp - (2*xp)*cry_rcurv
+        c_eq  = x**2 - (2*x)*cry_rcurv
+        delta = b_eq**2 - (4*a_eq)*c_eq
+        s     = (-b_eq+np.sqrt(delta))/(2*a_eq)
+        if (s >= s_length):
+            s = s_length
+        #end if
+        x   =  xp*s + x0
+        len_xs = np.sqrt((x-x0)**2 + s**2)
+
+        if (yp >= 0 and y + yp*s <= ymax):
+            len_ys = yp*len_xs
+        elif(yp < 0 and y + yp*s >= ymin):
+            len_ys = yp*len_xs
+        else:
+            s      = (ymax-y)/yp
+            len_ys = np.sqrt((ymax-y)**2 + s**2)
+            x   = x0 + xp*s
+            len_xs = np.sqrt((x-x0)**2 + s**2)
+        #end if
+        am_len = np.sqrt(len_xs**2 + len_ys**2)
+        s     = s/2
+        x  = x0 + xp*s
+        y     = y0 + yp*s
+        iProc = proc_AM
+
+        pyk2.pyk2_calcionloss(pc,am_len,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+        pyk2.pyk2_moveam(nam,am_len,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref4,csref5,collnt,iProc)
+        x = x + xp*(s_length-s)
+        y = y + yp*(s_length-s)
+        exit
+
+    elif (x > cry_xmax-cry_alayer and x < cry_xmax):
+        iProc = proc_AM
+        pyk2.pyk2_calcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+        pyk2.pyk2_moveam(nam,s_length,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    csref1,csref4,csref5,collnt,iProc)
+        exit
+    #end if
+
+    #THIRD CASE: the p interacts with the crystal.
+    #Define typical angles/probabilities for orientation 110
+    xpcrit0 = np.sqrt((2.0e-9*eUm)/pc)    #Critical angle (rad) for straight crystals
+    Rcrit   = (pc/(2.0e-6*eUm))*ai #Critical curvature radius [m]
+
+    #If R>Rcritical=>no channeling is possible (ratio<1)
+    ratio  = cry_rcurv/Rcrit
+    xpcrit = (xpcrit0*(cry_rcurv-Rcrit))/cry_rcurv #Critical angle for curved crystal
+
+    if (ratio <= 1): #no possibile channeling
+        Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(1.4*ratio) #RMS scattering
+        Ang_avr = ((c_v2*xpcrit0)*5.0e-2)*ratio                         #Average angle reflection
+        Vcapt   = 0                                                #Probability of VC
+
+    elif (ratio <= 3): #Strongly bent crystal
+        Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(0.4713*ratio + 0.85) #RMS scattering
+        Ang_avr = (c_v2*xpcrit0)*(0.1972*ratio - 0.1472)                  #Average angle reflection
+        Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1                           #Correction by sasha drozdin/armen
+        #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+
+    else: #Rcry >> Rcrit
+        Ang_rms = (c_v1*xpcrit0)*(1/ratio)                #RMS scattering
+        Ang_avr = (c_v2*xpcrit0)*(1 - 1.6667/ratio) #Average angle for VR
+        Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1 #Probability for VC correction by sasha drozdin/armen
+        #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+
+    #end if
+
+    if (cry_orient == 2):
+        Ang_avr = Ang_avr*0.93
+        Ang_rms = Ang_rms*1.05
+        xpcrit  = xpcrit*0.98
+    #end if
+
+    if (np.abs(xp_rel) < xpcrit):
+        alpha  = xp_rel/xpcrit
+        Chann  = np.sqrt(0.9*(1 - alpha**2))*np.sqrt(1-(1/ratio)) #Saturation at 95%
+        N_atom = 1.0e-1
+
+        #if they can channel: 2 options
+        if (get_random() <= Chann): #option 1:channeling
+
+            TLdech1 = (const_dech*pc)*(1-1/ratio)**2 #Updated calculate typical dech. length(m)
+            if(get_random() <= N_atom):
+                TLdech1 = ((const_dech/2.0e2)*pc)*(1-1/ratio)**2  #Updated dechanneling length (m)
+            #end if
+
+            Dechan = -np.log(get_random()) #Probability of dechanneling
+            Ldech  = TLdech1*Dechan   #Actual dechan. length
+
+            #careful: the dechanneling lentgh is along the trajectory
+            #of the particle -not along the longitudinal coordinate...
+            if (Ldech < L_chan):
+                iProc = proc_DC
+                Dxp   = Ldech/r #Change angle from channeling [mrad]
+                Sdech = Ldech*np.cos(cry_miscut + 0.5*Dxp)
+                x  = x  + Ldech*(np.sin(0.5*Dxp+cry_miscut)) #Trajectory at channeling exit
+                xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit
+                y     = y  + yp * Sdech
+
+                pyk2.pyk2_calcionloss(pc,Ldech,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
+                x  = x  + (0.5*(s_length-Sdech))*xp
+                y  = y  + (0.5*(s_length-Sdech))*yp
+
+                pyk2.pyk2_calcionloss(pc,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                pyk2.pyk2_moveam(nam,s_length-Sdech,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
+                                csref0,csref1,csref4,csref5,collnt,iProc)
+                x = x + (0.5*(s_length-Sdech))*xp
+                y = y + (0.5*(s_length-Sdech))*yp
+            else:
+                iProc = proc_CH
+                xpin  = xp
+                ypin  = yp
+
+                #check if a nuclear interaction happen while in CH
+                pyk2.pyk2_movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                                csref0,csref1,csref4,csref5,eUm,collnt,iProc)
+
+                if (iProc != proc_CH):
+                    #if an nuclear interaction happened, move until the middle with initial xp,yp:
+                    #propagate until the "crystal exit" with the new xp,yp accordingly with the rest
+                    #of the code in "thin lens approx"
+                    x = x + (0.5*L_chan)*xpin
+                    y = y + (0.5*L_chan)*ypin
+                    x = x + (0.5*L_chan)*xp
+                    y = y + (0.5*L_chan)*yp
+
+                    pyk2.pyk2_calcionloss(pc,length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pc = pc - dest*length #energy loss to ionization [GeV]
+
+                else:
+                    Dxp = tdefl + (0.5*ran_gauss(0))*xpcrit #Change angle[rad]
+                    
+                    xp  = Dxp
+                    x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
+                    y   = y + s_length * yp
+
+                    pyk2.pyk2_calcionloss(pc,length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]
+                #end if
+            #end if
+
+        else: #Option 2: VR
+
+            #good for channeling but don't channel (1-2)
+            iProc = proc_VR
+
+            xp = xp + (0.45*(xp_rel/xpcrit + 1))*Ang_avr
+            x  = x  + (0.5*s_length)*xp
+            y  = y  + (0.5*s_length)*yp
+
+            pyk2.pyk2_calcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
+                                exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+            pyk2.pyk2_moveam(nam,s_length,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                            csref1,csref4,csref5,collnt,iProc)
+
+            x = x + (0.5*s_length)*xp
+            y = y + (0.5*s_length)*yp
+        #end if
+
+    else: #case 3-2: no good for channeling. check if the  can VR
+
+        Lrefl = xp_rel*r #Distance of refl. point [m]
+        Srefl = np.sin(xp_rel/2 + cry_miscut)*Lrefl
+
+        if(Lrefl > 0 and Lrefl < L_chan): #VR point inside
+
+        #2 options: volume capture and volume reflection
+
+            if(get_random() > Vcapt or zn == 0): #Option 1: VR
+
+                iProc = proc_VR
+                x  = x + xp*Srefl
+                y     = y + yp*Srefl
+                Dxp   = Ang_avr
+                xp    = xp + Dxp + Ang_rms*ran_gauss(0)
+                x  = x  + (0.5*xp)*(s_length - Srefl)
+                y     = y  + (0.5*yp)*(s_length - Srefl)
+
+                pyk2.pyk2_calcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                pyk2.pyk2_moveam(nam,s_length-Srefl,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
+                                csref0,csref1,csref4,csref5,collnt,iProc)
+                x = x + (0.5*xp)*(s_length - Srefl)
+                y = y + (0.5*yp)*(s_length - Srefl)
+
+            else: #Option 2: VC
+
+                x = x + xp*Srefl
+                y = y + yp*Srefl
+
+                TLdech2 = (const_dech/1.0e1)*pc*(1-1/ratio)**2          #Updated typical dechanneling length(m)
+                Ldech   = TLdech2*(np.sqrt(1.0e-2 - np.log(get_random())) - 1.0e-1)**2 #Updated DC length
+                tdech   = Ldech/cry_rcurv
+                Sdech   = Ldech*np.cos(xp + 0.5*tdech)
+
+                if (Ldech < length-Lrefl):
+
+                    iProc = proc_DC
+                    Dxp   = Ldech/cry_rcurv + (0.5*ran_gauss(0))*xpcrit
+                    x  = x + Ldech*(np.sin(0.5*Dxp+xp)) #Trajectory at channeling exit
+                    y     = y + Sdech*yp
+                    xp    =  Dxp
+                    Red_S = (s_length - Srefl) - Sdech
+                    x  = x + (0.5*xp)*Red_S
+                    y     = y + (0.5*yp)*Red_S
+
+                    pyk2.pyk2_calcionloss(pc,Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pc = pc - dest*Srefl #"added" energy loss before capture
+
+                    pyk2.pyk2_calcionloss(pc,Sdech,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
+
+                    pyk2.pyk2_calcionloss(pc,Red_S,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pyk2.pyk2_moveam(nam,Red_S,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                                    csref1,csref4,csref5,collnt,iProc)
+                    x = x + (0.5*xp)*Red_S
+                    y = y + (0.5*yp)*Red_S
+
+                else:
+
+                    iProc   = proc_VC
+                    Rlength = length - Lrefl
+                    tchan   = Rlength/cry_rcurv
+                    Red_S   = Rlength*np.cos(xp + 0.5*tchan)
+
+                    pyk2.pyk2_calcionloss(pc,Lrefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pc   = pc - dest*Lrefl #"added" energy loss before capture
+                    xpin = xp
+                    ypin = yp
+
+                    #Check if a nuclear interaction happen while in ch
+                    pyk2.pyk2_movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                                    csref0,csref1,csref4,csref5,eUm,collnt,iProc)
+                                    
+                    if (iProc != proc_VC):
+                        #if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
+                        #the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
+                        x = x + (0.5*Rlength)*xpin
+                        y = y + (0.5*Rlength)*ypin
+                        x = x + (0.5*Rlength)*xp
+                        y = y + (0.5*Rlength)*yp
+
+                        pyk2.pyk2_calcionloss(pc,Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                        pc = pc - dest*Rlength
+
+                    else:
+                        Dxp = (length-Lrefl)/cry_rcurv
+                        x = x + np.sin(0.5*Dxp+xp)*Rlength #Trajectory at channeling exit
+                        y   = y + Red_S*yp
+                        xp  = tdefl + (0.5*ran_gauss(0))*xpcrit #[mrad]
+
+                        pyk2.pyk2_calcionloss(pc,Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                        pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
+            #         end if
+            #     end if
+            # end if
+
+        else:
+
+            #Case 3-3: move in amorphous substance (big input angles)
+            #Modified for transition vram daniele
+            if (xp_rel > tdefl-cry_miscut + 2*xpcrit or xp_rel < -xpcrit):
+                iProc = proc_AM
+                x  = x + (0.5*s_length)*xp
+                y     = y + (0.5*s_length)*yp
+                if(zn > 0):
+                    pyk2.pyk2_calcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pyk2.pyk2_moveam(nam,s_length,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                                    csref1,csref4,csref5,collnt,iProc)
+                #end if
+                x = x + (0.5*s_length)*xp
+                y = y + (0.5*s_length)*yp
+            else:
+                Pvr = (xp_rel-(tdefl-cry_miscut))/(2*xpcrit)
+                if(get_random() > Pvr):
+
+                    iProc = proc_TRVR
+                    x  = x + xp*Srefl
+                    y     = y + yp*Srefl
+
+                    Dxp = (((-3*Ang_rms)*xp_rel)/(2*xpcrit) + Ang_avr) + ((3*Ang_rms)*(tdefl-cry_miscut))/(2*xpcrit)
+                    xp  = xp + Dxp
+                    x = x + (0.5*xp)*(s_length-Srefl)
+                    y   = y + (0.5*yp)*(s_length-Srefl)
+
+                    pyk2.pyk2_calcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pyk2.pyk2_moveam(nam,s_length-Srefl,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
+                                    csref0,csref1,csref4,csref5,collnt,iProc)
+                    x = x + (0.5*xp)*(s_length - Srefl)
+                    y = y + (0.5*yp)*(s_length - Srefl)
+
+                else:
+                    iProc = proc_TRAM
+                    x = x + xp*Srefl
+                    y = y + yp*Srefl
+                    Dxp = ((((-1*(13.6/pc))*np.sqrt(s_length/dlri))*1.0e-3)*xp_rel)/(2*xpcrit) + (((13.6/pc)*np.sqrt(s_length/dlri))*1.0e-3)*(1+(tdefl-cry_miscut)/(2*xpcrit))
+                    xp = xp+Dxp
+                    x  = x + (0.5*xp)*(s_length-Srefl)
+                    y  = y + (0.5*yp)*(s_length-Srefl)
+
+                    pyk2.pyk2_calcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    pyk2.pyk2_moveam(nam,s_length-Srefl,dest,dlyi,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
+                                    csref0,csref1,csref4,csref5,collnt,iProc)
+                    x = x + (0.5*xp)*(s_length - Srefl)
+                    y = y + (0.5*yp)*(s_length - Srefl)
+                #end if
+            #end if
+        #end if
+    #end if
