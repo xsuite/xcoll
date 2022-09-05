@@ -286,7 +286,7 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12, _context=_context)
     part = xp.build_particles(x=x, y=y, px=px, py=py, particle_ref=ref, _context=_context)
     part_init = part.copy()
-    part_init._move_to(_context=xo.ContextCpu())
+    part_init.move(_context=xo.ContextCpu())
     x_rot = part_init.x * np.cos(angle/180.*np.pi) + part_init.y * np.sin(angle/180.*np.pi)
     y_rot = part_init.x * np.sin(angle/180.*np.pi) + part_init.y * np.cos(angle/180.*np.pi)
     xp_rot = part_init.px * part_init.rpp * np.cos(angle/180.*np.pi) + part_init.py * part_init.rpp * np.sin(angle/180.*np.pi)
@@ -294,7 +294,7 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     return part, x_rot, y_rot, xp_rot, yp_rot
 
 def _reshuffle(part):
-    part._move_to(_context=xo.ContextCpu())
+    part.move(_context=xo.ContextCpu())
     if part.lost_particles_are_hidden:
         part.unhide_lost_particles()
     sort = np.argsort(part.particle_id)

@@ -2,61 +2,98 @@ import numpy as np
 from pathlib import Path
 from xcoll import _pkg_root
 
-__pseudo_rands__ = np.load(Path(_pkg_root,'beam_elements','k2','randoms.npy'))
-__index__ = -1
-
-cgen = np.zeros(200, dtype=np.float64)
+try:
+    import xcoll.beam_elements.pyk2 as pyk2
+except ImportError:
+    raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
 def get_random():
+    return pyk2.pyk2_rand()
 
-    global __index__
-    __index__ += 1
-    thisran = __pseudo_rands__[__index__]
-    return thisran
+def get_random_ruth(cgen):
+    xran = np.zeros(1)
+    xran = np.array(xran, dtype=np.float64)
+    pyk2.pyk2_funlux(cgen, xran, 1)
+    return xran[0]
+
+def get_random_gauss(cut):
+    return pyk2.pyk2_rand_gauss(cut)
 
 
-def get_random_ruth():
-    global cgen
-    ran = get_random()
-    gap=0.010101010091602802 #1./99.
-    gapinv=99.
-    tleft= 2./99
-    bright=97./99.
-    gaps=tleft/49.
-    gapins=1./gaps
-    j = int(ran*gapinv) + 1
-    if j < 3:
-        j1 = int(ran *gapins)
-        j = j1 + 101
-        j = max(j,102)
-        j = min(j,148)
-        p = (ran -gaps*(j1-1)) * gapins
-        a = (p+1.0) * cgen[j+1] - (p-2.0)*cgen[j-2]
-        b = (p-1.0) * cgen[j-1] - p * cgen[j]
+def initialise_random_ruth(zatom, emr, hcut):
+    cgen = np.zeros(200, dtype=np.float64)
+    pyk2.make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut)
+    return cgen
+
+
+
+
+
+
+
+# This was the new implementation:
+
+
+# __pseudo_rands__ = np.load(Path(_pkg_root,'beam_elements','k2','randoms.npy'))
+# __index__ = -1
+
+# def get_random():
+
+#     global __index__
+#     __index__ += 1
+#     thisran = __pseudo_rands__[__index__]
+#     return thisran
+
+
+# def get_random_ruth():
+#     global cgen
+#     ran = get_random()
+#     gap=0.010101010091602802 #1./99.
+#     gapinv=99.
+#     tleft= 2./99
+#     bright=97./99.
+#     gaps=tleft/49.
+#     gapins=1./gaps
+#     j = int(ran*gapinv) + 1
+#     if j < 3:
+#         j1 = int(ran *gapins)
+#         j = j1 + 101
+#         j = max(j,102)
+#         j = min(j,148)
+#         p = (ran -gaps*(j1-1)) * gapins
+#         a = (p+1.0) * cgen[j+1] - (p-2.0)*cgen[j-2]
+#         b = (p-1.0) * cgen[j-1] - p * cgen[j]
        
-    elif j > 97:
-        j1 = int((ran-bright)*gapins)
-        j = j1 + 151
-        j = max(j,152)
-        j = min(j,198)
-        p = ((ran-bright) - gaps*(j1-1)) * gapins
-        a = (p+1.0) * cgen[j+1] - (p-2.0)*cgen[j-2]
-        b = (p-1.0) * cgen[j-1] - p * cgen[j]
+#     elif j > 97:
+#         j1 = int((ran-bright)*gapins)
+#         j = j1 + 151
+#         j = max(j,152)
+#         j = min(j,198)
+#         p = ((ran-bright) - gaps*(j1-1)) * gapins
+#         a = (p+1.0) * cgen[j+1] - (p-2.0)*cgen[j-2]
+#         b = (p-1.0) * cgen[j-1] - p * cgen[j]
        
-    else:
-        p = (ran -gap*(j-1)) * gapinv
-        a = (p+1.) * cgen[j+1] - (p-2.)*cgen[j-2]
-        b = (p-1.) * cgen[j-1] - p * cgen[j]
-    ran = ((a*p)*(p-1.))*0.16666667 + ((b*(p+1.))*(p-2.))*0.5
+#     else:
+#         p = (ran -gap*(j-1)) * gapinv
+#         a = (p+1.) * cgen[j+1] - (p-2.)*cgen[j-2]
+#         b = (p-1.) * cgen[j-1] - p * cgen[j]
+#     ran = ((a*p)*(p-1.))*0.16666667 + ((b*(p+1.))*(p-2.))*0.5
 
-    return ran
-
-
+#     return ran
 
 
-def initialise_random_ruth(material):
-    global cgen
-    cgen = np.load(Path(_pkg_root,'beam_elements','k2','cgen_' + material + '.npy'))
+
+
+# def initialise_random_ruth(material):
+#     global cgen
+#     cgen = np.load(Path(_pkg_root,'beam_elements','k2','cgen_' + material + '.npy'))
+
+
+
+
+
+
+
 
 
 #func,ifunc,xlow,xhigh,nlo,nbins,tftot

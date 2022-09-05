@@ -24,7 +24,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
-    initialise_random_ruth(material)
+    cgen = initialise_random_ruth(zatom=run_zatom, emr=run_emr, hcut=run_hcut)
   
     # Initilaisation
     length  = c_length
@@ -271,7 +271,8 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                             xp=xp,
                                                                             z=z,
                                                                             zp=zp,
-                                                                            dpop=dpop)
+                                                                            dpop=dpop,
+                                                                            cgen=cgen)
 
                 val_nabs_type = nabs
                 val_part_hit  = 1
