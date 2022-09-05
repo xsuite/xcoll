@@ -560,42 +560,42 @@ subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anu
   real(kind=fPrec) tmax
   real(kind=fPrec) plen
 
-  ! nam = 1 ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
-  ! zn  = 1
+   nam = 1 ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+   zn  = 1
 
-  ! ! dE/dX and dechanneling length calculation
-  ! mom    = pc*c1e3                ! [GeV]
-  ! enr    = sqrt(mom**2 + pmap**2) ! [MeV]
-  ! gammar = enr/pmap
-  ! betar  = mom/enr
-  ! bgr = betar*gammar
-  ! mep    = pmae/pmap  ! Electron/proton
+   ! dE/dX and dechanneling length calculation
+   mom    = pc*c1e3                ! [GeV]
+   enr    = sqrt(mom**2 + pmap**2) ! [MeV]
+   gammar = enr/pmap
+   betar  = mom/enr
+   bgr = betar*gammar
+   mep    = pmae/pmap  ! Electron/proton
 
-  ! tmax = (two*pmae*bgr**2)/(one + two*gammar*mep + mep**2)  ! [MeV]
-  ! plen = sqrt((ci_rho*ci_zatom)/ci_anuc)*28.816e-6_fPrec ! [MeV]
+   tmax = (two*pmae*bgr**2)/(one + two*gammar*mep + mep**2)  ! [MeV]
+   plen = sqrt((ci_rho*ci_zatom)/ci_anuc)*28.816e-6_fPrec ! [MeV]
 
-  ! const_dech = ((256.0_fPrec/(nine*pi**2)) * &
-  !   (one/(log_mb(((two*pmae)*gammar)/(ci_exenergy*c1e3)) - one))) * ((aTF*dP)/(crade*pmae)) ! [m/MeV]
-  ! const_dech = const_dech*c1e3 ! [m/GeV]
+   const_dech = ((256.0_fPrec/(nine*pi**2)) * &
+     (one/(log_mb(((two*pmae)*gammar)/(ci_exenergy*c1e3)) - one))) * ((aTF*dP)/(crade*pmae)) ! [m/MeV]
+   const_dech = const_dech*c1e3 ! [m/GeV]
 
-  ! s        = zero
-  ! s_length = ci_rcurv*sin_mb(length/ci_rcurv)
-  ! L_chan   = length
+   s        = zero
+   s_length = ci_rcurv*sin_mb(length/ci_rcurv)
+   L_chan   = length
 
-  ! ! MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
-  ! s_K = ci_rcurv*sin_mb(length/ci_rcurv)
-  ! x_K = ci_rcurv*(1-cos_mb(length/ci_rcurv))
-  ! s_M = (ci_rcurv-ci_xmax)*sin_mb(length/ci_rcurv)
-  ! x_M = ci_xmax + (ci_rcurv-ci_xmax)*(1-cos_mb(length/ci_rcurv))
-  ! r   = sqrt(s_P**2 + (ci_x-x_P)**2)
+  ! MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
+   s_K = ci_rcurv*sin_mb(length/ci_rcurv)
+   x_K = ci_rcurv*(1-cos_mb(length/ci_rcurv))
+   s_M = (ci_rcurv-ci_xmax)*sin_mb(length/ci_rcurv)
+   x_M = ci_xmax + (ci_rcurv-ci_xmax)*(1-cos_mb(length/ci_rcurv))
+   r   = sqrt(s_P**2 + (ci_x-x_P)**2)
 
-  ! ! MISCUT third step: F coordinates (exit point) on crystal exit face
-  ! A_F = (tan_mb(length/ci_rcurv))**2 + one
-  ! B_F = ((-two)*(tan_mb(length/ci_rcurv))**2)*ci_rcurv + (two*tan_mb(length/ci_rcurv))*s_P - two*x_P
-  ! C_F = ((tan_mb(length/ci_rcurv))**2)*(ci_rcurv**2) - ((two*tan_mb(length/ci_rcurv))*s_P)*ci_rcurv + s_P**2 + x_P**2 - r**2
+   ! MISCUT third step: F coordinates (exit point) on crystal exit face
+   A_F = (tan_mb(length/ci_rcurv))**2 + one
+   B_F = ((-two)*(tan_mb(length/ci_rcurv))**2)*ci_rcurv + (two*tan_mb(length/ci_rcurv))*s_P - two*x_P
+   C_F = ((tan_mb(length/ci_rcurv))**2)*(ci_rcurv**2) - ((two*tan_mb(length/ci_rcurv))*s_P)*ci_rcurv + s_P**2 + x_P**2 - r**2
 
-  ! x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
-  ! s_F = (-tan_mb(length/ci_rcurv))*(x_F-ci_rcurv)
+   x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
+   s_F = (-tan_mb(length/ci_rcurv))*(x_F-ci_rcurv)
 
   if(x_F >= x_K .and. x_F <= x_M .and. s_F >= s_M .and. s_F <= s_K) then
     ! No additional steps required for miscut
