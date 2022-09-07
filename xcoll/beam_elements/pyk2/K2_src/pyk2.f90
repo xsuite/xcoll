@@ -821,7 +821,12 @@ end subroutine pyk2_cryinteract
 subroutine pyk2_crycalcionloss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_plen,cc_exenergy,cc_zatom,&
                            cc_rho,cc_anuc,cc_dlri,cc_dlyi,cc_ai,cc_eUm,cc_collnt)
 
-  use coll_crystal, only: cry_calcIonLoss
+  use mod_ranlux
+  use mod_funlux
+  use floatPrecision
+  ! use coll_materials, only : zatom, exenergy, rho, anuc
+  use mathlib_bouncer
+  use physical_constants
 
   ! integer,          intent(in)  :: is
   real(kind=8), intent(in)  :: pc
@@ -844,8 +849,32 @@ subroutine pyk2_crycalcionloss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_p
   real(kind=8), intent(in)  :: cc_eUm
   real(kind=8), intent(in)  :: cc_collnt
 
-  call cry_calcIonLoss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_plen,cc_exenergy,cc_zatom,&
-                           cc_rho,cc_anuc,cc_dlri,cc_dlyi,cc_ai,cc_eUm,cc_collnt)
+  
+  real(kind=fPrec) thl,tt,cs_tail,prob_tail
+  real(kind=fPrec), parameter :: k = 0.307075_fPrec ! Constant in front bethe-bloch [mev g^-1 cm^2]
+
+  thl       = (((((four*k)*cc_zatom)*dz)*c1e2)*cc_rho)/(cc_anuc*cc_betar**2) ! [MeV]
+  EnLo      = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
+    half*log_mb(((((two*pmae)*cc_bgr)*cc_bgr)*cc_tmax)/(c1e6*cc_exenergy**2)) - &
+    cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half    &
+  )
+  EnLo      = ((EnLo*cc_rho)*c1m1)*dz ! [GeV]
+  Tt        = (EnLo*c1e3)+thl          ! [MeV]
+
+  cs_tail   = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ((half*((one/Tt)-(one/cc_tmax))) - &
+    (log_mb(cc_tmax/Tt)*(cc_betar**2)/(two*cc_tmax)) + ((cc_tmax-Tt)/((four*(cc_gammar**2))*(pmap**2))))
+  prob_tail = ((cs_tail*cc_rho)*dz)*c1e2
+
+  if(coll_rand() < prob_tail) then
+    EnLo = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
+      half*log_mb((two*pmae*cc_bgr*cc_bgr*cc_tmax)/(c1e6*cc_exenergy**2)) -      &
+      cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half + &
+      cc_tMax**2/(eight*(cc_gammar**2)*(pmap**2)) &
+    )
+    EnLo = (EnLo*cc_rho)*c1m1 ! [GeV/m]
+  else
+    EnLo = EnLo/dz ! [GeV/m]
+  end if
 
 end subroutine pyk2_crycalcionloss
 

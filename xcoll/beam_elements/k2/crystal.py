@@ -134,7 +134,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
             shift = cry_rcurv*(cry_cnTilt - np.cos(cry_bend - cry_tilt))
 
         x_shift = x - shift
-        
+
     else:
         s_shift = s
         x_shift = x
@@ -420,7 +420,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
             s_F = alpha_F*x_F + beta_F
 
-    # MISCUT fourth step: deflection and length calculation
+    # MISCUT 4th step: deflection and length calculation
     a = np.sqrt(s_F**2+(x-x_F)**2)
     tP = np.arccos((2*(r**2)-a**2)/(2*(r**2)))
     tdefl = np.arcsin((s_F-s_P)/r)
@@ -472,8 +472,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
         iProc = proc_AM
 
         dest=np.array(dest)
-        pyk2.pyk2_crycalcionloss(pc,am_len,dest,betar,bgr,gammar,tmax,plen,
-                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+        dest = calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc)
         
         xp=np.array(xp)
         yp=np.array(yp)
@@ -490,8 +490,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
         iProc = proc_AM
         
         dest=np.array(dest)  
-        pyk2.pyk2_crycalcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
-                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+        dest = dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc)
     
         xp=np.array(xp)
         yp=np.array(yp)
@@ -560,15 +560,15 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 y     = y  + yp * Sdech
 
                 dest=np.array(dest)
-                pyk2.pyk2_crycalcionloss(pc,Ldech,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                dest = calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc)
                 pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
                 x  = x  + (0.5*(s_length-Sdech))*xp
                 y  = y  + (0.5*(s_length-Sdech))*yp
 
                 dest=np.array(dest)
-                pyk2.pyk2_crycalcionloss(pc,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc)
                 xp=np.array(xp)
                 yp=np.array(yp)
                 pc=np.array(pc)
@@ -602,8 +602,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y = y + (0.5*L_chan)*yp
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     pc = pc - dest*length #energy loss to ionization [GeV]
 
                 else:
@@ -614,8 +614,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y   = y + s_length * yp
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]      
 
         else: #Option 2: VR
@@ -627,8 +627,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             y  = y  + (0.5*s_length)*yp
 
             dest=np.array(dest)
-            pyk2.pyk2_crycalcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
-                                exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+            dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                                exenergy,zatom,rho,anuc)
             xp=np.array(xp)
             yp=np.array(yp)
             pc=np.array(pc)
@@ -657,8 +657,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 y     = y  + (0.5*yp)*(s_length - Srefl)
 
                 dest=np.array(dest)
-                pyk2.pyk2_crycalcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc)
                 xp=np.array(xp)
                 yp=np.array(yp)
                 pc=np.array(pc)
@@ -688,19 +688,19 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y     = y + (0.5*yp)*Red_S
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
 
                     pc = pc - dest*Srefl #"added" energy loss before capture
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,Sdech,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,Red_S,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     xp=np.array(xp)
                     yp=np.array(yp)
                     pc=np.array(pc)
@@ -717,8 +717,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     Red_S   = Rlength*np.cos(xp + 0.5*tchan)
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,Lrefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     pc   = pc - dest*Lrefl #"added" energy loss before capture
                     xpin = xp
                     ypin = yp
@@ -741,8 +741,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         y = y + (0.5*Rlength)*yp
 
                         dest=np.array(dest)
-                        pyk2.pyk2_crycalcionloss(pc,Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc)
                         pc = pc - dest*Rlength
 
                     else:
@@ -752,8 +752,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         xp  = tdefl + (0.5*get_random_gauss(0))*xpcrit #[mrad]
 
                         dest=np.array(dest)
-                        pyk2.pyk2_crycalcionloss(pc,Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc)
                         pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
 
         else:
@@ -765,8 +765,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 y     = y + (0.5*s_length)*yp
                 if(zn > 0):
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     xp=np.array(xp)
                     yp=np.array(yp)
                     pc=np.array(pc)
@@ -791,8 +791,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y   = y + (0.5*yp)*(s_length-Srefl)
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     xp=np.array(xp)
                     yp=np.array(yp)
                     pc=np.array(pc)
@@ -812,8 +812,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y  = y + (0.5*yp)*(s_length-Srefl)
 
                     dest=np.array(dest)
-                    pyk2.pyk2_crycalcionloss(pc,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc,dlri,dlyi,ai,eUm,collnt)
+                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc)
                     xp=np.array(xp)
                     yp=np.array(yp)
                     pc=np.array(pc)
@@ -824,3 +824,38 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     y = y + (0.5*yp)*(s_length - Srefl)
                 
     return x, xp, y, yp, pc, iProc
+
+
+
+def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
+
+    from .k2_random import get_random
+
+    k = 0.307075 # Constant in front bethe-bloch [mev g^-1 cm^2]
+    pmae = 0.51099890
+    pmap = 938.271998
+
+    thl  = (((((4*k)*zatom)*dz)*1.0e2)*rho)/(anuc*betar**2) # [MeV]
+    EnLo = ((k*zatom)/(anuc*betar**2)) * (
+        0.5*np.log(((((2*pmae)*bgr)*bgr)*tmax)/(1.0e6*exenergy**2)) -
+        betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5   
+    )
+    EnLo = ((EnLo*rho)*1.0e-1)*dz # [GeV]
+    Tt   = (EnLo*1.0e3)+thl          # [MeV]
+
+    cs_tail   = ((k*zatom)/(anuc*betar**2)) * ((0.5*((1/Tt)-(1/tmax))) -
+        (np.log(tmax/Tt)*(betar**2)/(2*tmax)) + ((tmax-Tt)/((4*(gammar**2))*(pmap**2))))
+    prob_tail = ((cs_tail*rho)*dz)*1.0e2
+
+    if (get_random() < prob_tail):
+        EnLo = ((k*zatom)/(anuc*betar**2)) * (
+        0.5*np.log((2*pmae*bgr*bgr*tmax)/(1.0e6*exenergy**2)) -     
+        betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5 +
+        tmax**2/(8*(gammar**2)*(pmap**2))
+        )
+        EnLo = (EnLo*rho)*1.0e-1 # [GeV/m]
+
+    else:
+        EnLo = EnLo/dz # [GeV/m]
+
+    return EnLo
