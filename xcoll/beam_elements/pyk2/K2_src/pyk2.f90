@@ -1,8 +1,5 @@
 subroutine pyk2_init(n_alloc, random_generator_seed)
-  use floatPrecision
-  use numerical_constants
-  ! use crcoall    NODIG ??
-  use parpro ,           only : npart
+  !use parpro ,           only : npart
   use mod_alloc ,        only : alloc      ! to allocate partID etc
   use mod_common ,       only : iexact, napx, unit208, aa0
   use mod_common_main ,  only : partID, parentID, pairID, naa
@@ -10,16 +7,10 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
-  use coll_materials ! for collmat_init
-  use coll_k2        ! for scattering
-
   implicit none
 
   integer, intent(in)          :: n_alloc
   integer, intent(in)          :: random_generator_seed
-
-  ! Set default values for collimator materials
-  call collmat_init
 
   rnd_seed = random_generator_seed
 
@@ -41,7 +32,11 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 p_particles, part_hit, &
                 part_abs, part_impact, &
                 part_indiv, part_linteract, nhit_stage, nabs_type, linside, &
-                matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, &
+                run_exenergy, run_anuc, run_zatom, run_emr, run_rho, &
+                run_hcut, run_bnref, run_csref0, run_csref1, &
+                run_csref5, run_radl, run_dlri, run_dlyi, run_eum, run_ai, &
+                run_collnt, &
+                is_crystal, c_length, c_rotation, c_aperture, c_offset, &
                 c_tilt, c_enom, onesided, random_generator_seed)
 
   use floatPrecision
@@ -54,8 +49,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   use mod_ranlux ,       only : rluxgo     ! for ranlux init
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, coll_expandArrays
-  use coll_materials ! for collmat_init
-  use coll_k2        ! for scattering
+  use coll_k2 ,          only : k2coll_collimate        ! for scattering
 
   implicit none
 
@@ -64,33 +58,47 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   ! ## variables declarations ##
   ! ############################
 
-  integer, intent(in)       :: num_particles
-  real(kind=8), intent(inout)  :: x_particles(num_particles)
-  real(kind=8), intent(inout)  :: xp_particles(num_particles)
-  real(kind=8), intent(inout)  :: y_particles(num_particles)
-  real(kind=8), intent(inout)  :: yp_particles(num_particles)
-  real(kind=8), intent(inout)  :: s_particles(num_particles)
-  real(kind=8), intent(inout)  :: p_particles(num_particles)
+  integer,         intent(in)    :: num_particles
+  real(kind=8),    intent(inout) :: x_particles(num_particles)
+  real(kind=8),    intent(inout) :: xp_particles(num_particles)
+  real(kind=8),    intent(inout) :: y_particles(num_particles)
+  real(kind=8),    intent(inout) :: yp_particles(num_particles)
+  real(kind=8),    intent(inout) :: s_particles(num_particles)
+  real(kind=8),    intent(inout) :: p_particles(num_particles)
 
-  integer(kind=4)  , intent(inout) :: part_hit(num_particles)
-  integer(kind=4)  , intent(inout) :: part_abs(num_particles)
-  real(kind=8) , intent(inout) :: part_impact(num_particles)
-  real(kind=8) , intent(inout) :: part_indiv(num_particles)
-  real(kind=8) , intent(inout) :: part_linteract(num_particles)
-  integer(kind=4)  , intent(inout) :: nhit_stage(num_particles)
-  integer(kind=4)  , intent(inout) :: nabs_type(num_particles)
-  logical(kind=4)  , intent(inout) :: linside(num_particles)
-  integer(kind=4)  , intent(in):: matid
-  logical(kind=4)  , intent(in):: is_crystal
-  real(kind=8) , intent(in):: c_length
-  real(kind=8) , intent(in):: c_rotation
-  real(kind=8) , intent(in):: c_aperture
-  real(kind=8) , intent(in):: c_offset
-  real(kind=8) , intent(inout):: c_tilt(2)
-  real(kind=8) , intent(in):: c_enom
-  logical(kind=4) , intent(in):: onesided
-  integer, intent(in)          :: random_generator_seed
-
+  integer(kind=4), intent(inout) :: part_hit(num_particles)
+  integer(kind=4), intent(inout) :: part_abs(num_particles)
+  real(kind=8),    intent(inout) :: part_impact(num_particles)
+  real(kind=8),    intent(inout) :: part_indiv(num_particles)
+  real(kind=8),    intent(inout) :: part_linteract(num_particles)
+  integer(kind=4), intent(inout) :: nhit_stage(num_particles)
+  integer(kind=4), intent(inout) :: nabs_type(num_particles)
+  logical(kind=4), intent(inout) :: linside(num_particles)
+  real(kind=8),    intent(in)    :: run_exenergy
+  real(kind=8),    intent(in)    :: run_anuc
+  real(kind=8),    intent(in)    :: run_zatom
+  real(kind=8),    intent(in)    :: run_emr
+  real(kind=8),    intent(in)    :: run_rho
+  real(kind=8),    intent(in)    :: run_hcut
+  real(kind=8),    intent(in)    :: run_bnref
+  real(kind=8),    intent(in)    :: run_csref0
+  real(kind=8),    intent(in)    :: run_csref1
+  real(kind=8),    intent(in)    :: run_csref5
+  real(kind=8),    intent(in)    :: run_radl
+  real(kind=8),    intent(in)    :: run_dlri
+  real(kind=8),    intent(in)    :: run_dlyi
+  real(kind=8),    intent(in)    :: run_eum
+  real(kind=8),    intent(in)    :: run_ai
+  real(kind=8),    intent(in)    :: run_collnt
+  logical(kind=4), intent(in)    :: is_crystal
+  real(kind=8),    intent(in)    :: c_length
+  real(kind=8),    intent(in)    :: c_rotation
+  real(kind=8),    intent(in)    :: c_aperture
+  real(kind=8),    intent(in)    :: c_offset
+  real(kind=8),    intent(inout) :: c_tilt(2)
+  real(kind=8),    intent(in)    :: c_enom
+  logical(kind=4), intent(in)    :: onesided
+  integer,         intent(in)    :: random_generator_seed
   integer j
 
 
@@ -128,7 +136,11 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 
   call k2coll_collimate( &
-     matid, is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
+     run_exenergy, run_anuc, run_zatom, run_emr, run_rho, &
+     run_hcut, run_bnref, run_csref0, run_csref1, &
+     run_csref5, run_radl, run_dlri, run_dlyi, run_eum, run_ai, &
+     run_collnt, &
+     is_crystal, c_length, c_rotation, c_aperture, c_offset, c_tilt, &
      rcx, rcxp, rcy, rcyp, rcp, rcs, &
      c_enom*c1m3, part_hit, part_abs, &
      part_impact, part_indiv, part_linteract, &

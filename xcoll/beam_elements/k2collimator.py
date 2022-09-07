@@ -1,5 +1,5 @@
 import numpy as np
-from .k2.materials import Material
+from .k2.materials import Material, Crystal
 
 class K2Engine:
 
@@ -225,6 +225,6 @@ class K2Collimator:
             offset = thisdict['offset'],
             tilt = thisdict['tilt'],
             is_active = True if thisdict['is_active']==1 else False,
-            material = thisdict['material']
+            material = Material.from_dict(thisdict['material'])
         )
             
