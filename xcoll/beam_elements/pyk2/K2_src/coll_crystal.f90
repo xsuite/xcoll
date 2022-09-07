@@ -457,528 +457,528 @@ contains
 !  Subroutine for the movements of the particles in the crystal
 !  Simple tranport protons in crystal 2
 ! ================================================================================================ !
-subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anuc,ci_zatom,ci_emr,&
-                      ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt,ci_hcut,ci_csref0,ci_csref1,ci_csref4,&
-                      ci_csref5,ci_bnref,ci_csect,ci_tilt,ci_rcurv,ci_alayer,ci_xmax,ci_ymax,ci_orient,&
-                      ci_miscut,ci_bend,ci_cBend,ci_sBend,ci_cpTilt,ci_spTilt,ci_cnTilt,ci_snTilt,ci_iProc)
+! subroutine cry_interact(ci_x,xp,y,yp,pc,length,s_P,x_P,ci_exenergy,ci_rho,ci_anuc,ci_zatom,ci_emr,&
+!                       ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt,ci_hcut,ci_csref0,ci_csref1,ci_csref4,&
+!                       ci_csref5,ci_bnref,ci_csect,ci_tilt,ci_rcurv,ci_alayer,ci_xmax,ci_ymax,ci_orient,&
+!                       ci_miscut,ci_bend,ci_cBend,ci_sBend,ci_cpTilt,ci_spTilt,ci_cnTilt,ci_snTilt,ci_iProc)
 
-  use mod_ranlux
-  use mod_funlux
-  use mod_common_main
-  use floatPrecision
-  ! use coll_materials, only : zatom, exenergy, rho, anuc
-  use mathlib_bouncer
-  use physical_constants
+  ! use mod_ranlux
+  ! use mod_funlux
+  ! use mod_common_main
+  ! use floatPrecision
+  ! ! use coll_materials, only : zatom, exenergy, rho, anuc
+  ! use mathlib_bouncer
+  ! use physical_constants
 
-  ! integer,          intent(in)    :: is  ! Material number
-  real(kind=fPrec), intent(inout) :: ci_x
-  real(kind=fPrec), intent(inout) :: xp
-  real(kind=fPrec), intent(inout) :: y
-  real(kind=fPrec), intent(inout) :: yp
-  real(kind=fPrec), intent(inout) :: pc
-  real(kind=fPrec), intent(in)    :: length
-  real(kind=fPrec), intent(in)    :: s_P
-  real(kind=fPrec), intent(in)    :: x_P
+  ! ! integer,          intent(in)    :: is  ! Material number
+  ! real(kind=fPrec), intent(inout) :: ci_x
+  ! real(kind=fPrec), intent(inout) :: xp
+  ! real(kind=fPrec), intent(inout) :: y
+  ! real(kind=fPrec), intent(inout) :: yp
+  ! real(kind=fPrec), intent(inout) :: pc
+  ! real(kind=fPrec), intent(in)    :: length
+  ! real(kind=fPrec), intent(in)    :: s_P
+  ! real(kind=fPrec), intent(in)    :: x_P
 
-  real(kind=fPrec), intent(in)    :: ci_exenergy
-  real(kind=fPrec), intent(in)    :: ci_rho
-  real(kind=fPrec), intent(in)    :: ci_anuc
-  real(kind=fPrec), intent(in)    :: ci_zatom
-  real(kind=fPrec), intent(in)    :: ci_emr
+  ! real(kind=fPrec), intent(in)    :: ci_exenergy
+  ! real(kind=fPrec), intent(in)    :: ci_rho
+  ! real(kind=fPrec), intent(in)    :: ci_anuc
+  ! real(kind=fPrec), intent(in)    :: ci_zatom
+  ! real(kind=fPrec), intent(in)    :: ci_emr
   
-  real(kind=fPrec), intent(in)    :: ci_dlri
-  real(kind=fPrec), intent(in)    :: ci_dlyi
-  real(kind=fPrec), intent(in)    :: ci_ai
-  real(kind=fPrec), intent(in)    :: ci_eUm
-  real(kind=fPrec), intent(in)    :: ci_collnt
-  real(kind=fPrec), intent(in)    :: ci_hcut
-  real(kind=fPrec), intent(in)    :: ci_csref0
-  real(kind=fPrec), intent(in)    :: ci_csref1
-  real(kind=fPrec), intent(in)    :: ci_csref4
-  real(kind=fPrec), intent(in)    :: ci_csref5
+  ! real(kind=fPrec), intent(in)    :: ci_dlri
+  ! real(kind=fPrec), intent(in)    :: ci_dlyi
+  ! real(kind=fPrec), intent(in)    :: ci_ai
+  ! real(kind=fPrec), intent(in)    :: ci_eUm
+  ! real(kind=fPrec), intent(in)    :: ci_collnt
+  ! real(kind=fPrec), intent(in)    :: ci_hcut
+  ! real(kind=fPrec), intent(in)    :: ci_csref0
+  ! real(kind=fPrec), intent(in)    :: ci_csref1
+  ! real(kind=fPrec), intent(in)    :: ci_csref4
+  ! real(kind=fPrec), intent(in)    :: ci_csref5
 
-  real(kind=fPrec), intent(in)    :: ci_bnref
-  real(kind=fPrec), intent(in)    :: ci_csect
+  ! real(kind=fPrec), intent(in)    :: ci_bnref
+  ! real(kind=fPrec), intent(in)    :: ci_csect
 
-  real(kind=fPrec), intent(in)    :: ci_tilt
-  real(kind=fPrec), intent(in)    :: ci_rcurv
-  real(kind=fPrec), intent(in)    :: ci_alayer
-  real(kind=fPrec), intent(in)    :: ci_xmax
-  real(kind=fPrec), intent(in)    :: ci_ymax
-  integer,          intent(in)    :: ci_orient
-  real(kind=fPrec), intent(in)    :: ci_miscut
-  real(kind=fPrec), intent(in)    :: ci_bend
-  real(kind=fPrec), intent(in)    :: ci_cBend
-  real(kind=fPrec), intent(in)    :: ci_sBend
-  real(kind=fPrec), intent(in)    :: ci_cpTilt
-  real(kind=fPrec), intent(in)    :: ci_spTilt
-  real(kind=fPrec), intent(in)    :: ci_cnTilt
-  real(kind=fPrec), intent(in)    :: ci_snTilt
+  ! real(kind=fPrec), intent(in)    :: ci_tilt
+  ! real(kind=fPrec), intent(in)    :: ci_rcurv
+  ! real(kind=fPrec), intent(in)    :: ci_alayer
+  ! real(kind=fPrec), intent(in)    :: ci_xmax
+  ! real(kind=fPrec), intent(in)    :: ci_ymax
+  ! integer,          intent(in)    :: ci_orient
+  ! real(kind=fPrec), intent(in)    :: ci_miscut
+  ! real(kind=fPrec), intent(in)    :: ci_bend
+  ! real(kind=fPrec), intent(in)    :: ci_cBend
+  ! real(kind=fPrec), intent(in)    :: ci_sBend
+  ! real(kind=fPrec), intent(in)    :: ci_cpTilt
+  ! real(kind=fPrec), intent(in)    :: ci_spTilt
+  ! real(kind=fPrec), intent(in)    :: ci_cnTilt
+  ! real(kind=fPrec), intent(in)    :: ci_snTilt
 
-  integer,          intent(inout) :: ci_iProc
+  ! integer,          intent(inout) :: ci_iProc
 
-  integer nam,zn                        ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
-  real(kind=fPrec) ymax,ymin            ! Crystal geometrical parameters
-  real(kind=fPrec) s_length             ! Element length along s
-  real(kind=fPrec) DESt                 ! Changed energy loss by ionization now calculated and not tabulated
-  real(kind=fPrec) x0,y0                ! Coordinates of the particle [m]
-  real(kind=fPrec) s                    ! Long coordinates of the particle [m]
-  real(kind=fPrec) a_eq,b_eq,c_eq,delta ! Second order equation param.
-  real(kind=fPrec) Ang_rms, Ang_avr     ! Volume reflection mean angle [rad]
-  real(kind=fPrec) Dechan               ! Probability for dechanneling
-  real(kind=fPrec) Lrefl,Srefl          ! Distance of the reflection point [m]
-  real(kind=fPrec) Vcapt                ! Volume capture probability
-  real(kind=fPrec) Chann                ! Channeling probability
-  real(kind=fPrec) N_atom               ! Probability for entering channeling near atomic planes
-  real(kind=fPrec) Dxp                  ! Variation in angle
-  real(kind=fPrec) xpcrit               ! Critical angle for curved crystal[rad]
-  real(kind=fPrec) xpcrit0              ! Critical angle for str. crystal [rad]
-  real(kind=fPrec) Rcrit                ! Critical curvature radius [m]
-  real(kind=fPrec) ratio                ! X=c_rcurv/Rcrit
-  real(kind=fPrec) TLdech1,TLdech2      ! Typical dechanneling length(2) [m]
-  real(kind=fPrec) tdech,Ldech,Sdech    ! Angle, lenght, and S coordinate of dechanneling point
-  real(kind=fPrec) Rlength,Red_S        ! Reduced length/s coordinate (in case of dechanneling)
-  real(kind=fPrec) am_len               ! Amorphous length
-  real(kind=fPrec) len_xs,len_ys        ! Amorphous length
-  real(kind=fPrec) xp_rel               ! Xp-c_miscut angle in mrad
-  real(kind=fPrec) alpha                ! Par for new chann prob
-  real(kind=fPrec) Pvr                  ! Prob for VR->AM transition
+  ! integer nam,zn                        ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+  ! real(kind=fPrec) ymax,ymin            ! Crystal geometrical parameters
+  ! real(kind=fPrec) s_length             ! Element length along s
+  ! real(kind=fPrec) DESt                 ! Changed energy loss by ionization now calculated and not tabulated
+  ! real(kind=fPrec) x0,y0                ! Coordinates of the particle [m]
+  ! real(kind=fPrec) s                    ! Long coordinates of the particle [m]
+  ! real(kind=fPrec) a_eq,b_eq,c_eq,delta ! Second order equation param.
+  ! real(kind=fPrec) Ang_rms, Ang_avr     ! Volume reflection mean angle [rad]
+  ! real(kind=fPrec) Dechan               ! Probability for dechanneling
+  ! real(kind=fPrec) Lrefl,Srefl          ! Distance of the reflection point [m]
+  ! real(kind=fPrec) Vcapt                ! Volume capture probability
+  ! real(kind=fPrec) Chann                ! Channeling probability
+  ! real(kind=fPrec) N_atom               ! Probability for entering channeling near atomic planes
+  ! real(kind=fPrec) Dxp                  ! Variation in angle
+  ! real(kind=fPrec) xpcrit               ! Critical angle for curved crystal[rad]
+  ! real(kind=fPrec) xpcrit0              ! Critical angle for str. crystal [rad]
+  ! real(kind=fPrec) Rcrit                ! Critical curvature radius [m]
+  ! real(kind=fPrec) ratio                ! X=c_rcurv/Rcrit
+  ! real(kind=fPrec) TLdech1,TLdech2      ! Typical dechanneling length(2) [m]
+  ! real(kind=fPrec) tdech,Ldech,Sdech    ! Angle, lenght, and S coordinate of dechanneling point
+  ! real(kind=fPrec) Rlength,Red_S        ! Reduced length/s coordinate (in case of dechanneling)
+  ! real(kind=fPrec) am_len               ! Amorphous length
+  ! real(kind=fPrec) len_xs,len_ys        ! Amorphous length
+  ! real(kind=fPrec) xp_rel               ! Xp-c_miscut angle in mrad
+  ! real(kind=fPrec) alpha                ! Par for new chann prob
+  ! real(kind=fPrec) Pvr                  ! Prob for VR->AM transition
 
-  ! Quantities for length and deflection calculation
-  real(kind=fPrec) const_dech,xpin,ypin,tchan,tdefl,tP,L_chan,mep
-  real(kind=fPrec) s_K,x_K,s_M,x_M,s_F,x_F,r,a
-  real(kind=fPrec) A_F,B_F,C_F,alpha_F,beta_F
+  ! ! Quantities for length and deflection calculation
+  ! real(kind=fPrec) const_dech,xpin,ypin,tchan,tdefl,tP,L_chan,mep
+  ! real(kind=fPrec) s_K,x_K,s_M,x_M,s_F,x_F,r,a
+  ! real(kind=fPrec) A_F,B_F,C_F,alpha_F,beta_F
 
-  real(kind=fPrec), parameter :: c_v1 =  1.7_fPrec ! Fitting coefficient
-  real(kind=fPrec), parameter :: c_v2 = -1.5_fPrec ! Fitting coefficient
+  ! real(kind=fPrec), parameter :: c_v1 =  1.7_fPrec ! Fitting coefficient
+  ! real(kind=fPrec), parameter :: c_v2 = -1.5_fPrec ! Fitting coefficient
 
-  real(kind=fPrec) enr
-  real(kind=fPrec) mom
-  real(kind=fPrec) betar
-  real(kind=fPrec) bgr
-  real(kind=fPrec) gammar
-  real(kind=fPrec) tmax
-  real(kind=fPrec) plen
+  ! real(kind=fPrec) enr
+  ! real(kind=fPrec) mom
+  ! real(kind=fPrec) betar
+  ! real(kind=fPrec) bgr
+  ! real(kind=fPrec) gammar
+  ! real(kind=fPrec) tmax
+  ! real(kind=fPrec) plen
 
-   nam = 1 ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
-   zn  = 1
+  !  nam = 1 ! Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+  !  zn  = 1
 
-   ! dE/dX and dechanneling length calculation
-   mom    = pc*c1e3                ! [GeV]
-   enr    = sqrt(mom**2 + pmap**2) ! [MeV]
-   gammar = enr/pmap
-   betar  = mom/enr
-   bgr = betar*gammar
-   mep    = pmae/pmap  ! Electron/proton
+  !  ! dE/dX and dechanneling length calculation
+  !  mom    = pc*c1e3                ! [GeV]
+  !  enr    = sqrt(mom**2 + pmap**2) ! [MeV]
+  !  gammar = enr/pmap
+  !  betar  = mom/enr
+  !  bgr = betar*gammar
+  !  mep    = pmae/pmap  ! Electron/proton
 
-   tmax = (two*pmae*bgr**2)/(one + two*gammar*mep + mep**2)  ! [MeV]
-   plen = sqrt((ci_rho*ci_zatom)/ci_anuc)*28.816e-6_fPrec ! [MeV]
+  !  tmax = (two*pmae*bgr**2)/(one + two*gammar*mep + mep**2)  ! [MeV]
+  !  plen = sqrt((ci_rho*ci_zatom)/ci_anuc)*28.816e-6_fPrec ! [MeV]
 
-   const_dech = ((256.0_fPrec/(nine*pi**2)) * &
-     (one/(log_mb(((two*pmae)*gammar)/(ci_exenergy*c1e3)) - one))) * ((aTF*dP)/(crade*pmae)) ! [m/MeV]
-   const_dech = const_dech*c1e3 ! [m/GeV]
+  !  const_dech = ((256.0_fPrec/(nine*pi**2)) * &
+  !    (one/(log_mb(((two*pmae)*gammar)/(ci_exenergy*c1e3)) - one))) * ((aTF*dP)/(crade*pmae)) ! [m/MeV]
+  !  const_dech = const_dech*c1e3 ! [m/GeV]
 
-   s        = zero
-   s_length = ci_rcurv*sin_mb(length/ci_rcurv)
-   L_chan   = length
+  !  s        = zero
+  !  s_length = ci_rcurv*sin_mb(length/ci_rcurv)
+  !  L_chan   = length
 
-  ! MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
-   s_K = ci_rcurv*sin_mb(length/ci_rcurv)
-   x_K = ci_rcurv*(1-cos_mb(length/ci_rcurv))
-   s_M = (ci_rcurv-ci_xmax)*sin_mb(length/ci_rcurv)
-   x_M = ci_xmax + (ci_rcurv-ci_xmax)*(1-cos_mb(length/ci_rcurv))
-   r   = sqrt(s_P**2 + (ci_x-x_P)**2)
+  ! ! MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
+  !  s_K = ci_rcurv*sin_mb(length/ci_rcurv)
+  !  x_K = ci_rcurv*(1-cos_mb(length/ci_rcurv))
+  !  s_M = (ci_rcurv-ci_xmax)*sin_mb(length/ci_rcurv)
+  !  x_M = ci_xmax + (ci_rcurv-ci_xmax)*(1-cos_mb(length/ci_rcurv))
+  !  r   = sqrt(s_P**2 + (ci_x-x_P)**2)
 
-   ! MISCUT third step: F coordinates (exit point) on crystal exit face
-   A_F = (tan_mb(length/ci_rcurv))**2 + one
-   B_F = ((-two)*(tan_mb(length/ci_rcurv))**2)*ci_rcurv + (two*tan_mb(length/ci_rcurv))*s_P - two*x_P
-   C_F = ((tan_mb(length/ci_rcurv))**2)*(ci_rcurv**2) - ((two*tan_mb(length/ci_rcurv))*s_P)*ci_rcurv + s_P**2 + x_P**2 - r**2
+  !  ! MISCUT third step: F coordinates (exit point) on crystal exit face
+  !  A_F = (tan_mb(length/ci_rcurv))**2 + one
+  !  B_F = ((-two)*(tan_mb(length/ci_rcurv))**2)*ci_rcurv + (two*tan_mb(length/ci_rcurv))*s_P - two*x_P
+  !  C_F = ((tan_mb(length/ci_rcurv))**2)*(ci_rcurv**2) - ((two*tan_mb(length/ci_rcurv))*s_P)*ci_rcurv + s_P**2 + x_P**2 - r**2
 
-   x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
-   s_F = (-tan_mb(length/ci_rcurv))*(x_F-ci_rcurv)
+  !  x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
+  !  s_F = (-tan_mb(length/ci_rcurv))*(x_F-ci_rcurv)
 
-  if(x_F >= x_K .and. x_F <= x_M .and. s_F >= s_M .and. s_F <= s_K) then
-    ! No additional steps required for miscut
-  else if (ci_miscut == 0 .and. abs(x_F-x_K) <= c1m13 .and. abs(s_F-s_K) <= c1m13) then
-    ! no miscut, entrance from below: exit point is K (lower edge)
-    x_F = x_K
-    s_F = s_K
-  else if (ci_miscut == 0 .and. abs(x_F-x_M) <= c1m13 .and. abs(s_F-s_M) <= c1m13) then
-    ! no miscut, entrance from above: exit point is M (upper edge)
-    x_F = x_M
-    s_F = s_M
-  else
+  ! if(x_F >= x_K .and. x_F <= x_M .and. s_F >= s_M .and. s_F <= s_K) then
+  !   ! No additional steps required for miscut
+  ! else if (ci_miscut == 0 .and. abs(x_F-x_K) <= c1m13 .and. abs(s_F-s_K) <= c1m13) then
+  !   ! no miscut, entrance from below: exit point is K (lower edge)
+  !   x_F = x_K
+  !   s_F = s_K
+  ! else if (ci_miscut == 0 .and. abs(x_F-x_M) <= c1m13 .and. abs(s_F-s_M) <= c1m13) then
+  !   ! no miscut, entrance from above: exit point is M (upper edge)
+  !   x_F = x_M
+  !   s_F = s_M
+  ! else
 
-    ! MISCUT Third step (bis): F coordinates (exit point)  on bent side
-    if(ci_miscut < 0) then
-      ! Intersect with bottom side
-      alpha_F = (ci_rcurv-x_P)/x_P
-      beta_F = -(r**2-s_P**2-x_P**2)/(two*s_P)
-      A_F = alpha_F**2 + one
-      B_F = two*(alpha_F*beta_F) - two*ci_rcurv
-      C_F = beta_F**2
-    else
-      ! Intersect with top side
-      alpha_F = (ci_rcurv-x_P)/s_P
-      beta_F = -(r**2+ci_xmax*(ci_xmax-(two*ci_rcurv))-s_P**2-x_P**2)/(two*s_P)
-      A_F = alpha_F**2 + one
-      B_F = two*(alpha_F*beta_F) - two*ci_rcurv
-      C_F = beta_F**2 - ci_xmax*(ci_xmax-two*ci_rcurv)
-    endif
+  !   ! MISCUT Third step (bis): F coordinates (exit point)  on bent side
+  !   if(ci_miscut < 0) then
+  !     ! Intersect with bottom side
+  !     alpha_F = (ci_rcurv-x_P)/x_P
+  !     beta_F = -(r**2-s_P**2-x_P**2)/(two*s_P)
+  !     A_F = alpha_F**2 + one
+  !     B_F = two*(alpha_F*beta_F) - two*ci_rcurv
+  !     C_F = beta_F**2
+  !   else
+  !     ! Intersect with top side
+  !     alpha_F = (ci_rcurv-x_P)/s_P
+  !     beta_F = -(r**2+ci_xmax*(ci_xmax-(two*ci_rcurv))-s_P**2-x_P**2)/(two*s_P)
+  !     A_F = alpha_F**2 + one
+  !     B_F = two*(alpha_F*beta_F) - two*ci_rcurv
+  !     C_F = beta_F**2 - ci_xmax*(ci_xmax-two*ci_rcurv)
+  !   endif
     
-    x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
-    s_F = alpha_F*x_F + beta_F
+  !   x_F = (-B_F-sqrt(B_F**2-four*(A_F*C_F)))/(two*A_F)
+  !   s_F = alpha_F*x_F + beta_F
     
-  endif
+  ! endif
 
-  ! MISCUT fourth step: deflection and length calculation
-  a = sqrt(s_F**2+(ci_x-x_F)**2)
-  tP = acos_mb((2*(r**2)-a**2)/(2*(r**2)))
-  tdefl = asin_mb((s_f-s_P)/r)
-  L_chan = r*tP
+  ! ! MISCUT fourth step: deflection and length calculation
+  ! a = sqrt(s_F**2+(ci_x-x_F)**2)
+  ! tP = acos_mb((2*(r**2)-a**2)/(2*(r**2)))
+  ! tdefl = asin_mb((s_f-s_P)/r)
+  ! L_chan = r*tP
 
-  xp_rel = xp - ci_miscut
+  ! xp_rel = xp - ci_miscut
 
-  ymin = -ci_ymax/two
-  ymax =  ci_ymax/two
+  ! ymin = -ci_ymax/two
+  ! ymax =  ci_ymax/two
 
-  ! FIRST CASE: p don't interact with crystal
-  if(y < ymin .or. y > ymax .or. ci_x > ci_xmax) then
-    ci_x  = ci_x + xp*s_length
-    y     = y + yp*s_length
-    ci_iProc = proc_out
-    return
+  ! ! FIRST CASE: p don't interact with crystal
+  ! if(y < ymin .or. y > ymax .or. ci_x > ci_xmax) then
+  !   ci_x  = ci_x + xp*s_length
+  !   y     = y + yp*s_length
+  !   ci_iProc = proc_out
+  !   return
 
-  ! SECOND CASE: p hits the amorphous layer
-  else if(ci_x < ci_alayer .or. y-ymin < ci_alayer .or. ymax-y < ci_alayer) then
-    x0    = ci_x
-    y0    = y
-    a_eq  = one + xp**2
-    b_eq  = (two*ci_x)*xp - (two*xp)*ci_rcurv
-    c_eq  = ci_x**2 - (two*ci_x)*ci_rcurv
-    delta = b_eq**2 - (four*a_eq)*c_eq
-    s     = (-b_eq+sqrt(delta))/(two*a_eq)
-    if(s >= s_length) then
-      s = s_length
-    end if
-    ci_x   =  xp*s + x0
-    len_xs = sqrt((ci_x-x0)**2 + s**2)
-    if(yp >= zero .and. y + yp*s <= ymax) then
-      len_ys = yp*len_xs
-    else if(yp < zero .and. y + yp*s >= ymin) then
-      len_ys = yp*len_xs
-    else
-      s      = (ymax-y)/yp
-      len_ys = sqrt((ymax-y)**2 + s**2)
-      ci_x   = x0 + xp*s
-      len_xs = sqrt((ci_x-x0)**2 + s**2)
-    end if
-    am_len = sqrt(len_xs**2 + len_ys**2)
-    s     = s/two
-    ci_x  = x0 + xp*s
-    y     = y0 + yp*s
-    ci_iProc = proc_AM
-    call cry_calcIonLoss(pc,am_len,dest,betar,bgr,gammar,tmax,plen,&
-                         ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-    call cry_moveAM(nam,am_len,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                    ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-    ci_x = ci_x + xp*(s_length-s)
-    y = y + yp*(s_length-s)
-    return
+  ! ! SECOND CASE: p hits the amorphous layer
+  ! else if(ci_x < ci_alayer .or. y-ymin < ci_alayer .or. ymax-y < ci_alayer) then
+  !   x0    = ci_x
+  !   y0    = y
+  !   a_eq  = one + xp**2
+  !   b_eq  = (two*ci_x)*xp - (two*xp)*ci_rcurv
+  !   c_eq  = ci_x**2 - (two*ci_x)*ci_rcurv
+  !   delta = b_eq**2 - (four*a_eq)*c_eq
+  !   s     = (-b_eq+sqrt(delta))/(two*a_eq)
+  !   if(s >= s_length) then
+  !     s = s_length
+  !   end if
+  !   ci_x   =  xp*s + x0
+  !   len_xs = sqrt((ci_x-x0)**2 + s**2)
+  !   if(yp >= zero .and. y + yp*s <= ymax) then
+  !     len_ys = yp*len_xs
+  !   else if(yp < zero .and. y + yp*s >= ymin) then
+  !     len_ys = yp*len_xs
+  !   else
+  !     s      = (ymax-y)/yp
+  !     len_ys = sqrt((ymax-y)**2 + s**2)
+  !     ci_x   = x0 + xp*s
+  !     len_xs = sqrt((ci_x-x0)**2 + s**2)
+  !   end if
+  !   am_len = sqrt(len_xs**2 + len_ys**2)
+  !   s     = s/two
+  !   ci_x  = x0 + xp*s
+  !   y     = y0 + yp*s
+  !   ci_iProc = proc_AM
+  !   call cry_calcIonLoss(pc,am_len,dest,betar,bgr,gammar,tmax,plen,&
+  !                        ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !   call cry_moveAM(nam,am_len,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
+  !                   ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !   ci_x = ci_x + xp*(s_length-s)
+  !   y = y + yp*(s_length-s)
+  !   return
 
-  else if(ci_x > ci_xmax-ci_alayer .and. ci_x < ci_xmax) then
-    ci_iProc = proc_AM
-    call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
-                        ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-    call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                   ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-    return
+  ! else if(ci_x > ci_xmax-ci_alayer .and. ci_x < ci_xmax) then
+  !   ci_iProc = proc_AM
+  !   call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
+  !                       ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !   call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
+  !                  ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !   return
 
-  end if
+  ! end if
 
-  ! THIRD CASE: the p interacts with the crystal.
-  ! Define typical angles/probabilities for orientation 110
-  xpcrit0 = sqrt((c2m9*ci_eUm)/pc)    ! Critical angle (rad) for straight crystals
-  Rcrit   = (pc/(c2m6*ci_eUm))*ci_ai ! Critical curvature radius [m]
+  ! ! THIRD CASE: the p interacts with the crystal.
+  ! ! Define typical angles/probabilities for orientation 110
+  ! xpcrit0 = sqrt((c2m9*ci_eUm)/pc)    ! Critical angle (rad) for straight crystals
+  ! Rcrit   = (pc/(c2m6*ci_eUm))*ci_ai ! Critical curvature radius [m]
 
-  ! If R>Rcritical=>no channeling is possible (ratio<1)
-  ratio  = ci_rcurv/Rcrit
-  xpcrit = (xpcrit0*(ci_rcurv-Rcrit))/ci_rcurv ! Critical angle for curved crystal
+  ! ! If R>Rcritical=>no channeling is possible (ratio<1)
+  ! ratio  = ci_rcurv/Rcrit
+  ! xpcrit = (xpcrit0*(ci_rcurv-Rcrit))/ci_rcurv ! Critical angle for curved crystal
 
-  if(ratio <= one) then ! no possibile channeling
-    Ang_rms = ((c_v1*0.42_fPrec)*xpcrit0)*sin_mb(1.4_fPrec*ratio) ! RMS scattering
-    Ang_avr = ((c_v2*xpcrit0)*c5m2)*ratio                         ! Average angle reflection
-    Vcapt   = zero                                                ! Probability of VC
+  ! if(ratio <= one) then ! no possibile channeling
+  !   Ang_rms = ((c_v1*0.42_fPrec)*xpcrit0)*sin_mb(1.4_fPrec*ratio) ! RMS scattering
+  !   Ang_avr = ((c_v2*xpcrit0)*c5m2)*ratio                         ! Average angle reflection
+  !   Vcapt   = zero                                                ! Probability of VC
 
-  else if(ratio <= three) then ! Strongly bent crystal
-    Ang_rms = ((c_v1*0.42_fPrec)*xpcrit0)*sin_mb(0.4713_fPrec*ratio + 0.85_fPrec) ! RMS scattering
-    Ang_avr = (c_v2*xpcrit0)*(0.1972_fPrec*ratio - 0.1472_fPrec)                  ! Average angle reflection
-    Vcapt   = 7.0e-4_fPrec*(ratio - 0.7_fPrec)/pc**c2m1                           ! Correction by sasha drozdin/armen
-    ! K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+  ! else if(ratio <= three) then ! Strongly bent crystal
+  !   Ang_rms = ((c_v1*0.42_fPrec)*xpcrit0)*sin_mb(0.4713_fPrec*ratio + 0.85_fPrec) ! RMS scattering
+  !   Ang_avr = (c_v2*xpcrit0)*(0.1972_fPrec*ratio - 0.1472_fPrec)                  ! Average angle reflection
+  !   Vcapt   = 7.0e-4_fPrec*(ratio - 0.7_fPrec)/pc**c2m1                           ! Correction by sasha drozdin/armen
+  !   ! K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
 
-  else ! Rcry >> Rcrit
-    Ang_rms = (c_v1*xpcrit0)*(one/ratio)                ! RMS scattering
-    Ang_avr = (c_v2*xpcrit0)*(one - 1.6667_fPrec/ratio) ! Average angle for VR
-    Vcapt   = 7.0e-4_fPrec*(ratio - 0.7_fPrec)/pc**c2m1 ! Probability for VC correction by sasha drozdin/armen
-    ! K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+  ! else ! Rcry >> Rcrit
+  !   Ang_rms = (c_v1*xpcrit0)*(one/ratio)                ! RMS scattering
+  !   Ang_avr = (c_v2*xpcrit0)*(one - 1.6667_fPrec/ratio) ! Average angle for VR
+  !   Vcapt   = 7.0e-4_fPrec*(ratio - 0.7_fPrec)/pc**c2m1 ! Probability for VC correction by sasha drozdin/armen
+  !   ! K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
 
-  end if
+  ! end if
 
-  if(ci_orient == 2) then
-    Ang_avr = Ang_avr*0.93_fPrec
-    Ang_rms = Ang_rms*1.05_fPrec
-    xpcrit  = xpcrit*0.98_fPrec
-  end if
+  ! if(ci_orient == 2) then
+  !   Ang_avr = Ang_avr*0.93_fPrec
+  !   Ang_rms = Ang_rms*1.05_fPrec
+  !   xpcrit  = xpcrit*0.98_fPrec
+  ! end if
 
-  if(abs(xp_rel) < xpcrit) then
-    alpha  = xp_rel/xpcrit
-    Chann  = sqrt(0.9_fPrec*(one - alpha**2))*sqrt(one-(one/ratio)) ! Saturation at 95%
-    N_atom = c1m1
+  ! if(abs(xp_rel) < xpcrit) then
+  !   alpha  = xp_rel/xpcrit
+  !   Chann  = sqrt(0.9_fPrec*(one - alpha**2))*sqrt(one-(one/ratio)) ! Saturation at 95%
+  !   N_atom = c1m1
 
-    ! if they can channel: 2 options
-    if(coll_rand() <= chann) then ! option 1:channeling
+  !   ! if they can channel: 2 options
+  !   if(coll_rand() <= chann) then ! option 1:channeling
 
-      TLdech1 = (const_dech*pc)*(one-one/ratio)**2 ! Updated calculate typical dech. length(m)
-      if(coll_rand() <= n_atom) then
-        TLdech1 = ((const_dech/c2e2)*pc)*(one-one/ratio)**2  ! Updated dechanneling length (m)
-      end if
+  !     TLdech1 = (const_dech*pc)*(one-one/ratio)**2 ! Updated calculate typical dech. length(m)
+  !     if(coll_rand() <= n_atom) then
+  !       TLdech1 = ((const_dech/c2e2)*pc)*(one-one/ratio)**2  ! Updated dechanneling length (m)
+  !     end if
 
-      Dechan = -log_mb(coll_rand()) ! Probability of dechanneling
-      Ldech  = TLdech1*Dechan   ! Actual dechan. length
+  !     Dechan = -log_mb(coll_rand()) ! Probability of dechanneling
+  !     Ldech  = TLdech1*Dechan   ! Actual dechan. length
 
-      ! careful: the dechanneling lentgh is along the trajectory
-      ! of the particle -not along the longitudinal coordinate...
-      if(ldech < l_chan) then
-        ci_iProc = proc_DC
-        Dxp   = Ldech/r ! Change angle from channeling [mrad]
-        Sdech = Ldech*cos_mb(ci_miscut + half*Dxp)
-        ci_x  = ci_x  + Ldech*(sin_mb(half*Dxp+ci_miscut)) ! Trajectory at channeling exit
-        xp    = xp + Dxp + (two*(coll_rand()-half))*xpcrit
-        y     = y  + yp * Sdech
+  !     ! careful: the dechanneling lentgh is along the trajectory
+  !     ! of the particle -not along the longitudinal coordinate...
+  !     if(ldech < l_chan) then
+  !       ci_iProc = proc_DC
+  !       Dxp   = Ldech/r ! Change angle from channeling [mrad]
+  !       Sdech = Ldech*cos_mb(ci_miscut + half*Dxp)
+  !       ci_x  = ci_x  + Ldech*(sin_mb(half*Dxp+ci_miscut)) ! Trajectory at channeling exit
+  !       xp    = xp + Dxp + (two*(coll_rand()-half))*xpcrit
+  !       y     = y  + yp * Sdech
 
-        call cry_calcIonLoss(pc,ldech,dest,betar,bgr,gammar,tmax,plen,&
-                             ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-        pc = pc - half*dest*Ldech ! Energy loss to ionization while in CH [GeV]
-        ci_x  = ci_x  + (half*(s_length-Sdech))*xp
-        y  = y  + (half*(s_length-Sdech))*yp
+  !       call cry_calcIonLoss(pc,ldech,dest,betar,bgr,gammar,tmax,plen,&
+  !                            ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !       pc = pc - half*dest*Ldech ! Energy loss to ionization while in CH [GeV]
+  !       ci_x  = ci_x  + (half*(s_length-Sdech))*xp
+  !       y  = y  + (half*(s_length-Sdech))*yp
 
-        call cry_calcIonLoss(pc,s_length-sdech,dest,betar,bgr,gammar,tmax,plen,&
-                             ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-        call cry_moveAM(nam,s_length-sdech,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-        ci_x = ci_x + (half*(s_length-Sdech))*xp
-        y = y + (half*(s_length-Sdech))*yp
-      else
-        ci_iProc = proc_CH
-        xpin  = XP
-        ypin  = YP
+  !       call cry_calcIonLoss(pc,s_length-sdech,dest,betar,bgr,gammar,tmax,plen,&
+  !                            ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !       call cry_moveAM(nam,s_length-sdech,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
+  !                       ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !       ci_x = ci_x + (half*(s_length-Sdech))*xp
+  !       y = y + (half*(s_length-Sdech))*yp
+  !     else
+  !       ci_iProc = proc_CH
+  !       xpin  = XP
+  !       ypin  = YP
 
-        ! check if a nuclear interaction happen while in CH
-        call cry_moveCH(nam,l_chan,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
-        if(ci_iProc /= proc_CH) then
-          ! if an nuclear interaction happened, move until the middle with initial xp,yp then
-          ! propagate until the "crystal exit" with the new xp,yp accordingly with the rest
-          ! of the code in "thin lens approx"
-          ci_x = ci_x + (half*L_chan)*xpin
-          y = y + (half*L_chan)*ypin
-          ci_x = ci_x + (half*L_chan)*XP
-          y = y + (half*L_chan)*YP
+  !       ! check if a nuclear interaction happen while in CH
+  !       call cry_moveCH(nam,l_chan,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
+  !                       ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
+  !       if(ci_iProc /= proc_CH) then
+  !         ! if an nuclear interaction happened, move until the middle with initial xp,yp then
+  !         ! propagate until the "crystal exit" with the new xp,yp accordingly with the rest
+  !         ! of the code in "thin lens approx"
+  !         ci_x = ci_x + (half*L_chan)*xpin
+  !         y = y + (half*L_chan)*ypin
+  !         ci_x = ci_x + (half*L_chan)*XP
+  !         y = y + (half*L_chan)*YP
 
-          call cry_calcIonLoss(pc,length,dest,betar,bgr,gammar,tmax,plen,&
-                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          pc = pc - dest*length ! energy loss to ionization [GeV]
-        else
-          Dxp = tdefl + (half*ran_gauss(zero))*xpcrit ! Change angle[rad]
+  !         call cry_calcIonLoss(pc,length,dest,betar,bgr,gammar,tmax,plen,&
+  !                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         pc = pc - dest*length ! energy loss to ionization [GeV]
+  !       else
+  !         Dxp = tdefl + (half*ran_gauss(zero))*xpcrit ! Change angle[rad]
         
-          xp  = Dxp
-          ci_x = ci_x + L_chan*(sin_mb(half*Dxp)) ! Trajectory at channeling exit
-          y   = y + s_length * yp
+  !         xp  = Dxp
+  !         ci_x = ci_x + L_chan*(sin_mb(half*Dxp)) ! Trajectory at channeling exit
+  !         y   = y + s_length * yp
 
-          call cry_calcIonLoss(pc,length,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          pc = pc - (half*dest)*length ! energy loss to ionization [GeV]
-        end if
-      end if
+  !         call cry_calcIonLoss(pc,length,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         pc = pc - (half*dest)*length ! energy loss to ionization [GeV]
+  !       end if
+  !     end if
 
-    else ! Option 2: VR
+  !   else ! Option 2: VR
 
-      ! good for channeling but don't channel (1-2)
-      ci_iProc = proc_VR
+  !     ! good for channeling but don't channel (1-2)
+  !     ci_iProc = proc_VR
 
-      xp = xp + (0.45_fPrec*(xp_rel/xpcrit + one))*Ang_avr
-      ci_x  = ci_x  + (half*s_length)*xp
-      y  = y  + (half*s_length)*yp
+  !     xp = xp + (0.45_fPrec*(xp_rel/xpcrit + one))*Ang_avr
+  !     ci_x  = ci_x  + (half*s_length)*xp
+  !     y  = y  + (half*s_length)*yp
 
-      call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
-                           ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-      call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                      ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !     call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
+  !                          ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !     call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
+  !                     ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
 
-      ci_x = ci_x + (half*s_length)*xp
-      y = y + (half*s_length)*yp
+  !     ci_x = ci_x + (half*s_length)*xp
+  !     y = y + (half*s_length)*yp
 
-    end if
+  !   end if
 
-  else ! case 3-2: no good for channeling. check if the  can VR
+  ! else ! case 3-2: no good for channeling. check if the  can VR
 
-    Lrefl = xp_rel*r ! Distance of refl. point [m]
-    Srefl = sin_mb(xp_rel/two + ci_miscut)*Lrefl
+  !   Lrefl = xp_rel*r ! Distance of refl. point [m]
+  !   Srefl = sin_mb(xp_rel/two + ci_miscut)*Lrefl
 
-    if(Lrefl > zero .and. Lrefl < L_chan) then ! VR point inside
+  !   if(Lrefl > zero .and. Lrefl < L_chan) then ! VR point inside
 
-      ! 2 options: volume capture and volume reflection
+  !     ! 2 options: volume capture and volume reflection
 
-      if(coll_rand() > Vcapt .or. ZN == zero) then ! Option 1: VR
+  !     if(coll_rand() > Vcapt .or. ZN == zero) then ! Option 1: VR
 
-        ci_iProc = proc_VR
-        ci_x  = ci_x + xp*Srefl
-        y     = y + yp*Srefl
-        Dxp   = Ang_avr
-        xp    = xp + Dxp + Ang_rms*ran_gauss(zero)
-        ci_x  = ci_x  + (half*xp)*(s_length - Srefl)
-        y     = y  + (half*yp)*(s_length - Srefl)
+  !       ci_iProc = proc_VR
+  !       ci_x  = ci_x + xp*Srefl
+  !       y     = y + yp*Srefl
+  !       Dxp   = Ang_avr
+  !       xp    = xp + Dxp + Ang_rms*ran_gauss(zero)
+  !       ci_x  = ci_x  + (half*xp)*(s_length - Srefl)
+  !       y     = y  + (half*yp)*(s_length - Srefl)
 
-        call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
-                             ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-        call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                        ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-        ci_x = ci_x + (half*xp)*(s_length - Srefl)
-        y = y + (half*yp)*(s_length - Srefl)
+  !       call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
+  !                            ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !       call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
+  !                       ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !       ci_x = ci_x + (half*xp)*(s_length - Srefl)
+  !       y = y + (half*yp)*(s_length - Srefl)
 
-      else ! Option 2: VC
+  !     else ! Option 2: VC
 
-        ci_x = ci_x + xp*Srefl
-        y = y + yp*Srefl
+  !       ci_x = ci_x + xp*Srefl
+  !       y = y + yp*Srefl
 
-        TLdech2 = (const_dech/c1e1)*pc*(one-one/ratio)**2          ! Updated typical dechanneling length(m)
-        Ldech   = TLdech2*(sqrt(c1m2 - log_mb(coll_rand())) - c1m1)**2 ! Updated DC length
-        tdech   = Ldech/ci_rcurv
-        Sdech   = Ldech*cos_mb(xp + half*tdech)
+  !       TLdech2 = (const_dech/c1e1)*pc*(one-one/ratio)**2          ! Updated typical dechanneling length(m)
+  !       Ldech   = TLdech2*(sqrt(c1m2 - log_mb(coll_rand())) - c1m1)**2 ! Updated DC length
+  !       tdech   = Ldech/ci_rcurv
+  !       Sdech   = Ldech*cos_mb(xp + half*tdech)
 
-        if(Ldech < Length-Lrefl) then
+  !       if(Ldech < Length-Lrefl) then
 
-          ci_iProc = proc_DC
-          Dxp   = Ldech/ci_rcurv + (half*ran_gauss(zero))*xpcrit
-          ci_x  = ci_x + Ldech*(sin_mb(half*Dxp+xp)) ! Trajectory at channeling exit
-          y     = y + Sdech*yp
-          xp    =  Dxp
-          Red_S = (s_length - Srefl) - Sdech
-          ci_x  = ci_x + (half*xp)*Red_S
-          y     = y + (half*yp)*Red_S
+  !         ci_iProc = proc_DC
+  !         Dxp   = Ldech/ci_rcurv + (half*ran_gauss(zero))*xpcrit
+  !         ci_x  = ci_x + Ldech*(sin_mb(half*Dxp+xp)) ! Trajectory at channeling exit
+  !         y     = y + Sdech*yp
+  !         xp    =  Dxp
+  !         Red_S = (s_length - Srefl) - Sdech
+  !         ci_x  = ci_x + (half*xp)*Red_S
+  !         y     = y + (half*yp)*Red_S
 
-          call cry_calcIonLoss(pc,srefl,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          pc = pc - dest*Srefl ! "added" energy loss before capture
+  !         call cry_calcIonLoss(pc,srefl,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         pc = pc - dest*Srefl ! "added" energy loss before capture
 
-          call cry_calcIonLoss(pc,sdech,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          pc = pc - (half*dest)*Sdech ! "added" energy loss while captured
+  !         call cry_calcIonLoss(pc,sdech,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         pc = pc - (half*dest)*Sdech ! "added" energy loss while captured
 
-          call cry_calcIonLoss(pc,red_s,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          call cry_moveAM(nam,red_s,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                          ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-          ci_x = ci_x + (half*xp)*Red_S
-          y = y + (half*yp)*Red_S
+  !         call cry_calcIonLoss(pc,red_s,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         call cry_moveAM(nam,red_s,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
+  !                         ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !         ci_x = ci_x + (half*xp)*Red_S
+  !         y = y + (half*yp)*Red_S
 
-        else
+  !       else
 
-          ci_iProc   = proc_VC
-          Rlength = Length - Lrefl
-          tchan   = Rlength/ci_rcurv
-          Red_S   = Rlength*cos_mb(xp + half*tchan)
+  !         ci_iProc   = proc_VC
+  !         Rlength = Length - Lrefl
+  !         tchan   = Rlength/ci_rcurv
+  !         Red_S   = Rlength*cos_mb(xp + half*tchan)
 
-          call cry_calcIonLoss(pc,lrefl,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          pc   = pc - dest*Lrefl ! "added" energy loss before capture
-          xpin = xp
-          ypin = yp
+  !         call cry_calcIonLoss(pc,lrefl,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         pc   = pc - dest*Lrefl ! "added" energy loss before capture
+  !         xpin = xp
+  !         ypin = yp
 
-          ! Check if a nuclear interaction happen while in ch
-          call cry_moveCH(nam,rlength,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
+  !         ! Check if a nuclear interaction happen while in ch
+  !         call cry_moveCH(nam,rlength,ci_x,xp,yp,pc,ci_rcurv,rcrit,ci_rho,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csect,&
+  !                         ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_eUm,ci_collnt,ci_iProc)
                           
-          if(ci_iProc /= proc_VC) then
-            ! if an nuclear interaction happened, move until the middle with initial xp,yp then propagate until
-            ! the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
-            ci_x = ci_x + (half*Rlength)*xpin
-            y = y + (half*Rlength)*ypin
-            ci_x = ci_x + (half*Rlength)*XP
-            y = y + (half*Rlength)*YP
+  !         if(ci_iProc /= proc_VC) then
+  !           ! if an nuclear interaction happened, move until the middle with initial xp,yp then propagate until
+  !           ! the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
+  !           ci_x = ci_x + (half*Rlength)*xpin
+  !           y = y + (half*Rlength)*ypin
+  !           ci_x = ci_x + (half*Rlength)*XP
+  !           y = y + (half*Rlength)*YP
 
-            call cry_calcIonLoss(pc,rlength,dest,betar,bgr,gammar,tmax,plen,&
-                                 ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-            pc = pc - dest*Rlength
-          else
-            Dxp = (Length-Lrefl)/ci_rcurv
-            ci_x = ci_x + sin_mb(half*Dxp+xp)*Rlength ! Trajectory at channeling exit
-            y   = y + red_S*yp
-            xp  = tdefl + (half*ran_gauss(zero))*xpcrit ! [mrad]
+  !           call cry_calcIonLoss(pc,rlength,dest,betar,bgr,gammar,tmax,plen,&
+  !                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !           pc = pc - dest*Rlength
+  !         else
+  !           Dxp = (Length-Lrefl)/ci_rcurv
+  !           ci_x = ci_x + sin_mb(half*Dxp+xp)*Rlength ! Trajectory at channeling exit
+  !           y   = y + red_S*yp
+  !           xp  = tdefl + (half*ran_gauss(zero))*xpcrit ! [mrad]
 
-            call cry_calcIonLoss(pc,rlength,dest,betar,bgr,gammar,tmax,plen,&
-                                 ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-            pc = pc - (half*dest)*Rlength  ! "added" energy loss once captured
-          end if
-        end if
-      end if
+  !           call cry_calcIonLoss(pc,rlength,dest,betar,bgr,gammar,tmax,plen,&
+  !                                ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !           pc = pc - (half*dest)*Rlength  ! "added" energy loss once captured
+  !         end if
+  !       end if
+  !     end if
 
-    else
+  !   else
 
-      ! Case 3-3: move in amorphous substance (big input angles)
-      ! Modified for transition vram daniele
-      if(xp_rel > tdefl-ci_miscut + two*xpcrit .or. xp_rel < -xpcrit) then
-        ci_iProc = proc_AM
-        ci_x  = ci_x + (half*s_length)*xp
-        y     = y + (half*s_length)*yp
-        if(zn > zero) then
-          call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
-                          ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-        end if
-        ci_x = ci_x + (half*s_length)*xp
-        y = y + (half*s_length)*yp
-      else
-        Pvr = (xp_rel-(tdefl-ci_miscut))/(two*xpcrit)
-        if(coll_rand() > Pvr) then
-          ci_iProc = proc_TRVR
-          ci_x  = ci_x + xp*Srefl
-          y     = y + yp*Srefl
+  !     ! Case 3-3: move in amorphous substance (big input angles)
+  !     ! Modified for transition vram daniele
+  !     if(xp_rel > tdefl-ci_miscut + two*xpcrit .or. xp_rel < -xpcrit) then
+  !       ci_iProc = proc_AM
+  !       ci_x  = ci_x + (half*s_length)*xp
+  !       y     = y + (half*s_length)*yp
+  !       if(zn > zero) then
+  !         call cry_calcIonLoss(pc,s_length,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         call cry_moveAM(nam,s_length,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,ci_csref0,&
+  !                         ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !       end if
+  !       ci_x = ci_x + (half*s_length)*xp
+  !       y = y + (half*s_length)*yp
+  !     else
+  !       Pvr = (xp_rel-(tdefl-ci_miscut))/(two*xpcrit)
+  !       if(coll_rand() > Pvr) then
+  !         ci_iProc = proc_TRVR
+  !         ci_x  = ci_x + xp*Srefl
+  !         y     = y + yp*Srefl
 
-          Dxp = (((-three*Ang_rms)*xp_rel)/(two*xpcrit) + Ang_avr) + ((three*Ang_rms)*(tdefl-ci_miscut))/(two*xpcrit)
-          xp  = xp + Dxp
-          ci_x = ci_x + (half*xp)*(s_length-Srefl)
-          y   = y + (half*yp)*(s_length-Srefl)
+  !         Dxp = (((-three*Ang_rms)*xp_rel)/(two*xpcrit) + Ang_avr) + ((three*Ang_rms)*(tdefl-ci_miscut))/(two*xpcrit)
+  !         xp  = xp + Dxp
+  !         ci_x = ci_x + (half*xp)*(s_length-Srefl)
+  !         y   = y + (half*yp)*(s_length-Srefl)
 
-          call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
-                               ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-          ci_x = ci_x + (half*xp)*(s_length - Srefl)
-          y = y + (half*yp)*(s_length - Srefl)
-        else
-          ci_iProc = proc_TRAM
-          ci_x = ci_x + xp*Srefl
-          y = y + yp*Srefl
-          Dxp = ((((-one*(13.6_fPrec/pc))*sqrt(s_length/ci_dlri))*c1m3)*xp_rel)/(two*xpcrit) + &
-            (((13.6_fPrec/pc)*sqrt(s_length/ci_dlri))*c1m3)*(one+(tdefl-ci_miscut)/(two*xpcrit))
-          xp = xp+Dxp
-          ci_x  = ci_x + (half*xp)*(s_length-Srefl)
-          y  = y + (half*yp)*(s_length-Srefl)
+  !         call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
+  !                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
+  !                         ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !         ci_x = ci_x + (half*xp)*(s_length - Srefl)
+  !         y = y + (half*yp)*(s_length - Srefl)
+  !       else
+  !         ci_iProc = proc_TRAM
+  !         ci_x = ci_x + xp*Srefl
+  !         y = y + yp*Srefl
+  !         Dxp = ((((-one*(13.6_fPrec/pc))*sqrt(s_length/ci_dlri))*c1m3)*xp_rel)/(two*xpcrit) + &
+  !           (((13.6_fPrec/pc)*sqrt(s_length/ci_dlri))*c1m3)*(one+(tdefl-ci_miscut)/(two*xpcrit))
+  !         xp = xp+Dxp
+  !         ci_x  = ci_x + (half*xp)*(s_length-Srefl)
+  !         y  = y + (half*yp)*(s_length-Srefl)
 
-          call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
-                              ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
-          call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
-                          ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
-          ci_x = ci_x + (half*xp)*(s_length - Srefl)
-          y = y + (half*yp)*(s_length - Srefl)
-        end if
-      end if
-    end if
-  end if
+  !         call cry_calcIonLoss(pc,s_length-srefl,dest,betar,bgr,gammar,tmax,plen,&
+  !                             ci_exenergy,ci_zatom,ci_rho,ci_anuc,ci_dlri,ci_dlyi,ci_ai,ci_eUm,ci_collnt)
+  !         call cry_moveAM(nam,s_length-srefl,dest,ci_dlyi,ci_dlri,xp,yp,pc,ci_anuc,ci_zatom,ci_emr,ci_hcut,ci_bnref,&
+  !                         ci_csref0,ci_csref1,ci_csref4,ci_csref5,ci_collnt,ci_iProc)
+  !         ci_x = ci_x + (half*xp)*(s_length - Srefl)
+  !         y = y + (half*yp)*(s_length - Srefl)
+  !       end if
+  !     end if
+  !   end if
+  ! end if
 
-end subroutine cry_interact
+! end subroutine cry_interact
 
 ! ================================================================================================ !
 !  Subroutine for the calculazion of the energy loss by ionisation
@@ -996,7 +996,7 @@ subroutine cry_calcIonLoss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_plen,
   ! integer,          intent(in)  :: is
   real(kind=fPrec), intent(in)  :: pc
   real(kind=fPrec), intent(in)  :: dz
-  real(kind=fPrec), intent(out) :: EnLo
+  real(kind=fPrec), intent(inout) :: EnLo
   real(kind=fPrec), intent(in)  :: cc_betar
   real(kind=fPrec), intent(in)  :: cc_bgr
   real(kind=fPrec), intent(in)  :: cc_gammar

@@ -29,8 +29,6 @@ def initialise_random_ruth(zatom, emr, hcut):
 
 
 
-
-
 # This was the new implementation:
 
 
