@@ -87,7 +87,7 @@ tracker.track(part, num_turns=10)
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
 
-## Plot histogram of losses along the acceleratores
+## Plot histogram of losses along the accelerator
 ## ------------------------------------------------------------------
 
 wdth=0.1;

@@ -31,13 +31,6 @@ line['acsca.b5r4.b1'].frequency = 400e6
 line['acsca.c5r4.b1'].frequency = 400e6
 line['acsca.d5r4.b1'].frequency = 400e6
 
-for iee in range(len(line.element_names)):
-    if isinstance(line[iee], xt.Multipole) or isinstance(line[iee], xt.Cavity):
-        if line[iee+1].__class__.__name__.startswith('Limit'):
-            # Swap multipole and aperture
-            (line.element_names[iee], line.element_names[iee+1]
-                ) = line.element_names[iee+1], line.element_names[iee]
-
 elements = line.elements
 s_elements = np.array(line.get_s_elements())
 element_types = list(map(lambda e: e.__class__.__name__, elements))
@@ -86,11 +79,11 @@ for iee in range(i_prev_aperture, num_elements):
                 i_next_aperture = ii
                 break
 
-    elements_df.loc[iee, 'i_aperture_upstream'] = i_prev_aperture
-    elements_df.loc[iee, 'i_aperture_downstream'] = i_next_aperture
+    elements_df.at[iee, 'i_aperture_upstream'] = i_prev_aperture
+    elements_df.at[iee, 'i_aperture_downstream'] = i_next_aperture
 
-    elements_df.loc[iee, 's_aperture_upstream'] = elements_df.loc[i_prev_aperture, 's']
-    elements_df.loc[iee, 's_aperture_downstream'] = elements_df.loc[i_next_aperture, 's']
+    elements_df.at[iee, 's_aperture_upstream'] = elements_df.loc[i_prev_aperture, 's']
+    elements_df.at[iee, 's_aperture_downstream'] = elements_df.loc[i_next_aperture, 's']
 
 elements_df['misses_aperture_upstream'] = ((elements_df['s_aperture_upstream'] != elements_df['s'])
     & ~(np.isnan(elements_df['i_aperture_upstream'])))
