@@ -137,6 +137,7 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
+                    material=thiscoll['material'],
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)

@@ -369,3 +369,21 @@ Inermet = Material(
         nuclear_elastic_slope = 392.1,
         cross_section = [2.548, 1.473, 0, 0, 0, 0.5740e-2]
 )
+
+
+SixTrack_to_xcoll = {
+    "BE":   [Berylium],
+    "AL":   [Aluminium],
+    "CU":   [Copper],
+    "W":    [Tungsten, TungstenCrystal],
+    "PB":   [Lead],
+    "C":    [Carbon, CarbonCrystal],
+    "C2":   [Carbon2],
+    "Si":   [Silicon, SiliconCrystal],
+    "Ge":   [Germanium, GermaniumCrystal],
+    "MoGR": [MolybdenumGraphite],
+    "CuCD": [CopperDiamond],
+    "Mo":   [Molybdenum],
+    "Glid": [Glidcop],
+    "Iner": [Inermet]
+}
