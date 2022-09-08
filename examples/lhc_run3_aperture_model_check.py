@@ -48,3 +48,26 @@ for nn in ['mqwa.f5l7.b1..1', 'mqwa.f5l7.b1..2', 'mqwa.f5l7.b1..3',
                         name=nn+'_aper_patch')
 
 df_patched = line.check_aperture()
+
+
+# Initialise collmanager,on the specified buffer
+coll_manager = xc.CollimatorManager(
+    line=line,
+    colldb=xc.load_SixTrack_colldb('colldb/lhc_run3_b1.dat', emit=3.5e-6),
+    _buffer=buffer
+    )
+
+# Install collimators in line as black absorbers
+coll_manager.install_k2_collimators(verbose=True)
+
+# Build the tracker
+tracker = coll_manager.build_tracker()
+
+# Align the collimators
+coll_manager.align_collimators_to('front')
+
+# Set the collimator openings based on the colldb,
+# or manually override with the option gaps={collname: gap}
+coll_manager.set_openings()
+
+df_with_coll = coll_manager.check_aperture()

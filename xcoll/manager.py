@@ -22,7 +22,7 @@ class CollimatorManager:
         else:
             self.line = line
         self._k2engine = None   # only needed for FORTRAN K2Collimator
-        
+
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -60,7 +60,7 @@ class CollimatorManager:
     @property
     def record_impacts(self):
         return self._record_impacts
-    
+
     @record_impacts.setter
     def record_impacts(self, record_impacts):
         self._record_impacts = record_impacts
@@ -140,7 +140,7 @@ class CollimatorManager:
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
-        
+
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
         # Check that collimator marker exists in Line and CollDB,
@@ -163,7 +163,7 @@ class CollimatorManager:
 
         # Loop over collimators to install
         for name in names:
-            
+
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             for other_coll_class in _all_collimator_types - {collimator_class}:
@@ -211,7 +211,7 @@ class CollimatorManager:
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 
-    
+ 
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:
