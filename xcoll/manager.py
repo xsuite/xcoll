@@ -115,7 +115,7 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):        
+    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
         # Check for the existence of a K2Engine; warn if settings are different
         # (only one instance of K2Engine should exist).
         if self._k2engine is None:
@@ -192,7 +192,23 @@ class CollimatorManager:
                 df.loc[name,'collimator_type'] = collimator_class.__name__
                 # Do the installation
                 s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
+                if name+'_aper' in line.element_names:
+                    coll_aper = line[name+'_aper']
+                    assert coll_aper.__class__.__name__.startswith('Limit')
+                    if np.any([name+'_aper_tilt_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with tilt not yet implemented!")
+                    if np.any([name+'_aper_offset_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with offset not yet implemented!")
+                else:
+                    coll_aper = None
+
                 line.insert_element(element=newcoll, name=name, at_s=s_install)
+
+                if coll_aper is not None:
+                    line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
+                    line.insert_element(element=coll_aper, name=name+'_aper_back',
+                                        index=line.element_names.index(name)+1)
+
 
 
     def align_collimators_to(self, align):
@@ -211,7 +227,7 @@ class CollimatorManager:
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 
- 
+
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:

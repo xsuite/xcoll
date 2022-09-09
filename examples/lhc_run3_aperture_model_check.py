@@ -33,9 +33,10 @@ line['acsca.d5r4.b1'].frequency = 400e6
 
 df_imported = line.check_aperture()
 
+
 # Patch aperture model
 aperture_for_octupoles = line['mo.22r1.b1_mken_aper'].copy()
-aperture_for_mkwa = line['mqwa.e5l3.b1_mken_aper'].copy()
+aperture_for_mqwa = line['mqwa.e5l3.b1_mken_aper'].copy()
 
 for nn in ['mo.28r3.b1', 'mo.32r3.b1']:
     line.insert_element(index=nn, element=aperture_for_octupoles,
@@ -44,7 +45,7 @@ for nn in ['mo.28r3.b1', 'mo.32r3.b1']:
 for nn in ['mqwa.f5l7.b1..1', 'mqwa.f5l7.b1..2', 'mqwa.f5l7.b1..3',
            'mqwa.f5l7.b1..4', 'mqwa.f5r7.b1..1', 'mqwa.f5r7.b1..2',
            'mqwa.f5r7.b1..3', 'mqwa.f5r7.b1..4']:
-    line.insert_element(index=nn, element=aperture_for_mkwa,
+    line.insert_element(index=nn, element=aperture_for_mqwa,
                         name=nn+'_aper_patch')
 
 df_patched = line.check_aperture()
@@ -70,4 +71,4 @@ coll_manager.align_collimators_to('front')
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
 
-df_with_coll = coll_manager.check_aperture()
+df_with_coll = line.check_aperture()
