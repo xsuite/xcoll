@@ -5,7 +5,7 @@ import numpy as np
 from xcoll.beam_elements.k2.k2_random import get_random_gauss
 
 # Rutherford Scatter
-# tlcut_cry = 0.0009982
+tlcut_cry = 0.0009982
 # cgen_cry = np.zeros(200,1)
 # emr_curr_cry
 # zatom_curr_cry
@@ -589,7 +589,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 yp=np.array(yp)
                 pc=np.array(pc)
                 iProc=np.array(iProc) 
-                pyk2.pyk2_crymovech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                x,xp,yp,pc,iProc = movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
                                 csref0,csref1,csref4,csref5,eUm,collnt,iProc)
 
                 if (iProc != proc_CH):
@@ -729,7 +729,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     yp=np.array(yp)
                     pc=np.array(pc)
                     iProc=np.array(iProc) 
-                    pyk2.pyk2_crymovech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                    x,xp,yp,pc,iProc = movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
                                     csref0,csref1,csref4,csref5,eUm,collnt,iProc)
                                     
                     if (iProc != proc_VC):
@@ -823,7 +823,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + (0.5*xp)*(s_length - Srefl)
                     y = y + (0.5*yp)*(s_length - Srefl)
                 
-    return x, xp, y, yp, pc, iProc
+    return x,xp,y,yp,pc,iProc
 
 
 
@@ -1011,4 +1011,206 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
     xp = xp/1.0e3
     yp = yp/1.0e3
 
-    return xp, yp, pc, iProc
+    return xp,yp,pc,iProc
+
+
+def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csref1,csref4,csref5,eUm,collnt,iProc):
+
+    import scipy.special as sp
+
+    from .k2_random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
+    
+    pmae = 0.51099890
+    pmap = 938.271998
+
+    xp_in = xp
+    yp_in = yp
+    pc_in = pc
+
+    cs = np.zeros(6)
+    cprob = np.zeros(6)
+    xran_cry = np.zeros(1)
+    cgen = initialise_random_ruth(zatom, emr, hcut, is_crystal=True)
+
+    #New treatment of scattering routine based on standard sixtrack routine
+
+    #Useful calculations for cross-section and event topology calculation
+    ecmsq  = ((2*pmap)*1.0e-3)*pc
+    xln15s = np.log(0.15*ecmsq)
+
+    #New models, see Claudia's thesis
+    pptot = (0.041084 - 0.0023302*np.log(ecmsq)) + 0.00031514*np.log(ecmsq)**2
+    ppel  = (11.7 - 1.59*np.log(ecmsq) + 0.134*np.log(ecmsq)**2)/1.0e3
+    ppsd  = (4.3 + 0.3*np.log(ecmsq))/1.0e3
+    bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
+
+    #Distribution for Ruth. scatt.
+    tlow      = tlcut_cry
+    thigh     = hcut
+    emr_curr_cry = emr
+    zatom_curr_cry = zatom
+    xran_cry[0] = get_random_ruth(cgen)
+
+    #Rescale the total and inelastic cross-section accordigly to the average density seen
+    x_i = x
+    np  = int(x_i/dP)    #Calculate in which crystalline plane the particle enters
+    x_i = x_i - np*dP    #Rescale the incoming x at the left crystalline plane
+    x_i = x_i - (dP/2) #Rescale the incoming x in the middle of crystalline planes
+
+    pv   = pc**2/np.sqrt(pc**2 + (pmap*1.0e-3)**2)*1.0e9          #Calculate pv=P/E
+    Ueff = eUm*((2*x_i)/dP)*((2*x_i)/dP) + pv*x_i/r #Calculate effective potential
+    Et   = (pv*xp**2)/2 + Ueff                            #Calculate transverse energy
+    Ec   = (eUm*(1-rc/r))*(1-rc/r)                  #Calculate critical energy in bent crystals
+
+    #To avoid negative Et
+    xminU = ((-dP**2*pc)*1.0e9)/(8*eUm*r)
+    Umin  = np.abs((eUm*((2*xminU)/dP))*((2*xminU)/dP) + pv*xminU/r)
+    Et    = Et + Umin
+    Ec    = Ec + Umin
+
+    #Calculate min e max of the trajectory between crystalline planes
+    x_min = (-(dP/2)*rc)/r - (dP/2)*np.sqrt(Et/Ec)
+    x_Max = (-(dP/2)*rc)/r + (dP/2)*np.sqrt(Et/Ec)
+
+    #Change ref. frame and go back with 0 on the crystalline plane on the left
+    x_min = x_min - dP/2
+    x_max = x_max - dP/2
+
+    #Calculate the "normal density" in m^-3
+    N_am  = ((rho*6.022e23)*1.0e6)/anuc
+
+    #Calculate atomic density at min and max of the trajectory oscillation
+    rho_max = ((N_am*dP)/2)*(sp.erf(x_max/np.sqrt(2*u1**2)) - sp.erf((dP-x_Max)/np.sqrt(2*u1**2)))
+    rho_min = ((N_am*dP)/2)*(sp.erf(x_min/np.sqrt(2*u1**2)) - sp.erf((dP-x_min)/np.sqrt(2*u1**2)))
+
+    #"zero-approximation" of average nuclear density seen along the trajectory
+    avrrho  = (rho_max - rho_min)/(x_max - x_min)
+    avrrho  = (2*avrrho)/N_am
+
+    csref_tot_rsc  = csref0*avrrho #Rescaled total ref cs
+    csref_inel_rsc = csref1*avrrho #Rescaled inelastic ref cs
+
+    #Cross-section calculation
+    freep = freeco_cry * anuc**(1/3)
+
+    #compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+    cs[3] = freep*ppel
+    cs[4] = freep*ppsd
+
+    #correct TOT-CSec for energy dependence of qel
+    #TOT CS is here without a Coulomb contribution
+    cs[0] = csref_tot_rsc + freep*(pptot - pptref_cry)
+
+    #Also correct inel-CS
+    if(csref_tot_rsc == 0):
+        cs[1] = 0
+    
+    else:
+        cs[1] = (csref_inel_rsc*cs[0])/csref_tot_rsc
+    #end if
+
+    #Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+    cs[2] = ((cs[0] - cs[1]) - cs[3]) - cs[4]
+    cs[5] = csref5
+
+    #Now add Coulomb
+    cs[0] = cs[0] + cs[5]
+
+    #Calculate cumulative probability
+    cprob[:] = 0
+    cprob[5] = 1
+    
+    if (cs[0] == 0):
+        for i in range(1,5,1):
+            cprob[i] = cprob[i-1]
+            #end do
+    else:
+        for i in range(1,5,1):
+            cprob[i] = cprob[i-1] + cs[i]/cs[0]
+            #end do
+    #end if
+
+    #Multiple Coulomb Scattering
+    xp = xp*1.0e3
+    yp = yp*1.0e3
+
+    #Turn on/off nuclear interactions
+    if(nam == 0):
+        return x,xp,yp,pc,iProc
+
+    #Can nuclear interaction happen?
+    #Rescaled nuclear collision length
+    if(avrrho == 0):
+        nuc_cl_l = 1.0e6
+    else:
+        nuc_cl_l = collnt/avrrho
+        #end if
+    zlm = -nuc_cl_l*np.log(get_random())
+
+    #write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
+
+    if(zlm < dz):
+        #Choose nuclear interaction
+        aran = get_random()
+        i=1
+        while (aran > cprob[i]):
+            i=i+1
+            #end if
+        ichoix = i
+
+        #Do the interaction
+        t = 0 #default value to cover ichoix=1
+        
+        if (ichoix==1): #deep inelastic, impinging p disappeared
+            iProc = proc_ch_absorbed
+
+        elif (ichoix==2): #p-n elastic
+            iProc = proc_ch_pne
+            bn    = (bnref*cs(0))/csref_tot_rsc
+            t     = -np.log(get_random())/bn
+
+        elif (ichoix==3): #p-p elastic
+            iProc = proc_ch_ppe
+            t     = -np.log(get_random())/bpp
+
+        elif (ichoix==4): #Single diffractive
+            iProc = proc_ch_diff
+            xm2   = np.exp(get_random()*xln15s)
+            pc    = pc*(1 - xm2/ecmsq)
+
+            if (xm2 < 2):
+                bsd = 2*bpp
+            elif(xm2 >= 2 and xm2 <= 5):
+                bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
+            elif(xm2 > 5):
+                bsd = (7*bpp)/12.0
+            #end if
+            t = -np.log(get_random())/bsd
+
+        else: #(ichoix==5)
+            iProc      = proc_ch_ruth
+            length_cry = 1
+            xran_cry[0] = get_random_ruth(cgen[1])
+            t = xran_cry[0]
+
+
+        #Calculate the related kick -----------
+        if (ichoix == 4):
+            teta = np.sqrt(t)/pc_in #DIFF has changed PC!!!
+        else:
+            teta = np.sqrt(t)/pc
+            #end if
+
+        tx = (teta*get_random_gauss(0))*1.0e3
+        tz = (teta*get_random_gauss(0))*1.0e3
+
+        #Change p angle
+        xp = xp + tx
+        yp = yp + tz
+
+    #end if
+
+    xp = xp/1.0e3
+    yp = yp/1.0e3
+
+    return x,xp,yp,pc,iProc

@@ -1055,258 +1055,258 @@ end function pyk2_rand_gauss
 ! end subroutine pyk2_crymoveam
 
 
-subroutine pyk2_crymovech(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
-                      ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
-  use coll_crystal !, only: cry_moveCH
+! subroutine pyk2_crymovech(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
+!                       ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
+!   use coll_crystal !, only: cry_moveCH
 
-  use crcoall
-  use mod_ranlux, only: ran_gauss, coll_rand
-  use mod_funlux, only: funlux, funlxp
-  ! use floatPrecision
-  use coll_common, only : coll_debug
-  use mathlib_bouncer
-  use physical_constants
+!   use crcoall
+!   use mod_ranlux, only: ran_gauss, coll_rand
+!   use mod_funlux, only: funlux, funlxp
+!   ! use floatPrecision
+!   use coll_common, only : coll_debug
+!   use mathlib_bouncer
+!   use physical_constants
 
-  ! integer, parameter :: proc_out         =  -1     ! Crystal not hit
-  ! integer, parameter :: proc_AM          =   1     ! Amorphous
-  ! integer, parameter :: proc_VR          =   2     ! Volume reflection
-  ! integer, parameter :: proc_CH          =   3     ! Channeling
-  ! integer, parameter :: proc_VC          =   4     ! Volume capture
-  ! integer, parameter :: proc_absorbed    =   5     ! Absorption
-  ! integer, parameter :: proc_DC          =   6     ! Dechanneling
-  ! integer, parameter :: proc_pne         =   7     ! Proton-neutron elastic interaction
-  ! integer, parameter :: proc_ppe         =   8     ! Proton-proton elastic interaction
-  ! integer, parameter :: proc_diff        =   9     ! Single diffractive
-  ! integer, parameter :: proc_ruth        =  10     ! Rutherford scattering
-  ! integer, parameter :: proc_ch_absorbed =  15     ! Channeling followed by absorption
-  ! integer, parameter :: proc_ch_pne      =  17     ! Channeling followed by proton-neutron elastic interaction
-  ! integer, parameter :: proc_ch_ppe      =  18     ! Channeling followed by proton-proton elastic interaction
-  ! integer, parameter :: proc_ch_diff     =  19     ! Channeling followed by single diffractive
-  ! integer, parameter :: proc_ch_ruth     =  20     ! Channeling followed by Rutherford scattering
-  ! integer, parameter :: proc_TRVR        = 100     ! Volume reflection in VR-AM transition region
-  ! integer, parameter :: proc_TRAM        = 101     ! Amorphous in VR-AM transition region
+!   ! integer, parameter :: proc_out         =  -1     ! Crystal not hit
+!   ! integer, parameter :: proc_AM          =   1     ! Amorphous
+!   ! integer, parameter :: proc_VR          =   2     ! Volume reflection
+!   ! integer, parameter :: proc_CH          =   3     ! Channeling
+!   ! integer, parameter :: proc_VC          =   4     ! Volume capture
+!   ! integer, parameter :: proc_absorbed    =   5     ! Absorption
+!   ! integer, parameter :: proc_DC          =   6     ! Dechanneling
+!   ! integer, parameter :: proc_pne         =   7     ! Proton-neutron elastic interaction
+!   ! integer, parameter :: proc_ppe         =   8     ! Proton-proton elastic interaction
+!   ! integer, parameter :: proc_diff        =   9     ! Single diffractive
+!   ! integer, parameter :: proc_ruth        =  10     ! Rutherford scattering
+!   ! integer, parameter :: proc_ch_absorbed =  15     ! Channeling followed by absorption
+!   ! integer, parameter :: proc_ch_pne      =  17     ! Channeling followed by proton-neutron elastic interaction
+!   ! integer, parameter :: proc_ch_ppe      =  18     ! Channeling followed by proton-proton elastic interaction
+!   ! integer, parameter :: proc_ch_diff     =  19     ! Channeling followed by single diffractive
+!   ! integer, parameter :: proc_ch_ruth     =  20     ! Channeling followed by Rutherford scattering
+!   ! integer, parameter :: proc_TRVR        = 100     ! Volume reflection in VR-AM transition region
+!   ! integer, parameter :: proc_TRAM        = 101     ! Amorphous in VR-AM transition region
 
 
-  integer,          intent(in)    :: nam
-  real(kind=8), intent(in)    :: dz
-  real(kind=8), intent(inout) :: ch_x
-  real(kind=8), intent(inout) :: xp
-  real(kind=8), intent(inout) :: yp
-  real(kind=8), intent(inout) :: pc
-  real(kind=8), intent(in)    :: r
-  real(kind=8), intent(in)    :: rc
+!   integer,          intent(in)    :: nam
+!   real(kind=8), intent(in)    :: dz
+!   real(kind=8), intent(inout) :: ch_x
+!   real(kind=8), intent(inout) :: xp
+!   real(kind=8), intent(inout) :: yp
+!   real(kind=8), intent(inout) :: pc
+!   real(kind=8), intent(in)    :: r
+!   real(kind=8), intent(in)    :: rc
 
-  real(kind=8), intent(in)    :: ch_rho
-  real(kind=8), intent(in)    :: ch_anuc
-  real(kind=8), intent(in)    :: ch_zatom
-  real(kind=8), intent(in)    :: ch_emr
-  real(kind=8), intent(in)    :: ch_hcut
-  real(kind=8), intent(in)    :: ch_bnref
+!   real(kind=8), intent(in)    :: ch_rho
+!   real(kind=8), intent(in)    :: ch_anuc
+!   real(kind=8), intent(in)    :: ch_zatom
+!   real(kind=8), intent(in)    :: ch_emr
+!   real(kind=8), intent(in)    :: ch_hcut
+!   real(kind=8), intent(in)    :: ch_bnref
 
-  real(kind=8), intent(in)    :: ch_csref0
-  real(kind=8), intent(in)    :: ch_csref1
-  real(kind=8), intent(in)    :: ch_csref4
-  real(kind=8), intent(in)    :: ch_csref5
+!   real(kind=8), intent(in)    :: ch_csref0
+!   real(kind=8), intent(in)    :: ch_csref1
+!   real(kind=8), intent(in)    :: ch_csref4
+!   real(kind=8), intent(in)    :: ch_csref5
 
-  real(kind=8), intent(in)    :: ch_csect
-  real(kind=8), intent(in)    :: ch_eUm
-  real(kind=8), intent(in)    :: ch_collnt
+!   real(kind=8), intent(in)    :: ch_csect
+!   real(kind=8), intent(in)    :: ch_eUm
+!   real(kind=8), intent(in)    :: ch_collnt
 
-  integer,          intent(inout) :: ch_iProc
+!   integer,          intent(inout) :: ch_iProc
 
-  integer i,np,length_cry,ichoix
-  real(kind=8) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
-    x_max,x_i,Umin,Ueff,tz,tx,tlow,thigh,teta,rho_min,rho_max,pv,pptot,ppsd,ppel,PC_in,nuc_cl_l,&
-    N_am,Et,ecmsq,Ec,csref_inel_rsc,csref_tot_rsc,bsd,bpp,aran,avrrho
-  real(kind=8) ch_cgen_cry(200)
+!   integer i,np,length_cry,ichoix
+!   real(kind=8) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
+!     x_max,x_i,Umin,Ueff,tz,tx,tlow,thigh,teta,rho_min,rho_max,pv,pptot,ppsd,ppel,PC_in,nuc_cl_l,&
+!     N_am,Et,ecmsq,Ec,csref_inel_rsc,csref_tot_rsc,bsd,bpp,aran,avrrho
+!   real(kind=8) ch_cgen_cry(200)
 
-  xp_in = xp
-  yp_in = yp
-  pc_in = pc
+!   xp_in = xp
+!   yp_in = yp
+!   pc_in = pc
 
-  ! New treatment of scattering routine based on standard sixtrack routine
+!   ! New treatment of scattering routine based on standard sixtrack routine
 
-  ! Useful calculations for cross-section and event topology calculation
-  ecmsq  = ((two*pmap)*c1m3)*pc
-  xln15s = log_mb(0.15*ecmsq)
+!   ! Useful calculations for cross-section and event topology calculation
+!   ecmsq  = ((two*pmap)*c1m3)*pc
+!   xln15s = log_mb(0.15*ecmsq)
 
-  ! New models, see Claudia's thesis
-  pptot = (0.041084 - 0.0023302*log_mb(ecmsq)) + 0.00031514*log_mb(ecmsq)**2
-  ppel  = (11.7 - 1.59*log_mb(ecmsq) + 0.134*log_mb(ecmsq)**2)/c1e3
-  ppsd  = (4.3 + 0.3*log_mb(ecmsq))/c1e3
-  bpp   = 7.156 + 1.439*log_mb(sqrt(ecmsq))
+!   ! New models, see Claudia's thesis
+!   pptot = (0.041084 - 0.0023302*log_mb(ecmsq)) + 0.00031514*log_mb(ecmsq)**2
+!   ppel  = (11.7 - 1.59*log_mb(ecmsq) + 0.134*log_mb(ecmsq)**2)/c1e3
+!   ppsd  = (4.3 + 0.3*log_mb(ecmsq))/c1e3
+!   bpp   = 7.156 + 1.439*log_mb(sqrt(ecmsq))
 
-  ! Distribution for Ruth. scatt.
-  tlow      = tlcut_cry
-  thigh     = ch_hcut
-  emr_curr_cry = ch_emr
-  zatom_curr_cry = ch_zatom
-  call funlxp(cry_ruth,ch_cgen_cry(1),tlow,thigh)
+!   ! Distribution for Ruth. scatt.
+!   tlow      = tlcut_cry
+!   thigh     = ch_hcut
+!   emr_curr_cry = ch_emr
+!   zatom_curr_cry = ch_zatom
+!   call funlxp(cry_ruth,ch_cgen_cry(1),tlow,thigh)
 
-  ! Rescale the total and inelastic cross-section accordigly to the average density seen
-  x_i = ch_x
-  np  = int(x_i/dp)    ! Calculate in which crystalline plane the particle enters
-  x_i = x_i - Np*dP    ! Rescale the incoming x at the left crystalline plane
-  x_i = x_i - (dP/two) ! Rescale the incoming x in the middle of crystalline planes
+!   ! Rescale the total and inelastic cross-section accordigly to the average density seen
+!   x_i = ch_x
+!   np  = int(x_i/dp)    ! Calculate in which crystalline plane the particle enters
+!   x_i = x_i - Np*dP    ! Rescale the incoming x at the left crystalline plane
+!   x_i = x_i - (dP/two) ! Rescale the incoming x in the middle of crystalline planes
 
-  pv   = pc**2/sqrt(pc**2 + (pmap*c1m3)**2)*c1e9          ! Calculate pv=P/E
-  Ueff = ch_eUm*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
-  Et   = (pv*xp**2)/two + Ueff                            ! Calculate transverse energy
-  Ec   = (ch_eUm*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
+!   pv   = pc**2/sqrt(pc**2 + (pmap*c1m3)**2)*c1e9          ! Calculate pv=P/E
+!   Ueff = ch_eUm*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
+!   Et   = (pv*xp**2)/two + Ueff                            ! Calculate transverse energy
+!   Ec   = (ch_eUm*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
 
-  ! To avoid negative Et
-  xminU = ((-dp**2*pc)*c1e9)/(eight*ch_eUm*r)
-  Umin  = abs((ch_eUm*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
-  Et    = Et + Umin
-  Ec    = Ec + Umin
+!   ! To avoid negative Et
+!   xminU = ((-dp**2*pc)*c1e9)/(eight*ch_eUm*r)
+!   Umin  = abs((ch_eUm*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
+!   Et    = Et + Umin
+!   Ec    = Ec + Umin
 
-  ! Calculate min e max of the trajectory between crystalline planes
-  x_min = (-(dP/two)*Rc)/R - (dP/two)*sqrt(Et/Ec)
-  x_Max = (-(dP/two)*Rc)/R + (dP/two)*sqrt(Et/Ec)
+!   ! Calculate min e max of the trajectory between crystalline planes
+!   x_min = (-(dP/two)*Rc)/R - (dP/two)*sqrt(Et/Ec)
+!   x_Max = (-(dP/two)*Rc)/R + (dP/two)*sqrt(Et/Ec)
 
-  ! Change ref. frame and go back with 0 on the crystalline plane on the left
-  x_min = x_min - dp/two
-  x_max = x_max - dp/two
+!   ! Change ref. frame and go back with 0 on the crystalline plane on the left
+!   x_min = x_min - dp/two
+!   x_max = x_max - dp/two
 
-  ! Calculate the "normal density" in m^-3
-  N_am  = ((ch_rho*6.022e23)*c1e6)/ch_anuc
+!   ! Calculate the "normal density" in m^-3
+!   N_am  = ((ch_rho*6.022e23)*c1e6)/ch_anuc
 
-  ! Calculate atomic density at min and max of the trajectory oscillation
-  rho_max = ((N_am*dp)/two)*(erf(x_max/sqrt(two*u1**2)) - erf((dP-x_Max)/sqrt(two*u1**2)))
-  rho_min = ((N_am*dP)/two)*(erf(x_min/sqrt(two*u1**2)) - erf((dP-x_min)/sqrt(two*u1**2)))
+!   ! Calculate atomic density at min and max of the trajectory oscillation
+!   rho_max = ((N_am*dp)/two)*(erf(x_max/sqrt(two*u1**2)) - erf((dP-x_Max)/sqrt(two*u1**2)))
+!   rho_min = ((N_am*dP)/two)*(erf(x_min/sqrt(two*u1**2)) - erf((dP-x_min)/sqrt(two*u1**2)))
 
-  ! "zero-approximation" of average nuclear density seen along the trajectory
-  avrrho  = (rho_max - rho_min)/(x_max - x_min)
-  avrrho  = (two*avrrho)/N_am
+!   ! "zero-approximation" of average nuclear density seen along the trajectory
+!   avrrho  = (rho_max - rho_min)/(x_max - x_min)
+!   avrrho  = (two*avrrho)/N_am
 
-  csref_tot_rsc  = ch_csref0*avrrho ! Rescaled total ref cs
-  csref_inel_rsc = ch_csref1*avrrho ! Rescaled inelastic ref cs
+!   csref_tot_rsc  = ch_csref0*avrrho ! Rescaled total ref cs
+!   csref_inel_rsc = ch_csref1*avrrho ! Rescaled inelastic ref cs
 
-  ! Cross-section calculation
-  freep = freeco_cry * ch_anuc**(one/three)
+!   ! Cross-section calculation
+!   freep = freeco_cry * ch_anuc**(one/three)
 
-  ! compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
-  cs(3) = freep*ppel
-  cs(4) = freep*ppsd
+!   ! compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+!   cs(3) = freep*ppel
+!   cs(4) = freep*ppsd
 
-  ! correct TOT-CSec for energy dependence of qel
-  ! TOT CS is here without a Coulomb contribution
-  cs(0) = csref_tot_rsc + freep*(pptot - pptref_cry)
+!   ! correct TOT-CSec for energy dependence of qel
+!   ! TOT CS is here without a Coulomb contribution
+!   cs(0) = csref_tot_rsc + freep*(pptot - pptref_cry)
 
-  ! Also correct inel-CS
-  if(csref_tot_rsc == zero) then
-    cs(1) = zero
-  else
-    cs(1) = (csref_inel_rsc*cs(0))/csref_tot_rsc
-  end if
+!   ! Also correct inel-CS
+!   if(csref_tot_rsc == zero) then
+!     cs(1) = zero
+!   else
+!     cs(1) = (csref_inel_rsc*cs(0))/csref_tot_rsc
+!   end if
 
-  ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-  cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
-  cs(5) = ch_csref5
+!   ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+!   cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
+!   cs(5) = ch_csref5
 
-  ! Now add Coulomb
-  cs(0) = cs(0) + cs(5)
+!   ! Now add Coulomb
+!   cs(0) = cs(0) + cs(5)
 
-  ! Calculate cumulative probability
-  cprob(:) = zero
-  cprob(5) = one
-  if(cs(0) == zero) then
-    do i=1,4
-      cprob(i) = cprob(i-1)
-    end do
-  else
-    do i=1,4
-      cprob(i) = cprob(i-1) + cs(i)/cs(0)
-    end do
-  end if
+!   ! Calculate cumulative probability
+!   cprob(:) = zero
+!   cprob(5) = one
+!   if(cs(0) == zero) then
+!     do i=1,4
+!       cprob(i) = cprob(i-1)
+!     end do
+!   else
+!     do i=1,4
+!       cprob(i) = cprob(i-1) + cs(i)/cs(0)
+!     end do
+!   end if
 
-  ! Multiple Coulomb Scattering
-  xp = xp*c1e3
-  yp = yp*c1e3
+!   ! Multiple Coulomb Scattering
+!   xp = xp*c1e3
+!   yp = yp*c1e3
 
-  ! Turn on/off nuclear interactions
-  if(nam == 0) return
+!   ! Turn on/off nuclear interactions
+!   if(nam == 0) return
 
-  ! Can nuclear interaction happen?
-  ! Rescaled nuclear collision length
-  if(avrrho == zero) then
-    nuc_cl_l = c1e6
-  else
-    nuc_cl_l = ch_collnt/avrrho
-  end if
-  zlm = -nuc_cl_l*log_mb(coll_rand())
+!   ! Can nuclear interaction happen?
+!   ! Rescaled nuclear collision length
+!   if(avrrho == zero) then
+!     nuc_cl_l = c1e6
+!   else
+!     nuc_cl_l = ch_collnt/avrrho
+!   end if
+!   zlm = -nuc_cl_l*log_mb(coll_rand())
 
-  ! write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
+!   ! write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
 
-  if(zlm < dz) then
-    ! Choose nuclear interaction
-    aran = coll_rand()
-    i=1
-10  if(aran > cprob(i)) then
-      i=i+1
-      goto 10
-    end if
-    ichoix = i
+!   if(zlm < dz) then
+!     ! Choose nuclear interaction
+!     aran = coll_rand()
+!     i=1
+! 10  if(aran > cprob(i)) then
+!       i=i+1
+!       goto 10
+!     end if
+!     ichoix = i
 
-    ! Do the interaction
-    t = 0 ! default value to cover ichoix=1
-    select case(ichoix)
-    case(1) ! deep inelastic, impinging p disappeared
-      ch_iProc = proc_ch_absorbed
+!     ! Do the interaction
+!     t = 0 ! default value to cover ichoix=1
+!     select case(ichoix)
+!     case(1) ! deep inelastic, impinging p disappeared
+!       ch_iProc = proc_ch_absorbed
 
-    case(2) ! p-n elastic
-      ch_iProc = proc_ch_pne
-      bn    = (ch_bnref*cs(0))/csref_tot_rsc
-      t     = -log_mb(coll_rand())/bn
+!     case(2) ! p-n elastic
+!       ch_iProc = proc_ch_pne
+!       bn    = (ch_bnref*cs(0))/csref_tot_rsc
+!       t     = -log_mb(coll_rand())/bn
 
-    case(3) ! p-p elastic
-      ch_iProc = proc_ch_ppe
-      t     = -log_mb(coll_rand())/bpp
+!     case(3) ! p-p elastic
+!       ch_iProc = proc_ch_ppe
+!       t     = -log_mb(coll_rand())/bpp
 
-    case(4) ! Single diffractive
-      ch_iProc = proc_ch_diff
-      xm2   = exp_mb(coll_rand()*xln15s)
-      pc    = pc*(one - xm2/ecmsq)
-      if(xm2 < two) then
-        bsd = two*bpp
-      else if(xm2 >= two .and. xm2 <= five) then
-        bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
-      else if(xm2 > five) then
-        bsd = (seven*bpp)/12.0
-      end if
-      t = -log_mb(coll_rand())/bsd
+!     case(4) ! Single diffractive
+!       ch_iProc = proc_ch_diff
+!       xm2   = exp_mb(coll_rand()*xln15s)
+!       pc    = pc*(one - xm2/ecmsq)
+!       if(xm2 < two) then
+!         bsd = two*bpp
+!       else if(xm2 >= two .and. xm2 <= five) then
+!         bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
+!       else if(xm2 > five) then
+!         bsd = (seven*bpp)/12.0
+!       end if
+!       t = -log_mb(coll_rand())/bsd
 
-    case(5)
-      ch_iProc      = proc_ch_ruth
-      length_cry = 1
-      call funlux(ch_cgen_cry(1),xran_cry,length_cry)
-      t = xran_cry(1)
+!     case(5)
+!       ch_iProc      = proc_ch_ruth
+!       length_cry = 1
+!       call funlux(ch_cgen_cry(1),xran_cry,length_cry)
+!       t = xran_cry(1)
 
-    end select
+!     end select
 
-    ! Calculate the related kick -----------
-    if(ichoix == 4) then
-      teta = sqrt(t)/pc_in ! DIFF has changed PC!!!
-    else
-      teta = sqrt(t)/pc
-    end if
+!     ! Calculate the related kick -----------
+!     if(ichoix == 4) then
+!       teta = sqrt(t)/pc_in ! DIFF has changed PC!!!
+!     else
+!       teta = sqrt(t)/pc
+!     end if
 
-    tx = (teta*ran_gauss(zero))*c1e3
-    tz = (teta*ran_gauss(zero))*c1e3
+!     tx = (teta*ran_gauss(zero))*c1e3
+!     tz = (teta*ran_gauss(zero))*c1e3
 
-    ! Change p angle
-    xp = xp + tx
-    yp = yp + tz
+!     ! Change p angle
+!     xp = xp + tx
+!     yp = yp + tz
 
-  end if
+!   end if
 
-  xp = xp/c1e3
-  yp = yp/c1e3
+!   xp = xp/c1e3
+!   yp = yp/c1e3
 
-  ! call cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
-  !                     ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
+!   ! call cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
+!   !                     ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
 
-end subroutine pyk2_crymovech
+! end subroutine pyk2_crymovech
 
 
 ! real(kind=8) function cry_ruth(t_cry)
