@@ -20,11 +20,18 @@ def get_random_gauss(cut):
     return pyk2.pyk2_rand_gauss(cut)
 
 
-def initialise_random_ruth(zatom, emr, hcut):
+def initialise_random_ruth(zatom, emr, hcut, is_crystal=False):
     cgen = np.zeros(200, dtype=np.float64)
-    pyk2.make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut)
-    return cgen
 
+    # Rutherford normalisation should be 2.607e-5
+    # This was fixed in SixTrack K2, but not in crystals
+    # We keep the wrong value for crystals to match the references
+    if is_crystal:
+        cnorm  = 2.607e-4
+    else:
+        cnorm  = 2.607e-5
+    pyk2.make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut, cnorm=cnorm)
+    return cgen
 
 
 

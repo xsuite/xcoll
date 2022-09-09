@@ -42,7 +42,7 @@ module coll_crystal
 
   ! Rutherford Scatter
   real(kind=fPrec), parameter     :: tlcut_cry = 0.0009982_fPrec
-  real(kind=fPrec), private, save :: cgen_cry(200,1)
+  !real(kind=fPrec), private, save :: cgen_cry(200,1)
   real(kind=fPrec), private, save :: emr_curr_cry
   real(kind=fPrec), private, save :: zatom_curr_cry
 
@@ -983,470 +983,470 @@ contains
 ! ================================================================================================ !
 !  Subroutine for the calculazion of the energy loss by ionisation
 ! ================================================================================================ !
-subroutine cry_calcIonLoss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_plen,cc_exenergy,cc_zatom,&
-                           cc_rho,cc_anuc,cc_dlri,cc_dlyi,cc_ai,cc_eUm,cc_collnt)
+! subroutine cry_calcIonLoss(pc,dz,EnLo,cc_betar,cc_bgr,cc_gammar,cc_tmax,cc_plen,cc_exenergy,cc_zatom,&
+!                            cc_rho,cc_anuc,cc_dlri,cc_dlyi,cc_ai,cc_eUm,cc_collnt)
 
-  use mod_ranlux
-  use mod_funlux
-  use floatPrecision
-  ! use coll_materials, only : zatom, exenergy, rho, anuc
-  use mathlib_bouncer
-  use physical_constants
+  ! use mod_ranlux
+  ! use mod_funlux
+  ! use floatPrecision
+  ! ! use coll_materials, only : zatom, exenergy, rho, anuc
+  ! use mathlib_bouncer
+  ! use physical_constants
 
-  ! integer,          intent(in)  :: is
-  real(kind=fPrec), intent(in)  :: pc
-  real(kind=fPrec), intent(in)  :: dz
-  real(kind=fPrec), intent(inout) :: EnLo
-  real(kind=fPrec), intent(in)  :: cc_betar
-  real(kind=fPrec), intent(in)  :: cc_bgr
-  real(kind=fPrec), intent(in)  :: cc_gammar
-  real(kind=fPrec), intent(in)  :: cc_tmax
-  real(kind=fPrec), intent(in)  :: cc_plen
+  ! ! integer,          intent(in)  :: is
+  ! real(kind=fPrec), intent(in)  :: pc
+  ! real(kind=fPrec), intent(in)  :: dz
+  ! real(kind=fPrec), intent(inout) :: EnLo
+  ! real(kind=fPrec), intent(in)  :: cc_betar
+  ! real(kind=fPrec), intent(in)  :: cc_bgr
+  ! real(kind=fPrec), intent(in)  :: cc_gammar
+  ! real(kind=fPrec), intent(in)  :: cc_tmax
+  ! real(kind=fPrec), intent(in)  :: cc_plen
 
-  real(kind=fPrec), intent(in)  :: cc_exenergy
-  real(kind=fPrec), intent(in)  :: cc_zatom
-  real(kind=fPrec), intent(in)  :: cc_rho
-  real(kind=fPrec), intent(in)  :: cc_anuc
+  ! real(kind=fPrec), intent(in)  :: cc_exenergy
+  ! real(kind=fPrec), intent(in)  :: cc_zatom
+  ! real(kind=fPrec), intent(in)  :: cc_rho
+  ! real(kind=fPrec), intent(in)  :: cc_anuc
   
-  real(kind=fPrec), intent(in)  :: cc_dlri
-  real(kind=fPrec), intent(in)  :: cc_dlyi
-  real(kind=fPrec), intent(in)  :: cc_ai
-  real(kind=fPrec), intent(in)  :: cc_eUm
-  real(kind=fPrec), intent(in)  :: cc_collnt
+  ! real(kind=fPrec), intent(in)  :: cc_dlri
+  ! real(kind=fPrec), intent(in)  :: cc_dlyi
+  ! real(kind=fPrec), intent(in)  :: cc_ai
+  ! real(kind=fPrec), intent(in)  :: cc_eUm
+  ! real(kind=fPrec), intent(in)  :: cc_collnt
 
-  real(kind=fPrec) thl,tt,cs_tail,prob_tail
-  real(kind=fPrec), parameter :: k = 0.307075_fPrec ! Constant in front bethe-bloch [mev g^-1 cm^2]
+  ! real(kind=fPrec) thl,tt,cs_tail,prob_tail
+  ! real(kind=fPrec), parameter :: k = 0.307075_fPrec ! Constant in front bethe-bloch [mev g^-1 cm^2]
 
-  thl       = (((((four*k)*cc_zatom)*dz)*c1e2)*cc_rho)/(cc_anuc*cc_betar**2) ! [MeV]
-  EnLo      = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
-    half*log_mb(((((two*pmae)*cc_bgr)*cc_bgr)*cc_tmax)/(c1e6*cc_exenergy**2)) - &
-    cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half    &
-  )
-  EnLo      = ((EnLo*cc_rho)*c1m1)*dz ! [GeV]
-  Tt        = (EnLo*c1e3)+thl          ! [MeV]
+  ! thl       = (((((four*k)*cc_zatom)*dz)*c1e2)*cc_rho)/(cc_anuc*cc_betar**2) ! [MeV]
+  ! EnLo      = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
+  !   half*log_mb(((((two*pmae)*cc_bgr)*cc_bgr)*cc_tmax)/(c1e6*cc_exenergy**2)) - &
+  !   cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half    &
+  ! )
+  ! EnLo      = ((EnLo*cc_rho)*c1m1)*dz ! [GeV]
+  ! Tt        = (EnLo*c1e3)+thl          ! [MeV]
 
-  cs_tail   = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ((half*((one/Tt)-(one/cc_tmax))) - &
-    (log_mb(cc_tmax/Tt)*(cc_betar**2)/(two*cc_tmax)) + ((cc_tmax-Tt)/((four*(cc_gammar**2))*(pmap**2))))
-  prob_tail = ((cs_tail*cc_rho)*dz)*c1e2
+  ! cs_tail   = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ((half*((one/Tt)-(one/cc_tmax))) - &
+  !   (log_mb(cc_tmax/Tt)*(cc_betar**2)/(two*cc_tmax)) + ((cc_tmax-Tt)/((four*(cc_gammar**2))*(pmap**2))))
+  ! prob_tail = ((cs_tail*cc_rho)*dz)*c1e2
 
-  if(coll_rand() < prob_tail) then
-    EnLo = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
-      half*log_mb((two*pmae*cc_bgr*cc_bgr*cc_tmax)/(c1e6*cc_exenergy**2)) -      &
-      cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half + &
-      cc_tMax**2/(eight*(cc_gammar**2)*(pmap**2)) &
-    )
-    EnLo = (EnLo*cc_rho)*c1m1 ! [GeV/m]
-  else
-    EnLo = EnLo/dz ! [GeV/m]
-  end if
+  ! if(coll_rand() < prob_tail) then
+  !   EnLo = ((k*cc_zatom)/(cc_anuc*cc_betar**2)) * ( &
+  !     half*log_mb((two*pmae*cc_bgr*cc_bgr*cc_tmax)/(c1e6*cc_exenergy**2)) -      &
+  !     cc_betar**2 - log_mb(cc_plen/(cc_exenergy*c1e3)) - log_mb(cc_bgr) + half + &
+  !     cc_tMax**2/(eight*(cc_gammar**2)*(pmap**2)) &
+  !   )
+  !   EnLo = (EnLo*cc_rho)*c1m1 ! [GeV/m]
+  ! else
+  !   EnLo = EnLo/dz ! [GeV/m]
+  ! end if
 
-end subroutine cry_calcIonLoss
+! end subroutine cry_calcIonLoss
 
 ! ================================================================================================ !
 !  Subroutine for the movement in the amorphous
 ! ================================================================================================ !
-subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcut,cm_bnref,&
-                    cm_csref0,cm_csref1,cm_csref4,cm_csref5,cm_collnt,cm_iProc)
+! subroutine cry_moveAM(nam,dz,dei,dly,dlr,xp,yp,pc,cm_anuc,cm_zatom,cm_emr,cm_hcut,cm_bnref,&
+!                     cm_csref0,cm_csref1,cm_csref4,cm_csref5,cm_collnt,cm_iProc)
 
-  use mod_ranlux
-  use mod_funlux
-  use floatPrecision
-  ! use coll_materials, only : anuc, hcut, bnref, csref
-  use mathlib_bouncer
-  use physical_constants
+!   use mod_ranlux
+!   use mod_funlux
+!   use floatPrecision
+!   ! use coll_materials, only : anuc, hcut, bnref, csref
+!   use mathlib_bouncer
+!   use physical_constants
 
-  ! integer,          intent(in)    :: is
-  integer,          intent(in)    :: nam
-  real(kind=fPrec), intent(in)    :: dz
-  real(kind=fPrec), intent(in)    :: dei
-  real(kind=fPrec), intent(in)    :: dly
-  real(kind=fPrec), intent(in)    :: dlr
-  real(kind=fPrec), intent(inout) :: xp
-  real(kind=fPrec), intent(inout) :: yp
-  real(kind=fPrec), intent(inout) :: pc
+!   ! integer,          intent(in)    :: is
+!   integer,          intent(in)    :: nam
+!   real(kind=fPrec), intent(in)    :: dz
+!   real(kind=fPrec), intent(in)    :: dei
+!   real(kind=fPrec), intent(in)    :: dly
+!   real(kind=fPrec), intent(in)    :: dlr
+!   real(kind=fPrec), intent(inout) :: xp
+!   real(kind=fPrec), intent(inout) :: yp
+!   real(kind=fPrec), intent(inout) :: pc
 
-  real(kind=fPrec), intent(in)    :: cm_csref0
-  real(kind=fPrec), intent(in)    :: cm_csref1
-  real(kind=fPrec), intent(in)    :: cm_csref4
-  real(kind=fPrec), intent(in)    :: cm_csref5
+!   real(kind=fPrec), intent(in)    :: cm_csref0
+!   real(kind=fPrec), intent(in)    :: cm_csref1
+!   real(kind=fPrec), intent(in)    :: cm_csref4
+!   real(kind=fPrec), intent(in)    :: cm_csref5
 
-  real(kind=fPrec), intent(in)    :: cm_anuc
-  real(kind=fPrec), intent(in)    :: cm_zatom
-  real(kind=fPrec), intent(in)    :: cm_emr
-  real(kind=fPrec), intent(in)    :: cm_hcut
-  real(kind=fPrec), intent(in)    :: cm_bnref
-  real(kind=fPrec), intent(in)    :: cm_collnt
+!   real(kind=fPrec), intent(in)    :: cm_anuc
+!   real(kind=fPrec), intent(in)    :: cm_zatom
+!   real(kind=fPrec), intent(in)    :: cm_emr
+!   real(kind=fPrec), intent(in)    :: cm_hcut
+!   real(kind=fPrec), intent(in)    :: cm_bnref
+!   real(kind=fPrec), intent(in)    :: cm_collnt
 
-  integer,          intent(inout) :: cm_iProc
+!   integer,          intent(inout) :: cm_iProc
 
-  integer i,length_cry,ichoix
-  real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xm2,xln15s,tz,tx,tlow, &
-    thigh,teta,pptot,ppsd,ppel,pc_in,kymcs,kxmcs,ecmsq,dya,bsd,bpp,aran
+!   integer i,length_cry,ichoix
+!   real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xm2,xln15s,tz,tx,tlow, &
+!     thigh,teta,pptot,ppsd,ppel,pc_in,kymcs,kxmcs,ecmsq,dya,bsd,bpp,aran
 
-  xp_in = xp
-  yp_in = yp
-  pc_in = pc
+!   xp_in = xp
+!   yp_in = yp
+!   pc_in = pc
 
-  ! New treatment of scattering routine based on standard sixtrack routine
-  ! useful calculations for cross-section and event topology calculation
-  ecmsq  = ((two*pmap)*c1m3)*pc
-  xln15s = log_mb(0.15_fPrec*ecmsq)
+!   ! New treatment of scattering routine based on standard sixtrack routine
+!   ! useful calculations for cross-section and event topology calculation
+!   ecmsq  = ((two*pmap)*c1m3)*pc
+!   xln15s = log_mb(0.15_fPrec*ecmsq)
 
-  ! New models, see Claudia's thesis
-  pptot = (0.041084_fPrec - 0.0023302_fPrec*log_mb(ecmsq)) + 0.00031514_fPrec*log_mb(ecmsq)**2
-  ppel  = (11.7_fPrec - 1.59_fPrec*log_mb(ecmsq) + 0.134_fPrec*log_mb(ecmsq)**2)/c1e3
-  ppsd  = (4.3_fPrec + 0.3_fPrec*log_mb(ecmsq))/c1e3
-  bpp   = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
+!   ! New models, see Claudia's thesis
+!   pptot = (0.041084_fPrec - 0.0023302_fPrec*log_mb(ecmsq)) + 0.00031514_fPrec*log_mb(ecmsq)**2
+!   ppel  = (11.7_fPrec - 1.59_fPrec*log_mb(ecmsq) + 0.134_fPrec*log_mb(ecmsq)**2)/c1e3
+!   ppsd  = (4.3_fPrec + 0.3_fPrec*log_mb(ecmsq))/c1e3
+!   bpp   = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
 
-  ! Distribution for Ruth. scatt.
-  tlow      = tlcut_cry
-  thigh     = cm_hcut
-  emr_curr_cry = cm_emr
-  zatom_curr_cry = cm_zatom
-  call funlxp(cry_ruth,cgen_cry(1,1),tlow,thigh)
+!   ! Distribution for Ruth. scatt.
+!   tlow      = tlcut_cry
+!   thigh     = cm_hcut
+!   emr_curr_cry = cm_emr
+!   zatom_curr_cry = cm_zatom
+!   call funlxp(cry_ruth,cgen_cry(1,1),tlow,thigh)
 
-  ! Cross-section calculation
-  ! freep: number of nucleons involved in single scattering
-  freep = freeco_cry * cm_anuc**(one/three)
+!   ! Cross-section calculation
+!   ! freep: number of nucleons involved in single scattering
+!   freep = freeco_cry * cm_anuc**(one/three)
 
-  ! Compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
-  cs(3) = freep*ppel
-  cs(4) = freep*ppsd
+!   ! Compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+!   cs(3) = freep*ppel
+!   cs(4) = freep*ppsd
 
-  ! Correct TOT-CSec for energy dependence of qel
-  ! TOT CS is here without a Coulomb contribution
-  cs(0) = cm_csref0 + freep*(pptot - pptref_cry)
-  bn    = (cm_bnref*cs(0))/cm_csref0
+!   ! Correct TOT-CSec for energy dependence of qel
+!   ! TOT CS is here without a Coulomb contribution
+!   cs(0) = cm_csref0 + freep*(pptot - pptref_cry)
+!   bn    = (cm_bnref*cs(0))/cm_csref0
 
-  ! Also correct inel-CS
-  cs(1) = (cm_csref1*cs(0))/cm_csref0
+!   ! Also correct inel-CS
+!   cs(1) = (cm_csref1*cs(0))/cm_csref0
 
-  ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-  cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
-  cs(5) = cm_csref5
+!   ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+!   cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
+!   cs(5) = cm_csref5
 
-  ! Now add Coulomb
-  cs(0) = cs(0) + cs(5)
+!   ! Now add Coulomb
+!   cs(0) = cs(0) + cs(5)
 
-  ! Calculate cumulative probability
-  cprob(:) = zero
-  cprob(5) = one
-  do i=1,4
-    cprob(i) = cprob(i-1) + cs(i)/cs(0)
-  end do
+!   ! Calculate cumulative probability
+!   cprob(:) = zero
+!   cprob(5) = one
+!   do i=1,4
+!     cprob(i) = cprob(i-1) + cs(i)/cs(0)
+!   end do
 
-  ! Multiple Coulomb Scattering
-  xp  = xp*c1e3
-  yp  = yp*c1e3
-  pc  = pc - dei*dz ! Energy lost because of ionization process[GeV]
+!   ! Multiple Coulomb Scattering
+!   xp  = xp*c1e3
+!   yp  = yp*c1e3
+!   pc  = pc - dei*dz ! Energy lost because of ionization process[GeV]
 
-  dya   = (13.6_fPrec/pc)*sqrt(dz/dlr) ! RMS of coloumb scattering MCS (mrad)
-  kxmcs = dya*ran_gauss(zero)
-  kymcs = dya*ran_gauss(zero)
+!   dya   = (13.6_fPrec/pc)*sqrt(dz/dlr) ! RMS of coloumb scattering MCS (mrad)
+!   kxmcs = dya*ran_gauss(zero)
+!   kymcs = dya*ran_gauss(zero)
 
-  xp = xp+kxmcs
-  yp = yp+kymcs
+!   xp = xp+kxmcs
+!   yp = yp+kymcs
 
-  if(nam == 0) return ! Turn on/off nuclear interactions
+!   if(nam == 0) return ! Turn on/off nuclear interactions
 
-  ! Can nuclear interaction happen?
-  zlm = -cm_collnt*log_mb(coll_rand())
+!   ! Can nuclear interaction happen?
+!   zlm = -cm_collnt*log_mb(coll_rand())
 
-  if(zlm < dz) then
-    ! Choose nuclear interaction
-    aran = coll_rand()
-    i=1
-10  if(aran > cprob(i)) then
-      i = i+1
-      goto 10
-    end if
-    ichoix = i
+!   if(zlm < dz) then
+!     ! Choose nuclear interaction
+!     aran = coll_rand()
+!     i=1
+! 10  if(aran > cprob(i)) then
+!       i = i+1
+!       goto 10
+!     end if
+!     ichoix = i
 
-    ! Do the interaction
-    t = 0 ! default value to cover ichoix=1
-    select case(ichoix)
-    case(1) ! Deep inelastic, impinging p disappeared
-      cm_iProc = proc_absorbed
+!     ! Do the interaction
+!     t = 0 ! default value to cover ichoix=1
+!     select case(ichoix)
+!     case(1) ! Deep inelastic, impinging p disappeared
+!       cm_iProc = proc_absorbed
 
-    case(2) ! p-n elastic
-      cm_iProc = proc_pne
-      t     = -log_mb(coll_rand())/bn
+!     case(2) ! p-n elastic
+!       cm_iProc = proc_pne
+!       t     = -log_mb(coll_rand())/bn
 
-    case(3) ! p-p elastic
-      cm_iProc = proc_ppe
-      t     = -log_mb(coll_rand())/bpp
+!     case(3) ! p-p elastic
+!       cm_iProc = proc_ppe
+!       t     = -log_mb(coll_rand())/bpp
 
-    case(4) ! Single diffractive
-      cm_iProc = proc_diff
-      xm2   = exp_mb(coll_rand()*xln15s)
-      pc    = pc*(one - xm2/ecmsq)
-      if(xm2 < two) then
-        bsd = two*bpp
-      else if(xm2 >= two .and. xm2 <= five) then
-        bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*bpp)/36.0_fPrec
-      else if(xm2 > five) then
-        bsd = 7.0_fPrec*bpp/12.0_fPrec
-      end if
-      t = -log_mb(coll_rand())/bsd
+!     case(4) ! Single diffractive
+!       cm_iProc = proc_diff
+!       xm2   = exp_mb(coll_rand()*xln15s)
+!       pc    = pc*(one - xm2/ecmsq)
+!       if(xm2 < two) then
+!         bsd = two*bpp
+!       else if(xm2 >= two .and. xm2 <= five) then
+!         bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*bpp)/36.0_fPrec
+!       else if(xm2 > five) then
+!         bsd = 7.0_fPrec*bpp/12.0_fPrec
+!       end if
+!       t = -log_mb(coll_rand())/bsd
 
-    case(5)
-      cm_iProc      = proc_ruth
-      length_cry = 1
-      call funlux(cgen_cry(1,1),xran_cry,length_cry)
-      t = xran_cry(1)
+!     case(5)
+!       cm_iProc      = proc_ruth
+!       length_cry = 1
+!       call funlux(cgen_cry(1,1),xran_cry,length_cry)
+!       t = xran_cry(1)
 
-    end select
+!     end select
 
-    ! Calculate the related kick
-    if(ichoix == 4) then
-      teta = sqrt(t)/pc_in ! DIFF has changed PC
-    else
-      teta = sqrt(t)/pc
-    end if
+!     ! Calculate the related kick
+!     if(ichoix == 4) then
+!       teta = sqrt(t)/pc_in ! DIFF has changed PC
+!     else
+!       teta = sqrt(t)/pc
+!     end if
 
-    tx = (teta*ran_gauss(zero))*c1e3
-    tz = (teta*ran_gauss(zero))*c1e3
+!     tx = (teta*ran_gauss(zero))*c1e3
+!     tz = (teta*ran_gauss(zero))*c1e3
 
-    ! Change p angle
-    xp = xp + tx
-    yp = yp + tz
-  end if
+!     ! Change p angle
+!     xp = xp + tx
+!     yp = yp + tz
+!   end if
 
-  xp = xp/c1e3
-  yp = yp/c1e3
+!   xp = xp/c1e3
+!   yp = yp/c1e3
 
-end subroutine cry_moveAM
+! end subroutine cry_moveAM
 
 ! ================================================================================================ !
 !  Subroutine for check if a nuclear interaction happen while in channeling
 ! ================================================================================================ !
-subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
-                      ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
+! subroutine cry_moveCH(nam,dz,ch_x,xp,yp,pc,r,rc,ch_rho,ch_anuc,ch_zatom,ch_emr,ch_hcut,ch_bnref,ch_csect,&
+!                       ch_csref0,ch_csref1,ch_csref4,ch_csref5,ch_eUm,ch_collnt,ch_iProc)
 
-  use crcoall
-  use mod_ranlux
-  use mod_funlux
-  use floatPrecision
-  use coll_common, only : coll_debug
-  use mathlib_bouncer
-  use physical_constants
+!   use crcoall
+!   use mod_ranlux
+!   use mod_funlux
+!   use floatPrecision
+!   use coll_common, only : coll_debug
+!   use mathlib_bouncer
+!   use physical_constants
 
-  integer,          intent(in)    :: nam
-  real(kind=fPrec), intent(in)    :: dz
-  real(kind=fPrec), intent(inout) :: ch_x
-  real(kind=fPrec), intent(inout) :: xp
-  real(kind=fPrec), intent(inout) :: yp
-  real(kind=fPrec), intent(inout) :: pc
-  real(kind=fPrec), intent(in)    :: r
-  real(kind=fPrec), intent(in)    :: rc
+!   integer,          intent(in)    :: nam
+!   real(kind=fPrec), intent(in)    :: dz
+!   real(kind=fPrec), intent(inout) :: ch_x
+!   real(kind=fPrec), intent(inout) :: xp
+!   real(kind=fPrec), intent(inout) :: yp
+!   real(kind=fPrec), intent(inout) :: pc
+!   real(kind=fPrec), intent(in)    :: r
+!   real(kind=fPrec), intent(in)    :: rc
 
-  real(kind=fPrec), intent(in)    :: ch_rho
-  real(kind=fPrec), intent(in)    :: ch_anuc
-  real(kind=fPrec), intent(in)    :: ch_zatom
-  real(kind=fPrec), intent(in)    :: ch_emr
-  real(kind=fPrec), intent(in)    :: ch_hcut
-  real(kind=fPrec), intent(in)    :: ch_bnref
+!   real(kind=fPrec), intent(in)    :: ch_rho
+!   real(kind=fPrec), intent(in)    :: ch_anuc
+!   real(kind=fPrec), intent(in)    :: ch_zatom
+!   real(kind=fPrec), intent(in)    :: ch_emr
+!   real(kind=fPrec), intent(in)    :: ch_hcut
+!   real(kind=fPrec), intent(in)    :: ch_bnref
 
-  real(kind=fPrec), intent(in)    :: ch_csref0
-  real(kind=fPrec), intent(in)    :: ch_csref1
-  real(kind=fPrec), intent(in)    :: ch_csref4
-  real(kind=fPrec), intent(in)    :: ch_csref5
+!   real(kind=fPrec), intent(in)    :: ch_csref0
+!   real(kind=fPrec), intent(in)    :: ch_csref1
+!   real(kind=fPrec), intent(in)    :: ch_csref4
+!   real(kind=fPrec), intent(in)    :: ch_csref5
 
-  real(kind=fPrec), intent(in)    :: ch_csect
-  real(kind=fPrec), intent(in)    :: ch_eUm
-  real(kind=fPrec), intent(in)    :: ch_collnt
+!   real(kind=fPrec), intent(in)    :: ch_csect
+!   real(kind=fPrec), intent(in)    :: ch_eUm
+!   real(kind=fPrec), intent(in)    :: ch_collnt
 
-  integer,          intent(inout) :: ch_iProc
+!   integer,          intent(inout) :: ch_iProc
 
-  integer i,np,length_cry,ichoix
-  real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
-    x_max,x_i,Umin,Ueff,tz,tx,tlow,thigh,teta,rho_min,rho_max,pv,pptot,ppsd,ppel,PC_in,nuc_cl_l,&
-    N_am,Et,ecmsq,Ec,csref_inel_rsc,csref_tot_rsc,bsd,bpp,aran,avrrho
+!   integer i,np,length_cry,ichoix
+!   real(kind=fPrec) t,xran_cry(1),bn,cs(0:5),cprob(0:5),freep,zlm,xp_in,yp_in,xminU,xm2,xln15s,x_min,&
+!     x_max,x_i,Umin,Ueff,tz,tx,tlow,thigh,teta,rho_min,rho_max,pv,pptot,ppsd,ppel,PC_in,nuc_cl_l,&
+!     N_am,Et,ecmsq,Ec,csref_inel_rsc,csref_tot_rsc,bsd,bpp,aran,avrrho
 
-  xp_in = xp
-  yp_in = yp
-  pc_in = pc
+!   xp_in = xp
+!   yp_in = yp
+!   pc_in = pc
 
-  ! New treatment of scattering routine based on standard sixtrack routine
+!   ! New treatment of scattering routine based on standard sixtrack routine
 
-  ! Useful calculations for cross-section and event topology calculation
-  ecmsq  = ((two*pmap)*c1m3)*pc
-  xln15s = log_mb(0.15_fPrec*ecmsq)
+!   ! Useful calculations for cross-section and event topology calculation
+!   ecmsq  = ((two*pmap)*c1m3)*pc
+!   xln15s = log_mb(0.15_fPrec*ecmsq)
 
-  ! New models, see Claudia's thesis
-  pptot = (0.041084_fPrec - 0.0023302_fPrec*log_mb(ecmsq)) + 0.00031514_fPrec*log_mb(ecmsq)**2
-  ppel  = (11.7_fPrec - 1.59_fPrec*log_mb(ecmsq) + 0.134_fPrec*log_mb(ecmsq)**2)/c1e3
-  ppsd  = (4.3_fPrec + 0.3_fPrec*log_mb(ecmsq))/c1e3
-  bpp   = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
+!   ! New models, see Claudia's thesis
+!   pptot = (0.041084_fPrec - 0.0023302_fPrec*log_mb(ecmsq)) + 0.00031514_fPrec*log_mb(ecmsq)**2
+!   ppel  = (11.7_fPrec - 1.59_fPrec*log_mb(ecmsq) + 0.134_fPrec*log_mb(ecmsq)**2)/c1e3
+!   ppsd  = (4.3_fPrec + 0.3_fPrec*log_mb(ecmsq))/c1e3
+!   bpp   = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
 
-  ! Distribution for Ruth. scatt.
-  tlow      = tlcut_cry
-  thigh     = ch_hcut
-  emr_curr_cry = ch_emr
-  zatom_curr_cry = ch_zatom
-  call funlxp(cry_ruth,cgen_cry(1,1),tlow,thigh)
+!   ! Distribution for Ruth. scatt.
+!   tlow      = tlcut_cry
+!   thigh     = ch_hcut
+!   emr_curr_cry = ch_emr
+!   zatom_curr_cry = ch_zatom
+!   call funlxp(cry_ruth,cgen_cry(1,1),tlow,thigh)
 
-  ! Rescale the total and inelastic cross-section accordigly to the average density seen
-  x_i = ch_x
-  np  = int(x_i/dp)    ! Calculate in which crystalline plane the particle enters
-  x_i = x_i - Np*dP    ! Rescale the incoming x at the left crystalline plane
-  x_i = x_i - (dP/two) ! Rescale the incoming x in the middle of crystalline planes
+!   ! Rescale the total and inelastic cross-section accordigly to the average density seen
+!   x_i = ch_x
+!   np  = int(x_i/dp)    ! Calculate in which crystalline plane the particle enters
+!   x_i = x_i - Np*dP    ! Rescale the incoming x at the left crystalline plane
+!   x_i = x_i - (dP/two) ! Rescale the incoming x in the middle of crystalline planes
 
-  pv   = pc**2/sqrt(pc**2 + (pmap*c1m3)**2)*c1e9          ! Calculate pv=P/E
-  Ueff = ch_eUm*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
-  Et   = (pv*xp**2)/two + Ueff                            ! Calculate transverse energy
-  Ec   = (ch_eUm*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
+!   pv   = pc**2/sqrt(pc**2 + (pmap*c1m3)**2)*c1e9          ! Calculate pv=P/E
+!   Ueff = ch_eUm*((two*x_i)/dp)*((two*x_i)/dp) + pv*x_i/r ! Calculate effective potential
+!   Et   = (pv*xp**2)/two + Ueff                            ! Calculate transverse energy
+!   Ec   = (ch_eUm*(one-rc/r))*(one-rc/r)                  ! Calculate critical energy in bent crystals
 
-  ! To avoid negative Et
-  xminU = ((-dp**2*pc)*c1e9)/(eight*ch_eUm*r)
-  Umin  = abs((ch_eUm*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
-  Et    = Et + Umin
-  Ec    = Ec + Umin
+!   ! To avoid negative Et
+!   xminU = ((-dp**2*pc)*c1e9)/(eight*ch_eUm*r)
+!   Umin  = abs((ch_eUm*((two*xminU)/dp))*((two*xminU)/dP) + pv*xminU/R)
+!   Et    = Et + Umin
+!   Ec    = Ec + Umin
 
-  ! Calculate min e max of the trajectory between crystalline planes
-  x_min = (-(dP/two)*Rc)/R - (dP/two)*sqrt(Et/Ec)
-  x_Max = (-(dP/two)*Rc)/R + (dP/two)*sqrt(Et/Ec)
+!   ! Calculate min e max of the trajectory between crystalline planes
+!   x_min = (-(dP/two)*Rc)/R - (dP/two)*sqrt(Et/Ec)
+!   x_Max = (-(dP/two)*Rc)/R + (dP/two)*sqrt(Et/Ec)
 
-  ! Change ref. frame and go back with 0 on the crystalline plane on the left
-  x_min = x_min - dp/two
-  x_max = x_max - dp/two
+!   ! Change ref. frame and go back with 0 on the crystalline plane on the left
+!   x_min = x_min - dp/two
+!   x_max = x_max - dp/two
 
-  ! Calculate the "normal density" in m^-3
-  N_am  = ((ch_rho*6.022e23_fPrec)*c1e6)/ch_anuc
+!   ! Calculate the "normal density" in m^-3
+!   N_am  = ((ch_rho*6.022e23_fPrec)*c1e6)/ch_anuc
 
-  ! Calculate atomic density at min and max of the trajectory oscillation
-  rho_max = ((N_am*dp)/two)*(erf(x_max/sqrt(two*u1**2)) - erf((dP-x_Max)/sqrt(two*u1**2)))
-  rho_min = ((N_am*dP)/two)*(erf(x_min/sqrt(two*u1**2)) - erf((dP-x_min)/sqrt(two*u1**2)))
+!   ! Calculate atomic density at min and max of the trajectory oscillation
+!   rho_max = ((N_am*dp)/two)*(erf(x_max/sqrt(two*u1**2)) - erf((dP-x_Max)/sqrt(two*u1**2)))
+!   rho_min = ((N_am*dP)/two)*(erf(x_min/sqrt(two*u1**2)) - erf((dP-x_min)/sqrt(two*u1**2)))
 
-  ! "zero-approximation" of average nuclear density seen along the trajectory
-  avrrho  = (rho_max - rho_min)/(x_max - x_min)
-  avrrho  = (two*avrrho)/N_am
+!   ! "zero-approximation" of average nuclear density seen along the trajectory
+!   avrrho  = (rho_max - rho_min)/(x_max - x_min)
+!   avrrho  = (two*avrrho)/N_am
 
-  csref_tot_rsc  = ch_csref0*avrrho ! Rescaled total ref cs
-  csref_inel_rsc = ch_csref1*avrrho ! Rescaled inelastic ref cs
+!   csref_tot_rsc  = ch_csref0*avrrho ! Rescaled total ref cs
+!   csref_inel_rsc = ch_csref1*avrrho ! Rescaled inelastic ref cs
 
-  ! Cross-section calculation
-  freep = freeco_cry * ch_anuc**(one/three)
+!   ! Cross-section calculation
+!   freep = freeco_cry * ch_anuc**(one/three)
 
-  ! compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
-  cs(3) = freep*ppel
-  cs(4) = freep*ppsd
+!   ! compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+!   cs(3) = freep*ppel
+!   cs(4) = freep*ppsd
 
-  ! correct TOT-CSec for energy dependence of qel
-  ! TOT CS is here without a Coulomb contribution
-  cs(0) = csref_tot_rsc + freep*(pptot - pptref_cry)
+!   ! correct TOT-CSec for energy dependence of qel
+!   ! TOT CS is here without a Coulomb contribution
+!   cs(0) = csref_tot_rsc + freep*(pptot - pptref_cry)
 
-  ! Also correct inel-CS
-  if(csref_tot_rsc == zero) then
-    cs(1) = zero
-  else
-    cs(1) = (csref_inel_rsc*cs(0))/csref_tot_rsc
-  end if
+!   ! Also correct inel-CS
+!   if(csref_tot_rsc == zero) then
+!     cs(1) = zero
+!   else
+!     cs(1) = (csref_inel_rsc*cs(0))/csref_tot_rsc
+!   end if
 
-  ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-  cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
-  cs(5) = ch_csref5
+!   ! Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+!   cs(2) = ((cs(0) - cs(1)) - cs(3)) - cs(4)
+!   cs(5) = ch_csref5
 
-  ! Now add Coulomb
-  cs(0) = cs(0) + cs(5)
+!   ! Now add Coulomb
+!   cs(0) = cs(0) + cs(5)
 
-  ! Calculate cumulative probability
-  cprob(:) = zero
-  cprob(5) = one
-  if(cs(0) == zero) then
-    do i=1,4
-      cprob(i) = cprob(i-1)
-    end do
-  else
-    do i=1,4
-      cprob(i) = cprob(i-1) + cs(i)/cs(0)
-    end do
-  end if
+!   ! Calculate cumulative probability
+!   cprob(:) = zero
+!   cprob(5) = one
+!   if(cs(0) == zero) then
+!     do i=1,4
+!       cprob(i) = cprob(i-1)
+!     end do
+!   else
+!     do i=1,4
+!       cprob(i) = cprob(i-1) + cs(i)/cs(0)
+!     end do
+!   end if
 
-  ! Multiple Coulomb Scattering
-  xp = xp*c1e3
-  yp = yp*c1e3
+!   ! Multiple Coulomb Scattering
+!   xp = xp*c1e3
+!   yp = yp*c1e3
 
-  ! Turn on/off nuclear interactions
-  if(nam == 0) return
+!   ! Turn on/off nuclear interactions
+!   if(nam == 0) return
 
-  ! Can nuclear interaction happen?
-  ! Rescaled nuclear collision length
-  if(avrrho == zero) then
-    nuc_cl_l = c1e6
-  else
-    nuc_cl_l = ch_collnt/avrrho
-  end if
-  zlm = -nuc_cl_l*log_mb(coll_rand())
+!   ! Can nuclear interaction happen?
+!   ! Rescaled nuclear collision length
+!   if(avrrho == zero) then
+!     nuc_cl_l = c1e6
+!   else
+!     nuc_cl_l = ch_collnt/avrrho
+!   end if
+!   zlm = -nuc_cl_l*log_mb(coll_rand())
 
-  ! write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
+!   ! write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
 
-  if(zlm < dz) then
-    ! Choose nuclear interaction
-    aran = coll_rand()
-    i=1
-10  if(aran > cprob(i)) then
-      i=i+1
-      goto 10
-    end if
-    ichoix = i
+!   if(zlm < dz) then
+!     ! Choose nuclear interaction
+!     aran = coll_rand()
+!     i=1
+! 10  if(aran > cprob(i)) then
+!       i=i+1
+!       goto 10
+!     end if
+!     ichoix = i
 
-    ! Do the interaction
-    t = 0 ! default value to cover ichoix=1
-    select case(ichoix)
-    case(1) ! deep inelastic, impinging p disappeared
-      ch_iProc = proc_ch_absorbed
+!     ! Do the interaction
+!     t = 0 ! default value to cover ichoix=1
+!     select case(ichoix)
+!     case(1) ! deep inelastic, impinging p disappeared
+!       ch_iProc = proc_ch_absorbed
 
-    case(2) ! p-n elastic
-      ch_iProc = proc_ch_pne
-      bn    = (ch_bnref*cs(0))/csref_tot_rsc
-      t     = -log_mb(coll_rand())/bn
+!     case(2) ! p-n elastic
+!       ch_iProc = proc_ch_pne
+!       bn    = (ch_bnref*cs(0))/csref_tot_rsc
+!       t     = -log_mb(coll_rand())/bn
 
-    case(3) ! p-p elastic
-      ch_iProc = proc_ch_ppe
-      t     = -log_mb(coll_rand())/bpp
+!     case(3) ! p-p elastic
+!       ch_iProc = proc_ch_ppe
+!       t     = -log_mb(coll_rand())/bpp
 
-    case(4) ! Single diffractive
-      ch_iProc = proc_ch_diff
-      xm2   = exp_mb(coll_rand()*xln15s)
-      pc    = pc*(one - xm2/ecmsq)
-      if(xm2 < two) then
-        bsd = two*bpp
-      else if(xm2 >= two .and. xm2 <= five) then
-        bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*bpp)/36.0_fPrec
-      else if(xm2 > five) then
-        bsd = (seven*bpp)/12.0_fPrec
-      end if
-      t = -log_mb(coll_rand())/bsd
+!     case(4) ! Single diffractive
+!       ch_iProc = proc_ch_diff
+!       xm2   = exp_mb(coll_rand()*xln15s)
+!       pc    = pc*(one - xm2/ecmsq)
+!       if(xm2 < two) then
+!         bsd = two*bpp
+!       else if(xm2 >= two .and. xm2 <= five) then
+!         bsd = ((106.0_fPrec - 17.0_fPrec*xm2)*bpp)/36.0_fPrec
+!       else if(xm2 > five) then
+!         bsd = (seven*bpp)/12.0_fPrec
+!       end if
+!       t = -log_mb(coll_rand())/bsd
 
-    case(5)
-      ch_iProc      = proc_ch_ruth
-      length_cry = 1
-      call funlux(cgen_cry(1,1),xran_cry,length_cry)
-      t = xran_cry(1)
+!     case(5)
+!       ch_iProc      = proc_ch_ruth
+!       length_cry = 1
+!       call funlux(cgen_cry(1,1),xran_cry,length_cry)
+!       t = xran_cry(1)
 
-    end select
+!     end select
 
-    ! Calculate the related kick -----------
-    if(ichoix == 4) then
-      teta = sqrt(t)/pc_in ! DIFF has changed PC!!!
-    else
-      teta = sqrt(t)/pc
-    end if
+!     ! Calculate the related kick -----------
+!     if(ichoix == 4) then
+!       teta = sqrt(t)/pc_in ! DIFF has changed PC!!!
+!     else
+!       teta = sqrt(t)/pc
+!     end if
 
-    tx = (teta*ran_gauss(zero))*c1e3
-    tz = (teta*ran_gauss(zero))*c1e3
+!     tx = (teta*ran_gauss(zero))*c1e3
+!     tz = (teta*ran_gauss(zero))*c1e3
 
-    ! Change p angle
-    xp = xp + tx
-    yp = yp + tz
+!     ! Change p angle
+!     xp = xp + tx
+!     yp = yp + tz
 
-  end if
+!   end if
 
-  xp = xp/c1e3
-  yp = yp/c1e3
+!   xp = xp/c1e3
+!   yp = yp/c1e3
 
-end subroutine cry_moveCH
+! end subroutine cry_moveCH
 
 ! ================================================================================================ !
 ! Definition of rutherford scattering formula

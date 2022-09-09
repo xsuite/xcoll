@@ -13,6 +13,7 @@ module coll_k2
 
   real(kind=fPrec), save :: zatom_curr ! Current zatom, used for Rutherford scattering integration
   real(kind=fPrec), save :: emr_curr ! Current emr, used for Rutherford scattering integration
+  real(kind=fPrec), save :: cnorm_curr ! Current emr, used for Rutherford scattering integration
 
 contains
 
@@ -31,11 +32,9 @@ real(kind=fPrec) function k2coll_ruth(t)
   real(kind=fPrec), intent(in) :: t
   !real(kind=fPrec), intent(in) :: ru_emr
 
-  ! DM: changed 2.607d-4 to 2.607d-5 to fix Rutherford bug
-  real(kind=fPrec), parameter :: cnorm  = 2.607e-5_fPrec
   real(kind=fPrec), parameter :: cnform = 0.8561e3_fPrec
 
-  k2coll_ruth = (cnorm*exp_mb(((-one*t)*cnform)*emr_curr**2)) * (zatom_curr/t)**2
+  k2coll_ruth = (cnorm_curr*exp_mb(((-one*t)*cnform)*emr_curr**2)) * (zatom_curr/t)**2
 
 end function k2coll_ruth
 
