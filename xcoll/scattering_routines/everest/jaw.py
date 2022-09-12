@@ -2,7 +2,7 @@ import numpy as np
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop, cgen):
     
-    from .k2_random import get_random
+    from .random import get_random
 
     # Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
     p    = p0*(1+dpop)
@@ -154,7 +154,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
    
 def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
-    from .k2_random import get_random
+    from .random import get_random
 
     mom    = p*1.0e3                     #[GeV/c] -> [MeV/c]
     enr    = (mom*mom + 938.271998*938.271998)**0.5 #[MeV]
@@ -209,7 +209,7 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
 def gettran(inter,p,tt_bn,tt_ecmsq,tt_xln15s,tt_bpp,cgen):
 
-    from .k2_random import get_random, get_random_ruth
+    from .random import get_random, get_random_ruth
 
     # Neither if-statements below have an else, so defaulting function return to zero.
     result = 0
@@ -244,7 +244,7 @@ def gettran(inter,p,tt_bn,tt_ecmsq,tt_xln15s,tt_bpp,cgen):
 
 def tetat(t,p,tx,tz):
 
-    from .k2_random import get_random
+    from .random import get_random
 
     teta = np.sqrt(t)/p
     while (True):
@@ -320,7 +320,7 @@ def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
 
 def scamcs(xx, xxp, s):
 
-    from .k2_random import get_random
+    from .random import get_random
 
     x0  = xx
     xp0 = xxp
@@ -418,7 +418,7 @@ def iterat(a, b, dh, s):
 
 def ichoix(ich_cprob):
 
-    from .k2_random import get_random
+    from .random import get_random
 
     aran = get_random()
     

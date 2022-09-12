@@ -1,7 +1,7 @@
 import numpy as np
-from .k2 import track, materials, k2_random
+from ..scattering_routines.everest import track, materials, random
 
-class K2Collimator:
+class Collimator:
 
     iscollective = True
     isthick = True
@@ -134,7 +134,7 @@ class K2Collimator:
     def to_dict(self):
         # TODO how to save ref to impacts?
         thisdict = {}
-        thisdict['__class__'] = 'K2Collimator'
+        thisdict['__class__'] = 'Collimator'
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
         thisdict['inactive_back'] = self.inactive_back
@@ -178,7 +178,7 @@ class K2Collimator:
         )
 
 
-class K2Crystal:
+class Crystal:
 
     iscollective = True
     isthick = True
@@ -322,7 +322,7 @@ class K2Crystal:
     def to_dict(self):
         # TODO how to save ref to impacts?
         thisdict = {}
-        thisdict['__class__'] = 'K2Crystal'
+        thisdict['__class__'] = 'Crystal'
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
         thisdict['inactive_back'] = self.inactive_back

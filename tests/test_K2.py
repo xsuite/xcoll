@@ -138,11 +138,11 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
     seed = colldict.pop('random_generator_seed')
-    xc.beam_elements.k2.k2_random.set_random_seed(seed)
-    if colldict['__class__'] == 'K2Collimator':
-        coll = xc.K2Collimator.from_dict(colldict)
-    elif colldict['__class__'] == 'K2Crystal':
-        coll = xc.K2Crystal.from_dict(colldict)
+    xc.scattering_routines.everest.random.set_random_seed(seed)
+    if colldict['__class__'] == 'Collimator':
+        coll = xc.Collimator.from_dict(colldict)
+    elif colldict['__class__'] == 'Crystal':
+        coll = xc.Crystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

@@ -1,2 +1,2 @@
 from .collimators import BlackAbsorber
-from .k2collimator import K2Collimator, K2Crystal
+from .everest_collimator import Collimator, Crystal

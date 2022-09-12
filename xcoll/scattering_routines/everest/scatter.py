@@ -1,7 +1,7 @@
 import numpy as np
 from .jaw import jaw
 from .crystal import crystal
-from .k2_random import initialise_random_ruth
+from .random import initialise_random_ruth
 
 
 def rutherford(t, zatom, emr):

@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, K2Collimator
+from .beam_elements import BlackAbsorber, Collimator, Crystal
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 
 import xtrack as xt
 import xobjects as xo
 
-_all_collimator_types = { BlackAbsorber, K2Collimator }
+_all_collimator_types = { BlackAbsorber, Collimator }
 
 
 class CollimatorManager:
@@ -117,13 +117,13 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, verbose=False, random_seed=None):        
+    def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):        
         from .beam_elements.k2.k2_random import set_random_seed
         set_random_seed(random_seed)
 
         # Do the installation
         def install_func(thiscoll, name):
-            return K2Collimator(
+            return Collimator(
                     k2engine=self._k2engine,
                     impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
@@ -132,7 +132,7 @@ class CollimatorManager:
                     angle=thiscoll['angle'],
                     is_active=False
                    )
-        self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
+        self._install_collimators(names, collimator_class=Collimator, install_func=install_func, verbose=verbose)
         
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):

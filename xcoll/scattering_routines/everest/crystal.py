@@ -44,7 +44,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
             cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt, iProc, n_chan, n_VR, n_amorphous):
 
 
-    from .k2_random import get_random
+    from .random import get_random
 
     val_part_hit = np.array(val_part_hit)
     val_part_abs = np.array(val_part_abs)
@@ -329,7 +329,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             csref5,bnref,csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
             cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
 
-    from .k2_random import get_random, get_random_gauss
+    from .random import get_random, get_random_gauss
 
     dest = 0.
     pmap = 938.271998
@@ -817,7 +817,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
 
 def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
 
-    from .k2_random import get_random
+    from .random import get_random
 
     k = 0.307075 # Constant in front bethe-bloch [mev g^-1 cm^2]
     pmae = 0.51099890
@@ -852,7 +852,7 @@ def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
 
 def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc):
 
-    from .k2_random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
+    from .random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
 
     xp_in = xp
     yp_in = yp
@@ -1001,7 +1001,7 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
 
     import scipy.special as sp
 
-    from .k2_random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
+    from .random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
     
     pmae = 0.51099890
     pmap = 938.271998

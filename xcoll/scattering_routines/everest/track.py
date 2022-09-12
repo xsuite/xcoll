@@ -26,12 +26,12 @@ def drift_zeta(zeta, rvv, xp, yp, length):
 
 
     
-def track(k2collimator, particles, npart):
+def track(collimator, particles, npart):
     from .scatter_init import calculate_scattering
     from .materials import materials
     from .scatter import scatter
 
-    length = k2collimator.active_length
+    length = collimator.active_length
 
     # Get coordinates
     x_part  = particles.x[:npart].copy()
@@ -50,10 +50,10 @@ def track(k2collimator, particles, npart):
     drift_4d(x_part, y_part, xp_part, yp_part, length/2)
 
     # Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    x_part  -= k2collimator.dx
-    y_part  -= k2collimator.dy
-    xp_part -= k2collimator.dpx
-    yp_part -= k2collimator.dpy
+    x_part  -= collimator.dx
+    y_part  -= collimator.dy
+    xp_part -= collimator.dpx
+    yp_part -= collimator.dpy
 
     # Backtrack to start of collimator
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
@@ -67,40 +67,40 @@ def track(k2collimator, particles, npart):
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
-    if k2collimator.jaw_F_L != k2collimator.jaw_B_L or k2collimator.jaw_F_R != k2collimator.jaw_B_R:
+    if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
         raise NotImplementedError
-    opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
-    offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
+    opening = collimator.jaw_F_L - collimator.jaw_F_R
+    offset = collimator.offset + ( collimator.jaw_F_L + collimator.jaw_F_R )/2
 
     # Get material properties
-    exenergy = materials[k2collimator.material]['exenergy']
-    anuc     = materials[k2collimator.material]['anuc']
-    zatom    = materials[k2collimator.material]['zatom']
-    emr      = materials[k2collimator.material]['emr']
-    rho      = materials[k2collimator.material]['rho']
-    hcut     = materials[k2collimator.material]['hcut']
-    bnref    = materials[k2collimator.material]['bnref']
-    csref0   = materials[k2collimator.material]['csref'][0]
-    csref1   = materials[k2collimator.material]['csref'][1]
-    csref4   = materials[k2collimator.material]['csref'][4]
-    csref5   = materials[k2collimator.material]['csref'][5]
-    radl     = materials[k2collimator.material]['radl']
-    dlri     = materials[k2collimator.material]['dlri']
-    dlyi     = materials[k2collimator.material]['dlyi']
-    eUm      = materials[k2collimator.material]['eUm']
-    ai       = materials[k2collimator.material]['ai']
-    collnt   = materials[k2collimator.material]['collnt']
+    exenergy = materials[collimator.material]['exenergy']
+    anuc     = materials[collimator.material]['anuc']
+    zatom    = materials[collimator.material]['zatom']
+    emr      = materials[collimator.material]['emr']
+    rho      = materials[collimator.material]['rho']
+    hcut     = materials[collimator.material]['hcut']
+    bnref    = materials[collimator.material]['bnref']
+    csref0   = materials[collimator.material]['csref'][0]
+    csref1   = materials[collimator.material]['csref'][1]
+    csref4   = materials[collimator.material]['csref'][4]
+    csref5   = materials[collimator.material]['csref'][5]
+    radl     = materials[collimator.material]['radl']
+    dlri     = materials[collimator.material]['dlri']
+    dlyi     = materials[collimator.material]['dlyi']
+    eUm      = materials[collimator.material]['eUm']
+    ai       = materials[collimator.material]['ai']
+    collnt   = materials[collimator.material]['collnt']
 
     # Get crystal parameters
-    from ..k2collimator import K2Crystal
-    if isinstance(k2collimator,K2Crystal):
-        if not materials[k2collimator.material]['can_be_crystal']:
-            raise ValueError(f"The collimator material {k2collimator.material} cannot be used as a crystal!")
+    from ...beam_elements import Crystal
+    if isinstance(collimator,Crystal):
+        if not materials[collimator.material]['can_be_crystal']:
+            raise ValueError(f"The collimator material {collimator.material} cannot be used as a crystal!")
         
         is_crystal = True
 
-        bend = k2collimator.bend    # bend is bending radius
-        cry_tilt = k2collimator.align_angle + k2collimator.crytilt
+        bend = collimator.bend    # bend is bending radius
+        cry_tilt = collimator.align_angle + collimator.crytilt
         bend_ang  = length/bend    # temporary value
         if cry_tilt >= -bend_ang:
             length = bend*(np.sin(bend_ang + cry_tilt) - np.sin(cry_tilt))
@@ -109,11 +109,11 @@ def track(k2collimator, particles, npart):
     
         cry_rcurv  = bend
         cry_bend = length/cry_rcurv  # final value (with corrected length)
-        cry_alayer = k2collimator.thick
-        cry_xmax   = k2collimator.xdim
-        cry_ymax   = k2collimator.ydim
-        cry_orient = k2collimator.orient
-        cry_miscut = k2collimator.miscut
+        cry_alayer = collimator.thick
+        cry_xmax   = collimator.xdim
+        cry_ymax   = collimator.ydim
+        cry_orient = collimator.orient
+        cry_miscut = collimator.miscut
         cry_cBend  = np.cos(cry_bend)
         cry_sBend  = np.sin(cry_bend)
         cry_cpTilt = np.cos(cry_tilt)
@@ -179,14 +179,14 @@ def track(k2collimator, particles, npart):
             run_bpp=bpp,
             is_crystal=is_crystal,
             c_length=length,
-            c_rotation=k2collimator.angle/180.*np.pi,
+            c_rotation=collimator.angle/180.*np.pi,
             c_aperture=opening,
             c_offset=offset,
-            c_tilt=k2collimator.tilt,
+            c_tilt=collimator.tilt,
             c_enom=e0_ref, # Reference energy in MeV
-            onesided=k2collimator.onesided,
+            onesided=collimator.onesided,
             length=length,
-            material=k2collimator.material, 
+            material=collimator.material, 
             run_csect=csect,
             cry_tilt=cry_tilt,
             cry_rcurv=cry_rcurv,
@@ -215,10 +215,10 @@ def track(k2collimator, particles, npart):
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
 
     # Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    x_part  += k2collimator.dx
-    y_part  += k2collimator.dy
-    xp_part += k2collimator.dpx
-    yp_part += k2collimator.dpy
+    x_part  += collimator.dx
+    y_part  += collimator.dy
+    xp_part += collimator.dpx
+    yp_part += collimator.dpy
 
     # Update energy    ---------------------------------------------------
     # Only particles that hit the jaw and survived need to be updated
