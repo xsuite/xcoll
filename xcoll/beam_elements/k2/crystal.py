@@ -2,8 +2,6 @@ from calendar import c
 from multiprocessing.resource_sharer import stop
 import numpy as np
 
-from xcoll.beam_elements.k2.k2_random import get_random_gauss
-
 # Rutherford Scatter
 tlcut_cry = 0.0009982
 # cgen_cry = np.zeros(200,1)
@@ -47,11 +45,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
 
     from .k2_random import get_random
-    
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.") 
 
     val_part_hit = np.array(val_part_hit)
     val_part_abs = np.array(val_part_abs)
@@ -337,11 +330,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
 
     from .k2_random import get_random, get_random_gauss
-    
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
     dest = 0.
     pmap = 938.271998
@@ -866,11 +854,6 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
 
     from .k2_random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
 
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.") 
-    
     xp_in = xp
     yp_in = yp
     pc_in = pc

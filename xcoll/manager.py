@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
+from .beam_elements import BlackAbsorber, K2Collimator
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 
@@ -35,7 +35,9 @@ class CollimatorManager:
         self.storage_capacity = storage_capacity
         self.record_impacts = record_impacts
 
-
+    @property
+    def random_seed(self):
+        return self._random
     @property
     def impacts(self):
         interactions = {
@@ -115,18 +117,9 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):        
-        # Check for the existence of a K2Engine; warn if settings are different
-        # (only one instance of K2Engine should exist).
-        if self._k2engine is None:
-            self._k2engine = K2Engine(n_alloc=max_part, random_generator_seed=seed)
-        else:
-            if self._k2engine.n_alloc != max_part:
-                print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine.n_alloc} particles.\n"
-                      + f"Ignoring the requested max_part={max_part}.")
-            if self._k2engine.random_generator_seed != seed:
-                print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
-                      + f"Ignoring the requested seed={seed}.")
+    def install_k2_collimators(self, names=None, *, verbose=False, random_seed=None):        
+        from .beam_elements.k2.k2_random import set_random_seed
+        set_random_seed(random_seed)
 
         # Do the installation
         def install_func(thiscoll, name):

@@ -26,11 +26,7 @@ def drift_zeta(zeta, rvv, xp, yp, length):
 
 
     
-def track(k2collimator, particles, npart, reset_seed):
-    try:
-        import xcoll.beam_elements.pyk2 as pyk2
-    except ImportError:
-        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+def track(k2collimator, particles, npart):
     from .scatter_init import calculate_scattering
     from .materials import materials
     from .scatter import scatter

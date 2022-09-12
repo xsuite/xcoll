@@ -1,26 +1,5 @@
 import numpy as np
-from .k2 import track
-from .k2 import materials
-
-class K2Engine:
-
-    def __init__(self, random_generator_seed=None):
-
-        if random_generator_seed is None:
-            self.random_generator_seed = np.random.randint(1, 100000)
-        else:
-            self.random_generator_seed = random_generator_seed
-
-        try:
-            import xcoll.beam_elements.pyk2 as pyk2
-        except ImportError:
-            print("Warning: Failed importing pyK2 (did you compile?). " \
-                  + "K2collimators will be installed but are not trackable.")
-        else:
-            pyk2.pyk2_init(random_generator_seed=self.random_generator_seed)
-        import xcoll.beam_elements.k2.k2_random as kr
-        kr.__index__ = -1
-
+from .k2 import track, materials, k2_random
 
 class K2Collimator:
 
@@ -28,11 +7,10 @@ class K2Collimator:
     isthick = True
     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, angle, inactive_front=0, inactive_back=0,
+    def __init__(self, *, active_length, angle, inactive_front=0, inactive_back=0,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
                  is_active=True, impacts=None, material=None):
 
-        self._k2engine = k2engine
         self.active_length = active_length
         self.inactive_front = inactive_front
         self.inactive_back = inactive_back
@@ -58,7 +36,6 @@ class K2Collimator:
         self.is_active = is_active
         self.material = material
         self.impacts = impacts
-        self._reset_random_seed = False
 
     @property
     def material(self):
@@ -100,9 +77,6 @@ class K2Collimator:
             self.jaw_B_L = 1
             self.jaw_B_R = -1
 
-    def reset_random_seed(self):
-        self._reset_random_seed = True
-
     @property
     def length(self):
         return self.active_length + self.inactive_front + self.inactive_back
@@ -111,11 +85,6 @@ class K2Collimator:
         npart = particles._num_active_particles
         if npart == 0:
             return
-        if self._reset_random_seed == True:
-            reset_seed = self.k2engine.random_generator_seed
-            self._reset_random_seed = False
-        else:
-            reset_seed = -1
         if self.material is None:
             raise ValueError("Cannot track if material is not set!")
         
@@ -146,7 +115,7 @@ class K2Collimator:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
   
-            track(self, particles, npart, reset_seed)
+            track(self, particles, npart)
 
             # Drift inactive back
             L = self.inactive_back
@@ -166,7 +135,6 @@ class K2Collimator:
         # TODO how to save ref to impacts?
         thisdict = {}
         thisdict['__class__'] = 'K2Collimator'
-        thisdict['random_generator_seed'] = self._k2engine.random_generator_seed
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
         thisdict['inactive_back'] = self.inactive_back
@@ -188,17 +156,8 @@ class K2Collimator:
 
 
     @classmethod
-    def from_dict(cls, thisdict, *, engine=None):
-         # TODO how to get ref to impacts?
-        if engine is None:
-            print("Warning: no engine given! Creating a new one...")
-            engine = K2Engine(thisdict['random_generator_seed'])
-        else:
-            if engine.random_generator_seed != thisdict['random_generator_seed']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: random_generator_seed is different.")
+    def from_dict(cls, thisdict):
         return cls(
-            k2engine = engine,
             active_length = thisdict['active_length'],
             inactive_front = thisdict['inactive_front'],
             inactive_back = thisdict['inactive_back'],
@@ -225,12 +184,11 @@ class K2Crystal:
     isthick = True
     behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, angle, align_angle, inactive_front=0, inactive_back=0,
+    def __init__(self, *, active_length, angle, align_angle, inactive_front=0, inactive_back=0,
                  jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
                  bend=0, xdim=0, ydim=0, thick=0, crytilt=0, miscut=0, orient=0,
                  is_active=True, impacts=None, material=None):
 
-        self._k2engine = k2engine
         self.active_length = active_length
         self.inactive_front = inactive_front
         self.inactive_back = inactive_back
@@ -264,7 +222,6 @@ class K2Crystal:
         self.miscut = miscut
         self.orient = orient
         self.impacts = impacts
-        self._reset_random_seed = False
 
     @property
     def material(self):
@@ -308,9 +265,6 @@ class K2Crystal:
             self.jaw_B_L = 1
             self.jaw_B_R = -1
 
-    def reset_random_seed(self):
-        self._reset_random_seed = True
-
     @property
     def length(self):
         return self.active_length + self.inactive_front + self.inactive_back
@@ -319,11 +273,6 @@ class K2Crystal:
         npart = particles._num_active_particles
         if npart == 0:
             return
-        if self._reset_random_seed == True:
-            reset_seed = self.k2engine.random_generator_seed
-            self._reset_random_seed = False
-        else:
-            reset_seed = -1
         if self.material is None:
             raise ValueError("Cannot track if material is not set!")
         
@@ -354,7 +303,7 @@ class K2Crystal:
                 particles.s[:npart] += L
                 particles.zeta[:npart] += dzeta*L
 
-            track(self, particles, npart, reset_seed)
+            track(self, particles, npart)
 
             # Drift inactive back
             L = self.inactive_back
@@ -374,7 +323,6 @@ class K2Crystal:
         # TODO how to save ref to impacts?
         thisdict = {}
         thisdict['__class__'] = 'K2Crystal'
-        thisdict['random_generator_seed'] = self._k2engine.random_generator_seed
         thisdict['active_length'] = self.active_length
         thisdict['inactive_front'] = self.inactive_front
         thisdict['inactive_back'] = self.inactive_back
@@ -405,18 +353,9 @@ class K2Crystal:
 
 
     @classmethod
-    def from_dict(cls, thisdict, *, engine=None):
+    def from_dict(cls, thisdict):
          # TODO how to get ref to impacts?
-        if engine is None:
-            print("Warning: no engine given! Creating a new one...")
-            engine = K2Engine(thisdict['random_generator_seed'])
-        else:
-            if engine.random_generator_seed != thisdict['random_generator_seed']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: random_generator_seed is different.")
-
         return cls(
-            k2engine = engine,
             active_length = thisdict['active_length'],
             inactive_front = thisdict['inactive_front'],
             inactive_back = thisdict['inactive_back'],

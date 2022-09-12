@@ -16,9 +16,6 @@
 ! ================================================================================================ !
 module mod_ranlux
 
-  use floatPrecision
-  use numerical_constants
-
   implicit none
 
   private
@@ -37,12 +34,12 @@ module mod_ranlux
   integer, save :: iseeds(24)
   integer, save :: next(24)
 
-  real(kind=fPrec), parameter :: twop12 = 4096.0
-  real(kind=fPrec), save :: seeds(24)
-  real(kind=fPrec), save :: twom12
-  real(kind=fPrec), save :: twom24
-  real(kind=fPrec), save :: carry = zero
-  real(kind=fPrec) :: uni
+  real(kind=8), parameter :: twop12 = 4096.0
+  real(kind=8), save :: seeds(24)
+  real(kind=8), save :: twom12
+  real(kind=8), save :: twom24
+  real(kind=8), save :: carry = 0.
+  real(kind=8) :: uni
 
   integer, save :: luxlev = lxdflt
   logical, save :: notyet = .true.
@@ -53,6 +50,66 @@ module mod_ranlux
   integer, save :: mkount = 0
   integer, save :: inseed
   integer, save :: nskip
+  
+  real(kind=8), parameter :: twopi   = real(z'401921fb54442d18',8)
+  real(kind=8), parameter :: zero   = 0.
+  real(kind=8), parameter :: half   = 0.5
+  real(kind=8), parameter :: one    = 1.0
+  real(kind=8), parameter :: two    = 2.0
+  real(kind=8), parameter :: three  = 3.0
+  real(kind=8), parameter :: four   = 4.0
+  real(kind=8), parameter :: five   = 5.0
+  real(kind=8), parameter :: six    = 6.0
+  real(kind=8), parameter :: seven  = 7.0
+  real(kind=8), parameter :: eight  = 8.0
+  real(kind=8), parameter :: nine   = 9.0
+
+  real(kind=8), parameter :: c1e1   = 1.0e1
+  real(kind=8), parameter :: c1e2   = 1.0e2
+  real(kind=8), parameter :: c2e2   = 2.0e2
+  real(kind=8), parameter :: c1e3   = 1.0e3
+  real(kind=8), parameter :: c2e3   = 2.0e3
+  real(kind=8), parameter :: c4e3   = 4.0e3
+  real(kind=8), parameter :: c1e4   = 1.0e4
+  real(kind=8), parameter :: c1e5   = 1.0e5
+  real(kind=8), parameter :: c1e6   = 1.0e6
+  real(kind=8), parameter :: c1e7   = 1.0e7
+  real(kind=8), parameter :: c1e8   = 1.0e8
+  real(kind=8), parameter :: c1e9   = 1.0e9
+  real(kind=8), parameter :: c1e10  = 1.0e10
+  real(kind=8), parameter :: c1e12  = 1.0e12
+  real(kind=8), parameter :: c1e13  = 1.0e13
+  real(kind=8), parameter :: c1e15  = 1.0e15
+  real(kind=8), parameter :: c1e16  = 1.0e16
+  real(kind=8), parameter :: c1e27  = 1.0e27
+  real(kind=8), parameter :: c1e38  = 1.0e38
+
+  real(kind=8), parameter :: c180e0 = 1.8e2
+
+  real(kind=8), parameter :: c1m1   = 1.0e-1
+  real(kind=8), parameter :: c2m1   = 2.0e-1
+  real(kind=8), parameter :: c1m2   = 1.0e-2
+  real(kind=8), parameter :: c5m2   = 5.0e-2
+  real(kind=8), parameter :: c1m3   = 1.0e-3
+  real(kind=8), parameter :: c1m4   = 1.0e-4
+  real(kind=8), parameter :: c5m4   = 5.0e-4
+  real(kind=8), parameter :: c1m5   = 1.0e-5
+  real(kind=8), parameter :: c1m6   = 1.0e-6
+  real(kind=8), parameter :: c2m6   = 2.0e-6
+  real(kind=8), parameter :: c1m7   = 1.0e-7
+  real(kind=8), parameter :: c1m8   = 1.0e-8
+  real(kind=8), parameter :: c1m9   = 1.0e-9
+  real(kind=8), parameter :: c2m9   = 2.0e-9
+  real(kind=8), parameter :: c1m10  = 1.0e-10
+  real(kind=8), parameter :: c1m12  = 1.0e-12
+  real(kind=8), parameter :: c1m13  = 1.0e-13
+  real(kind=8), parameter :: c1m15  = 1.0e-15
+  real(kind=8), parameter :: c1m18  = 1.0e-18
+  real(kind=8), parameter :: c1m21  = 1.0e-21
+  real(kind=8), parameter :: c1m24  = 1.0e-24
+  real(kind=8), parameter :: c1m27  = 1.0e-27
+  real(kind=8), parameter :: c1m36  = 1.0e-36
+  real(kind=8), parameter :: c1m38  = 1.0e-38
 
   public ranlux
   public rluxin
@@ -112,10 +169,8 @@ contains
 !!! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 subroutine ranlux(rvec,lenv)
 
-  use crcoall
-
   integer,          intent(in)  :: lenv
-  real(kind=fPrec), intent(out) :: rvec(lenv)
+  real(kind=8), intent(out) :: rvec(lenv)
 
   ! NOTYET is .TRUE. if no initialization has been performed yet.
   !             Default Initialization by Multiplicative Congruential
@@ -123,7 +178,7 @@ subroutine ranlux(rvec,lenv)
     notyet = .false.
     jseed = jsdflt
     inseed = jseed
-    write(lout,"(a,i0)") "RANLUX> Default initialization: ",jseed
+    write(6,"(a,i0)") "RANLUX> Default initialization: ",jseed
     luxlev = lxdflt
     nskip  = ndskip(luxlev)
     lp     = nskip + 24
@@ -205,8 +260,6 @@ end subroutine ranlux
 ! Entry to input and float integer seeds from previous run
 subroutine rluxin(isdext_tmp)
 
-  use crcoall
-
   integer, intent(in) :: isdext_tmp(25)
 
   isdext = isdext_tmp
@@ -218,8 +271,8 @@ subroutine rluxin(isdext_tmp)
   end do
   next(1) = 24
   twom12 = twom24 * twop12
-  write(lout,"(a)")       "RANLUX> Full initialisation of ranlux with 25 integers: "
-! write(lout,"(a,25i12)") "RANLUX> ",isdext
+  write(6,"(a)")       "RANLUX> Full initialisation of ranlux with 25 integers: "
+! write(6,"(a,25i12)") "RANLUX> ",isdext
   do i=1,24
     seeds(i) = real(isdext(i))*twom24
   end do
@@ -236,13 +289,13 @@ subroutine rluxin(isdext_tmp)
   luxlev = isd
   if(luxlev <= maxlev) then
     nskip = ndskip(luxlev)
-    write(lout,"(a,i0)") "RANLUX> Luxury level set by rluxin to ",luxlev
+    write(6,"(a,i0)") "RANLUX> Luxury level set by rluxin to ",luxlev
   else if(luxlev >= 24) then
     nskip = luxlev - 24
-    write(lout,"(a,i0)") "RANLUX> P-value set by rluxin to ",luxlev
+    write(6,"(a,i0)") "RANLUX> P-value set by rluxin to ",luxlev
   else
     nskip = ndskip(maxlev)
-    write(lout,"(a,i0)") "RANLUX> Illegal luxury rluxin ",luxlev
+    write(6,"(a,i0)") "RANLUX> Illegal luxury rluxin ",luxlev
     luxlev = maxlev
   end if
   inseed = -1
@@ -277,8 +330,6 @@ end subroutine rluxat
 ! Entry to initialize from one or three integers
 subroutine rluxgo(lux,ins,k1,k2)
 
-  use crcoall
-
   integer, intent(in) :: lux,ins,k1,k2
 
   if(lux < 0) then
@@ -287,7 +338,7 @@ subroutine rluxgo(lux,ins,k1,k2)
     luxlev = lux
   elseif(lux < 24 .or. lux > 2000) then
     luxlev = maxlev
-    write(lout,"(a,i0)") "RANLUX> Illegal luxury rluxgo ",lux
+    write(6,"(a,i0)") "RANLUX> Illegal luxury rluxgo ",lux
   else
     luxlev = lux
     do ilx=0,maxlev
@@ -297,21 +348,21 @@ subroutine rluxgo(lux,ins,k1,k2)
 
   if(luxlev <= maxlev) then
     nskip = ndskip(luxlev)
-!    write(lout,"(a,i0,a,i0)") "RANLUX> Luxury level set by rluxgo: ",luxlev," P = ",nskip+24
+!    write(6,"(a,i0,a,i0)") "RANLUX> Luxury level set by rluxgo: ",luxlev," P = ",nskip+24
   else
     nskip = luxlev - 24
-    write(lout,"(a,i0)") "RANLUX> P-value set by rluxgo to ",luxlev
+    write(6,"(a,i0)") "RANLUX> P-value set by rluxgo to ",luxlev
   end if
 
   in24 = 0
 
-  if(ins < 0) write(lout,"(a)") "RANLUX> Illegal initialisation by RLUXGO, negative input seed"
+  if(ins < 0) write(6,"(a)") "RANLUX> Illegal initialisation by RLUXGO, negative input seed"
   if(ins > 0) then
     jseed = ins
-!    write(lout,"(a,3(1x,i0))") "RANLUX> Initialised by rluxgo from seeds ",jseed,k1,k2
+!    write(6,"(a,3(1x,i0))") "RANLUX> Initialised by rluxgo from seeds ",jseed,k1,k2
   else
     jseed = jsdflt
-!    write(lout,"(a)") "RANLUX> Initialised by rluxgo from default seed"
+!    write(6,"(a)") "RANLUX> Initialised by rluxgo from default seed"
   end if
 
   inseed = jseed
@@ -370,8 +421,8 @@ subroutine rluxgo(lux,ins,k1,k2)
 
     ! Now IN24 had better be between zero and 23 inclusive
     if(in24 > 23) then
-      write(lerr,"(a)")               "RANLUX> ERROR RESTARTING with RLUXGO:"
-      write(lerr,"(a,3(1x,i0),a,i0)") "RANLUX>       The values",ins,k1,k2," cannot occur at luxury level ",luxlev
+      write(0,"(a)")               "RANLUX> ERROR RESTARTING with RLUXGO:"
+      write(0,"(a,3(1x,i0),a,i0)") "RANLUX>       The values",ins,k1,k2," cannot occur at luxury level ",luxlev
       in24 = 0
     end if
   end if
@@ -381,7 +432,7 @@ end subroutine rluxgo
 function rndm4()
 
   integer len, in
-  real(kind=fPrec) rndm4, a
+  real(kind=8) rndm4, a
 
   save in,a
 
@@ -411,12 +462,12 @@ end function rndm4
 !
 function rndm5(irnd)
 
-  use mathlib_bouncer
+  !use mathlib_bouncer
 
   implicit none
 
   integer len, inn, irnd
-  real(kind=fPrec) rndm5,a
+  real(kind=8) rndm5,a
   save
 
   parameter( len =  30000 )
@@ -447,12 +498,12 @@ end function rndm5
 !!! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 function coll_rand()
 
-  use mathlib_bouncer
+  !use mathlib_bouncer
 
   implicit none
 
   integer len
-  real(kind=fPrec) coll_rand,a
+  real(kind=8) coll_rand,a
   save
 
   parameter( len =  1 )
@@ -470,18 +521,18 @@ end function coll_rand
 !   distribution between [0,1].
 !   See "Communications of the ACM", V. 15 (1972), p. 873.
 !
-! cut - real(kind=fPrec) - cut for distribution in units of sigma
+! cut - real(kind=8) - cut for distribution in units of sigma
 !                the cut must be greater than 0.5
 !
 !*********************************************************************
-real(kind=fPrec) function ran_gauss(cut)
+real(kind=8) function ran_gauss(cut)
 
-  use mathlib_bouncer
+  !use mathlib_bouncer
 
-  real(kind=fPrec), intent(in) :: cut
+  real(kind=8), intent(in) :: cut
 
   logical :: flag = .true.
-  real(kind=fPrec) :: x, u1, u2, r
+  real(kind=8) :: x, u1, u2, r
 
   save
 
@@ -489,11 +540,11 @@ real(kind=fPrec) function ran_gauss(cut)
     r  = rndm4()
     r  = max(r, half**32)
     r  = min(r, one-half**32)
-    u1 = sqrt(-two*log_mb( r ))
+    u1 = sqrt(-two*log( r ))
     u2 = rndm4()
-    x  = u1 * cos_mb(twopi*u2)
+    x  = u1 * cos(twopi*u2)
   else
-    x  = u1 * sin_mb(twopi*u2)
+    x  = u1 * sin(twopi*u2)
   end if
 
   flag = .not. flag
@@ -511,33 +562,32 @@ end function ran_gauss
 !     distribution between [0,1].
 !     See "Communications of the ACM", V. 15 (1972), p. 873.
 !
-!     cut - real(kind=fPrec) - cut for distribution in units of sigma
+!     cut - real(kind=8) - cut for distribution in units of sigma
 !     the cut must be greater than 0.5
 !
 !     changed rndm4 to rndm5(irnd) and defined flag as true
 !
 !*********************************************************************
-real(kind=fPrec) function ran_gauss2(cut)
+real(kind=8) function ran_gauss2(cut)
 
-  use numerical_constants, only : twopi
-  use mathlib_bouncer
+  !use mathlib_bouncer
 
   logical flag
-  real(kind=fPrec) x, u1, u2, r,cut
+  real(kind=8) x, u1, u2, r,cut
   save
 
   flag = .true. !Does this initialize only once, or is it executed every pass?
                 !See ran_gauss(cut)
 
 1 if (flag) then
-    r = real(rndm5(0),fPrec)
+    r = real(rndm5(0),8)
     r = max(r, half**32)
     r = min(r, one-half**32)
-    u1 = sqrt(-two*log_mb( r ))
-    u2 = real(rndm5(0),fPrec)
-    x = u1 * cos_mb(twopi*u2)
+    u1 = sqrt(-two*log( r ))
+    u2 = real(rndm5(0),8)
+    x = u1 * cos(twopi*u2)
   else
-    x = u1 * sin_mb(twopi*u2)
+    x = u1 * sin(twopi*u2)
   endif
 
   flag = .not. flag

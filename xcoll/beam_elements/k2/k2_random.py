@@ -1,26 +1,64 @@
 import numpy as np
-from pathlib import Path
-from xcoll import _pkg_root
 
-try:
-    import xcoll.beam_elements.pyk2 as pyk2
-except ImportError:
-    raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+_seed = None
 
 def get_random():
-    return pyk2.pyk2_rand()
+    try:
+        from .pyk2f import pyk2_rand
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    global _seed
+    if _seed is None:
+        set_random_seed()
+    return pyk2_rand()
 
 def get_random_ruth(cgen):
+    try:
+        from .pyk2f import pyk2_funlux
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    global _seed
+    if _seed is None:
+        set_random_seed()
     xran = np.zeros(1)
     xran = np.array(xran, dtype=np.float64)
-    pyk2.pyk2_funlux(cgen, xran, 1)
+    pyk2_funlux(cgen, xran, 1)
     return xran[0]
 
 def get_random_gauss(cut):
-    return pyk2.pyk2_rand_gauss(cut)
+    try:
+        from .pyk2f import pyk2_rand_gauss
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    global _seed
+    if _seed is None:
+        set_random_seed()
+    return pyk2_rand_gauss(cut)
 
+
+def set_random_seed(seed=None):
+    try:
+        from .pyk2f import pyk2_init
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    global _seed
+    if seed is None:
+        _seed = np.random.randint(1, 100000)
+    else:
+        _seed = seed
+    pyk2_init(random_generator_seed=_seed)
+
+def get_random_seed():
+    return _seed
 
 def initialise_random_ruth(zatom, emr, hcut, is_crystal=False):
+    try:
+        from .pyk2f import make_ruth_dist
+    except ImportError:
+        raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
+    global _seed
+    if _seed is None:
+        set_random_seed()
     cgen = np.zeros(200, dtype=np.float64)
 
     # Rutherford normalisation should be 2.607e-5
@@ -30,7 +68,7 @@ def initialise_random_ruth(zatom, emr, hcut, is_crystal=False):
         cnorm  = 2.607e-4
     else:
         cnorm  = 2.607e-5
-    pyk2.make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut, cnorm=cnorm)
+    make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut, cnorm=cnorm)
     return cgen
 
 

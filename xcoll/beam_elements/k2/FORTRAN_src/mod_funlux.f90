@@ -2,12 +2,10 @@
 
 module mod_funlux
 
-  use floatPrecision
-  use numerical_constants, only : zero, two
-
   implicit none
 
-  real(kind=fPrec), private, save :: tftot
+  real(kind=8), private, save :: tftot
+  real(kind=8), parameter :: zero   = 0.
 
 contains
 
@@ -24,11 +22,10 @@ subroutine funlxp (func,xfcum,x2low,x2high)
 !    3. FUNLXP calls FUNPCT to do the actual finding of percentiles.
 !    4. both FUNLXP and FUNPCT use RADAPT for Gaussian integration.
 !
-      use crcoall
       implicit none
       external func
       integer ifunc,ierr
-      real(kind=fPrec) x2high,x2low,xfcum,rteps,xhigh,xlow,xrange,uncert,x2,tftot1,x3,tftot2,func
+      real(kind=8) x2high,x2low,xfcum,rteps,xhigh,xlow,xrange,uncert,x2,tftot1,x3,tftot2,func
       dimension xfcum(200)
       parameter (rteps=0.0002)
       save ifunc
@@ -38,7 +35,7 @@ subroutine funlxp (func,xfcum,x2low,x2high)
       call funlz(func,x2low,x2high,xlow,xhigh)
       xrange = xhigh-xlow
       if(xrange .le. 0.)  then
-        write(lout,'(A,2G15.5)') ' FUNLXP finds function range .LE.0',xlow,xhigh
+        write(6,'(A,2G15.5)') ' FUNLXP finds function range .LE.0',xlow,xhigh
         go to 900
       endif
       call radapt(func,xlow,xhigh,1,rteps,zero,tftot ,uncert)
@@ -62,17 +59,16 @@ subroutine funlxp (func,xfcum,x2low,x2high)
 
       return
   900 continue
-      write(lout,*) ' Fatal error in FUNLXP. FUNLUX will not work.'
+      write(6,*) ' Fatal error in FUNLXP. FUNLUX will not work.'
 end subroutine funlxp
 
 subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
 !        Array XFCUM is filled from NLO to NLO+NBINS, which makes
 !        the number of values NBINS+1, or the number of bins NBINS
-      use crcoall
       implicit none
       external func
       integer ierr,nbins,nlo,ifunc,nz,ibin,maxz,iz,nitmax,ihome
-      real(kind=fPrec) tftot,xhigh,xlow,func,xfcum,rteps,tpctil,tz,tzmax,x,f,tcum,  &
+      real(kind=8) tftot,xhigh,xlow,func,xfcum,rteps,tpctil,tz,tzmax,x,f,tcum,  &
      &x1,f1,dxmax,fmin,fminz,xincr,tincr,xbest,dtbest,tpart,x2,precis,  &
      &refx,uncert,tpart2,dtpar2,dtabs,aberr
       dimension xfcum(*)
@@ -80,7 +76,7 @@ subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
 !      DOUBLE PRECISION TPCTIL, TZ, TCUM, XINCR, DTABS,
 !     &  TINCR, TZMAX, XBEST, DTBEST, DTPAR2
 !
-      ierr = 0
+      ierr = zero
       if (tftot .le. 0.) go to 900
       tpctil = tftot/real(nbins)
       tz = tpctil/real(nz)
@@ -115,7 +111,7 @@ subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
       f1 = f
       x1 = x
   500 continue
-      write(lout,*) ' FUNLUX:  WARNING. FUNPCT fails trapezoid.'
+      write(6,*) ' FUNLUX:  WARNING. FUNPCT fails trapezoid.'
 !         END OF TRAPEZOID LOOP
 !         Adjust interval using Gaussian integration with
 !             Newton corrections since F is the derivative
@@ -130,7 +126,7 @@ subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
       x = xbest + xincr
       x2 = x
         if (ihome .gt. 1 .and. x2 .eq. xbest) then
-        write(lout,'(A,G12.3)') ' FUNLUX: WARNING from FUNPCT: insufficient precision at X=',x
+        write(6,'(A,G12.3)') ' FUNLUX: WARNING from FUNPCT: insufficient precision at X=',x
         go to 580
         endif
       refx = abs(x)+precis
@@ -148,7 +144,7 @@ subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
       if(f .lt. 0.) goto 900
       if(dtabs .lt. rteps*tpctil) goto 580
   550 continue
-      write(lout,'(A,I4)') ' FUNLUX: WARNING from FUNPCT: cannot converge, bin',ibin
+      write(6,'(A,I4)') ' FUNLUX: WARNING from FUNPCT: cannot converge, bin',ibin
 
   580 continue
       xincr = (tpctil-tpart) / max(f,fmin)
@@ -163,9 +159,9 @@ subroutine funpct(func,ifunc,xlow,xhigh,xfcum,nlo,nbins,tftot,ierr)
       call radapt(func,x1,x2,1,rteps,zero,tpart ,uncert)
       aberr = abs(tpart-tpctil)/tftot
 !      WRITE(6,1001) IFUNC,XLOW,XHIGH
-      if(aberr .gt. rteps)  write(lout,1002) aberr
+      if(aberr .gt. rteps)  write(6,1002) aberr
       return
-  900 write(lout,1000) x,f
+  900 write(6,1000) x,f
       ierr = 1
       return
  1000 format(/' FUNLUX fatal error in FUNPCT: function negative:'/      &
@@ -185,7 +181,7 @@ subroutine funlux(array,xran,len)
   use mod_ranlux
   implicit none
       integer len,ibuf,j,j1
-      real(kind=fPrec) array,xran,gap,gapinv,tleft,bright,gaps,gapins,x,p,a,b
+      real(kind=8) array,xran,gap,gapinv,tleft,bright,gaps,gapins,x,p,a,b
       dimension array(200)
       dimension xran(len)
 !  Bin width for main sequence, and its inverse
@@ -203,7 +199,7 @@ subroutine funlux(array,xran,len)
 !        ARRAY(151-200) contains the 49-bin blowup of main bins
 !                       98 and 99 (right tail of distribution)
 !
-      x = zero ! -Wmaybe-uninitialized
+      x = 0 ! -Wmaybe-uninitialized
       call ranlux(xran,len)
 !      call ranecu(xran,len,-1)
 
@@ -252,11 +248,10 @@ subroutine funlz(func,x2low,x2high,xlow,xhigh)
 !    COVERING AT LEAST 1% OF THE GIVEN REGION.
 ! OTHERWISE IT IS NOT GUARANTEED TO FIND THE NON-ZERO REGION.
 ! IF FUNCTION EVERYWHERE ZERO, FUNLZ SETS XLOW=XHIGH=0.
-      use crcoall
       implicit none
       external func
       integer logn,nslice,i,k
-      real(kind=fPrec) xhigh,xlow,x2high,x2low,func,xmid,xh,xl,xnew
+      real(kind=8) xhigh,xlow,x2high,x2low,func,xmid,xh,xl,xnew
       xlow = x2low
       xhigh = x2high
 !         FIND OUT IF FUNCTION IS ZERO AT ONE END OR BOTH
@@ -274,8 +269,8 @@ subroutine funlz(func,x2low,x2high,xlow,xhigh)
    20 continue
    30 continue
 !         FALLING THROUGH LOOP MEANS CANNOT FIND NON-ZERO VALUE
-      write(lout,554)
-      write(lout,555) xlow, xhigh
+      write(6,554)
+      write(6,555) xlow, xhigh
       xlow = 0.
       xhigh = 0.
       go to 220
@@ -292,7 +287,7 @@ subroutine funlz(func,x2low,x2high,xlow,xhigh)
    68 xl = xnew
    70 continue
       xlow = xl
-      write(lout,555) x2low,xlow
+      write(6,555) x2low,xlow
   120 continue
       if (func(xhigh) .gt. 0.) go to 220
 !         DELETE 'TRAILING' RANGE OF ZEROES
@@ -306,7 +301,7 @@ subroutine funlz(func,x2low,x2high,xlow,xhigh)
   168 xh = xnew
   170 continue
       xhigh = xh
-      write(lout,555) xhigh, x2high
+      write(6,555) xhigh, x2high
 !
   220 continue
       return
@@ -334,8 +329,8 @@ subroutine radapt(f,a,b,nseg,reltol,abstol,res,err)
 
       external f
       integer nseg,ndim,nter,nsegd,i,iter,ibig
-      real(kind=fPrec) err,res,abstol,reltol,b,a,xlo,xhi,tval,ters,te,root,xhib,bin,xlob,bige,hf,xnew,r1,f
-      real(kind=fPrec) tvals,terss
+      real(kind=8) err,res,abstol,reltol,b,a,xlo,xhi,tval,ters,te,root,xhib,bin,xlob,bige,hf,xnew,r1,f
+      real(kind=8) tvals,terss
 
       parameter (ndim=100)
       parameter (r1 = 1., hf = r1/2.)
@@ -349,20 +344,20 @@ subroutine radapt(f,a,b,nseg,reltol,abstol,res,err)
         nsegd=1
         go to 2
        endif
-       tvals=zero
-       terss=zero
+       tvals=0
+       terss=0
        do 1 i = 1,nter
        call rgs56p(f,xlo(i),xhi(i),tval(i),te)
        ters(i)=te**2
        tvals=tvals+tval(i)
        terss=terss+ters(i)
     1  continue
-       root= sqrt(two*terss)
+       root= sqrt(2*terss)
        go to 9
       endif
       nsegd=min(nseg,ndim)
     2 xhib=a
-      bin=(b-a)/real(nsegd,fPrec)
+      bin=(b-a)/real(nsegd,8)
       do 3 i = 1,nsegd
       xlo(i)=xhib
       xlob=xlo(i)
@@ -380,7 +375,7 @@ subroutine radapt(f,a,b,nseg,reltol,abstol,res,err)
       tvals=tvals+tval(i)
       terss=terss+ters(i)
     5 continue
-      root=sqrt(two*terss)
+      root=sqrt(2*terss)
 
       if(root .le. abstol .or. root .le. reltol*abs(tvals)) then
         goto 9
@@ -416,8 +411,8 @@ subroutine rgs56p(f,a,b,res,err)
   implicit none
 
   integer i
-  real(kind=fPrec) err,res,b,a,f,w6,x6,w5,x5,rang,r1,hf
-  real(kind=fPrec) e5,e6
+  real(kind=8) err,res,b,a,f,w6,x6,w5,x5,rang,r1,hf
+  real(kind=8) e5,e6
 
   parameter (r1 = 1., hf = r1/2.)
   dimension x5(5),w5(5),x6(6),w6(6)
@@ -438,8 +433,8 @@ subroutine rgs56p(f,a,b,res,err)
  &9.6623475710157601e-01, 8.5662246189585178e-02/
 
   rang=b-a
-  e5=zero
-  e6=zero
+  e5=0
+  e6=0
   do i = 1,5
     e5=e5+dble(w5(i)*f(a+rang*x5(i)))
     e6=e6+dble(w6(i)*f(a+rang*x6(i)))
