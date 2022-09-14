@@ -89,6 +89,8 @@ tracker.track(part, num_turns=10)
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
 
+part_before_refinement = part.copy()
+
 # Loss location refinement
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
         n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
