@@ -31,6 +31,10 @@ line['acsca.b5r4.b1'].frequency = 400e6
 line['acsca.c5r4.b1'].frequency = 400e6
 line['acsca.d5r4.b1'].frequency = 400e6
 
+# Aperture model check
+print('\nAperture model check on imported model:')
+df_imported = line.check_aperture()
+
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
     line=line,
@@ -51,8 +55,9 @@ coll_manager.align_collimators_to('front')
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
 
-
-
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+df_with_coll = line.check_aperture()
 
 
 # Horizontal loss map
@@ -78,11 +83,8 @@ part = xp.build_particles(
             at_element=coll,
             match_at_s=coll_manager.s_match[coll])
 
-
-
 # Track
 tracker.track(part, num_turns=10)
-
 
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
