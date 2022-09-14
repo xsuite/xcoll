@@ -61,7 +61,7 @@ df_with_coll = line.check_aperture()
 
 
 # Horizontal loss map
-num_particles = 500
+num_particles = 5000
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
