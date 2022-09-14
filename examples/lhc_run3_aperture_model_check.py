@@ -31,11 +31,8 @@ line['acsca.b5r4.b1'].frequency = 400e6
 line['acsca.c5r4.b1'].frequency = 400e6
 line['acsca.d5r4.b1'].frequency = 400e6
 
+print('\nAperture check on imported model:')
 df_imported = line.check_aperture()
-
-
-
-df_patched = line.check_aperture()
 
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
@@ -57,4 +54,5 @@ coll_manager.align_collimators_to('front')
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
 
+print('\nAperture check after introducing collimators:')
 df_with_coll = line.check_aperture()
