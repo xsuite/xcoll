@@ -89,6 +89,16 @@ tracker.track(part, num_turns=10)
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
 
+# Loss location refinement
+loss_loc_refinement = xt.LossLocationRefinement(tracker,
+        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+        r_max = 0.5, # Maximum transverse aperture in m
+        dr = 50e-6, # Transverse loss refinement accuracy [m]
+        ds = 0.05, # Longitudinal loss refinement accuracy [m]
+        )
+
+loss_loc_refinement.refine_loss_location(part)
+
 ## Plot histogram of losses along the accelerator
 ## ------------------------------------------------------------------
 
