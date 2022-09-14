@@ -25,6 +25,10 @@ class BlackAbsorber(xt.BeamElement):
         '_record_impacts': xo.Int8,
         '_impacts': xo.Ref(CollimatorImpacts._XoStruct)
     }
+    
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
+    ]
 
     isthick = True
     behaves_like_drift = True
@@ -101,5 +105,4 @@ class BlackAbsorber(xt.BeamElement):
         self._impacts = impacts
 
 
-BlackAbsorber._XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')]
+

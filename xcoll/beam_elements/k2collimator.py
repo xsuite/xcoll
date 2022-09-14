@@ -1,5 +1,5 @@
 import numpy as np
-
+from .k2.materials import Material, Crystal
 
 class K2Engine:
 
@@ -62,6 +62,16 @@ class K2Collimator:
         self.material = material
         self.impacts = impacts
         self._reset_random_seed = False
+
+    @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, material):
+        if material is not None and not isinstance(material, Material):
+            raise ValueError(f"The material {material} is not a valid xcoll.Material!")
+        self._material = material
 
     @property
     def impacts(self):
@@ -180,7 +190,7 @@ class K2Collimator:
         thisdict['offset'] = self.offset
         thisdict['tilt'] = self.tilt
         thisdict['is_active'] = 1 if self.is_active else 0
-        thisdict['material'] = self.material
+        thisdict['material'] = self.material.to_dict()
         return thisdict
 
 
@@ -215,6 +225,6 @@ class K2Collimator:
             offset = thisdict['offset'],
             tilt = thisdict['tilt'],
             is_active = True if thisdict['is_active']==1 else False,
-            material = thisdict['material']
+            material = Material.from_dict(thisdict['material'])
         )
             

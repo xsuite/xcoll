@@ -175,28 +175,28 @@ module coll_materials
 
   implicit none
 
-  integer, parameter :: nmat  = 16 ! Total number of materials
-  integer, parameter :: nrmat = 14 ! Number of real materials
+  !integer, parameter :: nmat  = 16 ! Total number of materials
+  !integer, parameter :: nrmat = 14 ! Number of real materials
 
   ! pp cross-sections and parameters for energy dependence
   real(kind=fPrec), parameter :: pptref = 0.04_fPrec
   real(kind=fPrec), parameter :: freeco = 1.618_fPrec
 
   ! Collimator Material Arrays
-  character(4),     public, save :: colmats(nmat)   ! Material Names
-  real(kind=fPrec), public, save :: exenergy(nmat)  ! Mean excitation energy [GeV]
-  real(kind=fPrec), public, save :: anuc(nmat)      ! Atomic mass
-  real(kind=fPrec), public, save :: zatom(nmat)     ! Atomic Z
-  real(kind=fPrec), public, save :: rho(nmat)       ! Density
-  real(kind=fPrec), public, save :: emr(nmat)       ! Nuclear radius
-  real(kind=fPrec), public, save :: hcut(nmat)      ! T cut (upper)
-  real(kind=fPrec), public, save :: radl(nmat)      ! Remaining length
-  real(kind=fPrec), public, save :: bnref(nmat)     ! Nuclear elastic slope from Schiz et al., PRD 21(3010)1980
-  real(kind=fPrec), public, save :: csect(0:5,nmat) ! Cross section
-  real(kind=fPrec), public, save :: xintl(nmat)     ! Interaction length
-  real(kind=fPrec), public, save :: bn(nmat)        ! Nuclear elastic related
-  real(kind=fPrec), public, save :: freep(nmat)     ! Number of nucleons involved in single scattering
-  real(kind=fPrec), public, save :: cgen(200,nmat)  ! Used by FUNLUX / Rutherford routine
+  !character(4),     public, save :: colmats(nmat)   ! Material Names
+  !real(kind=fPrec), public, save :: exenergy(nmat)  ! Mean excitation energy [GeV]
+  !real(kind=fPrec), public, save :: anuc(nmat)      ! Atomic mass
+  !real(kind=fPrec), public, save :: zatom(nmat)     ! Atomic Z
+  !real(kind=fPrec), public, save :: rho(nmat)       ! Density
+  !real(kind=fPrec), public, save :: emr(nmat)       ! Nuclear radius
+  !real(kind=fPrec), public, save :: hcut(nmat)      ! T cut (upper)
+  !real(kind=fPrec), public, save :: radl(nmat)      ! Remaining length
+  !real(kind=fPrec), public, save :: bnref(nmat)     ! Nuclear elastic slope from Schiz et al., PRD 21(3010)1980
+  real(kind=fPrec), public, save :: csect(0:5) ! Cross section
+  real(kind=fPrec), public, save :: xintl     ! Interaction length
+  real(kind=fPrec), public, save :: bn        ! Nuclear elastic related
+  real(kind=fPrec), public, save :: freep     ! Number of nucleons involved in single scattering
+  real(kind=fPrec), public, save :: cgen(200)  ! Used by FUNLUX / Rutherford routine
 
   ! All cross-sections are in barns. Nuclear values from RPP at 20 GeV
   ! Coulomb is integerated above t=tLcut[Gev2] (+-1% out Gauss mcs)
@@ -206,262 +206,34 @@ module coll_materials
   ! 4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
 
   ! Claudia 2013: updated cross section values. Unit: Barn. New 2013:
-  real(kind=fPrec), public, parameter :: csref(0:5,nmat) = reshape([ &
-    [0.271_fPrec, 0.192_fPrec, zero, zero, zero, 0.0035e-2_fPrec], & ! BE
-    [0.643_fPrec, 0.418_fPrec, zero, zero, zero, 0.0340e-2_fPrec], & ! AL
-    [1.253_fPrec, 0.769_fPrec, zero, zero, zero, 0.1530e-2_fPrec], & ! CU
-    [2.765_fPrec, 1.591_fPrec, zero, zero, zero, 0.7680e-2_fPrec], & ! W
-    [3.016_fPrec, 1.724_fPrec, zero, zero, zero, 0.9070e-2_fPrec], & ! PB
-    [0.337_fPrec, 0.232_fPrec, zero, zero, zero, 0.0076e-2_fPrec], & ! C
-    [0.337_fPrec, 0.232_fPrec, zero, zero, zero, 0.0076e-2_fPrec], & ! C2
-    [0.664_fPrec, 0.430_fPrec, zero, zero, zero, 0.0390e-2_fPrec], & ! Si
-    [1.388_fPrec, 0.844_fPrec, zero, zero, zero, 0.1860e-2_fPrec], & ! Ge
-    [0.362_fPrec, 0.247_fPrec, zero, zero, zero, 0.0094e-2_fPrec], & ! MoGR
-    [0.572_fPrec, 0.370_fPrec, zero, zero, zero, 0.0279e-2_fPrec], & ! CuCD
-    [1.713_fPrec, 1.023_fPrec, zero, zero, zero, 0.2650e-2_fPrec], & ! Mo
-    [1.246_fPrec, 0.765_fPrec, zero, zero, zero, 0.1390e-2_fPrec], & ! Glid
-    [2.548_fPrec, 1.473_fPrec, zero, zero, zero, 0.5740e-2_fPrec], & ! Iner
-    [       zero,        zero, zero, zero, zero,            zero], & ! VA
-    [       zero,        zero, zero, zero, zero,            zero]  & ! BL
-  ], shape=[6,nmat])
+  !real(kind=fPrec), public, parameter :: csref(0:5,nmat) = reshape([ &
+  !  [0.271_fPrec, 0.192_fPrec, zero, zero, zero, 0.0035e-2_fPrec], & ! BE
+  !  [0.643_fPrec, 0.418_fPrec, zero, zero, zero, 0.0340e-2_fPrec], & ! AL
+  !  [1.253_fPrec, 0.769_fPrec, zero, zero, zero, 0.1530e-2_fPrec], & ! CU
+  !  [2.765_fPrec, 1.591_fPrec, zero, zero, zero, 0.7680e-2_fPrec], & ! W
+  !  [3.016_fPrec, 1.724_fPrec, zero, zero, zero, 0.9070e-2_fPrec], & ! PB
+  !  [0.337_fPrec, 0.232_fPrec, zero, zero, zero, 0.0076e-2_fPrec], & ! C
+  !  [0.337_fPrec, 0.232_fPrec, zero, zero, zero, 0.0076e-2_fPrec], & ! C2
+  !  [0.664_fPrec, 0.430_fPrec, zero, zero, zero, 0.0390e-2_fPrec], & ! Si
+  !  [1.388_fPrec, 0.844_fPrec, zero, zero, zero, 0.1860e-2_fPrec], & ! Ge
+  !  [0.362_fPrec, 0.247_fPrec, zero, zero, zero, 0.0094e-2_fPrec], & ! MoGR
+  !  [0.572_fPrec, 0.370_fPrec, zero, zero, zero, 0.0279e-2_fPrec], & ! CuCD
+  !  [1.713_fPrec, 1.023_fPrec, zero, zero, zero, 0.2650e-2_fPrec], & ! Mo
+  !  [1.246_fPrec, 0.765_fPrec, zero, zero, zero, 0.1390e-2_fPrec], & ! Glid
+  !  [2.548_fPrec, 1.473_fPrec, zero, zero, zero, 0.5740e-2_fPrec], & ! Iner
+  !  [       zero,        zero, zero, zero, zero,            zero], & ! VA
+  !  [       zero,        zero, zero, zero, zero,            zero]  & ! BL
+  !], shape=[6,nmat])
 
   ! Cprob to choose an interaction in iChoix
-  real(kind=fPrec), public, save :: cprob(0:5,nmat) = reshape([ &
-    [zero, zero, zero, zero, zero, one], & ! BE
-    [zero, zero, zero, zero, zero, one], & ! AL
-    [zero, zero, zero, zero, zero, one], & ! CU
-    [zero, zero, zero, zero, zero, one], & ! W
-    [zero, zero, zero, zero, zero, one], & ! PB
-    [zero, zero, zero, zero, zero, one], & ! C
-    [zero, zero, zero, zero, zero, one], & ! C2
-    [zero, zero, zero, zero, zero, one], & ! Si
-    [zero, zero, zero, zero, zero, one], & ! Ge
-    [zero, zero, zero, zero, zero, one], & ! MoGR
-    [zero, zero, zero, zero, zero, one], & ! CuCD
-    [zero, zero, zero, zero, zero, one], & ! Mo
-    [zero, zero, zero, zero, zero, one], & ! Glid
-    [zero, zero, zero, zero, zero, one], & ! Iner
-    [zero, zero, zero, zero, zero, one], & ! VA
-    [zero, zero, zero, zero, zero, one]  & ! BL
-  ], shape=[6,nmat])
+  real(kind=fPrec), public, save :: cprob(0:5) = [zero, zero, zero, zero, zero, one]
 
   ! Electron density and plasma energy
-  real(kind=fPrec), public, save :: edens(nmat) = zero
-  real(kind=fPrec), public, save :: pleng(nmat) = zero
+  real(kind=fPrec), public, save :: edens = zero
+  real(kind=fPrec), public, save :: pleng = zero
 
 contains
 
-! ================================================================================================ !
-!  Initialise Material Database Values
-!  V.K. Berglyd Olsen, BE-ABP-HSS
-!  Created: 2019-09-19
-!  Updated: 2019-09-19
-!  Rewritten to make it easier to add new materials.
-! ================================================================================================ !
-subroutine collmat_init
-
-  use crcoall
-
-  integer iMat
-
-  iMat = 1
-  colmats(iMat)  = "BE"
-  exenergy(iMat) =  63.7e-9_fPrec
-  anuc(iMat)     =   9.01_fPrec
-  zatom(iMat)    =   4.00_fPrec
-  rho(iMat)      =   1.848_fPrec
-  emr(iMat)      =   0.22_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.353_fPrec
-  bnref(iMat)    =  74.7_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "AL"
-  exenergy(iMat) = 166.0e-9_fPrec
-  anuc(iMat)     =  26.98_fPrec
-  zatom(iMat)    =  13.00_fPrec
-  rho(iMat)      =   2.70_fPrec
-  emr(iMat)      =   0.302_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.089_fPrec
-  bnref(iMat)    = 120.3_fPrec
-
-  ! Copper
-  iMat = iMat + 1
-  colmats(iMat)  = "CU"
-  exenergy(iMat) = 322.0e-9_fPrec
-  anuc(iMat)     =  63.55_fPrec
-  zatom(iMat)    =  29.00_fPrec
-  rho(iMat)      =   8.96_fPrec
-  emr(iMat)      =   0.366_fPrec
-  hcut(iMat)     =   0.01_fPrec
-  radl(iMat)     =   0.0143_fPrec
-  bnref(iMat)    = 217.8_fPrec
-
-  ! Tungsten
-  iMat = iMat + 1
-  colmats(iMat)  = "W"
-  exenergy(iMat) = 727.0e-9_fPrec
-  anuc(iMat)     = 183.85_fPrec
-  zatom(iMat)    =  74.00_fPrec
-  rho(iMat)      =  19.30_fPrec
-  emr(iMat)      =   0.520_fPrec
-  hcut(iMat)     =   0.01_fPrec
-  radl(iMat)     =   0.0035_fPrec
-  bnref(iMat)    = 440.3_fPrec
-
-  ! Lead
-  iMat = iMat + 1
-  colmats(iMat)  = "PB"
-  exenergy(iMat) = 823.0e-9_fPrec
-  anuc(iMat)     = 207.19_fPrec
-  zatom(iMat)    =  82.00_fPrec
-  rho(iMat)      =  11.35_fPrec
-  emr(iMat)      =   0.542_fPrec
-  hcut(iMat)     =   0.01_fPrec
-  radl(iMat)     =   0.0056_fPrec
-  bnref(iMat)    = 455.3_fPrec
-
-  ! Carbon
-  iMat = iMat + 1
-  colmats(iMat)  = "C"
-  exenergy(iMat) =  78.0e-9_fPrec
-  anuc(iMat)     =  12.01_fPrec
-  zatom(iMat)    =   6.00_fPrec
-  rho(iMat)      =   1.67_fPrec
-  emr(iMat)      =   0.25_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.2557_fPrec
-  bnref(iMat)    =  70.0_fPrec
-
-  ! Carbon2
-  iMat = iMat + 1
-  colmats(iMat)  = "C2"
-  exenergy(iMat) =  78.0e-9_fPrec
-  anuc(iMat)     =  12.01_fPrec
-  zatom(iMat)    =   6.00_fPrec
-  rho(iMat)      =   4.52_fPrec
-  emr(iMat)      =   0.25_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.094_fPrec
-  bnref(iMat)    =  70.0_fPrec
-
-  ! Silicon
-  iMat = iMat + 1
-  colmats(iMat)  = "Si"
-  exenergy(iMat) = 173.0e-9_fPrec
-  anuc(iMat)     =  28.08_fPrec
-  zatom(iMat)    =  14.00_fPrec
-  rho(iMat)      =   2.33_fPrec
-  emr(iMat)      =   0.441_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     = one
-  bnref(iMat)    = 120.14_fPrec
-
-  ! Germanium
-  iMat = iMat + 1
-  colmats(iMat)  = "Ge"
-  exenergy(iMat) = 350.0e-9_fPrec
-  anuc(iMat)     =  72.63_fPrec
-  zatom(iMat)    =  32.00_fPrec
-  rho(iMat)      =   5.323_fPrec
-  emr(iMat)      =   0.605_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     = one
-  bnref(iMat)    = 226.35_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "MoGR"
-  exenergy(iMat) =  87.1e-9_fPrec
-  anuc(iMat)     =  13.53_fPrec
-  zatom(iMat)    =   6.65_fPrec
-  rho(iMat)      =   2.500_fPrec
-  emr(iMat)      =   0.25_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.1193_fPrec
-  bnref(iMat)    =  76.7_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "CuCD"
-  exenergy(iMat) = 152.9e-9_fPrec
-  anuc(iMat)     =  25.24_fPrec
-  zatom(iMat)    =  11.90_fPrec
-  rho(iMat)      =   5.40_fPrec
-  emr(iMat)      =   0.308_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.0316_fPrec
-  bnref(iMat)    = 115.0_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "Mo"
-  exenergy(iMat) = 424.0e-9_fPrec
-  anuc(iMat)     =  95.96_fPrec
-  zatom(iMat)    =  42.00_fPrec
-  rho(iMat)      =  10.22_fPrec
-  emr(iMat)      =   0.481_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.0096_fPrec
-  bnref(iMat)    = 273.9_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "Glid"
-  exenergy(iMat) = 320.8e-9_fPrec
-  anuc(iMat)     =  63.15_fPrec
-  zatom(iMat)    =  28.80_fPrec
-  rho(iMat)      =   8.93_fPrec
-  emr(iMat)      =   0.418_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.0144_fPrec
-  bnref(iMat)    = 208.7_fPrec
-
-  iMat = iMat + 1
-  colmats(iMat)  = "Iner"
-  exenergy(iMat) = 682.2e-9_fPrec
-  anuc(iMat)     = 166.70_fPrec
-  zatom(iMat)    =  67.70_fPrec
-  rho(iMat)      =  18.00_fPrec
-  emr(iMat)      =   0.578_fPrec
-  hcut(iMat)     =   0.02_fPrec
-  radl(iMat)     =   0.00385_fPrec
-  bnref(iMat)    = 392.1_fPrec
-
-  if(iMat > nrmat) then
-    write(lerr,"(a)") "COLL> ERROR Variable imat > nrmat in collmat_init. Please increase nrmat."
-    !call prror
-  end if
-
-  ! The following two must always be the last two materials
-
-  ! Vacuum
-  iMat = iMat + 1
-  colmats(iMat)  = "VA"
-  exenergy(iMat) = zero
-  anuc(iMat)     = zero
-  zatom(iMat)    = zero
-  rho(iMat)      = zero
-  emr(iMat)      = zero
-  hcut(iMat)     = zero
-  radl(iMat)     = 1.0e12_fPrec
-  bnref(iMat)    = zero
-
-  ! Black Absorber
-  iMat = iMat + 1
-  colmats(iMat)  = "BL"
-  exenergy(iMat) = c1e10
-  anuc(iMat)     = zero
-  zatom(iMat)    = zero
-  rho(iMat)      = zero
-  emr(iMat)      = zero
-  hcut(iMat)     = zero
-  radl(iMat)     = 1.0e12_fPrec
-  bnref(iMat)    = zero
-
-  if(iMat > nmat) then
-    write(lerr,"(a)") "COLL> ERROR Variable imat > nmat in collmat_init. Please increase nmat."
-    !call prror
-  end if
-
-end subroutine collmat_init
 
 ! ================================================================================================ !
 !  V.K. Berglyd Olsen, BE-ABP-HSS
@@ -469,20 +241,20 @@ end subroutine collmat_init
 !  Updated: 2019-09-16
 !  Get collimator material number from name (case sensitive)
 ! ================================================================================================ !
-integer function collmat_getCollMatID(matName)
-
-  character(len=*), intent(in) :: matName
-  integer i, matID
-
-  matID = -1
-  do i=1,nmat
-    if(colmats(i) == matName) then
-      matID = i
-      exit
-    end if
-  end do
-  collmat_getCollMatID = matID
-
-end function collmat_getCollMatID
+!integer function collmat_getCollMatID(matName)
+!
+!  character(len=*), intent(in) :: matName
+!  integer i, matID
+!
+!  matID = -1
+!  do i=1,nmat
+!    if(colmats(i) == matName) then
+!      matID = i
+!      exit
+!    end if
+!  end do
+!  collmat_getCollMatID = matID
+!
+!end function collmat_getCollMatID
 
 end module coll_materials

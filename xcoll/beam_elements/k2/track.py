@@ -30,7 +30,6 @@ def track(k2collimator, particles, npart, reset_seed):
         import xcoll.beam_elements.pyk2 as pyk2
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
-    from .materials import materials
 
     length = k2collimator.active_length
 
@@ -73,7 +72,39 @@ def track(k2collimator, particles, npart, reset_seed):
     opening = k2collimator.jaw_F_L - k2collimator.jaw_F_R
     offset = k2collimator.offset + ( k2collimator.jaw_F_L + k2collimator.jaw_F_R )/2
 
-    matID = materials[k2collimator.material]['ID']
+    # Get material properties
+    zatom    = k2collimator.material.Z
+    anuc     = k2collimator.material.A
+    rho      = k2collimator.material.density
+    exenergy = k2collimator.material.excitation_energy
+    emr      = k2collimator.material.nuclear_radius
+    bnref    = k2collimator.material.nuclear_elastic_slope
+    csref0   = k2collimator.material.cross_section[0]
+    csref1   = k2collimator.material.cross_section[1]
+    csref5   = k2collimator.material.cross_section[5]
+    hcut     = k2collimator.material.hcut
+
+#     # Get crystal parameters
+#     from ..k2collimator import K2Crystal
+#     from .materials import Crystal
+#     if isinstance(k2collimator,K2Crystal):
+#         if not isinstance(k2collimator.material, Crystal):
+#             raise ValueError(f"The collimator material {k2collimator.material.name} cannot be used as a crystal!")
+#         dlri     = k2collimator.material.crystal_radiation_length
+#         dlyi     = k2collimator.material.crystal_nuclear_length
+#         ai       = k2collimator.material.crystal_plane_distance
+#         eUm      = k2collimator.material.crystal_potential
+#         collnt   = k2collimator.material.nuclear_collision_length
+#         is_crystal = True
+#         radl     = 0
+#     else:
+    radl     = k2collimator.material.radiation_length
+    dlri     = 0
+    dlyi     = 0
+    ai       = 0
+    eUm      = 0
+    collnt   = 0
+    is_crystal = False
 
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
@@ -89,8 +120,23 @@ def track(k2collimator, particles, npart, reset_seed):
               nhit_stage=nhit_stage,
               nabs_type=nabs_type,
               linside=linside,
-              matid=matID,
-              is_crystal=False,
+              run_exenergy=exenergy,
+              run_anuc=anuc,
+              run_zatom=zatom,
+              run_emr=emr,
+              run_rho=rho,
+              run_hcut=hcut,
+              run_bnref=bnref,
+              run_csref0=csref0,
+              run_csref1=csref1,
+              run_csref5=csref5,
+              run_radl=radl,
+              run_dlri=dlri,
+              run_dlyi=dlyi,
+              run_eum=eUm,
+              run_ai=ai,
+              run_collnt=collnt,
+              is_crystal=is_crystal,
               c_length=length,
               c_rotation=k2collimator.angle/180.*np.pi,
               c_aperture=opening,
