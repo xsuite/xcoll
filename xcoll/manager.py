@@ -22,7 +22,7 @@ class CollimatorManager:
         else:
             self.line = line
         self._k2engine = None   # only needed for FORTRAN K2Collimator
-        
+
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -60,7 +60,7 @@ class CollimatorManager:
     @property
     def record_impacts(self):
         return self._record_impacts
-    
+
     @record_impacts.setter
     def record_impacts(self, record_impacts):
         self._record_impacts = record_impacts
@@ -115,7 +115,7 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):        
+    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
         # Check for the existence of a K2Engine; warn if settings are different
         # (only one instance of K2Engine should exist).
         if self._k2engine is None:
@@ -141,7 +141,7 @@ class CollimatorManager:
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
-        
+
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
         # Check that collimator marker exists in Line and CollDB,
@@ -164,7 +164,7 @@ class CollimatorManager:
 
         # Loop over collimators to install
         for name in names:
-            
+
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             for other_coll_class in _all_collimator_types - {collimator_class}:
@@ -193,7 +193,23 @@ class CollimatorManager:
                 df.loc[name,'collimator_type'] = collimator_class.__name__
                 # Do the installation
                 s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
+                if name+'_aper' in line.element_names:
+                    coll_aper = line[name+'_aper']
+                    assert coll_aper.__class__.__name__.startswith('Limit')
+                    if np.any([name+'_aper_tilt_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with tilt not implemented!")
+                    if np.any([name+'_aper_offset_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with offset not implemented!")
+                else:
+                    coll_aper = None
+
                 line.insert_element(element=newcoll, name=name, at_s=s_install)
+
+                if coll_aper is not None:
+                    line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
+                    line.insert_element(element=coll_aper, name=name+'_aper_back',
+                                        index=line.element_names.index(name)+1)
+
 
 
     def align_collimators_to(self, align):
@@ -212,7 +228,7 @@ class CollimatorManager:
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 
-    
+
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:

@@ -27,7 +27,7 @@ def run_mask(mask, outfile, sequence):
 
     # Save to json
     with open(outfile, 'w') as fid:
-        json.dump(line.to_dict(), fid, cls=xo.JEncoder)
+        json.dump(line.to_dict(), fid, cls=xo.JEncoder, indent=True)
 
     # Load from json to check
     with open(outfile, 'r') as fid:
@@ -37,10 +37,10 @@ def run_mask(mask, outfile, sequence):
 
 def main():
     mask = 'lhc_run3_b1.madx'
-    outfile = 'lhc_run3_b1.json'
+    outfile = 'lhc_run3_b1_from_mask.json'
     run_mask(mask, outfile, sequence='lhcb1')
     mask = 'lhc_run3_b2.madx'
-    outfile = 'lhc_run3_b2.json'
+    outfile = 'lhc_run3_b2_from_mask.json'
     run_mask(mask, outfile, sequence='lhcb2')
 
 if __name__ == "__main__":

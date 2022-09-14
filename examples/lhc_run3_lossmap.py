@@ -31,6 +31,11 @@ line['acsca.b5r4.b1'].frequency = 400e6
 line['acsca.c5r4.b1'].frequency = 400e6
 line['acsca.d5r4.b1'].frequency = 400e6
 
+# Aperture model check
+print('\nAperture model check on imported model:')
+df_imported = line.check_aperture()
+assert not np.any(df_imported.has_aperture_problem)
+
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
     line=line,
@@ -51,12 +56,14 @@ coll_manager.align_collimators_to('front')
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
 
-
-
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Horizontal loss map
-num_particles = 500
+num_particles = 5000
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
@@ -78,16 +85,25 @@ part = xp.build_particles(
             at_element=coll,
             match_at_s=coll_manager.s_match[coll])
 
-
-
 # Track
 tracker.track(part, num_turns=10)
-
 
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
 
-## Plot histogram of losses along the acceleratores
+part_before_refinement = part.copy()
+
+# Loss location refinement
+loss_loc_refinement = xt.LossLocationRefinement(tracker,
+        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+        r_max = 0.5, # Maximum transverse aperture in m
+        dr = 50e-6, # Transverse loss refinement accuracy [m]
+        ds = 0.05, # Longitudinal loss refinement accuracy [m]
+        )
+
+loss_loc_refinement.refine_loss_location(part)
+
+## Plot histogram of losses along the accelerator
 ## ------------------------------------------------------------------
 
 wdth=0.1;
