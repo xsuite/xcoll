@@ -34,6 +34,7 @@ line['acsca.d5r4.b1'].frequency = 400e6
 # Aperture model check
 print('\nAperture model check on imported model:')
 df_imported = line.check_aperture()
+assert not np.any(df_imported.has_aperture_problem)
 
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
@@ -58,6 +59,7 @@ coll_manager.set_openings()
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Horizontal loss map

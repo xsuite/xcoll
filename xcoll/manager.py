@@ -196,9 +196,9 @@ class CollimatorManager:
                     coll_aper = line[name+'_aper']
                     assert coll_aper.__class__.__name__.startswith('Limit')
                     if np.any([name+'_aper_tilt_' in nn for nn in line.element_names]):
-                        raise NotImplementedError("Collimator apertures with tilt not yet implemented!")
+                        raise NotImplementedError("Collimator apertures with tilt not implemented!")
                     if np.any([name+'_aper_offset_' in nn for nn in line.element_names]):
-                        raise NotImplementedError("Collimator apertures with offset not yet implemented!")
+                        raise NotImplementedError("Collimator apertures with offset not implemented!")
                 else:
                     coll_aper = None
 

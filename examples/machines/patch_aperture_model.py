@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 import xtrack as xt
 import xobjects as xo
@@ -43,6 +44,8 @@ for nn in ['tcspm.b4l7.b1', 'tcspm.e5r7.b1', 'tcspm.6r7.b1']:
 
 print("\nAperture check after patching:")
 df_patched = line.check_aperture()
+
+assert not np.any(df_patched.has_aperture_problem)
 
 # Save to json
 with open('lhc_run3_b1.json', 'w') as fid:
