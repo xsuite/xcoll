@@ -2,7 +2,7 @@
 
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 
-cd xcoll/beam_elements/k2/FORTRAN_src
+cd xcoll/scattering_routines/everest/FORTRAN_src
 rm *.mod *.o
 
 # compile fortran
