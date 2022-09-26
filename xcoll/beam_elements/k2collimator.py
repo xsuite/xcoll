@@ -1,5 +1,6 @@
 import numpy as np
 from .k2.materials import Material, Crystal
+from .collimators import BaseCollimator
 
 class K2Engine:
 
@@ -25,31 +26,17 @@ class K2Engine:
         return self._n_alloc
 
 
-class K2Collimator:
+class K2Collimator(BaseCollimator):
 
     iscollective = True
-    isthick = True
-    behaves_like_drift = True
 
-    def __init__(self, *, k2engine, active_length, angle, inactive_front=0, inactive_back=0,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
-                 is_active=True, impacts=None, material=None):
-
-        self._k2engine = k2engine
-        self.active_length = active_length
-        self.inactive_front = inactive_front
-        self.inactive_back = inactive_back
-        self.angle = angle
-        self.jaw_F_L = jaw_F_L
-        self.jaw_F_R = jaw_F_R
-        self.jaw_B_L = jaw_B_L
-        self.jaw_B_R = jaw_B_R
-        self.onesided = onesided
-        self.dx = dx
-        self.dy = dy
-        self.dpx = dpx
-        self.dpy = dpy
-        self.offset = offset
+    def __init__(self, **kwargs):
+        self._k2engine = kwargs.pop('k2engine')
+        self.onesided = kwargs.pop('onesided', False)
+        self.dpx = kwargs.pop('dpx', 0)
+        self.dpy = kwargs.pop('dpy', 0)
+        self.offset = kwargs.pop('offset', 0)
+        tilt = kwargs.pop('tilt', [0,0])
         if hasattr(tilt, '__iter__'):
             if isinstance(tilt, str):
                 raise ValueError("Variable tilt has to be a number or array of numbers!")
@@ -58,10 +45,9 @@ class K2Collimator:
         else:
             tilt = [tilt, tilt]
         self.tilt = np.array(tilt, dtype=np.float64)
-        self.is_active = is_active
-        self.material = material
-        self.impacts = impacts
+        self.material = kwargs.pop('material', None)
         self._reset_random_seed = False
+        super().__init__(**kwargs)
 
     @property
     def material(self):
@@ -74,41 +60,11 @@ class K2Collimator:
         self._material = material
 
     @property
-    def impacts(self):
-        return self._impacts
-
-    @property
-    def record_impacts(self):
-        return self._record_impacts
-
-    @impacts.setter
-    def impacts(self, impacts):
-        self._record_impacts = False if impacts is None else True
-        self._impacts = impacts
-
-    @property
     def k2engine(self):
         return self._k2engine
 
-    @property
-    def is_active(self):
-        return self._active
-
-    @is_active.setter
-    def is_active(self, is_active):
-        self._active = is_active
-        if not is_active:
-            self.jaw_F_L = 1
-            self.jaw_F_R = -1
-            self.jaw_B_L = 1
-            self.jaw_B_R = -1
-
     def reset_random_seed(self):
         self._reset_random_seed = True
-
-    @property
-    def length(self):
-        return self.active_length + self.inactive_front + self.inactive_back
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles

@@ -1,4 +1,5 @@
 import numpy as np
+from abc import ABC, ABCMeta, abstractmethod
 
 import xobjects as xo
 import xtrack as xt
@@ -6,7 +7,10 @@ import xtrack as xt
 from ..general import _pkg_root
 from ..tables import CollimatorImpacts
 
-class BlackAbsorber(xt.BeamElement):
+class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
+    pass
+
+class BaseCollimator(xt.BeamElement, ABC, metaclass=MetaCollimator):
     _xofields = {
         'inactive_front': xo.Float64,
         'active_length': xo.Float64,
@@ -25,10 +29,6 @@ class BlackAbsorber(xt.BeamElement):
         '_record_impacts': xo.Int8,
         '_impacts': xo.Ref(CollimatorImpacts._XoStruct)
     }
-    
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
-    ]
 
     isthick = True
     behaves_like_drift = True
@@ -47,6 +47,7 @@ class BlackAbsorber(xt.BeamElement):
         kwargs.setdefault('inactive_back', 0)
         kwargs.setdefault('dx', 0)
         kwargs.setdefault('dy', 0)
+
         anglerad = angle / 180. * np.pi
         kwargs['cos_z'] = np.cos(anglerad)
         kwargs['sin_z'] = np.sin(anglerad)
@@ -84,7 +85,7 @@ class BlackAbsorber(xt.BeamElement):
             self.jaw_F_L = 1
             self.jaw_F_R = -1
             self.jaw_B_L = 1
-            self.jaw_B_R = -1
+            self.jaw_B_R = -1 
 
     @property
     def length(self):
@@ -103,6 +104,17 @@ class BlackAbsorber(xt.BeamElement):
         else:
             raise ValueError("The variable 'impacts' needs to be a CollimatorImpacts object!")
         self._impacts = impacts
+
+
+class BlackAbsorber(BaseCollimator):
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 
 
 
