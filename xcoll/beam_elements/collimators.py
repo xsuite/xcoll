@@ -10,7 +10,7 @@ from ..tables import CollimatorImpacts
 class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
     pass
 
-class BaseCollimator(xt.BeamElement, ABC, metaclass=MetaCollimator):
+class BaseCollimator(xt.BeamElement, metaclass=MetaCollimator):
     _xofields = {
         'inactive_front': xo.Float64,
         'active_length': xo.Float64,
@@ -36,7 +36,11 @@ class BaseCollimator(xt.BeamElement, ABC, metaclass=MetaCollimator):
     _skip_in_to_dict = ['_impacts', '_active', '_record_impacts']
     _store_in_to_dict = ['angle', 'is_active']
 
-    def __init__(self, angle=0, is_active=True, impacts=None, **kwargs):
+    @abstractmethod
+    def __init__(self, **kwargs):
+        # quick hack to avoid instantiation; @abstractmethod was not working
+        if self.__class__.__name__ == 'BaseCollimator':
+            raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
         kwargs.setdefault('jaw_F_L', 1)
         kwargs.setdefault('jaw_F_R', -1)
         kwargs.setdefault('jaw_B_L', 1)
@@ -47,6 +51,9 @@ class BaseCollimator(xt.BeamElement, ABC, metaclass=MetaCollimator):
         kwargs.setdefault('inactive_back', 0)
         kwargs.setdefault('dx', 0)
         kwargs.setdefault('dy', 0)
+        angle = kwargs.pop('angle', 0)
+        is_active = kwargs.pop('is_active', True)
+        impacts = kwargs.pop('impacts', None)
 
         anglerad = angle / 180. * np.pi
         kwargs['cos_z'] = np.cos(anglerad)
