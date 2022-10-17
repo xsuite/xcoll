@@ -63,7 +63,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Horizontal loss map
-num_particles = 5000
+num_particles = 50000
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
@@ -86,12 +86,10 @@ part = xp.build_particles(
             match_at_s=coll_manager.s_match[coll])
 
 # Track
-tracker.track(part, num_turns=10)
+tracker.track(part, num_turns=2)
 
 collimator_losses = part.s[part.state==-333]
 aperture_losses = part.s[part.state==0]
-
-part_before_refinement = part.copy()
 
 # Loss location refinement
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
@@ -103,8 +101,13 @@ loss_loc_refinement = xt.LossLocationRefinement(tracker,
 
 loss_loc_refinement.refine_loss_location(part)
 
+
+
 ## Plot histogram of losses along the accelerator
 ## ------------------------------------------------------------------
+
+collimator_losses = part.s[part.state==-333]
+aperture_losses = part.s[part.state==0]
 
 wdth=0.1;
 S, count = np.unique(np.floor(aperture_losses/wdth)*wdth, return_counts = True);

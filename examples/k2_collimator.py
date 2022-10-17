@@ -7,7 +7,6 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-import sixtracktools as st
 
 
 # --------------------------------------------------------
@@ -26,7 +25,19 @@ with open('machines/lhc_run3_b1.json', 'r') as fid:
     loaded_dct = json.load(fid)
 line = xt.Line.from_dict(loaded_dct)
 
+line['acsca.d5l4.b1'].frequency = 400e6
+line['acsca.c5l4.b1'].frequency = 400e6
+line['acsca.b5l4.b1'].frequency = 400e6
+line['acsca.a5l4.b1'].frequency = 400e6
+line['acsca.a5r4.b1'].frequency = 400e6
+line['acsca.b5r4.b1'].frequency = 400e6
+line['acsca.c5r4.b1'].frequency = 400e6
+line['acsca.d5r4.b1'].frequency = 400e6
 
+# Aperture model check
+print('\nAperture model check on imported model:')
+df_imported = line.check_aperture()
+assert not np.any(df_imported.has_aperture_problem)
 
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
@@ -39,7 +50,7 @@ coll_manager = xc.CollimatorManager(
 coll_manager.install_k2_collimators(verbose=True)
 
 # Build the tracker
-tracker = line.build_tracker()
+tracker = coll_manager.build_tracker()
 
 # Align the collimators
 coll_manager.align_collimators_to('front')
@@ -48,6 +59,10 @@ coll_manager.align_collimators_to('front')
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
 
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # --------------------------------------------------------
