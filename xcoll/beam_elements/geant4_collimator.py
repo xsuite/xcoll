@@ -17,6 +17,6 @@ class Geant4Collimator(BaseCollimator, BeamInteraction):
         self.isthick = True
 
 
-    def track(self, particles):
-        BeamInteraction.track(self, particles)
+    def track(self, part):
+        BeamInteraction.track(self, part)
     
