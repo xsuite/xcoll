@@ -47,7 +47,7 @@ coll_manager = xc.CollimatorManager(
 coll_manager.install_k2_collimators(verbose=True)
 
 # Build the tracker
-tracker = coll_manager.build_tracker()
+coll_manager.build_tracker()
 
 # Align the collimators
 coll_manager.align_collimators_to('front')
@@ -86,36 +86,14 @@ part = xp.build_particles(
             match_at_s=coll_manager.s_match[coll])
 
 # Track
-tracker.track(part, num_turns=2)
+coll_manager.track(part, num_turns=10)
 
-collimator_losses = part.s[part.state==-333]
-aperture_losses = part.s[part.state==0]
+# Get losses for lossmap
+coll_manager.create_lossmap(part)
 
-# Loss location refinement
-loss_loc_refinement = xt.LossLocationRefinement(tracker,
-        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-        r_max = 0.5, # Maximum transverse aperture in m
-        dr = 50e-6, # Transverse loss refinement accuracy [m]
-        ds = 0.05, # Longitudinal loss refinement accuracy [m]
-        )
+# Save to json
+# These files can be loaded, combined (for more statistics), and plotted with the 'lossmaps' package
+with open(outfile, 'w') as fid:
+    json.dump(self.lossmap, fid)
 
-loss_loc_refinement.refine_loss_location(part)
-
-
-
-## Plot histogram of losses along the accelerator
-## ------------------------------------------------------------------
-
-collimator_losses = part.s[part.state==-333]
-aperture_losses = part.s[part.state==0]
-
-wdth=0.1;
-S, count = np.unique(np.floor(aperture_losses/wdth)*wdth, return_counts = True);
-
-fig, ax=plt.subplots(1,1,figsize=(30,7));
-plt.bar(S+wdth*.5, count, width = wdth);
-ax.set_xlim(-10, 27000);
-ax.set_xlabel('S [m]');
-ax.set_ylabel('No. of lost particles');
-plt.show()
-
+exit()

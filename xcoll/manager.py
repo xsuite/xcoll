@@ -333,3 +333,31 @@ class CollimatorManager:
         self.tracker.track(*args, **kwargs)
 
 
+    @property
+    def lossmap(self):
+        return self._lossmap
+
+    def create_lossmap(self, part, interpolation=0.1):
+        # Loss location refinement
+        if interpolation is not None:
+            loss_loc_refinement = xt.LossLocationRefinement(self.tracker,
+                    n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                    r_max = 0.5, # Maximum transverse aperture in m
+                    dr = 50e-6, # Transverse loss refinement accuracy [m]
+                    ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                    # save_refine_trackers=True # Diagnostics flag
+                    )
+            loss_loc_refinement.refine_loss_location(part)
+
+        self._lossmap = {
+            "collimator": {
+                "s":     list(part.s[part.state==-333]),
+                "name": [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+            }
+            ,
+            "aperture": {
+                "s":     list(part.s[part.state==0]),
+                "name": [self.line.element_names[i] for i in part.at_element[part.state==0]]
+            }
+        }
+
