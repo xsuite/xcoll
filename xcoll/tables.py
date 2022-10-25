@@ -1,30 +1,40 @@
 import xobjects as xo
+import xtrack as xt
 
 class CollimatorImpacts(xo.HybridClass):
 
     _xofields = {
-        '_capacity':         xo.Int64,
-        '_row_id':           xo.Int64,
+        '_index':            xt.RecordIndex,
         'at_element':        xo.Int64[:],
-        's':                 xo.Float64[:],
-        'turn':              xo.Float64[:],
+        'at_turn':           xo.Int64[:],
+        'interaction_s':     xo.Float64[:],
         'interaction_type':  xo.Int64[:],
-        'id_parent':      xo.Int64[:],
-        'x_parent':       xo.Float64[:],
-        'px_parent':      xo.Float64[:],
-        'y_parent':       xo.Float64[:],
-        'py_parent':      xo.Float64[:],
-        'zeta_parent':    xo.Float64[:],
-        'delta_parent':   xo.Float64[:],
-        'energy_parent':  xo.Float64[:],
-        'id_child':      xo.Int64[:],
-        'x_child':       xo.Float64[:],
-        'px_child':      xo.Float64[:],
-        'y_child':       xo.Float64[:],
-        'py_child':      xo.Float64[:],
-        'zeta_child':    xo.Float64[:],
-        'delta_child':   xo.Float64[:],
-        'energy_child':  xo.Float64[:]
+        'parent_id':      xo.Int64[:],
+        'parent_x':       xo.Float64[:],
+        'parent_px':      xo.Float64[:],
+        'parent_y':       xo.Float64[:],
+        'parent_py':      xo.Float64[:],
+        'parent_zeta':    xo.Float64[:],
+        'parent_delta':   xo.Float64[:],
+        'parent_energy':  xo.Float64[:],
+        'parent_mass':    xo.Float64[:],
+        'parent_charge':  xo.Int64[:],
+        'parent_z':       xo.Int64[:],
+        'parent_a':       xo.Int64[:],
+        'parent_pdgid':   xo.Int64[:],
+        'child_id':      xo.Int64[:],
+        'child_x':       xo.Float64[:],
+        'child_px':      xo.Float64[:],
+        'child_y':       xo.Float64[:],
+        'child_py':      xo.Float64[:],
+        'child_zeta':    xo.Float64[:],
+        'child_delta':   xo.Float64[:],
+        'child_energy':  xo.Float64[:],
+        'child_mass':    xo.Float64[:],
+        'child_charge':  xo.Int64[:],
+        'child_z':       xo.Int64[:],
+        'child_a':       xo.Int64[:],
+        'child_pdgid':   xo.Int64[:],
     }
 
     def __init__(self, _capacity, **kwargs):
@@ -34,28 +44,6 @@ class CollimatorImpacts(xo.HybridClass):
                 'id_child', 'x_child', 'px_child', 'y_child', 'py_child', 'zeta_child',\
                 'delta_child', 'energy_child',\
                 'at_element', 's', 'turn', 'interaction_type':
-            kwargs[val] = _capacity
-        self.xoinitialize(**kwargs)
-        self._capacity = _capacity
-        self._row_id = -1
-
-
-class ParticleInfo(xo.HybridClass):
-
-    _xofields = {
-        '_capacity':        xo.Int64,
-        '_row_id':          xo.Int64,
-        'particle_id':      xo.Int64[:],
-        'particle_m':       xo.Float64[:],
-        'particle_q':       xo.Int64[:],
-        'particle_z':       xo.Int64[:],
-        'particle_a':       xo.Int64[:],
-        'particle_pdgid':   xo.Int64[:],
-    }
-
-    def __init__(self, _capacity, **kwargs):
-        _capacity = int(_capacity)
-        for val in  'particle_id', 'particle_m', 'particle_q', 'particle_z', 'particle_a', 'particle_pdgid':
             kwargs[val] = _capacity
         self.xoinitialize(**kwargs)
         self._capacity = _capacity
