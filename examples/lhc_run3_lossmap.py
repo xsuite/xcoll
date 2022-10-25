@@ -8,28 +8,10 @@ import xpart    as xp
 import xcoll    as xc
 
 
-
-# Make a context and get a buffer
-context = xo.ContextCpu()         # For CPU
-# context = xo.ContextCupy()      # For CUDA GPUs
-# context = xo.ContextPyopencl()  # For OpenCL GPUs
-buffer = context.new_buffer()
-
-
-
 # Load from json
 with open('machines/lhc_run3_b1.json', 'r') as fid:
     loaded_dct = json.load(fid)
 line = xt.Line.from_dict(loaded_dct)
-
-line['acsca.d5l4.b1'].frequency = 400e6
-line['acsca.c5l4.b1'].frequency = 400e6
-line['acsca.b5l4.b1'].frequency = 400e6
-line['acsca.a5l4.b1'].frequency = 400e6
-line['acsca.a5r4.b1'].frequency = 400e6
-line['acsca.b5r4.b1'].frequency = 400e6
-line['acsca.c5r4.b1'].frequency = 400e6
-line['acsca.d5r4.b1'].frequency = 400e6
 
 # Aperture model check
 print('\nAperture model check on imported model:')
@@ -39,15 +21,14 @@ assert not np.any(df_imported.has_aperture_problem)
 # Initialise collmanager,on the specified buffer
 coll_manager = xc.CollimatorManager(
     line=line,
-    colldb=xc.load_SixTrack_colldb('colldb/lhc_run3_b1.dat', emit=3.5e-6),
-    _buffer=buffer
+    colldb=xc.load_SixTrack_colldb('colldb/lhc_run3_b1.dat', emit=3.5e-6)
     )
 
 # Install collimators in line as black absorbers
 coll_manager.install_k2_collimators(verbose=True)
 
 # Build the tracker
-tracker = coll_manager.build_tracker()
+coll_manager.build_tracker()
 
 # Align the collimators
 coll_manager.align_collimators_to('front')
@@ -63,7 +44,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Horizontal loss map
-num_particles = 5000
+num_particles = 50000
 coll = 'tcp.c6l7.b1'
 
 # Collimator plane: generate pencil distribution in normalized coordinates
@@ -86,33 +67,14 @@ part = xp.build_particles(
             match_at_s=coll_manager.s_match[coll])
 
 # Track
-tracker.track(part, num_turns=10)
+coll_manager.track(part, num_turns=10)
 
-collimator_losses = part.s[part.state==-333]
-aperture_losses = part.s[part.state==0]
+# Get losses for lossmap
+coll_manager.create_lossmap(part)
 
-part_before_refinement = part.copy()
+# Save to json
+# These files can be loaded, combined (for more statistics), and plotted with the 'lossmaps' package
+with open('lossmap_B1H.json', 'w') as fid:
+    json.dump(coll_manager.lossmap, fid)
 
-# Loss location refinement
-loss_loc_refinement = xt.LossLocationRefinement(tracker,
-        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-        r_max = 0.5, # Maximum transverse aperture in m
-        dr = 50e-6, # Transverse loss refinement accuracy [m]
-        ds = 0.05, # Longitudinal loss refinement accuracy [m]
-        )
-
-loss_loc_refinement.refine_loss_location(part)
-
-## Plot histogram of losses along the accelerator
-## ------------------------------------------------------------------
-
-wdth=0.1;
-S, count = np.unique(np.floor(aperture_losses/wdth)*wdth, return_counts = True);
-
-fig, ax=plt.subplots(1,1,figsize=(30,7));
-plt.bar(S+wdth*.5, count, width = wdth);
-ax.set_xlim(-10, 27000);
-ax.set_xlabel('S [m]');
-ax.set_ylabel('No. of lost particles');
-plt.show()
-
+exit()
