@@ -7,7 +7,7 @@ import xtrack as xt
 from ..general import _pkg_root
 from ..tables import CollimatorImpacts
 
-# class MetaCollimator(ABCMeta, xt.base_element.MetaBeamElement):
+# class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
 #     pass
 
 class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
