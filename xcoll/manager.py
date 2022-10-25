@@ -340,6 +340,7 @@ class CollimatorManager:
     def create_lossmap(self, part, interpolation=0.1):
         # Loss location refinement
         if interpolation is not None:
+            print("Performing the aperture losses refinement.")
             loss_loc_refinement = xt.LossLocationRefinement(self.tracker,
                     n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
                     r_max = 0.5, # Maximum transverse aperture in m

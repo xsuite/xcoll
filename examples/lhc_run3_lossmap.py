@@ -75,6 +75,6 @@ coll_manager.create_lossmap(part)
 # Save to json
 # These files can be loaded, combined (for more statistics), and plotted with the 'lossmaps' package
 with open('lossmap_B1H.json', 'w') as fid:
-    json.dump(coll_manager.lossmap, fid)
+    json.dump(coll_manager.lossmap, fid, indent=True)
 
 exit()
