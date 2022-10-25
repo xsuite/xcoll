@@ -25,15 +25,6 @@ with open('machines/lhc_run3_b1.json', 'r') as fid:
     loaded_dct = json.load(fid)
 line = xt.Line.from_dict(loaded_dct)
 
-line['acsca.d5l4.b1'].frequency = 400e6
-line['acsca.c5l4.b1'].frequency = 400e6
-line['acsca.b5l4.b1'].frequency = 400e6
-line['acsca.a5l4.b1'].frequency = 400e6
-line['acsca.a5r4.b1'].frequency = 400e6
-line['acsca.b5r4.b1'].frequency = 400e6
-line['acsca.c5r4.b1'].frequency = 400e6
-line['acsca.d5r4.b1'].frequency = 400e6
-
 # Aperture model check
 print('\nAperture model check on imported model:')
 df_imported = line.check_aperture()
@@ -141,9 +132,4 @@ plt.plot(x_norm[surv>0], y_norm[surv>0], '.', color='green')
 plt.axis('equal')
 plt.axis([n_sigmas, -n_sigmas, -n_sigmas, n_sigmas])
 plt.show()
-
-# Remove spurious SixTrack output files
-from pathlib import Path
-for f in list(Path('./').glob('fort.*')) + list(Path('./').glob('MaterialInformation.txt')):
-    f.unlink()
 
