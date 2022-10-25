@@ -1,5 +1,5 @@
 import numpy as np
-from abc import ABC, ABCMeta, abstractmethod
+# from abc import ABC, ABCMeta, abstractmethod
 
 import xobjects as xo
 import xtrack as xt
@@ -7,10 +7,10 @@ import xtrack as xt
 from ..general import _pkg_root
 from ..tables import CollimatorImpacts
 
-class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
-    pass
+# class MetaCollimator(ABCMeta, xt.base_element.MetaBeamElement):
+#     pass
 
-class BaseCollimator(xt.BeamElement, metaclass=MetaCollimator):
+class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
     _xofields = {
         'inactive_front': xo.Float64,
         'active_length': xo.Float64,
@@ -36,9 +36,8 @@ class BaseCollimator(xt.BeamElement, metaclass=MetaCollimator):
     _skip_in_to_dict = ['_impacts', '_active', '_record_impacts']
     _store_in_to_dict = ['angle', 'is_active']
 
-    @abstractmethod
     def __init__(self, **kwargs):
-        # quick hack to avoid instantiation; @abstractmethod was not working
+        # TODO: quick hack to avoid instantiation; did not manage to get it to work correclty with ABC
         if self.__class__.__name__ == 'BaseCollimator':
             raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
         kwargs.setdefault('jaw_F_L', 1)
