@@ -14,16 +14,6 @@ def run_mask(mask, outfile, sequence):
 
     line = xt.Line.from_madx_sequence(mad.sequence[sequence], apply_madx_errors=True, install_apertures=True)
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=mad.sequence[sequence].beam.gamma)
-    
-    # Fix cavity frequencies due to bug in mad loader
-    cavities, cav_names = line.get_elements_of_type(xt.Cavity)
-    for cc, nn in zip(cavities, cav_names):
-        if cc.frequency ==0.:
-            ii_mad = mad.sequence[sequence].element_names().index(nn)
-            cc_mad = mad.sequence[sequence].elements[ii_mad]
-            f0_mad = mad.sequence[sequence].beam.freq0 * 1e6 # mad has it in MHz
-            harmon = 35640 # cc_mad.parent.harmon
-            cc.frequency = f0_mad*harmon
 
     # Save to json
     with open(outfile, 'w') as fid:
