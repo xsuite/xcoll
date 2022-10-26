@@ -351,14 +351,16 @@ class CollimatorManager:
             loss_loc_refinement.refine_loss_location(part)
 
         self._lossmap = {
-            "collimator": {
-                "s":     list(part.s[part.state==-333]),
-                "name": [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+            'collimator': {
+                's':     list(part.s[part.state==-333]),
+                'name': [self.line.element_names[i] for i in part.at_element[part.state==-333]]
             }
             ,
-            "aperture": {
-                "s":     list(part.s[part.state==0]),
-                "name": [self.line.element_names[i] for i in part.at_element[part.state==0]]
+            'aperture': {
+                's':     list(part.s[part.state==0]),
+                'name': [self.line.element_names[i] for i in part.at_element[part.state==0]]
             }
+            ,
+            'machine_length': self.line.get_length()
         }
 
