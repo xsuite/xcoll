@@ -12,7 +12,9 @@ _all_collimator_types = { BlackAbsorber, K2Collimator }
 
 
 class CollimatorManager:
-    def __init__(self, *, line, colldb: CollDB, _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
+    def __init__(self, *, line, line_is_reversed=False, colldb: CollDB, \
+                 _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
+
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
@@ -34,6 +36,10 @@ class CollimatorManager:
         self._buffer = _buffer
         self.storage_capacity = storage_capacity
         self.record_impacts = record_impacts
+
+        self._losmap = None
+        self._coll_summary = None
+        self._line_is_reversed = line_is_reversed
 
 
     @property
@@ -337,6 +343,27 @@ class CollimatorManager:
     def lossmap(self):
         return self._lossmap
 
+    def coll_summary(self, part):
+
+        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
+
+        names = dict(zip(coll_s, coll_names))
+        lengths = dict(zip(coll_s, coll_length))
+        s = sorted(list(names.keys()))
+        collname    =  [ names[pos] for pos in s ]
+        colllengths =  [ lengths[pos] for pos in s ]
+        nabs = []
+        for pos in s:
+            nabs.append(coll_s.count(pos))
+
+        return pd.DataFrame({
+            "collname": collname,
+            "nabs":     nabs,
+            "length":   colllengths,
+            "s":        s
+        })
+
+
     def create_lossmap(self, part, interpolation=0.1):
         # Loss location refinement
         if interpolation is not None:
@@ -350,17 +377,50 @@ class CollimatorManager:
                     )
             loss_loc_refinement.refine_loss_location(part)
 
+        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
+        aper_s, aper_names              = self._get_aperture_losses(part)
+
         self._lossmap = {
             'collimator': {
-                's':     list(part.s[part.state==-333]),
-                'name': [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+                's':      coll_s,
+                'name':   coll_names,
+                'length': coll_length
             }
             ,
             'aperture': {
-                's':     list(part.s[part.state==0]),
-                'name': [self.line.element_names[i] for i in part.at_element[part.state==0]]
+                's':    aper_s,
+                'name': aper_names
             }
             ,
             'machine_length': self.line.get_length()
+            ,
+            'interpolation': interpolation
+            ,
+            'reversed': self._line_is_reversed
         }
+
+        return self.lossmap
+
+    def _get_collimator_losses(self, part):
+        coll_names = [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+        # TODO: this way to get the collimator positions is a hack that needs to be cleaner with the new API
+        coll_positions = dict(zip(self.collimator_names, self.s_center))
+        coll_s = [coll_positions[name] for name in coll_names]
+        coll_length = [self.line[i].active_length for i in part.at_element[part.state==-333]]
+        machine_length = self.line.get_length()
+        if self._line_is_reversed:
+            coll_s = [ machine_length - s for s in coll_s ]
+
+        return coll_s, coll_names, coll_length
+
+
+    def _get_aperture_losses(self, part):
+
+        aper_s = list(part.s[part.state==0])
+        aper_names = [self.line.element_names[i] for i in part.at_element[part.state==0]]
+        machine_length = self.line.get_length()
+        if self._line_is_reversed:
+            aper_s = [ machine_length - s for s in aper_s ]
+
+        return aper_s, aper_names
 
