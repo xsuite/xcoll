@@ -161,8 +161,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
                     CollimatorImpactsData_set_at_element(record, i_slot, LocalParticle_get_at_element(part));
                     CollimatorImpactsData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(part));
-                    CollimatorImpactsData_set_interaction_s(record, i_slot, LocalParticle_get_s(part));
-                    // TODO: define interaction types
+                    CollimatorImpactsData_set_s(record, i_slot, LocalParticle_get_s(part));
                     CollimatorImpactsData_set_interaction_type(record, i_slot, -1);
 
                     CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(part));

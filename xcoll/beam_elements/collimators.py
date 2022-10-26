@@ -28,9 +28,9 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
 
     isthick = True
     behaves_like_drift = True
+    
     _skip_in_to_dict  = ['_active', 'cos_z', 'sin_z']
     _store_in_to_dict = ['is_active', 'angle']
-
     _internal_record_class = CollimatorImpacts
 
     def __init__(self, **kwargs):
@@ -87,11 +87,13 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
 
 
 class BlackAbsorber(BaseCollimator):
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict
+    _internal_record_class = BaseCollimator._internal_record_class
+    
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
     ]
-
-    _internal_record_class = CollimatorImpacts
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

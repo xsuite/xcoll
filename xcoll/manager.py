@@ -12,7 +12,8 @@ _all_collimator_types = { BlackAbsorber, K2Collimator }
 
 
 class CollimatorManager:
-    def __init__(self, *, line, colldb: CollDB, _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
+    def __init__(self, *, line, colldb: CollDB, record_impacts=False, capacity=1e6, \
+                 _context=None, _buffer=None, io_buffer=None):
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
@@ -23,6 +24,7 @@ class CollimatorManager:
             self.line = line
         self._k2engine = None   # only needed for FORTRAN K2Collimator
 
+        # Create _buffer, _context, and _io_buffer
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -32,8 +34,20 @@ class CollimatorManager:
                              + "Make sure the buffer is generated inside the provided context, or alternatively, "
                              + "only pass one of _buffer or _context.")
         self._buffer = _buffer
-        self.storage_capacity = storage_capacity
+        # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
+        self._capacity = capacity
+        if io_buffer is None:
+            io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
+        elif self._buffer.context != io_buffer._context:
+            raise ValueError("The provided io_buffer lives on a different context than the buffer!")
+        self._io_buffer = io_buffer
+
+        # Initialise impacts table
+        self._record_impacts = []
+        self._impacts = None
         self.record_impacts = record_impacts
+
+        self.tracker = None
 
 
     @property
@@ -41,19 +55,19 @@ class CollimatorManager:
         interactions = {
             -1: 'Black', 1: 'Nuclear-Inelastic', 2: 'Nuclear-Elastic', 3: 'pp-Elastic', 4: 'Single-Diffractive', 5: 'Coulomb'
         }
-        n_rows = self._impacts._row_id + 1
+        n_rows = self._impacts._index + 1
         df = pd.DataFrame({
                 'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
                 's':                 self._impacts.s[:n_rows],
-                'turn':              self._impacts.turn[:n_rows],
+                'turn':              self._impacts.at_turn[:n_rows],
                 'interaction_type':  [ interactions[int_id] for int_id in self._impacts.interaction_type[:n_rows] ],
             })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy']
+        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
         for particle in ['parent', 'child']:
             multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
             newdf = pd.DataFrame(index=df.index, columns=multicols)
             for col in cols:
-                newdf[particle, col] = getattr(self._impacts,col + '_' + particle)[:n_rows]
+                newdf[particle, col] = getattr(self._impacts,particle + '_' + col)[:n_rows]
             df = pd.concat([df, newdf], axis=1)
         return df
 
@@ -63,15 +77,41 @@ class CollimatorManager:
 
     @record_impacts.setter
     def record_impacts(self, record_impacts):
+        # TODO: how to get impacts if different collimator types in line?
+        if record_impacts is True:
+            record_impacts = self.collimator_names
+        elif record_impacts is False or record_impacts is None:
+            record_impacts = []
+        record_start = set(record_impacts) - set(self._record_impacts)
+        record_stop = set(self._record_impacts) - set(record_impacts)
+        if record_start:
+            if self._impacts is None:
+                self._impacts = xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                                          elements=record_start)
+            else:
+                xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                          record=self._impacts, elements=record_start)
+        if record_stop:
+            if self.tracker is not None:
+                self.tracker._check_invalidated()
+            xt.stop_internal_logging(elements=record_stop)
         self._record_impacts = record_impacts
-        if record_impacts:
-            self._impacts = CollimatorImpacts(_capacity=self.storage_capacity, _buffer=self._buffer)
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, capacity):
+        if capacity < self.capacity:
+            raise NotImplementedError("Shrinking of capacity not yet implemented!")
+        elif capacity == self.capacity:
+            return
         else:
-            self._impacts = None
-        # Update the xo.Ref to the CollimatorImpacts for the installed collimators
-        for name in self.collimator_names:
-            if self.colldb._colldb.loc[name,'collimator_type'] is not None:
-                self.line[name].impacts = self._impacts
+            self._io_buffer.grow(capacity-self.capacity)
+            if self._impacts is not None:
+                # TODO: increase capacity of iobuffer AND of _impacts
+                raise NotImplementedError
 
     @property
     def collimator_names(self):
@@ -104,8 +144,6 @@ class CollimatorManager:
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
             return BlackAbsorber(
-                    _buffer=self._buffer,
-                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -132,7 +170,6 @@ class CollimatorManager:
         def install_func(thiscoll, name):
             return K2Collimator(
                     k2engine=self._k2engine,
-                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -221,8 +258,11 @@ class CollimatorManager:
 
     def build_tracker(self, **kwargs):
         kwargs.setdefault('_buffer', self._buffer)
+        kwargs.setdefault('io_buffer', self._io_buffer)
         if kwargs['_buffer'] != self._buffer:
             raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+        if kwargs['io_buffer'] != self._io_buffer:
+            raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
             raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
         self.tracker = self.line.build_tracker(**kwargs)

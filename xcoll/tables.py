@@ -7,7 +7,7 @@ class CollimatorImpacts(xo.HybridClass):
         '_index':            xt.RecordIndex,
         'at_element':        xo.Int64[:],
         'at_turn':           xo.Int64[:],
-        'interaction_s':     xo.Float64[:],
+        's':                 xo.Float64[:],
         'interaction_type':  xo.Int64[:],
         'parent_id':      xo.Int64[:],
         'parent_x':       xo.Float64[:],
