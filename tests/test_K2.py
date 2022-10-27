@@ -50,8 +50,8 @@ materials_b2 = {
   'MoGR': 'tctph.4r5.b2',
   'CuCD': 'tcl.4l5.b2',
   'Mo':   'tcl.5l5.b2',
-  'Glid': 'tcl.6l5.b2',    # Fails unless atol = 1e-9
-  'Iner': 'tcsg.5r3.b2',   # Fails unless atol = 1e-9
+  'Glid': 'tcl.6l5.b2',
+  'Iner': 'tcsg.5r3.b2',
 }
 
 angles_b2 = {
@@ -70,6 +70,17 @@ offsets_b2 = {
   -0.000346: 'tcsg.b5l3.b2',
 }
 
+crystals_b1 = [
+  'tcpcv.a6l7.b1',
+  'tcpch.a4l7.b1'
+]
+
+crystals_b2 = [
+  'tcpcv.a6r7.b2',
+  'tcpch.a5r7.b2'
+]
+
+
 path = Path('./data_test_K2/')
 
 def test_primaries():
@@ -82,9 +93,6 @@ def test_materials_b1():
 
 def test_materials_b2():
     for key, name in materials_b2.items():
-#         if name in ['tcl.6l5.b2','tcsg.5r3.b2']:
-#             _track_collimator(name)#, atolx=1e-9, atoly=1e-9, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-#         else:
         _track_collimator(name)
 
 def test_angles_b1():
@@ -111,13 +119,25 @@ def test_offsets_b2():
     for key, name in offsets_b2.items():
         _track_collimator(name)
 
+def test_crystals_b1():
+    _track_collimator(crystals_b1[0], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+def test_crystals_b1_bis():
+    _track_collimator(crystals_b1[1], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+def test_crystals_b2():
+    _track_collimator(crystals_b2[0], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+def test_crystals_b2_bis():
+    _track_collimator(crystals_b2[1], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+
 
 def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    coll = xc.K2Collimator.from_dict(colldict)
+    if colldict['__class__'] == 'K2Collimator':
+        coll = xc.K2Collimator.from_dict(colldict)
+    elif colldict['__class__'] == 'K2Crystal':
+        coll = xc.K2Crystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

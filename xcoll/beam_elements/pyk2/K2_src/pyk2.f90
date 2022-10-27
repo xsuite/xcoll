@@ -7,6 +7,8 @@ subroutine pyk2_init(n_alloc, random_generator_seed)
 
   use coll_common ,      only : rnd_seed, rcx, rcxp, rcy, rcyp, rcp, rcs, &
                                 coll_expandArrays
+  !use coll_crystal
+
   implicit none
 
   integer, intent(in)          :: n_alloc
@@ -156,3 +158,22 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   end do
 end subroutine 
 
+
+subroutine pyk2_startcry(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+                         cryYDim, cryOrient, cryMiscut)
+  use coll_crystal, only: cry_startElement
+
+  real(kind=8), intent(in)    :: c_length     ! Collimator length in m
+  real(kind=8), intent(inout) :: new_length
+  real(kind=8), intent(in)    :: c_rotation   ! Collimator rotation angle vs vertical in radians
+  real(kind=8), intent(in)    :: cryTilt
+  real(kind=8), intent(in)    :: cryBend
+  real(kind=8), intent(in)    :: cryThick
+  real(kind=8), intent(in)    :: cryXDim
+  real(kind=8), intent(in)    :: cryYDim
+  real(kind=8), intent(in)    :: cryOrient
+  real(kind=8), intent(in)    :: cryMiscut
+  
+  call cry_startElement(c_length, new_length, c_rotation, cryTilt, cryBend, cryThick, cryXDim, &
+                        cryYDim, cryOrient, cryMiscut)
+end subroutine

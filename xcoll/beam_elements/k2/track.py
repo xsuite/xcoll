@@ -84,27 +84,46 @@ def track(k2collimator, particles, npart, reset_seed):
     csref5   = k2collimator.material.cross_section[5]
     hcut     = k2collimator.material.hcut
 
-#     # Get crystal parameters
-#     from ..k2collimator import K2Crystal
-#     from .materials import Crystal
-#     if isinstance(k2collimator,K2Crystal):
-#         if not isinstance(k2collimator.material, Crystal):
-#             raise ValueError(f"The collimator material {k2collimator.material.name} cannot be used as a crystal!")
-#         dlri     = k2collimator.material.crystal_radiation_length
-#         dlyi     = k2collimator.material.crystal_nuclear_length
-#         ai       = k2collimator.material.crystal_plane_distance
-#         eUm      = k2collimator.material.crystal_potential
-#         collnt   = k2collimator.material.nuclear_collision_length
-#         is_crystal = True
-#         radl     = 0
-#     else:
-    radl     = k2collimator.material.radiation_length
-    dlri     = 0
-    dlyi     = 0
-    ai       = 0
-    eUm      = 0
-    collnt   = 0
-    is_crystal = False
+    # Get crystal parameters
+    from ..k2collimator import K2Crystal
+    from .materials import CrystalMaterial
+    if isinstance(k2collimator, K2Crystal):
+        if not isinstance(k2collimator.material, CrystalMaterial):
+            raise ValueError(f"The collimator material {k2collimator.material.name} cannot be used as a crystal!")
+        dlri     = k2collimator.material.crystal_radiation_length
+        dlyi     = k2collimator.material.crystal_nuclear_length
+        ai       = k2collimator.material.crystal_plane_distance
+        eUm      = k2collimator.material.crystal_potential
+        collnt   = k2collimator.material.nuclear_collision_length
+        is_crystal = True
+        radl     = 0
+    else:
+        radl     = k2collimator.material.radiation_length
+        dlri     = 0
+        dlyi     = 0
+        ai       = 0
+        eUm      = 0
+        collnt   = 0
+        is_crystal = False
+
+    if is_crystal:
+
+        crytilt = k2collimator.align_angle + k2collimator.crytilt
+
+        new_length = np.array(length)
+        pyk2.pyk2_startcry(
+            c_length=length,
+            new_length=new_length,
+            c_rotation=k2collimator.angle/180.*np.pi,
+            crytilt=crytilt,
+            crybend=k2collimator.bend,
+            crythick=k2collimator.thick,
+            cryxdim=k2collimator.xdim,
+            cryydim=k2collimator.ydim,
+            cryorient=k2collimator.orient,
+            crymiscut=k2collimator.miscut
+        )
+        length = new_length
 
     pyk2.pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
