@@ -35,7 +35,7 @@ class CollimatorManager:
                              + "only pass one of _buffer or _context.")
         self._buffer = _buffer
         # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
-        self._capacity = capacity
+        self._capacity = int(capacity)
         if io_buffer is None:
             io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
         elif self._buffer.context != io_buffer._context:
@@ -103,6 +103,7 @@ class CollimatorManager:
 
     @capacity.setter
     def capacity(self, capacity):
+        capacity = int(capacity)
         if capacity < self.capacity:
             raise NotImplementedError("Shrinking of capacity not yet implemented!")
         elif capacity == self.capacity:
@@ -156,6 +157,8 @@ class CollimatorManager:
     def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
         # Check for the existence of a K2Engine; warn if settings are different
         # (only one instance of K2Engine should exist).
+        if seed is None:
+            seed = np.random.randint(1, 10000000)
         if self._k2engine is None:
             self._k2engine = K2Engine(n_alloc=max_part, random_generator_seed=seed)
         else:
@@ -280,7 +283,7 @@ class CollimatorManager:
             raise Exception("Not all collimators are aligned! Please call 'align_collimators_to' "
                             + "on the CollimationManager before computing the optics for the openings!")
 
-        pos = self.colldb._optics_positions_to_calculate
+        pos = list(self.colldb._optics_positions_to_calculate)
         if recompute or pos != {}:
             tracker = self.line.tracker
             # Calculate optics without collimators
