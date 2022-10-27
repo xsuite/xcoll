@@ -82,10 +82,10 @@ def test_materials_b1():
 
 def test_materials_b2():
     for key, name in materials_b2.items():
-        if name in ['tcl.6l5.b2','tcsg.5r3.b2']:
-            _track_collimator(name, atolx=1e-9, atoly=1e-9, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-        else:
-            _track_collimator(name)
+#         if name in ['tcl.6l5.b2','tcsg.5r3.b2']:
+#             _track_collimator(name)#, atolx=1e-9, atoly=1e-9, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+#         else:
+        _track_collimator(name)
 
 def test_angles_b1():
     for key, name in angles_b1.items():
@@ -112,7 +112,7 @@ def test_offsets_b2():
         _track_collimator(name)
 
 
-def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12, atolz=1e-10, atold=1e-10):
+def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
