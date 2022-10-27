@@ -274,7 +274,7 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
     # Make particles
-    n_part = 5000
+    n_part = 50000
     x = np.random.uniform(-0.1, 0.1, n_part)
     y = np.random.uniform(-0.1, 0.1, n_part)
     if four_dim:
