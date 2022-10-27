@@ -1,1 +1,47 @@
-{"__class__": "K2Collimator", "n_alloc": 50000, "random_generator_seed": 6574654, "active_length": 1.0, "inactive_front": 0, "inactive_back": 0, "angle": 0.0, "jaw_F_L": 0.0006628730033503883, "jaw_F_R": -0.0006628730033503883, "jaw_B_L": 0.0006628730033503883, "jaw_B_R": -0.0006628730033503883, "onesided": 0, "dx": 1.4256006685582399e-06, "dy": 6.057342908043416e-08, "dpx": -1.133341378858288e-08, "dpy": -3.718223125869354e-09, "offset": 0.0, "tilt": [0.0, 0.0], "is_active": 1, "material": {"__class__": "Material", "name": "Lead", "Z": 82.0, "A": 207.19, "density": 11.35, "excitation_energy": 8.23e-07, "nuclear_radius": 0.542, "nuclear_elastic_slope": 455.3, "cross_section": [3.016, 1.724, 0, 0, 0, 0.00907], "hcut": 0.01, "radiation_length": 0.0056}}
+{
+  "__class__": "K2Collimator",
+  "k2engine": {
+    "__class__": "K2Engine",
+    "n_alloc": 50000,
+    "random_generator_seed": 6574654
+  },
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0006628730033503883,
+  "jaw_F_R": -0.0006628730033503883,
+  "jaw_B_L": 0.0006628730033503883,
+  "jaw_B_R": -0.0006628730033503883,
+  "onesided": 0,
+  "dx": 1.4256006685582399e-06,
+  "dy": 6.057342908043416e-08,
+  "dpx": -1.133341378858288e-08,
+  "dpy": -3.718223125869354e-09,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Lead",
+    "Z": 82,
+    "A": 207.19,
+    "density": 11.35,
+    "excitation_energy": 8.23e-07,
+    "nuclear_radius": 0.542,
+    "nuclear_elastic_slope": 455.3,
+    "cross_section": [
+      3.016,
+      1.724,
+      0,
+      0,
+      0,
+      0.00907
+    ],
+    "hcut": 0.01,
+    "radiation_length": 0.0056
+  }
+}

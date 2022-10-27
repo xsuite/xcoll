@@ -1,70 +1,79 @@
 import numpy as np
-from .k2.materials import Material, Crystal
+from .k2.materials import Material, CrystalMaterial
 from .collimators import BaseCollimator
 
-class K2Engine:
+import xobjects as xo
 
-    def __init__(self, n_alloc, random_generator_seed=None):
 
-        self._n_alloc = n_alloc
+class K2Engine(xo.HybridClass):
 
-        if random_generator_seed is None:
-            self.random_generator_seed = np.random.randint(1, 100000)
-        else:
-            self.random_generator_seed = random_generator_seed
+    _xofields = {
+        'n_alloc':                xo.Int64,
+        'random_generator_seed':  xo.Int64,
+#         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
+#         'collimators':            K2Collimator[:],  # Does not work, need a pointer of sorts
+    }
 
+    def __init__(self, **kwargs):
+        kwargs.setdefault('_n_alloc', 50000)
+        kwargs.setdefault('random_generator_seed', np.random.randint(1, 10000000))
+#         kwargs.setdefault('random_freeze_state', -1)
+#         kwargs.setdefault('collimators', [])
+        super().__init__(**kwargs)
         try:
             import xcoll.beam_elements.pyk2 as pyk2
         except ImportError:
             print("Warning: Failed importing pyK2 (did you compile?). " \
                   + "K2collimators will be installed but are not trackable.")
         else:
-            pyk2.pyk2_init(n_alloc=n_alloc, random_generator_seed=self.random_generator_seed)
-
-    @property
-    def n_alloc(self):
-        return self._n_alloc
+            pyk2.pyk2_init(n_alloc=self.n_alloc, random_generator_seed=self.random_generator_seed)
 
 
+
+# TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class K2Collimator(BaseCollimator):
+    _xofields = BaseCollimator._xofields | {
+        'dpx':        xo.Float64,
+        'dpy':        xo.Float64,
+        'offset':     xo.Float64,
+        'onesided':   xo.Int8,
+        'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
+        'material':   Material,
+        'k2engine':   K2Engine
+    }
 
-    iscollective = True
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    iscollective = True # TODO: will be set to False when fully in C
 
     def __init__(self, **kwargs):
-        self._k2engine = kwargs.pop('k2engine')
-        self.onesided = kwargs.pop('onesided', False)
-        self.dpx = kwargs.pop('dpx', 0)
-        self.dpy = kwargs.pop('dpy', 0)
-        self.offset = kwargs.pop('offset', 0)
-        tilt = kwargs.pop('tilt', [0,0])
+        kwargs.setdefault('k2engine', K2Engine())
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('offset', 0)
+        kwargs.setdefault('onesided', False)
+        kwargs.setdefault('tilt', [0,0])
+        tilt = kwargs['tilt']
         if hasattr(tilt, '__iter__'):
             if isinstance(tilt, str):
                 raise ValueError("Variable tilt has to be a number or array of numbers!")
             elif len(tilt) == 1:
                 tilt = [tilt[0], tilt[0]]
+            elif len(tilt) > 2:
+                raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
         else:
             tilt = [tilt, tilt]
-        self.tilt = np.array(tilt, dtype=np.float64)
-        self.material = kwargs.pop('material', None)
-        self._reset_random_seed = False
+        kwargs['tilt'] = tilt
         super().__init__(**kwargs)
+#         self.k2engine.collimators += self
+        self._reset_random_seed = False
 
-    @property
-    def material(self):
-        return self._material
-
-    @material.setter
-    def material(self, material):
-        if material is not None and not isinstance(material, Material):
-            raise ValueError(f"The material {material} is not a valid xcoll.Material!")
-        self._material = material
-
-    @property
-    def k2engine(self):
-        return self._k2engine
 
     def reset_random_seed(self):
         self._reset_random_seed = True
+
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles
@@ -123,64 +132,4 @@ class K2Collimator(BaseCollimator):
                 particles.zeta[:npart] += dzeta*L
 
             particles.reorganize()
-        
-    def to_dict(self):
-        # TODO how to save ref to impacts?
-        thisdict = {}
-        thisdict['__class__'] = 'K2Collimator'
-        thisdict['n_alloc'] = self._k2engine.n_alloc
-        thisdict['random_generator_seed'] = self._k2engine.random_generator_seed
-        thisdict['active_length'] = self.active_length
-        thisdict['inactive_front'] = self.inactive_front
-        thisdict['inactive_back'] = self.inactive_back
-        thisdict['angle'] = self.angle
-        thisdict['jaw_F_L'] = self.jaw_F_L
-        thisdict['jaw_F_R'] = self.jaw_F_R
-        thisdict['jaw_B_L'] = self.jaw_B_L
-        thisdict['jaw_B_R'] = self.jaw_B_R
-        thisdict['onesided'] = 1 if self.onesided else 0
-        thisdict['dx'] = self.dx
-        thisdict['dy'] = self.dy
-        thisdict['dpx'] = self.dpx
-        thisdict['dpy'] = self.dpy
-        thisdict['offset'] = self.offset
-        thisdict['tilt'] = self.tilt
-        thisdict['is_active'] = 1 if self.is_active else 0
-        thisdict['material'] = self.material.to_dict()
-        return thisdict
-
-
-    @classmethod
-    def from_dict(cls, thisdict, *, engine=None):
-         # TODO how to get ref to impacts?
-        if engine is None:
-            print("Warning: no engine given! Creating a new one...")
-            engine = K2Engine(thisdict['n_alloc'], thisdict['random_generator_seed'])
-        else:
-            if engine.n_alloc != thisdict['n_alloc']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: n_alloc is different.")
-            if engine.random_generator_seed != thisdict['random_generator_seed']:
-                raise ValueError("The provided engine is incompatible with the engine of the "\
-                                 "stored element: random_generator_seed is different.")
-        return cls(
-            k2engine = engine,
-            active_length = thisdict['active_length'],
-            inactive_front = thisdict['inactive_front'],
-            inactive_back = thisdict['inactive_back'],
-            angle = thisdict['angle'],
-            jaw_F_L = thisdict['jaw_F_L'],
-            jaw_F_R = thisdict['jaw_F_R'],
-            jaw_B_L = thisdict['jaw_B_L'],
-            jaw_B_R = thisdict['jaw_B_R'],
-            onesided = True if thisdict['onesided']==1 else False,
-            dx = thisdict['dx'],
-            dy = thisdict['dy'],
-            dpx = thisdict['dpx'],
-            dpy = thisdict['dpy'],
-            offset = thisdict['offset'],
-            tilt = thisdict['tilt'],
-            is_active = True if thisdict['is_active']==1 else False,
-            material = Material.from_dict(thisdict['material'])
-        )
             
