@@ -1419,7 +1419,7 @@ function cry_ruth(t_cry)
   use mathlib_bouncer
 
   real(kind=fPrec) cry_ruth,t_cry
-  real(kind=fPrec), parameter :: cnorm  = 2.607e-4_fPrec
+  real(kind=fPrec), parameter :: cnorm  = 2.607e-5_fPrec
   real(kind=fPrec), parameter :: cnform = 0.8561e3_fPrec
 
   cry_ruth = (cnorm*exp_mb((-t_cry*cnform)*emr_curr_cry**2))*(zatom_curr_cry/t_cry)**2

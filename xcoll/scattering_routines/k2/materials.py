@@ -99,7 +99,7 @@ Copper = Material(
         cross_section = [1.253, 0.769, 0, 0, 0, 0.1530e-2]
 )
 
-# W   (nuclear_radius = 0.520, nuclear_elastic_slope = 440.3)
+# W
 Tungsten = Material(
         name = 'Tungsten',
         Z = 74.00,
@@ -107,9 +107,9 @@ Tungsten = Material(
         density = 19.30,
         excitation_energy = 727.0e-9,
         hcut = 0.01,
-        nuclear_radius = 0.5208318900309039, 
+        nuclear_radius = 0.520, 
         radiation_length = 0.0035,
-        nuclear_elastic_slope = 420.4304986267596,
+        nuclear_elastic_slope = 440.3,
         cross_section = [2.765, 1.591, 0, 0, 0, 0.7680e-2]
 )
 TungstenCrystal = CrystalMaterial.from_material( Tungsten,
