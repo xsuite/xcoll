@@ -1,1 +1,47 @@
-{"__class__": "Collimator", "n_alloc": 50000, "random_generator_seed": 6574654, "active_length": 1.0, "inactive_front": 0, "inactive_back": 0, "angle": 0.0, "jaw_F_L": 0.0013533338343335857, "jaw_F_R": -0.0013533338343335857, "jaw_B_L": 0.0013533338343335857, "jaw_B_R": -0.0013533338343335857, "onesided": 0, "dx": -6.138333233606226e-08, "dy": 6.331987685998359e-07, "dpx": 8.876026779209737e-09, "dpy": -8.331363472247697e-09, "offset": 0.0, "tilt": [0.0, 0.0], "is_active": 1, "material": "C2"}
+{
+  "__class__": "K2Collimator",
+  "k2engine": {
+    "__class__": "K2Engine",
+    "n_alloc": 50000,
+    "random_generator_seed": 6574654
+  },
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0013533338343335857,
+  "jaw_F_R": -0.0013533338343335857,
+  "jaw_B_L": 0.0013533338343335857,
+  "jaw_B_R": -0.0013533338343335857,
+  "onesided": 0,
+  "dx": -6.138333233606226e-08,
+  "dy": 6.331987685998359e-07,
+  "dpx": 8.876026779209737e-09,
+  "dpy": -8.331363472247697e-09,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Carbon2",
+    "Z": 6,
+    "A": 12.01,
+    "density": 4.52,
+    "excitation_energy": 7.8e-08,
+    "nuclear_radius": 0.25,
+    "nuclear_elastic_slope": 70,
+    "cross_section": [
+      0.337,
+      0.232,
+      0,
+      0,
+      0,
+      7.6e-05
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.094
+  }
+}

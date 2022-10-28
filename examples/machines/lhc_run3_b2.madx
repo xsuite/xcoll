@@ -222,6 +222,29 @@ if(rematchIR7==1){
 !! RF cavities on
 VRF400=16;  !8MV for injection, 16MV for collision
 LAGRF400.b1=0.5;
-LAGRF400.b2=0.5;
+LAGRF400.b2=0.;   ! Need to set this to 0, because the reflection to beam 4 is implemented wrong..
+! Need to manually specify harmonic number, as some sequences in the repository are missing it
+! HRF400              := 35640;
+ACSCA.D5L4.B1, HARMON := HRF400;
+ACSCA.C5L4.B1, HARMON := HRF400;
+ACSCA.B5L4.B1, HARMON := HRF400;
+ACSCA.A5L4.B1, HARMON := HRF400;
+ACSCA.A5R4.B1, HARMON := HRF400;
+ACSCA.B5R4.B1, HARMON := HRF400;
+ACSCA.C5R4.B1, HARMON := HRF400;
+ACSCA.D5R4.B1, HARMON := HRF400;
+ACSCA.D5L4.B2, HARMON := HRF400;
+ACSCA.C5L4.B2, HARMON := HRF400;
+ACSCA.B5L4.B2, HARMON := HRF400;
+ACSCA.A5L4.B2, HARMON := HRF400;
+ACSCA.A5R4.B2, HARMON := HRF400;
+ACSCA.B5R4.B2, HARMON := HRF400;
+ACSCA.C5R4.B2, HARMON := HRF400;
+ACSCA.D5R4.B2, HARMON := HRF400;
+
+System,"rm run3seq";
+System,"rm run3opt";
+System,"rm run3aper";
+System,"rm extra";
 
 return;

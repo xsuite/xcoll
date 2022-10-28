@@ -1,1 +1,47 @@
-{"__class__": "Collimator", "n_alloc": 50000, "random_generator_seed": 6574654, "active_length": 1.565, "inactive_front": 0, "inactive_back": 0, "angle": 90.0, "jaw_F_L": 0.001078196761124135, "jaw_F_R": -0.001078196761124135, "jaw_B_L": 0.001078196761124135, "jaw_B_R": -0.001078196761124135, "onesided": 0, "dx": 0.0002497632061269962, "dy": -0.004035878094776629, "dpx": 5.901009959886009e-06, "dpy": -6.689253198620662e-05, "offset": 0.0, "tilt": [0.0, 0.0], "is_active": 1, "material": "MoGR"}
+{
+  "__class__": "K2Collimator",
+  "k2engine": {
+    "__class__": "K2Engine",
+    "n_alloc": 50000,
+    "random_generator_seed": 6574654
+  },
+  "active_length": 1.565,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 90,
+  "jaw_F_L": 0.001078196761124135,
+  "jaw_F_R": -0.001078196761124135,
+  "jaw_B_L": 0.001078196761124135,
+  "jaw_B_R": -0.001078196761124135,
+  "onesided": 0,
+  "dx": 0.0002497632061269962,
+  "dy": -0.004035878094776629,
+  "dpx": 5.901009959886009e-06,
+  "dpy": -6.689253198620662e-05,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "MolybdenumGraphite",
+    "Z": 6.65,
+    "A": 13.53,
+    "density": 2.5,
+    "excitation_energy": 8.71e-08,
+    "nuclear_radius": 0.25,
+    "nuclear_elastic_slope": 76.7,
+    "cross_section": [
+      0.362,
+      0.247,
+      0,
+      0,
+      0,
+      9.4e-05
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.1193
+  }
+}

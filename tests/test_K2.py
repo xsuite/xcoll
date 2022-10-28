@@ -50,8 +50,8 @@ materials_b2 = {
   'MoGR': 'tctph.4r5.b2',
   'CuCD': 'tcl.4l5.b2',
   'Mo':   'tcl.5l5.b2',
-  'Glid': 'tcl.6l5.b2',    # Fails unless atol = 1e-9
-  'Iner': 'tcsg.5r3.b2',   # Fails unless atol = 1e-9
+  'Glid': 'tcl.6l5.b2',
+  'Iner': 'tcsg.5r3.b2',
 }
 
 angles_b2 = {
@@ -93,10 +93,7 @@ def test_materials_b1():
 
 def test_materials_b2():
     for key, name in materials_b2.items():
-        if name in ['tcl.6l5.b2','tcsg.5r3.b2']:
-            _track_collimator(name, atolx=1e-9, atoly=1e-9, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-        else:
-            _track_collimator(name)
+        _track_collimator(name)
 
 def test_angles_b1():
     for key, name in angles_b1.items():
@@ -132,17 +129,15 @@ def test_crystals_b2_bis():
     _track_collimator(crystals_b2[1], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
 
 
-def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12, atolz=1e-10, atold=1e-10):
+def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    seed = colldict.pop('random_generator_seed')
-    xc.scattering_routines.everest.random.set_random_seed(seed)
-    if colldict['__class__'] == 'Collimator':
-        coll = xc.Collimator.from_dict(colldict)
-    elif colldict['__class__'] == 'Crystal':
-        coll = xc.Crystal.from_dict(colldict)
+    if colldict['__class__'] == 'K2Collimator':
+        coll = xc.K2Collimator.from_dict(colldict)
+    elif colldict['__class__'] == 'K2Crystal':
+        coll = xc.K2Crystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
@@ -157,7 +152,7 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-12, atolpy=1e-12
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
 
 def _reshuffle(part):
-#     part.move(_context=xo.ContextCpu())
+    # part.move(_context=xo.ContextCpu())
     if part.lost_particles_are_hidden:
         part.unhide_lost_particles()
 
