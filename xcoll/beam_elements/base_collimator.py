@@ -1,10 +1,8 @@
 import numpy as np
-# from abc import ABC, ABCMeta, abstractmethod
 
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
 from ..tables import CollimatorImpacts
 
 # class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
@@ -84,21 +82,5 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
     @property
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
-
-
-class BlackAbsorber(BaseCollimator):
-    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
-    _store_in_to_dict      = BaseCollimator._store_in_to_dict
-    _internal_record_class = BaseCollimator._internal_record_class
-    
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
-    ]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-
 
 

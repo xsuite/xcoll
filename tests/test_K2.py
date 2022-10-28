@@ -119,14 +119,9 @@ def test_offsets_b2():
     for key, name in offsets_b2.items():
         _track_collimator(name)
 
-def test_crystals_b1():
-    _track_collimator(crystals_b1[0], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-def test_crystals_b1_bis():
-    _track_collimator(crystals_b1[1], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-def test_crystals_b2():
-    _track_collimator(crystals_b2[0], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
-def test_crystals_b2_bis():
-    _track_collimator(crystals_b2[1], atolx=1e-7, atoly=1e-7, atolpx=1e-9, atolpy=1e-9, atold=1e-8)
+def test_crystals():
+    for name in crystals_b1 + crystals_b2:
+        _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11, atold=1e-11)
 
 
 def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
