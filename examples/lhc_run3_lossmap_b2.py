@@ -68,7 +68,7 @@ part = xp.build_particles(
             match_at_s=coll_manager.s_match[coll])
 
 # Track
-coll_manager.track(part, num_turns=1)
+coll_manager.track(part, num_turns=10)
 
 # Get losses for lossmap
 coll_manager.create_lossmap(part)
