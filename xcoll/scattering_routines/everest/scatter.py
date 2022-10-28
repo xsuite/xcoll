@@ -12,7 +12,7 @@ def rutherford(t, zatom, emr):
 
 def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
-                run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref4, run_csref5,run_radl, run_dlri, 
+                run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
                 c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, run_csect,
                 cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
@@ -169,7 +169,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                                                                                                             bnref=run_bnref, 
                                                                                                                             csref0=run_csref0, 
                                                                                                                             csref1=run_csref1, 
-                                                                                                                            csref4=run_csref4, 
                                                                                                                             csref5=run_csref5, 
                                                                                                                             csect=run_csect,                                                                                                                            
                                                                                                                             nhit=nhit, 

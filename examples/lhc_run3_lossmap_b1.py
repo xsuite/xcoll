@@ -25,7 +25,7 @@ coll_manager = xc.CollimatorManager(
     )
 
 # Install collimators in line as black absorbers
-coll_manager.install_k2_collimators(verbose=True)
+coll_manager.install_everest_collimators(verbose=True)
 
 # Build the tracker
 coll_manager.build_tracker()

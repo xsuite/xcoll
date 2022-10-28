@@ -1,85 +1,47 @@
 import numpy as np
-from ..scattering_routines.everest import track, materials, random
 
-class Collimator:
+import xobjects as xo
 
-    iscollective = True
-    isthick = True
-    behaves_like_drift = True
+from .collimators import BaseCollimator
+from ..scattering_routines.everest import track, Material, CrystalMaterial
 
-    def __init__(self, *, active_length, angle, inactive_front=0, inactive_back=0,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
-                 is_active=True, impacts=None, material=None):
 
-        self.active_length = active_length
-        self.inactive_front = inactive_front
-        self.inactive_back = inactive_back
-        self.angle = angle
-        self.jaw_F_L = jaw_F_L
-        self.jaw_F_R = jaw_F_R
-        self.jaw_B_L = jaw_B_L
-        self.jaw_B_R = jaw_B_R
-        self.onesided = onesided
-        self.dx = dx
-        self.dy = dy
-        self.dpx = dpx
-        self.dpy = dpy
-        self.offset = offset
+# TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
+class Collimator(BaseCollimator):
+    _xofields = BaseCollimator._xofields | {
+        'dpx':        xo.Float64,
+        'dpy':        xo.Float64,
+        'offset':     xo.Float64,
+        'onesided':   xo.Int8,
+        'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
+        'material':   Material
+    }
+
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    iscollective = True # TODO: will be set to False when fully in C
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('offset', 0)
+        kwargs.setdefault('onesided', False)
+        kwargs.setdefault('tilt', [0,0])
+        tilt = kwargs['tilt']
         if hasattr(tilt, '__iter__'):
             if isinstance(tilt, str):
                 raise ValueError("Variable tilt has to be a number or array of numbers!")
             elif len(tilt) == 1:
                 tilt = [tilt[0], tilt[0]]
+            elif len(tilt) > 2:
+                raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
         else:
             tilt = [tilt, tilt]
-        self.tilt = np.array(tilt, dtype=np.float64)
-        self.is_active = is_active
-        self.material = material
-        self.impacts = impacts
+        kwargs['tilt'] = tilt
+        super().__init__(**kwargs)
 
-    @property
-    def material(self):
-        return self._material
-
-    @material.setter
-    def material(self, material):
-        if not material in materials.keys():
-            raise ValueError(f"Argument '{material}' is not in the materials database!")
-        self._material = material
-
-    @property
-    def impacts(self):
-        return self._impacts
-
-    @property
-    def record_impacts(self):
-        return self._record_impacts
-
-    @impacts.setter
-    def impacts(self, impacts):
-        self._record_impacts = False if impacts is None else True
-        self._impacts = impacts
-
-    @property
-    def k2engine(self):
-        return self._k2engine
-
-    @property
-    def is_active(self):
-        return self._active
-
-    @is_active.setter
-    def is_active(self, is_active):
-        self._active = is_active
-        if not is_active:
-            self.jaw_F_L = 1
-            self.jaw_F_R = -1
-            self.jaw_B_L = 1
-            self.jaw_B_R = -1
-
-    @property
-    def length(self):
-        return self.active_length + self.inactive_front + self.inactive_back
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles
@@ -130,144 +92,59 @@ class Collimator:
                 particles.zeta[:npart] += dzeta*L
 
             particles.reorganize()
-        
-    def to_dict(self):
-        # TODO how to save ref to impacts?
-        thisdict = {}
-        thisdict['__class__'] = 'Collimator'
-        thisdict['active_length'] = self.active_length
-        thisdict['inactive_front'] = self.inactive_front
-        thisdict['inactive_back'] = self.inactive_back
-        thisdict['angle'] = self.angle
-        thisdict['jaw_F_L'] = self.jaw_F_L
-        thisdict['jaw_F_R'] = self.jaw_F_R
-        thisdict['jaw_B_L'] = self.jaw_B_L
-        thisdict['jaw_B_R'] = self.jaw_B_R
-        thisdict['onesided'] = 1 if self.onesided else 0
-        thisdict['dx'] = self.dx
-        thisdict['dy'] = self.dy
-        thisdict['dpx'] = self.dpx
-        thisdict['dpy'] = self.dpy
-        thisdict['offset'] = self.offset
-        thisdict['tilt'] = self.tilt
-        thisdict['is_active'] = 1 if self.is_active else 0
-        thisdict['material'] = self.material
-        return thisdict
 
 
-    @classmethod
-    def from_dict(cls, thisdict):
-        return cls(
-            active_length = thisdict['active_length'],
-            inactive_front = thisdict['inactive_front'],
-            inactive_back = thisdict['inactive_back'],
-            angle = thisdict['angle'],
-            jaw_F_L = thisdict['jaw_F_L'],
-            jaw_F_R = thisdict['jaw_F_R'],
-            jaw_B_L = thisdict['jaw_B_L'],
-            jaw_B_R = thisdict['jaw_B_R'],
-            onesided = True if thisdict['onesided']==1 else False,
-            dx = thisdict['dx'],
-            dy = thisdict['dy'],
-            dpx = thisdict['dpx'],
-            dpy = thisdict['dpy'],
-            offset = thisdict['offset'],
-            tilt = thisdict['tilt'],
-            is_active = True if thisdict['is_active']==1 else False,
-            material = thisdict['material']
-        )
 
+class Crystal(BaseCollimator):
+    _xofields = BaseCollimator._xofields | {
+        'dpx':         xo.Float64,
+        'dpy':         xo.Float64,
+        'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
+        'bend':        xo.Float64,
+        'xdim':        xo.Float64,
+        'ydim':        xo.Float64,
+        'thick':       xo.Float64,
+        'crytilt':     xo.Float64,
+        'miscut':      xo.Float64,
+        'orient':      xo.Float64,
+        'offset':      xo.Float64,
+        'onesided':    xo.Int8,
+        'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
+        'material':    CrystalMaterial
+    }
 
-class Crystal:
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict
+    _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True
-    isthick = True
-    behaves_like_drift = True
+    iscollective = True # TODO: will be set to False when fully in C
 
-    def __init__(self, *, active_length, angle, align_angle, inactive_front=0, inactive_back=0,
-                 jaw_F_L=1, jaw_F_R=-1, jaw_B_L=1, jaw_B_R=-1, onesided=False, dx=0, dy=0, dpx=0, dpy=0, offset=0, tilt=[0,0],
-                 bend=0, xdim=0, ydim=0, thick=0, crytilt=0, miscut=0, orient=0,
-                 is_active=True, impacts=None, material=None):
-
-        self.active_length = active_length
-        self.inactive_front = inactive_front
-        self.inactive_back = inactive_back
-        self.angle = angle
-        self.jaw_F_L = jaw_F_L
-        self.jaw_F_R = jaw_F_R
-        self.jaw_B_L = jaw_B_L
-        self.jaw_B_R = jaw_B_R
-        self.onesided = onesided
-        self.dx = dx
-        self.dy = dy
-        self.dpx = dpx
-        self.dpy = dpy
-        self.offset = offset
+    def __init__(self, **kwargs):
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('dpx', 0)
+        kwargs.setdefault('offset', 0)
+        kwargs.setdefault('onesided', False)
+        kwargs.setdefault('tilt', [0,0])
+        tilt = kwargs['tilt']
         if hasattr(tilt, '__iter__'):
             if isinstance(tilt, str):
                 raise ValueError("Variable tilt has to be a number or array of numbers!")
             elif len(tilt) == 1:
                 tilt = [tilt[0], tilt[0]]
+            elif len(tilt) > 2:
+                raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
         else:
             tilt = [tilt, tilt]
-        self.tilt = np.array(tilt, dtype=np.float64)
-        self.is_active = is_active
-        self.material = material
-        self.bend = bend
-        self.xdim = xdim
-        self.ydim = ydim
-        self.thick = thick
-        self.crytilt = crytilt
-        self.align_angle = align_angle    #  = - sqrt(eps/beta)*alpha*nsigma
-        self.miscut = miscut
-        self.orient = orient
-        self.impacts = impacts
+        kwargs['tilt'] = tilt
+        kwargs.setdefault('bend', 0)
+        kwargs.setdefault('xdim', 0)
+        kwargs.setdefault('ydim', 0)
+        kwargs.setdefault('thick', 0)
+        kwargs.setdefault('crytilt', 0)
+        kwargs.setdefault('miscut', 0)
+        kwargs.setdefault('orient', 0)
+        super().__init__(**kwargs)
 
-    @property
-    def material(self):
-        return self._material
-
-    @material.setter
-    def material(self, material):
-        if not material in materials.keys():
-            raise ValueError(f"Argument '{material}' is not in the materials database!")
-        if not materials[material]['can_be_crystal']:
-            raise ValueError(f"Material '{material}' cannot be used for crystals!")
-        self._material = material
-    
-    @property
-    def impacts(self):
-        return self._impacts
-
-    @property
-    def record_impacts(self):
-        return self._record_impacts
-
-    @impacts.setter
-    def impacts(self, impacts):
-        self._record_impacts = False if impacts is None else True
-        self._impacts = impacts
-
-    @property
-    def k2engine(self):
-        return self._k2engine
-
-    @property
-    def is_active(self):
-        return self._active
-
-    @is_active.setter
-    def is_active(self, is_active):
-        self._active = is_active
-        if not is_active:
-            self.jaw_F_L = 1
-            self.jaw_F_R = -1
-            self.jaw_B_L = 1
-            self.jaw_B_R = -1
-
-    @property
-    def length(self):
-        return self.active_length + self.inactive_front + self.inactive_back
 
     def track(self, particles):  # TODO: write impacts
         npart = particles._num_active_particles
@@ -318,67 +195,4 @@ class Crystal:
                 particles.zeta[:npart] += dzeta*L
 
             particles.reorganize()
-        
-    def to_dict(self):
-        # TODO how to save ref to impacts?
-        thisdict = {}
-        thisdict['__class__'] = 'Crystal'
-        thisdict['active_length'] = self.active_length
-        thisdict['inactive_front'] = self.inactive_front
-        thisdict['inactive_back'] = self.inactive_back
-        thisdict['angle'] = self.angle
-        thisdict['jaw_F_L'] = self.jaw_F_L
-        thisdict['jaw_F_R'] = self.jaw_F_R
-        thisdict['jaw_B_L'] = self.jaw_B_L
-        thisdict['jaw_B_R'] = self.jaw_B_R
-        thisdict['onesided'] = 1 if self.onesided else 0
-        thisdict['dx'] = self.dx
-        thisdict['dy'] = self.dy
-        thisdict['dpx'] = self.dpx
-        thisdict['dpy'] = self.dpy
-        thisdict['offset'] = self.offset
-        thisdict['tilt'] = self.tilt
-        thisdict['is_active'] = 1 if self.is_active else 0
-        thisdict['material'] = self.material
-        thisdict['bend'] = self.bend
-        thisdict['xdim'] = self.xdim
-        thisdict['ydim'] = self.ydim
-        thisdict['thick'] = self.thick
-        thisdict['crytilt'] = self.crytilt
-        thisdict['miscut'] = self.miscut
-        thisdict['orient'] = self.orient
-        thisdict['align_angle'] = self.align_angle
 
-        return thisdict
-
-
-    @classmethod
-    def from_dict(cls, thisdict):
-         # TODO how to get ref to impacts?
-        return cls(
-            active_length = thisdict['active_length'],
-            inactive_front = thisdict['inactive_front'],
-            inactive_back = thisdict['inactive_back'],
-            angle = thisdict['angle'],
-            jaw_F_L = thisdict['jaw_F_L'],
-            jaw_F_R = thisdict['jaw_F_R'],
-            jaw_B_L = thisdict['jaw_B_L'],
-            jaw_B_R = thisdict['jaw_B_R'],
-            onesided = True if thisdict['onesided']==1 else False,
-            dx = thisdict['dx'],
-            dy = thisdict['dy'],
-            dpx = thisdict['dpx'],
-            dpy = thisdict['dpy'],
-            offset = thisdict['offset'],
-            tilt = thisdict['tilt'],
-            is_active = True if thisdict['is_active']==1 else False,
-            material = thisdict['material'],
-            bend = thisdict['bend'],
-            xdim = thisdict['xdim'],
-            ydim = thisdict['ydim'],
-            thick = thisdict['thick'],
-            crytilt = thisdict['crytilt'],
-            miscut = thisdict['miscut'],
-            orient = thisdict['orient'],
-            align_angle = thisdict['align_angle']
-        )

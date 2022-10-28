@@ -1,18 +1,19 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, Collimator, Crystal
+from .beam_elements import BlackAbsorber, Collimator, Crystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 
 import xtrack as xt
 import xobjects as xo
 
-_all_collimator_types = { BlackAbsorber, Collimator }
 
 
 class CollimatorManager:
-    def __init__(self, *, line, colldb: CollDB, _context=None, _buffer=None, storage_capacity=1e6, record_impacts=False):
+    def __init__(self, *, line, line_is_reversed=False, colldb: CollDB, capacity=1e6, record_impacts=False, \
+                 _context=None, _buffer=None, io_buffer=None):
+
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
@@ -21,8 +22,8 @@ class CollimatorManager:
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
-        self._k2engine = None   # only needed for FORTRAN K2Collimator
-        
+
+        # Create _buffer, _context, and _io_buffer
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -32,48 +33,93 @@ class CollimatorManager:
                              + "Make sure the buffer is generated inside the provided context, or alternatively, "
                              + "only pass one of _buffer or _context.")
         self._buffer = _buffer
-        self.storage_capacity = storage_capacity
+
+        # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
+        self._capacity = int(capacity)
+        if io_buffer is None:
+            io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
+        elif self._buffer.context != io_buffer._context:
+            raise ValueError("The provided io_buffer lives on a different context than the buffer!")
+        self._io_buffer = io_buffer
+
+        # Initialise impacts table
+        self._record_impacts = []
+        self._impacts = None
         self.record_impacts = record_impacts
+
+        self.tracker = None
+        self._losmap = None
+        self._coll_summary = None
+        self._line_is_reversed = line_is_reversed
+
 
     @property
     def random_seed(self):
         return self._random
+
     @property
     def impacts(self):
         interactions = {
             -1: 'Black', 1: 'Nuclear-Inelastic', 2: 'Nuclear-Elastic', 3: 'pp-Elastic', 4: 'Single-Diffractive', 5: 'Coulomb'
         }
-        n_rows = self._impacts._row_id + 1
+        n_rows = self._impacts._index + 1
         df = pd.DataFrame({
                 'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
                 's':                 self._impacts.s[:n_rows],
-                'turn':              self._impacts.turn[:n_rows],
+                'turn':              self._impacts.at_turn[:n_rows],
                 'interaction_type':  [ interactions[int_id] for int_id in self._impacts.interaction_type[:n_rows] ],
             })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy']
+        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
         for particle in ['parent', 'child']:
             multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
             newdf = pd.DataFrame(index=df.index, columns=multicols)
             for col in cols:
-                newdf[particle, col] = getattr(self._impacts,col + '_' + particle)[:n_rows]
+                newdf[particle, col] = getattr(self._impacts,particle + '_' + col)[:n_rows]
             df = pd.concat([df, newdf], axis=1)
         return df
 
     @property
     def record_impacts(self):
         return self._record_impacts
-    
+
     @record_impacts.setter
     def record_impacts(self, record_impacts):
+        # TODO: how to get impacts if different collimator types in line?
+        if record_impacts is True:
+            record_impacts = self.collimator_names
+        elif record_impacts is False or record_impacts is None:
+            record_impacts = []
+        record_start = set(record_impacts) - set(self._record_impacts)
+        record_stop = set(self._record_impacts) - set(record_impacts)
+        if record_start:
+            if self._impacts is None:
+                self._impacts = xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                                          elements=record_start)
+            else:
+                xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                          record=self._impacts, elements=record_start)
+        if record_stop:
+            if self.tracker is not None:
+                self.tracker._check_invalidated()
+            xt.stop_internal_logging(elements=record_stop)
         self._record_impacts = record_impacts
-        if record_impacts:
-            self._impacts = CollimatorImpacts(_capacity=self.storage_capacity, _buffer=self._buffer)
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, capacity):
+        capacity = int(capacity)
+        if capacity < self.capacity:
+            raise NotImplementedError("Shrinking of capacity not yet implemented!")
+        elif capacity == self.capacity:
+            return
         else:
-            self._impacts = None
-        # Update the xo.Ref to the CollimatorImpacts for the installed collimators
-        for name in self.collimator_names:
-            if self.colldb._colldb.loc[name,'collimator_type'] is not None:
-                self.line[name].impacts = self._impacts
+            self._io_buffer.grow(capacity-self.capacity)
+            if self._impacts is not None:
+                # TODO: increase capacity of iobuffer AND of _impacts
+                raise NotImplementedError
 
     @property
     def collimator_names(self):
@@ -106,8 +152,6 @@ class CollimatorManager:
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
             return BlackAbsorber(
-                    _buffer=self._buffer,
-                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -118,22 +162,21 @@ class CollimatorManager:
 
 
     def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):        
-        from .beam_elements.k2.k2_random import set_random_seed
+        from .scattering_routines.everest import set_random_seed
         set_random_seed(random_seed)
 
         # Do the installation
         def install_func(thiscoll, name):
             return Collimator(
-                    k2engine=self._k2engine,
-                    impacts=self._impacts,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
+                    material=thiscoll['material'],
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=Collimator, install_func=install_func, verbose=verbose)
-        
+
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
         # Check that collimator marker exists in Line and CollDB,
@@ -156,7 +199,7 @@ class CollimatorManager:
 
         # Loop over collimators to install
         for name in names:
-            
+
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             for other_coll_class in _all_collimator_types - {collimator_class}:
@@ -185,7 +228,23 @@ class CollimatorManager:
                 df.loc[name,'collimator_type'] = collimator_class.__name__
                 # Do the installation
                 s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
+                if name+'_aper' in line.element_names:
+                    coll_aper = line[name+'_aper']
+                    assert coll_aper.__class__.__name__.startswith('Limit')
+                    if np.any([name+'_aper_tilt_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with tilt not implemented!")
+                    if np.any([name+'_aper_offset_' in nn for nn in line.element_names]):
+                        raise NotImplementedError("Collimator apertures with offset not implemented!")
+                else:
+                    coll_aper = None
+
                 line.insert_element(element=newcoll, name=name, at_s=s_install)
+
+                if coll_aper is not None:
+                    line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
+                    line.insert_element(element=coll_aper, name=name+'_aper_back',
+                                        index=line.element_names.index(name)+1)
+
 
 
     def align_collimators_to(self, align):
@@ -197,14 +256,17 @@ class CollimatorManager:
 
     def build_tracker(self, **kwargs):
         kwargs.setdefault('_buffer', self._buffer)
+        kwargs.setdefault('io_buffer', self._io_buffer)
         if kwargs['_buffer'] != self._buffer:
             raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+        if kwargs['io_buffer'] != self._io_buffer:
+            raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
             raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 
-    
+
     def _compute_optics(self, recompute=False):
         line = self.line
         if line is None or line.tracker is None:
@@ -216,7 +278,7 @@ class CollimatorManager:
             raise Exception("Not all collimators are aligned! Please call 'align_collimators_to' "
                             + "on the CollimationManager before computing the optics for the openings!")
 
-        pos = self.colldb._optics_positions_to_calculate
+        pos = list(self.colldb._optics_positions_to_calculate)
         if recompute or pos != {}:
             tracker = self.line.tracker
             # Calculate optics without collimators
@@ -282,7 +344,7 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-            elif isinstance(line[name], K2Collimator):
+            elif isinstance(line[name], Collimator):
                 line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
@@ -298,7 +360,7 @@ class CollimatorManager:
                 elif colldb.onesided[name] == 'left':
                     line[name].onesided = True
                 elif colldb.onesided[name] == 'right':
-                    raise ValueError(f"Right-sided collimators not implemented for K2Collimator {name}!")
+                    raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
                 line[name].is_active = colldb.is_active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
@@ -308,4 +370,89 @@ class CollimatorManager:
     def track(self, *args, **kwargs):
         self.tracker.track(*args, **kwargs)
 
+
+    @property
+    def lossmap(self):
+        return self._lossmap
+
+    def coll_summary(self, part):
+
+        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
+
+        names = dict(zip(coll_s, coll_names))
+        lengths = dict(zip(coll_s, coll_length))
+        s = sorted(list(names.keys()))
+        collname    =  [ names[pos] for pos in s ]
+        colllengths =  [ lengths[pos] for pos in s ]
+        nabs = []
+        for pos in s:
+            nabs.append(coll_s.count(pos))
+
+        return pd.DataFrame({
+            "collname": collname,
+            "nabs":     nabs,
+            "length":   colllengths,
+            "s":        s
+        })
+
+
+    def create_lossmap(self, part, interpolation=0.1):
+        # Loss location refinement
+        if interpolation is not None:
+            print("Performing the aperture losses refinement.")
+            loss_loc_refinement = xt.LossLocationRefinement(self.tracker,
+                    n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                    r_max = 0.5, # Maximum transverse aperture in m
+                    dr = 50e-6, # Transverse loss refinement accuracy [m]
+                    ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                    # save_refine_trackers=True # Diagnostics flag
+                    )
+            loss_loc_refinement.refine_loss_location(part)
+
+        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
+        aper_s, aper_names              = self._get_aperture_losses(part)
+
+        self._lossmap = {
+            'collimator': {
+                's':      coll_s,
+                'name':   coll_names,
+                'length': coll_length
+            }
+            ,
+            'aperture': {
+                's':    aper_s,
+                'name': aper_names
+            }
+            ,
+            'machine_length': self.line.get_length()
+            ,
+            'interpolation': interpolation
+            ,
+            'reversed': self._line_is_reversed
+        }
+
+        return self.lossmap
+
+    def _get_collimator_losses(self, part):
+        coll_names = [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+        # TODO: this way to get the collimator positions is a hack that needs to be cleaner with the new API
+        coll_positions = dict(zip(self.collimator_names, self.s_center))
+        coll_s = [coll_positions[name] for name in coll_names]
+        coll_length = [self.line[i].active_length for i in part.at_element[part.state==-333]]
+        machine_length = self.line.get_length()
+        if self._line_is_reversed:
+            coll_s = [ machine_length - s for s in coll_s ]
+
+        return coll_s, coll_names, coll_length
+
+
+    def _get_aperture_losses(self, part):
+
+        aper_s = list(part.s[part.state==0])
+        aper_names = [self.line.element_names[i] for i in part.at_element[part.state==0]]
+        machine_length = self.line.get_length()
+        if self._line_is_reversed:
+            aper_s = [ machine_length - s for s in aper_s ]
+
+        return aper_s, aper_names
 

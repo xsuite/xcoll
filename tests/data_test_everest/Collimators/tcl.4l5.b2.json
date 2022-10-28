@@ -1,0 +1,42 @@
+{
+  "__class__": "Collimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0013573658679962323,
+  "jaw_F_R": -0.0013573658679962323,
+  "jaw_B_L": 0.0013573658679962323,
+  "jaw_B_R": -0.0013573658679962323,
+  "onesided": 0,
+  "dx": -0.0013410062237103472,
+  "dy": -2.425681770521614e-06,
+  "dpx": 6.022152793147351e-05,
+  "dpy": 4.5592504138438255e-09,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "CopperDiamond",
+    "Z": 11.9,
+    "A": 25.24,
+    "density": 5.4,
+    "excitation_energy": 1.529e-07,
+    "nuclear_radius": 0.308,
+    "nuclear_elastic_slope": 115,
+    "cross_section": [
+      0.572,
+      0.37,
+      0,
+      0,
+      0,
+      0.000279
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.0316
+  }
+}

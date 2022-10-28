@@ -1,0 +1,42 @@
+{
+  "__class__": "Collimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 90,
+  "jaw_F_L": 0.002273984617086535,
+  "jaw_F_R": -0.002273984617086535,
+  "jaw_B_L": 0.002273984617086535,
+  "jaw_B_R": -0.002273984617086535,
+  "onesided": 0,
+  "dx": -0.002875458058714936,
+  "dy": 0.0006893529923427377,
+  "dpx": -8.986120027888144e-05,
+  "dpy": 3.5138979359631685e-06,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "MolybdenumGraphite",
+    "Z": 6.65,
+    "A": 13.53,
+    "density": 2.5,
+    "excitation_energy": 8.71e-08,
+    "nuclear_radius": 0.25,
+    "nuclear_elastic_slope": 76.7,
+    "cross_section": [
+      0.362,
+      0.247,
+      0,
+      0,
+      0,
+      9.4e-05
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.1193
+  }
+}

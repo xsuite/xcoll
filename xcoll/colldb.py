@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import io
+from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
 def load_SixTrack_colldb(filename, *, emit):
     return CollDB(emit=emit, sixtrack_file=filename)
@@ -21,7 +22,7 @@ class CollDB:
             return self._colldb.loc[name]
         else:
             return self._colldb.loc[self.name[name]]
-        
+
     def to_pandas(self):
         return pd.DataFrame({
                 's_center':        self.s_center,
@@ -37,7 +38,7 @@ class CollDB:
                 'active_length':   self.active_length,
                 'collimator_type': self.collimator_type,
             }, index=self.name)
-    
+
     @property
     def name(self):
         return self._colldb.index.values
@@ -48,7 +49,7 @@ class CollDB:
     #       - CRYSTAL PROPERTIES: only valid if crystal == True (add mask to _set_property?)
     #         make second dataframe for crystals
     #       - show as __repr__
-    
+
     # The CollDB class has the following fields (those marked
     # with an * are set automatically and cannot be overwritten):
     #   - name
@@ -83,7 +84,7 @@ class CollDB:
     #   - ydim
     #   - miscut
     #   - thick
-    
+
     @property
     def angle(self):
         return self._colldb['angle']
@@ -200,7 +201,7 @@ class CollDB:
     @property
     def collimator_type(self):
         return self._colldb['collimator_type']
-    
+
     @property
     def active_length(self):
         return self._colldb['active_length']
@@ -213,7 +214,7 @@ class CollDB:
     @property
     def inactive_front(self):
         return self._colldb['inactive_front']
-    
+
     @inactive_front.setter
     def inactive_front(self, length):
         self._set_property('inactive_front', length)
@@ -221,7 +222,7 @@ class CollDB:
     @property
     def inactive_back(self):
         return self._colldb['inactive_back']
-    
+
     @inactive_back.setter
     def inactive_back(self, length):
         self._set_property('inactive_back', length)
@@ -229,12 +230,12 @@ class CollDB:
     @property
     def total_length(self):
         return self._colldb['active_length'] +  self._colldb['inactive_front'] + self._colldb['inactive_back']
-    
+
     @property
     def gap(self):
         gaps = np.array([self._colldb.gap_L.values,self._colldb.gap_R.values])
         return pd.Series([ L if L == R else [L,R] for L, R in gaps.T ], index=self._colldb.index, dtype=object)
-    
+
     @gap.setter
     def gap(self, gaps):
         df = self._colldb
@@ -258,7 +259,7 @@ class CollDB:
                 df.loc[~mask_L, 'gap_L'] = None
                 df.loc[mask_R, 'gap_R'] = gaps[mask_R]
                 df.loc[~mask_R, 'gap_R'] = None
-        
+
         # The variable gaps is a dictionary
         if isinstance(gaps, dict):
             correct_format = True
@@ -294,7 +295,7 @@ class CollDB:
 
         if not correct_format:
             raise ValueError("Variable 'gaps' needs to be a pandas Series, dict, numpy array, or list!")
-        
+
         df.gap_L = df.gap_L.astype('object', copy=False)
         df.gap_R = df.gap_R.astype('object', copy=False)
         self._compute_jaws()
@@ -321,11 +322,11 @@ class CollDB:
             else:
                 jaws[i] = [ [jaw[0],jaw[1]], [jaw[2],jaw[3]] ]
         return pd.Series(jaws, index=self._colldb.index, dtype=object)
-    
+
     @property
     def onesided(self):
         return self._colldb.onesided
-    
+
     @onesided.setter
     def onesided(self, sides):
         self._set_property('onesided', sides, single_default_allowed=True)
@@ -343,7 +344,7 @@ class CollDB:
     @property
     def emittance(self):
         return [self._emitx, self._emity]
-    
+
     @emittance.setter
     def emittance(self, emit):
         if hasattr(emit, '__iter__'):
@@ -639,6 +640,8 @@ class CollDB:
         df.rename(columns={'length':'active_length'}, inplace=True)
         df['parking'] = 0.025
         df.loc[df.name.str[:3] == 'tct', 'parking'] = 0.04
+        # Need to choose second element if crystal !
+        df.material = [ SixTrack_to_xcoll[mat][0] for mat in df.material ]
 
         df = df.set_index('name')
         self._colldb = df.drop('jaw', axis=1)

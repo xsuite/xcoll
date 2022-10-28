@@ -1,298 +1,291 @@
-############################ PARAMETERS ###############################
-# anuc  : standard atomic weight (mass number averaged over isotopes)
-# zatom : number of protons (atomic number)
-# rho   : density / g cm-3
-# emr   : 
-# hcut  :
-# radl  : radiation length / m
-# bnref : nuclear interaction length / g cm-2 
-# csref : 
-# dlri  : Radiation length(m), updated from PDG for Si
-# dlyi  : Nuclear length(m)
-# ai    : Si110 1/2 interplan. dist. mm, Ge taken from A. Fomin, Si from
-#         initial implementation
-# eUm   : Only for Si(110) and Ge(110) potent. [eV], Ge taken from A. 
-#         Fomin, Si from initial implementation
-########################################################################
+import xobjects as xo
 
-materials = {
-# Berylium
-  'BE': {
-        'ID': 1,
-        'exenergy': 63.7e-9,
-        'anuc': 9.01,
-        'zatom': 4.00,
-        'rho': 1.848,
-        'emr': 0.22,
-        'hcut': 0.02,
-        'radl': 0.353,
-        'bnref': 74.7,
-        'csref': [0.271, 0.192, 0, 0, 0, 0.0035e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },
+class GeneralMaterial(xo.HybridClass):
 
-# Aluminium
-  'AL': {
-        'ID': 2,
-        'exenergy': 166.0e-9,
-        'anuc': 26.98,
-        'zatom': 13.00,
-        'rho': 2.70,
-        'emr': 0.302,
-        'hcut': 0.02,
-        'radl': 0.089,
-        'bnref': 120.3,
-        'csref': [0.643, 0.418, 0, 0, 0, 0.0340e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },
+    _xofields = {
+        'Z':                        xo.Float64,     # zatom
+        'A':                        xo.Float64,     # anuc
+        'density':                  xo.Float64,     # rho (g cm-3)
+        'excitation_energy':        xo.Float64,     # exenergy
+        'nuclear_radius':           xo.Float64,     # emr
+        'nuclear_elastic_slope':    xo.Float64,     # bnref (g cm-2)
+                # slope from https://journals.aps.org/prd/pdf/10.1103/PhysRevD.21.3010
+        'cross_section':            xo.Float64[:],  # csref [barn]
+                # Index 0:Total, 1:absorption, 2:nuclear elastic, 3:pp or pn elastic
+                #       4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
+        'hcut':                     xo.Float64,
+        'name':                     xo.String
+    }
 
-# Copper
-  'CU': {
-        'ID': 3,
-        'exenergy': 322.0e-9,
-        'anuc': 63.55,
-        'zatom': 29.00,
-        'rho': 8.96,
-        'emr': 0.366,
-        'hcut': 0.01,
-        'radl': 0.0143,
-        'bnref': 217.8,
-        'csref': [1.253, 0.769, 0, 0, 0, 0.1530e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },
+    def __init__(self, **kwargs):
+        kwargs.setdefault('hcut', 0.02)
+        kwargs.setdefault('name', "NO NAME")
+        super().__init__(**kwargs)
 
-# Tungsten
-  'W': {
-        'ID': 4,
-        'exenergy': 727.0e-9,
-        'anuc': 183.85,
-        'zatom': 74.00,
-        'rho': 19.30,
-        'emr': 0.5208318900309039, # 0.520,
-        'hcut': 0.01,
-        'radl': 0.0035,
-        'bnref': 420.4304986267596, # 440.3
-        'csref': [2.765, 1.591, 0, 0, 0, 0.7680e-2],
-        'dlri': 0.0035,
-        'dlyi': 0.096,
-        'ai': 0.56e-7,
-        'eUm': 21.0,
-        'collnt': 0,
-        'can_be_crystal': True
-        },
 
-# Lead
-  'PB': {
-        'ID': 5,
-        'exenergy': 823.0e-9,
-        'anuc': 207.19,
-        'zatom': 82.00,
-        'rho': 11.35,
-        'emr': 0.542,
-        'hcut': 0.01,
-        'radl': 0.0056,
-        'bnref': 455.3,
-        'csref': [3.016, 1.724, 0, 0, 0, 0.9070e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },
 
-# Carbon
-  'C': {
-        'ID': 6,
-        'exenergy': 78.0e-9,
-        'anuc': 12.01,
-        'zatom': 6.00,
-        'rho': 1.67,
-        'emr': 0.25,
-        'hcut': 0.02,
-        'radl': 0.2557,
-        'bnref': 70.0,
-        'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'dlri': 0.188,
-        'dlyi': 0.400,
-        'ai': 0.63e-7,
-        'eUm': 21.0,
-        'collnt': 0,
-        'can_be_crystal': True
-        },
+class Material(GeneralMaterial):
 
-# Carbon2
-  'C2': {
-        'ID': 7,
-        'exenergy': 78.0e-9,
-        'anuc': 12.01,
-        'zatom': 6.00,
-        'rho': 4.52,
-        'emr': 0.25,
-        'hcut': 0.02,
-        'radl': 0.094,
-        'bnref': 70.0,
-        'csref': [0.337, 0.232, 0, 0, 0, 0.0076e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },
+    _xofields = GeneralMaterial._xofields | {
+        'radiation_length':         xo.Float64      # radl
+    }
 
-# Silicon
-  'Si': {
-        'ID': 8,
-        'exenergy': 173.0e-9,
-        'anuc': 28.08,
-        'zatom': 14.00,
-        'rho': 2.33,
-        'emr': 0.441,
-        'hcut': 0.02,
-        'radl': 1,
-        'bnref': 120.14,
-        'csref': [0.664, 0.430, 0, 0, 0, 0.0390e-2],
-        'dlri': 0.0937,
-        'dlyi': 0.4652,
-        'ai': 0.96e-7,
-        'eUm': 21.34,
-        'collnt': 0.3016,
-        'can_be_crystal': True
-        },
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-# Germanium
-  'Ge': {
-        'ID': 9,
-        'exenergy': 350.0e-9,
-        'anuc': 72.63,
-        'zatom': 32.00,
-        'rho': 5.323,
-        'emr': 0.605,
-        'hcut': 0.02,
-        'radl': 1,
-        'bnref': 226.35,
-        'csref': [1.388, 0.844, 0, 0, 0, 0.1860e-2],
-        'dlri': 0.02302,
-        'dlyi': 0.2686,
-        'ai': 1.0e-7,
-        'eUm': 40.0,
-        'collnt': 0.1632,
-        'can_be_crystal': True
-        },    
 
-# 
-  'MoGR': {
-        'ID': 10,
-        'exenergy': 87.1e-9,
-        'anuc': 13.53,
-        'zatom': 6.65,
-        'rho': 2.500,
-        'emr': 0.25,
-        'hcut': 0.02,
-        'radl': 0.1193,
-        'bnref': 76.7,
-        'csref': [0.362, 0.247, 0, 0, 0, 0.0094e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },   
 
-# 
-  'CuCD': {
-        'ID': 11,
-        'exenergy': 152.9e-9,
-        'anuc': 25.24,
-        'zatom': 11.90,
-        'rho': 5.40,
-        'emr': 0.308,
-        'hcut': 0.02,
-        'radl': 0.0316,
-        'bnref': 115.0,
-        'csref': [0.572, 0.370, 0, 0, 0, 0.0279e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },  
+class CrystalMaterial(GeneralMaterial):
 
-# 
-  'Mo': {
-        'ID': 12,
-        'exenergy': 424.0e-9,
-        'anuc': 95.96,
-        'zatom': 42.00,
-        'rho': 10.22,
-        'emr': 0.481,
-        'hcut': 0.02,
-        'radl': 0.0096,
-        'bnref': 273.9,
-        'csref': [1.713, 1.023, 0, 0, 0, 0.2650e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },     
+    _xofields = GeneralMaterial._xofields | {
+        'crystal_radiation_length': xo.Float64,     # dlri
+        'crystal_nuclear_length':   xo.Float64,     # dlyi
+        'crystal_plane_distance':   xo.Float64,     # ai
+        'crystal_potential':        xo.Float64,     # eUm
+        'nuclear_collision_length': xo.Float64      # collnt [m]
+    }
 
-# 
-  'Glid': {
-        'ID': 13,
-        'exenergy': 320.8e-9,
-        'anuc': 63.15,
-        'zatom': 28.80,
-        'rho': 8.93,
-        'emr': 0.418,
-        'hcut': 0.02,
-        'radl': 0.0144,
-        'bnref': 208.7,
-        'csref': [1.246, 0.765, 0, 0, 0, 0.1390e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },   
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-# 
-  'Iner': {
-        'ID': 14,
-        'exenergy': 682.2e-9,
-        'anuc': 166.70,
-        'zatom': 67.70,
-        'rho': 18.00,
-        'emr': 0.578,
-        'hcut': 0.02,
-        'radl': 0.00385,
-        'bnref': 392.1,
-        'csref': [2.548, 1.473, 0, 0, 0, 0.5740e-2],
-        'dlri': 0,
-        'dlyi': 0,
-        'ai': 0,
-        'eUm': 0,
-        'collnt': 0,
-        'can_be_crystal': False
-        },          
+    @classmethod
+    def from_material(cls, material, **kwargs):
+        thisdict = material.to_dict()
+        thisdict.pop('radiation_length')    # not in crystals
+        thisdict.update(kwargs)
+        return cls(**thisdict)
+
+
+
+
+
+# BE
+Berylium = Material(
+        name = 'Berylium',
+        Z = 4.00,
+        A = 9.01,
+        density = 1.848,
+        excitation_energy = 63.7e-9,
+        radiation_length = 0.353,
+        nuclear_radius = 0.22,
+        nuclear_elastic_slope = 74.7,
+        cross_section = [0.271, 0.192, 0, 0, 0, 0.0035e-2]
+)
+
+# AL
+Aluminium = Material(
+        name = 'Aluminium',
+        Z = 13.00,
+        A = 26.98,
+        density = 2.70,
+        excitation_energy = 166.0e-9,
+        radiation_length = 0.089,
+        nuclear_radius = 0.302,
+        nuclear_elastic_slope = 120.3,
+        cross_section = [0.643, 0.418, 0, 0, 0, 0.0340e-2]
+)
+
+# CU
+Copper = Material(
+        name = 'Copper',
+        Z = 29.00,
+        A = 63.55,
+        density = 8.96,
+        excitation_energy = 322.0e-9,
+        hcut = 0.01,
+        nuclear_radius = 0.366,
+        radiation_length = 0.0143,
+        nuclear_elastic_slope = 217.8,
+        cross_section = [1.253, 0.769, 0, 0, 0, 0.1530e-2]
+)
+
+# W   (nuclear_radius = 0.520, nuclear_elastic_slope = 440.3)
+Tungsten = Material(
+        name = 'Tungsten',
+        Z = 74.00,
+        A = 183.85,
+        density = 19.30,
+        excitation_energy = 727.0e-9,
+        hcut = 0.01,
+        nuclear_radius = 0.5208318900309039, 
+        radiation_length = 0.0035,
+        nuclear_elastic_slope = 420.4304986267596,
+        cross_section = [2.765, 1.591, 0, 0, 0, 0.7680e-2]
+)
+TungstenCrystal = CrystalMaterial.from_material( Tungsten,
+        crystal_radiation_length = 0.0035,
+        crystal_nuclear_length = 0.096,
+        crystal_plane_distance = 0.56e-7,
+        crystal_potential = 21.0,
+        nuclear_collision_length = 0
+)
+
+# PB
+Lead = Material(
+        name = 'Lead',
+        Z = 82.00,
+        A = 207.19,
+        density = 11.35,
+        excitation_energy = 823.0e-9,
+        hcut = 0.01,
+        nuclear_radius = 0.542,
+        radiation_length = 0.0056,
+        nuclear_elastic_slope = 455.3,
+        cross_section = [3.016, 1.724, 0, 0, 0, 0.9070e-2]
+)
+
+# C
+Carbon = Material(
+        name = 'Carbon',
+        Z = 6.00,
+        A = 12.01,
+        density = 1.67,
+        excitation_energy = 78.0e-9,
+        radiation_length = 0.2557,
+        nuclear_radius = 0.25,
+        nuclear_elastic_slope = 70.0,
+        cross_section = [0.337, 0.232, 0, 0, 0, 0.0076e-2]
+)
+CarbonCrystal = CrystalMaterial.from_material( Carbon,
+        crystal_radiation_length = 0.188,
+        crystal_nuclear_length = 0.400,
+        crystal_plane_distance = 0.63e-7,
+        crystal_potential = 21.0,
+        nuclear_collision_length = 0
+)
+
+# C2
+Carbon2 = Material(
+        name = 'Carbon2',
+        Z = 6.00,
+        A = 12.01,
+        density = 4.52,
+        excitation_energy = 78.0e-9,
+        radiation_length = 0.094,
+        nuclear_radius = 0.25,
+        nuclear_elastic_slope = 70.0,
+        cross_section = [0.337, 0.232, 0, 0, 0, 0.0076e-2]
+)
+
+# Si
+Silicon = Material(
+        name = 'Silicon',
+        Z = 14.00,
+        A = 28.08,
+        density = 2.33,
+        excitation_energy = 173.0e-9,
+        radiation_length = 1,
+        nuclear_radius = 0.441,
+        nuclear_elastic_slope = 120.14,
+        cross_section = [0.664, 0.430, 0, 0, 0, 0.0390e-2]
+)
+SiliconCrystal = CrystalMaterial.from_material( Silicon,
+        crystal_radiation_length = 0.0937,
+        crystal_nuclear_length = 0.4652,
+        crystal_plane_distance = 0.96e-7,
+        crystal_potential = 21.34,
+        nuclear_collision_length = 0.3016
+)
+
+# Ge
+Germanium = Material(
+        name = 'Germanium',
+        Z = 32.00,
+        A = 72.63,
+        density = 5.323,
+        excitation_energy = 350.0e-9,
+        radiation_length = 1,
+        nuclear_radius = 0.605,
+        nuclear_elastic_slope = 226.35,
+        cross_section = [1.388, 0.844, 0, 0, 0, 0.1860e-2]
+)
+GermaniumCrystal = CrystalMaterial.from_material( Germanium,
+        crystal_radiation_length = 0.02302,
+        crystal_nuclear_length = 0.2686,
+        crystal_plane_distance = 1.0e-7,
+        crystal_potential = 40.0,
+        nuclear_collision_length = 0.1632
+)
+
+# MoGR
+MolybdenumGraphite = Material(
+        name = 'MolybdenumGraphite',
+        Z = 6.65,
+        A = 13.53,
+        density = 2.500,
+        excitation_energy = 87.1e-9,
+        radiation_length = 0.1193,
+        nuclear_radius = 0.25,
+        nuclear_elastic_slope = 76.7,
+        cross_section = [0.362, 0.247, 0, 0, 0, 0.0094e-2]
+)
+
+# CuCD
+CopperDiamond = Material(
+        name = 'CopperDiamond',
+        Z = 11.90,
+        A = 25.24,
+        density = 5.40,
+        excitation_energy = 152.9e-9,
+        radiation_length = 0.0316,
+        nuclear_radius = 0.308,
+        nuclear_elastic_slope = 115.0,
+        cross_section = [0.572, 0.370, 0, 0, 0, 0.0279e-2]
+)
+
+# Mo
+Molybdenum = Material(
+        name = 'Molybdenum',
+        Z = 42.00,
+        A = 95.96,
+        density = 10.22,
+        excitation_energy = 424.0e-9,
+        radiation_length = 0.0096,
+        nuclear_radius = 0.481,
+        nuclear_elastic_slope = 273.9,
+        cross_section = [1.713, 1.023, 0, 0, 0, 0.2650e-2]
+)
+
+# Glid
+Glidcop = Material(
+        name = 'Glidcop',
+        Z = 28.80,
+        A = 63.15,
+        density = 8.93,
+        excitation_energy = 320.8e-9,
+        radiation_length = 0.0144,
+        nuclear_radius = 0.418,
+        nuclear_elastic_slope = 208.7,
+        cross_section = [1.246, 0.765, 0, 0, 0, 0.1390e-2]
+)
+
+# Iner
+Inermet = Material(
+        name = 'Inermet',
+        Z = 67.70,
+        A = 166.70,
+        density = 18.00,
+        excitation_energy = 682.2e-9,
+        radiation_length = 0.00385,
+        nuclear_radius = 0.578,
+        nuclear_elastic_slope = 392.1,
+        cross_section = [2.548, 1.473, 0, 0, 0, 0.5740e-2]
+)
+
+
+SixTrack_to_xcoll = {
+    "BE":   [Berylium],
+    "AL":   [Aluminium],
+    "CU":   [Copper],
+    "W":    [Tungsten, TungstenCrystal],
+    "PB":   [Lead],
+    "C":    [Carbon, CarbonCrystal],
+    "C2":   [Carbon2],
+    "Si":   [Silicon, SiliconCrystal],
+    "Ge":   [Germanium, GermaniumCrystal],
+    "MoGR": [MolybdenumGraphite],
+    "CuCD": [CopperDiamond],
+    "Mo":   [Molybdenum],
+    "Glid": [Glidcop],
+    "Iner": [Inermet]
 }

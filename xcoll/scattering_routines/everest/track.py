@@ -28,8 +28,9 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     
 def track(collimator, particles, npart):
     from .scatter_init import calculate_scattering
-    from .materials import materials
     from .scatter import scatter
+    from ...beam_elements.everest_collimator import Crystal
+    from .materials import CrystalMaterial
 
     length = collimator.active_length
 
@@ -73,32 +74,39 @@ def track(collimator, particles, npart):
     offset = collimator.offset + ( collimator.jaw_F_L + collimator.jaw_F_R )/2
 
     # Get material properties
-    exenergy = materials[collimator.material]['exenergy']
-    anuc     = materials[collimator.material]['anuc']
-    zatom    = materials[collimator.material]['zatom']
-    emr      = materials[collimator.material]['emr']
-    rho      = materials[collimator.material]['rho']
-    hcut     = materials[collimator.material]['hcut']
-    bnref    = materials[collimator.material]['bnref']
-    csref0   = materials[collimator.material]['csref'][0]
-    csref1   = materials[collimator.material]['csref'][1]
-    csref4   = materials[collimator.material]['csref'][4]
-    csref5   = materials[collimator.material]['csref'][5]
-    radl     = materials[collimator.material]['radl']
-    dlri     = materials[collimator.material]['dlri']
-    dlyi     = materials[collimator.material]['dlyi']
-    eUm      = materials[collimator.material]['eUm']
-    ai       = materials[collimator.material]['ai']
-    collnt   = materials[collimator.material]['collnt']
+    zatom    = collimator.material.Z
+    anuc     = collimator.material.A
+    rho      = collimator.material.density
+    exenergy = collimator.material.excitation_energy
+    emr      = collimator.material.nuclear_radius
+    bnref    = collimator.material.nuclear_elastic_slope
+    csref0   = collimator.material.cross_section[0]
+    csref1   = collimator.material.cross_section[1]
+    csref5   = collimator.material.cross_section[5]
+    hcut     = collimator.material.hcut
 
     # Get crystal parameters
-    from ...beam_elements import Crystal
-    if isinstance(collimator,Crystal):
-        if not materials[collimator.material]['can_be_crystal']:
-            raise ValueError(f"The collimator material {collimator.material} cannot be used as a crystal!")
-        
+    if isinstance(collimator, Crystal):
+        if not isinstance(collimator.material, CrystalMaterial):
+            raise ValueError(f"The collimator material {collimator.material.name} cannot be used as a crystal!")
+        dlri     = collimator.material.crystal_radiation_length
+        dlyi     = collimator.material.crystal_nuclear_length
+        ai       = collimator.material.crystal_plane_distance
+        eUm      = collimator.material.crystal_potential
+        collnt   = collimator.material.nuclear_collision_length
         is_crystal = True
+        radl     = 0
+    else:
+        radl     = collimator.material.radiation_length
+        dlri     = 0
+        dlyi     = 0
+        ai       = 0
+        eUm      = 0
+        collnt   = 0
+        is_crystal = False
 
+    # Get crystal parameters
+    if is_crystal:
         bend = collimator.bend    # bend is bending radius
         cry_tilt = collimator.align_angle + collimator.crytilt
         bend_ang  = length/bend    # temporary value
@@ -122,7 +130,6 @@ def track(collimator, particles, npart):
         cry_snTilt = np.sin(-cry_tilt)
 
     else:
-        is_crystal = False
         cry_tilt = 0
         cry_rcurv  = 0
         cry_bend = 0
@@ -163,7 +170,6 @@ def track(collimator, particles, npart):
             run_bnref=bnref,
             run_csref0=csref0,
             run_csref1=csref1,
-            run_csref4=csref4,
             run_csref5=csref5,
             run_radl=radl,
             run_dlri=dlri,

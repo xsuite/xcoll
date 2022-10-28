@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ $(gcc -dumpversion) -lt 9 ]
+then
+  echo "ERROR: Need GCC 9 or higher!"
+  exit 1
+fi
+
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 
 cd xcoll/scattering_routines/everest/FORTRAN_src

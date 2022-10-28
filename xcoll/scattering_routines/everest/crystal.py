@@ -39,7 +39,7 @@ proc_TRAM        = 101     # Amorphous in VR-AM transition region
 temp = 0
 
 def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val_part_impact,val_part_indiv,c_length,exenergy,rho,anuc,zatom,emr,
-            dlri,dlyi,ai,eum,collnt,hcut,bnref,csref0,csref1,csref4,csref5,csect,nhit,nabs,
+            dlri,dlyi,ai,eum,collnt,hcut,bnref,csref0,csref1,csref5,csect,nhit,nabs,
             cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
             cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt, iProc, n_chan, n_VR, n_amorphous):
 
@@ -62,7 +62,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
     csref0 = np.array(csref0)
     csref1 = np.array(csref1)
-    csref4 = np.array(csref4)
     csref5 = np.array(csref5)
 
     csect = np.array(csect)
@@ -158,7 +157,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
         iProc=np.array(iProc)
 
         x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
-                        ai,eum,collnt,hcut,csref0,csref1,csref4,csref5,bnref,csect,cry_tilt,
+                        ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,csect,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
 
@@ -224,7 +223,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
                 iProc=np.array(iProc)
 
                 x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
-                                zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref4,csref5,bnref,
+                                zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
                                 csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
 
@@ -325,7 +324,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
 
 
-def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,hcut,csref0,csref1,csref4,
+def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,hcut,csref0,csref1,
             csref5,bnref,csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
             cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
 
@@ -578,7 +577,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 pc=np.array(pc)
                 iProc=np.array(iProc) 
                 x,xp,yp,pc,iProc = movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
-                                csref0,csref1,csref4,csref5,eUm,collnt,iProc)
+                                csref0,csref1,csref5,eUm,collnt,iProc)
 
                 if (iProc != proc_CH):
                     #if an nuclear interaction happened, move until the middle with initial xp,yp:
@@ -718,7 +717,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     pc=np.array(pc)
                     iProc=np.array(iProc) 
                     x,xp,yp,pc,iProc = movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
-                                    csref0,csref1,csref4,csref5,eUm,collnt,iProc)
+                                    csref0,csref1,csref5,eUm,collnt,iProc)
                                     
                     if (iProc != proc_VC):
                         #if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
@@ -997,7 +996,7 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
     return xp,yp,pc,iProc
 
 
-def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csref1,csref4,csref5,eUm,collnt,iProc):
+def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csref1,csref5,eUm,collnt,iProc):
 
     import scipy.special as sp
 
