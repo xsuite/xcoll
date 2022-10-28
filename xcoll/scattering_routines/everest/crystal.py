@@ -46,52 +46,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
     from .random import get_random
 
-    val_part_hit = np.array(val_part_hit)
-    val_part_abs = np.array(val_part_abs)
-    val_part_impact = np.array(val_part_impact)
-    val_part_indiv = np.array(val_part_indiv)
-
-    exenergy = np.array(exenergy)
-    anuc = np.array(anuc)
-    zatom = np.array(zatom)
-    emr = np.array(emr)
-    rho = np.array(rho)
-    hcut = np.array(hcut)
-    bnref = np.array(bnref)
-    s_imp = np.array(s_imp)
-
-    csref0 = np.array(csref0)
-    csref1 = np.array(csref1)
-    csref5 = np.array(csref5)
-
-    csect = np.array(csect)
-    dlri = np.array(dlri)
-    dlyi = np.array(dlyi)
-    eum = np.array(eum)
-    ai = np.array(ai)
-    collnt = np.array(collnt)
-    c_length = np.array(c_length)
-
-    nhit = np.array(nhit)
-    nabs = np.array(nabs)
-    isimp = np.array(isimp)
-    s = np.array(s)
-    zlm = np.array(zlm)
-    x0 = np.array(x0)
-    xp0 = np.array(xp0)
-
-    x = np.array(x)
-    xp = np.array(xp)
-    z = np.array(z)
-    zp = np.array(zp)
-    p = np.array(p)
-    csect = np.array(csect)
-
-    iProc=np.array(iProc)
-    n_chan=np.array(n_chan)
-    n_VR=np.array(n_VR)
-    n_amorphous=np.array(n_amorphous)
-
     s_temp     = 0
     s_shift    = 0
     s_rot      = 0
@@ -148,13 +102,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
         # MISCUT first step: P coordinates (center of curvature of crystalline planes)
         s_P = (cry_rcurv-cry_xmax)*np.sin(-cry_miscut)
         x_P = cry_xmax + (cry_rcurv-cry_xmax)*np.cos(-cry_miscut)
-
-        x=np.array(x)
-        xp=np.array(xp)
-        z=np.array(z)
-        zp=np.array(zp)
-        p=np.array(p)
-        iProc=np.array(iProc)
 
         x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
                         ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,csect,cry_tilt,
@@ -214,13 +161,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
                 # Rotation
                 s_P = s_P_tmp*np.cos(tilt_int) + x_P_tmp*np.sin(tilt_int)
                 x_P = -s_P_tmp*np.sin(tilt_int) + x_P_tmp*np.cos(tilt_int)
-
-                x=np.array(x)
-                xp=np.array(xp)
-                z=np.array(z)
-                zp=np.array(zp)
-                p=np.array(p)
-                iProc=np.array(iProc)
 
                 x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
@@ -458,14 +398,9 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
         y     = y0 + yp*s
         iProc = proc_AM
 
-        dest=np.array(dest)
         dest = calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc)
-        
-        xp=np.array(xp)
-        yp=np.array(yp)
-        pc=np.array(pc)
-        iProc=np.array(iProc) 
+
         xp, yp, pc, iProc = moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
 
@@ -476,14 +411,9 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
     elif (x > cry_xmax-cry_alayer and x < cry_xmax):
         iProc = proc_AM
         
-        dest=np.array(dest)  
-        dest = dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc)
-    
-        xp=np.array(xp)
-        yp=np.array(yp)
-        pc=np.array(pc)
-        iProc=np.array(iProc)  
+
         xp, yp, pc, iProc = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                     csref1,csref5,collnt,iProc)
 
@@ -546,20 +476,15 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit
                 y     = y  + yp * Sdech
 
-                dest=np.array(dest)
                 dest = calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
                 pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
                 x  = x  + (0.5*(s_length-Sdech))*xp
                 y  = y  + (0.5*(s_length-Sdech))*yp
 
-                dest=np.array(dest)
                 dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
-                xp=np.array(xp)
-                yp=np.array(yp)
-                pc=np.array(pc)
-                iProc=np.array(iProc) 
+
                 xp, yp, pc, iProc = moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,collnt,iProc)
                 x = x + (0.5*(s_length-Sdech))*xp
@@ -571,11 +496,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 ypin  = yp
 
                 #check if a nuclear interaction happen while in CH
-                x=np.array(x)
-                xp=np.array(xp)
-                yp=np.array(yp)
-                pc=np.array(pc)
-                iProc=np.array(iProc) 
                 x,xp,yp,pc,iProc = movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
                                 csref0,csref1,csref5,eUm,collnt,iProc)
 
@@ -588,7 +508,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + (0.5*L_chan)*xp
                     y = y + (0.5*L_chan)*yp
 
-                    dest=np.array(dest)
                     dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - dest*length #energy loss to ionization [GeV]
@@ -600,7 +519,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
                     y   = y + s_length * yp
 
-                    dest=np.array(dest)
                     dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]      
@@ -613,13 +531,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             x  = x  + (0.5*s_length)*xp
             y  = y  + (0.5*s_length)*yp
 
-            dest=np.array(dest)
             dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                                 exenergy,zatom,rho,anuc)
-            xp=np.array(xp)
-            yp=np.array(yp)
-            pc=np.array(pc)
-            iProc=np.array(iProc) 
             xp, yp, pc, iProc = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                             csref1,csref5,collnt,iProc)
 
@@ -643,13 +556,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 x  = x  + (0.5*xp)*(s_length - Srefl)
                 y     = y  + (0.5*yp)*(s_length - Srefl)
 
-                dest=np.array(dest)
                 dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
-                xp=np.array(xp)
-                yp=np.array(yp)
-                pc=np.array(pc)
-                iProc=np.array(iProc) 
                 xp, yp, pc, iProc = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,collnt,iProc)
                 x = x + (0.5*xp)*(s_length - Srefl)
@@ -674,24 +582,17 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x  = x + (0.5*xp)*Red_S
                     y     = y + (0.5*yp)*Red_S
 
-                    dest=np.array(dest)
                     dest = calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
 
                     pc = pc - dest*Srefl #"added" energy loss before capture
 
-                    dest=np.array(dest)
                     dest = calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
 
-                    dest=np.array(dest)
                     dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
-                    xp=np.array(xp)
-                    yp=np.array(yp)
-                    pc=np.array(pc)
-                    iProc=np.array(iProc) 
                     xp, yp, pc, iProc = moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                                     csref1,csref5,collnt,iProc)
                     x = x + (0.5*xp)*Red_S
@@ -703,7 +604,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     tchan   = Rlength/cry_rcurv
                     Red_S   = Rlength*np.cos(xp + 0.5*tchan)
 
-                    dest=np.array(dest)
                     dest = calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc   = pc - dest*Lrefl #"added" energy loss before capture
@@ -711,11 +611,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     ypin = yp
 
                     #Check if a nuclear interaction happen while in ch
-                    x=np.array(x)
-                    xp=np.array(xp)
-                    yp=np.array(yp)
-                    pc=np.array(pc)
-                    iProc=np.array(iProc) 
                     x,xp,yp,pc,iProc = movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
                                     csref0,csref1,csref5,eUm,collnt,iProc)
                                     
@@ -727,7 +622,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         x = x + (0.5*Rlength)*xp
                         y = y + (0.5*Rlength)*yp
 
-                        dest=np.array(dest)
                         dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc)
                         pc = pc - dest*Rlength
@@ -738,7 +632,6 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         y   = y + Red_S*yp
                         xp  = tdefl + (0.5*get_random_gauss(0))*xpcrit #[mrad]
 
-                        dest=np.array(dest)
                         dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc)
                         pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
@@ -751,13 +644,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 x  = x + (0.5*s_length)*xp
                 y     = y + (0.5*s_length)*yp
                 if(zn > 0):
-                    dest=np.array(dest)
                     dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
-                    xp=np.array(xp)
-                    yp=np.array(yp)
-                    pc=np.array(pc)
-                    iProc=np.array(iProc) 
                     xp, yp, pc, iProc = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                                     csref1,csref5,collnt,iProc)
             
@@ -777,13 +665,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + (0.5*xp)*(s_length-Srefl)
                     y   = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest=np.array(dest)
                     dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
-                    xp=np.array(xp)
-                    yp=np.array(yp)
-                    pc=np.array(pc)
-                    iProc=np.array(iProc) 
                     xp, yp, pc, iProc = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,collnt,iProc)
                     x = x + (0.5*xp)*(s_length - Srefl)
@@ -798,13 +681,8 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x  = x + (0.5*xp)*(s_length-Srefl)
                     y  = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest=np.array(dest)
                     dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
-                    xp=np.array(xp)
-                    yp=np.array(yp)
-                    pc=np.array(pc)
-                    iProc=np.array(iProc) 
                     xp, yp, pc, iProc = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,collnt,iProc)
                     x = x + (0.5*xp)*(s_length - Srefl)

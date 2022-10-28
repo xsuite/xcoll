@@ -27,42 +27,18 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         if(run_zlm1 > rlen):
             
             run_zlm1 = rlen
-            
-            s = np.array(s, dtype=np.float64)
-            p0 = np.array(p0, dtype=np.float64)
-            x = np.array(x, dtype=np.float64)
-            xp = np.array(xp, dtype=np.float64)
-            z = np.array(z, dtype=np.float64)
-            zp = np.array(zp, dtype=np.float64)
-            dpop = np.array(dpop, dtype=np.float64)
-            ##################################################################
             s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-            ##################################################################
 
             s = (zlm-rlen)+s
-
-            m_dpodx = np.array(m_dpodx, dtype=np.float64)
-            run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            ###########################################################################################
             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  # DM routine to include tail
-            ###########################################################################################
             p = p-m_dpodx*s
                     
             dpop = (p-p0)/p0
             break
         # Otherwise do multi-coulomb scattering.
         # REGULAR STEP IN ITERATION LOOP
-
-        s = np.array(s, dtype=np.float64)
-        p0 = np.array(p0, dtype=np.float64)
-        x = np.array(x, dtype=np.float64)
-        xp = np.array(xp, dtype=np.float64)
-        z = np.array(z, dtype=np.float64)
-        zp = np.array(zp, dtype=np.float64)
-        dpop = np.array(dpop, dtype=np.float64)
-        ##################################################################
         s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
-        ##################################################################
+
         # Check if particle is outside of collimator (X.LT.0) after
         # MCS. If yes, calculate output longitudinal position (s),
         # reduce momentum (output as dpop) and return.
@@ -71,12 +47,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         if(x <= 0):
 
             s = (zlm-rlen)+s
-
-            m_dpodx = np.array(m_dpodx, dtype=np.float64)
-            run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            ###########################################################################################
             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-            ###########################################################################################
 
             p = p-m_dpodx*s
             dpop = (p-p0)/p0
@@ -87,21 +58,13 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         # and return.
         # PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        ###################################
         inter = ichoix(run_cprob)
-        ###################################
-
         nabs = inter
 
         if(inter == 1):
 
             s = (zlm-rlen)+run_zlm1
-
-            m_dpodx = np.array(m_dpodx, dtype=np.float64)
-            run_exenergy = np.array(run_exenergy, dtype=np.float64)
-            ###########################################################################################
             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)
-            ###########################################################################################
 
             p = p-m_dpodx*s
             dpop = (p-p0)/p0
@@ -118,20 +81,13 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
 
         # Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        p = np.array(p, dtype=np.float64)
-        ################################################################
         t, p = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp,cgen)
-        ################################################################
 
         # Tetat calculates from the rms transverse momentum transfer in
         # monte-carlo fashion the angle changes for x and z planes. The
         # angle change is proportional to SQRT(t) and 1/p, as expected.
 
-        tx = np.array(tx, dtype=np.float64)
-        tz = np.array(tz, dtype=np.float64)
-        ##########################
         tx, tz = tetat(t,p,tx,tz)
-        ##########################
 
         # Apply angle changes
         xp = xp+tx
@@ -282,13 +238,6 @@ def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
         ae = bn0*mc_x
         be = bn0*mc_xp
 
-        # #######################################
-        # ae = np.array(ae, dtype=np.float64)
-        # be = np.array(be, dtype=np.float64)
-        # dh = np.array(dh, dtype=np.float64)
-        # rlen = np.array(rlen, dtype=np.float64)
-        # s = np.array(s, dtype=np.float64)
-        # #######################################
         s = soln3(ae,be,dh,rlen,s)
 
         if (s < h):

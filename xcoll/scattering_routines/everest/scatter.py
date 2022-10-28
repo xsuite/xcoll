@@ -56,13 +56,13 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
     for i in range(npart):
 
-        val_part_hit = np.array(part_hit[i])
-        val_part_abs = np.array(part_abs[i])
-        val_part_impact = np.array(part_impact[i])
-        val_part_indiv = np.array(part_indiv[i])
-        val_part_linteract = np.array(part_linteract[i])
-        val_nabs_type = np.array(nabs_type[i])
-        val_linside = np.array(linside[i])
+        val_part_hit = part_hit[i]
+        val_part_abs = part_abs[i]
+        val_part_impact = part_impact[i]
+        val_part_indiv = part_indiv[i]
+        val_part_linteract = part_linteract[i]
+        val_nabs_type = nabs_type[i]
+        val_linside = linside[i]
 
         if (val_part_abs != 0):
             continue
