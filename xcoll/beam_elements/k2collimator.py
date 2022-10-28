@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..scattering_routines.k2 import track, K2Engine, Material, CrystalMaterial
-from .collimators import BaseCollimator
+from .base_collimator import BaseCollimator
 
 import xobjects as xo
 

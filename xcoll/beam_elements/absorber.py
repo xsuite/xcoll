@@ -1,4 +1,5 @@
 from .base_collimator import BaseCollimator
+from ..general import _pkg_root
 
 class BlackAbsorber(BaseCollimator):
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
