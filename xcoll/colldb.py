@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import io
-from .beam_elements.k2.materials import SixTrack_to_xcoll
+from .scattering_routines.k2.materials import SixTrack_to_xcoll
 
 def load_SixTrack_colldb(filename, *, emit):
     return CollDB(emit=emit, sixtrack_file=filename)

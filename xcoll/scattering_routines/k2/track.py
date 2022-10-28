@@ -27,7 +27,7 @@ def drift_zeta(zeta, rvv, xp, yp, length):
 
 def track(k2collimator, particles, npart, reset_seed):
     try:
-        import xcoll.beam_elements.pyk2 as pyk2
+        from .pyk2f import pyk2_startcry, pyk2_run
     except ImportError:
         raise Exception("Error: Failed importing pyK2 (did you compile?). Cannot track.")
 
@@ -85,7 +85,7 @@ def track(k2collimator, particles, npart, reset_seed):
     hcut     = k2collimator.material.hcut
 
     # Get crystal parameters
-    from ..k2collimator import K2Crystal
+    from ...beam_elements.k2collimator import K2Crystal
     from .materials import CrystalMaterial
     if isinstance(k2collimator, K2Crystal):
         if not isinstance(k2collimator.material, CrystalMaterial):
@@ -111,7 +111,7 @@ def track(k2collimator, particles, npart, reset_seed):
         crytilt = k2collimator.align_angle + k2collimator.crytilt
 
         new_length = np.array(length)
-        pyk2.pyk2_startcry(
+        pyk2_startcry(
             c_length=length,
             new_length=new_length,
             c_rotation=k2collimator.angle/180.*np.pi,
@@ -125,7 +125,7 @@ def track(k2collimator, particles, npart, reset_seed):
         )
         length = new_length
 
-    pyk2.pyk2_run(x_particles=x_part,
+    pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
               y_particles=y_part,
               yp_particles=yp_part,

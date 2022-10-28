@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, K2Collimator, K2Engine
+from .beam_elements import BlackAbsorber, K2Collimator, K2Crystal, _all_collimator_types
+from .scattering_routines.k2 import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 
 import xtrack as xt
 import xobjects as xo
 
-_all_collimator_types = { BlackAbsorber, K2Collimator }
 
 
 class CollimatorManager:
