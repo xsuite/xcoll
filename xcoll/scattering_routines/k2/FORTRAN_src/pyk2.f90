@@ -39,7 +39,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
                 run_csref5, run_radl, run_dlri, run_dlyi, run_eum, run_ai, &
                 run_collnt, &
                 is_crystal, c_length, c_rotation, c_aperture, c_offset, &
-                c_tilt, c_enom, onesided, random_generator_seed)
+                c_tilt, c_enom, onesided)
 
   use floatPrecision
   use numerical_constants
@@ -100,7 +100,6 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8),    intent(inout) :: c_tilt(2)
   real(kind=8),    intent(in)    :: c_enom
   logical(kind=4), intent(in)    :: onesided
-  integer,         intent(in)    :: random_generator_seed
   integer j
 
 
@@ -112,10 +111,6 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   !numpart="20000"
   !read(numpart,*) napx
   npart=num_particles
-
-  if(random_generator_seed .ge. 0) then
-        call rluxgo(3, random_generator_seed, 0, 0)
-  end if
 
   do j=1,npart
     naa(j) = aa0

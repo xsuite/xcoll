@@ -1,5 +1,6 @@
 import numpy as np
 
+
 # =================================================================== #
 # ===============================  K2  ============================== #
 # =================================================================== #
@@ -16,7 +17,7 @@ import numpy as np
 def drift_4d(x, y, xp, yp, length):
     x += xp * length
     y += yp * length
-    return x, y
+    return
 
 def drift_zeta(zeta, rvv, xp, yp, length):
     rv0v = 1./rvv
@@ -24,8 +25,44 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     zeta += length * dzeta
     return zeta
 
+def drift_6d(particles, length):
+    npart = particles._num_active_particles
+    rpp = particles.rpp[:npart]
+    xp = particles.px[:npart] * rpp
+    yp = particles.py[:npart] * rpp
+    dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
+    particles.x[:npart] += xp * length
+    particles.y[:npart] += yp * length
+    particles.s[:npart] += length
+    particles.zeta[:npart] += dzeta*length
+    return
 
-def track(k2collimator, particles, npart, reset_seed):
+def track(k2collimator, particles):  # TODO: write impacts
+        from ...beam_elements import K2Collimator, K2Crystal
+        if not isinstance(k2collimator, K2Collimator) and not isinstance(k2collimator, K2Crystal):
+            raise ValueError("Collimator is neither a K2Collimator nor a K2Crystal!\nCannot use K2 to track.")
+        npart = particles._num_active_particles
+        if npart > k2collimator.k2engine.n_alloc:
+            raise ValueError(f"Tracking {npart} particles but only {k2collimator.k2engine.n_alloc} allocated!")
+        if npart == 0:
+            return
+        
+        # TODO: when in C, drifting should call routine from drift element
+        #       such that can be exact etc
+        if not k2collimator.is_active:
+            # Drift full length
+            drift_6d(particles, k2collimator.length)
+        else:
+            drift_6d(particles, k2collimator.inactive_front)
+            track_core(k2collimator, particles)
+            drift_6d(particles, k2collimator.inactive_back)
+            particles.reorganize()
+        return
+
+
+
+def track_core(k2collimator, particles):
+    npart = particles._num_active_particles
     try:
         from .pyk2f import pyk2_startcry, pyk2_run
     except ImportError:
@@ -85,7 +122,7 @@ def track(k2collimator, particles, npart, reset_seed):
     hcut     = k2collimator.material.hcut
 
     # Get crystal parameters
-    from ...beam_elements.k2collimator import K2Crystal
+    from ...beam_elements import K2Crystal
     from .materials import CrystalMaterial
     if isinstance(k2collimator, K2Crystal):
         if not isinstance(k2collimator.material, CrystalMaterial):
@@ -162,8 +199,7 @@ def track(k2collimator, particles, npart, reset_seed):
               c_offset=offset,
               c_tilt=k2collimator.tilt,
               c_enom=particles.energy0[0]/1e6, # Reference energy
-              onesided=k2collimator.onesided,
-              random_generator_seed=reset_seed,
+              onesided=k2collimator.onesided
               )
 
     # Masks of hit and survived particles

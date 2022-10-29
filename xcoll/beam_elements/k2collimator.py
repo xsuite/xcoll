@@ -43,70 +43,11 @@ class K2Collimator(BaseCollimator):
             tilt = [tilt, tilt]
         kwargs['tilt'] = tilt
         super().__init__(**kwargs)
-#         self.k2engine.collimators += self
-        self._reset_random_seed = False
-
-
-    def reset_random_seed(self):
-        self._reset_random_seed = True
 
 
     def track(self, particles):  # TODO: write impacts
-        npart = particles._num_active_particles
-        if npart > self.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
-        if npart == 0:
-            return
-        if self._reset_random_seed == True:
-            reset_seed = self.k2engine.random_generator_seed
-            self._reset_random_seed = False
-        else:
-            reset_seed = -1
-        if self.material is None:
-            raise ValueError("Cannot track if material is not set!")
-        
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
-        if not self.is_active:
-            # Drift full length
-            L = self.length
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-        else:
-            # Drift inactive front
-            L = self.inactive_front
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-  
-            track(self, particles, npart, reset_seed)
-
-            # Drift inactive back
-            L = self.inactive_back
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            particles.reorganize()
+        track(self, particles)
+        return
 
 
 
@@ -161,64 +102,9 @@ class K2Crystal(BaseCollimator):
         kwargs.setdefault('miscut', 0)
         kwargs.setdefault('orient', 0)
         super().__init__(**kwargs)
-#         self.k2engine.collimators += self
-        self._reset_random_seed = False
 
 
     def track(self, particles):  # TODO: write impacts
-        npart = particles._num_active_particles
-        if npart > self.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {self.k2engine.n_alloc} allocated!")
-        if npart == 0:
-            return
-        if self._reset_random_seed == True:
-            reset_seed = self.k2engine.random_generator_seed
-            self._reset_random_seed = False
-        else:
-            reset_seed = -1
-        if self.material is None:
-            raise ValueError("Cannot track if material is not set!")
-        
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
-        if not self.is_active:
-            # Drift full length
-            L = self.length
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-        else:
-            # Drift inactive front
-            L = self.inactive_front
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            track(self, particles, npart, reset_seed)
-
-            # Drift inactive back
-            L = self.inactive_back
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            particles.reorganize()
+        track(self, particles)
+        return
 
