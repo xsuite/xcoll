@@ -82,17 +82,11 @@ def track_core(k2collimator, particles):
     xp_in   = xp_part.copy()
     yp_in   = yp_part.copy()
 
-    # Drift to centre of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, length/2)
-
     # Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
     x_part  -= k2collimator.dx
     y_part  -= k2collimator.dy
     xp_part -= k2collimator.dpx
     yp_part -= k2collimator.dpy
-
-    # Backtrack to start of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
 
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
