@@ -1,0 +1,42 @@
+{
+  "__class__": "PyCollimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0011370405375055537,
+  "jaw_F_R": -0.0011370405375055537,
+  "jaw_B_L": 0.0011370405375055537,
+  "jaw_B_R": -0.0011370405375055537,
+  "onesided": 0,
+  "dx": 3.063646779455278e-08,
+  "dy": 5.804810052769507e-07,
+  "dpx": -1.6520490088959317e-08,
+  "dpy": 3.870823701826024e-09,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Lead",
+    "Z": 82,
+    "A": 207.19,
+    "density": 11.35,
+    "excitation_energy": 8.23e-07,
+    "nuclear_radius": 0.542,
+    "nuclear_elastic_slope": 455.3,
+    "cross_section": [
+      3.016,
+      1.724,
+      0,
+      0,
+      0,
+      0.00907
+    ],
+    "hcut": 0.01,
+    "radiation_length": 0.0056
+  }
+}

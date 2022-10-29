@@ -81,7 +81,7 @@ crystals_b2 = [
 ]
 
 
-path = Path('./data_test_everest/')
+path = Path('./data_test_pyeverest/')
 
 def test_primaries():
     _track_collimator('tcp.c6l7.b1')
@@ -129,11 +129,11 @@ def _track_collimator(name, atolx=1e-13, atoly=1e-13, atolpx=1e-13, atolpy=1e-13
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    xc.scattering_routines.everest.set_random_seed(6574654)
-    if colldict['__class__'] == 'Collimator':
-        coll = xc.Collimator.from_dict(colldict)
-    elif colldict['__class__'] == 'Crystal':
-        coll = xc.Crystal.from_dict(colldict)
+    xc.scattering_routines.pyeverest.set_random_seed(6574654)
+    if colldict['__class__'] == 'PyCollimator':
+        coll = xc.beam_elements.PyCollimator.from_dict(colldict)
+    elif colldict['__class__'] == 'PyCrystal':
+        coll = xc.beam_elements.PyCrystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

@@ -1,0 +1,42 @@
+{
+  "__class__": "PyCollimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0011367686811852612,
+  "jaw_F_R": -0.0011367686811852612,
+  "jaw_B_L": 0.0011367686811852612,
+  "jaw_B_R": -0.0011367686811852612,
+  "onesided": 0,
+  "dx": 3.0361807392391115e-07,
+  "dy": -7.192002091419153e-07,
+  "dpx": -3.5126895770912272e-09,
+  "dpy": -3.3286830339514304e-09,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Inermet",
+    "Z": 67.7,
+    "A": 166.7,
+    "density": 18,
+    "excitation_energy": 6.822e-07,
+    "nuclear_radius": 0.578,
+    "nuclear_elastic_slope": 392.1,
+    "cross_section": [
+      2.548,
+      1.473,
+      0,
+      0,
+      0,
+      0.00574
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.00385
+  }
+}
