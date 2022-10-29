@@ -26,8 +26,8 @@
     "A": 183.85,
     "density": 19.3,
     "excitation_energy": 7.27e-07,
-    "nuclear_radius": 0.5208318900309039,
-    "nuclear_elastic_slope": 420.4304986267596,
+    "nuclear_radius": 0.520,
+    "nuclear_elastic_slope": 440.3,
     "cross_section": [
       2.765,
       1.591,

@@ -2,7 +2,7 @@ import numpy as np
 
 import xobjects as xo
 
-from .collimators import BaseCollimator
+from .base_collimator import BaseCollimator
 from ..scattering_routines.everest import track, Material, CrystalMaterial
 
 

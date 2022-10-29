@@ -61,13 +61,7 @@ def initialise_random_ruth(zatom, emr, hcut, is_crystal=False):
         set_random_seed()
     cgen = np.zeros(200, dtype=np.float64)
 
-    # Rutherford normalisation should be 2.607e-5
-    # This was fixed in SixTrack K2, but not in crystals
-    # We keep the wrong value for crystals to match the references
-    if is_crystal:
-        cnorm  = 2.607e-4
-    else:
-        cnorm  = 2.607e-5
+    cnorm  = 2.607e-5
     make_ruth_dist(cgen=cgen, zatom=zatom, emr=emr, hcut=hcut, cnorm=cnorm)
     return cgen
 
