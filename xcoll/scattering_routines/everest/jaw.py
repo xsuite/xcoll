@@ -1,4 +1,7 @@
 import numpy as np
+from ctypes import *
+so_file = "/Users/macbookpro/Documents/CERN/xsuite/xcoll/xcoll/scattering_routines/everest/my_functions.so"
+my_functions = CDLL(so_file)
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop, cgen):
     
@@ -36,7 +39,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
             zp = np.array(zp, dtype=np.float64)
             dpop = np.array(dpop, dtype=np.float64)
             ##################################################################
-            s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+            s, x, xp, z, zp, dpop = my_functions.mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
             ##################################################################
 
             s = (zlm-rlen)+s
@@ -61,7 +64,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         zp = np.array(zp, dtype=np.float64)
         dpop = np.array(dpop, dtype=np.float64)
         ##################################################################
-        s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+        s, x, xp, z, zp, dpop = my_functions.mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
         ##################################################################
         # Check if particle is outside of collimator (X.LT.0) after
         # MCS. If yes, calculate output longitudinal position (s),
@@ -261,60 +264,6 @@ def tetat(t,p,tx,tz):
     tz  = (teta*(va2 - vb2))/r2
 
     return tx, tz
-
-
-
-def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
-
-    theta    = 13.6e-3/(mc_p0*(1+mc_dpop)) # dpop   = (p - p0)/p0
-    h   = 0.001
-    dh  = 0.0001
-    bn0 = 0.4330127019
-
-    mc_x     = (mc_x/theta)/mc_radl
-    mc_xp    = mc_xp/theta
-    mc_z     = (mc_z/theta)/mc_radl
-    mc_zp    = mc_zp/theta
-    rlen0 = mc_zlm1/mc_radl
-    rlen  = rlen0
-
-    while (True): #10
-        ae = bn0*mc_x
-        be = bn0*mc_xp
-
-        # #######################################
-        # ae = np.array(ae, dtype=np.float64)
-        # be = np.array(be, dtype=np.float64)
-        # dh = np.array(dh, dtype=np.float64)
-        # rlen = np.array(rlen, dtype=np.float64)
-        # s = np.array(s, dtype=np.float64)
-        # #######################################
-        s = soln3(ae,be,dh,rlen,s)
-
-        if (s < h):
-            s = h
-
-        mc_x, mc_xp = scamcs(mc_x,mc_xp,s)
-
-        if (mc_x <= 0):
-            s = (rlen0-rlen)+s
-            break # go to 20
-
-        if ((s+dh) >= rlen):
-            s = rlen0
-            break # go to 20
-        # go to 10
-        rlen = rlen-s
-
-    mc_z, mc_zp = scamcs(mc_z,mc_zp,s)
-
-    s  = s*mc_radl
-    mc_x  = (mc_x*theta)*mc_radl
-    mc_xp = mc_xp*theta
-    mc_z  = (mc_z*theta)*mc_radl
-    mc_zp = mc_zp*theta
-
-    return s, mc_x, mc_xp, mc_z, mc_zp, mc_dpop
 
 
 
