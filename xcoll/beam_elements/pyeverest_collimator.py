@@ -44,54 +44,8 @@ class PyCollimator(BaseCollimator):
 
 
     def track(self, particles):  # TODO: write impacts
-        npart = particles._num_active_particles
-        if npart == 0:
-            return
-        if self.material is None:
-            raise ValueError("Cannot track if material is not set!")
-        
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
-        if not self.is_active:
-            # Drift full length
-            L = self.length
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-        else:
-            # Drift inactive front
-            L = self.inactive_front
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-  
-            track(self, particles, npart)
-
-            # Drift inactive back
-            L = self.inactive_back
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            particles.reorganize()
+        track(self, particles)
+        return
 
 
 
@@ -147,52 +101,6 @@ class PyCrystal(BaseCollimator):
 
 
     def track(self, particles):  # TODO: write impacts
-        npart = particles._num_active_particles
-        if npart == 0:
-            return
-        if self.material is None:
-            raise ValueError("Cannot track if material is not set!")
-        
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
-        if not self.is_active:
-            # Drift full length
-            L = self.length
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-        else:
-            # Drift inactive front
-            L = self.inactive_front
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            track(self, particles, npart)
-
-            # Drift inactive back
-            L = self.inactive_back
-            if L > 0:
-                rpp = particles.rpp[:npart]
-                xp = particles.px[:npart] * rpp
-                yp = particles.py[:npart] * rpp
-                dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-                particles.x[:npart] += xp * L
-                particles.y[:npart] += yp * L
-                particles.s[:npart] += L
-                particles.zeta[:npart] += dzeta*L
-
-            particles.reorganize()
+        track(self, particles)
+        return
 

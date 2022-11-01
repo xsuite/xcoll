@@ -16,7 +16,7 @@ import numpy as np
 def drift_4d(x, y, xp, yp, length):
     x += xp * length
     y += yp * length
-    return x, y
+    return
 
 def drift_zeta(zeta, rvv, xp, yp, length):
     rv0v = 1./rvv
@@ -24,14 +24,47 @@ def drift_zeta(zeta, rvv, xp, yp, length):
     zeta += length * dzeta
     return zeta
 
+def drift_6d(particles, length):
+    npart = particles._num_active_particles
+    rpp = particles.rpp[:npart]
+    xp = particles.px[:npart] * rpp
+    yp = particles.py[:npart] * rpp
+    dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
+    particles.x[:npart] += xp * length
+    particles.y[:npart] += yp * length
+    particles.s[:npart] += length
+    particles.zeta[:npart] += dzeta*length
+    return
 
-    
-def track(collimator, particles, npart):
+def track(collimator, particles):  # TODO: write impacts
+        from ...beam_elements import PyCollimator, PyCrystal
+        if not isinstance(collimator, PyCollimator) and not isinstance(collimator, PyCrystal):
+            raise ValueError("Collimator is neither a PyCollimator nor a PyCrystal!\nCannot use PyEverest to track.")
+
+        if particles._num_active_particles == 0:
+            return
+        
+        # TODO: when in C, drifting should call routine from drift element
+        #       such that can be exact etc
+        if not collimator.is_active:
+            # Drift full length
+            drift_6d(particles, collimator.length)
+        else:
+            drift_6d(particles, collimator.inactive_front)
+            track_core(collimator, particles)
+            drift_6d(particles, collimator.inactive_back)
+            particles.reorganize()
+        return
+
+
+
+def track_core(collimator, particles):
     from .scatter_init import calculate_scattering
     from .scatter import scatter
     from ...beam_elements.pyeverest_collimator import PyCrystal
     from .materials import CrystalMaterial
 
+    npart = particles._num_active_particles
     length = collimator.active_length
 
     # Get coordinates
