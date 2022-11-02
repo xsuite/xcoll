@@ -6,4 +6,4 @@ from .scattering_routines.k2.materials import Material, CrystalMaterial
 from .manager import CollimatorManager
 from .colldb import CollDB, load_SixTrack_colldb
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
