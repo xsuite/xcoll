@@ -121,10 +121,10 @@ def test_offsets_b2():
 
 def test_crystals():
     for name in crystals_b1 + crystals_b2:
-        _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11, atold=1e-11)
+        _track_collimator(name)
 
 
-def _track_collimator(name, atolx=1e-13, atoly=1e-13, atolpx=1e-13, atolpy=1e-13, atolz=1e-13, atold=1e-13):
+def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11, atolz=1e-11, atold=1e-10):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:

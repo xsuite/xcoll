@@ -1,7 +1,7 @@
 import numpy as np
-from ctypes import *
-so_file = "/Users/macbookpro/Documents/CERN/xsuite/xcoll/xcoll/scattering_routines/everest/my_functions.so"
-my_functions = CDLL(so_file)
+
+# from ._jaw.lib import lib.soln3
+from ._jaw import lib
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop, cgen):
     
@@ -30,7 +30,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         if(run_zlm1 > rlen):
             
             run_zlm1 = rlen
-            s, x, xp, z, zp, dpop = my_functions.mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+            s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
 
             s = (zlm-rlen)+s
             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx)  # DM routine to include tail
@@ -40,7 +40,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
             break
         # Otherwise do multi-coulomb scattering.
         # REGULAR STEP IN ITERATION LOOP
-        s, x, xp, z, zp, dpop = my_functions.mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
+        s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop)
 
         # Check if particle is outside of collimator (X.LT.0) after
         # MCS. If yes, calculate output longitudinal position (s),
@@ -222,6 +222,54 @@ def tetat(t,p,tx,tz):
     return tx, tz
 
 
+
+def mcs(s, mc_radl, mc_zlm1, mc_p0, mc_x, mc_xp, mc_z, mc_zp, mc_dpop):
+
+    theta    = 13.6e-3/(mc_p0*(1+mc_dpop)) # dpop   = (p - p0)/p0
+    h   = 0.001
+    dh  = 0.0001
+    bn0 = 0.4330127019
+
+    mc_x     = (mc_x/theta)/mc_radl
+    mc_xp    = mc_xp/theta
+    mc_z     = (mc_z/theta)/mc_radl
+    mc_zp    = mc_zp/theta
+    rlen0 = mc_zlm1/mc_radl
+    rlen  = rlen0
+
+    while (True): #10
+        ae = bn0*mc_x
+        be = bn0*mc_xp
+
+        s = lib.soln3(ae,be,dh,rlen,s)
+
+        if (s < h):
+            s = h
+
+        mc_x, mc_xp = scamcs(mc_x,mc_xp,s)
+
+        if (mc_x <= 0):
+            s = (rlen0-rlen)+s
+            break # go to 20
+
+        if ((s+dh) >= rlen):
+            s = rlen0
+            break # go to 20
+        # go to 10
+        rlen = rlen-s
+
+    mc_z, mc_zp = scamcs(mc_z,mc_zp,s)
+
+    s  = s*mc_radl
+    mc_x  = (mc_x*theta)*mc_radl
+    mc_xp = mc_xp*theta
+    mc_z  = (mc_z*theta)*mc_radl
+    mc_zp = mc_zp*theta
+
+    return s, mc_x, mc_xp, mc_z, mc_zp, mc_dpop
+
+
+
 def scamcs(xx, xxp, s):
 
     from .random import get_random
@@ -249,74 +297,74 @@ def scamcs(xx, xxp, s):
 
 
 
-def soln3(a, b, dh, smax, s):
+# def lib.soln3(a, b, dh, smax, s):
 
-    if(b == 0):
-        s = a**0.6666666666666667
-        # s = a**(two/three)
+#     if(b == 0):
+#         s = a**0.6666666666666667
+#         # s = a**(two/three)
 
-        if (s > smax): 
-            s = smax
-        return s
+#         if (s > smax): 
+#             s = smax
+#         return s
 
-    if(a == 0):     
-        if(b > 0):
-            s = b**2
-        else:
-            s = 0
+#     if(a == 0):     
+#         if(b > 0):
+#             s = b**2
+#         else:
+#             s = 0
         
-        if (s > smax):
-            s = smax
-        return s
+#         if (s > smax):
+#             s = smax
+#         return s
         
-    if (b > 0):
+#     if (b > 0):
 
-        if (smax**3 <= (a + b*smax)**2):
-            s = smax
-            return s
+#         if (smax**3 <= (a + b*smax)**2):
+#             s = smax
+#             return s
       
-        else:
-            s = smax*0.5
-            s = iterat(a,b,dh,s)
+#         else:
+#             s = smax*0.5
+#             s = iterat(a,b,dh,s)
     
-    else:
-        c = (-1*a)/b
-        if (smax < c):
-            if (smax**3 <= (a + b*smax)**2):
-                s = smax
-                return s
+#     else:
+#         c = (-1*a)/b
+#         if (smax < c):
+#             if (smax**3 <= (a + b*smax)**2):
+#                 s = smax
+#                 return s
 
-            else:
-                s = smax*0.5
-                s = iterat(a,b,dh,s)
+#             else:
+#                 s = smax*0.5
+#                 s = iterat(a,b,dh,s)
     
-        else:
-            s = c*0.5
-            s = iterat(a,b,dh,s)
+#         else:
+#             s = c*0.5
+#             s = iterat(a,b,dh,s)
    
-    return s
+#     return s
 
 
 
-def iterat(a, b, dh, s):
+# def iterat(a, b, dh, s):
 
-    ds = s
+#     ds = s
 
-    while (True):
-        ds = ds*0.5
+#     while (True):
+#         ds = ds*0.5
 
-        if (s**3 < (a+b*s)**2):
-            s = s+ds
-        else:
-            s = s-ds
+#         if (s**3 < (a+b*s)**2):
+#             s = s+ds
+#         else:
+#             s = s-ds
 
-        if (ds < dh):
-            break
+#         if (ds < dh):
+#             break
 
-        else: 
-            continue
+#         else: 
+#             continue
 
-    return s 
+#     return s 
 
 
 
