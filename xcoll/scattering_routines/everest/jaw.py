@@ -1,12 +1,10 @@
 import numpy as np
 
-# from ._jaw.lib import lib.soln3
 from ._everest import lib
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop, cgen):
     
-    # from .random import lib.get_random_gauss
-
+    from .random import get_random
 
     # Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
     p    = p0*(1+dpop)
@@ -22,7 +20,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
     # Get monte-carlo interaction length.
     while (True):
 
-        run_zlm1 = (-1*run_xintl)*np.log(lib.get_random_gauss())
+        run_zlm1 = (-1*run_xintl)*np.log(get_random())
                         
         # If the monte-carlo interaction length is longer than the
         # remaining collimator length, then put it to the remaining
@@ -114,7 +112,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
    
 def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
 
-    # from .random import lib.get_random_gauss
+    from .random import get_random
 
     mom    = p*1.0e3                     #[GeV/c] -> [MeV/c]
     enr    = (mom*mom + 938.271998*938.271998)**0.5 #[MeV]
@@ -155,7 +153,7 @@ def calcionloss(p,rlen,il_exenergy,il_anuc,il_zatom,il_rho,enlo):
     prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2
 
     # Determine based on random number if tail energy loss occurs.
-    if (lib.get_random_gauss() < prob_tail):
+    if (get_random() < prob_tail):
         enlo = ((k*il_zatom)/(il_anuc*betar**2)) * (0.5*np.log((kine*tmax)/(exEn*exEn)) - betar**2 - np.log(plen/exEn) - np.log(bgr) + 0.5 + tmax**2/((8*gammar**2)*938.271998**2))
         enlo = (enlo*il_rho)*1.0e-1 # [GeV/m]
     else:
@@ -175,13 +173,13 @@ def gettran(inter,p,tt_bn,tt_ecmsq,tt_xln15s,tt_bpp,cgen):
     result = 0
 
     if (inter==2): # Nuclear Elastic
-        result = (-1*np.log(lib.get_random_gauss()))/tt_bn
+        result = (-1*np.log(get_random()))/tt_bn
     
     elif (inter==3): # pp Elastic
-        result = (-1*np.log(lib.get_random_gauss()))/tt_bpp
+        result = (-1*np.log(get_random()))/tt_bpp
 
     elif (inter==4): # Single Diffractive
-        xm2 = np.exp(lib.get_random_gauss() * tt_xln15s)
+        xm2 = np.exp(get_random() * tt_xln15s)
         p   = p * (1 - xm2/tt_ecmsq)
     
         if (xm2 < 2):
@@ -193,7 +191,7 @@ def gettran(inter,p,tt_bn,tt_ecmsq,tt_xln15s,tt_bpp,cgen):
         else:
             bsd = (7*tt_bpp)/12.0
    
-        result = (-1*np.log(lib.get_random_gauss()))/bsd
+        result = (-1*np.log(get_random()))/bsd
 
     elif (inter==5): # Coulomb
         result = get_random_ruth(cgen)
@@ -208,8 +206,8 @@ def tetat(t,p,tx,tz):
 
     teta = np.sqrt(t)/p
     while (True):
-        va  = 2*lib.get_random_gauss() - 1
-        vb  = lib.get_random_gauss()
+        va  = 2*get_random() - 1
+        vb  = get_random()
         va2 = va**2
         vb2 = vb**2
         r2  = va2 + vb2
@@ -279,8 +277,8 @@ def scamcs(xx, xxp, s):
     xp0 = xxp
 
     while (True):
-        v1 = 2*lib.get_random_gauss() - 1
-        v2 = 2*lib.get_random_gauss() - 1
+        v1 = 2*get_random() - 1
+        v2 = 2*get_random() - 1
         r2 = v1**2 + v2**2
 
         if(r2 < 1):
@@ -298,82 +296,12 @@ def scamcs(xx, xxp, s):
 
 
 
-# def lib.soln3(a, b, dh, smax, s):
-
-#     if(b == 0):
-#         s = a**0.6666666666666667
-#         # s = a**(two/three)
-
-#         if (s > smax): 
-#             s = smax
-#         return s
-
-#     if(a == 0):     
-#         if(b > 0):
-#             s = b**2
-#         else:
-#             s = 0
-        
-#         if (s > smax):
-#             s = smax
-#         return s
-        
-#     if (b > 0):
-
-#         if (smax**3 <= (a + b*smax)**2):
-#             s = smax
-#             return s
-      
-#         else:
-#             s = smax*0.5
-#             s = iterat(a,b,dh,s)
-    
-#     else:
-#         c = (-1*a)/b
-#         if (smax < c):
-#             if (smax**3 <= (a + b*smax)**2):
-#                 s = smax
-#                 return s
-
-#             else:
-#                 s = smax*0.5
-#                 s = iterat(a,b,dh,s)
-    
-#         else:
-#             s = c*0.5
-#             s = iterat(a,b,dh,s)
-   
-#     return s
-
-
-
-# def iterat(a, b, dh, s):
-
-#     ds = s
-
-#     while (True):
-#         ds = ds*0.5
-
-#         if (s**3 < (a+b*s)**2):
-#             s = s+ds
-#         else:
-#             s = s-ds
-
-#         if (ds < dh):
-#             break
-
-#         else: 
-#             continue
-
-#     return s 
-
-
 
 def ichoix(ich_cprob):
 
     from .random import get_random
 
-    aran = lib.get_random_gauss()
+    aran = get_random()
     
     for i in range(5):
         i += 1
