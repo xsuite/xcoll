@@ -124,7 +124,7 @@ def test_crystals():
         _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11, atold=1e-11)
 
 
-def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
+def _track_collimator(name, atolx=1e-15, atoly=1e-15, atolpx=1e-15, atolpy=1e-15, atolz=1e-15, atold=1e-15):
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
