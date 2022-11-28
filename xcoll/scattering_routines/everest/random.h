@@ -2,6 +2,13 @@
 #include <math.h>
 #include <time.h>
 
+
+/*
+=========================================
+========  Main Random Generator  ========
+=========================================
+*/
+
 unsigned int this_seed;
 unsigned int n_sampled = 0;
 
@@ -16,12 +23,12 @@ static void set_random_seed(unsigned int seed){
     srand(this_seed);
 }
 
-// This is wrong if not manually set first: it will return 0, but not sure what the default seed is..
-static unsigned int get_random_seed(){
+// TODO: This is wrong if not manually set first: it will return 0, but not sure what the default seed is..
+static unsigned int get_random_seed(void){
     return this_seed;
 }
 
-static unsigned int get_n_sampled(){
+static unsigned int get_n_sampled(void){
     return n_sampled;
 }
 
@@ -35,18 +42,11 @@ static double get_random(void){
 
 
 
-
-
-
-
-static double get_random_normal(void) {
-    double u = ((double) rand() / (RAND_MAX)) * 2 - 1;
-    double v = ((double) rand() / (RAND_MAX)) * 2 - 1;
-    double r = u * u + v * v;
-    if (r == 0 || r > 1) return get_random_normal();
-    double c = sqrt(-2 * log(r) / r);
-    return u * c;
-}
+/*
+=========================================
+======  Gaussian Random Generator  ======
+=========================================
+*/
 
 // Generate a random value weighted within the normal (Gaussian) distribution
 static double get_random_gauss(void){
@@ -57,57 +57,80 @@ static double get_random_gauss(void){
 }
 
 
-// PDF of Rutherford distribution
-static double ruth_PDF(float t, float z, float emr){
 
-    // Constants
+/*
+=========================================
+=====  Rutherford Random Generator  =====
+=========================================
+*/
+
+/*
+    Iterations for Newton's method
+*/
+unsigned int n_iter = 25;    // good precision
+//unsigned int n_iter = 7;   // bad precision but 4 times faster
+
+static void set_rutherford_iterations(unsigned int n){
+    n_iter = n;
+}
+static unsigned int get_rutherford_iterations(void){
+    return n_iter;
+}
+
+
+/*
+    Rutherford parameters
+*/
+float ruth_lower_val = 0.0009982;
+float ruth_upper_val;
+float ruth_A;
+float ruth_B;
+static double ruth_CDF(float t);
+static double ruth_PDF(float t);
+
+static void set_rutherford_parameters(float z, float emr, float upper_val){
     double c = 0.8561e3;
-    double N = 2.607e-5;
-    double A = N*pow(z,2);
-    double B = c*pow(emr,2);
+//     double N = 2.607e-5;
+    ruth_A = pow(z,2);
+    ruth_B = c*pow(emr,2);
+    ruth_upper_val = upper_val;
 
-    // CDF from Rutherford PDF
-    double F = (A/pow(t,2))*(exp(-B*t));
+    // Normalise PDF
+    double N = ruth_CDF(ruth_upper_val);
+    ruth_A = pow(z,2) / N;
+}
 
-    return F;
-        
+
+// PDF of Rutherford distribution
+static double ruth_PDF(float t){
+    return (ruth_A/pow(t,2))*(exp(-ruth_B*t));
 }
 
 // CDF of Rutherford distribution
-static double ruth_CDF(float t, float z, float emr, float t0){
-
-    // Constants
-    double c = 0.8561e-3;
-    double N = 2.607e-5;
-    double A = N*pow(z,2);
-    double B = c*pow(emr,2);
-
-    // CDF from Rutherford PDF
-    double F = -A*B*Exponential_Integral_Ei(-B*t) - t*ruth_PDF(t,z,emr) + A*B*Exponential_Integral_Ei(-B*t0) +       t0*ruth_PDF(t0,z,emr);
-
-    return F;
+static double ruth_CDF(float t){
+    return - ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*t) - t*ruth_PDF(t)
+           + ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*ruth_lower_val) + ruth_lower_val*ruth_PDF(ruth_lower_val);
         
 }
 
 // Generate a random value weighted with a Rutherford distribution
-static double get_random_ruth(float z, float emr, double lower_val, double upper_val, unsigned int n){
-
-//     unsigned int n = 20; //iterations
+static double get_random_ruth(void){
 
     // corresponding range in uniform
     // double lower_uni = 0;
-    double upper_uni = ruth_CDF(upper_val,z,emr,lower_val);
+//     double upper_uni = ruth_CDF(ruth_upper_val);
 
     // sample a random uniform
-    double t = upper_uni * get_random() ;
+//     double t = upper_uni * get_random() ;
+    double t = get_random();
     
     // initial estimate the lower border
-    double x = lower_val;
+    double x = ruth_lower_val;
 
     // solve CDF(x) == t for x
     unsigned short i = 1;
-    while(i <= n) {
-        x = x - (ruth_CDF(x,z,emr,lower_val)-t)/ruth_PDF(x,z,emr);
+    while(i <= n_iter) {
+        x = x - (ruth_CDF(x)-t)/ruth_PDF(x);
         i++;
     }
 

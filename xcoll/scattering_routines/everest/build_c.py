@@ -3,15 +3,19 @@ from pathlib import Path
 
 ffibuilder = FFI()
 
-# ffibuilder.cdef("float iterat(float a, float b, float dh, float s);")
+# Jaw code
 ffibuilder.cdef("double soln3(double a, double b, double dh, double smax, double s);")
-ffibuilder.cdef("static double get_random(void);")
-ffibuilder.cdef("static double get_random_normal(void);")
-ffibuilder.cdef("static double get_random_gauss(void);")
-ffibuilder.cdef("static double get_random_ruth(float z, float emr, double lower_val, double upper_val, unsigned int n);")
+
+# Random generator
 ffibuilder.cdef("static void set_random_seed(unsigned int seed);")
-ffibuilder.cdef("static unsigned int get_random_seed();")
-ffibuilder.cdef("static unsigned int get_n_sampled();")
+ffibuilder.cdef("static unsigned int get_random_seed(void);")
+ffibuilder.cdef("static unsigned int get_n_sampled(void);")
+ffibuilder.cdef("static double get_random(void);")
+ffibuilder.cdef("static double get_random_gauss(void);")
+ffibuilder.cdef("static void set_rutherford_parameters(float z, float emr, float upper_val);")
+ffibuilder.cdef("static void set_rutherford_iterations(unsigned int n);")
+ffibuilder.cdef("static unsigned int get_rutherford_iterations(void);")
+ffibuilder.cdef("static double get_random_ruth(void);")
 
 ffibuilder.set_source("_everest",  # name of the output C extension
 """
