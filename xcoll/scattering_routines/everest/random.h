@@ -89,8 +89,7 @@ static double ruth_CDF(float t);
 static double ruth_PDF(float t);
 
 static void set_rutherford_parameters(float z, float emr, float upper_val){
-    double c = 0.8561e3;
-//     double N = 2.607e-5;
+    double c = 0.8561e3; // TODO: Where tha fuck does this come from??
     ruth_A = pow(z,2);
     ruth_B = c*pow(emr,2);
     ruth_upper_val = upper_val;
@@ -116,12 +115,7 @@ static double ruth_CDF(float t){
 // Generate a random value weighted with a Rutherford distribution
 static double get_random_ruth(void){
 
-    // corresponding range in uniform
-    // double lower_uni = 0;
-//     double upper_uni = ruth_CDF(ruth_upper_val);
-
     // sample a random uniform
-//     double t = upper_uni * get_random() ;
     double t = get_random();
     
     // initial estimate the lower border
