@@ -4,6 +4,7 @@ import pandas as pd
 from .beam_elements import BlackAbsorber, Collimator, Crystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
+from .scattering_routines.everest import set_random_seed, get_random_seed
 
 import xtrack as xt
 import xobjects as xo
@@ -55,7 +56,7 @@ class CollimatorManager:
 
     @property
     def random_seed(self):
-        return self._random
+        return get_random_seed()
 
     @property
     def impacts(self):
@@ -162,7 +163,6 @@ class CollimatorManager:
 
 
     def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):        
-        from .scattering_routines.everest import set_random_seed
         set_random_seed(random_seed)
 
         # Do the installation

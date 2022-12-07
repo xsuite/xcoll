@@ -4,9 +4,9 @@ from pathlib import Path
 ffibuilder = FFI()
 
 # Jaw code
-#ffibuilder.cdef("double soln3(double a, double b, double dh, double smax, double s);")
+ffibuilder.cdef("double soln3(double a, double b, double dh, double smax, double s);")
 
-ffibuilder.cdef("double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop, double cgen);")
+# ffibuilder.cdef("double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop);")
 
 # Random generator
 ffibuilder.cdef("static void set_random_seed(unsigned int seed);")
