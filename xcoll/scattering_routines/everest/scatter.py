@@ -1,5 +1,5 @@
 import numpy as np
-from .jaw import jaw
+from ._everest import lib
 from .crystal import crystal
 from .random import set_rutherford_parameters
 
@@ -245,7 +245,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 s_impact = sp
                 nhit = nhit + 1
 
-                run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop = jaw(
+                run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop = lib.jaw(
                                                                             run_exenergy=run_exenergy,
                                                                             run_anuc=run_anuc,
                                                                             run_zatom=run_zatom,
