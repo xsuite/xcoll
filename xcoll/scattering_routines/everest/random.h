@@ -2,7 +2,6 @@
 #include <math.h>
 #include <time.h>
 
-
 /*
 =========================================
 ========  Main Random Generator  ========
@@ -41,7 +40,6 @@ static double get_random(void){
 }
 
 
-
 /*
 =========================================
 ======  Gaussian Random Generator  ======
@@ -55,7 +53,6 @@ static double get_random_gauss(void){
          z = sqrt(-2 * log(x)) * cos(2 * M_PI * y);
   return z;
 }
-
 
 
 /*
