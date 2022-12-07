@@ -33,7 +33,7 @@ def _make_collimator_ref(name):
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    xc.scattering_routines.everest.random.set_random_seed(6574654)
+    xc.scattering_routines.everest.set_random_seed(6574654)
     if colldict['__class__'] == 'Collimator':
         coll = xc.Collimator.from_dict(colldict)
     elif colldict['__class__'] == 'Crystal':

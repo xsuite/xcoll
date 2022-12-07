@@ -2,9 +2,6 @@ import numpy as np
 
 # Rutherford Scatter
 tlcut_cry = 0.0009982
-# cgen_cry = np.zeros(200,1)
-# emr_curr_cry
-# zatom_curr_cry
 
 aTF = 0.194e-10 # Screening function [m]
 dP  = 1.920e-10 # Distance between planes (110) [m]
@@ -511,7 +508,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     pc = pc - dest*length #energy loss to ionization [GeV]
 
                 else:
-                    Dxp = tdefl + (0.5*get_random_gauss(0))*xpcrit #Change angle[rad]
+                    Dxp = tdefl + (0.5*get_random_gauss())*xpcrit #Change angle[rad]
                     
                     xp  = Dxp
                     x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
@@ -550,7 +547,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 x  = x + xp*Srefl
                 y     = y + yp*Srefl
                 Dxp   = Ang_avr
-                xp    = xp + Dxp + Ang_rms*get_random_gauss(0)
+                xp    = xp + Dxp + Ang_rms*get_random_gauss()
                 x  = x  + (0.5*xp)*(s_length - Srefl)
                 y     = y  + (0.5*yp)*(s_length - Srefl)
 
@@ -572,7 +569,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
 
                 if (Ldech < length-Lrefl):
                     iProc = proc_DC
-                    Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss(0))*xpcrit
+                    Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss())*xpcrit
                     x  = x + Ldech*(np.sin(0.5*Dxp+xp)) #Trajectory at channeling exit
                     y     = y + Sdech*yp
                     xp    =  Dxp
@@ -727,7 +724,7 @@ def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
 
 def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc):
 
-    from .random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
+    from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
 
     xp_in = xp
     yp_in = yp
@@ -752,7 +749,7 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
     bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
 
     # # Distribution for Ruth. scatt.
-    cgen = initialise_random_ruth(zatom, emr, hcut, is_crystal=True)
+    set_rutherford_parameters(zatom, emr, hcut)
 
     # Cross-section calculation
     # freep: number of nucleons involved in single scattering
@@ -790,8 +787,8 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
     pc  = pc - dei*dz # Energy lost because of ionization process[GeV]
 
     dya   = (13.6/pc)*np.sqrt(dz/dlr) # RMS of coloumb scattering MCS (mrad)
-    kxmcs = dya*get_random_gauss(0)
-    kymcs = dya*get_random_gauss(0)
+    kxmcs = dya*get_random_gauss()
+    kymcs = dya*get_random_gauss()
 
     xp = xp+kxmcs
     yp = yp+kymcs
@@ -843,9 +840,9 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
 
         else: #(ichoix==5)
             iProc = proc_ruth
-        # in python: t = get_random_ruth(cgen)
+        # in python: t = get_random_ruth()
             #length_cry = 1
-            xran_cry[0] = get_random_ruth(cgen)
+            xran_cry[0] = get_random_ruth()
             t = xran_cry[0]
 
         # end select
@@ -858,8 +855,8 @@ def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref
             teta = np.sqrt(t)/pc
             #end if
 
-        tx = (teta*get_random_gauss(0))*1.0e3
-        tz = (teta*get_random_gauss(0))*1.0e3
+        tx = (teta*get_random_gauss())*1.0e3
+        tz = (teta*get_random_gauss())*1.0e3
 
         # Change p angle
         xp = xp + tx
@@ -876,7 +873,7 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
 
     import scipy.special as sp
 
-    from .random import get_random, initialise_random_ruth, get_random_ruth, get_random_gauss
+    from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     
     pmae = 0.51099890
     pmap = 938.271998
@@ -888,7 +885,7 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
     cs = np.zeros(6)
     cprob = np.zeros(6)
     xran_cry = np.zeros(1)
-    cgen = initialise_random_ruth(zatom, emr, hcut, is_crystal=True)
+    set_rutherford_parameters(zatom, emr, hcut)
 
     #New treatment of scattering routine based on standard sixtrack routine
 
@@ -902,12 +899,7 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
     ppsd  = (4.3 + 0.3*np.log(ecmsq))/1.0e3
     bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
 
-    #Distribution for Ruth. scatt.
-    tlow      = tlcut_cry
-    thigh     = hcut
-    emr_curr_cry = emr
-    zatom_curr_cry = zatom
-    xran_cry[0] = get_random_ruth(cgen)
+    xran_cry[0] = get_random_ruth()
 
     #Rescale the total and inelastic cross-section accordigly to the average density seen
     x_i = x
@@ -1048,7 +1040,7 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
         else: #(ichoix==5)
             iProc      = proc_ch_ruth
             length_cry = 1
-            xran_cry[0] = get_random_ruth(cgen[1])
+            xran_cry[0] = get_random_ruth()
             t = xran_cry[0]
 
 
@@ -1059,8 +1051,8 @@ def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csr
             teta = np.sqrt(t)/pc
             #end if
 
-        tx = (teta*get_random_gauss(0))*1.0e3
-        tz = (teta*get_random_gauss(0))*1.0e3
+        tx = (teta*get_random_gauss())*1.0e3
+        tz = (teta*get_random_gauss())*1.0e3
 
         #Change p angle
         xp = xp + tx

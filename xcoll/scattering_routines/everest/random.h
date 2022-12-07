@@ -24,6 +24,7 @@ static void set_random_seed(unsigned int seed){
 }
 
 // TODO: This is wrong if not manually set first: it will return 0, but not sure what the default seed is..
+// TODO: make our own uniform random generator
 static unsigned int get_random_seed(void){
     return this_seed;
 }
@@ -39,7 +40,6 @@ static double get_random(void){
   double x = (double)rand()/RAND_MAX;
   return x;
 }
-
 
 
 /*
@@ -67,8 +67,9 @@ static double get_random_gauss(void){
 /*
     Iterations for Newton's method
 */
-unsigned int n_iter = 25;    // good precision
-//unsigned int n_iter = 7;   // bad precision but 4 times faster
+// unsigned int n_iter = 0;   // automatic
+unsigned int n_iter = 7;   // good enough precision
+// TODO: how to optimise Newton's method??
 
 static void set_rutherford_iterations(unsigned int n){
     n_iter = n;
@@ -120,6 +121,29 @@ static double get_random_ruth(void){
     
     // initial estimate the lower border
     double x = ruth_lower_val;
+
+    // HACK to let iterations depend on sample to improve speed
+    // based on Berylium being worst performing and hcut as in materials table
+    // DOES NOT WORK
+//     if (n_iter==0){
+//         if (t<0.1) {
+//             n_iter = 3;
+//         } else if (t<0.35) {
+//             n_iter = 4;
+//         } else if (t<0.63) {
+//             n_iter = 5;
+//         } else if (t<0.8) {
+//             n_iter = 6;
+//         } else if (t<0.92) {
+//             n_iter = 7;
+//         } else if (t<0.96) {
+//             n_iter = 8;
+//         } else if (t<0.98) {
+//             n_iter = 9;
+//         } else {
+//             n_iter = 10;
+//         }
+//     }
 
     // solve CDF(x) == t for x
     unsigned short i = 1;
