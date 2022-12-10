@@ -8,7 +8,7 @@ from ..scattering_routines.pyeverest import track, Material, CrystalMaterial
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class PyCollimator(BaseCollimator):
-    _xofields = BaseCollimator._xofields | {
+    _xofields = { **BaseCollimator._xofields,
         'dpx':        xo.Float64,
         'dpy':        xo.Float64,
         'offset':     xo.Float64,
@@ -50,7 +50,7 @@ class PyCollimator(BaseCollimator):
 
 
 class PyCrystal(BaseCollimator):
-    _xofields = BaseCollimator._xofields | {
+    _xofields = { **BaseCollimator._xofields,
         'dpx':         xo.Float64,
         'dpy':         xo.Float64,
         'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
