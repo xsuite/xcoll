@@ -331,7 +331,7 @@ int ichoix(int ich_cprob[]) {
 // }
 
                 
-double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob[], double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
+double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, int run_cprob[], double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
     
 
     // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
