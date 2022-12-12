@@ -23,7 +23,7 @@ ffibuilder.cdef("double* mcs(double s, double mc_radl, double mc_zlm1, double mc
 ffibuilder.cdef("double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo);")
 ffibuilder.cdef("double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp);")
 ffibuilder.cdef("double* tetat(double t, double p, double tx, double tz);")
-ffibuilder.cdef("int ichoix(int* ich_cprob);")
+ffibuilder.cdef("int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5);")
 
 
 ffibuilder.set_source("_everest",  # name of the output C extension

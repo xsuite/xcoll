@@ -313,13 +313,20 @@ double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, do
 
 
 
-int ichoix(int* ich_cprob) {
+int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5) {
 
     double aran = get_random();
     int i;
     
-    for (i = 1; i < 5; ++i) {
-        i += 1;
+    double ich_cprob[6];
+    ich_cprob[0] = ich_cprob0;
+    ich_cprob[1] = ich_cprob1;
+    ich_cprob[2] = ich_cprob2;
+    ich_cprob[3] = ich_cprob3;
+    ich_cprob[4] = ich_cprob4;
+    ich_cprob[5] = ich_cprob5;
+
+    for (i = 0; i < 5; ++i) {
         if (aran <= ich_cprob[i]) {
             break;
         }

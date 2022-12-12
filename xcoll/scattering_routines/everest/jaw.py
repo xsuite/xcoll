@@ -1,7 +1,9 @@
 import numpy as np
 
+import cffi
 from ._everest import lib
 
+ffi = cffi.FFI()
 
 def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, p0, nabs, s, zlm, x, xp, z, zp, dpop):
     from .random import get_random
@@ -70,7 +72,7 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         # and return.
         # PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        inter = ichoix(run_cprob)
+        inter = lib.ichoix(run_cprob[0],run_cprob[1],run_cprob[2],run_cprob[3],run_cprob[4],run_cprob[5])
         nabs = inter
 
         if(inter == 1):
@@ -120,18 +122,3 @@ def jaw(*, run_exenergy, run_anuc, run_zatom, run_rho, run_radl, run_cprob, run_
         rlen = rlen-run_zlm1
                   
     return run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop
-
-
-
-def ichoix(ich_cprob):
-
-    from .random import get_random
-
-    aran = get_random()
-    
-    for i in range(5):
-        i += 1
-        if(aran <= ich_cprob[i]):
-            break
-    return i
-
