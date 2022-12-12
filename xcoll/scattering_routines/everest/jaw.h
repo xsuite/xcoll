@@ -1,4 +1,6 @@
 #include <math.h>
+#include <stdio.h>
+// #include "random.h"
 
 double iterat(double a, double b, double dh, double s) {
 
@@ -24,8 +26,6 @@ double iterat(double a, double b, double dh, double s) {
     return s;
 
 }
-  
-
 
 double soln3(double a, double b, double dh, double smax, double s) {
 
@@ -80,20 +80,19 @@ double soln3(double a, double b, double dh, double smax, double s) {
 
 }
 
+double* scamcs(double x0, double xp0, double s) {
 
-
-double scamcs(double xx, double xxp, double s) {
-
-    double x0  = xx;
-    double xp0 = xxp;
+    // double x0  = *xx;
+    // double xp0 = *xxp;
     double r2 = 0;
     double v1 = 0;
     double v2 = 0;
+    static double result[2];
 
     while (1) {
-        double v1 = 2*get_random() - 1;
-        double v2 = 2*get_random() - 1;
-        double r2 = pow(v1,2) + pow(v2,2);
+        v1 = 2*get_random() - 1;
+        v2 = 2*get_random() - 1;
+        r2 = pow(v1,2) + pow(v2,2);
 
         if(r2 < 1) {
             break;
@@ -105,23 +104,24 @@ double scamcs(double xx, double xxp, double s) {
     double z2  = v2*a;
     double ss  = sqrt(s);
     double sss = 1 + 0.038*log(s);
-    xx  = x0  + s*(xp0 + ((0.5*ss)*sss)*(z2 + z1*0.577350269));
-    xxp = xp0 + (ss*z2)*sss;
 
-    return xx, xxp;
+    result[0] = x0  + s*(xp0 + ((0.5*ss)*sss)*(z2 + z1*0.577350269));
+    result[1] = xp0 + (ss*z2)*sss;
+
+    return result;
 
 }
 
 
+double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
 
-double mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
-
-    double theta    = 13.6e-3/(mc_p0*(1+mc_dpop)); // dpop   = (p - p0)/p0;
+    double theta = 13.6e-3/(mc_p0 * (1+mc_dpop)); // dpop   = (p - p0)/p0;
     double h   = 0.001;
     double dh  = 0.0001;
     double bn0 = 0.4330127019;
     double rlen0 = mc_zlm1/mc_radl;
     double rlen  = rlen0;
+    static double result[5];
 
     mc_x     = (mc_x/theta)/mc_radl;
     mc_xp    = mc_xp/theta;
@@ -131,8 +131,8 @@ double mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, 
 
     while (1) {
         
-        double ae = bn0*mc_x;
-        double be = bn0*mc_xp;
+        double ae = bn0 * mc_x;
+        double be = bn0 * mc_xp;
 
         // #######################################
         // ae = np.array(ae, dtype=np.double64)
@@ -147,37 +147,40 @@ double mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, 
             s = h;
         }
 
-        mc_x, mc_xp = scamcs(mc_x,mc_xp,s);
+        double* res = scamcs(mc_x,mc_xp,s);
+        mc_x  = res[0];
+        mc_xp = res[1];
 
         if (mc_x <= 0) {
-            s = (rlen0-rlen)+s;
+            s = (rlen0-rlen)+ s;
             break; // go to 20
         }
 
-        if ((s+dh) >= rlen) {
+        if ((s + dh) >= rlen) {
             s = rlen0;
             break; // go to 20
         }
         // go to 10
-        rlen = rlen-s;
+        rlen = rlen - s;
     }
 
-    mc_z, mc_zp = scamcs(mc_z,mc_zp,s);
+    double* res = scamcs(mc_z,mc_zp,s);
+    mc_z  = res[0];
+    mc_zp = res[1];
 
-    s  = s*mc_radl;
-    mc_x  = (mc_x*theta)*mc_radl;
-    mc_xp = mc_xp*theta;
-    mc_z  = (mc_z*theta)*mc_radl;
-    mc_zp = mc_zp*theta;
+    result[0]  = s*mc_radl;
+    result[1]  = (mc_x*theta)*mc_radl;
+    result[2]  = mc_xp*theta;
+    result[3]  = (mc_z*theta)*mc_radl;
+    result[4]  = mc_zp*theta;
 
-    return s, mc_x, mc_xp, mc_z, mc_zp, mc_dpop ;
-
+    return result;
 
 }
 
 
 
-double tetat(double t, double p, double tx, double tz) {
+double* tetat(double t, double p, double tx, double tz) {
 
 
     double teta = sqrt(t)/p;
@@ -186,6 +189,7 @@ double tetat(double t, double p, double tx, double tz) {
     double va2 = 0;
     double vb2 = 0;
     double r2  = 0;
+    static double result[2];
     
     while (1) {
         va  = 2*get_random() - 1;
@@ -199,18 +203,18 @@ double tetat(double t, double p, double tx, double tz) {
         }
     }
         
-    tx  = (teta*((2*va)*vb))/r2;
-    tz  = (teta*(va2 - vb2))/r2;
+    result[0] = (teta*((2*va)*vb))/r2;
+    result[1]  = (teta*(va2 - vb2))/r2;
 
-    return tx, tz;
+    return result;
                 
 }
                 
                 
                 
-double gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
+double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
 
- 
+    static double res[2];
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
@@ -225,7 +229,7 @@ double gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_
     else if (inter==4) { // Single Diffractive
         double xm2 = exp(get_random() * tt_xln15s);
         double bsd = 0;
-        p   = p * (1 - xm2/tt_ecmsq);
+        p = p * (1 - xm2/tt_ecmsq);
     
         if (xm2 < 2) {
             bsd = 2 * tt_bpp;
@@ -246,7 +250,10 @@ double gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_
         result = get_random_ruth();
     }
 
-    return result, p;
+    res[0] = result;
+    res[1] = p;
+
+    return res;
                 
 }
                 
@@ -301,12 +308,12 @@ double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, do
         enlo = enlo/rlen;  // [GeV/m]
     }
         
-    return il_exenergy, enlo;
+    return enlo;
 }
 
 
 
-int ichoix(int ich_cprob[]) {
+int ichoix(int* ich_cprob) {
 
     double aran = get_random();
     int i;
@@ -331,115 +338,116 @@ int ichoix(int ich_cprob[]) {
 // }
 
                 
-double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob[], double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
+// double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob[], double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
     
 
-    // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-    double p = p0*(1+dpop);
-    nabs = 0;
+//     // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
+//     double p = p0*(1+dpop);
+//     nabs = 0;
       
-    // Initialize the interaction length to input interaction length
-    double rlen = zlm;
-    double m_dpodx = 0.;
-    double tx = 0.;
-    double tz = 0.;
+//     // Initialize the interaction length to input interaction length
+//     double rlen = zlm;
+//     double m_dpodx = 0.;
+//     double* tx; 
+//     double* tz; 
+   
 
-    // Do a step for a point-like interaction.
-    // Get monte-carlo interaction length.
-    while (1) {
+//     // Do a step for a point-like interaction.
+//     // Get monte-carlo interaction length.
+//     while (1) {
 
-        double run_zlm1 = (-1*run_xintl)*log(get_random());
+//         double run_zlm1 = (-1*run_xintl)*log(get_random());
                         
-        // If the monte-carlo interaction length is longer than the
-        // remaining collimator length, then put it to the remaining
-        // length, do multiple coulomb scattering and return.
-        // LAST STEP IN ITERATION LOOP
-        if (run_zlm1 > rlen) {
+//         // If the monte-carlo interaction length is longer than the
+//         // remaining collimator length, then put it to the remaining
+//         // length, do multiple coulomb scattering and return.
+//         // LAST STEP IN ITERATION LOOP
+//         if (run_zlm1 > rlen) {
             
-            run_zlm1 = rlen;
-            s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+//             run_zlm1 = rlen;
+//             s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
 
-            s = (zlm-rlen)+s;
-            run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
-            p = p-m_dpodx*s;
+//             s = (zlm-rlen)+s;
+//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
+//             p = p-m_dpodx*s;
                     
-            dpop = (p-p0)/p0;
-            break;
-        }
-        // Otherwise do multi-coulomb scattering.
-        // REGULAR STEP IN ITERATION LOOP
-        s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+//             dpop = (p-p0)/p0;
+//             break;
+//         }
+//         // Otherwise do multi-coulomb scattering.
+//         // REGULAR STEP IN ITERATION LOOP
+//         s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
 
-        // Check if particle is outside of collimator (X.LT.0) after
-        // MCS. If yes, calculate output longitudinal position (s),
-        // reduce momentum (output as dpop) and return.
-        // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
+//         // Check if particle is outside of collimator (X.LT.0) after
+//         // MCS. If yes, calculate output longitudinal position (s),
+//         // reduce momentum (output as dpop) and return.
+//         // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
 
-        if(x <= 0) {
+//         if(x <= 0) {
 
-            s = (zlm-rlen)+s;
-            run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+//             s = (zlm-rlen)+s;
+//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
-            p = p-m_dpodx*s;
-            dpop = (p-p0)/p0;
-            break;
-        }
+//             p = p-m_dpodx*s;
+//             dpop = (p-p0)/p0;
+//             break;
+//         }
 
-        // Check whether particle is absorbed. If yes, calculate output
-        // longitudinal position (s), reduce momentum (output as dpop)
-        // and return.
-        // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
+//         // Check whether particle is absorbed. If yes, calculate output
+//         // longitudinal position (s), reduce momentum (output as dpop)
+//         // and return.
+//         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        int inter = ichoix(run_cprob);
-        nabs = inter;
+//         int inter = ichoix(run_cprob);
+//         nabs = inter;
 
-        if (inter == 1) {
+//         if (inter == 1) {
 
-            s = (zlm-rlen)+run_zlm1;
-            run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+//             s = (zlm-rlen)+run_zlm1;
+//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
-            p = p-m_dpodx*s;
-            dpop = (p-p0)/p0;
+//             p = p-m_dpodx*s;
+//             dpop = (p-p0)/p0;
 
-            break;
-        }
+//             break;
+//         }
 
 
-        // Now treat the other types of interaction, as determined by ICHOIX:
+//         // Now treat the other types of interaction, as determined by ICHOIX:
 
-        // Nuclear-Elastic:          inter = 2
-        // pp Elastic:               inter = 3
-        // Single-Diffractive:       inter = 4    (changes momentum p)
-        // Coulomb:                  inter = 5
+//         // Nuclear-Elastic:          inter = 2
+//         // pp Elastic:               inter = 3
+//         // Single-Diffractive:       inter = 4    (changes momentum p)
+//         // Coulomb:                  inter = 5
 
-        // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
+//         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double t, p = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+//         double t, p = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
 
-        // Tetat calculates from the rms transverse momentum transfer in
-        // monte-carlo fashion the angle changes for x and z planes. The
-        // angle change is proportional to SQRT(t) and 1/p, as expected.
+//         // Tetat calculates from the rms transverse momentum transfer in
+//         // monte-carlo fashion the angle changes for x and z planes. The
+//         // angle change is proportional to SQRT(t) and 1/p, as expected.
 
-        tx, tz = tetat(t,p,tx,tz);
+//         tetat(t,p,tx,tz);
 
-        // Apply angle changes
-        xp = xp+tx;
-        zp = zp+tz;
+//         // Apply angle changes
+//         xp = xp + *tx;
+//         zp = zp + *tz;
 
-        // Treat single-diffractive scattering.
-        if(inter == 4) {
-            // added update for s
-            s    = (zlm-rlen)+run_zlm1;
+//         // Treat single-diffractive scattering.
+//         if(inter == 4) {
+//             // added update for s
+//             s    = (zlm-rlen)+run_zlm1;
 
-            // Add this code to get the momentum transfer also in the calling routine
-            dpop = (p-p0)/p0;
-        }
+//             // Add this code to get the momentum transfer also in the calling routine
+//             dpop = (p-p0)/p0;
+//         }
 
-        // Calculate the remaining interaction length and close the iteration loop.
-        rlen = rlen-run_zlm1;
-    }
+//         // Calculate the remaining interaction length and close the iteration loop.
+//         rlen = rlen-run_zlm1;
+//     }
                   
-    return run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop;
+//     return run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop;
 
-}  
+// }  
   
