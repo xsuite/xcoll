@@ -112,7 +112,6 @@ double* scamcs(double x0, double xp0, double s) {
 
 }
 
-
 double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
 
     double theta = 13.6e-3/(mc_p0 * (1+mc_dpop)); // dpop   = (p - p0)/p0;
@@ -178,8 +177,6 @@ double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x,
 
 }
 
-
-
 double* tetat(double t, double p, double tx, double tz) {
 
 
@@ -208,9 +205,7 @@ double* tetat(double t, double p, double tx, double tz) {
 
     return result;
                 
-}
-                
-                
+}                
                 
 double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
 
@@ -257,7 +252,6 @@ double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt
                 
 }
                 
-
 double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
@@ -311,8 +305,6 @@ double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, do
     return enlo;
 }
 
-
-
 int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5) {
 
     double aran = get_random();
@@ -333,128 +325,146 @@ int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_c
     }
     return i;
 }
-
-// float calculateSum(float num[]) {
-//   float sum = 0.0;
-
-//   for (int i = 0; i < 6; ++i) {
-//     sum += num[i];
-//   }
-
-//   return sum;
-// }
-
-                
-// double jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double run_cprob[], double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
+               
+double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
     
 
-//     // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-//     double p = p0*(1+dpop);
-//     nabs = 0;
+    // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
+    double p = p0*(1+dpop);
+    nabs = 0;
+    static double result[11];
       
-//     // Initialize the interaction length to input interaction length
-//     double rlen = zlm;
-//     double m_dpodx = 0.;
-//     double* tx; 
-//     double* tz; 
+    // Initialize the interaction length to input interaction length
+    double rlen = zlm;
+    double m_dpodx = 0.;
+    double t;
+    double tx; 
+    double tz; 
    
 
-//     // Do a step for a point-like interaction.
-//     // Get monte-carlo interaction length.
-//     while (1) {
+    // Do a step for a point-like interaction.
+    // Get monte-carlo interaction length.
+    while (1) {
 
-//         double run_zlm1 = (-1*run_xintl)*log(get_random());
+        double run_zlm1 = (-1*run_xintl)*log(get_random());
                         
-//         // If the monte-carlo interaction length is longer than the
-//         // remaining collimator length, then put it to the remaining
-//         // length, do multiple coulomb scattering and return.
-//         // LAST STEP IN ITERATION LOOP
-//         if (run_zlm1 > rlen) {
+        // If the monte-carlo interaction length is longer than the
+        // remaining collimator length, then put it to the remaining
+        // length, do multiple coulomb scattering and return.
+        // LAST STEP IN ITERATION LOOP
+        if (run_zlm1 > rlen) {
             
-//             run_zlm1 = rlen;
-//             s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+            run_zlm1 = rlen;
+        
+            double* res = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+            s = res[0];
+            x = res[1];
+            xp = res[2];
+            z = res[3];
+            zp = res[4];
 
-//             s = (zlm-rlen)+s;
-//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
-//             p = p-m_dpodx*s;
+            s = (zlm-rlen)+s;
+            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
+            p = p-m_dpodx*s;
                     
-//             dpop = (p-p0)/p0;
-//             break;
-//         }
-//         // Otherwise do multi-coulomb scattering.
-//         // REGULAR STEP IN ITERATION LOOP
-//         s, x, xp, z, zp, dpop = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+            dpop = (p-p0)/p0;
+            break;
+        }
+        // Otherwise do multi-coulomb scattering.
+        // REGULAR STEP IN ITERATION LOOP
+        double* res1 = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+        s = res1[0];
+        x = res1[1];
+        xp = res1[2];
+        z = res1[3];
+        zp = res1[4];
 
-//         // Check if particle is outside of collimator (X.LT.0) after
-//         // MCS. If yes, calculate output longitudinal position (s),
-//         // reduce momentum (output as dpop) and return.
-//         // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
+        // Check if particle is outside of collimator (X.LT.0) after
+        // MCS. If yes, calculate output longitudinal position (s),
+        // reduce momentum (output as dpop) and return.
+        // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
 
-//         if(x <= 0) {
+        if(x <= 0) {
 
-//             s = (zlm-rlen)+s;
-//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            s = (zlm-rlen)+s;
+            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
-//             p = p-m_dpodx*s;
-//             dpop = (p-p0)/p0;
-//             break;
-//         }
+            p = p-m_dpodx*s;
+            dpop = (p-p0)/p0;
+            break;
+        }
 
-//         // Check whether particle is absorbed. If yes, calculate output
-//         // longitudinal position (s), reduce momentum (output as dpop)
-//         // and return.
-//         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
+        // Check whether particle is absorbed. If yes, calculate output
+        // longitudinal position (s), reduce momentum (output as dpop)
+        // and return.
+        // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-//         int inter = ichoix(run_cprob);
-//         nabs = inter;
+        int inter = ichoix(ich_cprob0,ich_cprob1,ich_cprob2,ich_cprob3,ich_cprob4,ich_cprob5);
+        nabs = inter;
 
-//         if (inter == 1) {
+        if (inter == 1) {
 
-//             s = (zlm-rlen)+run_zlm1;
-//             run_exenergy, m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            s = (zlm-rlen)+run_zlm1;
+            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
-//             p = p-m_dpodx*s;
-//             dpop = (p-p0)/p0;
+            p = p-m_dpodx*s;
+            dpop = (p-p0)/p0;
 
-//             break;
-//         }
+            break;
+        }
 
 
-//         // Now treat the other types of interaction, as determined by ICHOIX:
+        // Now treat the other types of interaction, as determined by ICHOIX:
 
-//         // Nuclear-Elastic:          inter = 2
-//         // pp Elastic:               inter = 3
-//         // Single-Diffractive:       inter = 4    (changes momentum p)
-//         // Coulomb:                  inter = 5
+        // Nuclear-Elastic:          inter = 2
+        // pp Elastic:               inter = 3
+        // Single-Diffractive:       inter = 4    (changes momentum p)
+        // Coulomb:                  inter = 5
 
-//         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
+        // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-//         double t, p = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+        double* res2 = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+        t = res2[0];
+        p = res2[1];
 
-//         // Tetat calculates from the rms transverse momentum transfer in
-//         // monte-carlo fashion the angle changes for x and z planes. The
-//         // angle change is proportional to SQRT(t) and 1/p, as expected.
+        // Tetat calculates from the rms transverse momentum transfer in
+        // monte-carlo fashion the angle changes for x and z planes. The
+        // angle change is proportional to SQRT(t) and 1/p, as expected.
 
-//         tetat(t,p,tx,tz);
+        double* res3 = tetat(t,p,tx,tz);
+        tx = res3[0]; 
+        tz = res3[1];
 
-//         // Apply angle changes
-//         xp = xp + *tx;
-//         zp = zp + *tz;
+        // Apply angle changes
+        xp = xp + tx;
+        zp = zp + tz;
 
-//         // Treat single-diffractive scattering.
-//         if(inter == 4) {
-//             // added update for s
-//             s    = (zlm-rlen)+run_zlm1;
+        // Treat single-diffractive scattering.
+        if(inter == 4) {
+            // added update for s
+            s    = (zlm-rlen)+run_zlm1;
 
-//             // Add this code to get the momentum transfer also in the calling routine
-//             dpop = (p-p0)/p0;
-//         }
+            // Add this code to get the momentum transfer also in the calling routine
+            dpop = (p-p0)/p0;
+        }
 
-//         // Calculate the remaining interaction length and close the iteration loop.
-//         rlen = rlen-run_zlm1;
-//     }
-                  
-//     return run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop;
+        // Calculate the remaining interaction length and close the iteration loop.
+        rlen = rlen-run_zlm1;
+    }
 
-// }  
+    result[0] = run_exenergy;
+    result[1] = run_bn;
+    result[2] = p0;
+    result[3] = nabs;
+    result[4] = s;
+    result[5] = zlm;
+    result[6] = x;
+    result[7] = xp;
+    result[8] = z;
+    result[9] = zp;
+    result[10] = dpop;
+
+    return result;
+
+}  
   
