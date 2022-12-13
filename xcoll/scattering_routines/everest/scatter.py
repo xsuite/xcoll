@@ -2,7 +2,7 @@ import numpy as np
 from ._everest import lib
 from .crystal import crystal
 from .random import set_rutherford_parameters
-from .jaw import jaw
+#from .jaw import jaw
 
 
 def rutherford(t, zatom, emr):
@@ -33,6 +33,13 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     nabs   = 0
     fracab = 0
     mirror = 1
+
+    cprob0 = run_cprob[0]
+    cprob1 = run_cprob[1]
+    cprob2 = run_cprob[2]
+    cprob3 = run_cprob[3]
+    cprob4 = run_cprob[4]
+    cprob5 = run_cprob[5]
 
     # Compute rotation factors for collimator rotation
     cRot   = np.cos(c_rotation)
@@ -246,27 +253,44 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 s_impact = sp
                 nhit = nhit + 1
 
-                run_exenergy, run_bn, p0, nabs, s, zlm, x, xp, z, zp, dpop = jaw(
-                                                                            run_exenergy=run_exenergy,
-                                                                            run_anuc=run_anuc,
-                                                                            run_zatom=run_zatom,
-                                                                            run_rho=run_rho,
-                                                                            run_radl=run_radl,
-                                                                            run_cprob=run_cprob,
-                                                                            run_xintl=run_xintl,
-                                                                            run_bn=run_bn,
-                                                                            run_ecmsq=run_ecmsq,
-                                                                            run_xln15s=run_xln15s,
-                                                                            run_bpp=run_bpp,
-                                                                            p0=p0,
-                                                                            nabs=nabs,
-                                                                            s=s,
-                                                                            zlm=zlm,
-                                                                            x=x,
-                                                                            xp=xp,
-                                                                            z=z,
-                                                                            zp=zp,
-                                                                            dpop=dpop)
+                
+                result = lib.jaw(run_exenergy,
+                                run_anuc,
+                                run_zatom,
+                                run_rho,
+                                run_radl,
+                                cprob0,
+                                cprob1,
+                                cprob2,
+                                cprob3,
+                                cprob4,
+                                cprob5,
+                                run_xintl,
+                                run_bn,
+                                run_ecmsq,
+                                run_xln15s,
+                                run_bpp,
+                                p0,
+                                nabs,
+                                s,
+                                zlm,
+                                x,
+                                xp,
+                                z,
+                                zp,
+                                dpop)
+
+                run_exenergy = result[0]
+                run_bn = result[1]
+                p0 = result[2]
+                nabs = result[3]
+                s = result[4]
+                zlm = result[5]
+                x = result[6]
+                xp = result[7]
+                z = result[8]
+                zp = result[9]
+                dpop = result[10]
 
                 val_nabs_type = nabs
                 val_part_hit  = 1
