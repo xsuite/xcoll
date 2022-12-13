@@ -734,151 +734,151 @@ def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
 
 
 
-def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc):
+# def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc):
 
-    from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
+#     from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
 
-    xp_in = xp
-    yp_in = yp
-    pc_in = pc
+#     xp_in = xp
+#     yp_in = yp
+#     pc_in = pc
 
-    pmae = 0.51099890
-    pmap = 938.271998
+#     pmae = 0.51099890
+#     pmap = 938.271998
 
-    cs = np.zeros(6)
-    cprob = np.zeros(6)
-    xran_cry = np.zeros(1)
+#     cs = np.zeros(6)
+#     cprob = np.zeros(6)
+#     xran_cry = np.zeros(1)
 
-    # New treatment of scattering routine based on standard sixtrack routine
-    # useful calculations for cross-section and event topology calculation
-    ecmsq  = ((2*pmap)*1.0e-3)*pc
-    xln15s = np.log(0.15*ecmsq)
+#     # New treatment of scattering routine based on standard sixtrack routine
+#     # useful calculations for cross-section and event topology calculation
+#     ecmsq  = ((2*pmap)*1.0e-3)*pc
+#     xln15s = np.log(0.15*ecmsq)
 
-    # New models, see Claudia's thesis
-    pptot = (0.041084 - 0.0023302*np.log(ecmsq)) + 0.00031514*np.log(ecmsq)**2
-    ppel  = (11.7 - 1.59*np.log(ecmsq) + 0.134*np.log(ecmsq)**2)/1.0e3
-    ppsd  = (4.3 + 0.3*np.log(ecmsq))/1.0e3
-    bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
+#     # New models, see Claudia's thesis
+#     pptot = (0.041084 - 0.0023302*np.log(ecmsq)) + 0.00031514*np.log(ecmsq)**2
+#     ppel  = (11.7 - 1.59*np.log(ecmsq) + 0.134*np.log(ecmsq)**2)/1.0e3
+#     ppsd  = (4.3 + 0.3*np.log(ecmsq))/1.0e3
+#     bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
 
-    # # Distribution for Ruth. scatt.
-    set_rutherford_parameters(zatom, emr, hcut)
+#     # # Distribution for Ruth. scatt.
+#     set_rutherford_parameters(zatom, emr, hcut)
 
-    # Cross-section calculation
-    # freep: number of nucleons involved in single scattering
-    freep = freeco_cry * anuc**(1/3)
+#     # Cross-section calculation
+#     # freep: number of nucleons involved in single scattering
+#     freep = freeco_cry * anuc**(1/3)
 
-    # Compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
-    cs[3] = freep*ppel
-    cs[4] = freep*ppsd
+#     # Compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+#     cs[3] = freep*ppel
+#     cs[4] = freep*ppsd
 
-    # Correct TOT-CSec for energy dependence of qel
-    # TOT CS is here without a Coulomb contribution
-    cs[0] = csref0 + freep*(pptot - pptref_cry)
-    bn    = (bnref*cs[0])/csref0
+#     # Correct TOT-CSec for energy dependence of qel
+#     # TOT CS is here without a Coulomb contribution
+#     cs[0] = csref0 + freep*(pptot - pptref_cry)
+#     bn    = (bnref*cs[0])/csref0
 
-    # Also correct inel-CS
-    cs[1] = (csref1*cs[0])/csref0
+#     # Also correct inel-CS
+#     cs[1] = (csref1*cs[0])/csref0
 
-    # Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
-    cs[2] = ((cs[0] - cs[1]) - cs[3]) - cs[4]
-    cs[5] = csref5
+#     # Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+#     cs[2] = ((cs[0] - cs[1]) - cs[3]) - cs[4]
+#     cs[5] = csref5
 
-    # Now add Coulomb
-    cs[0] = cs[0] + cs[5]
+#     # Now add Coulomb
+#     cs[0] = cs[0] + cs[5]
 
-    # Calculate cumulative probability
-    cprob[:] = 0
-    cprob[5] = 1
+#     # Calculate cumulative probability
+#     cprob[:] = 0
+#     cprob[5] = 1
 
-    for i in range(1,5,1):
-        cprob[i] = cprob[i-1] + cs[i]/cs[0]
+#     for i in range(1,5,1):
+#         cprob[i] = cprob[i-1] + cs[i]/cs[0]
 
-    # Multiple Coulomb Scattering
-    xp  = xp*1.0e3
-    yp  = yp*1.0e3
-    pc  = pc - dei*dz # Energy lost because of ionization process[GeV]
+#     # Multiple Coulomb Scattering
+#     xp  = xp*1.0e3
+#     yp  = yp*1.0e3
+#     pc  = pc - dei*dz # Energy lost because of ionization process[GeV]
 
-    dya   = (13.6/pc)*np.sqrt(dz/dlr) # RMS of coloumb scattering MCS (mrad)
-    kxmcs = dya*get_random_gauss()
-    kymcs = dya*get_random_gauss()
+#     dya   = (13.6/pc)*np.sqrt(dz/dlr) # RMS of coloumb scattering MCS (mrad)
+#     kxmcs = dya*get_random_gauss()
+#     kymcs = dya*get_random_gauss()
 
-    xp = xp+kxmcs
-    yp = yp+kymcs
+#     xp = xp+kxmcs
+#     yp = yp+kymcs
 
-    if(nam == 0):
-        return xp, yp, pc, iProc # Turn on/off nuclear interactions
+#     if(nam == 0):
+#         return xp, yp, pc, iProc # Turn on/off nuclear interactions
 
-    # Can nuclear interaction happen?
-    zlm = -collnt*np.log(get_random())
+#     # Can nuclear interaction happen?
+#     zlm = -collnt*np.log(get_random())
 
-    if (zlm < dz):
-        # Choose nuclear interaction
-        aran = get_random()
-        i=1
+#     if (zlm < dz):
+#         # Choose nuclear interaction
+#         aran = get_random()
+#         i=1
 
-        while (aran > cprob[i]):
-            i = i+1
-            #goto 10
+#         while (aran > cprob[i]):
+#             i = i+1
+#             #goto 10
         
-        ichoix = i
+#         ichoix = i
 
-        # Do the interaction
-        t = 0 # default value to cover ichoix=1
-        if (ichoix==1): 
-        #case(1) # Deep inelastic, impinging p disappeared
-            iProc = proc_absorbed
+#         # Do the interaction
+#         t = 0 # default value to cover ichoix=1
+#         if (ichoix==1): 
+#         #case(1) # Deep inelastic, impinging p disappeared
+#             iProc = proc_absorbed
 
-        elif (ichoix==2): # p-n elastic
-            iProc = proc_pne
-            t     = -np.log(get_random())/bn
+#         elif (ichoix==2): # p-n elastic
+#             iProc = proc_pne
+#             t     = -np.log(get_random())/bn
 
-        elif (ichoix==3): # p-p elastic
-            iProc = proc_ppe
-            t     = -np.log(get_random())/bpp
+#         elif (ichoix==3): # p-p elastic
+#             iProc = proc_ppe
+#             t     = -np.log(get_random())/bpp
 
-        elif (ichoix==4): # Single diffractive
-            iProc = proc_diff
-            xm2   = np.exp(get_random()*xln15s)
-            pc    = pc*(1 - xm2/ecmsq)
+#         elif (ichoix==4): # Single diffractive
+#             iProc = proc_diff
+#             xm2   = np.exp(get_random()*xln15s)
+#             pc    = pc*(1 - xm2/ecmsq)
 
-            if(xm2 < 2):
-                bsd = 2*bpp
-            elif(xm2 >= 2 and xm2 <= 5):
-                bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
-            elif(xm2 > 5):
-                bsd = 7.0*bpp/12.0
-            #end if
-            t = -np.log(get_random())/bsd
+#             if(xm2 < 2):
+#                 bsd = 2*bpp
+#             elif(xm2 >= 2 and xm2 <= 5):
+#                 bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
+#             elif(xm2 > 5):
+#                 bsd = 7.0*bpp/12.0
+#             #end if
+#             t = -np.log(get_random())/bsd
 
-        else: #(ichoix==5)
-            iProc = proc_ruth
-        # in python: t = get_random_ruth()
-            #length_cry = 1
-            xran_cry[0] = get_random_ruth()
-            t = xran_cry[0]
+#         else: #(ichoix==5)
+#             iProc = proc_ruth
+#         # in python: t = get_random_ruth()
+#             #length_cry = 1
+#             xran_cry[0] = get_random_ruth()
+#             t = xran_cry[0]
 
-        # end select
+#         # end select
 
-        # Calculate the related kick
-        if(ichoix == 4):
-            teta = np.sqrt(t)/pc_in # DIFF has changed PC
+#         # Calculate the related kick
+#         if(ichoix == 4):
+#             teta = np.sqrt(t)/pc_in # DIFF has changed PC
 
-        else:
-            teta = np.sqrt(t)/pc
-            #end if
+#         else:
+#             teta = np.sqrt(t)/pc
+#             #end if
 
-        tx = (teta*get_random_gauss())*1.0e3
-        tz = (teta*get_random_gauss())*1.0e3
+#         tx = (teta*get_random_gauss())*1.0e3
+#         tz = (teta*get_random_gauss())*1.0e3
 
-        # Change p angle
-        xp = xp + tx
-        yp = yp + tz
-    # end if
+#         # Change p angle
+#         xp = xp + tx
+#         yp = yp + tz
+#     # end if
 
-    xp = xp/1.0e3
-    yp = yp/1.0e3
+#     xp = xp/1.0e3
+#     yp = yp/1.0e3
 
-    return xp,yp,pc,iProc
+#     return xp,yp,pc,iProc
 
 
 # def movech(nam,dz,x,xp,yp,pc,r,rc,rho,anuc,zatom,emr,hcut,bnref,csect,csref0,csref1,csref5,eUm,collnt,iProc):

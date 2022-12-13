@@ -1,5 +1,38 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+double tlcut_cry = 0.0009982;
+
+double aTF = 0.194e-10; // Screening function [m]
+double dP  = 1.920e-10; // Distance between planes (110) [m]
+double u1  = 0.075e-10; // Thermal vibrations amplitude
+
+// pp cross-sections and parameters for energy dependence
+double pptref_cry = 0.040;
+double freeco_cry = 1.618;
+
+// Processes
+int proc_out         =  -1;     // Crystal not hit
+int proc_AM          =   1;     // Amorphous
+int proc_VR          =   2;     // Volume reflection
+int proc_CH          =   3;     // Channeling
+int proc_VC          =   4;     // Volume capture
+int proc_absorbed    =   5;     // Absorption
+int proc_DC          =   6;     // Dechanneling
+int proc_pne         =   7;     // Proton-neutron elastic interaction
+int proc_ppe         =   8;     // Proton-proton elastic interaction
+int proc_diff        =   9;     // Single diffractive
+int proc_ruth        =  10;     // Rutherford scattering
+int proc_ch_absorbed =  15;     // Channeling followed by absorption
+int proc_ch_pne      =  17;     // Channeling followed by proton-neutron elastic interaction
+int proc_ch_ppe      =  18;     // Channeling followed by proton-proton elastic interaction
+int proc_ch_diff     =  19;     // Channeling followed by single diffractive
+int proc_ch_ruth     =  20;     // Channeling followed by Rutherford scattering
+int proc_TRVR        = 100;     // Volume reflection in VR-AM transition region
+int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
+
+int temp = 0;
 
 double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csect, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
@@ -15,7 +48,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
     double cs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     double cprob[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
-    double xran_cry = {0.0};
+    double xran_cry[1] = {0.0};
     set_rutherford_parameters(zatom, emr, hcut);
 
     //New treatment of scattering routine based on standard sixtrack routine
@@ -34,20 +67,20 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
     //Rescale the total and inelastic cross-section accordigly to the average density seen
     double x_i = x;
-    double np  = int(x_i/dP);    //Calculate in which crystalline plane the particle enters
+    int np  = x_i/dP;    //Calculate in which crystalline plane the particle enters
     x_i = x_i - np*dP;    //Rescale the incoming x at the left crystalline plane
     x_i = x_i - (dP/2); //Rescale the incoming x in the middle of crystalline planes
 
-    double pv   = pc**2/sqrt(pow(pc,2) + pow((pmap*1.0e-3),2))*1.0e9;          //Calculate pv=P/E
+    double pv   = pow(pc,2)/sqrt(pow(pc,2) + pow((pmap*1.0e-3),2))*1.0e9;          //Calculate pv=P/E
     double Ueff = eUm*((2*x_i)/dP)*((2*x_i)/dP) + pv*x_i/r; //Calculate effective potential
     double Et   = (pv*pow(xp,2))/2 + Ueff;                            //Calculate transverse energy
     double Ec   = (eUm*(1-rc/r))*(1-rc/r);                  //Calculate critical energy in bent crystals
 
     //To avoid negative Et
     double xminU = ((-pow(dP,2)*pc)*1.0e9)/(8*eUm*r);
-    double Umin  = abs((eUm*((2*xminU)/dP))*((2*xminU)/dP) + pv*xminU/r);
-    double Et    = Et + Umin;
-    double Ec    = Ec + Umin;
+    double Umin  = fabs((eUm*((2*xminU)/dP))*((2*xminU)/dP) + pv*xminU/r);
+    Et    = Et + Umin;
+    Ec    = Ec + Umin;
 
     //Calculate min e max of the trajectory between crystalline planes
     double x_min = (-(dP/2)*rc)/r - (dP/2)*sqrt(Et/Ec);
@@ -58,16 +91,16 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     x_max = x_max - dP/2;
 
     //Calculate the "normal density" in m^-3
-    N_am  = ((rho*6.022e23)*1.0e6)/anuc;
+    double N_am  = ((rho*6.022e23)*1.0e6)/anuc;
 
     //Calculate atomic density at min and max of the trajectory oscillation
     // erf returns the error function of complex argument
-    rho_max = ((N_am*dP)/2)*(sp.erf(x_max/sqrt(2*pow(u1,2))) - sp.erf((dP-x_max)/sqrt(2*pow(u1,2))));
-    rho_min = ((N_am*dP)/2)*(sp.erf(x_min/sqrt(2*pow(u1,2))) - sp.erf((dP-x_min)/sqrt(2*pow(u1,2))));
+    double rho_max = ((N_am*dP)/2)*(erf(x_max/sqrt(2*pow(u1,2))) - erf((dP-x_max)/sqrt(2*pow(u1,2))));
+    double rho_min = ((N_am*dP)/2)*(erf(x_min/sqrt(2*pow(u1,2))) - erf((dP-x_min)/sqrt(2*pow(u1,2))));
 
     //"zero-approximation" of average nuclear density seen along the trajectory
     double avrrho  = (rho_max - rho_min)/(x_max - x_min);
-    double avrrho  = (2*avrrho)/N_am;
+    avrrho  = (2*avrrho)/N_am;
 
     double csref_tot_rsc  = csref0*avrrho; //Rescaled total ref cs
     double csref_inel_rsc = csref1*avrrho; //Rescaled inelastic ref cs
@@ -100,16 +133,18 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     cs[0] = cs[0] + cs[5];
 
     //Calculate cumulative probability
-    cprob[:] = 0;
+    //cprob[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     cprob[5] = 1;
     
     if (cs[0] == 0) {
+        int i;
         for (i = 1; i < 5; ++i) {
             cprob[i] = cprob[i-1];
         }
     }
         
     else {
+        int i;
         for (i = 1; i < 5; ++i) {
             cprob[i] = cprob[i-1] + cs[i]/cs[0];
         }
@@ -121,7 +156,13 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
     //Turn on/off nuclear interactions
     if (nam == 0) {
-        return x,xp,yp,pc,iProc;
+        result[0] = x;
+        result[1] = xp;
+        result[2] = yp;
+        result[3] = pc;
+        result[4] = iProc;
+
+        return result;
     }
     
     double nuc_cl_l;
@@ -142,15 +183,22 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
         //Choose nuclear interaction
         double aran = get_random();
-        i=1;
+        int i = 1;
+        double bn;
+        double xm2;
+        double bsd = 0.0;
+        double teta;
+        double tx;
+        double tz;
+
         while (aran > cprob[i]) {
             i=i+1;
         }
         
-        ichoix = i;
+        int ichoix = i;
 
         //Do the interaction
-        t = 0 ; //default value to cover ichoix=1
+        double t = 0 ; //default value to cover ichoix=1
         
         if (ichoix==1) {
             iProc = proc_ch_absorbed; //deep inelastic, impinging p disappeared
@@ -158,7 +206,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
             
         else if (ichoix==2) { //p-n elastic
             iProc = proc_ch_pne;
-            bn    = (bnref*cs(0))/csref_tot_rsc;
+            bn    = (bnref*cs[0])/csref_tot_rsc;
             t     = -log(get_random())/bn;
         }
 
@@ -175,7 +223,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
             if (xm2 < 2) {
                 bsd = 2*bpp;
             }
-            else if (xm2 >= 2 and xm2 <= 5) {
+            else if (xm2 >= 2 && xm2 <= 5) {
                 bsd = ((106.0 - 17.0*xm2)*bpp)/36.0;
             }
             else if (xm2 > 5) {
@@ -187,7 +235,6 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
         else { //(ichoix==5)
             iProc      = proc_ch_ruth;
-            length_cry = 1;
             xran_cry[0] = get_random_ruth();
             t = xran_cry[0];
         }
@@ -212,12 +259,159 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     xp = xp/1.0e3;
     yp = yp/1.0e3;
 
-    x = result[0];
-    xp = result[1];
-    yp = result[2];
-    pc = result[3];
-    iProc = result[4];
+    result[0] = x;
+    result[1] = xp;
+    result[2] = yp;
+    result[3] = pc;
+    result[4] = iProc;
 
     return result;
 
 }
+
+
+// def moveam(nam,dz,dei,dlr,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc):
+
+//     from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
+
+//     xp_in = xp
+//     yp_in = yp
+//     pc_in = pc
+
+//     pmae = 0.51099890
+//     pmap = 938.271998
+
+//     cs = np.zeros(6)
+//     cprob = np.zeros(6)
+//     xran_cry = np.zeros(1)
+
+//     # New treatment of scattering routine based on standard sixtrack routine
+//     # useful calculations for cross-section and event topology calculation
+//     ecmsq  = ((2*pmap)*1.0e-3)*pc
+//     xln15s = np.log(0.15*ecmsq)
+
+//     # New models, see Claudia's thesis
+//     pptot = (0.041084 - 0.0023302*np.log(ecmsq)) + 0.00031514*np.log(ecmsq)**2
+//     ppel  = (11.7 - 1.59*np.log(ecmsq) + 0.134*np.log(ecmsq)**2)/1.0e3
+//     ppsd  = (4.3 + 0.3*np.log(ecmsq))/1.0e3
+//     bpp   = 7.156 + 1.439*np.log(np.sqrt(ecmsq))
+
+//     # # Distribution for Ruth. scatt.
+//     set_rutherford_parameters(zatom, emr, hcut)
+
+//     # Cross-section calculation
+//     # freep: number of nucleons involved in single scattering
+//     freep = freeco_cry * anuc**(1/3)
+
+//     # Compute pp and pn el+single diff contributions to cross-section (both added : quasi-elastic or qel later)
+//     cs[3] = freep*ppel
+//     cs[4] = freep*ppsd
+
+//     # Correct TOT-CSec for energy dependence of qel
+//     # TOT CS is here without a Coulomb contribution
+//     cs[0] = csref0 + freep*(pptot - pptref_cry)
+//     bn    = (bnref*cs[0])/csref0
+
+//     # Also correct inel-CS
+//     cs[1] = (csref1*cs[0])/csref0
+
+//     # Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
+//     cs[2] = ((cs[0] - cs[1]) - cs[3]) - cs[4]
+//     cs[5] = csref5
+
+//     # Now add Coulomb
+//     cs[0] = cs[0] + cs[5]
+
+//     # Calculate cumulative probability
+//     cprob[:] = 0
+//     cprob[5] = 1
+
+//     for i in range(1,5,1):
+//         cprob[i] = cprob[i-1] + cs[i]/cs[0]
+
+//     # Multiple Coulomb Scattering
+//     xp  = xp*1.0e3
+//     yp  = yp*1.0e3
+//     pc  = pc - dei*dz # Energy lost because of ionization process[GeV]
+
+//     dya   = (13.6/pc)*np.sqrt(dz/dlr) # RMS of coloumb scattering MCS (mrad)
+//     kxmcs = dya*get_random_gauss()
+//     kymcs = dya*get_random_gauss()
+
+//     xp = xp+kxmcs
+//     yp = yp+kymcs
+
+//     if(nam == 0):
+//         return xp, yp, pc, iProc # Turn on/off nuclear interactions
+
+//     # Can nuclear interaction happen?
+//     zlm = -collnt*np.log(get_random())
+
+//     if (zlm < dz):
+//         # Choose nuclear interaction
+//         aran = get_random()
+//         i=1
+
+//         while (aran > cprob[i]):
+//             i = i+1
+//             #goto 10
+        
+//         ichoix = i
+
+//         # Do the interaction
+//         t = 0 # default value to cover ichoix=1
+//         if (ichoix==1): 
+//         #case(1) # Deep inelastic, impinging p disappeared
+//             iProc = proc_absorbed
+
+//         elif (ichoix==2): # p-n elastic
+//             iProc = proc_pne
+//             t     = -np.log(get_random())/bn
+
+//         elif (ichoix==3): # p-p elastic
+//             iProc = proc_ppe
+//             t     = -np.log(get_random())/bpp
+
+//         elif (ichoix==4): # Single diffractive
+//             iProc = proc_diff
+//             xm2   = np.exp(get_random()*xln15s)
+//             pc    = pc*(1 - xm2/ecmsq)
+
+//             if(xm2 < 2):
+//                 bsd = 2*bpp
+//             elif(xm2 >= 2 and xm2 <= 5):
+//                 bsd = ((106.0 - 17.0*xm2)*bpp)/36.0
+//             elif(xm2 > 5):
+//                 bsd = 7.0*bpp/12.0
+//             #end if
+//             t = -np.log(get_random())/bsd
+
+//         else: #(ichoix==5)
+//             iProc = proc_ruth
+//         # in python: t = get_random_ruth()
+//             #length_cry = 1
+//             xran_cry[0] = get_random_ruth()
+//             t = xran_cry[0]
+
+//         # end select
+
+//         # Calculate the related kick
+//         if(ichoix == 4):
+//             teta = np.sqrt(t)/pc_in # DIFF has changed PC
+
+//         else:
+//             teta = np.sqrt(t)/pc
+//             #end if
+
+//         tx = (teta*get_random_gauss())*1.0e3
+//         tz = (teta*get_random_gauss())*1.0e3
+
+//         # Change p angle
+//         xp = xp + tx
+//         yp = yp + tz
+//     # end if
+
+//     xp = xp/1.0e3
+//     yp = yp/1.0e3
+
+//     return xp,yp,pc,iProc
