@@ -1,6 +1,5 @@
 #include <math.h>
 #include <stdio.h>
-// #include "random.h"
 
 double iterat(double a, double b, double dh, double s) {
 

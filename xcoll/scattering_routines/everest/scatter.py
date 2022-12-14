@@ -2,7 +2,6 @@ import numpy as np
 from ._everest import lib
 from .crystal import crystal
 from .random import set_rutherford_parameters
-#from .jaw import jaw
 
 
 def rutherford(t, zatom, emr):
