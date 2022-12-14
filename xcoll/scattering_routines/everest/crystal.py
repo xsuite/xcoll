@@ -394,7 +394,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
         y     = y0 + yp*s
         iProc = proc_AM
 
-        dest = calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
+        dest = lib.calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc)
 
         result1 = lib.moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
@@ -412,7 +412,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
     elif (x > cry_xmax-cry_alayer and x < cry_xmax):
         iProc = proc_AM
         
-        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+        dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc)
 
         result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
@@ -481,13 +481,13 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit
                 y     = y  + yp * Sdech
 
-                dest = calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
+                dest = lib.calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
                 pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
                 x  = x  + (0.5*(s_length-Sdech))*xp
                 y  = y  + (0.5*(s_length-Sdech))*yp
 
-                dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
+                dest = lib.calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
 
                 result1 = lib.moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
@@ -523,7 +523,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + (0.5*L_chan)*xp
                     y = y + (0.5*L_chan)*yp
 
-                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - dest*length #energy loss to ionization [GeV]
 
@@ -534,7 +534,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
                     y   = y + s_length * yp
 
-                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]      
 
@@ -546,7 +546,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
             x  = x  + (0.5*s_length)*xp
             y  = y  + (0.5*s_length)*yp
 
-            dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+            dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                                 exenergy,zatom,rho,anuc)
             result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -575,7 +575,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 x  = x  + (0.5*xp)*(s_length - Srefl)
                 y     = y  + (0.5*yp)*(s_length - Srefl)
 
-                dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc)
                 result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -606,16 +606,16 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x  = x + (0.5*xp)*Red_S
                     y     = y + (0.5*yp)*Red_S
 
-                    dest = calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
 
                     pc = pc - dest*Srefl #"added" energy loss before capture
 
-                    dest = calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
 
-                    dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     result1 = lib.moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -633,7 +633,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     tchan   = Rlength/cry_rcurv
                     Red_S   = Rlength*np.cos(xp + 0.5*tchan)
 
-                    dest = calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     pc   = pc - dest*Lrefl #"added" energy loss before capture
                     xpin = xp
@@ -657,7 +657,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         x = x + (0.5*Rlength)*xp
                         y = y + (0.5*Rlength)*yp
 
-                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                        dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc)
                         pc = pc - dest*Rlength
 
@@ -667,7 +667,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                         y   = y + Red_S*yp
                         xp  = tdefl + (0.5*get_random_gauss(0))*xpcrit #[mrad]
 
-                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                        dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc)
                         pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
 
@@ -679,7 +679,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                 x  = x + (0.5*s_length)*xp
                 y     = y + (0.5*s_length)*yp
                 if(zn > 0):
-                    dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -704,7 +704,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x = x + (0.5*xp)*(s_length-Srefl)
                     y   = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -725,7 +725,7 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
                     x  = x + (0.5*xp)*(s_length-Srefl)
                     y  = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc)
                     result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc)
@@ -741,35 +741,35 @@ def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,a
 
 
 
-def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
+# def calcionloss(dz,EnLo,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc):
 
-    from .random import get_random
+#     from .random import get_random
 
-    k = 0.307075 # Constant in front bethe-bloch [mev g^-1 cm^2]
-    pmae = 0.51099890
-    pmap = 938.271998
+#     k = 0.307075 # Constant in front bethe-bloch [mev g^-1 cm^2]
+#     pmae = 0.51099890
+#     pmap = 938.271998
 
-    thl  = (((((4*k)*zatom)*dz)*1.0e2)*rho)/(anuc*betar**2) # [MeV]
-    EnLo = ((k*zatom)/(anuc*betar**2)) * (
-        0.5*np.log(((((2*pmae)*bgr)*bgr)*tmax)/(1.0e6*exenergy**2)) -
-        betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5   
-    )
-    EnLo = ((EnLo*rho)*1.0e-1)*dz # [GeV]
-    Tt   = (EnLo*1.0e3)+thl          # [MeV]
+#     thl  = (((((4*k)*zatom)*dz)*1.0e2)*rho)/(anuc*betar**2) # [MeV]
+#     EnLo = ((k*zatom)/(anuc*betar**2)) * (
+#         0.5*np.log(((((2*pmae)*bgr)*bgr)*tmax)/(1.0e6*exenergy**2)) -
+#         betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5   
+#     )
+#     EnLo = ((EnLo*rho)*1.0e-1)*dz # [GeV]
+#     Tt   = (EnLo*1.0e3)+thl          # [MeV]
 
-    cs_tail   = ((k*zatom)/(anuc*betar**2)) * ((0.5*((1/Tt)-(1/tmax))) -
-        (np.log(tmax/Tt)*(betar**2)/(2*tmax)) + ((tmax-Tt)/((4*(gammar**2))*(pmap**2))))
-    prob_tail = ((cs_tail*rho)*dz)*1.0e2
+#     cs_tail   = ((k*zatom)/(anuc*betar**2)) * ((0.5*((1/Tt)-(1/tmax))) -
+#         (np.log(tmax/Tt)*(betar**2)/(2*tmax)) + ((tmax-Tt)/((4*(gammar**2))*(pmap**2))))
+#     prob_tail = ((cs_tail*rho)*dz)*1.0e2
 
-    if (get_random() < prob_tail):
-        EnLo = ((k*zatom)/(anuc*betar**2)) * (
-        0.5*np.log((2*pmae*bgr*bgr*tmax)/(1.0e6*exenergy**2)) -     
-        betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5 +
-        tmax**2/(8*(gammar**2)*(pmap**2))
-        )
-        EnLo = (EnLo*rho)*1.0e-1 # [GeV/m]
+#     if (get_random() < prob_tail):
+#         EnLo = ((k*zatom)/(anuc*betar**2)) * (
+#         0.5*np.log((2*pmae*bgr*bgr*tmax)/(1.0e6*exenergy**2)) -     
+#         betar**2 - np.log(plen/(exenergy*1.0e3)) - np.log(bgr) + 0.5 +
+#         tmax**2/(8*(gammar**2)*(pmap**2))
+#         )
+#         EnLo = (EnLo*rho)*1.0e-1 # [GeV/m]
 
-    else:
-        EnLo = EnLo/dz # [GeV/m]
+#     else:
+#         EnLo = EnLo/dz # [GeV/m]
 
-    return EnLo
+#     return EnLo

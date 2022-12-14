@@ -22,7 +22,7 @@ ffibuilder.cdef("double* jaw(double run_exenergy, double run_anuc, double run_za
 # Crystal functions
 ffibuilder.cdef("double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csect, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc);")
 ffibuilder.cdef("double* moveam(double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc);")
-
+ffibuilder.cdef("double calcionloss(double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc);")
 
 ffibuilder.set_source("_everest",  # name of the output C extension
 """

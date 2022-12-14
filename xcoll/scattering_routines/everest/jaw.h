@@ -251,7 +251,7 @@ double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt
                 
 }
                 
-double calcionloss(double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
+double calcionloss_jaw(double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
     double enr    = pow((mom*mom + 938.271998*938.271998),0.5); //[MeV]
@@ -363,7 +363,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
             zp = res[4];
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
+            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
             p = p-m_dpodx*s;
                     
             dpop = (p-p0)/p0;
@@ -386,7 +386,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         if(x <= 0) {
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
             p = p-m_dpodx*s;
             dpop = (p-p0)/p0;
@@ -404,7 +404,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         if (inter == 1) {
 
             s = (zlm-rlen)+run_zlm1;
-            m_dpodx = calcionloss(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
             p = p-m_dpodx*s;
             dpop = (p-p0)/p0;

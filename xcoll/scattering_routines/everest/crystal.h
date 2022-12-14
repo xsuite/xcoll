@@ -442,3 +442,35 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
     return result; // Turn on/off nuclear interactions
 
 }
+
+
+double calcionloss(double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc) {
+
+    double k = 0.307075; // Constant in front bethe-bloch [mev g^-1 cm^2]
+    double pmae = 0.51099890;
+    double pmap = 938.271998;
+
+    double thl  = (((((4.*k)*zatom)*dz)*1.0e2)*rho)/(anuc* pow(betar,2)); // [MeV]
+    EnLo = ((k*zatom)/(anuc* pow(betar,2.))) * (0.5*log(((((2.*pmae)*bgr)*bgr)*tmax)/(1.0e6* pow(exenergy,2.))) -
+            pow(betar,2.) - log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5);
+    EnLo = ((EnLo*rho)*1.0e-1)*dz; // [GeV]
+    double Tt   = (EnLo*1.0e3)+thl; // [MeV]
+
+    double cs_tail   = ((k*zatom)/(anuc* pow(betar,2.))) * ((0.5*((1/Tt)-(1./tmax))) - (log(tmax/Tt)*(pow(betar,2.))/(2.*tmax)) 
+                        + ((tmax-Tt)/((4.*(pow(gammar,2.)))*(pow(pmap,2.)))));
+    double prob_tail = ((cs_tail*rho)*dz)*1.0e2;
+
+    if (get_random() < prob_tail) {
+        EnLo = ((k*zatom)/(anuc*pow(betar,2.))) * (0.5*log((2*pmae*bgr*bgr*tmax)/(1.0e6*pow(exenergy,2.))) - pow(betar,2.) - 
+                log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5 + pow(tmax,2.)/(8.*(pow(gammar,2.))*(pow(pmap,2.))));
+
+        EnLo = (EnLo*rho)*1.0e-1; // [GeV/m]
+    }
+
+    else {
+        EnLo = EnLo/dz; // [GeV/m]
+    }
+
+    return EnLo;
+
+}
