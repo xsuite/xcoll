@@ -39,9 +39,6 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
             cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
             cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt, iProc, n_chan, n_VR, n_amorphous):
 
-
-    from .random import get_random
-
     s_temp     = 0
     s_shift    = 0
     s_rot      = 0
@@ -98,12 +95,25 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
         # MISCUT first step: P coordinates (center of curvature of crystalline planes)
         s_P = (cry_rcurv-cry_xmax)*np.sin(-cry_miscut)
         x_P = cry_xmax + (cry_rcurv-cry_xmax)*np.cos(-cry_miscut)
+        
+        print(type(x),type(xp),type(z),type(zp),type(p),type(cry_length),type(s_P),type(x_P),type(exenergy),type(rho),type(anuc),type(zatom),type(emr),type(dlri),type(dlyi),type(
+                        ai),type(eum),type(collnt),type(hcut),type(csref0),type(csref1),type(csref5),type(bnref),type(csect),type(cry_tilt),type(
+                        cry_rcurv),type(cry_alayer),type(cry_xmax),type(cry_ymax),type(cry_orient),type(cry_miscut),type(cry_bend),type(cry_cBend),type(
+                        cry_sBend),type(cry_cpTilt),type(cry_spTilt),type(cry_cnTilt),type(cry_snTilt),type(iProc))
+                        
+        vector = np.vectorize(lib.interact)
 
-        x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
+        result = lib.interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
                         ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,csect,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
 
+        x = result[0]
+        xp = result[1]
+        z = result[2]
+        zp = result[3]
+        p = result[4]
+        iProc = result[5]
                 
         s   = cry_rcurv*cry_sBend
         zlm = cry_rcurv*cry_sBend
@@ -158,10 +168,17 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
                 s_P = s_P_tmp*np.cos(tilt_int) + x_P_tmp*np.sin(tilt_int)
                 x_P = -s_P_tmp*np.sin(tilt_int) + x_P_tmp*np.cos(tilt_int)
 
-                x,xp,z,zp,p,iProc = interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
+                result = lib.interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
                                 csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
+
+                x = result[0]
+                xp = result[1]
+                z = result[2]
+                zp = result[3]
+                p = result[4]
+                iProc = result[5]
 
                 s   = cry_rcurv*np.sin(cry_bend - tilt_int)
                 zlm = cry_rcurv*np.sin(cry_bend - tilt_int)
@@ -260,484 +277,484 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
 
 
-def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,hcut,csref0,csref1,
-            csref5,bnref,csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
-            cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
+# def interact(x,xp,y,yp,pc,length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,ai,eUm,collnt,hcut,csref0,csref1,
+#             csref5,bnref,csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
+#             cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc):
 
-    from .random import get_random, get_random_gauss
+#     from .random import get_random, get_random_gauss
 
-    dest = 0.
-    pmap = 938.271998
-    pmae = 0.51099890
-    crade = 2.817940285e-15
+#     dest = 0.
+#     pmap = 938.271998
+#     pmae = 0.51099890
+#     crade = 2.817940285e-15
 
-    c_v1 =  1.7   # Fitting coefficient
-    c_v2 = -1.5   # Fitting coefficient
+#     c_v1 =  1.7   # Fitting coefficient
+#     c_v2 = -1.5   # Fitting coefficient
 
-    nam = 1 # Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
-    zn  = 1
+#     nam = 1 # Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+#     zn  = 1
 
-    # dE/dX and dechanneling length calculation
-    mom    = pc*1.0e3                # [GeV]
-    enr    = np.sqrt(mom**2 + pmap**2) # [MeV]
-    gammar = enr/pmap
-    betar  = mom/enr
-    bgr    = betar*gammar
-    mep    = pmae/pmap  # Electron/proton
+#     # dE/dX and dechanneling length calculation
+#     mom    = pc*1.0e3                # [GeV]
+#     enr    = np.sqrt(mom**2 + pmap**2) # [MeV]
+#     gammar = enr/pmap
+#     betar  = mom/enr
+#     bgr    = betar*gammar
+#     mep    = pmae/pmap  # Electron/proton
 
-    tmax = (2*pmae*bgr**2)/(1 + 2*gammar*mep + mep**2)  # [MeV]
-    plen = np.sqrt((rho*zatom)/anuc)*28.816e-6 # [MeV]
+#     tmax = (2*pmae*bgr**2)/(1 + 2*gammar*mep + mep**2)  # [MeV]
+#     plen = np.sqrt((rho*zatom)/anuc)*28.816e-6 # [MeV]
 
-    const_dech = ((256.0/(9*np.pi**2)) * (1/(np.log(((2*pmae)*gammar)/(exenergy*1.0e3)) - 1))) * ((aTF*dP)/(crade*pmae)) # [m/MeV]
-    const_dech = const_dech*1.0e3 # [m/GeV]
+#     const_dech = ((256.0/(9*np.pi**2)) * (1/(np.log(((2*pmae)*gammar)/(exenergy*1.0e3)) - 1))) * ((aTF*dP)/(crade*pmae)) # [m/MeV]
+#     const_dech = const_dech*1.0e3 # [m/GeV]
 
-    s        = 0
-    s_length = cry_rcurv*np.sin(length/cry_rcurv)
-    L_chan   = length
+#     s        = 0
+#     s_length = cry_rcurv*np.sin(length/cry_rcurv)
+#     L_chan   = length
 
-    # MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
-    s_K = cry_rcurv*np.sin(length/cry_rcurv)
-    x_K = cry_rcurv*(1-np.cos(length/cry_rcurv))
-    s_M = (cry_rcurv-cry_xmax)*np.sin(length/cry_rcurv)
-    x_M = cry_xmax + (cry_rcurv-cry_xmax)*(1-np.cos(length/cry_rcurv))
-    r   = np.sqrt(s_P**2 + (x-x_P)**2)
+#     # MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
+#     s_K = cry_rcurv*np.sin(length/cry_rcurv)
+#     x_K = cry_rcurv*(1-np.cos(length/cry_rcurv))
+#     s_M = (cry_rcurv-cry_xmax)*np.sin(length/cry_rcurv)
+#     x_M = cry_xmax + (cry_rcurv-cry_xmax)*(1-np.cos(length/cry_rcurv))
+#     r   = np.sqrt(s_P**2 + (x-x_P)**2)
 
-    # MISCUT third step: F coordinates (exit point) on crystal exit face
-    A_F = (np.tan(length/cry_rcurv))**2 + 1
-    B_F = ((-2)*(np.tan(length/cry_rcurv))**2)*cry_rcurv + (2*np.tan(length/cry_rcurv))*s_P - 2*x_P
-    C_F = ((np.tan(length/cry_rcurv))**2)*(cry_rcurv**2) - ((2*np.tan(length/cry_rcurv))*s_P)*cry_rcurv + s_P**2 + x_P**2 - r**2
+#     # MISCUT third step: F coordinates (exit point) on crystal exit face
+#     A_F = (np.tan(length/cry_rcurv))**2 + 1
+#     B_F = ((-2)*(np.tan(length/cry_rcurv))**2)*cry_rcurv + (2*np.tan(length/cry_rcurv))*s_P - 2*x_P
+#     C_F = ((np.tan(length/cry_rcurv))**2)*(cry_rcurv**2) - ((2*np.tan(length/cry_rcurv))*s_P)*cry_rcurv + s_P**2 + x_P**2 - r**2
 
-    x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
-    s_F = (-np.tan(length/cry_rcurv))*(x_F-cry_rcurv)
+#     x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
+#     s_F = (-np.tan(length/cry_rcurv))*(x_F-cry_rcurv)
 
-    if (x_F < x_K or x_F > x_M or s_F < s_M or s_F > s_K):
+#     if (x_F < x_K or x_F > x_M or s_F < s_M or s_F > s_K):
         
-        if (cry_miscut == 0 and abs(x_F-x_K) <= 1.0e-13 and abs(s_F-s_K) <= 1.0e3):
-        # no miscut, entrance from below: exit point is K (lower edge)
-            x_F = x_K
-            s_F = s_K
+#         if (cry_miscut == 0 and abs(x_F-x_K) <= 1.0e-13 and abs(s_F-s_K) <= 1.0e3):
+#         # no miscut, entrance from below: exit point is K (lower edge)
+#             x_F = x_K
+#             s_F = s_K
 
-        elif (cry_miscut == 0 and abs(x_F-x_M) <= 1.0e3 and abs(s_F-s_M) <= 1.0e3):
-        # no miscut, entrance from above: exit point is M (upper edge)
-            x_F = x_M
-            s_F = s_M
+#         elif (cry_miscut == 0 and abs(x_F-x_M) <= 1.0e3 and abs(s_F-s_M) <= 1.0e3):
+#         # no miscut, entrance from above: exit point is M (upper edge)
+#             x_F = x_M
+#             s_F = s_M
 
-        else:
-        # MISCUT Third step (bis): F coordinates (exit point)  on bent side
-            if (cry_miscut < 0):
-            # Intersect with bottom side
-                alpha_F = (cry_rcurv-x_P)/x_P
-                beta_F = -(r**2-s_P**2-x_P**2)/(2*s_P)
-                A_F = alpha_F**2 + 1
-                B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
-                C_F = beta_F**2
+#         else:
+#         # MISCUT Third step (bis): F coordinates (exit point)  on bent side
+#             if (cry_miscut < 0):
+#             # Intersect with bottom side
+#                 alpha_F = (cry_rcurv-x_P)/x_P
+#                 beta_F = -(r**2-s_P**2-x_P**2)/(2*s_P)
+#                 A_F = alpha_F**2 + 1
+#                 B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
+#                 C_F = beta_F**2
 
-            else:
-            # Intersect with top side
-                alpha_F = (cry_rcurv-x_P)/s_P
-                beta_F = -(r**2+cry_xmax*(cry_xmax-(2*cry_rcurv))-s_P**2-x_P**2)/(2*s_P)
-                A_F = alpha_F**2 + 1
-                B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
-                C_F = beta_F**2 - cry_xmax*(cry_xmax-2*cry_rcurv)
+#             else:
+#             # Intersect with top side
+#                 alpha_F = (cry_rcurv-x_P)/s_P
+#                 beta_F = -(r**2+cry_xmax*(cry_xmax-(2*cry_rcurv))-s_P**2-x_P**2)/(2*s_P)
+#                 A_F = alpha_F**2 + 1
+#                 B_F = 2*(alpha_F*beta_F) - 2*cry_rcurv
+#                 C_F = beta_F**2 - cry_xmax*(cry_xmax-2*cry_rcurv)
             
-            x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
-            s_F = alpha_F*x_F + beta_F
+#             x_F = (-B_F-np.sqrt(B_F**2-4*(A_F*C_F)))/(2*A_F)
+#             s_F = alpha_F*x_F + beta_F
 
-    # MISCUT 4th step: deflection and length calculation
-    a = np.sqrt(s_F**2+(x-x_F)**2)
-    tP = np.arccos((2*(r**2)-a**2)/(2*(r**2)))
-    tdefl = np.arcsin((s_F-s_P)/r)
-    L_chan = r*tP
+#     # MISCUT 4th step: deflection and length calculation
+#     a = np.sqrt(s_F**2+(x-x_F)**2)
+#     tP = np.arccos((2*(r**2)-a**2)/(2*(r**2)))
+#     tdefl = np.arcsin((s_F-s_P)/r)
+#     L_chan = r*tP
 
-    xp_rel = xp - cry_miscut
+#     xp_rel = xp - cry_miscut
 
-    ymin = -cry_ymax/2
-    ymax =  cry_ymax/2
+#     ymin = -cry_ymax/2
+#     ymax =  cry_ymax/2
 
-    # FIRST CASE: p don't interact with crystal
-    if (y < ymin or y > ymax or x > cry_xmax):
-        x  = x + xp*s_length
-        y     = y + yp*s_length
-        iProc = proc_out
-        return x, xp, y, yp, pc, iProc
+#     # FIRST CASE: p don't interact with crystal
+#     if (y < ymin or y > ymax or x > cry_xmax):
+#         x  = x + xp*s_length
+#         y     = y + yp*s_length
+#         iProc = proc_out
+#         return x, xp, y, yp, pc, iProc
 
-    # SECOND CASE: p hits the amorphous layer
-    elif (x < cry_alayer or y-ymin < cry_alayer or ymax-y < cry_alayer):
-        x0    = x
-        y0    = y
-        a_eq  = 1 + xp**2
-        b_eq  = (2*x)*xp - (2*xp)*cry_rcurv
-        c_eq  = x**2 - (2*x)*cry_rcurv
-        delta = b_eq**2 - (4*a_eq)*c_eq
-        s     = (-b_eq+np.sqrt(delta))/(2*a_eq)
-        if (s >= s_length):
-            s = s_length
+#     # SECOND CASE: p hits the amorphous layer
+#     elif (x < cry_alayer or y-ymin < cry_alayer or ymax-y < cry_alayer):
+#         x0    = x
+#         y0    = y
+#         a_eq  = 1 + xp**2
+#         b_eq  = (2*x)*xp - (2*xp)*cry_rcurv
+#         c_eq  = x**2 - (2*x)*cry_rcurv
+#         delta = b_eq**2 - (4*a_eq)*c_eq
+#         s     = (-b_eq+np.sqrt(delta))/(2*a_eq)
+#         if (s >= s_length):
+#             s = s_length
         
-        x   =  xp*s + x0
-        len_xs = np.sqrt((x-x0)**2 + s**2)
+#         x   =  xp*s + x0
+#         len_xs = np.sqrt((x-x0)**2 + s**2)
 
-        if (yp >= 0 and y + yp*s <= ymax):
-            len_ys = yp*len_xs
+#         if (yp >= 0 and y + yp*s <= ymax):
+#             len_ys = yp*len_xs
 
-        elif(yp < 0 and y + yp*s >= ymin):
-            len_ys = yp*len_xs
+#         elif(yp < 0 and y + yp*s >= ymin):
+#             len_ys = yp*len_xs
 
-        else:
-            s      = (ymax-y)/yp
-            len_ys = np.sqrt((ymax-y)**2 + s**2)
-            x   = x0 + xp*s
-            len_xs = np.sqrt((x-x0)**2 + s**2)
+#         else:
+#             s      = (ymax-y)/yp
+#             len_ys = np.sqrt((ymax-y)**2 + s**2)
+#             x   = x0 + xp*s
+#             len_xs = np.sqrt((x-x0)**2 + s**2)
         
-        am_len = np.sqrt(len_xs**2 + len_ys**2)
-        s     = s/2
-        x  = x0 + xp*s
-        y     = y0 + yp*s
-        iProc = proc_AM
+#         am_len = np.sqrt(len_xs**2 + len_ys**2)
+#         s     = s/2
+#         x  = x0 + xp*s
+#         y     = y0 + yp*s
+#         iProc = proc_AM
 
-        dest = lib.calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
-                            exenergy,zatom,rho,anuc)
+#         dest = lib.calcionloss(am_len,dest,betar,bgr,gammar,tmax,plen,
+#                             exenergy,zatom,rho,anuc)
 
-        result1 = lib.moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-        xp = result1[0]
-        yp = result1[1]
-        pc = result1[2]
-        iProc = result1[3]
+#         result1 = lib.moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#         xp = result1[0]
+#         yp = result1[1]
+#         pc = result1[2]
+#         iProc = result1[3]
 
-        x = x + xp*(s_length-s)
-        y = y + yp*(s_length-s)
+#         x = x + xp*(s_length-s)
+#         y = y + yp*(s_length-s)
 
-        return x, xp, y, yp, pc, iProc
+#         return x, xp, y, yp, pc, iProc
 
-    elif (x > cry_xmax-cry_alayer and x < cry_xmax):
-        iProc = proc_AM
+#     elif (x > cry_xmax-cry_alayer and x < cry_xmax):
+#         iProc = proc_AM
         
-        dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
-                            exenergy,zatom,rho,anuc)
+#         dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+#                             exenergy,zatom,rho,anuc)
 
-        result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-        xp = result1[0]
-        yp = result1[1]
-        pc = result1[2]
-        iProc = result1[3]
+#         result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#         xp = result1[0]
+#         yp = result1[1]
+#         pc = result1[2]
+#         iProc = result1[3]
 
-        return x, xp, y, yp, pc, iProc
+#         return x, xp, y, yp, pc, iProc
     
 
-    #THIRD CASE: the p interacts with the crystal.
-    #Define typical angles/probabilities for orientation 110
-    xpcrit0 = np.sqrt((2.0e-9*eUm)/pc)    #Critical angle (rad) for straight crystals
-    Rcrit   = (pc/(2.0e-6*eUm))*ai #Critical curvature radius [m]
+#     #THIRD CASE: the p interacts with the crystal.
+#     #Define typical angles/probabilities for orientation 110
+#     xpcrit0 = np.sqrt((2.0e-9*eUm)/pc)    #Critical angle (rad) for straight crystals
+#     Rcrit   = (pc/(2.0e-6*eUm))*ai #Critical curvature radius [m]
 
-    #If R>Rcritical=>no channeling is possible (ratio<1)
-    ratio  = cry_rcurv/Rcrit
-    xpcrit = (xpcrit0*(cry_rcurv-Rcrit))/cry_rcurv #Critical angle for curved crystal
+#     #If R>Rcritical=>no channeling is possible (ratio<1)
+#     ratio  = cry_rcurv/Rcrit
+#     xpcrit = (xpcrit0*(cry_rcurv-Rcrit))/cry_rcurv #Critical angle for curved crystal
 
-    if (ratio <= 1): #no possibile channeling
-        Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(1.4*ratio) #RMS scattering
-        Ang_avr = ((c_v2*xpcrit0)*5.0e-2)*ratio                         #Average angle reflection
-        Vcapt   = 0                                                #Probability of VC
+#     if (ratio <= 1): #no possibile channeling
+#         Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(1.4*ratio) #RMS scattering
+#         Ang_avr = ((c_v2*xpcrit0)*5.0e-2)*ratio                         #Average angle reflection
+#         Vcapt   = 0                                                #Probability of VC
 
-    elif (ratio <= 3): #Strongly bent crystal
-        Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(0.4713*ratio + 0.85) #RMS scattering
-        Ang_avr = (c_v2*xpcrit0)*(0.1972*ratio - 0.1472)                  #Average angle reflection
-        Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1                           #Correction by sasha drozdin/armen
-        #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+#     elif (ratio <= 3): #Strongly bent crystal
+#         Ang_rms = ((c_v1*0.42)*xpcrit0)*np.sin(0.4713*ratio + 0.85) #RMS scattering
+#         Ang_avr = (c_v2*xpcrit0)*(0.1972*ratio - 0.1472)                  #Average angle reflection
+#         Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1                           #Correction by sasha drozdin/armen
+#         #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
 
-    else: #Rcry >> Rcrit
-        Ang_rms = (c_v1*xpcrit0)*(1/ratio)                #RMS scattering
-        Ang_avr = (c_v2*xpcrit0)*(1 - 1.6667/ratio) #Average angle for VR
-        Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1 #Probability for VC correction by sasha drozdin/armen
-        #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+#     else: #Rcry >> Rcrit
+#         Ang_rms = (c_v1*xpcrit0)*(1/ratio)                #RMS scattering
+#         Ang_avr = (c_v2*xpcrit0)*(1 - 1.6667/ratio) #Average angle for VR
+#         Vcapt   = 7.0e-4*(ratio - 0.7)/pc**2.0e-1 #Probability for VC correction by sasha drozdin/armen
+#         #K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
 
-    if (cry_orient == 2):
-        Ang_avr = Ang_avr*0.93
-        Ang_rms = Ang_rms*1.05
-        xpcrit  = xpcrit*0.98
+#     if (cry_orient == 2):
+#         Ang_avr = Ang_avr*0.93
+#         Ang_rms = Ang_rms*1.05
+#         xpcrit  = xpcrit*0.98
 
-    if (np.abs(xp_rel) < xpcrit):
-        alpha  = xp_rel/xpcrit
-        Chann  = np.sqrt(0.9*(1 - alpha**2))*np.sqrt(1-(1/ratio)) #Saturation at 95%
-        N_atom = 1.0e-1
+#     if (np.abs(xp_rel) < xpcrit):
+#         alpha  = xp_rel/xpcrit
+#         Chann  = np.sqrt(0.9*(1 - alpha**2))*np.sqrt(1-(1/ratio)) #Saturation at 95%
+#         N_atom = 1.0e-1
 
-        #if they can channel: 2 options
-        if (get_random() <= Chann): #option 1:channeling
-            TLdech1 = (const_dech*pc)*(1-1/ratio)**2 #Updated calculate typical dech. length(m)
+#         #if they can channel: 2 options
+#         if (get_random() <= Chann): #option 1:channeling
+#             TLdech1 = (const_dech*pc)*(1-1/ratio)**2 #Updated calculate typical dech. length(m)
 
-            if(get_random() <= N_atom):
-                TLdech1 = ((const_dech/2.0e2)*pc)*(1-1/ratio)**2  #Updated dechanneling length (m)      
+#             if(get_random() <= N_atom):
+#                 TLdech1 = ((const_dech/2.0e2)*pc)*(1-1/ratio)**2  #Updated dechanneling length (m)      
 
-            Dechan = -np.log(get_random()) #Probability of dechanneling
-            Ldech  = TLdech1*Dechan   #Actual dechan. length
+#             Dechan = -np.log(get_random()) #Probability of dechanneling
+#             Ldech  = TLdech1*Dechan   #Actual dechan. length
 
-            #careful: the dechanneling lentgh is along the trajectory
-            #of the particle -not along the longitudinal coordinate...
-            if (Ldech < L_chan):
-                iProc = proc_DC
-                Dxp   = Ldech/r #Change angle from channeling [mrad]
-                Sdech = Ldech*np.cos(cry_miscut + 0.5*Dxp)
-                x  = x  + Ldech*(np.sin(0.5*Dxp+cry_miscut)) #Trajectory at channeling exit
-                xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit
-                y     = y  + yp * Sdech
+#             #careful: the dechanneling lentgh is along the trajectory
+#             #of the particle -not along the longitudinal coordinate...
+#             if (Ldech < L_chan):
+#                 iProc = proc_DC
+#                 Dxp   = Ldech/r #Change angle from channeling [mrad]
+#                 Sdech = Ldech*np.cos(cry_miscut + 0.5*Dxp)
+#                 x  = x  + Ldech*(np.sin(0.5*Dxp+cry_miscut)) #Trajectory at channeling exit
+#                 xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit
+#                 y     = y  + yp * Sdech
 
-                dest = lib.calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc)
-                pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
-                x  = x  + (0.5*(s_length-Sdech))*xp
-                y  = y  + (0.5*(s_length-Sdech))*yp
+#                 dest = lib.calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
+#                                     exenergy,zatom,rho,anuc)
+#                 pc = pc - 0.5*dest*Ldech #Energy loss to ionization while in CH [GeV]
+#                 x  = x  + (0.5*(s_length-Sdech))*xp
+#                 y  = y  + (0.5*(s_length-Sdech))*yp
 
-                dest = lib.calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc)
+#                 dest = lib.calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,
+#                                     exenergy,zatom,rho,anuc)
 
-                result1 = lib.moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                xp = result1[0]
-                yp = result1[1]
-                pc = result1[2]
-                iProc = result1[3]
+#                 result1 = lib.moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                 xp = result1[0]
+#                 yp = result1[1]
+#                 pc = result1[2]
+#                 iProc = result1[3]
 
-                x = x + (0.5*(s_length-Sdech))*xp
-                y = y + (0.5*(s_length-Sdech))*yp
+#                 x = x + (0.5*(s_length-Sdech))*xp
+#                 y = y + (0.5*(s_length-Sdech))*yp
 
-            else:
-                iProc = proc_CH
-                xpin  = xp
-                ypin  = yp
+#             else:
+#                 iProc = proc_CH
+#                 xpin  = xp
+#                 ypin  = yp
 
-                #check if a nuclear interaction happen while in CH
-                result = lib.movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
-                                csref0,csref1,csref5,eUm,collnt,iProc)
-                x = result[0]
-                xp = result[1]
-                yp = result[2]
-                pc = result[3]
-                iProc = result[4]
+#                 #check if a nuclear interaction happen while in CH
+#                 result = lib.movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+#                                 csref0,csref1,csref5,eUm,collnt,iProc)
+#                 x = result[0]
+#                 xp = result[1]
+#                 yp = result[2]
+#                 pc = result[3]
+#                 iProc = result[4]
 
-                if (iProc != proc_CH):
-                    #if an nuclear interaction happened, move until the middle with initial xp,yp:
-                    #propagate until the "crystal exit" with the new xp,yp accordingly with the rest
-                    #of the code in "thin lens approx"
-                    x = x + (0.5*L_chan)*xpin
-                    y = y + (0.5*L_chan)*ypin
-                    x = x + (0.5*L_chan)*xp
-                    y = y + (0.5*L_chan)*yp
+#                 if (iProc != proc_CH):
+#                     #if an nuclear interaction happened, move until the middle with initial xp,yp:
+#                     #propagate until the "crystal exit" with the new xp,yp accordingly with the rest
+#                     #of the code in "thin lens approx"
+#                     x = x + (0.5*L_chan)*xpin
+#                     y = y + (0.5*L_chan)*ypin
+#                     x = x + (0.5*L_chan)*xp
+#                     y = y + (0.5*L_chan)*yp
 
-                    dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    pc = pc - dest*length #energy loss to ionization [GeV]
+#                     dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     pc = pc - dest*length #energy loss to ionization [GeV]
 
-                else:
-                    Dxp = tdefl + (0.5*get_random_gauss())*xpcrit #Change angle[rad]
+#                 else:
+#                     Dxp = tdefl + (0.5*get_random_gauss())*xpcrit #Change angle[rad]
                     
-                    xp  = Dxp
-                    x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
-                    y   = y + s_length * yp
+#                     xp  = Dxp
+#                     x = x + L_chan*(np.sin(0.5*Dxp)) #Trajectory at channeling exit
+#                     y   = y + s_length * yp
 
-                    dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]      
+#                     dest = lib.calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     pc = pc - (0.5*dest)*length #energy loss to ionization [GeV]      
 
-        else: #Option 2: VR
-            #good for channeling but don't channel (1-2)
-            iProc = proc_VR
+#         else: #Option 2: VR
+#             #good for channeling but don't channel (1-2)
+#             iProc = proc_VR
 
-            xp = xp + (0.45*(xp_rel/xpcrit + 1))*Ang_avr
-            x  = x  + (0.5*s_length)*xp
-            y  = y  + (0.5*s_length)*yp
+#             xp = xp + (0.45*(xp_rel/xpcrit + 1))*Ang_avr
+#             x  = x  + (0.5*s_length)*xp
+#             y  = y  + (0.5*s_length)*yp
 
-            dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
-                                exenergy,zatom,rho,anuc)
-            result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-            xp = result1[0]
-            yp = result1[1]
-            pc = result1[2]
-            iProc = result1[3]
+#             dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+#                                 exenergy,zatom,rho,anuc)
+#             result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#             xp = result1[0]
+#             yp = result1[1]
+#             pc = result1[2]
+#             iProc = result1[3]
 
-            x = x + (0.5*s_length)*xp
-            y = y + (0.5*s_length)*yp  
+#             x = x + (0.5*s_length)*xp
+#             y = y + (0.5*s_length)*yp  
 
-    else: #case 3-2: no good for channeling. check if the  can VR
-        Lrefl = xp_rel*r #Distance of refl. point [m]
-        Srefl = np.sin(xp_rel/2 + cry_miscut)*Lrefl
+#     else: #case 3-2: no good for channeling. check if the  can VR
+#         Lrefl = xp_rel*r #Distance of refl. point [m]
+#         Srefl = np.sin(xp_rel/2 + cry_miscut)*Lrefl
 
-        if(Lrefl > 0 and Lrefl < L_chan): #VR point inside
+#         if(Lrefl > 0 and Lrefl < L_chan): #VR point inside
 
-        #2 options: volume capture and volume reflection
+#         #2 options: volume capture and volume reflection
 
-            if(get_random() > Vcapt or zn == 0): #Option 1: VR
-                iProc = proc_VR
-                x  = x + xp*Srefl
-                y     = y + yp*Srefl
-                Dxp   = Ang_avr
-                xp    = xp + Dxp + Ang_rms*get_random_gauss()
-                x  = x  + (0.5*xp)*(s_length - Srefl)
-                y     = y  + (0.5*yp)*(s_length - Srefl)
+#             if(get_random() > Vcapt or zn == 0): #Option 1: VR
+#                 iProc = proc_VR
+#                 x  = x + xp*Srefl
+#                 y     = y + yp*Srefl
+#                 Dxp   = Ang_avr
+#                 xp    = xp + Dxp + Ang_rms*get_random_gauss()
+#                 x  = x  + (0.5*xp)*(s_length - Srefl)
+#                 y     = y  + (0.5*yp)*(s_length - Srefl)
 
-                dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc)
-                result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                xp = result1[0]
-                yp = result1[1]
-                pc = result1[2]
-                iProc = result1[3]
+#                 dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+#                                     exenergy,zatom,rho,anuc)
+#                 result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                 xp = result1[0]
+#                 yp = result1[1]
+#                 pc = result1[2]
+#                 iProc = result1[3]
 
-                x = x + (0.5*xp)*(s_length - Srefl)
-                y = y + (0.5*yp)*(s_length - Srefl)
+#                 x = x + (0.5*xp)*(s_length - Srefl)
+#                 y = y + (0.5*yp)*(s_length - Srefl)
 
-            else: #Option 2: VC
-                x = x + xp*Srefl
-                y = y + yp*Srefl
+#             else: #Option 2: VC
+#                 x = x + xp*Srefl
+#                 y = y + yp*Srefl
 
-                TLdech2 = (const_dech/1.0e1)*pc*(1-1/ratio)**2          #Updated typical dechanneling length(m)
-                Ldech   = TLdech2*(np.sqrt(1.0e-2 - np.log(get_random())) - 1.0e-1)**2 #Updated DC length
-                tdech   = Ldech/cry_rcurv
-                Sdech   = Ldech*np.cos(xp + 0.5*tdech)
+#                 TLdech2 = (const_dech/1.0e1)*pc*(1-1/ratio)**2          #Updated typical dechanneling length(m)
+#                 Ldech   = TLdech2*(np.sqrt(1.0e-2 - np.log(get_random())) - 1.0e-1)**2 #Updated DC length
+#                 tdech   = Ldech/cry_rcurv
+#                 Sdech   = Ldech*np.cos(xp + 0.5*tdech)
 
-                if (Ldech < length-Lrefl):
-                    iProc = proc_DC
-                    Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss())*xpcrit
-                    x  = x + Ldech*(np.sin(0.5*Dxp+xp)) #Trajectory at channeling exit
-                    y     = y + Sdech*yp
-                    xp    =  Dxp
-                    Red_S = (s_length - Srefl) - Sdech
-                    x  = x + (0.5*xp)*Red_S
-                    y     = y + (0.5*yp)*Red_S
+#                 if (Ldech < length-Lrefl):
+#                     iProc = proc_DC
+#                     Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss())*xpcrit
+#                     x  = x + Ldech*(np.sin(0.5*Dxp+xp)) #Trajectory at channeling exit
+#                     y     = y + Sdech*yp
+#                     xp    =  Dxp
+#                     Red_S = (s_length - Srefl) - Sdech
+#                     x  = x + (0.5*xp)*Red_S
+#                     y     = y + (0.5*yp)*Red_S
 
-                    dest = lib.calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
+#                     dest = lib.calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
 
-                    pc = pc - dest*Srefl #"added" energy loss before capture
+#                     pc = pc - dest*Srefl #"added" energy loss before capture
 
-                    dest = lib.calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
+#                     dest = lib.calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     pc = pc - (0.5*dest)*Sdech #"added" energy loss while captured
 
-                    dest = lib.calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    result1 = lib.moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                    xp = result1[0]
-                    yp = result1[1]
-                    pc = result1[2]
-                    iProc = result1[3]
+#                     dest = lib.calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     result1 = lib.moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                     xp = result1[0]
+#                     yp = result1[1]
+#                     pc = result1[2]
+#                     iProc = result1[3]
                     
-                    x = x + (0.5*xp)*Red_S
-                    y = y + (0.5*yp)*Red_S
+#                     x = x + (0.5*xp)*Red_S
+#                     y = y + (0.5*yp)*Red_S
 
-                else:
-                    iProc   = proc_VC
-                    Rlength = length - Lrefl
-                    tchan   = Rlength/cry_rcurv
-                    Red_S   = Rlength*np.cos(xp + 0.5*tchan)
+#                 else:
+#                     iProc   = proc_VC
+#                     Rlength = length - Lrefl
+#                     tchan   = Rlength/cry_rcurv
+#                     Red_S   = Rlength*np.cos(xp + 0.5*tchan)
 
-                    dest = lib.calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    pc   = pc - dest*Lrefl #"added" energy loss before capture
-                    xpin = xp
-                    ypin = yp
+#                     dest = lib.calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     pc   = pc - dest*Lrefl #"added" energy loss before capture
+#                     xpin = xp
+#                     ypin = yp
 
-                    #Check if a nuclear interaction happen while in ch
-                    result = lib.movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
-                                    csref0,csref1,csref5,eUm,collnt,iProc)
+#                     #Check if a nuclear interaction happen while in ch
+#                     result = lib.movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+#                                     csref0,csref1,csref5,eUm,collnt,iProc)
 
-                    x = result[0]
-                    xp = result[1]
-                    yp = result[2]
-                    pc = result[3]
-                    iProc = result[4]
+#                     x = result[0]
+#                     xp = result[1]
+#                     yp = result[2]
+#                     pc = result[3]
+#                     iProc = result[4]
                                     
-                    if (iProc != proc_VC):
-                        #if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
-                        #the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
-                        x = x + (0.5*Rlength)*xpin
-                        y = y + (0.5*Rlength)*ypin
-                        x = x + (0.5*Rlength)*xp
-                        y = y + (0.5*Rlength)*yp
+#                     if (iProc != proc_VC):
+#                         #if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
+#                         #the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
+#                         x = x + (0.5*Rlength)*xpin
+#                         y = y + (0.5*Rlength)*ypin
+#                         x = x + (0.5*Rlength)*xp
+#                         y = y + (0.5*Rlength)*yp
 
-                        dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc)
-                        pc = pc - dest*Rlength
+#                         dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+#                                             exenergy,zatom,rho,anuc)
+#                         pc = pc - dest*Rlength
 
-                    else:
-                        Dxp = (length-Lrefl)/cry_rcurv
-                        x = x + np.sin(0.5*Dxp+xp)*Rlength #Trajectory at channeling exit
-                        y   = y + Red_S*yp
-                        xp  = tdefl + (0.5*get_random_gauss(0))*xpcrit #[mrad]
+#                     else:
+#                         Dxp = (length-Lrefl)/cry_rcurv
+#                         x = x + np.sin(0.5*Dxp+xp)*Rlength #Trajectory at channeling exit
+#                         y   = y + Red_S*yp
+#                         xp  = tdefl + (0.5*get_random_gauss(0))*xpcrit #[mrad]
 
-                        dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc)
-                        pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
+#                         dest = lib.calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+#                                             exenergy,zatom,rho,anuc)
+#                         pc = pc - (0.5*dest)*Rlength  #"added" energy loss once captured
 
-        else:
-            #Case 3-3: move in amorphous substance (big input angles)
-            #Modified for transition vram daniele
-            if (xp_rel > tdefl-cry_miscut + 2*xpcrit or xp_rel < -xpcrit):
-                iProc = proc_AM
-                x  = x + (0.5*s_length)*xp
-                y     = y + (0.5*s_length)*yp
-                if(zn > 0):
-                    dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                    xp = result1[0]
-                    yp = result1[1]
-                    pc = result1[2]
-                    iProc = result1[3]
+#         else:
+#             #Case 3-3: move in amorphous substance (big input angles)
+#             #Modified for transition vram daniele
+#             if (xp_rel > tdefl-cry_miscut + 2*xpcrit or xp_rel < -xpcrit):
+#                 iProc = proc_AM
+#                 x  = x + (0.5*s_length)*xp
+#                 y     = y + (0.5*s_length)*yp
+#                 if(zn > 0):
+#                     dest = lib.calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     result1 = lib.moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                     xp = result1[0]
+#                     yp = result1[1]
+#                     pc = result1[2]
+#                     iProc = result1[3]
             
-                x = x + (0.5*s_length)*xp
-                y = y + (0.5*s_length)*yp
+#                 x = x + (0.5*s_length)*xp
+#                 y = y + (0.5*s_length)*yp
 
-            else:
-                Pvr = (xp_rel-(tdefl-cry_miscut))/(2*xpcrit)
-                if(get_random() > Pvr):
+#             else:
+#                 Pvr = (xp_rel-(tdefl-cry_miscut))/(2*xpcrit)
+#                 if(get_random() > Pvr):
 
-                    iProc = proc_TRVR
-                    x  = x + xp*Srefl
-                    y     = y + yp*Srefl
+#                     iProc = proc_TRVR
+#                     x  = x + xp*Srefl
+#                     y     = y + yp*Srefl
 
-                    Dxp = (((-3*Ang_rms)*xp_rel)/(2*xpcrit) + Ang_avr) + ((3*Ang_rms)*(tdefl-cry_miscut))/(2*xpcrit)
-                    xp  = xp + Dxp
-                    x = x + (0.5*xp)*(s_length-Srefl)
-                    y   = y + (0.5*yp)*(s_length-Srefl)
+#                     Dxp = (((-3*Ang_rms)*xp_rel)/(2*xpcrit) + Ang_avr) + ((3*Ang_rms)*(tdefl-cry_miscut))/(2*xpcrit)
+#                     xp  = xp + Dxp
+#                     x = x + (0.5*xp)*(s_length-Srefl)
+#                     y   = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                    xp = result1[0]
-                    yp = result1[1]
-                    pc = result1[2]
-                    iProc = result1[3]
+#                     dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                     xp = result1[0]
+#                     yp = result1[1]
+#                     pc = result1[2]
+#                     iProc = result1[3]
 
-                    x = x + (0.5*xp)*(s_length - Srefl)
-                    y = y + (0.5*yp)*(s_length - Srefl)
+#                     x = x + (0.5*xp)*(s_length - Srefl)
+#                     y = y + (0.5*yp)*(s_length - Srefl)
 
-                else:
-                    iProc = proc_TRAM
-                    x = x + xp*Srefl
-                    y = y + yp*Srefl
-                    Dxp = ((((-1*(13.6/pc))*np.sqrt(s_length/dlri))*1.0e-3)*xp_rel)/(2*xpcrit) + (((13.6/pc)*np.sqrt(s_length/dlri))*1.0e-3)*(1+(tdefl-cry_miscut)/(2*xpcrit))
-                    xp = xp+Dxp
-                    x  = x + (0.5*xp)*(s_length-Srefl)
-                    y  = y + (0.5*yp)*(s_length-Srefl)
+#                 else:
+#                     iProc = proc_TRAM
+#                     x = x + xp*Srefl
+#                     y = y + yp*Srefl
+#                     Dxp = ((((-1*(13.6/pc))*np.sqrt(s_length/dlri))*1.0e-3)*xp_rel)/(2*xpcrit) + (((13.6/pc)*np.sqrt(s_length/dlri))*1.0e-3)*(1+(tdefl-cry_miscut)/(2*xpcrit))
+#                     xp = xp+Dxp
+#                     x  = x + (0.5*xp)*(s_length-Srefl)
+#                     y  = y + (0.5*yp)*(s_length-Srefl)
 
-                    dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc)
-                    result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc)
-                    xp = result1[0]
-                    yp = result1[1]
-                    pc = result1[2]
-                    iProc = result1[3]
+#                     dest = lib.calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+#                                         exenergy,zatom,rho,anuc)
+#                     result1 = lib.moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+#                         csref1,csref5,collnt,iProc)
+#                     xp = result1[0]
+#                     yp = result1[1]
+#                     pc = result1[2]
+#                     iProc = result1[3]
 
-                    x = x + (0.5*xp)*(s_length - Srefl)
-                    y = y + (0.5*yp)*(s_length - Srefl)
+#                     x = x + (0.5*xp)*(s_length - Srefl)
+#                     y = y + (0.5*yp)*(s_length - Srefl)
                 
-    return x,xp,y,yp,pc,iProc
+#     return x,xp,y,yp,pc,iProc
 
 
 

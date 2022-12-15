@@ -272,7 +272,6 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
 double* moveam(double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
-    // from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     static double result[4];
 
     double xp_in = xp;
@@ -472,5 +471,535 @@ double calcionloss(double dz, double EnLo, double betar, double bgr, double gamm
     }
 
     return EnLo;
+
+}
+
+
+double* interact(double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
+                double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref, double csect, double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
+                double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
+
+    static double result[6];
+   
+    double dest = 0.;
+    double pmap = 938.271998;
+    double pmae = 0.51099890;
+    double crade = 2.817940285e-15;
+
+    double c_v1 =  1.7;   // Fitting coefficient
+    double c_v2 = -1.5;   // Fitting coefficient
+
+    int nam = 1; // Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
+    int zn  = 1;
+
+    // dE/dX and dechanneling length calculation
+    double mom    = pc*1.0e3;                // [GeV]
+    double enr    = sqrt(pow(mom,2.) + pow(pmap,2.)); // [MeV]
+    double gammar = enr/pmap;
+    double betar  = mom/enr;
+    double bgr    = betar*gammar;
+    double mep    = pmae/pmap;  // Electron/proton
+
+    double tmax = (2.*pmae*pow(bgr,2.))/(1. + 2.*gammar*mep + pow(mep,2.));  // [MeV]
+    double plen = sqrt((rho*zatom)/anuc)*28.816e-6; // [MeV]
+
+    double const_dech = ((256.0/(9*pow(M_PI,2.))) * (1./(log(((2.*pmae)*gammar)/(exenergy*1.0e3)) - 1.))) * ((aTF*dP)/(crade*pmae)); // [m/MeV]
+    const_dech = const_dech*1.0e3; // [m/GeV]
+
+    double s = 0.;
+    double s_length = cry_rcurv*sin(length/cry_rcurv);
+    double L_chan   = length;
+
+    // MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
+    double s_K = cry_rcurv*sin(length/cry_rcurv);
+    double x_K = cry_rcurv*(1.-cos(length/cry_rcurv));
+    double s_M = (cry_rcurv-cry_xmax)*sin(length/cry_rcurv);
+    double x_M = cry_xmax + (cry_rcurv-cry_xmax)*(1.-cos(length/cry_rcurv));
+    double r   = sqrt(pow(s_P,2.) + pow((x-x_P),2.));
+
+    // MISCUT third step: F coordinates (exit point) on crystal exit face
+    double A_F = pow((tan(length/cry_rcurv)),2.) + 1.;
+    double B_F = ((-2)*pow((tan(length/cry_rcurv)),2.))*cry_rcurv + (2.*tan(length/cry_rcurv))*s_P - 2.*x_P;
+    double C_F = pow((tan(length/cry_rcurv)),2.)*(pow(cry_rcurv,2.)) - ((2.*tan(length/cry_rcurv))*s_P)*cry_rcurv + pow(s_P,2.) + pow(x_P,2.) - pow(r,2.);
+
+    double x_F = (-B_F-sqrt(pow(B_F,2.)-4.*(A_F*C_F)))/(2.*A_F);
+    double s_F = (-tan(length/cry_rcurv))*(x_F-cry_rcurv);
+
+    if (x_F < x_K || x_F > x_M || s_F < s_M || s_F > s_K) {
+
+        double alpha_F;
+        double beta_F;
+        
+        if (cry_miscut == 0 && fabs(x_F-x_K) <= 1.0e-13 && fabs(s_F-s_K) <= 1.0e3) {
+        // no miscut, entrance from below: exit point is K (lower edge)
+            x_F = x_K;
+            s_F = s_K;
+        }
+
+        else if (cry_miscut == 0 && fabs(x_F-x_M) <= 1.0e3 && fabs(s_F-s_M) <= 1.0e3) {
+        // no miscut, entrance from above: exit point is M (upper edge)
+            x_F = x_M;
+            s_F = s_M;
+        }
+
+        else {
+        // MISCUT Third step (bis): F coordinates (exit point)  on bent side
+            if (cry_miscut < 0) {
+            // Intersect with bottom side
+                alpha_F = (cry_rcurv-x_P)/x_P;
+                beta_F = -(pow(r,2.)-pow(s_P,2.)-pow(x_P,2.))/(2*s_P);
+                A_F = pow(alpha_F,2.) + 1.;
+                B_F = 2.*(alpha_F*beta_F) - 2.*cry_rcurv;
+                C_F = pow(beta_F,2.);
+            }
+
+            else {
+            // Intersect with top side
+                alpha_F = (cry_rcurv-x_P)/s_P;
+                beta_F = -(pow(r,2.)+cry_xmax*(cry_xmax-(2.*cry_rcurv))-pow(s_P,2.)-pow(x_P,2.))/(2.*s_P);
+                A_F = pow(alpha_F,2.) + 1.;
+                B_F = 2.*(alpha_F*beta_F) - 2.*cry_rcurv;
+                C_F = pow(beta_F,2.) - cry_xmax*(cry_xmax-2.*cry_rcurv);
+            }
+            
+            x_F = (-B_F-sqrt(pow(B_F,2.)-4.*(A_F*C_F)))/(2.*A_F);
+            s_F = alpha_F*x_F + beta_F;
+        }
+    }
+
+    // MISCUT 4th step: deflection and length calculation
+    double a = sqrt(pow(s_F,2.)+pow((x-x_F),2.));
+    double tP = acos((2.*pow(r,2.)-pow(a,2.))/(2.*pow(r,2.)));
+    double tdefl = asin((s_F-s_P)/r);
+    L_chan = r*tP;
+
+    double xp_rel = xp - cry_miscut;
+
+    double ymin = -cry_ymax/2.;
+    double ymax =  cry_ymax/2.;
+
+    // FIRST CASE: p don't interact with crystal
+    if (y < ymin || y > ymax || x > cry_xmax) {
+        x  = x + xp*s_length;
+        y     = y + yp*s_length;
+        iProc = proc_out;
+        result[0] = x;
+        result[1] = xp;
+        result[2] = y;
+        result[3] = yp;
+        result[4] = pc;
+        result[5] = iProc;
+
+        return result;
+    }
+
+    // SECOND CASE: p hits the amorphous layer
+    else if (x < cry_alayer || y-ymin < cry_alayer || ymax-y < cry_alayer) {
+        double x0    = x;
+        double y0    = y;
+        double a_eq  = 1. + pow(xp,2.);
+        double b_eq  = (2.*x)*xp - (2.*xp)*cry_rcurv;
+        double c_eq  = pow(x,2.) - (2.*x)*cry_rcurv;
+        double delta = pow(b_eq,2.) - (4.*a_eq)*c_eq;
+        s = (-b_eq+sqrt(delta))/(2.*a_eq);
+        if (s >= s_length) {
+            s = s_length;
+        }
+        x   =  xp*s + x0;
+        double len_xs = sqrt(pow((x-x0),2.) + pow(s,2.));
+        double len_ys;
+        if (yp >= 0 && y + yp*s <= ymax) {
+            len_ys = yp*len_xs;
+        }
+        else if (yp < 0 && y + yp*s >= ymin) {
+            len_ys = yp*len_xs;
+        }
+        else {
+            s      = (ymax-y)/yp;
+            len_ys = sqrt(pow((ymax-y),2.) + pow(s,2.));
+            x   = x0 + xp*s;
+            len_xs = sqrt(pow((x-x0),2.) + pow(s,2.));
+        }
+        
+        double am_len = sqrt(pow(len_xs,2.) + pow(len_ys,2.));
+        s     = s/2;
+        x  = x0 + xp*s;
+        y     = y0 + yp*s;
+        iProc = proc_AM;
+
+        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc);
+
+        moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+                            bnref,csref0,csref1,csref5,collnt,iProc);
+
+        // xp = result1[0];
+        // yp = result1[1];
+        // pc = result1[2];
+        // iProc = result1[3];
+
+        x = x + xp*(s_length-s);
+        y = y + yp*(s_length-s);
+
+        result[0] = x;
+        result[1] = xp;
+        result[2] = y;
+        result[3] = yp;
+        result[4] = pc;
+        result[5] = iProc;
+
+        return result;
+    }
+
+    else if (x > cry_xmax-cry_alayer && x < cry_xmax) {
+        iProc = proc_AM;
+        
+        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                            exenergy,zatom,rho,anuc);
+
+        moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref5,collnt,iProc);
+        // xp = result1[0];
+        // yp = result1[1];
+        // pc = result1[2];
+        // iProc = result1[3];
+
+        result[0] = x;
+        result[1] = xp;
+        result[2] = y;
+        result[3] = yp;
+        result[4] = pc;
+        result[5] = iProc;
+
+        return result;
+    }
+    
+    //THIRD CASE: the p interacts with the crystal.
+    //Define typical angles/probabilities for orientation 110
+    double xpcrit0 = sqrt((2.0e-9*eUm)/pc);   //Critical angle (rad) for straight crystals
+    double Rcrit   = (pc/(2.0e-6*eUm))*ai; //Critical curvature radius [m]
+
+    //If R>Rcritical=>no channeling is possible (ratio<1)
+    double ratio  = cry_rcurv/Rcrit;
+    double xpcrit = (xpcrit0*(cry_rcurv-Rcrit))/cry_rcurv; //Critical angle for curved crystal
+
+    double Ang_rms;
+    double Ang_avr;
+    double Vcapt;
+    if (ratio <= 1.) { //no possibile channeling
+        Ang_rms = ((c_v1*0.42)*xpcrit0)*sin(1.4*ratio); //RMS scattering
+        Ang_avr = ((c_v2*xpcrit0)*5.0e-2)*ratio;                         //Average angle reflection
+        Vcapt   = 0.;                                                //Probability of VC
+    }
+    else if (ratio <= 3.) { //Strongly bent crystal
+        Ang_rms = ((c_v1*0.42)*xpcrit0)*sin(0.4713*ratio + 0.85); //RMS scattering
+        Ang_avr = (c_v2*xpcrit0)*(0.1972*ratio - 0.1472);                  //Average angle reflection
+        Vcapt   = 7.0e-4*(ratio - 0.7)/pow(pc,2.0e-1);                           //Correction by sasha drozdin/armen
+        //K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+    }
+    else { //Rcry >> Rcrit
+        Ang_rms = (c_v1*xpcrit0)*(1./ratio);                //RMS scattering
+        Ang_avr = (c_v2*xpcrit0)*(1. - 1.6667/ratio); //Average angle for VR
+        Vcapt   = 7.0e-4*(ratio - 0.7)/pow(pc,2.0e-1); //Probability for VC correction by sasha drozdin/armen
+        //K=0.0007 is taken based on simulations using CATCH.f (V.Biryukov)
+    }
+    if (cry_orient == 2) {
+        Ang_avr = Ang_avr*0.93;
+        Ang_rms = Ang_rms*1.05;
+        xpcrit  = xpcrit*0.98;
+    }
+    if (fabs(xp_rel) < xpcrit) {
+        double alpha  = xp_rel/xpcrit;
+        double Chann  = sqrt(0.9*(1 - pow(alpha,2.)))*sqrt(1.-(1./ratio)); //Saturation at 95%
+        double N_atom = 1.0e-1;
+
+        //if they can channel: 2 options
+        if (get_random() <= Chann) { //option 1:channeling
+            double TLdech1 = (const_dech*pc)*pow((1.-1./ratio),2.); //Updated calculate typical dech. length(m)
+
+            if(get_random() <= N_atom) {
+                TLdech1 = ((const_dech/2.0e2)*pc)*pow((1.-1./ratio),2.);  //Updated dechanneling length (m)      
+            }
+            double Dechan = -log(get_random()); //Probability of dechanneling
+            double Ldech  = TLdech1*Dechan;   //Actual dechan. length
+
+            //careful: the dechanneling lentgh is along the trajectory
+            //of the particle -not along the longitudinal coordinate...
+            if (Ldech < L_chan) {
+                iProc = proc_DC;
+                double Dxp   = Ldech/r; //Change angle from channeling [mrad]
+                double Sdech = Ldech*cos(cry_miscut + 0.5*Dxp);
+                x  = x  + Ldech*(sin(0.5*Dxp+cry_miscut)); //Trajectory at channeling exit
+                xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit;
+                y     = y  + yp * Sdech;
+
+                dest = calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
+                                    exenergy,zatom,rho,anuc);
+                pc = pc - 0.5*dest*Ldech; //Energy loss to ionization while in CH [GeV]
+                x  = x  + (0.5*(s_length-Sdech))*xp;
+                y  = y  + (0.5*(s_length-Sdech))*yp;
+
+                dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+
+                moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                // xp = result1[0];
+                // yp = result1[1];
+                // pc = result1[2];
+                // iProc = result1[3];
+
+                x = x + (0.5*(s_length-Sdech))*xp;
+                y = y + (0.5*(s_length-Sdech))*yp;
+            }
+            else {
+                iProc = proc_CH;
+                double xpin  = xp;
+                double ypin  = yp;
+
+                //check if a nuclear interaction happen while in CH
+                movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                                csref0,csref1,csref5,eUm,collnt,iProc);
+
+                if (iProc != proc_CH) {
+                    //if an nuclear interaction happened, move until the middle with initial xp,yp:
+                    //propagate until the "crystal exit" with the new xp,yp accordingly with the rest
+                    //of the code in "thin lens approx"
+                    x = x + (0.5*L_chan)*xpin;
+                    y = y + (0.5*L_chan)*ypin;
+                    x = x + (0.5*L_chan)*xp;
+                    y = y + (0.5*L_chan)*yp;
+
+                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    pc = pc - dest*length; //energy loss to ionization [GeV]
+                }
+
+                else {
+                    double Dxp = tdefl + (0.5*get_random_gauss())*xpcrit; //Change angle[rad]
+                    
+                    xp  = Dxp;
+                    x = x + L_chan*(sin(0.5*Dxp)); //Trajectory at channeling exit
+                    y   = y + s_length * yp;
+
+                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                    pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]     
+                } 
+            }
+        }
+
+        else { //Option 2: VR
+            //good for channeling but don't channel (1-2)
+            iProc = proc_VR;
+
+            xp = xp + (0.45*(xp_rel/xpcrit + 1))*Ang_avr;
+            x  = x  + (0.5*s_length)*xp;
+            y  = y  + (0.5*s_length)*yp;
+
+            dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+            moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+
+            // xp = result1[0];
+            // yp = result1[1];
+            // pc = result1[2];
+            // iProc = result1[3];
+
+            x = x + (0.5*s_length)*xp;
+            y = y + (0.5*s_length)*yp;  
+        }
+    }
+
+    else { //case 3-2: no good for channeling. check if the  can VR
+        double Lrefl = xp_rel*r; //Distance of refl. point [m]
+        double Srefl = sin(xp_rel/2. + cry_miscut)*Lrefl;
+
+        if (Lrefl > 0 && Lrefl < L_chan) { //VR point inside
+
+        //2 options: volume capture and volume reflection
+
+            if (get_random() > Vcapt || zn == 0) { //Option 1: VR
+                iProc = proc_VR;
+                x  = x + xp*Srefl;
+                y     = y + yp*Srefl;
+                double Dxp   = Ang_avr;
+                xp    = xp + Dxp + Ang_rms*get_random_gauss();
+                x  = x  + (0.5*xp)*(s_length - Srefl);
+                y     = y  + (0.5*yp)*(s_length - Srefl);
+
+                dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+
+                // xp = result1[0];
+                // yp = result1[1];
+                // pc = result1[2];
+                // iProc = result1[3];
+
+                x = x + (0.5*xp)*(s_length - Srefl);
+                y = y + (0.5*yp)*(s_length - Srefl);
+            }
+
+            else { //Option 2: VC
+                x = x + xp*Srefl;
+                y = y + yp*Srefl;
+
+                double TLdech2 = (const_dech/1.0e1)*pc*pow((1-1/ratio),2.) ;         //Updated typical dechanneling length(m)
+                double Ldech   = TLdech2 * pow((sqrt(1.0e-2 - log(get_random())) - 1.0e-1),2.); //Updated DC length
+                double tdech   = Ldech/cry_rcurv;
+                double Sdech   = Ldech*cos(xp + 0.5*tdech);
+
+                if (Ldech < length-Lrefl) {
+                    iProc = proc_DC;
+                    double Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss())*xpcrit;
+                    x  = x + Ldech*(sin(0.5*Dxp+xp)); //Trajectory at channeling exit
+                    y     = y + Sdech*yp;
+                    xp    =  Dxp;
+                    double Red_S = (s_length - Srefl) - Sdech;
+                    x  = x + (0.5*xp)*Red_S;
+                    y     = y + (0.5*yp)*Red_S;
+
+                    dest = calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+
+                    pc = pc - dest*Srefl; //"added" energy loss before capture
+
+                    dest = calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    pc = pc - (0.5*dest)*Sdech; //"added" energy loss while captured
+
+                    dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref5,collnt,iProc);
+                    // xp = result1[0];
+                    // yp = result1[1];
+                    // pc = result1[2];
+                    // iProc = result1[3];
+                    
+                    x = x + (0.5*xp)*Red_S;
+                    y = y + (0.5*yp)*Red_S;
+                }
+
+                else {
+                    iProc   = proc_VC;
+                    double Rlength = length - Lrefl;
+                    double tchan   = Rlength/cry_rcurv;
+                    double Red_S   = Rlength*cos(xp + 0.5*tchan);
+
+                    dest = calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    pc   = pc - dest*Lrefl; //"added" energy loss before capture
+                    double xpin = xp;
+                    double ypin = yp;
+
+                    //Check if a nuclear interaction happen while in ch
+                    movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                                    csref0,csref1,csref5,eUm,collnt,iProc);
+                                    
+                    if (iProc != proc_VC) {
+                        //if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
+                        //the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
+                        x = x + (0.5*Rlength)*xpin;
+                        y = y + (0.5*Rlength)*ypin;
+                        x = x + (0.5*Rlength)*xp;
+                        y = y + (0.5*Rlength)*yp;
+
+                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc);
+                        pc = pc - dest*Rlength;
+                    }
+
+                    else {
+                        double Dxp = (length-Lrefl)/cry_rcurv;
+                        x = x + sin(0.5*Dxp+xp)*Rlength; //Trajectory at channeling exit
+                        y   = y + Red_S*yp;
+                        xp  = tdefl + (0.5*get_random_gauss())*xpcrit; //[mrad]
+
+                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                                            exenergy,zatom,rho,anuc);
+                        pc = pc - (0.5*dest)*Rlength;  //"added" energy loss once captured
+                    }
+                }
+            }
+        }
+
+        else {
+            //Case 3-3: move in amorphous substance (big input angles)
+            //Modified for transition vram daniele
+            if (xp_rel > tdefl-cry_miscut + 2*xpcrit || xp_rel < -xpcrit) {
+                iProc = proc_AM;
+                x  = x + (0.5*s_length)*xp;
+                y     = y + (0.5*s_length)*yp;
+                if(zn > 0) {
+                    dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref5,collnt,iProc);
+                    // xp = result1[0];
+                    // yp = result1[1];
+                    // pc = result1[2];
+                    // iProc = result1[3];
+                }
+            
+                x = x + (0.5*s_length)*xp;
+                y = y + (0.5*s_length)*yp;
+            }
+
+            else {
+                double Pvr = (xp_rel-(tdefl-cry_miscut))/(2.*xpcrit);
+                if(get_random() > Pvr) {
+
+                    iProc = proc_TRVR;
+                    x  = x + xp*Srefl;
+                    y     = y + yp*Srefl;
+
+                    double Dxp = (((-3.*Ang_rms)*xp_rel)/(2.*xpcrit) + Ang_avr) + ((3.*Ang_rms)*(tdefl-cry_miscut))/(2.*xpcrit);
+                    xp  = xp + Dxp;
+                    x = x + (0.5*xp)*(s_length-Srefl);
+                    y   = y + (0.5*yp)*(s_length-Srefl);
+
+                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref5,collnt,iProc);
+                    // xp = result1[0];
+                    // yp = result1[1];
+                    // pc = result1[2];
+                    // iProc = result1[3];
+
+                    x = x + (0.5*xp)*(s_length - Srefl);
+                    y = y + (0.5*yp)*(s_length - Srefl);
+                }
+
+                else {
+                    iProc = proc_TRAM;
+                    x = x + xp*Srefl;
+                    y = y + yp*Srefl;
+                    double Dxp = ((((-1.*(13.6/pc))*sqrt(s_length/dlri))*1.0e-3)*xp_rel)/(2.*xpcrit) + (((13.6/pc)*sqrt(s_length/dlri))*1.0e-3)*(1.+(tdefl-cry_miscut)/(2.*xpcrit));
+                    xp = xp+Dxp;
+                    x  = x + (0.5*xp)*(s_length-Srefl);
+                    y  = y + (0.5*yp)*(s_length-Srefl);
+
+                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                                        exenergy,zatom,rho,anuc);
+                    moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                        csref1,csref5,collnt,iProc);
+                    // xp = result1[0];
+                    // yp = result1[1];
+                    // pc = result1[2];
+                    // iProc = result1[3];
+
+                    x = x + (0.5*xp)*(s_length - Srefl);
+                    y = y + (0.5*yp)*(s_length - Srefl);
+                }
+            }
+        }            
+    }
+
+    result[0] = x;
+    result[1] = xp;
+    result[2] = y;
+    result[3] = yp;
+    result[4] = pc;
+    result[5] = iProc;
+
+    return result;
 
 }
