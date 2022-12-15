@@ -82,7 +82,7 @@ def track_core(k2collimator, particles):
     xp_in   = xp_part.copy()
     yp_in   = yp_part.copy()
 
-    # Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    # Move to closed orbit
     x_part  -= k2collimator.dx
     y_part  -= k2collimator.dy
 
@@ -226,7 +226,7 @@ def track_core(k2collimator, particles):
     # Drift to end of collimator: Correction needed to be in line with sixtrack
     drift_4d(x_part, y_part, xp_part, yp_part, length/2)
 
-    # Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    # Return from closed orbit
     x_part  += k2collimator.dx
     y_part  += k2collimator.dy
 
