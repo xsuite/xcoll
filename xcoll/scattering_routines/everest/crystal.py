@@ -107,7 +107,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
         zp = result[3]
         p = result[4]
         iProc = result[5]
-                
+
         s   = cry_rcurv*cry_sBend
         zlm = cry_rcurv*cry_sBend
 
@@ -163,7 +163,7 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
 
                 result = lib.interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
-                                csect,cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
+                                cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
 
                 x = result[0]

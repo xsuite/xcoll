@@ -38,7 +38,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 
     //from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     static double result[5];
-    
+
     double pmae = 0.51099890;
     double pmap = 938.271998;
 
@@ -481,6 +481,8 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
 
     static double result[6];
+    double* result_am;
+    double* result_ch;
 
     double dest = 0.;
     double pmap = 938.271998;
@@ -631,13 +633,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
         dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+        result_am = moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
                             bnref,csref0,csref1,csref5,collnt,iProc);
-
-        // xp = result1[0];
-        // yp = result1[1];
-        // pc = result1[2];
-        // iProc = result1[3];
+        xp = result_am[0];
+        yp = result_am[1];
+        pc = result_am[2];
+        iProc = result_am[3];
 
         x = x + xp*(s_length-s);
         y = y + yp*(s_length-s);
@@ -658,12 +659,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
         dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+        result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
-        // xp = result1[0];
-        // yp = result1[1];
-        // pc = result1[2];
-        // iProc = result1[3];
+        xp = result_am[0];
+        yp = result_am[1];
+        pc = result_am[2];
+        iProc = result_am[3];
 
         result[0] = x;
         result[1] = xp;
@@ -742,11 +743,11 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
                 dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
 
-                moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
-                // xp = result1[0];
-                // yp = result1[1];
-                // pc = result1[2];
-                // iProc = result1[3];
+                result_am = moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                xp = result_am[0];
+                yp = result_am[1];
+                pc = result_am[2];
+                iProc = result_am[3];
 
                 x = x + (0.5*(s_length-Sdech))*xp;
                 y = y + (0.5*(s_length-Sdech))*yp;
@@ -757,8 +758,13 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                result_ch = movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,eUm,collnt,iProc);
+                x = result_ch[0];
+                xp = result_ch[1];
+                yp = result_ch[2];
+                pc = result_ch[3];
+                iProc = result_ch[4];
 
                 if (iProc != proc_CH) {
                     //if an nuclear interaction happened, move until the middle with initial xp,yp:
@@ -796,12 +802,11 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
             y  = y  + (0.5*s_length)*yp;
 
             dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-            moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
-
-            // xp = result1[0];
-            // yp = result1[1];
-            // pc = result1[2];
-            // iProc = result1[3];
+            result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+            xp = result_am[0];
+            yp = result_am[1];
+            pc = result_am[2];
+            iProc = result_am[3];
 
             x = x + (0.5*s_length)*xp;
             y = y + (0.5*s_length)*yp;  
@@ -826,12 +831,11 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
                 dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
-
-                // xp = result1[0];
-                // yp = result1[1];
-                // pc = result1[2];
-                // iProc = result1[3];
+                result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                xp = result_am[0];
+                yp = result_am[1];
+                pc = result_am[2];
+                iProc = result_am[3];
 
                 x = x + (0.5*xp)*(s_length - Srefl);
                 y = y + (0.5*yp)*(s_length - Srefl);
@@ -867,12 +871,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
                     dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
-                    // xp = result1[0];
-                    // yp = result1[1];
-                    // pc = result1[2];
-                    // iProc = result1[3];
+                    xp = result_am[0];
+                    yp = result_am[1];
+                    pc = result_am[2];
+                    iProc = result_am[3];
                     
                     x = x + (0.5*xp)*Red_S;
                     y = y + (0.5*yp)*Red_S;
@@ -891,8 +895,13 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                    result_ch = movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,eUm,collnt,iProc);
+                    x = result_ch[0];
+                    xp = result_ch[1];
+                    yp = result_ch[2];
+                    pc = result_ch[3];
+                    iProc = result_ch[4];
                                     
                     if (iProc != proc_VC) {
                         //if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
@@ -931,12 +940,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 if(zn > 0) {
                     dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
-                    // xp = result1[0];
-                    // yp = result1[1];
-                    // pc = result1[2];
-                    // iProc = result1[3];
+                    xp = result_am[0];
+                    yp = result_am[1];
+                    pc = result_am[2];
+                    iProc = result_am[3];
                 }
             
                 x = x + (0.5*s_length)*xp;
@@ -958,12 +967,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
                     dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
-                    // xp = result1[0];
-                    // yp = result1[1];
-                    // pc = result1[2];
-                    // iProc = result1[3];
+                    xp = result_am[0];
+                    yp = result_am[1];
+                    pc = result_am[2];
+                    iProc = result_am[3];
 
                     x = x + (0.5*xp)*(s_length - Srefl);
                     y = y + (0.5*yp)*(s_length - Srefl);
@@ -980,12 +989,12 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
                     dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
-                    // xp = result1[0];
-                    // yp = result1[1];
-                    // pc = result1[2];
-                    // iProc = result1[3];
+                    xp = result_am[0];
+                    yp = result_am[1];
+                    pc = result_am[2];
+                    iProc = result_am[3];
 
                     x = x + (0.5*xp)*(s_length - Srefl);
                     y = y + (0.5*yp)*(s_length - Srefl);
