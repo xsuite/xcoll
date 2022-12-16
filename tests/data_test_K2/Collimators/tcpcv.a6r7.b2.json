@@ -1,10 +1,5 @@
 {
   "__class__": "K2Crystal",
-  "k2engine": {
-    "__class__": "K2Engine",
-    "n_alloc": 50000,
-    "random_generator_seed": 6574654
-  },
   "active_length": 0.004,
   "inactive_front": 0,
   "inactive_back": 0,
@@ -16,8 +11,6 @@
   "onesided": 1,
   "dx": -5.327066314588912e-08,
   "dy": 7.749529585063276e-07,
-  "dpx": 2.1708609856989224e-08,
-  "dpy": 7.140661765064371e-09,
   "offset": 0,
   "tilt": [
     0,

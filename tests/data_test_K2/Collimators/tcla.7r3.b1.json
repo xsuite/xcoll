@@ -1,10 +1,5 @@
 {
   "__class__": "K2Collimator",
-  "k2engine": {
-    "__class__": "K2Engine",
-    "n_alloc": 50000,
-    "random_generator_seed": 6574654
-  },
   "active_length": 1,
   "inactive_front": 0,
   "inactive_back": 0,
@@ -16,8 +11,6 @@
   "onesided": 0,
   "dx": 9.735155268685712e-07,
   "dy": -7.23624251733931e-08,
-  "dpx": 1.053282521647301e-08,
-  "dpy": -4.572377885631054e-09,
   "offset": 0,
   "tilt": [
     0,

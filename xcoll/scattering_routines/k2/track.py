@@ -41,9 +41,11 @@ def track(k2collimator, particles):  # TODO: write impacts
         from ...beam_elements import K2Collimator, K2Crystal
         if not isinstance(k2collimator, K2Collimator) and not isinstance(k2collimator, K2Crystal):
             raise ValueError("Collimator is neither a K2Collimator nor a K2Crystal!\nCannot use K2 to track.")
+
+        from .engine import K2Engine
         npart = particles._num_active_particles
-        if npart > k2collimator.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {k2collimator.k2engine.n_alloc} allocated!")
+        if npart > K2Engine.instance._capacity:
+            raise ValueError(f"Tracking {npart} particles but only {K2Engine.instance._capacity} allocated!")
         if npart == 0:
             return
         
@@ -82,17 +84,9 @@ def track_core(k2collimator, particles):
     xp_in   = xp_part.copy()
     yp_in   = yp_part.copy()
 
-    # Drift to centre of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, length/2)
-
-    # Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    # Move to closed orbit
     x_part  -= k2collimator.dx
     y_part  -= k2collimator.dy
-    xp_part -= k2collimator.dpx
-    yp_part -= k2collimator.dpy
-
-    # Backtrack to start of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
 
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
@@ -209,14 +203,8 @@ def track_core(k2collimator, particles):
     not_lost = ~lost
     survived_hit = hit & (~lost)
 
-    # Backtrack to centre of collimator
+    # Backtrack to centre of collimator: Correction needed to be in line with sixtrack
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
-
-    # Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    x_part  += k2collimator.dx
-    y_part  += k2collimator.dy
-    xp_part += k2collimator.dpx
-    yp_part += k2collimator.dpy
 
     # Update energy    ---------------------------------------------------
     # Only particles that hit the jaw and survived need to be updated
@@ -237,8 +225,12 @@ def track_core(k2collimator, particles):
     xp_part *= rpp_out/rpp_in
     yp_part *= rpp_out/rpp_in
 
-    # Drift to end of collimator
+    # Drift to end of collimator: Correction needed to be in line with sixtrack
     drift_4d(x_part, y_part, xp_part, yp_part, length/2)
+
+    # Return from closed orbit
+    x_part  += k2collimator.dx
+    y_part  += k2collimator.dy
 
     # Update 4D coordinates    -------------------------------------------
     # Absorbed particles get their coordinates set to the entrance of collimator

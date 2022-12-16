@@ -1,6 +1,7 @@
 #!/bin/bash
 
-if [ $(gcc -dumpversion) -lt 9 ]
+ver=$(gcc -dumpversion)
+if [ ${ver%%.*} -lt 9 ]
 then
   echo "ERROR: Need GCC 9 or higher!"
   exit 1
