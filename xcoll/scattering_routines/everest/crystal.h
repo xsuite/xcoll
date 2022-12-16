@@ -1013,3 +1013,277 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
     return result;
 
 }
+
+
+double* crystal(double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, double isimp, double val_part_hit, 
+            double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, double exenergy, double rho, double anuc, double zatom, double emr, double 
+            dlri, double dlyi, double ai, double eum, double collnt, double hcut, double bnref, double csref0, double csref1, double csref5, double nhit, double nabs, double 
+            cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
+            cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  iProc, double  n_chan, double  n_VR, double  n_amorphous) {
+
+    double s_temp     = 0.;
+    double s_shift    = 0.;
+    double s_rot      = 0.;
+    double s_int      = 0.;
+    double x_temp     = 0.;
+    double x_shift    = 0.;
+    double x_rot      = 0.;
+    double x_int      = 0.;
+    double xp_temp    = 0.;
+    double xp_shift   = 0.;
+    double xp_rot     = 0.;
+    double xp_int     = 0.;
+    double xp_tangent = 0.;
+    double tilt_int   = 0.;
+    double shift      = 0.;
+    double delta      = 0.;
+    double a_eq       = 0.;
+    double b_eq       = 0.;
+    double c_eq       = 0.;
+    double cry_length  = c_length;
+
+    s_imp  = 0.;
+    iProc  = proc_out;
+
+    static double crystal_result[21];
+    double* result;
+
+    // Transform in the crystal reference system
+    // 1st transformation: shift of the center of the reference frame
+    if (cry_tilt < 0) {
+        s_shift = s;
+        shift   = cry_rcurv*(1 - cry_cpTilt);
+
+        if (cry_tilt < -cry_bend) {
+            shift = cry_rcurv*(cry_cnTilt - cos(cry_bend - cry_tilt));
+        }
+        x_shift = x - shift;
+    }
+
+    else {
+        s_shift = s;
+        x_shift = x;
+    }
+  
+    // 2nd transformation: rotation
+    s_rot  = x_shift*cry_spTilt + s_shift*cry_cpTilt;
+    x_rot  = x_shift*cry_cpTilt - s_shift*cry_spTilt;
+    xp_rot = xp - cry_tilt;
+
+    // 3rd transformation: drift to the new coordinate s=0
+    xp = xp_rot;
+    x  = x_rot - xp_rot*s_rot;
+    z  = z - zp*s_rot;
+    s  = 0.;
+  
+    // Check that particle hit the crystal
+    if (x >= 0. && x < cry_xmax) {
+        // MISCUT first step: P coordinates (center of curvature of crystalline planes)
+        double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
+        double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
+
+        result = interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
+                        ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
+                        cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
+                        cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
+
+        x = result[0];
+        xp = result[1];
+        z = result[2];
+        zp = result[3];
+        p = result[4];
+        iProc = result[5];
+
+        s   = cry_rcurv*cry_sBend;
+        zlm = cry_rcurv*cry_sBend;
+
+        if (iProc != proc_out) {
+            isimp    = 1;
+            nhit     = nhit + 1.;
+            val_part_hit     = 1.;
+            val_part_impact   = x0;
+            val_part_indiv    = xp0;
+        }
+
+    }
+
+    else {
+
+        if (x < 0) { // Crystal can be hit from below
+            xp_tangent = sqrt((-(2.*x)*cry_rcurv + pow(x,2.))/(pow(cry_rcurv,2.)));
+        }
+
+        else {             // Crystal can be hit from above
+            xp_tangent = asin((cry_rcurv*(1. - cry_cBend) - x)/sqrt(((2.*cry_rcurv)*(cry_rcurv - x))*(1 - cry_cBend) + pow(x,2.)));
+        }
+        // If the hit is below, the angle must be greater or equal than the tangent,
+        // or if the hit is above, the angle must be smaller or equal than the tangent
+        if ((x < 0. && xp >= xp_tangent) || (x >= 0. && xp <= xp_tangent)) {
+
+            // If it hits the crystal, calculate in which point and apply the transformation and drift to that point
+            a_eq  = 1 + pow(xp,2.);
+            b_eq  = (2.*xp)*(x - cry_rcurv);
+            c_eq  = -(2.*x)*cry_rcurv + pow(x,2.);
+            delta = pow(b_eq,2.) - 4*(a_eq*c_eq);
+            s_int = (-b_eq - sqrt(delta))/(2*a_eq);
+            s_imp = s_int;
+
+            // MISCUT first step: P coordinates (center of curvature of crystalline planes)
+            double s_P_tmp = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
+            double x_P_tmp = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
+
+            if (s_int < cry_rcurv*cry_sBend) {
+                // Transform to a new reference system: shift and rotate
+                x_int  = xp*s_int + x;
+                xp_int = xp;
+                z      = z + zp*s_int;
+                x      = 0.;
+                s      = 0.;
+
+                tilt_int = s_int/cry_rcurv;
+                xp    = xp-tilt_int;
+
+                // MISCUT first step (bis): transform P in new reference system
+                // Translation
+                s_P_tmp = s_P_tmp - s_int;
+                x_P_tmp = x_P_tmp - x_int;
+                // Rotation
+                double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
+                double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
+
+                result = interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
+                                zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
+                                cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
+                                cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
+
+                x = result[0];
+                xp = result[1];
+                z = result[2];
+                zp = result[3];
+                p = result[4];
+                iProc = result[5];
+
+                s   = cry_rcurv*sin(cry_bend - tilt_int);
+                zlm = cry_rcurv*sin(cry_bend - tilt_int);
+                
+                if (iProc != proc_out) {
+                    x_rot    = x_int;
+                    s_rot    = s_int;
+                    xp_rot   = xp_int;
+                    s_shift  =  s_rot*cry_cnTilt + x_rot*cry_snTilt;
+                    x_shift  = -s_rot*cry_snTilt + x_rot*cry_cnTilt;
+                    xp_shift = xp_rot + cry_tilt;
+
+                    if (cry_tilt < 0.) {
+                        x0  = x_shift + shift;
+                        xp0 = xp_shift;
+                    }
+                    else {
+                        x0  = x_shift;
+                        xp0 = xp_shift;
+                    }
+                    isimp     = 1;
+                    nhit      = nhit + 1.;
+                    val_part_hit    = 1.;
+                    val_part_impact = x0;
+                    val_part_indiv  = xp0;
+                    //
+                }
+
+                // un-rotate
+                x_temp  = x;
+                s_temp  = s;
+                xp_temp = xp;
+                s       =  s_temp*cos(-tilt_int) + x_temp*sin(-tilt_int);
+                x    = -s_temp*sin(-tilt_int) + x_temp*cos(-tilt_int);
+                xp   = xp_temp + tilt_int;
+
+                // 2nd: shift back the 2 axis
+                x = x + x_int;
+                s = s + s_int;
+            }
+
+            else {
+                s = cry_rcurv*sin(cry_length/cry_rcurv);
+                x = x + s*xp;
+                z = z + s*zp;
+            }
+        }
+        else {
+            s = cry_rcurv*sin(cry_length/cry_rcurv);
+            x = x + s*xp;
+            z = z + s*zp;
+        }
+    }
+
+    // transform back from the crystal to the collimator reference system
+    // 1st: un-rotate the coordinates
+    x_rot  = x;
+    s_rot  = s;
+    xp_rot = xp;
+
+    s_shift  =  s_rot*cry_cnTilt + x_rot*cry_snTilt;
+    x_shift  = -s_rot*cry_snTilt + x_rot*cry_cnTilt;
+    xp_shift = xp_rot + cry_tilt;
+
+    // 2nd: shift back the reference frame
+    if (cry_tilt < 0) {
+        s  = s_shift;
+        x  = x_shift + shift;
+        xp = xp_shift;
+    }
+
+    else {
+        x  = x_shift;
+        s  = s_shift;
+        xp = xp_shift;
+    }
+    //
+
+    // 3rd: shift to new S=Length position
+    x = xp*(c_length - s) + x;
+    z = zp*(c_length - s) + z;
+    s = c_length;
+
+    nabs = 0;
+  
+    if (iProc == proc_AM) {
+        n_amorphous = n_amorphous + 1;
+    }
+    else if (iProc == proc_VR) {
+        n_VR = n_VR + 1;
+    }
+    else if (iProc == proc_CH) {
+        n_chan = n_chan + 1;
+    }
+    else if (iProc == proc_absorbed) {
+        nabs = 1;   // TODO: do we need to set part_abs_pos etc?
+    }
+    else if (iProc == proc_ch_absorbed) {
+        nabs = 1;
+    }
+    
+    crystal_result[0] = val_part_hit;
+    crystal_result[1] = val_part_abs;
+    crystal_result[2] = val_part_impact;
+    crystal_result[3] = val_part_indiv;
+    crystal_result[4] = nhit;
+    crystal_result[5] = nabs;
+    crystal_result[6] = s_imp;
+    crystal_result[7] = isimp;
+    crystal_result[8] = s;
+    crystal_result[9] = zlm;
+    crystal_result[10] = x;
+    crystal_result[11] = xp;
+    crystal_result[12] = x0;
+    crystal_result[13] = xp0;
+    crystal_result[14] = z;
+    crystal_result[15] = zp;
+    crystal_result[16] = p;
+    crystal_result[17] = iProc;
+    crystal_result[18] = n_chan;
+    crystal_result[19] = n_VR;
+    crystal_result[20] = n_amorphous;
+
+    return crystal_result;
+}

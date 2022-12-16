@@ -1,6 +1,5 @@
 import numpy as np
 from ._everest import lib
-from .crystal import crystal
 from .random import set_rutherford_parameters
 
 
@@ -14,7 +13,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, run_csect,
+                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, csect,
                 cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
                 cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt
         ):
@@ -145,60 +144,87 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
 
         if (is_crystal):
 
-            val_part_hit, val_part_abs, val_part_impact, val_part_indiv, nhit, nabs, s_imp, isimp, s, zlm, x, xp, x0, xp0, z, zp, p, iProc, n_chan, n_VR, n_amorphous = crystal(
-                                                                                                                            x=x,
-                                                                                                                            xp=xp,
-                                                                                                                            z=z,
-                                                                                                                            zp=zp,
-                                                                                                                            s=s,
-                                                                                                                            p=p,
-                                                                                                                            x0=x0,
-                                                                                                                            xp0=xp0,
-                                                                                                                            zlm=zlm,
-                                                                                                                            s_imp=s_imp,
-                                                                                                                            isimp=isimp,
-                                                                                                                            val_part_hit=val_part_hit, 
-                                                                                                                            val_part_abs=val_part_abs, 
-                                                                                                                            val_part_impact=val_part_impact, 
-                                                                                                                            val_part_indiv=val_part_indiv, 
-                                                                                                                            c_length=c_length, 
-                                                                                                                            exenergy=run_exenergy, 
-                                                                                                                            rho=run_rho, 
-                                                                                                                            anuc=run_anuc, 
-                                                                                                                            zatom=run_zatom, 
-                                                                                                                            emr=run_emr, 
-                                                                                                                            dlri=run_dlri, 
-                                                                                                                            dlyi=run_dlyi, 
-                                                                                                                            ai=run_ai, 
-                                                                                                                            eum=run_eum, 
-                                                                                                                            collnt=run_collnt,                                                                                                                             
-                                                                                                                            hcut=run_hcut, 
-                                                                                                                            bnref=run_bnref, 
-                                                                                                                            csref0=run_csref0, 
-                                                                                                                            csref1=run_csref1, 
-                                                                                                                            csref5=run_csref5, 
-                                                                                                                            csect=run_csect,                                                                                                                            
-                                                                                                                            nhit=nhit, 
-                                                                                                                            nabs=nabs,
-                                                                                                                            cry_tilt=cry_tilt,
-                                                                                                                            cry_rcurv=cry_rcurv,
-                                                                                                                            cry_bend=cry_bend,
-                                                                                                                            cry_alayer=cry_alayer,
-                                                                                                                            cry_xmax=cry_xmax,
-                                                                                                                            cry_ymax=cry_ymax,
-                                                                                                                            cry_orient=cry_orient,
-                                                                                                                            cry_miscut=cry_miscut,
-                                                                                                                            cry_cBend=cry_cBend,
-                                                                                                                            cry_sBend=cry_sBend,
-                                                                                                                            cry_cpTilt=cry_cpTilt,
-                                                                                                                            cry_spTilt=cry_spTilt,
-                                                                                                                            cry_cnTilt=cry_cnTilt,
-                                                                                                                            cry_snTilt=cry_snTilt,
-                                                                                                                            iProc=iProc,
-                                                                                                                            n_chan=n_chan,
-                                                                                                                            n_VR=n_VR,
-                                                                                                                            n_amorphous=n_amorphous
-                                                                                                                            )
+            
+            crystal_result = lib.crystal(x,
+                                        xp,
+                                        z,
+                                        zp,
+                                        s,
+                                        p,
+                                        x0,
+                                        xp0,
+                                        zlm,
+                                        s_imp,
+                                        isimp,
+                                        val_part_hit, 
+                                        val_part_abs, 
+                                        val_part_impact, 
+                                        val_part_indiv, 
+                                        c_length, 
+                                        run_exenergy, 
+                                        run_rho, 
+                                        run_anuc, 
+                                        run_zatom, 
+                                        run_emr, 
+                                        run_dlri, 
+                                        run_dlyi, 
+                                        run_ai, 
+                                        run_eum, 
+                                        run_collnt,                                                                                                                             
+                                        run_hcut, 
+                                        run_bnref, 
+                                        run_csref0, 
+                                        run_csref1, 
+                                        run_csref5,                                                                                                                             
+                                        nhit, 
+                                        nabs,
+                                        cry_tilt,
+                                        cry_rcurv,
+                                        cry_bend,
+                                        cry_alayer,
+                                        cry_xmax,
+                                        cry_ymax,
+                                        cry_orient,
+                                        cry_miscut,
+                                        cry_cBend,
+                                        cry_sBend,
+                                        cry_cpTilt,
+                                        cry_spTilt,
+                                        cry_cnTilt,
+                                        cry_snTilt,
+                                        iProc,
+                                        n_chan,
+                                        n_VR,
+                                        n_amorphous
+                                        )
+
+
+            val_part_hit = crystal_result[0]
+            val_part_abs = crystal_result[1]
+            val_part_impact = crystal_result[2]
+            val_part_indiv = crystal_result[3]
+            nhit = crystal_result[4]
+            nabs = crystal_result[5]
+            s_imp = crystal_result[6]
+            isimp = crystal_result[7]
+            s = crystal_result[8]
+            zlm = crystal_result[9]
+            x = crystal_result[10]
+            xp = crystal_result[11]
+            x0 = crystal_result[12]
+            xp0 = crystal_result[13]
+            z = crystal_result[14]
+            zp = crystal_result[15]
+            p = crystal_result[16]
+            iProc = crystal_result[17]
+            n_chan = crystal_result[18]
+            n_VR = crystal_result[19]
+            n_amorphous = crystal_result[20]
+
+            if (isimp==1):
+                isimp==True
+            else:
+                isimp==False
 
             if (nabs != 0):
                 val_part_abs = 1
@@ -253,7 +279,7 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                 nhit = nhit + 1
 
                 
-                result = lib.jaw(run_exenergy,
+                jaw_result = lib.jaw(run_exenergy,
                                 run_anuc,
                                 run_zatom,
                                 run_rho,
@@ -279,17 +305,17 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
                                 zp,
                                 dpop)
 
-                run_exenergy = result[0]
-                run_bn = result[1]
-                p0 = result[2]
-                nabs = result[3]
-                s = result[4]
-                zlm = result[5]
-                x = result[6]
-                xp = result[7]
-                z = result[8]
-                zp = result[9]
-                dpop = result[10]
+                run_exenergy = jaw_result[0]
+                run_bn = jaw_result[1]
+                p0 = jaw_result[2]
+                nabs = jaw_result[3]
+                s = jaw_result[4]
+                zlm = jaw_result[5]
+                x = jaw_result[6]
+                xp = jaw_result[7]
+                z = jaw_result[8]
+                zp = jaw_result[9]
+                dpop = jaw_result[10]
 
                 val_nabs_type = nabs
                 val_part_hit  = 1

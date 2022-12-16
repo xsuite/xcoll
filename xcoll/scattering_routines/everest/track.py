@@ -225,8 +225,8 @@ def track_core(collimator, particles):
             c_enom=e0_ref, # Reference energy in MeV
             onesided=collimator.onesided,
             length=length,
-            material=collimator.material, 
-            run_csect=csect,
+            material=collimator.material,
+            csect=csect, 
             cry_tilt=cry_tilt,
             cry_rcurv=cry_rcurv,
             cry_bend=cry_bend,
