@@ -34,7 +34,7 @@ int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 int temp = 0;
 
-double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csect, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
+double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     //from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     static double result[5];
@@ -476,11 +476,12 @@ double calcionloss(double dz, double EnLo, double betar, double bgr, double gamm
 
 
 double* interact(double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
-                double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref, double csect, double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
+                double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref,
+                 double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
 
     static double result[6];
-   
+
     double dest = 0.;
     double pmap = 938.271998;
     double pmae = 0.51099890;
@@ -756,7 +757,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,eUm,collnt,iProc);
 
                 if (iProc != proc_CH) {
@@ -890,7 +891,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,csect,
+                    movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,eUm,collnt,iProc);
                                     
                     if (iProc != proc_VC) {

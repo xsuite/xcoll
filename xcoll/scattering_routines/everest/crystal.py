@@ -95,16 +95,9 @@ def crystal(*,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isimp,val_part_hit,val_part_abs,val
         # MISCUT first step: P coordinates (center of curvature of crystalline planes)
         s_P = (cry_rcurv-cry_xmax)*np.sin(-cry_miscut)
         x_P = cry_xmax + (cry_rcurv-cry_xmax)*np.cos(-cry_miscut)
-        
-        print(type(x),type(xp),type(z),type(zp),type(p),type(cry_length),type(s_P),type(x_P),type(exenergy),type(rho),type(anuc),type(zatom),type(emr),type(dlri),type(dlyi),type(
-                        ai),type(eum),type(collnt),type(hcut),type(csref0),type(csref1),type(csref5),type(bnref),type(csect),type(cry_tilt),type(
-                        cry_rcurv),type(cry_alayer),type(cry_xmax),type(cry_ymax),type(cry_orient),type(cry_miscut),type(cry_bend),type(cry_cBend),type(
-                        cry_sBend),type(cry_cpTilt),type(cry_spTilt),type(cry_cnTilt),type(cry_snTilt),type(iProc))
-                        
-        vector = np.vectorize(lib.interact)
 
         result = lib.interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
-                        ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,csect,cry_tilt,
+                        ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc)
 
