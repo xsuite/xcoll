@@ -1,10 +1,5 @@
 {
   "__class__": "K2Crystal",
-  "k2engine": {
-    "__class__": "K2Engine",
-    "n_alloc": 50000,
-    "random_generator_seed": 6574654
-  },
   "active_length": 0.004,
   "inactive_front": 0,
   "inactive_back": 0,

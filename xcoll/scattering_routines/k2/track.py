@@ -41,9 +41,11 @@ def track(k2collimator, particles):  # TODO: write impacts
         from ...beam_elements import K2Collimator, K2Crystal
         if not isinstance(k2collimator, K2Collimator) and not isinstance(k2collimator, K2Crystal):
             raise ValueError("Collimator is neither a K2Collimator nor a K2Crystal!\nCannot use K2 to track.")
+
+        from .engine import K2Engine
         npart = particles._num_active_particles
-        if npart > k2collimator.k2engine.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {k2collimator.k2engine.n_alloc} allocated!")
+        if npart > K2Engine.instance._capacity:
+            raise ValueError(f"Tracking {npart} particles but only {K2Engine.instance._capacity} allocated!")
         if npart == 0:
             return
         

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from .beam_elements import BlackAbsorber, K2Collimator, K2Crystal, _all_collimator_types
-from .scattering_routines.k2 import K2Engine
+from .scattering_routines.k2.engine import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 
@@ -160,23 +160,17 @@ class CollimatorManager:
 
     def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
         # Check for the existence of a K2Engine; warn if settings are different
-        # (only one instance of K2Engine should exist).
-        if seed is None:
-            seed = np.random.randint(1, 10000000)
-        if self._k2engine is None:
-            self._k2engine = K2Engine(n_alloc=max_part, random_generator_seed=seed)
-        else:
-            if self._k2engine.n_alloc != max_part:
-                print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine.n_alloc} particles.\n"
-                      + f"Ignoring the requested max_part={max_part}.")
-            if self._k2engine.random_generator_seed != seed:
-                print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
-                      + f"Ignoring the requested seed={seed}.")
+        self._k2engine = K2Engine(_capacity=max_part, random_generator_seed=seed)
+        if self._k2engine._capacity != max_part:
+            print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine._capacity} particles.\n"
+                  + f"Ignoring the requested max_part={max_part}.")
+        if self._k2engine.random_generator_seed != seed:
+            print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
+                  + f"Ignoring the requested seed={seed}.")
 
         # Do the installation
         def install_func(thiscoll, name):
             return K2Collimator(
-                    k2engine=self._k2engine,
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -344,7 +338,7 @@ class CollimatorManager:
             if full_open and name not in gaps.keys():
                 line[name].is_active = False
             # Apply settings to element
-            elif isinstance(line[name], BlackAbsorber):
+            else:
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].angle = colldb.angle[name]
@@ -353,17 +347,10 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-            elif isinstance(line[name], K2Collimator):
+            if isinstance(line[name], K2Collimator):
                 line[name].material = colldb.material[name]
-                line[name].dx = colldb.x[name]
-                line[name].dy = colldb.y[name]
                 line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
                 line[name].dpy = colldb.py[name]   # This is a K2 curiosity; we don't want it in our future code
-                line[name].angle = colldb.angle[name]
-                line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
-                line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
-                line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
-                line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 if colldb.onesided[name] == 'both':
                     line[name].onesided = False
                 elif colldb.onesided[name] == 'left':
