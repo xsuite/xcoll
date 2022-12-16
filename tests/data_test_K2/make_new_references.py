@@ -30,7 +30,7 @@ def _reshuffle(part):
 
 def _make_collimator_ref(name):
     # Initialise engine
-    xc.K2Engine(_capacity=50000, random_generator_seed=6574654)
+    xc.K2Engine.reset()
     # Load initial particles
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
@@ -48,6 +48,8 @@ def _make_collimator_ref(name):
     with open(Path(path, 'Ref',name+'.json'), 'w') as fid:
         json.dump(part.to_dict(), fid, cls=xo.JEncoder)
 
+
+xc.K2Engine(_capacity=50000, random_generator_seed=6574654)
 for coll in collimators:
     _make_collimator_ref(coll)
 

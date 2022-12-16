@@ -82,6 +82,8 @@ crystals_b2 = [
 
 
 path = Path('./data_test_K2/')
+# Initialise engine
+xc.K2Engine(_capacity=50000, random_generator_seed=6574654)
 
 def test_primaries():
     _track_collimator('tcp.c6l7.b1')
@@ -126,7 +128,7 @@ def test_crystals():
 
 def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-20, atold=1e-20):
     # Initialise engine
-    xc.K2Engine(_capacity=50000, random_generator_seed=6574654)
+    xc.K2Engine.reset()
     # Load initial particles
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
