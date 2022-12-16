@@ -164,7 +164,7 @@ class CollimatorManager:
         if self._k2engine._capacity != max_part:
             print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine._capacity} particles.\n"
                   + f"Ignoring the requested max_part={max_part}.")
-        if self._k2engine.random_generator_seed != seed:
+        if seed is not None and self._k2engine.random_generator_seed != seed:
             print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
                   + f"Ignoring the requested seed={seed}.")
 
@@ -349,8 +349,6 @@ class CollimatorManager:
                 line[name].is_active = colldb.is_active[name]
             if isinstance(line[name], K2Collimator):
                 line[name].material = colldb.material[name]
-                line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
-                line[name].dpy = colldb.py[name]   # This is a K2 curiosity; we don't want it in our future code
                 if colldb.onesided[name] == 'both':
                     line[name].onesided = False
                 elif colldb.onesided[name] == 'left':
