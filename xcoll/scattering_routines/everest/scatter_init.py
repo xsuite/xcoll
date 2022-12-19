@@ -3,7 +3,7 @@ import numpy as np
 def calculate_scattering(p0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref):
     
     # Output parameters
-    cprob = np.array([0,0,0,0,0,0], dtype=np.float64)
+    # cprob = np.array([0,0,0,0,0,0], dtype=np.float64)
     csect = np.array([0,0,0,0,0,0], dtype=np.float64) # Cross section
     
     # Constants 
@@ -51,8 +51,13 @@ def calculate_scattering(p0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref):
     xintl = (1.0e-2*anuc)/(((fnavo * rho)*csect[0])*1e-24)
 
     # Filling CProb with cumulated normalised Cross-sections
-    cprob[5] = 1
-    for i in range(1,5,1):
-        cprob[i] = cprob[i-1] + csect[i]/csect[0]
+    cprob5 = 1
+    cprob0 = 0
+    cprob1 = cprob0 + csect[1]/csect[0]
+    cprob2 = cprob1 + csect[2]/csect[0]
+    cprob3 = cprob2 + csect[3]/csect[0]
+    cprob4 = cprob3 + csect[4]/csect[0]
+    # for i in range(1,5,1):
+    #     cprob[i] = cprob[i-1] + csect[i]/csect[0]
 
-    return cprob, xintl, bn, ecmsq, xln15s, bpp, csect
+    return cprob0,cprob1,cprob2,cprob3,cprob4,cprob5,xintl,bn,ecmsq,xln15s,bpp,csect

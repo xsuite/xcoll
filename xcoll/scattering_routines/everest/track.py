@@ -1,4 +1,5 @@
 import numpy as np
+from ._everest import lib
 
 # =================================================================== #
 # ===============================  K2  ============================== #
@@ -40,7 +41,6 @@ def track(collimator, particles):  # TODO: write impacts
         from ...beam_elements import Collimator, Crystal
         if not isinstance(collimator, Collimator) and not isinstance(collimator, Crystal):
             raise ValueError("Collimator is neither a Collimator nor a Crystal!\nCannot use Everest to track.")
-
         if particles._num_active_particles == 0:
             return
         
@@ -178,69 +178,76 @@ def track_core(collimator, particles):
         cry_cnTilt = 0
         cry_snTilt = 0
 
-    cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    cprob0, cprob1, cprob2, cprob3, cprob4, cprob5, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
-    scatter(npart=npart,
-            x_part=x_part,
-            xp_part=xp_part,
-            y_part=y_part,
-            yp_part=yp_part,
-            s_part=s_part,
-            p_part=e_part,                   # confusing: this is ENERGY not momentum
-            part_hit=part_hit,
-            part_abs=part_abs,
-            part_impact=part_impact,         # impact parameter
-            part_indiv=part_indiv,           # particle divergence
-            part_linteract=part_linteract,   # interaction length
-            nabs_type=nabs_type,
-            linside=linside,
-            run_exenergy=exenergy,
-            run_anuc=anuc,
-            run_zatom=zatom,
-            run_emr=emr,
-            run_rho=rho,
-            run_hcut=hcut,
-            run_bnref=bnref,
-            run_csref0=csref0,
-            run_csref1=csref1,
-            run_csref5=csref5,
-            run_radl=radl,
-            run_dlri=dlri,
-            run_dlyi=dlyi,
-            run_eum=eUm,
-            run_ai=ai,
-            run_collnt=collnt,
-            run_cprob=cprob,
-            run_xintl=xintl,
-            run_bn=bn,
-            run_ecmsq=ecmsq,
-            run_xln15s=xln15s,
-            run_bpp=bpp,
-            is_crystal=is_crystal,
-            c_length=length,
-            c_rotation=collimator.angle/180.*np.pi,
-            c_aperture=opening,
-            c_offset=offset,
-            c_tilt=collimator.tilt,
-            c_enom=e0_ref, # Reference energy in MeV
-            onesided=collimator.onesided,
-            length=length,
-            material=collimator.material,
-            csect=csect, 
-            cry_tilt=cry_tilt,
-            cry_rcurv=cry_rcurv,
-            cry_bend=cry_bend,
-            cry_alayer=cry_alayer,
-            cry_xmax=cry_xmax,
-            cry_ymax=cry_ymax,
-            cry_orient=cry_orient,
-            cry_miscut=cry_miscut,
-            cry_cBend=cry_cBend,
-            cry_sBend=cry_sBend,
-            cry_cpTilt=cry_cpTilt,
-            cry_spTilt=cry_spTilt,
-            cry_cnTilt=cry_cnTilt,
-            cry_snTilt=cry_snTilt
+    
+    lib.scatter(npart,
+            x_part,
+            xp_part,
+            y_part,
+            yp_part,
+            s_part,
+            e_part,                   # confusing: this is ENERGY not momentum
+            part_hit,
+            part_abs,
+            part_impact,         # impact parameter
+            part_indiv,           # particle divergence
+            part_linteract,   # interaction length
+            nabs_type,
+            linside,
+            exenergy,
+            anuc,
+            zatom,
+            emr,
+            rho,
+            hcut,
+            bnref,
+            csref0,
+            csref1,
+            csref5,
+            radl,
+            dlri,
+            dlyi,
+            eUm,
+            ai,
+            collnt,
+            cprob0,
+            cprob1,
+            cprob2,
+            cprob3,
+            cprob4,
+            cprob5,
+            xintl,
+            bn,
+            ecmsq,
+            xln15s,
+            bpp,
+            is_crystal,
+            length,
+            collimator.angle/180.*np.pi,
+            opening,
+            offset,
+            collimator.tilt[0],
+            collimator.tilt[1],
+            e0_ref, # Reference energy in MeV
+            collimator.onesided,
+            length,
+            collimator.material,
+            csect, 
+            cry_tilt,
+            cry_rcurv,
+            cry_bend,
+            cry_alayer,
+            cry_xmax,
+            cry_ymax,
+            cry_orient,
+            cry_miscut,
+            cry_cBend,
+            cry_sBend,
+            cry_cpTilt,
+            cry_spTilt,
+            cry_cnTilt,
+            cry_snTilt
             )
 
     # Masks of hit and survived particles

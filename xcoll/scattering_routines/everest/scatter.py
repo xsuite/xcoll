@@ -3,10 +3,10 @@ from ._everest import lib
 from .random import set_rutherford_parameters
 
 
-def rutherford(t, zatom, emr):
-    cnorm  = 2.607e-5
-    cnform = 0.8561e3
-    return (cnorm*np.exp(((-1*t)*cnform)*emr**2)) * (zatom/t)**2
+# def rutherford(t, zatom, emr):
+#     cnorm  = 2.607e-5
+#     cnform = 0.8561e3
+#     return (cnorm*np.exp(((-1*t)*cnform)*emr**2)) * (zatom/t)**2
 
 
 def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
