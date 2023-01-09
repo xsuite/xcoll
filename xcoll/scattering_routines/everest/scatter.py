@@ -23,13 +23,6 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
     nhit   = 0
     nabs   = 0
     fracab = 0
-    mirror = 1
-
-    # Compute rotation factors for collimator rotation
-    cRot   = np.cos(c_rotation)
-    sRot   = np.sin(c_rotation)
-    cRRot  = np.cos(-c_rotation)
-    sRRot  = np.sin(-c_rotation)
 
     # Set energy and nucleon change variables as with the coupling
     # ien0, ien1: particle energy entering/leaving the collimator
@@ -78,6 +71,14 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
         p = p_in
         sp = 0
         dpop = (p - p0)/p0
+
+        mirror = 1
+
+        # Compute rotation factors for collimator rotation
+        cRot   = np.cos(c_rotation)
+        sRot   = np.sin(c_rotation)
+        cRRot  = np.cos(-c_rotation)
+        sRRot  = np.sin(-c_rotation)
 
         # Transform particle coordinates to get into collimator coordinate  system
         # First do rotation into collimator frame
