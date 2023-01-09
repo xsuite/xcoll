@@ -1,7 +1,7 @@
 import numpy as np
 from ._everest import lib
 
-from .scatter import scatter
+# from .scatter import scatter
 from .random import set_rutherford_parameters
 
 # =================================================================== #
@@ -62,8 +62,6 @@ def track(collimator, particles):  # TODO: write impacts
 
 
 def track_core(collimator, particles):
-    from .scatter_init import calculate_scattering
-    from .scatter import scatter
     from ...beam_elements.everest_collimator import Crystal
     from .materials import CrystalMaterial
 
@@ -222,7 +220,7 @@ def track_core(collimator, particles):
         if (part_abs[i] != 0):
             continue
 
-        x_part[i], xp_part[i], y_part[i], yp_part[i], s_part[i], e_part[i], part_hit[i], part_abs[i], part_impact[i], part_indiv[i],part_linteract[i], nabs_type[i], linside[i], p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp = scatter(
+        result = lib.scatter(
                 x_part[i],
                 xp_part[i],
                 y_part[i],
@@ -301,6 +299,35 @@ def track_core(collimator, particles):
                 n_amorphous,
                 s_imp
                 )
+
+        x_part[i]=result[0]
+        xp_part[i]=result[1]
+        y_part[i]=result[2]
+        yp_part[i]=result[3]
+        s_part[i]=result[4]
+        e_part[i]=result[5]
+        part_hit[i]=result[6]
+        part_abs[i]=result[7]
+        part_impact[i]=result[8]
+        part_indiv[i]=result[9]
+        part_linteract[i]=result[10]
+        nabs_type[i]=result[11]
+        linside[i]=result[12]
+        p0=result[13]
+        x0=result[14]
+        xp0=result[15]
+        nhit=result[16]
+        nabs=result[17]
+        fracab=result[18]
+        nnuc0=result[19]
+        ien0=result[20]
+        nnuc1=result[21]
+        ien1=result[22]
+        iProc=result[23]
+        n_chan=result[24]
+        n_VR=result[25]
+        n_amorphous=result[26]
+        s_imp=result[27]
 
     # Masks of hit and survived particles
     lost = part_abs > 0
