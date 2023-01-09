@@ -185,72 +185,113 @@ def track_core(collimator, particles):
 
     set_rutherford_parameters(zatom=zatom, emr=emr, hcut=hcut)
 
-    scatter(npart,
-            x_part,
-            xp_part,
-            y_part,
-            yp_part,
-            s_part,
-            e_part,                   # confusing: this is ENERGY not momentum
-            part_hit,
-            part_abs,
-            part_impact,         # impact parameter
-            part_indiv,           # particle divergence
-            part_linteract,   # interaction length
-            nabs_type,
-            linside,
-            exenergy,
-            anuc,
-            zatom,
-            emr,
-            rho,
-            hcut,
-            bnref,
-            csref0,
-            csref1,
-            csref5,
-            radl,
-            dlri,
-            dlyi,
-            eUm,
-            ai,
-            collnt,
-            cprob0,
-            cprob1,
-            cprob2,
-            cprob3,
-            cprob4,
-            cprob5,
-            xintl,
-            bn,
-            ecmsq,
-            xln15s,
-            bpp,
-            is_crystal,
-            length,
-            collimator.angle/180.*np.pi,
-            opening,
-            offset,
-            collimator.tilt[0],
-            collimator.tilt[1],
-            e0_ref, # Reference energy in MeV
-            collimator.onesided,
-            csect, 
-            cry_tilt,
-            cry_rcurv,
-            cry_bend,
-            cry_alayer,
-            cry_xmax,
-            cry_ymax,
-            cry_orient,
-            cry_miscut,
-            cry_cBend,
-            cry_sBend,
-            cry_cpTilt,
-            cry_spTilt,
-            cry_cnTilt,
-            cry_snTilt
-            )
+    # Initilaisation
+    p0 = c_enom
+    x0 = 0
+    xp0 = 0
+    nhit   = 0
+    nabs   = 0
+    fracab = 0
+    # Set energy and nucleon change variables as with the coupling
+    # ien0, ien1: particle energy entering/leaving the collimator
+    # energy in MeV
+    nnuc0 = 0
+    ien0  = 0
+    nnuc1 = 0
+    ien1  = 0
+    # Crystal tracking parameters
+    iProc       = 0
+    n_chan      = 0
+    n_VR        = 0
+    n_amorphous = 0
+    s_imp        = 0
+
+    for i in range(npart):
+
+        if (part_abs[i] != 0):
+            continue
+
+        x_in[i], xp_in[i], y_in[i], yp_in[i], s_in[i], e_part[i], part_hit[i], part_abs[i], part_impact[i], part_indiv[i],part_linteract[i], nabs_type[i], linside[i], p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp = scatter(
+                x_in[i],
+                xp_in[i],
+                y_in[i],
+                yp_in[i],
+                s_in[i],
+                e_part[i],                   # confusing: this is ENERGY not momentum
+                part_hit[i],
+                part_abs[i],
+                part_impact[i],         # impact parameter
+                part_indiv[i],           # particle divergence
+                part_linteract[i],   # interaction length
+                nabs_type[i],
+                linside[i],
+                exenergy,
+                anuc,
+                zatom,
+                emr,
+                rho,
+                hcut,
+                bnref,
+                csref0,
+                csref1,
+                csref5,
+                radl,
+                dlri,
+                dlyi,
+                eUm,
+                ai,
+                collnt,
+                cprob0,
+                cprob1,
+                cprob2,
+                cprob3,
+                cprob4,
+                cprob5,
+                xintl,
+                bn,
+                ecmsq,
+                xln15s,
+                bpp,
+                is_crystal,
+                length,
+                collimator.angle/180.*np.pi,
+                opening,
+                offset,
+                collimator.tilt[0],
+                collimator.tilt[1],
+                e0_ref, # Reference energy in MeV
+                collimator.onesided,
+                csect, 
+                cry_tilt,
+                cry_rcurv,
+                cry_bend,
+                cry_alayer,
+                cry_xmax,
+                cry_ymax,
+                cry_orient,
+                cry_miscut,
+                cry_cBend,
+                cry_sBend,
+                cry_cpTilt,
+                cry_spTilt,
+                cry_cnTilt,
+                cry_snTilt,
+                p0,
+                x0,
+                xp0,
+                nhit,
+                nabs,
+                fracab,
+                nnuc0,
+                ien0,
+                nnuc1,
+                ien1,
+                iProc,
+                n_chan,
+                n_VR,
+                n_amorphous,
+                s_imp
+                )
 
     # Masks of hit and survived particles
     lost = part_abs > 0
