@@ -181,7 +181,18 @@ def track_core(collimator, particles):
         cry_cnTilt = 0
         cry_snTilt = 0
 
-    cprob0, cprob1, cprob2, cprob3, cprob4, cprob5, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    result = lib.calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    cprob0 = result[0]
+    cprob1 = result[1]
+    cprob2 = result[2]
+    cprob3 = result[3]
+    cprob4 = result[4]
+    cprob5 = result[5]
+    xintl = result[6]
+    bn = result[7]
+    ecmsq = result[8]
+    xln15s = result[9]
+    bpp = result[10]
 
     set_rutherford_parameters(zatom=zatom, emr=emr, hcut=hcut)
 
@@ -204,7 +215,7 @@ def track_core(collimator, particles):
     n_chan      = 0
     n_VR        = 0
     n_amorphous = 0
-    s_imp        = 0
+    s_imp       = 0
 
     for i in range(npart):
 
@@ -260,7 +271,6 @@ def track_core(collimator, particles):
                 collimator.tilt[0],
                 collimator.tilt[1],
                 collimator.onesided,
-                csect, 
                 cry_tilt,
                 cry_rcurv,
                 cry_bend,
