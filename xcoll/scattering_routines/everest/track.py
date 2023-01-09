@@ -186,7 +186,7 @@ def track_core(collimator, particles):
     set_rutherford_parameters(zatom=zatom, emr=emr, hcut=hcut)
 
     # Initilaisation
-    p0 = c_enom
+    p0 = e0_ref # Reference energy in MeV
     x0 = 0
     xp0 = 0
     nhit   = 0
@@ -259,7 +259,6 @@ def track_core(collimator, particles):
                 offset,
                 collimator.tilt[0],
                 collimator.tilt[1],
-                e0_ref, # Reference energy in MeV
                 collimator.onesided,
                 csect, 
                 cry_tilt,
