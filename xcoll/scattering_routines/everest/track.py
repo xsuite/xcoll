@@ -183,7 +183,7 @@ def track_core(collimator, particles):
 
     cprob0, cprob1, cprob2, cprob3, cprob4, cprob5, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
-    set_rutherford_parameters(zatom=run_zatom, emr=run_emr, hcut=run_hcut)
+    set_rutherford_parameters(zatom=zatom, emr=emr, hcut=hcut)
 
     scatter(npart,
             x_part,
