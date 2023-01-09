@@ -1,13 +1,14 @@
 import numpy as np
 from ._everest import lib
 
-def scatter(x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
-                part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
-                run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
-                run_dlyi, run_eum, run_ai, run_collnt, cprob0,cprob1,cprob2,cprob3,cprob4,cprob5, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                length, c_rotation, c_aperture, c_offset, c_tilt0,c_tilt1, onesided, csect,
-                cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
-                cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt, p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp
+def scatter(x_in, xp_in, y_in, yp_in, s_in, p_in, val_part_hit,
+                val_part_abs, val_part_impact, val_part_indiv, val_part_linteract, val_nabs_type, val_linside, run_exenergy, 
+                run_anuc, run_zatom, run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, 
+                run_dlri, run_dlyi, run_eum, run_ai, run_collnt, cprob0,cprob1,cprob2,cprob3,cprob4,cprob5, run_xintl, run_bn, 
+                run_ecmsq, run_xln15s, run_bpp, is_crystal, length, c_rotation, c_aperture, c_offset, c_tilt0,c_tilt1, 
+                onesided, csect, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, 
+                cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt, p0, x0, xp0, nhit, nabs, fracab, nnuc0, 
+                ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp
         ):
 
     val_part_impact = -1
