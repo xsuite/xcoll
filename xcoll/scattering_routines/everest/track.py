@@ -211,12 +211,12 @@ def track_core(collimator, particles):
         if (part_abs[i] != 0):
             continue
 
-        x_in[i], xp_in[i], y_in[i], yp_in[i], s_in[i], e_part[i], part_hit[i], part_abs[i], part_impact[i], part_indiv[i],part_linteract[i], nabs_type[i], linside[i], p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp = scatter(
-                x_in[i],
-                xp_in[i],
-                y_in[i],
-                yp_in[i],
-                s_in[i],
+        x_part[i], xp_part[i], y_part[i], yp_part[i], s_part[i], e_part[i], part_hit[i], part_abs[i], part_impact[i], part_indiv[i],part_linteract[i], nabs_type[i], linside[i], p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp = scatter(
+                x_part[i],
+                xp_part[i],
+                y_part[i],
+                yp_part[i],
+                s_part[i],
                 e_part[i],                   # confusing: this is ENERGY not momentum
                 part_hit[i],
                 part_abs[i],
