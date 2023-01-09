@@ -2,18 +2,11 @@ import numpy as np
 from ._everest import lib
 from .random import set_rutherford_parameters
 
-
-# def rutherford(t, zatom, emr):
-#     cnorm  = 2.607e-5
-#     cnform = 0.8561e3
-#     return (cnorm*np.exp(((-1*t)*cnform)*emr**2)) * (zatom/t)**2
-
-
-def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
+def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
-                run_dlyi, run_eum, run_ai, run_collnt, run_cprob, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt, c_enom, onesided, length, material, csect,
+                run_dlyi, run_eum, run_ai, run_collnt, cprob0,cprob1,cprob2,cprob3,cprob4,cprob5, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
+                c_length, c_rotation, c_aperture, c_offset, c_tilt0,c_tilt1, c_enom, onesided, length, csect,
                 cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
                 cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt
         ):
@@ -31,13 +24,6 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
     nabs   = 0
     fracab = 0
     mirror = 1
-
-    cprob0 = run_cprob[0]
-    cprob1 = run_cprob[1]
-    cprob2 = run_cprob[2]
-    cprob3 = run_cprob[3]
-    cprob4 = run_cprob[4]
-    cprob5 = run_cprob[5]
 
     # Compute rotation factors for collimator rotation
     cRot   = np.cos(c_rotation)
@@ -111,10 +97,10 @@ def scatter(*, npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit
         # Now mirror at the horizontal axis for negative X offset
         if (x < 0):
             mirror    = -1
-            tiltangle = -1*c_tilt[1]
+            tiltangle = -1*c_tilt1
         else:
             mirror    = 1
-            tiltangle = c_tilt[0]
+            tiltangle = c_tilt0
     
         x  = mirror*x
         xp = mirror*xp
