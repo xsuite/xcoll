@@ -40,7 +40,7 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
 
     # For one-sided collimators consider only positive X. For negative X jump to the next particle
     if (onesided & (x < 0)):
-        continue
+        return x_in, xp_in, y_in, yp_in, s_in, p_in, val_part_hit, val_part_abs, val_part_impact, val_part_indiv, val_part_linteract, val_nabs_type, val_linside, p0, x0, xp0, nhit, nabs, fracab, nnuc0, ien0, nnuc1, ien1, iProc, n_chan, n_VR, n_amorphous, s_imp
 
     # Log input energy + nucleons as per the FLUKA coupling
     nnuc0   = nnuc0 + 1
