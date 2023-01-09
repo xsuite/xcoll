@@ -1,7 +1,7 @@
 import numpy as np
 from ._everest import lib
 
-def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
+def scatter(x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, cprob0,cprob1,cprob2,cprob3,cprob4,cprob5, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
