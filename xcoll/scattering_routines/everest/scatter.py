@@ -1,20 +1,17 @@
 import numpy as np
 from ._everest import lib
-from .random import set_rutherford_parameters
 
 def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 part_abs, part_impact, part_indiv, part_linteract, nabs_type,linside, run_exenergy, run_anuc, run_zatom,
                 run_emr, run_rho,  run_hcut, run_bnref, run_csref0, run_csref1, run_csref5,run_radl, run_dlri, 
                 run_dlyi, run_eum, run_ai, run_collnt, cprob0,cprob1,cprob2,cprob3,cprob4,cprob5, run_xintl, run_bn, run_ecmsq, run_xln15s, run_bpp, is_crystal, 
-                c_length, c_rotation, c_aperture, c_offset, c_tilt0,c_tilt1, c_enom, onesided, length, csect,
+                length, c_rotation, c_aperture, c_offset, c_tilt0,c_tilt1, c_enom, onesided, csect,
                 cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut, cry_cBend, 
                 cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt, cry_snTilt
         ):
 
-    set_rutherford_parameters(zatom=run_zatom, emr=run_emr, hcut=run_hcut)
   
     # Initilaisation
-    length  = c_length
     p0 = c_enom
 
     x0 = 0
@@ -114,7 +111,7 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
             xp = xp - tiltangle
         
         if(tiltangle < 0):
-            x  = x + np.sin(tiltangle) * c_length
+            x  = x + np.sin(tiltangle) * length
             xp = xp - tiltangle
 
         # particle passing above the jaw are discarded => take new event
@@ -147,7 +144,7 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                                         val_part_abs, 
                                         val_part_impact, 
                                         val_part_indiv, 
-                                        c_length, 
+                                        length, 
                                         run_exenergy, 
                                         run_rho, 
                                         run_anuc, 
@@ -217,7 +214,7 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
                 val_part_abs = 1
                 val_part_linteract = zlm
 
-            s_imp  = (s - c_length) + s_imp
+            s_imp  = (s - length) + s_imp
 
 
 ##################################################################################################
@@ -343,12 +340,12 @@ def scatter(npart, x_part, xp_part, y_part, yp_part, s_part, p_part, part_hit,
         if(x < 99.0e-3):
             # Include collimator tilt
             if(tiltangle > 0):
-                x  = x  + tiltangle*c_length
+                x  = x  + tiltangle*length
                 xp = xp + tiltangle
             elif(tiltangle < 0):
-                x  = x  + tiltangle*c_length
+                x  = x  + tiltangle*length
                 xp = xp + tiltangle
-                x  = x  - np.sin(tiltangle) * c_length
+                x  = x  - np.sin(tiltangle) * length
 
             # Transform back to particle coordinates with opening and offset
             x   = (x + c_aperture/2) + mirror*c_offset
