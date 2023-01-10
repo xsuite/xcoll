@@ -6,7 +6,7 @@ from ..general import _pkg_root
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
-class Collimator(BaseCollimator):
+class EverestCollimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
         'dpx':        xo.Float64,
         'dpy':        xo.Float64,
@@ -23,8 +23,13 @@ class Collimator(BaseCollimator):
     iscollective = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h'),
-        *_pkg_root.joinpath('scattering_routines','everest').glob('*.h')
+        _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
+        _pkg_root.joinpath('scattering_routines','everest','random.h'),
+        _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
+        _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
+        _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
     def __init__(self, **kwargs):
@@ -48,7 +53,7 @@ class Collimator(BaseCollimator):
 
 
 
-class Crystal(BaseCollimator):
+class EverestCrystal(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
         'dpx':         xo.Float64,
         'dpy':         xo.Float64,
@@ -73,8 +78,8 @@ class Crystal(BaseCollimator):
     iscollective = False
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/everest_collimator.h'),
-        *_pkg_root.joinpath('scattering_routines','everest').glob('*.h')
+        "/*gpufun*/\n"
+        "void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0){}"
     ]
 
     def __init__(self, **kwargs):

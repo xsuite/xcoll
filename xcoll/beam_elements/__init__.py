@@ -1,5 +1,5 @@
 from .absorber import BlackAbsorber
-from .everest_collimator import Collimator, Crystal
+from .everest_collimator import EverestCollimator, EverestCrystal
 from .pyeverest_collimator import PyCollimator, PyCrystal
 
-_all_collimator_types = { BlackAbsorber, Collimator, Crystal }
+_all_collimator_types = { BlackAbsorber, EverestCollimator, EverestCrystal }

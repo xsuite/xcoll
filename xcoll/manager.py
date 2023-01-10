@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, Collimator, Crystal, _all_collimator_types
+from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 from .scattering_routines.everest import set_random_seed, get_random_seed
@@ -167,7 +167,7 @@ class CollimatorManager:
 
         # Do the installation
         def install_func(thiscoll, name):
-            return Collimator(
+            return EverestCollimator(
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
@@ -175,7 +175,7 @@ class CollimatorManager:
                     material=thiscoll['material'],
                     is_active=False
                    )
-        self._install_collimators(names, collimator_class=Collimator, install_func=install_func, verbose=verbose)
+        self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
 
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
@@ -344,7 +344,7 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-            elif isinstance(line[name], Collimator):
+            elif isinstance(line[name], EverestCollimator):
                 line[name].material = colldb.material[name]
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
