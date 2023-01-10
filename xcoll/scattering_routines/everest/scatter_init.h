@@ -3,9 +3,6 @@
 
 double* calculate_scattering(double p0, double anuc, double rho, double zatom, double emr, double csref0, double csref1, double csref5, double bnref) {
     
-    // Output parameters
-    // cprob = array([0,0,0,0,0,0], dtype=float64)
-    double csect[6];// Cross section
     static double result[11];
     
     // Constants 

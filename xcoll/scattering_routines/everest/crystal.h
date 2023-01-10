@@ -39,11 +39,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     //from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     static double result[5];
 
-    double pmae = 0.51099890;
     double pmap = 938.271998;
-
-    double xp_in = xp;
-    double yp_in = yp;
     double pc_in = pc;
 
     double cs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -274,11 +270,8 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
 
     static double result[4];
 
-    double xp_in = xp;
-    double yp_in = yp;
     double pc_in = pc;
 
-    double pmae = 0.51099890;
     double pmap = 938.271998;
 
     double cs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};

@@ -27,7 +27,6 @@ double* scatter(double x_in, double  xp_in, double  y_in, double  yp_in, double 
 
     double x = x_in;
     double xp = xp_in;
-    double xp_in0 = xp_in;
     double z = y_in;
     double zp = yp_in;
     double p = p_in;
@@ -250,7 +249,6 @@ double* scatter(double x_in, double  xp_in, double  y_in, double  yp_in, double 
             // first time particle hits collimator: entering jaw
                 val_linside = 1;
             }
-            double s_impact = sp;
             nhit = nhit + 1;
 
             
