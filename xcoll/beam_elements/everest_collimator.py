@@ -1,9 +1,8 @@
-import numpy as np
-
 import xobjects as xo
 
 from .base_collimator import BaseCollimator
-from ..scattering_routines.everest import track, Material, CrystalMaterial
+from ..scattering_routines.everest import Material, CrystalMaterial
+from ..general import _pkg_root
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
@@ -21,7 +20,12 @@ class Collimator(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
+    iscollective = False
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h'),
+        *_pkg_root.joinpath('scattering_routines','everest').glob('*.h')
+    ]
 
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
@@ -41,11 +45,6 @@ class Collimator(BaseCollimator):
             tilt = [tilt, tilt]
         kwargs['tilt'] = tilt
         super().__init__(**kwargs)
-
-
-    def track(self, particles):  # TODO: write impacts
-        track(self, particles)
-        return
 
 
 
@@ -71,7 +70,12 @@ class Crystal(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
+    iscollective = False
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/collimators_src/everest_collimator.h'),
+        *_pkg_root.joinpath('scattering_routines','everest').glob('*.h')
+    ]
 
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
@@ -99,8 +103,4 @@ class Crystal(BaseCollimator):
         kwargs.setdefault('orient', 0)
         super().__init__(**kwargs)
 
-
-    def track(self, particles):  # TODO: write impacts
-        track(self, particles)
-        return
 
