@@ -1015,7 +1015,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 }
 
 
-double* crystal(double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, double isimp, double val_part_hit, 
+double* crystal(double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
             double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, double exenergy, double rho, double anuc, double zatom, double emr, double 
             dlri, double dlyi, double ai, double eum, double collnt, double hcut, double bnref, double csref0, double csref1, double csref5, double nhit, double nabs, double 
             cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
