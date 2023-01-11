@@ -57,6 +57,7 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     double const e0_ref    = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
+    double const p0c_ref   = LocalParticle_get_p0c(&part0[0]);
     double const beta0_ref = LocalParticle_get_beta0(&part0[0]);
 
     // Collimator properties
@@ -88,6 +89,22 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
     double const hcut     = MaterialData_get_hcut(material);
     double const radl     = MaterialData_get_radiation_length(material);
 
+    // Calculate scattering parameters
+    double* result_scat_init = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
+    double const cprob0 = result_scat_init[0];
+    double const cprob1 = result_scat_init[1];
+    double const cprob2 = result_scat_init[2];
+    double const cprob3 = result_scat_init[3];
+    double const cprob4 = result_scat_init[4];
+    double const cprob5 = result_scat_init[5];
+    double const xintl  = result_scat_init[6];
+    double const bn     = result_scat_init[7];
+    double const ecmsq  = result_scat_init[8];
+    double const xln15s = result_scat_init[9];
+    double const bpp    = result_scat_init[10];
+
+    set_rutherford_parameters(zatom, emr, hcut);
+
     // Initialise accumulated variables   TODO: this is NOT GPU-proof...
     double p0     = e0_ref;
     double x0     = 0;
@@ -101,8 +118,6 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
     double ien0  = 0;
     double nnuc1 = 0;
     double ien1  = 0;
-
-    // double *part_hit, *part_abs, *part_impact, *part_indiv, *part_linteract, *nabs_type, *linside;
 
     //start_per_particle_block (part0->part)
 
@@ -124,29 +139,13 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         drift_4d_single(part, -length/2);
 
         // Status variables
-        double part_hit = 0;
-        double part_abs = 0;
-        double part_impact = 0;
+        int part_hit = 0;
+        int part_abs = 0;
+        int part_impact = 0;
         double part_indiv = 0;
         double part_linteract = 0;
         double nabs_type = 0;
         double linside = 0;
-
-        // Calculate scattering parameters
-        double* result_scat_init = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
-        double const cprob0 = result_scat_init[0];
-        double const cprob1 = result_scat_init[1];
-        double const cprob2 = result_scat_init[2];
-        double const cprob3 = result_scat_init[3];
-        double const cprob4 = result_scat_init[4];
-        double const cprob5 = result_scat_init[5];
-        double const xintl  = result_scat_init[6];
-        double const bn     = result_scat_init[7];
-        double const ecmsq  = result_scat_init[8];
-        double const xln15s = result_scat_init[9];
-        double const bpp    = result_scat_init[10];
-
-        set_rutherford_parameters(zatom, emr, hcut);
 
         // if (part_abs != 0){
         //     continue;
@@ -154,13 +153,13 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
         double rpp = LocalParticle_get_rpp(part);
         // TODO: missing correction due to m/m0 (but also wrong in xpart...)
-        double energy = (LocalParticle_get_p0c(part)*LocalParticle_get_ptau(part) + e0_ref) / 1e9;  // energy in GeV
+        double energy = (p0c_ref*ptau_in + e0_ref) / 1e9;  // energy in GeV
 
         double* result_scat = scatter(
                 LocalParticle_get_x(part),
-                LocalParticle_get_px(part)*rpp,
+                LocalParticle_get_px(part)*rpp_in,
                 LocalParticle_get_y(part),
-                LocalParticle_get_py(part)*rpp,
+                LocalParticle_get_py(part)*rpp_in,
                 0,   // s at start of collimator
                 energy,                   // energy, not momentum
                 part_hit,
@@ -237,10 +236,10 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         );
 
         LocalParticle_set_x(part, result_scat[0]);
-        LocalParticle_set_px(part, result_scat[1]/rpp_in);
+        LocalParticle_set_px(part, result_scat[1]/rpp);
         LocalParticle_set_y(part, result_scat[2]);
-        LocalParticle_set_py(part, result_scat[3]/rpp_in);
-        double s_out      = result_scat[4];            //  Unused
+        LocalParticle_set_py(part, result_scat[3]/rpp);
+        double s_out      = result_scat[4];       //  Unused
         double energy_out = result_scat[5];       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
         part_hit          = result_scat[6];
         part_abs          = result_scat[7];
@@ -267,11 +266,11 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
         // Update energy    ---------------------------------------------------
         // Only particles that hit the jaw and survived need to be updated
-        double ptau_out = ptau_in;
+//         double ptau_out = ptau_in;
         if (part_hit>0 && part_abs==0){
-            ptau_out = (energy_out*1e9 - e0_ref) / e0_ref / beta0_ref;
+            double ptau_out = (energy_out*1e9 - e0_ref) / (e0_ref * beta0_ref);
+            LocalParticle_set_ptau(part, ptau_out);
         }
-        LocalParticle_set_ptau(part, ptau_out);
 
     // // Rescale angles, because K2 did not update angles with new energy!
     // // So need to do xp = xp * p_in / p_out = xp * rpp_out / rpp_in
@@ -299,13 +298,13 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         }
         // Hit and survived particles need correcting:
         if (part_hit>0 && part_abs==0){
-            // First we drift half the length with the old angles:
-            LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
-            // then half the length with the new angles:
             double px  = LocalParticle_get_px(part);
             double py  = LocalParticle_get_py(part);
             double rvv = LocalParticle_get_rvv(part);
             double rpp = LocalParticle_get_rpp(part);
+            // First we drift half the length with the old angles:
+            LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
+            // then half the length with the new angles:
             LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
         }
 
