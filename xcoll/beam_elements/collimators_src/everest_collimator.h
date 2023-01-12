@@ -57,7 +57,7 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     double const e0_ref    = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
-    double const p0c_ref   = LocalParticle_get_p0c(&part0[0]);
+    double const p0c_ref   = LocalParticle_get_p0c(&part0[0]) / 1e9;
     double const beta0_ref = LocalParticle_get_beta0(&part0[0]);
 
     // Collimator properties
@@ -126,7 +126,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         double const px_in   = LocalParticle_get_px(part);
         double const y_in    = LocalParticle_get_y(part);
         double const py_in   = LocalParticle_get_py(part);
-        double const zeta_in = LocalParticle_get_zeta(part);
+//         double const zeta_in = LocalParticle_get_zeta(part);
         double const ptau_in = LocalParticle_get_ptau(part);
         double const rpp_in  = LocalParticle_get_rpp(part);
         double const rvv_in  = LocalParticle_get_rvv(part);
@@ -134,7 +134,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         // Drift to centre of collimator
         drift_4d_single(part, length/2);
         // Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
-        shift_4d_single(part, -co_x, -co_px, -co_y, -co_py );
+        shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
         // Backtrack to start of collimator
         drift_4d_single(part, -length/2);
 
@@ -147,13 +147,8 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         double nabs_type = 0;
         double linside = 0;
 
-        // if (part_abs != 0){
-        //     continue;
-        // }
-
-        double rpp = LocalParticle_get_rpp(part);
         // TODO: missing correction due to m/m0 (but also wrong in xpart...)
-        double energy = (p0c_ref*ptau_in + e0_ref) / 1e9;  // energy in GeV
+        double energy = p0c_ref*ptau_in + e0_ref;  // energy in GeV
 
         double* result_scat = scatter(
                 LocalParticle_get_x(part),
@@ -236,10 +231,10 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         );
 
         LocalParticle_set_x(part, result_scat[0]);
-        LocalParticle_set_px(part, result_scat[1]/rpp);
+        LocalParticle_set_px(part, result_scat[1]/rpp_in);
         LocalParticle_set_y(part, result_scat[2]);
-        LocalParticle_set_py(part, result_scat[3]/rpp);
-        double s_out      = result_scat[4];       //  Unused
+        LocalParticle_set_py(part, result_scat[3]/rpp_in);
+//         double s_out      = result_scat[4];       //  Unused
         double energy_out = result_scat[5];       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
         part_hit          = result_scat[6];
         part_abs          = result_scat[7];
@@ -260,26 +255,19 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         ien1              = result_scat[22];
 
         // Backtrack to centre of collimator
-        drift_4d_single(part0, -length/2);
+        drift_4d_single(part, -length/2);
         // Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-        shift_4d_single(part0, co_x, co_px, co_y, co_py );
+        shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
 
         // Update energy    ---------------------------------------------------
         // Only particles that hit the jaw and survived need to be updated
-//         double ptau_out = ptau_in;
         if (part_hit>0 && part_abs==0){
-            double ptau_out = (energy_out*1e9 - e0_ref) / (e0_ref * beta0_ref);
-            LocalParticle_set_ptau(part, ptau_out);
+            double ptau_out = (energy_out - e0_ref) / (e0_ref * beta0_ref);
+            LocalParticle_update_ptau(part, ptau_out);
         }
 
-    // // Rescale angles, because K2 did not update angles with new energy!
-    // // So need to do xp = xp * p_in / p_out = xp * rpp_out / rpp_in
-    // // (see collimation.f90 line 1709 and mod_particles.f90 line 210)
-    // xp_part *= rpp_out/rpp_in
-    // yp_part *= rpp_out/rpp_in
-
         // Drift to end of collimator
-        drift_4d_single(part0, length/2);
+        drift_4d_single(part, length/2);
 
         // Update 4D coordinates    -------------------------------------------
         // Absorbed particles get their coordinates set to the entrance of collimator

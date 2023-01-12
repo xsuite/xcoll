@@ -41,9 +41,9 @@ def drift_6d(particles, length):
     return
 
 def track(collimator, particles):  # TODO: write impacts
-        from ...beam_elements import Collimator, Crystal
-        if not isinstance(collimator, Collimator) and not isinstance(collimator, Crystal):
-            raise ValueError("Collimator is neither a Collimator nor a Crystal!\nCannot use Everest to track.")
+        from ...beam_elements import EverestCollimator, EverestCrystal
+        if not isinstance(collimator, EverestCollimator) and not isinstance(collimator, EverestCrystal):
+            raise ValueError("Collimator is neither a EverestCollimator nor a EverestCrystal!\nCannot use Everest to track.")
         if particles._num_active_particles == 0:
             return
         
@@ -62,7 +62,7 @@ def track(collimator, particles):  # TODO: write impacts
 
 
 def track_core(collimator, particles):
-    from ...beam_elements.everest_collimator import Crystal
+    from ...beam_elements.everest_collimator import EverestCrystal
     from .materials import CrystalMaterial
 
     npart = particles._num_active_particles
@@ -120,7 +120,7 @@ def track_core(collimator, particles):
     hcut     = collimator.material.hcut
 
     # Get crystal parameters
-    if isinstance(collimator, Crystal):
+    if isinstance(collimator, EverestCrystal):
         if not isinstance(collimator.material, CrystalMaterial):
             raise ValueError(f"The collimator material {collimator.material.name} cannot be used as a crystal!")
         dlri     = collimator.material.crystal_radiation_length
@@ -219,7 +219,7 @@ def track_core(collimator, particles):
 
         if (part_abs[i] != 0):
             continue
-
+            
         result = lib.scatter(
                 x_part[i],
                 xp_part[i],
@@ -335,6 +335,11 @@ def track_core(collimator, particles):
     not_hit = ~hit
     not_lost = ~lost
     survived_hit = hit & (~lost)
+
+#     print()
+#     for i in [3429]:
+#         print(x_part[i], xp_part[i], y_part[i], yp_part[i], rpp_in[i], e_part[i])
+#     print()
 
     # Backtrack to centre of collimator
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)

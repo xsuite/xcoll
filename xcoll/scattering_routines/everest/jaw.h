@@ -176,7 +176,7 @@ double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x,
 
 }
 
-double* tetat(double t, double p, double tx, double tz) {
+double* tetat(double t, double p) {
 
 
     double teta = sqrt(t)/p;
@@ -430,7 +430,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         // monte-carlo fashion the angle changes for x and z planes. The
         // angle change is proportional to SQRT(t) and 1/p, as expected.
 
-        double* res3 = tetat(t,p,tx,tz);
+        double* res3 = tetat(t,p);
         tx = res3[0]; 
         tz = res3[1];
 
