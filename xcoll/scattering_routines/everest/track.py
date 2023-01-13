@@ -1,4 +1,8 @@
 import numpy as np
+from ._everest import lib
+
+# from .scatter import scatter
+from .random import set_rutherford_parameters
 
 # =================================================================== #
 # ===============================  K2  ============================== #
@@ -37,10 +41,9 @@ def drift_6d(particles, length):
     return
 
 def track(collimator, particles):  # TODO: write impacts
-        from ...beam_elements import Collimator, Crystal
-        if not isinstance(collimator, Collimator) and not isinstance(collimator, Crystal):
-            raise ValueError("Collimator is neither a Collimator nor a Crystal!\nCannot use Everest to track.")
-
+        from ...beam_elements import EverestCollimator, EverestCrystal
+        if not isinstance(collimator, EverestCollimator) and not isinstance(collimator, EverestCrystal):
+            raise ValueError("Collimator is neither a EverestCollimator nor a EverestCrystal!\nCannot use Everest to track.")
         if particles._num_active_particles == 0:
             return
         
@@ -59,9 +62,7 @@ def track(collimator, particles):  # TODO: write impacts
 
 
 def track_core(collimator, particles):
-    from .scatter_init import calculate_scattering
-    from .scatter import scatter
-    from ...beam_elements.everest_collimator import Crystal
+    from ...beam_elements.everest_collimator import EverestCrystal
     from .materials import CrystalMaterial
 
     npart = particles._num_active_particles
@@ -119,7 +120,7 @@ def track_core(collimator, particles):
     hcut     = collimator.material.hcut
 
     # Get crystal parameters
-    if isinstance(collimator, Crystal):
+    if isinstance(collimator, EverestCrystal):
         if not isinstance(collimator.material, CrystalMaterial):
             raise ValueError(f"The collimator material {collimator.material.name} cannot be used as a crystal!")
         dlri     = collimator.material.crystal_radiation_length
@@ -178,70 +179,155 @@ def track_core(collimator, particles):
         cry_cnTilt = 0
         cry_snTilt = 0
 
-    cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    result = lib.calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
+    cprob0 = result[0]
+    cprob1 = result[1]
+    cprob2 = result[2]
+    cprob3 = result[3]
+    cprob4 = result[4]
+    cprob5 = result[5]
+    xintl = result[6]
+    bn = result[7]
+    ecmsq = result[8]
+    xln15s = result[9]
+    bpp = result[10]
 
-    scatter(npart=npart,
-            x_part=x_part,
-            xp_part=xp_part,
-            y_part=y_part,
-            yp_part=yp_part,
-            s_part=s_part,
-            p_part=e_part,                   # confusing: this is ENERGY not momentum
-            part_hit=part_hit,
-            part_abs=part_abs,
-            part_impact=part_impact,         # impact parameter
-            part_indiv=part_indiv,           # particle divergence
-            part_linteract=part_linteract,   # interaction length
-            nabs_type=nabs_type,
-            linside=linside,
-            run_exenergy=exenergy,
-            run_anuc=anuc,
-            run_zatom=zatom,
-            run_emr=emr,
-            run_rho=rho,
-            run_hcut=hcut,
-            run_bnref=bnref,
-            run_csref0=csref0,
-            run_csref1=csref1,
-            run_csref5=csref5,
-            run_radl=radl,
-            run_dlri=dlri,
-            run_dlyi=dlyi,
-            run_eum=eUm,
-            run_ai=ai,
-            run_collnt=collnt,
-            run_cprob=cprob,
-            run_xintl=xintl,
-            run_bn=bn,
-            run_ecmsq=ecmsq,
-            run_xln15s=xln15s,
-            run_bpp=bpp,
-            is_crystal=is_crystal,
-            c_length=length,
-            c_rotation=collimator.angle/180.*np.pi,
-            c_aperture=opening,
-            c_offset=offset,
-            c_tilt=collimator.tilt,
-            c_enom=e0_ref, # Reference energy in MeV
-            onesided=collimator.onesided,
-            length=length,
-            material=collimator.material, 
-            run_csect=csect,
-            cry_tilt=cry_tilt,
-            cry_rcurv=cry_rcurv,
-            cry_bend=cry_bend,
-            cry_alayer=cry_alayer,
-            cry_xmax=cry_xmax,
-            cry_ymax=cry_ymax,
-            cry_orient=cry_orient,
-            cry_miscut=cry_miscut,
-            cry_cBend=cry_cBend,
-            cry_sBend=cry_sBend,
-            cry_cpTilt=cry_cpTilt,
-            cry_spTilt=cry_spTilt,
-            cry_cnTilt=cry_cnTilt,
-            cry_snTilt=cry_snTilt
-            )
+    set_rutherford_parameters(zatom=zatom, emr=emr, hcut=hcut)
+
+    # Initilaisation
+    p0 = e0_ref # Reference energy in MeV
+    x0 = 0
+    xp0 = 0
+    nhit   = 0
+    nabs   = 0
+    fracab = 0
+    # Set energy and nucleon change variables as with the coupling
+    # ien0, ien1: particle energy entering/leaving the collimator
+    # energy in MeV
+    nnuc0 = 0
+    ien0  = 0
+    nnuc1 = 0
+    ien1  = 0
+    # Crystal tracking parameters
+    iProc       = 0
+    n_chan      = 0
+    n_VR        = 0
+    n_amorphous = 0
+    s_imp       = 0
+
+    for i in range(npart):
+
+        if (part_abs[i] != 0):
+            continue
+            
+        result = lib.scatter(
+                x_part[i],
+                xp_part[i],
+                y_part[i],
+                yp_part[i],
+                s_part[i],
+                e_part[i],                   # confusing: this is ENERGY not momentum
+                part_hit[i],
+                part_abs[i],
+                part_impact[i],         # impact parameter
+                part_indiv[i],           # particle divergence
+                part_linteract[i],   # interaction length
+                nabs_type[i],
+                linside[i],
+                exenergy,
+                anuc,
+                zatom,
+                emr,
+                rho,
+                hcut,
+                bnref,
+                csref0,
+                csref1,
+                csref5,
+                radl,
+                dlri,
+                dlyi,
+                eUm,
+                ai,
+                collnt,
+                cprob0,
+                cprob1,
+                cprob2,
+                cprob3,
+                cprob4,
+                cprob5,
+                xintl,
+                bn,
+                ecmsq,
+                xln15s,
+                bpp,
+                is_crystal,
+                length,
+                collimator.angle/180.*np.pi,
+                opening,
+                offset,
+                collimator.tilt[0],
+                collimator.tilt[1],
+                collimator.onesided,
+                cry_tilt,
+                cry_rcurv,
+                cry_bend,
+                cry_alayer,
+                cry_xmax,
+                cry_ymax,
+                cry_orient,
+                cry_miscut,
+                cry_cBend,
+                cry_sBend,
+                cry_cpTilt,
+                cry_spTilt,
+                cry_cnTilt,
+                cry_snTilt,
+                p0,
+                x0,
+                xp0,
+                nhit,
+                nabs,
+                fracab,
+                nnuc0,
+                ien0,
+                nnuc1,
+                ien1,
+                iProc,
+                n_chan,
+                n_VR,
+                n_amorphous,
+                s_imp
+                )
+
+        x_part[i]=result[0]
+        xp_part[i]=result[1]
+        y_part[i]=result[2]
+        yp_part[i]=result[3]
+        s_part[i]=result[4]
+        e_part[i]=result[5]
+        part_hit[i]=result[6]
+        part_abs[i]=result[7]
+        part_impact[i]=result[8]
+        part_indiv[i]=result[9]
+        part_linteract[i]=result[10]
+        nabs_type[i]=result[11]
+        linside[i]=result[12]
+        p0=result[13]
+        x0=result[14]
+        xp0=result[15]
+        nhit=result[16]
+        nabs=result[17]
+        fracab=result[18]
+        nnuc0=result[19]
+        ien0=result[20]
+        nnuc1=result[21]
+        ien1=result[22]
+        iProc=result[23]
+        n_chan=result[24]
+        n_VR=result[25]
+        n_amorphous=result[26]
+        s_imp=result[27]
 
     # Masks of hit and survived particles
     lost = part_abs > 0
@@ -249,6 +335,11 @@ def track_core(collimator, particles):
     not_hit = ~hit
     not_lost = ~lost
     survived_hit = hit & (~lost)
+
+#     print()
+#     for i in [3429]:
+#         print(x_part[i], xp_part[i], y_part[i], yp_part[i], rpp_in[i], e_part[i])
+#     print()
 
     # Backtrack to centre of collimator
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
