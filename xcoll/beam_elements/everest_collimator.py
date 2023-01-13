@@ -78,8 +78,13 @@ class EverestCrystal(BaseCollimator):
     iscollective = False
 
     _extra_c_sources = [
-        "/*gpufun*/\n"
-        "void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0){}"
+        _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
+        _pkg_root.joinpath('scattering_routines','everest','random.h'),
+        _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
+        _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
+        _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
     def __init__(self, **kwargs):

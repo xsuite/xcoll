@@ -1,5 +1,5 @@
-#ifndef XCOLL_EVEREST_H
-#define XCOLL_EVEREST_H
+#ifndef XCOLL_EVEREST_CRYSTAL_H
+#define XCOLL_EVEREST_CRYSTAL_H
 
 #include <math.h>
 
@@ -8,7 +8,7 @@
 //    Use drift function from xtrack Drift element (call its C function)
 
 /*gpufun*/
-void drift_6d(LocalParticle* part0, double length) {
+void cry_drift_6d(LocalParticle* part0, double length) {
     //start_per_particle_block (part0->part)
         double const rpp    = LocalParticle_get_rpp(part);
         double const rv0v   = 1./LocalParticle_get_rvv(part);
@@ -24,7 +24,7 @@ void drift_6d(LocalParticle* part0, double length) {
 }
 
 /*gpufun*/
-void drift_4d_single(LocalParticle* part, double length) {
+void cry_drift_4d_single(LocalParticle* part, double length) {
     double const rpp    = LocalParticle_get_rpp(part);
     double const xp     = LocalParticle_get_px(part) * rpp;
     double const yp     = LocalParticle_get_py(part) * rpp;
@@ -33,14 +33,14 @@ void drift_4d_single(LocalParticle* part, double length) {
 }
 
 /*gpufun*/
-double drift_zeta_single(double rvv, double xp, double yp, double length){
+double cry_drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
     return length * dzeta;
 }
 
 /*gpufun*/
-void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, double dpy) {
+void cry_shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, double dpy) {
     LocalParticle_add_to_x(part, dx);
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_y(part, dy);
@@ -54,40 +54,65 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 
 
 /*gpufun*/
-void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
+void track_crystal(EverestCrystalData el, LocalParticle* part0) {
 
     double const e0_ref    = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
     double const p0c_ref   = LocalParticle_get_p0c(&part0[0]) / 1e9;
     double const beta0_ref = LocalParticle_get_beta0(&part0[0]);
 
-    // Collimator properties
-    double const length  = EverestCollimatorData_get_active_length(el);
+    // Crystal properties
+    double length  = EverestCrystalData_get_active_length(el);
     // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
     //     raise NotImplementedError
-    double const opening  = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
-    double const offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
-    double const tilt0    = EverestCollimatorData_get_tilt(el, 0);
-    double const tilt1    = EverestCollimatorData_get_tilt(el, 1);
-    double const onesided = EverestCollimatorData_get_onesided(el);
-    double const angle    = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
-    double const co_x     = EverestCollimatorData_get_dx(el);
-    double const co_px    = EverestCollimatorData_get_dpx(el);
-    double const co_y     = EverestCollimatorData_get_dy(el);
-    double const co_py    = EverestCollimatorData_get_dpy(el);
+    double const opening  = EverestCrystalData_get_jaw_F_L(el) - EverestCrystalData_get_jaw_F_R(el);
+    double const offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_F_L(el) + EverestCrystalData_get_jaw_F_R(el) )/2;
+    double const tilt0    = EverestCrystalData_get_tilt(el, 0);
+    double const tilt1    = EverestCrystalData_get_tilt(el, 1);
+    double const onesided = EverestCrystalData_get_onesided(el);
+    double const angle    = atan2(EverestCrystalData_get_sin_z(el), EverestCrystalData_get_cos_z(el) );
+    double const co_x     = EverestCrystalData_get_dx(el);
+    double const co_px    = EverestCrystalData_get_dpx(el);
+    double const co_y     = EverestCrystalData_get_dy(el);
+    double const co_py    = EverestCrystalData_get_dpy(el);
+    double const bend     = EverestCrystalData_get_bend(el);
+    double const cry_tilt = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
+    double const bend_ang = length/bend;    // temporary value
+    if (cry_tilt >= -bend_ang) {
+        length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
+    } else {
+        length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
+    }
+    double const cry_rcurv  = bend;
+    double const cry_bend   = length/cry_rcurv; //final value (with corrected length) 
+    double const cry_alayer = EverestCrystalData_get_thick(el);
+    double const cry_xmax   = EverestCrystalData_get_xdim(el);
+    double const cry_ymax   = EverestCrystalData_get_ydim(el);
+    double const cry_orient = EverestCrystalData_get_orient(el);
+    double const cry_miscut = EverestCrystalData_get_miscut(el);
+    double const cry_cBend  = cos(cry_bend); 
+    double const cry_sBend  = sin(cry_bend); 
+    double const cry_cpTilt = cos(cry_tilt);
+    double const cry_spTilt = sin(cry_tilt);
+    double const cry_cnTilt = cos(-cry_tilt);
+    double const cry_snTilt = sin(-cry_tilt);
 
     // Material properties
-    MaterialData material = EverestCollimatorData_getp_material(el);
-    double const zatom    = MaterialData_get_Z(material);
-    double const anuc     = MaterialData_get_A(material);
-    double const rho      = MaterialData_get_density(material);
-    double const exenergy = MaterialData_get_excitation_energy(material);
-    double const emr      = MaterialData_get_nuclear_radius(material);
-    double const bnref    = MaterialData_get_nuclear_elastic_slope(material);
-    double const csref0   = MaterialData_get_cross_section(material, 0);
-    double const csref1   = MaterialData_get_cross_section(material, 1);
-    double const csref5   = MaterialData_get_cross_section(material, 5);
-    double const hcut     = MaterialData_get_hcut(material);
-    double const radl     = MaterialData_get_radiation_length(material);
+    CrystalMaterialData material = EverestCrystalData_getp_material(el);
+    double const zatom    = CrystalMaterialData_get_Z(material);
+    double const anuc     = CrystalMaterialData_get_A(material);
+    double const rho      = CrystalMaterialData_get_density(material);
+    double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+    double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+    double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+    double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+    double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+    double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
+    double const hcut     = CrystalMaterialData_get_hcut(material);
+    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+    double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+    double const eUm      = CrystalMaterialData_get_crystal_potential(material);
+    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
 
     // Calculate scattering parameters
     double* result_scat_init = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
@@ -118,6 +143,12 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
     double ien0  = 0;
     double nnuc1 = 0;
     double ien1  = 0;
+    // specifically for crystals:
+    double iProc  = 0;
+    double n_chan = 0;
+    double n_VR   = 0;
+    double n_amorphous = 0;
+    double s_imp  = 0;
 
     //start_per_particle_block (part0->part)
 
@@ -132,11 +163,11 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         double const rvv_in  = LocalParticle_get_rvv(part);
 
         // Drift to centre of collimator
-        drift_4d_single(part, length/2);
+        cry_drift_4d_single(part, length/2);
         // Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
-        shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
+        cry_shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
         // Backtrack to start of collimator
-        drift_4d_single(part, -length/2);
+        cry_drift_4d_single(part, -length/2);
 
         // Status variables
         int part_hit = 0;
@@ -174,12 +205,12 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
                 csref0,
                 csref1,
                 csref5,
-                radl,
-                0,   // dlri
-                0,   // dlyi
-                0,   // eUm
-                0,   // ai
-                0,   // collnt
+                0,   // radl not used
+                dlri,
+                dlyi,
+                eUm,
+                ai,
+                collnt,
                 cprob0,
                 cprob1,
                 cprob2,
@@ -191,7 +222,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
                 ecmsq,
                 xln15s,
                 bpp,
-                0,   // is_crystal
+                1,   // is_crystal
                 length,
                 angle,
                 opening,
@@ -199,20 +230,20 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
                 tilt0,
                 tilt1,
                 onesided,
-                0,   // cry_tilt
-                0,   // cry_rcurv
-                0,   // cry_bend
-                0,   // cry_alayer
-                0,   // cry_xmax
-                0,   // cry_ymax
-                0,   // cry_orient
-                0,   // cry_miscut
-                0,   // cry_cBend
-                0,   // cry_sBend
-                0,   // cry_cpTilt
-                0,   // cry_spTilt
-                0,   // cry_cnTilt
-                0,   // cry_snTilt
+                cry_tilt, 
+                cry_rcurv,  
+                cry_bend,
+                cry_alayer, 
+                cry_xmax,   
+                cry_ymax,   
+                cry_orient, 
+                cry_miscut, 
+                cry_cBend,  
+                cry_sBend,  
+                cry_cpTilt, 
+                cry_spTilt, 
+                cry_cnTilt, 
+                cry_snTilt, 
                 p0,
                 x0,
                 xp0,
@@ -223,11 +254,11 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
                 ien0,
                 nnuc1,
                 ien1,
-                0,   // iProc
-                0,   // n_chan
-                0,   // n_VR
-                0,   // n_amorphous
-                0    // s_imp
+                iProc,
+                n_chan,
+                n_VR,
+                n_amorphous,
+                s_imp
         );
 
         LocalParticle_set_x(part, result_scat[0]);
@@ -253,11 +284,16 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         // ien0              = result_scat[20];
         // nnuc1             = result_scat[21];
         // ien1              = result_scat[22];
+        // iProc             = result_scat[23];
+        // n_chan            = result_scat[24];
+        // n_VR              = result_scat[25];
+        // n_amorphous       = result_scat[26];
+        // s_imp             = result_scat[27];
 
         // Backtrack to centre of collimator
-        drift_4d_single(part, -length/2);
+        cry_drift_4d_single(part, -length/2);
         // Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-        shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
+        cry_shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
 
         // Update energy    ---------------------------------------------------
         // Only particles that hit the jaw and survived need to be updated
@@ -267,7 +303,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         }
 
         // Drift to end of collimator
-        drift_4d_single(part, length/2);
+        cry_drift_4d_single(part, length/2);
 
         // Update 4D coordinates    -------------------------------------------
         // Absorbed particles get their coordinates set to the entrance of collimator
@@ -282,7 +318,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
         // Absorbed particles keep coordinates at the entrance of collimator, others need correcting:
         // Non-hit particles are just drifting (zeta not yet drifted in K2, so do here)
         if (part_hit==0){
-            LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length) );
+            LocalParticle_add_to_zeta(part, cry_drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length) );
         }
         // Hit and survived particles need correcting:
         if (part_hit>0 && part_abs==0){
@@ -291,9 +327,9 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
             double rvv = LocalParticle_get_rvv(part);
             double rpp = LocalParticle_get_rpp(part);
             // First we drift half the length with the old angles:
-            LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
+            LocalParticle_add_to_zeta(part, cry_drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
             // then half the length with the new angles:
-            LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+            LocalParticle_add_to_zeta(part, cry_drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
         }
 
         // Update s    --------------------------------------------------------
@@ -310,19 +346,19 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 }
 
 /*gpufun*/
-void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
-    int8_t const is_active      = EverestCollimatorData_get__active(el);
-    double const inactive_front = EverestCollimatorData_get_inactive_front(el);
-    double const active_length  = EverestCollimatorData_get_active_length(el);
-    double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
+void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
+    int8_t const is_active      = EverestCrystalData_get__active(el);
+    double const inactive_front = EverestCrystalData_get_inactive_front(el);
+    double const active_length  = EverestCrystalData_get_active_length(el);
+    double const inactive_back  = EverestCrystalData_get_inactive_back(el);
 
     if (!is_active){
         // Drift full length
-        drift_6d(part0, inactive_front+active_length+inactive_back);
+        cry_drift_6d(part0, inactive_front+active_length+inactive_back);
     } else {
-        drift_6d(part0, inactive_front);
-        track_collimator(el, part0);
-        drift_6d(part0, inactive_back);
+        cry_drift_6d(part0, inactive_front);
+        track_crystal(el, part0);
+        cry_drift_6d(part0, inactive_back);
     }
 }
 
