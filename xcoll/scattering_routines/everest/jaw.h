@@ -451,17 +451,15 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         rlen = rlen-run_zlm1;
     }
 
-    result[0] = run_exenergy;
-    result[1] = run_bn;
-    result[2] = p0;
-    result[3] = nabs;
-    result[4] = s;
-    result[5] = zlm;
-    result[6] = x;
-    result[7] = xp;
-    result[8] = z;
-    result[9] = zp;
-    result[10] = dpop;
+    result[0] = p0;
+    result[1] = nabs;
+    result[2] = s;
+    result[3] = zlm;
+    result[4] = x;
+    result[5] = xp;
+    result[6] = z;
+    result[7] = zp;
+    result[8] = dpop;
 
     return result;
 

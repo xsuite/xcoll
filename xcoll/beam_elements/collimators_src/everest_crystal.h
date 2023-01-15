@@ -115,19 +115,7 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
 
     // Calculate scattering parameters
-    double* result_scat_init = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
-    double const cprob0 = result_scat_init[0];
-    double const cprob1 = result_scat_init[1];
-    double const cprob2 = result_scat_init[2];
-    double const cprob3 = result_scat_init[3];
-    double const cprob4 = result_scat_init[4];
-    double const cprob5 = result_scat_init[5];
-    double const xintl  = result_scat_init[6];
-    double const bn     = result_scat_init[7];
-    double const ecmsq  = result_scat_init[8];
-    double const xln15s = result_scat_init[9];
-    double const bpp    = result_scat_init[10];
-
+    struct ScatteringParameters scat = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
     set_rutherford_parameters(zatom, emr, hcut);
 
     // Initialise accumulated variables   TODO: this is NOT GPU-proof...
@@ -182,6 +170,7 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
         double energy = p0c_ref*ptau_in + e0_ref;  // energy in GeV
 
         double* result_scat = scatter(
+                scat,
                 LocalParticle_get_x(part),
                 LocalParticle_get_px(part)*rpp_in,
                 LocalParticle_get_y(part),
@@ -211,17 +200,6 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
                 eUm,
                 ai,
                 collnt,
-                cprob0,
-                cprob1,
-                cprob2,
-                cprob3,
-                cprob4,
-                cprob5,
-                xintl,
-                bn,
-                ecmsq,
-                xln15s,
-                bpp,
                 1,   // is_crystal
                 length,
                 angle,

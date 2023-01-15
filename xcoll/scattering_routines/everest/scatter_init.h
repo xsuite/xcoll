@@ -1,9 +1,28 @@
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
-double* calculate_scattering(double p0, double anuc, double rho, double zatom, double emr, double csref0, double csref1, double csref5, double bnref) {
+
+
+struct ScatteringParameters {
+    double cprob0;
+    double cprob1;
+    double cprob2;
+    double cprob3;
+    double cprob4;
+    double cprob5;
+    double xintl;
+    double bn;
+    double ecmsq;
+    double xln15s;
+    double bpp;
+};
+
+
+
+struct ScatteringParameters calculate_scattering(double p0, double anuc, double rho, double zatom, double emr, double csref0, double csref1, double csref5, double bnref) {
     
-    static double result[11];
+    struct ScatteringParameters scat;
     
     // Constants 
     double pptref = 0.04;
@@ -59,18 +78,18 @@ double* calculate_scattering(double p0, double anuc, double rho, double zatom, d
     // for i in range(1,5,1):
     //     cprob[i] = cprob[i-1] + csect[i]/csect[0]
 
-    result[0]=cprob0;
-    result[1]=cprob1;
-    result[2]=cprob2;
-    result[3]=cprob3;
-    result[4]=cprob4;
-    result[5]=cprob5;
-    result[6]=xintl;
-    result[7]=bn;
-    result[8]=ecmsq;
-    result[9]=xln15s;
-    result[10]=bpp;
+    scat.cprob0 = cprob0;
+    scat.cprob1 = cprob1;
+    scat.cprob2 = cprob2;
+    scat.cprob3 = cprob3;
+    scat.cprob4 = cprob4;
+    scat.cprob5 = cprob5;
+    scat.xintl  = xintl;
+    scat.bn     = bn;
+    scat.ecmsq  = ecmsq;
+    scat.xln15s = xln15s;
+    scat.bpp    = bpp;
     
-    return result;
+    return scat;
 
 }

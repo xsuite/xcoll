@@ -25,10 +25,10 @@ class EverestCollimator(BaseCollimator):
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
-        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
@@ -80,10 +80,10 @@ class EverestCrystal(BaseCollimator):
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
-        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
@@ -112,5 +112,11 @@ class EverestCrystal(BaseCollimator):
         kwargs.setdefault('miscut', 0)
         kwargs.setdefault('orient', 0)
         super().__init__(**kwargs)
+
+
+
+# class EverestElement(xo.UnionRef):
+#     _reftypes = (EverestCollimator, EverestCrystal)
+
 
 
