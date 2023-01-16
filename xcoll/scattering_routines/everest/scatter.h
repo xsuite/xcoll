@@ -2,21 +2,92 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// isimp and linside are booleans
+/*gpufun*/
+void drift_4d_single(LocalParticle* part, double length) {
+    double const rpp    = LocalParticle_get_rpp(part);
+    double const xp     = LocalParticle_get_px(part) * rpp;
+    double const yp     = LocalParticle_get_py(part) * rpp;
+    LocalParticle_add_to_x(part, xp * length );
+    LocalParticle_add_to_y(part, yp * length );
+}
 
-double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, double  y_in, double  yp_in, double  s_in, double  p_in, double  val_part_hit, double 
-                val_part_abs, double  val_part_impact, double  val_part_indiv, double  val_part_linteract, double  val_nabs_type, double  val_linside, double  run_exenergy, double  
-                run_anuc, double  run_zatom, double  run_emr, double  run_rho, double   run_hcut, double  run_bnref, double  run_csref0, double  run_csref1, double  run_csref5, double run_radl, double  
-                run_dlri, double  run_dlyi, double  run_eum, double  run_ai, double  run_collnt, double  is_crystal, double  length, double  c_rotation, double  c_aperture, double  c_offset, double  c_tilt0, double c_tilt1, double  
-                onesided, double  cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
-                cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  p0, double  x0, double  xp0, double  nhit, double  nabs, double  fracab, double  nnuc0, double  ien0, double  nnuc1, double  
-                ien1, double  iProc, double  n_chan, double  n_VR, double  n_amorphous, double  s_imp) {
+/*gpufun*/
+double drift_zeta_single(double rvv, double xp, double yp, double length){
+    double const rv0v = 1./rvv;
+    double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
+    return length * dzeta;
+}
 
-    static double result[28];
-    
-    val_part_impact = -1.;
-    val_part_linteract = -1.;
-    val_part_indiv = -1.;
+/*gpufun*/
+void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, double dpy) {
+    LocalParticle_add_to_x(part, dx);
+    LocalParticle_add_to_px(part, dpx);
+    LocalParticle_add_to_y(part, dy);
+    LocalParticle_add_to_py(part, dpy);
+}
+
+/*gpufun*/
+void scatter(LocalParticle* part, struct ScatteringParameters scat, double co_x, double co_px, double co_y, double co_py,
+                double run_exenergy, double run_anuc, double run_zatom, double run_emr, double run_rho, double run_hcut,
+                double run_bnref, double run_csref0, double run_csref1, double run_csref5, double run_radl, double run_dlri,
+                double run_dlyi, double run_eum, double run_ai, double run_collnt, double is_crystal, double length,
+                double c_rotation, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, double onesided,
+                double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax, double cry_ymax,
+                double cry_orient, double cry_miscut, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt,
+                double cry_cnTilt, double cry_snTilt) {
+
+    // Store initial coordinates for updating later
+    double const rpp_in  = LocalParticle_get_rpp(part);
+    double const rvv_in  = LocalParticle_get_rvv(part);
+    double const e0      = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
+    double const beta0   = LocalParticle_get_beta0(part);
+    double const ptau_in = LocalParticle_get_ptau(part);
+    double const x_in2    = LocalParticle_get_x(part);
+    double const px_in2   = LocalParticle_get_px(part);
+    double const y_in2    = LocalParticle_get_y(part);
+    double const py_in2   = LocalParticle_get_py(part);
+    double p0 = LocalParticle_get_p0c(part) / 1e9;
+
+    // Drift to centre of collimator
+    drift_4d_single(part, length/2);
+    // Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
+    // Backtrack to start of collimator
+    drift_4d_single(part, -length/2);
+
+
+    double x_in  = LocalParticle_get_x(part);
+    double xp_in = LocalParticle_get_px(part)*rpp_in;
+    double y_in  = LocalParticle_get_y(part);
+    double yp_in = LocalParticle_get_py(part)*rpp_in;
+    double s_in = 0;   // s at start of collimator
+
+    // TODO: missing correction due to m/m0 (but also wrong in xpart...)
+    double p_in = p0*ptau_in + e0; // energy, not momentum, in GeV
+
+    int val_part_hit = 0;
+    int val_part_abs = 0;
+    int val_part_impact = -1;
+    double val_part_indiv = -1.;
+    double val_part_linteract = -1.;  // not used?
+    double val_nabs_type = 0;         // not used?
+    double val_linside = 0;
+
+    p0 = e0;
+    double x0     = 0;
+    double xp0    = 0;
+    double nhit   = 0;
+    double nabs   = 0;
+    double fracab = 0;
+    double nnuc0  = 0;
+    double ien0   = 0;
+    double nnuc1  = 0;
+    double ien1   = 0;
+    double iProc  = 0;
+    double n_chan = 0;
+    double n_VR   = 0;
+    double n_amorphous = 0;
+    double s_imp  = 0;
 
     double x = x_in;
     double xp = xp_in;
@@ -28,6 +99,8 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
     double tiltangle = 0.;
 
     double mirror = 1.;
+
+    // TODO: use xtrack C-code for rotation element
 
     // Compute rotation factors for collimator rotation
     double cRot   = cos(c_rotation);
@@ -45,36 +118,7 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
     if (onesided && (x < 0.)) {
-        result[0] = x_in;
-        result[1] = xp_in;
-        result[2] = y_in;
-        result[3] = yp_in;
-        result[4] = s_in;
-        result[5] = p_in;
-        result[6] = val_part_hit;
-        result[7] = val_part_abs;
-        result[8] = val_part_impact;
-        result[9] = val_part_indiv;
-        result[10] = val_part_linteract;
-        result[11] = val_nabs_type;
-        result[12] = val_linside;
-        result[13] = p0;
-        result[14] = x0;
-        result[15] = xp0;
-        result[16] = nhit;
-        result[17] = nabs;
-        result[18] = fracab;
-        result[19] = nnuc0;
-        result[20] = ien0;
-        result[21] = nnuc1;
-        result[22] = ien1;
-        result[23] = iProc;
-        result[24] = n_chan;
-        result[25] = n_VR;
-        result[26] = n_amorphous;
-        result[27] = s_imp;
-
-        return result;
+        return;
     }
     // Log input energy + nucleons as per the FLUKA coupling
     nnuc0 = nnuc0 + 1.;
@@ -84,8 +128,7 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
     if (x < 0) {
         mirror    = -1;
         tiltangle = -1*c_tilt1;
-    }
-    else {
+    } else {
         mirror    = 1;
         tiltangle = c_tilt0;
     }
@@ -112,8 +155,8 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
 
     // 1) Check whether particle hits the collimator
     int isimp = 0;
-    double s     = 0.;
-    double zlm = -1*length;
+    double s = 0.;
+    double zlm = -1*length; 
 
 
     if (is_crystal) {
@@ -129,11 +172,11 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
                                 zlm,
                                 s_imp,
                                 isimp,
-                                val_part_hit, 
-                                val_part_abs, 
-                                val_part_impact, 
-                                val_part_indiv, 
-                                length, 
+                                val_part_hit,
+                                val_part_abs,
+                                val_part_impact,
+                                val_part_indiv,
+                                length,
                                 run_exenergy, 
                                 run_rho, 
                                 run_anuc, 
@@ -143,13 +186,13 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
                                 run_dlyi, 
                                 run_ai, 
                                 run_eum, 
-                                run_collnt,                                                                                                                             
+                                run_collnt,
                                 run_hcut, 
                                 run_bnref, 
                                 run_csref0, 
                                 run_csref1, 
-                                run_csref5,                                                                                                                             
-                                nhit, 
+                                run_csref5,
+                                nhit,
                                 nabs,
                                 cry_tilt,
                                 cry_rcurv,
@@ -320,14 +363,19 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
         }
     }
 
+    double x_out;
+    double y_out;
+    double xp_out = xp_in;
+    double yp_out = yp_in;
+    double p_out = p_in;
+
     // Transform back to particle coordinates with opening and offset
     if (x < 99.0e-3) {
         // Include collimator tilt
         if (tiltangle > 0) {
             x  = x  + tiltangle*length;
             xp = xp + tiltangle;
-        }
-        else if (tiltangle < 0) {
+        } else if (tiltangle < 0) {
             x  = x  + tiltangle*length;
             xp = xp + tiltangle;
             x  = x  - sin(tiltangle) * length;
@@ -341,60 +389,88 @@ double* scatter(struct ScatteringParameters scat, double x_in, double  xp_in, do
         xp = mirror * xp;
 
         // Last do rotation into collimator frame
-        x_in  =  x*cRRot +  z*sRRot;
-        y_in  =  z*cRRot -  x*sRRot;
-        xp_in = xp*cRRot + zp*sRRot;
-        yp_in = zp*cRRot - xp*sRRot;
+        x_out  =  x*cRRot +  z*sRRot;
+        y_out  =  z*cRRot -  x*sRRot;
+        xp_out = xp*cRRot + zp*sRRot;
+        yp_out = zp*cRRot - xp*sRRot;
 
         // Log output energy + nucleons as per the FLUKA coupling
         // Do not log dead particles
         nnuc1       = nnuc1 + 1;                           // outcoming nucleons
-        ien1        = ien1  + p_in * 1e3;                 // outcoming energy
+        ien1        = ien1  + p_out * 1e3;                 // outcoming energy
 
         if (is_crystal) {
-            p_in = p;
+            p_out = p;
             s_in = s_in + s;
-        }
-        else {
-            p_in = (1 + dpop) * p0;
+        } else {
+            p_out = (1 + dpop) * p0;
             s_in = sp;
         }
+    } else {
+        x_out = x;
+        y_out = z;
     }
 
-    else {
-        x_in = x;
-        y_in = z;
+    LocalParticle_set_x(part, x_out);
+    LocalParticle_set_px(part, xp_out/rpp_in);
+    LocalParticle_set_y(part, y_out);
+    LocalParticle_set_py(part, yp_out/rpp_in);
+
+    // Backtrack to centre of collimator
+    drift_4d_single(part, -length/2);
+    // Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
+
+    double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
+
+    // Update energy    ---------------------------------------------------
+    // Only particles that hit the jaw and survived need to be updated
+    if (val_part_hit>0 && val_part_abs==0){
+        double ptau_out = (energy_out - e0) / (e0 * beta0);
+        LocalParticle_update_ptau(part, ptau_out);
     }
 
-    result[0] = x_in;
-    result[1] = xp_in;
-    result[2] = y_in;
-    result[3] = yp_in;
-    result[4] = s_in;
-    result[5] = p_in;
-    result[6] = val_part_hit;
-    result[7] = val_part_abs;
-    result[8] = val_part_impact;
-    result[9] = val_part_indiv;
-    result[10] = val_part_linteract;
-    result[11] = val_nabs_type;
-    result[12] = val_linside;
-    result[13] = p0;
-    result[14] = x0;
-    result[15] = xp0;
-    result[16] = nhit;
-    result[17] = nabs;
-    result[18] = fracab;
-    result[19] = nnuc0;
-    result[20] = ien0;
-    result[21] = nnuc1;
-    result[22] = ien1;
-    result[23] = iProc;
-    result[24] = n_chan;
-    result[25] = n_VR;
-    result[26] = n_amorphous;
-    result[27] = s_imp;
+    // Drift to end of collimator
+    drift_4d_single(part, length/2);
 
-    return result;
+    // Update 4D coordinates    -------------------------------------------
+    // Absorbed particles get their coordinates set to the entrance of collimator
+    if (val_part_abs>0){
+        LocalParticle_set_x(part, x_in2);
+        LocalParticle_set_px(part, px_in2);
+        LocalParticle_set_y(part, y_in2);
+        LocalParticle_set_py(part, py_in2);
+    }
+
+    // Update longitudinal coordinate zeta    -----------------------------
+    // Absorbed particles keep coordinates at the entrance of collimator, others need correcting:
+    // Non-hit particles are just drifting (zeta not yet drifted in K2, so do here)
+    if (val_part_hit==0){
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length) );
+    }
+    // Hit and survived particles need correcting:
+    if (val_part_hit>0 && val_part_abs==0){
+        double px  = LocalParticle_get_px(part);
+        double py  = LocalParticle_get_py(part);
+        double rvv = LocalParticle_get_rvv(part);
+        double rpp = LocalParticle_get_rpp(part);
+        // First we drift half the length with the old angles:
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
+        // then half the length with the new angles:
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+    }
+
+    // Update s    --------------------------------------------------------
+    // TODO: move absorbed particles to last impact location
+    if (val_part_abs==0){
+        LocalParticle_add_to_s(part, length);
+    }
+
+    // Update state    ----------------------------------------------------
+    if (val_part_abs > 0){
+        LocalParticle_set_state(part, -333);
+    }
+
+    return;
 
 }

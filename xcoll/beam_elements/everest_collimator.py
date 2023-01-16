@@ -115,8 +115,8 @@ class EverestCrystal(BaseCollimator):
 
 
 
-# class EverestElement(xo.UnionRef):
-#     _reftypes = (EverestCollimator, EverestCrystal)
+class EverestElement(xo.UnionRef):
+    _reftypes = (EverestCollimator._XoStruct, EverestCrystal._XoStruct)
 
 
 
