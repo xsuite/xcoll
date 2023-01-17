@@ -27,10 +27,7 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 }
 
 /*gpufun*/
-void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat,
-                double run_exenergy, double run_anuc, double run_zatom, double run_emr, double run_rho, double run_hcut,
-                double run_bnref, double run_csref0, double run_csref1, double run_csref5, double run_radl, double run_dlri,
-                double run_dlyi, double run_eum, double run_ai, double run_collnt, short is_crystal) {
+void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat) {
 
     // Collimator properties
     double const length     = EverestCollimatorData_get_active_length(el);
@@ -46,6 +43,20 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double const co_px      = EverestCollimatorData_get_dpx(el);
     double const co_y       = EverestCollimatorData_get_dy(el);
     double const co_py      = EverestCollimatorData_get_dpy(el);
+
+    // Material properties
+    MaterialData material = EverestCollimatorData_getp_material(el);
+    double const zatom    = MaterialData_get_Z(material);
+    double const anuc     = MaterialData_get_A(material);
+    double const rho      = MaterialData_get_density(material);
+    double const exenergy = MaterialData_get_excitation_energy(material);
+//     double const emr      = MaterialData_get_nuclear_radius(material);
+//     double const bnref    = MaterialData_get_nuclear_elastic_slope(material);
+//     double const csref0   = MaterialData_get_cross_section(material, 0);
+//     double const csref1   = MaterialData_get_cross_section(material, 1);
+//     double const csref5   = MaterialData_get_cross_section(material, 5);
+//     double const hcut     = MaterialData_get_hcut(material);
+    double const radl     = MaterialData_get_radiation_length(material);
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -213,11 +224,11 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             nhit = nhit + 1;
 
 
-            double* jaw_result = jaw(run_exenergy,
-                            run_anuc,
-                            run_zatom,
-                            run_rho,
-                            run_radl,
+            double* jaw_result = jaw(exenergy,
+                            anuc,
+                            zatom,
+                            rho,
+                            radl,
                             scat.cprob0,
                             scat.cprob1,
                             scat.cprob2,
@@ -317,13 +328,8 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             nnuc1       = nnuc1 + 1;                           // outcoming nucleons
             ien1        = ien1  + p_out * 1e3;                 // outcoming energy
 
-            if (is_crystal) {
-                p_out = p;
-                s_in = s_in + s;
-            } else {
-                p_out = (1 + dpop) * p0;
-                s_in = sp;
-            }
+            p_out = (1 + dpop) * p0;
+            s_in = sp;
         } else {
             x_out = x;
             y_out = z;

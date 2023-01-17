@@ -82,7 +82,6 @@ class EverestCrystal(BaseCollimator):
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
-        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')

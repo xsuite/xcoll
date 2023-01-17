@@ -27,10 +27,7 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 }
 
 /*gpufun*/
-void scatter_cry(EverestCrystalData el, LocalParticle* part, struct ScatteringParameters scat,
-                double run_exenergy, double run_anuc, double run_zatom, double run_emr, double run_rho, double run_hcut,
-                double run_bnref, double run_csref0, double run_csref1, double run_csref5, double run_radl, double run_dlri,
-                double run_dlyi, double run_eum, double run_ai, double run_collnt, short is_crystal) {
+void scatter_cry(EverestCrystalData el, LocalParticle* part) {
 
     // Crystal properties
     double length  = EverestCrystalData_get_active_length(el);
@@ -213,21 +210,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part, struct ScatteringPa
                                 val_part_impact,
                                 val_part_indiv,
                                 length,
-                                run_exenergy, 
-                                run_rho, 
-                                run_anuc, 
-                                run_zatom, 
-                                run_emr, 
-                                run_dlri, 
-                                run_dlyi, 
-                                run_ai, 
-                                run_eum, 
-                                run_collnt,
-                                run_hcut, 
-                                run_bnref, 
-                                run_csref0, 
-                                run_csref1, 
-                                run_csref5,
+                                EverestCrystalData_getp_material(el),
                                 nhit,
                                 nabs,
                                 cry_tilt,
@@ -308,13 +291,8 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part, struct ScatteringPa
             nnuc1       = nnuc1 + 1;                           // outcoming nucleons
             ien1        = ien1  + p_out * 1e3;                 // outcoming energy
 
-            if (is_crystal) {
-                p_out = p;
-                s_in = s_in + s;
-            } else {
-                p_out = (1 + dpop) * p0;
-                s_in = sp;
-            }
+            p_out = p;
+            s_in = s_in + s;
         } else {
             x_out = x;
             y_out = z;

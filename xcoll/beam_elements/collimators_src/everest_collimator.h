@@ -39,43 +39,15 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
     // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
     double const zatom    = MaterialData_get_Z(material);
-    double const anuc     = MaterialData_get_A(material);
-    double const rho      = MaterialData_get_density(material);
-    double const exenergy = MaterialData_get_excitation_energy(material);
     double const emr      = MaterialData_get_nuclear_radius(material);
-    double const bnref    = MaterialData_get_nuclear_elastic_slope(material);
-    double const csref0   = MaterialData_get_cross_section(material, 0);
-    double const csref1   = MaterialData_get_cross_section(material, 1);
-    double const csref5   = MaterialData_get_cross_section(material, 5);
     double const hcut     = MaterialData_get_hcut(material);
-    double const radl     = MaterialData_get_radiation_length(material);
 
     // Calculate scattering parameters
-    struct ScatteringParameters scat = calculate_scattering(energy0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
+    struct ScatteringParameters scat = calculate_scattering(energy0, material);
     set_rutherford_parameters(zatom, emr, hcut);
 
     //start_per_particle_block (part0->part)
-
-        scatter(el, part, scat,
-                exenergy,
-                anuc,
-                zatom,
-                emr,
-                rho,
-                hcut,
-                bnref,
-                csref0,
-                csref1,
-                csref5,
-                radl,
-                0,   // dlri
-                0,   // dlyi
-                0,   // eUm
-                0,   // ai
-                0,   // collnt
-                0    // is_crystal
-        );
-
+        scatter(el, part, scat);
     //end_per_particle_block
 }
 

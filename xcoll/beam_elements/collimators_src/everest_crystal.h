@@ -36,46 +36,14 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
     // Material properties
     CrystalMaterialData material = EverestCrystalData_getp_material(el);
     double const zatom    = CrystalMaterialData_get_Z(material);
-    double const anuc     = CrystalMaterialData_get_A(material);
-    double const rho      = CrystalMaterialData_get_density(material);
-    double const exenergy = CrystalMaterialData_get_excitation_energy(material);
     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
-    double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
-    double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
-    double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
-    double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
     double const hcut     = CrystalMaterialData_get_hcut(material);
-    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-    double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
-    double const eUm      = CrystalMaterialData_get_crystal_potential(material);
-    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
 
     // Calculate scattering parameters
-    struct ScatteringParameters scat = calculate_scattering(energy0,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref);
     set_rutherford_parameters(zatom, emr, hcut);
 
     //start_per_particle_block (part0->part)
-
-        scatter_cry(el, part, scat,
-                exenergy,
-                anuc,
-                zatom,
-                emr,
-                rho,
-                hcut,
-                bnref,
-                csref0,
-                csref1,
-                csref5,
-                0,   // radl not used
-                dlri,
-                dlyi,
-                eUm,
-                ai,
-                collnt,
-                1    // is_crystal
-        );
+        scatter_cry(el, part);
     //end_per_particle_block
 }
 

@@ -36,8 +36,24 @@ int temp = 0;
 
 double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
-    //from .random import get_random, set_rutherford_parameters, get_random_ruth, get_random_gauss
     static double result[5];
+
+//     // Material properties
+//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+//     double const rho      = CrystalMaterialData_get_density(material);
+//     double const anuc     = CrystalMaterialData_get_A(material);
+//     double const zatom    = CrystalMaterialData_get_Z(material);
+//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
+//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+//     double const hcut     = CrystalMaterialData_get_hcut(material);
+//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
 
     double pmap = 938.271998;
     double pc_in = pc;
@@ -45,7 +61,6 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     double cs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     double cprob[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     double xran_cry[1] = {0.0};
-    set_rutherford_parameters(zatom, emr, hcut);
 
     //New treatment of scattering routine based on standard sixtrack routine
 
@@ -270,6 +285,23 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
 
     static double result[4];
 
+//     // Material properties
+//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+//     double const rho      = CrystalMaterialData_get_density(material);
+//     double const anuc     = CrystalMaterialData_get_A(material);
+//     double const zatom    = CrystalMaterialData_get_Z(material);
+//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
+//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+//     double const hcut     = CrystalMaterialData_get_hcut(material);
+//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
+
     double pc_in = pc;
 
     double pmap = 938.271998;
@@ -438,6 +470,23 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
 
 double calcionloss(double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc) {
 
+//     // Material properties
+//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+//     double const rho      = CrystalMaterialData_get_density(material);
+//     double const anuc     = CrystalMaterialData_get_A(material);
+//     double const zatom    = CrystalMaterialData_get_Z(material);
+//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
+//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+//     double const hcut     = CrystalMaterialData_get_hcut(material);
+//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
+
     double k = 0.307075; // Constant in front bethe-bloch [mev g^-1 cm^2]
     double pmae = 0.51099890;
     double pmap = 938.271998;
@@ -474,6 +523,24 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
 
     static double result[6];
+
+//     // Material properties
+//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+//     double const rho      = CrystalMaterialData_get_density(material);
+//     double const anuc     = CrystalMaterialData_get_A(material);
+//     double const zatom    = CrystalMaterialData_get_Z(material);
+//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
+//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+//     double const hcut     = CrystalMaterialData_get_hcut(material);
+//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
+
     double* result_am;
     double* result_ch;
 
@@ -1009,10 +1076,25 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
 
 double* crystal(double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
-            double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, double exenergy, double rho, double anuc, double zatom, double emr, double 
-            dlri, double dlyi, double ai, double eum, double collnt, double hcut, double bnref, double csref0, double csref1, double csref5, double nhit, double nabs, double 
+            double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, CrystalMaterialData material, double nhit, double nabs, double 
             cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
             cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  iProc, double  n_chan, double  n_VR, double  n_amorphous) {
+
+    double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+    double const rho      = CrystalMaterialData_get_density(material);
+    double const anuc     = CrystalMaterialData_get_A(material);
+    double const zatom    = CrystalMaterialData_get_Z(material);
+    double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+    double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+    double const eum      = CrystalMaterialData_get_crystal_potential(material);
+    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+    double const hcut     = CrystalMaterialData_get_hcut(material);
+    double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+    double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+    double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+    double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
 
     double s_temp     = 0.;
     double s_shift    = 0.;
