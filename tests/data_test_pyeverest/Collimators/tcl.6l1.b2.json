@@ -1,5 +1,5 @@
 {
-  "__class__": "PyCollimator",
+  "__class__": "PyEverestCollimator",
   "active_length": 1,
   "inactive_front": 0,
   "inactive_back": 0,
@@ -11,8 +11,6 @@
   "onesided": 0,
   "dx": 1.4734186585038946e-08,
   "dy": 0.00026030688960545264,
-  "dpx": 4.1322461004377565e-09,
-  "dpy": -2.1932428441491485e-05,
   "offset": 0,
   "tilt": [
     0,

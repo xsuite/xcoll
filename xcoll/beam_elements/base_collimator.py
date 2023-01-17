@@ -98,4 +98,9 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
 
+    # TODO: In principle we are not allowed to backtrack through a collimator
+    #       However, the loss refinement will fail if this function is not provided
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+
 

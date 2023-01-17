@@ -130,10 +130,10 @@ def _track_collimator(name, atolx=1e-13, atoly=1e-13, atolpx=1e-13, atolpy=1e-13
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
     xc.scattering_routines.pyeverest.set_random_seed(6574654)
-    if colldict['__class__'] == 'PyCollimator':
-        coll = xc.beam_elements.PyCollimator.from_dict(colldict)
-    elif colldict['__class__'] == 'PyCrystal':
-        coll = xc.beam_elements.PyCrystal.from_dict(colldict)
+    if colldict['__class__'] == 'PyEverestCollimator':
+        coll = xc.beam_elements.PyEverestCollimator.from_dict(colldict)
+    elif colldict['__class__'] == 'PyEverestCrystal':
+        coll = xc.beam_elements.PyEverestCrystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

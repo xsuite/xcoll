@@ -19,11 +19,9 @@ double drift_zeta_single(double rvv, double xp, double yp, double length){
 }
 
 /*gpufun*/
-void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, double dpy) {
+void shift_4d_single(LocalParticle* part, double dx, double dy) {
     LocalParticle_add_to_x(part, dx);
-    LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_y(part, dy);
-    LocalParticle_add_to_py(part, dpy);
 }
 
 /*gpufun*/
@@ -40,9 +38,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double const onesided   = EverestCrystalData_get_onesided(el);
     double const c_rotation = atan2(EverestCrystalData_get_sin_z(el), EverestCrystalData_get_cos_z(el) );
     double const co_x       = EverestCrystalData_get_dx(el);
-    double const co_px      = EverestCrystalData_get_dpx(el);
     double const co_y       = EverestCrystalData_get_dy(el);
-    double const co_py      = EverestCrystalData_get_dpy(el);
     double const bend       = EverestCrystalData_get_bend(el);
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
     double const bend_ang   = length/bend;    // temporary value
@@ -78,12 +74,8 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double const py_in2   = LocalParticle_get_py(part);
     double p0 = LocalParticle_get_p0c(part) / 1e9;
 
-    // Drift to centre of collimator
-    drift_4d_single(part, length/2);
-    // Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
-    // Backtrack to start of collimator
-    drift_4d_single(part, -length/2);
+    // Move to closed orbit
+    shift_4d_single(part, -co_x, -co_y);
 
 
     double x_in  = LocalParticle_get_x(part);
@@ -95,20 +87,18 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     // TODO: missing correction due to m/m0 (but also wrong in xpart...)
     double p_in = p0*ptau_in + e0; // energy, not momentum, in GeV
 
+    // Status flags
     int val_part_hit = 0;
     int val_part_abs = 0;
     int val_part_impact = -1;
     double val_part_indiv = -1.;
-    double val_part_linteract = -1.;  // not used?
-    double val_nabs_type = 0;         // not used?
-    double val_linside = 0;
+    double val_part_linteract = -1.;
 
     p0 = e0;
     double x0     = 0;
     double xp0    = 0;
     double nhit   = 0;
     double nabs   = 0;
-    double fracab = 0;
     double nnuc0  = 0;
     double ien0   = 0;
     double nnuc1  = 0;
@@ -124,8 +114,6 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double z = y_in;
     double zp = yp_in;
     double p = p_in;
-    double sp = 0;
-    double dpop = (p - p0)/p0;
     double tiltangle = 0.;
 
     double mirror = 1.;
@@ -191,8 +179,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         // 1) Check whether particle hits the collimator
         int isimp = 0;
         double s = 0.;
-        double zlm = -1*length; 
-
+        double zlm = -1*length;
 
         double* crystal_result = crystal(x,
                                 xp,
@@ -304,10 +291,8 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     LocalParticle_set_y(part, y_out);
     LocalParticle_set_py(part, yp_out/rpp_in);
 
-    // Backtrack to centre of collimator
+    // Backtrack to centre of collimator: Correction needed to be in line with sixtrack
     drift_4d_single(part, -length/2);
-    // Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
 
     double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
@@ -318,8 +303,11 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         LocalParticle_update_ptau(part, ptau_out);
     }
 
-    // Drift to end of collimator
+    // Drift to end of collimator: Correction needed to be in line with sixtrack
     drift_4d_single(part, length/2);
+
+    // Return from closed orbit
+    shift_4d_single(part, co_x, co_y);
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator

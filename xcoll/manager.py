@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
-from .scattering_routines.everest import set_random_seed, get_random_seed
 
 import xtrack as xt
 import xobjects as xo
@@ -53,10 +52,6 @@ class CollimatorManager:
         self._coll_summary = None
         self._line_is_reversed = line_is_reversed
 
-
-    @property
-    def random_seed(self):
-        return get_random_seed()
 
     @property
     def impacts(self):
@@ -162,8 +157,11 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):        
-        set_random_seed(random_seed)
+    def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):
+        from .scattering_routines.everest import set_random_seed
+        if random_seed is None:
+            random_seed = 0;
+        set_random_seed(int(abs(random_seed)))
 
         # Do the installation
         def install_func(thiscoll, name):
@@ -176,6 +174,23 @@ class CollimatorManager:
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
+
+
+    def install_pyeverest_collimators(self, names=None, *, verbose=False, random_seed=None):
+        from .scattering_routines.pyeverest import set_random_seed
+        set_random_seed(random_seed)
+
+        # Do the installation
+        def install_func(thiscoll, name):
+            return PyEverestCollimator(
+                    inactive_front=thiscoll['inactive_front'],
+                    inactive_back=thiscoll['inactive_back'],
+                    active_length=thiscoll['active_length'],
+                    angle=thiscoll['angle'],
+                    material=thiscoll['material'],
+                    is_active=False
+                   )
+        self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
 
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
@@ -202,20 +217,27 @@ class CollimatorManager:
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
-            for other_coll_class in _all_collimator_types - {collimator_class}:
-                if isinstance(line[name], other_coll_class):
-                    raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
-                                     + f" but it is already installed as {other_coll_class.__name__}!\n"
-                                     + "Please reconstruct the line.")
+            if isinstance(line[name], tuple(_all_collimator_types - {collimator_class})):
+                raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
+                                 + f" but it is already installed as {type(line[name]).__name__}!\n"
+                                 + "Please reconstruct the line.")
 
             # Check that collimator is not installed previously
-            if isinstance(line[name], collimator_class):
+            elif isinstance(line[name], collimator_class):
                 if df.loc[name,'collimator_type'] != collimator_class.__name__:
                     raise Exception(f"Something is wrong: Collimator {name} already installed in line "
                                     + f"as {collimator_class.__name__} element, but registered in CollDB "
                                     + f"as {df.loc[name,'collimator_type']}. Please reconstruct the line.")
                 if verbose:
                     print(f"Collimator {name} already installed. Skipping...")
+
+            # TODO: only allow Marker elements, no Drifts!!
+            #       How to do this with importing a line for MAD-X or SixTrack...?
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
+                raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
+                                 + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
+                                 + "Please check the name, or correcft the element.")
+
             else:
                 if verbose:
                     print(f"Installing {name}")
@@ -335,7 +357,7 @@ class CollimatorManager:
             if full_open and name not in gaps.keys():
                 line[name].is_active = False
             # Apply settings to element
-            elif isinstance(line[name], BlackAbsorber):
+            elif isinstance(line[name], BaseCollimator):
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].angle = colldb.angle[name]
@@ -344,24 +366,15 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-            elif isinstance(line[name], EverestCollimator):
-                line[name].material = colldb.material[name]
-                line[name].dx = colldb.x[name]
-                line[name].dy = colldb.y[name]
-                line[name].dpx = colldb.px[name]   # This is a K2 curiosity; we don't want it in our future code
-                line[name].dpy = colldb.py[name]   # This is a K2 curiosity; we don't want it in our future code
-                line[name].angle = colldb.angle[name]
-                line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
-                line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
-                line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
-                line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                if colldb.onesided[name] == 'both':
-                    line[name].onesided = False
-                elif colldb.onesided[name] == 'left':
-                    line[name].onesided = True
-                elif colldb.onesided[name] == 'right':
-                    raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
-                line[name].is_active = colldb.is_active[name]
+                if isinstance(line[name], (EverestCollimator, PyEverestCollimator)):
+                    line[name].material = colldb.material[name]
+                    if colldb.onesided[name] == 'both':
+                        line[name].onesided = False
+                    elif colldb.onesided[name] == 'left':
+                        line[name].onesided = True
+                    elif colldb.onesided[name] == 'right':
+                        raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
+                    line[name].is_active = colldb.is_active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
@@ -447,7 +460,6 @@ class CollimatorManager:
 
 
     def _get_aperture_losses(self, part):
-
         aper_s = list(part.s[part.state==0])
         aper_names = [self.line.element_names[i] for i in part.at_element[part.state==0]]
         machine_length = self.line.get_length()

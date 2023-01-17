@@ -19,11 +19,9 @@ double drift_zeta_single(double rvv, double xp, double yp, double length){
 }
 
 /*gpufun*/
-void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, double dpy) {
+void shift_4d_single(LocalParticle* part, double dx, double dy) {
     LocalParticle_add_to_x(part, dx);
-    LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_y(part, dy);
-    LocalParticle_add_to_py(part, dpy);
 }
 
 /*gpufun*/
@@ -40,9 +38,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double const onesided   = EverestCollimatorData_get_onesided(el);
     double const c_rotation = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
     double const co_x       = EverestCollimatorData_get_dx(el);
-    double const co_px      = EverestCollimatorData_get_dpx(el);
     double const co_y       = EverestCollimatorData_get_dy(el);
-    double const co_py      = EverestCollimatorData_get_dpy(el);
 
     // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
@@ -70,34 +66,27 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double const py_in2   = LocalParticle_get_py(part);
     double p0 = LocalParticle_get_p0c(part) / 1e9;
 
-    // Drift to centre of collimator
-    drift_4d_single(part, length/2);
-    // Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    shift_4d_single(part, -co_x, -co_px/rpp_in, -co_y, -co_py/rpp_in );
-    // Backtrack to start of collimator
-    drift_4d_single(part, -length/2);
-
+    // Move to closed orbit
+    shift_4d_single(part, -co_x, -co_y);
 
     double x_in  = LocalParticle_get_x(part);
     double xp_in = LocalParticle_get_px(part)*rpp_in;
     double y_in  = LocalParticle_get_y(part);
     double yp_in = LocalParticle_get_py(part)*rpp_in;
-    double s_in = 0;   // s at start of collimator
 
     // TODO: missing correction due to m/m0 (but also wrong in xpart...)
     double p_in = p0*ptau_in + e0; // energy, not momentum, in GeV
 
+    // Status flags
     int val_part_hit = 0;
     int val_part_abs = 0;
     int val_part_impact = -1;
     double val_part_indiv = -1.;
-    double val_part_linteract = -1.;  // not used?
-    double val_nabs_type = 0;         // not used?
+    double val_part_linteract = -1.;
+    double val_nabs_type = 0;
     double val_linside = 0;
 
     p0 = e0;
-    double x0     = 0;
-    double xp0    = 0;
     double nhit   = 0;
     double nabs   = 0;
     double fracab = 0;
@@ -138,6 +127,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double xp_out = xp_in;
     double yp_out = yp_in;
     double p_out = p_in;
+    double s_out = 0;
 
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
@@ -329,7 +319,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             ien1        = ien1  + p_out * 1e3;                 // outcoming energy
 
             p_out = (1 + dpop) * p0;
-            s_in = sp;
+            s_out = sp;
         } else {
             x_out = x;
             y_out = z;
@@ -341,10 +331,8 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     LocalParticle_set_y(part, y_out);
     LocalParticle_set_py(part, yp_out/rpp_in);
 
-    // Backtrack to centre of collimator
+    // Backtrack to centre of collimator: Correction needed to be in line with sixtrack
     drift_4d_single(part, -length/2);
-    // Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    shift_4d_single(part, co_x, co_px/rpp_in, co_y, co_py/rpp_in );
 
     double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
@@ -355,8 +343,11 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         LocalParticle_update_ptau(part, ptau_out);
     }
 
-    // Drift to end of collimator
+    // Drift to end of collimator: Correction needed to be in line with sixtrack
     drift_4d_single(part, length/2);
+
+    // Return from closed orbit
+    shift_4d_single(part, co_x, co_y);
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator

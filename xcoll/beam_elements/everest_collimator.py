@@ -9,8 +9,6 @@ from ..general import _pkg_root
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'dpx':        xo.Float64,
-        'dpy':        xo.Float64,
         'offset':     xo.Float64,
         'onesided':   xo.Int8,
         'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
@@ -35,8 +33,6 @@ class EverestCollimator(BaseCollimator):
     _depends_on = [BaseCollimator]
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('dpx', 0)
-        kwargs.setdefault('dpx', 0)
         kwargs.setdefault('offset', 0)
         kwargs.setdefault('onesided', False)
         kwargs.setdefault('tilt', [0,0])
@@ -57,8 +53,6 @@ class EverestCollimator(BaseCollimator):
 
 class EverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'dpx':         xo.Float64,
-        'dpy':         xo.Float64,
         'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         'bend':        xo.Float64,
         'xdim':        xo.Float64,
@@ -90,8 +84,6 @@ class EverestCrystal(BaseCollimator):
     _depends_on = [BaseCollimator]
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('dpx', 0)
-        kwargs.setdefault('dpx', 0)
         kwargs.setdefault('offset', 0)
         kwargs.setdefault('onesided', False)
         kwargs.setdefault('tilt', [0,0])

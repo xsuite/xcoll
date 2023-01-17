@@ -25,10 +25,8 @@ struct ScatteringParameters calculate_scattering(double p0, MaterialData materia
     struct ScatteringParameters scat;
 
     // Material properties
-    double const zatom    = MaterialData_get_Z(material);
     double const anuc     = MaterialData_get_A(material);
     double const rho      = MaterialData_get_density(material);
-    double const emr      = MaterialData_get_nuclear_radius(material);
     double const bnref    = MaterialData_get_nuclear_elastic_slope(material);
     double const csref0   = MaterialData_get_cross_section(material, 0);
     double const csref1   = MaterialData_get_cross_section(material, 1);

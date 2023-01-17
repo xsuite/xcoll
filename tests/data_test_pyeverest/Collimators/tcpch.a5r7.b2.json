@@ -1,5 +1,5 @@
 {
-  "__class__": "PyCrystal",
+  "__class__": "PyEverestCrystal",
   "active_length": 0.004,
   "inactive_front": 0,
   "inactive_back": 0,
@@ -11,8 +11,6 @@
   "onesided": 1,
   "dx": 1.3982225860971822e-06,
   "dy": 5.403106164147752e-07,
-  "dpx": 2.9791675047415037e-08,
-  "dpy": -1.0673181310797515e-08,
   "offset": 0,
   "tilt": [
     0,

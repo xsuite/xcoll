@@ -7,10 +7,8 @@ from ..scattering_routines.pyeverest import track, Material, CrystalMaterial
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
-class PyCollimator(BaseCollimator):
+class PyEverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'dpx':        xo.Float64,
-        'dpy':        xo.Float64,
         'offset':     xo.Float64,
         'onesided':   xo.Int8,
         'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
@@ -21,11 +19,9 @@ class PyCollimator(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
+    iscollective = True
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('dpx', 0)
-        kwargs.setdefault('dpx', 0)
         kwargs.setdefault('offset', 0)
         kwargs.setdefault('onesided', False)
         kwargs.setdefault('tilt', [0,0])
@@ -49,10 +45,8 @@ class PyCollimator(BaseCollimator):
 
 
 
-class PyCrystal(BaseCollimator):
+class PyEverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'dpx':         xo.Float64,
-        'dpy':         xo.Float64,
         'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         'bend':        xo.Float64,
         'xdim':        xo.Float64,
@@ -71,11 +65,9 @@ class PyCrystal(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
+    iscollective = True
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('dpx', 0)
-        kwargs.setdefault('dpx', 0)
         kwargs.setdefault('offset', 0)
         kwargs.setdefault('onesided', False)
         kwargs.setdefault('tilt', [0,0])

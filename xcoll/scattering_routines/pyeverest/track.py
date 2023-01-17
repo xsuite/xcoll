@@ -37,9 +37,9 @@ def drift_6d(particles, length):
     return
 
 def track(collimator, particles):  # TODO: write impacts
-        from ...beam_elements import PyCollimator, PyCrystal
-        if not isinstance(collimator, PyCollimator) and not isinstance(collimator, PyCrystal):
-            raise ValueError("Collimator is neither a PyCollimator nor a PyCrystal!\nCannot use PyEverest to track.")
+        from ...beam_elements import PyEverestCollimator, PyEverestCrystal
+        if not isinstance(collimator, PyEverestCollimator) and not isinstance(collimator, PyEverestCrystal):
+            raise ValueError("Collimator is neither a PyEverestCollimator nor a PyEverestCrystal!\nCannot use PyEverest to track.")
 
         if particles._num_active_particles == 0:
             return
@@ -61,7 +61,7 @@ def track(collimator, particles):  # TODO: write impacts
 def track_core(collimator, particles):
     from .scatter_init import calculate_scattering
     from .scatter import scatter
-    from ...beam_elements.pyeverest_collimator import PyCrystal
+    from ...beam_elements.pyeverest_collimator import PyEverestCrystal
     from .materials import CrystalMaterial
 
     npart = particles._num_active_particles
@@ -80,17 +80,9 @@ def track_core(collimator, particles):
     xp_in   = xp_part.copy()
     yp_in   = yp_part.copy()
 
-    # Drift to centre of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, length/2)
-
-    # Move to closed orbit  (dpx = dxp because ref. particle has delta = 0)
+    # Move to closed orbit
     x_part  -= collimator.dx
     y_part  -= collimator.dy
-    xp_part -= collimator.dpx
-    yp_part -= collimator.dpy
-
-    # Backtrack to start of collimator
-    drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
 
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
@@ -119,7 +111,7 @@ def track_core(collimator, particles):
     hcut     = collimator.material.hcut
 
     # Get crystal parameters
-    if isinstance(collimator, PyCrystal):
+    if isinstance(collimator, PyEverestCrystal):
         if not isinstance(collimator.material, CrystalMaterial):
             raise ValueError(f"The collimator material {collimator.material.name} cannot be used as a crystal!")
         dlri     = collimator.material.crystal_radiation_length
@@ -250,14 +242,8 @@ def track_core(collimator, particles):
     not_lost = ~lost
     survived_hit = hit & (~lost)
 
-    # Backtrack to centre of collimator
+    # Backtrack to centre of collimator: Correction needed to be in line with sixtrack
     drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
-
-    # Return from closed orbit  (dpx = dxp because ref. particle has delta = 0)
-    x_part  += collimator.dx
-    y_part  += collimator.dy
-    xp_part += collimator.dpx
-    yp_part += collimator.dpy
 
     # Update energy    ---------------------------------------------------
     # Only particles that hit the jaw and survived need to be updated
@@ -278,8 +264,12 @@ def track_core(collimator, particles):
     xp_part *= rpp_out/rpp_in
     yp_part *= rpp_out/rpp_in
 
-    # Drift to end of collimator
+    # Drift to end of collimator: Correction needed to be in line with sixtrack
     drift_4d(x_part, y_part, xp_part, yp_part, length/2)
+
+    # Return from closed orbit
+    x_part  += collimator.dx
+    y_part  += collimator.dy
 
     # Update 4D coordinates    -------------------------------------------
     # Absorbed particles get their coordinates set to the entrance of collimator
