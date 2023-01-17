@@ -57,7 +57,7 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
 
     //start_per_particle_block (part0->part)
 
-        scatter( (EverestElement) el, part, scat,
+        scatter_cry(el, part, scat,
                 exenergy,
                 anuc,
                 zatom,

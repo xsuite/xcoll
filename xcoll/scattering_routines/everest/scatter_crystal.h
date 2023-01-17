@@ -27,25 +27,47 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 }
 
 /*gpufun*/
-void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat,
+void scatter_cry(EverestCrystalData el, LocalParticle* part, struct ScatteringParameters scat,
                 double run_exenergy, double run_anuc, double run_zatom, double run_emr, double run_rho, double run_hcut,
                 double run_bnref, double run_csref0, double run_csref1, double run_csref5, double run_radl, double run_dlri,
                 double run_dlyi, double run_eum, double run_ai, double run_collnt, short is_crystal) {
 
-    // Collimator properties
-    double const length     = EverestCollimatorData_get_active_length(el);
+    // Crystal properties
+    double length  = EverestCrystalData_get_active_length(el);
     // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
     //     raise NotImplementedError
-    double const c_aperture = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
-    double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
-    double const c_tilt0    = EverestCollimatorData_get_tilt(el, 0);
-    double const c_tilt1    = EverestCollimatorData_get_tilt(el, 1);
-    double const onesided   = EverestCollimatorData_get_onesided(el);
-    double const c_rotation = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
-    double const co_x       = EverestCollimatorData_get_dx(el);
-    double const co_px      = EverestCollimatorData_get_dpx(el);
-    double const co_y       = EverestCollimatorData_get_dy(el);
-    double const co_py      = EverestCollimatorData_get_dpy(el);
+    double const c_aperture = EverestCrystalData_get_jaw_F_L(el) - EverestCrystalData_get_jaw_F_R(el);
+    double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_F_L(el) + EverestCrystalData_get_jaw_F_R(el) )/2;
+    double const c_tilt0    = EverestCrystalData_get_tilt(el, 0);
+    double const c_tilt1    = EverestCrystalData_get_tilt(el, 1);
+    double const onesided   = EverestCrystalData_get_onesided(el);
+    double const c_rotation = atan2(EverestCrystalData_get_sin_z(el), EverestCrystalData_get_cos_z(el) );
+    double const co_x       = EverestCrystalData_get_dx(el);
+    double const co_px      = EverestCrystalData_get_dpx(el);
+    double const co_y       = EverestCrystalData_get_dy(el);
+    double const co_py      = EverestCrystalData_get_dpy(el);
+    double const bend       = EverestCrystalData_get_bend(el);
+    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
+    double const bend_ang   = length/bend;    // temporary value
+    if (cry_tilt >= -bend_ang) {
+        length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
+    } else {
+        length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
+    }
+    double const cry_rcurv  = bend;
+    double const cry_bend   = length/cry_rcurv; //final value (with corrected length) 
+    double const cry_alayer = EverestCrystalData_get_thick(el);
+    double const cry_xmax   = EverestCrystalData_get_xdim(el);
+    double const cry_ymax   = EverestCrystalData_get_ydim(el);
+    double const cry_orient = EverestCrystalData_get_orient(el);
+    double const cry_miscut = EverestCrystalData_get_miscut(el);
+    double const cry_cBend  = cos(cry_bend); 
+    double const cry_sBend  = sin(cry_bend); 
+    double const cry_cpTilt = cos(cry_tilt);
+    double const cry_spTilt = sin(cry_tilt);
+    double const cry_cnTilt = cos(-cry_tilt);
+    double const cry_snTilt = sin(-cry_tilt);
+
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -94,6 +116,11 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double ien0   = 0;
     double nnuc1  = 0;
     double ien1   = 0;
+    double iProc  = 0;
+    double n_chan = 0;
+    double n_VR   = 0;
+    double n_amorphous = 0;
+    double s_imp  = 0;
 
     double x = x_in;
     double xp = xp_in;
@@ -170,122 +197,86 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         double zlm = -1*length; 
 
 
-        if (x >= 0.) {
-        // Particle hits collimator and we assume interaction length ZLM equal
-        // to collimator length (what if it would leave collimator after
-        // small length due to angle???)
-            zlm  = length;
-            val_part_impact = x;
-            val_part_indiv  = xp;
+        double* crystal_result = crystal(x,
+                                xp,
+                                z,
+                                zp,
+                                s,
+                                p,
+                                x0,
+                                xp0,
+                                zlm,
+                                s_imp,
+                                isimp,
+                                val_part_hit,
+                                val_part_abs,
+                                val_part_impact,
+                                val_part_indiv,
+                                length,
+                                run_exenergy, 
+                                run_rho, 
+                                run_anuc, 
+                                run_zatom, 
+                                run_emr, 
+                                run_dlri, 
+                                run_dlyi, 
+                                run_ai, 
+                                run_eum, 
+                                run_collnt,
+                                run_hcut, 
+                                run_bnref, 
+                                run_csref0, 
+                                run_csref1, 
+                                run_csref5,
+                                nhit,
+                                nabs,
+                                cry_tilt,
+                                cry_rcurv,
+                                cry_bend,
+                                cry_alayer,
+                                cry_xmax,
+                                cry_ymax,
+                                cry_orient,
+                                cry_miscut,
+                                cry_cBend,
+                                cry_sBend,
+                                cry_cpTilt,
+                                cry_spTilt,
+                                cry_cnTilt,
+                                cry_snTilt,
+                                iProc,
+                                n_chan,
+                                n_VR,
+                                n_amorphous
+                                );
+
+        val_part_hit = crystal_result[0];
+        val_part_abs = crystal_result[1];
+        val_part_impact = crystal_result[2];
+        val_part_indiv = crystal_result[3];
+        nhit = crystal_result[4];
+        nabs = crystal_result[5];
+        s_imp = crystal_result[6];
+        isimp = crystal_result[7];
+        s = crystal_result[8];
+        zlm = crystal_result[9];
+        x = crystal_result[10];
+        xp = crystal_result[11];
+        x0 = crystal_result[12];
+        xp0 = crystal_result[13];
+        z = crystal_result[14];
+        zp = crystal_result[15];
+        p = crystal_result[16];
+        iProc = crystal_result[17];
+        n_chan = crystal_result[18];
+        n_VR = crystal_result[19];
+        n_amorphous = crystal_result[20];
+
+        if (nabs != 0.) {
+            val_part_abs = 1.;
+            val_part_linteract = zlm;
         }
-        else if (xp <= 0.) {
-        // Particle does not hit collimator. Interaction length ZLM is zero.
-            zlm = 0.;
-        }
-        else {
-        // Calculate s-coordinate of interaction point
-            s = -x/xp;
-
-            if (s < length) {
-                zlm = length - s;
-                val_part_impact = 0.;
-                val_part_indiv  = xp;
-            }
-            else {
-                zlm = 0.;
-            }
-
-        }
-        // First do the drift part
-        // DRIFT PART
-        double drift_length = length - zlm;
-        if (drift_length > 0) {
-            x  = x  + xp * drift_length;
-            z  = z  + zp * drift_length;
-            sp = sp + drift_length;
-        }
-        // Now do the scattering part
-        if (zlm > 0.) {
-            if (!val_linside) {
-            // first time particle hits collimator: entering jaw
-                val_linside = 1;
-            }
-            nhit = nhit + 1;
-
-
-            double* jaw_result = jaw(run_exenergy,
-                            run_anuc,
-                            run_zatom,
-                            run_rho,
-                            run_radl,
-                            scat.cprob0,
-                            scat.cprob1,
-                            scat.cprob2,
-                            scat.cprob3,
-                            scat.cprob4,
-                            scat.cprob5,
-                            scat.xintl,
-                            scat.bn,
-                            scat.ecmsq,
-                            scat.xln15s,
-                            scat.bpp,
-                            p0,
-                            nabs,
-                            s,
-                            zlm,
-                            x,
-                            xp,
-                            z,
-                            zp,
-                            dpop);
-
-            p0 = jaw_result[0];
-            nabs = jaw_result[1];
-            s = jaw_result[2];
-            zlm = jaw_result[3];
-            x = jaw_result[4];
-            xp = jaw_result[5];
-            z = jaw_result[6];
-            zp = jaw_result[7];
-            dpop = jaw_result[8];
-
-            val_nabs_type = nabs;
-            val_part_hit  = 1;
-
-            isimp = 1;
-            // simp  = s_impact
-
-            // Writeout should be done for both inelastic and single diffractive. doing all transformations
-            // in x_flk and making the set to 99.99 mm conditional for nabs=1
-            if (nabs == 1 || nabs == 4) {
-            // Transform back to lab system for writeout.
-            // keep x,y,xp,yp unchanged for continued tracking, store lab system variables in x_flk etc
-
-            // Finally, the actual coordinate change to 99 mm
-                if (nabs == 1) {
-                    fracab = fracab + 1;
-                    x = 99.99e-3;
-                    z = 99.99e-3;
-                    val_part_linteract = zlm;
-                    val_part_abs = 1;
-                // Collimator jaw interaction
-                }
-            }
-
-            if (nabs != 1. && zlm > 0.) {
-            // Do the rest drift, if particle left collimator early
-                drift_length = (length-(s+sp));
-
-                if (drift_length > 1.0e-15) {
-                    val_linside = 0;
-                    x  = x  + xp * drift_length;
-                    z  = z  + zp * drift_length;
-                    sp = sp + drift_length;
-                }
-                val_part_linteract = zlm - drift_length;
-            }
-
-        }
+        s_imp  = (s - length) + s_imp;
 
         // Transform back to particle coordinates with opening and offset
         if (x < 99.0e-3) {

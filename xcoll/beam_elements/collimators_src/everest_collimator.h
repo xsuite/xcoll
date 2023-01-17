@@ -35,7 +35,6 @@ void drift_6d(LocalParticle* part0, double length) {
 void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
-    EverestElement element = (EverestElement) el;
 
     // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
@@ -57,7 +56,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     //start_per_particle_block (part0->part)
 
-        scatter( element, part, scat,
+        scatter(el, part, scat,
                 exenergy,
                 anuc,
                 zatom,

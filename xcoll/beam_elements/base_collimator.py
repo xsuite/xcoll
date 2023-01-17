@@ -31,6 +31,21 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
     _store_in_to_dict = ['is_active', 'angle']
     _internal_record_class = CollimatorImpacts
 
+    # BaseCollimator should not be used!
+    # We make sure this cannot be accidentally done by killing all particles
+    _extra_c_sources = ["""
+        void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* part0) {
+            //start_per_particle_block (part0->part)
+                LocalParticle_set_x(part, 1e9);
+                LocalParticle_set_px(part, 1e9);
+                LocalParticle_set_y(part, 1e9);
+                LocalParticle_set_py(part, 1e9);
+                LocalParticle_set_zeta(part, 1e9);
+                LocalParticle_update_delta(part, -1);  // zero energy
+            //end_per_particle_block (part0->part)
+        }
+    """]
+
     def __init__(self, **kwargs):
         # TODO: quick hack to avoid instantiation; did not manage to get it to work correclty with ABC
         if self.__class__.__name__ == 'BaseCollimator':

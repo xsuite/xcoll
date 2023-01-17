@@ -6,11 +6,6 @@ from ..general import _pkg_root
 
 
 
-class EverestElement(xo.UnionRef):
-    _reftypes = (EverestCollimator._XoStruct, EverestCrystal._XoStruct)
-
-
-
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
@@ -32,13 +27,12 @@ class EverestCollimator(BaseCollimator):
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
-        _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
-    _depends_on = [EverestElement]
+    _depends_on = [BaseCollimator]
 
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
@@ -90,12 +84,11 @@ class EverestCrystal(BaseCollimator):
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
-        _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
-        _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
-    _depends_on = [EverestElement]
+    _depends_on = [BaseCollimator]
 
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
