@@ -5,6 +5,12 @@ from ..scattering_routines.everest import Material, CrystalMaterial
 from ..general import _pkg_root
 
 
+
+class EverestElement(xo.UnionRef):
+    _reftypes = (EverestCollimator._XoStruct, EverestCrystal._XoStruct)
+
+
+
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
@@ -31,6 +37,8 @@ class EverestCollimator(BaseCollimator):
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
+
+    _depends_on = [EverestElement]
 
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
@@ -87,6 +95,8 @@ class EverestCrystal(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
+    _depends_on = [EverestElement]
+
     def __init__(self, **kwargs):
         kwargs.setdefault('dpx', 0)
         kwargs.setdefault('dpx', 0)
@@ -112,11 +122,5 @@ class EverestCrystal(BaseCollimator):
         kwargs.setdefault('miscut', 0)
         kwargs.setdefault('orient', 0)
         super().__init__(**kwargs)
-
-
-
-class EverestElement(xo.UnionRef):
-    _reftypes = (EverestCollimator._XoStruct, EverestCrystal._XoStruct)
-
 
 

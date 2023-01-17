@@ -35,17 +35,7 @@ void drift_6d(LocalParticle* part0, double length) {
 void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
-
-    // Collimator properties
-    double const length  = EverestCollimatorData_get_active_length(el);
-    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
-    //     raise NotImplementedError
-    double const opening  = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
-    double const offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
-    double const tilt0    = EverestCollimatorData_get_tilt(el, 0);
-    double const tilt1    = EverestCollimatorData_get_tilt(el, 1);
-    double const onesided = EverestCollimatorData_get_onesided(el);
-    double const angle    = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
+    EverestElement element = (EverestElement) el;
 
     // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
@@ -67,13 +57,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     //start_per_particle_block (part0->part)
 
-        scatter(
-                part,
-                scat,
-                EverestCollimatorData_get_dx(el),
-                EverestCollimatorData_get_dpx(el),
-                EverestCollimatorData_get_dy(el),
-                EverestCollimatorData_get_dpy(el),
+        scatter( element, part, scat,
                 exenergy,
                 anuc,
                 zatom,
@@ -90,28 +74,7 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
                 0,   // eUm
                 0,   // ai
                 0,   // collnt
-                0,   // is_crystal
-                length,
-                angle,
-                opening,
-                offset,
-                tilt0,
-                tilt1,
-                onesided,
-                0,   // cry_tilt
-                0,   // cry_rcurv
-                0,   // cry_bend
-                0,   // cry_alayer
-                0,   // cry_xmax
-                0,   // cry_ymax
-                0,   // cry_orient
-                0,   // cry_miscut
-                0,   // cry_cBend
-                0,   // cry_sBend
-                0,   // cry_cpTilt
-                0,   // cry_spTilt
-                0,   // cry_cnTilt
-                0    // cry_snTilt
+                0    // is_crystal
         );
 
     //end_per_particle_block

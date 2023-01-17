@@ -27,14 +27,79 @@ void shift_4d_single(LocalParticle* part, double dx, double dpx, double dy, doub
 }
 
 /*gpufun*/
-void scatter(LocalParticle* part, struct ScatteringParameters scat, double co_x, double co_px, double co_y, double co_py,
+void scatter(EverestElement element, LocalParticle* part, struct ScatteringParameters scat,
                 double run_exenergy, double run_anuc, double run_zatom, double run_emr, double run_rho, double run_hcut,
                 double run_bnref, double run_csref0, double run_csref1, double run_csref5, double run_radl, double run_dlri,
-                double run_dlyi, double run_eum, double run_ai, double run_collnt, double is_crystal, double length,
-                double c_rotation, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, double onesided,
-                double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax, double cry_ymax,
-                double cry_orient, double cry_miscut, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt,
-                double cry_cnTilt, double cry_snTilt) {
+                double run_dlyi, double run_eum, double run_ai, double run_collnt, short is_crystal) {
+
+    if (!is_crystal){
+    // Collimator properties
+        EverestCollimatorData el = (EverestCollimatorData) element;
+        double const length     = EverestCollimatorData_get_active_length(el);
+        // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+        //     raise NotImplementedError
+        double const c_aperture = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
+        double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
+        double const c_tilt0    = EverestCollimatorData_get_tilt(el, 0);
+        double const c_tilt1    = EverestCollimatorData_get_tilt(el, 1);
+        double const onesided   = EverestCollimatorData_get_onesided(el);
+        double const c_rotation = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
+        double const co_x       = EverestCollimatorData_get_dx(el);
+        double const co_px      = EverestCollimatorData_get_dpx(el);
+        double const co_y       = EverestCollimatorData_get_dy(el);
+        double const co_py      = EverestCollimatorData_get_dpy(el);
+        double const cry_rcurv  = 0;
+        double const cry_bend   = 0;
+        double const cry_alayer = 0;
+        double const cry_xmax   = 0;
+        double const cry_ymax   = 0;
+        double const cry_orient = 0;
+        double const cry_miscut = 0;
+        double const cry_cBend  = 0;
+        double const cry_sBend  = 0;
+        double const cry_cpTilt = 0;
+        double const cry_spTilt = 0;
+        double const cry_cnTilt = 0;
+        double const cry_snTilt = 0;
+    } else {
+        // Crystal properties
+        EverestCrystalData el = (EverestCrystalData) element;
+        double length  = EverestCrystalData_get_active_length(el);
+        // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+        //     raise NotImplementedError
+        double const c_aperture = EverestCrystalData_get_jaw_F_L(el) - EverestCrystalData_get_jaw_F_R(el);
+        double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_F_L(el) + EverestCrystalData_get_jaw_F_R(el) )/2;
+        double const c_tilt0    = EverestCrystalData_get_tilt(el, 0);
+        double const c_tilt1    = EverestCrystalData_get_tilt(el, 1);
+        double const onesided   = EverestCrystalData_get_onesided(el);
+        double const c_rotation = atan2(EverestCrystalData_get_sin_z(el), EverestCrystalData_get_cos_z(el) );
+        double const co_x       = EverestCrystalData_get_dx(el);
+        double const co_px      = EverestCrystalData_get_dpx(el);
+        double const co_y       = EverestCrystalData_get_dy(el);
+        double const co_py      = EverestCrystalData_get_dpy(el);
+        double const bend       = EverestCrystalData_get_bend(el);
+        double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
+        double const bend_ang   = length/bend;    // temporary value
+        if (cry_tilt >= -bend_ang) {
+            length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
+        } else {
+            length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
+        }
+        double const cry_rcurv  = bend;
+        double const cry_bend   = length/cry_rcurv; //final value (with corrected length) 
+        double const cry_alayer = EverestCrystalData_get_thick(el);
+        double const cry_xmax   = EverestCrystalData_get_xdim(el);
+        double const cry_ymax   = EverestCrystalData_get_ydim(el);
+        double const cry_orient = EverestCrystalData_get_orient(el);
+        double const cry_miscut = EverestCrystalData_get_miscut(el);
+        double const cry_cBend  = cos(cry_bend); 
+        double const cry_sBend  = sin(cry_bend); 
+        double const cry_cpTilt = cos(cry_tilt);
+        double const cry_spTilt = sin(cry_tilt);
+        double const cry_cnTilt = cos(-cry_tilt);
+        double const cry_snTilt = sin(-cry_tilt);
+    }
+
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
