@@ -8,7 +8,7 @@ def load_SixTrack_colldb(filename, *, emit):
 
 class CollDB:
     def __init__(self, *, emit, sixtrack_file=None):
-        self._optics = pd.DataFrame(columns=['betx', 'bety', 'x', 'px', 'y', 'py'])
+        self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy'])
         self._optics_positions_to_calculate = {}
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
@@ -367,10 +367,9 @@ class CollDB:
     def align_to(self):
         return self._colldb.align_to
 
-    # Options are: 'front', 'center', 'back', 'maximum', 'angular'
     @align_to.setter
     def align_to(self, align):
-        self._set_property('align_to', align, single_default_allowed=True)
+        self._set_property('align_to', align, single_default_allowed=True, limit_to=['front', 'center', 'back', 'angular'])
         if np.any(self.align_to == 'maximum'):
             raise NotImplementedError
         s_front = self.s_center - self.active_length/2
@@ -515,20 +514,28 @@ class CollDB:
     # ------ Property setter functions ------
     # ---------------------------------------
 
-    def _set_property(self, prop, vals, single_default_allowed=False):
+    def _set_property(self, prop, vals, single_default_allowed=False, limit_to=[]):
         df = self._colldb
+        if not isinstance(limit_to, (list, tuple, set)):
+            limit_to = [limit_to]
         if isinstance(vals, dict):
             for name, val in vals.items():
                 if name not in self.name:
                     raise ValueError(f"Collimator {name} not found in CollDB!")
+                if limit_to!=[] and val not in limit_to:
+                    raise ValueError(f"Cannot set {prop} to {val}. Choose from {limit_to}!")
                 df.loc[name, prop] = val
         elif isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
             if len(vals) != len(self.name):
                 raise ValueError(f"The variable '{prop}' has a different length than the number of collimators in the CollDB. "
                                 + "Use a dictionary instead.")
+            if limit_to!=[] and np.any([val not in limit_to for val in vals]):
+                raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
             df[prop] = vals
         else:
             if single_default_allowed:
+                if limit_to!=[] and vals not in limit_to:
+                    raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
                 df[prop] = vals
             else:
                 raise ValueError(f"Variable '{prop}' needs to be a pandas Series, dict, numpy array, or list!")

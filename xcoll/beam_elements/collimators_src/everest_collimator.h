@@ -53,7 +53,8 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
-    int8_t const is_active      = EverestCollimatorData_get__active(el);
+    int8_t is_active = EverestCollimatorData_get__active(el);
+    is_active       *= EverestCollimatorData_get__tracking(el);
     double const inactive_front = EverestCollimatorData_get_inactive_front(el);
     double const active_length  = EverestCollimatorData_get_active_length(el);
     double const inactive_back  = EverestCollimatorData_get_inactive_back(el);

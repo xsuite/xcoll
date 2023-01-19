@@ -49,7 +49,8 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
 
 /*gpufun*/
 void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
-    int8_t const is_active      = EverestCrystalData_get__active(el);
+    int8_t is_active      = EverestCrystalData_get__active(el);
+    is_active            *= EverestCrystalData_get__tracking(el);
     double const inactive_front = EverestCrystalData_get_inactive_front(el);
     double const active_length  = EverestCrystalData_get_active_length(el);
     double const inactive_back  = EverestCrystalData_get_inactive_back(el);

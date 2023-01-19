@@ -171,7 +171,8 @@ class CollimatorManager:
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
                     material=thiscoll['material'],
-                    is_active=False
+                    is_active=False,
+                    _tracking=False
                    )
         self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
 
@@ -300,23 +301,30 @@ class CollimatorManager:
             raise Exception("Not all collimators are aligned! Please call 'align_collimators_to' "
                             + "on the CollimationManager before computing the optics for the openings!")
 
+        if recompute:
+            self.colldb._optics_positions_to_calculate = { *set(self.colldb._colldb.s_align_front.values),\
+                                                           *set(self.colldb._colldb.s_align_back.values) }
+            self.colldb._optics = self.colldb._optics.iloc[0:0]
+
         pos = list(self.colldb._optics_positions_to_calculate)
-        if recompute or pos != {}:
+        if pos != {}:
             tracker = self.line.tracker
-            # Calculate optics without collimators
-            old_val = {}
-            for name in self.collimator_names:
-                old_val[name] = line[name].is_active
-                line[name].is_active = False
-            tw = tracker.twiss(at_s=pos)
+#         TODO:
+#         This is how we'll do it once twiss bug fixed (needed once inactive_front/back != 0):
+#         (it is however much slower...)
+#             tw = tracker.twiss(at_s=pos)
+            tw = tracker.twiss()
             self.colldb._optics = pd.concat([
                                     self.colldb._optics,
                                     pd.DataFrame({
-                                        opt: tw[opt] for opt in self.colldb._optics.columns
+#                                     This is how we'll do it once twiss bug fixed:
+#                                         opt: tw[opt] for opt in self.colldb._optics.columns
+#                                     Current hack: getting the optics of the element within 1pm
+#                                     (this will fail if the collimator is aligned to the centre)
+                                        opt: [ np.array(tw[opt])[abs(tw['s']-thispos) < 1e-12][0] for thispos in pos ]
+                                        for opt in self.colldb._optics.columns
                                     },index=pos)
                                 ])
-            for name in self.collimator_names:
-                line[name].is_active = old_val[name]
             self.colldb._optics_positions_to_calculate = {}
             self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
 
@@ -381,7 +389,11 @@ class CollimatorManager:
 
 
     def track(self, *args, **kwargs):
+        for coll in self.collimator_names:
+            self.line[coll]._tracking = True
         self.tracker.track(*args, **kwargs)
+        for coll in self.collimator_names:
+            self.line[coll]._tracking = False
 
 
     @property

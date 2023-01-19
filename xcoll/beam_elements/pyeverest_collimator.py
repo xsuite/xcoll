@@ -22,20 +22,21 @@ class PyEverestCollimator(BaseCollimator):
     iscollective = True
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('offset', 0)
-        kwargs.setdefault('onesided', False)
-        kwargs.setdefault('tilt', [0,0])
-        tilt = kwargs['tilt']
-        if hasattr(tilt, '__iter__'):
-            if isinstance(tilt, str):
-                raise ValueError("Variable tilt has to be a number or array of numbers!")
-            elif len(tilt) == 1:
-                tilt = [tilt[0], tilt[0]]
-            elif len(tilt) > 2:
-                raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
-        else:
-            tilt = [tilt, tilt]
-        kwargs['tilt'] = tilt
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('offset', 0)
+            kwargs.setdefault('onesided', False)
+            kwargs.setdefault('tilt', [0,0])
+            tilt = kwargs['tilt']
+            if hasattr(tilt, '__iter__'):
+                if isinstance(tilt, str):
+                    raise ValueError("Variable tilt has to be a number or array of numbers!")
+                elif len(tilt) == 1:
+                    tilt = [tilt[0], tilt[0]]
+                elif len(tilt) > 2:
+                    raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
+            else:
+                tilt = [tilt, tilt]
+            kwargs['tilt'] = tilt
         super().__init__(**kwargs)
 
 
@@ -68,27 +69,28 @@ class PyEverestCrystal(BaseCollimator):
     iscollective = True
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('offset', 0)
-        kwargs.setdefault('onesided', False)
-        kwargs.setdefault('tilt', [0,0])
-        tilt = kwargs['tilt']
-        if hasattr(tilt, '__iter__'):
-            if isinstance(tilt, str):
-                raise ValueError("Variable tilt has to be a number or array of numbers!")
-            elif len(tilt) == 1:
-                tilt = [tilt[0], tilt[0]]
-            elif len(tilt) > 2:
-                raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
-        else:
-            tilt = [tilt, tilt]
-        kwargs['tilt'] = tilt
-        kwargs.setdefault('bend', 0)
-        kwargs.setdefault('xdim', 0)
-        kwargs.setdefault('ydim', 0)
-        kwargs.setdefault('thick', 0)
-        kwargs.setdefault('crytilt', 0)
-        kwargs.setdefault('miscut', 0)
-        kwargs.setdefault('orient', 0)
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('offset', 0)
+            kwargs.setdefault('onesided', False)
+            kwargs.setdefault('tilt', [0,0])
+            tilt = kwargs['tilt']
+            if hasattr(tilt, '__iter__'):
+                if isinstance(tilt, str):
+                    raise ValueError("Variable tilt has to be a number or array of numbers!")
+                elif len(tilt) == 1:
+                    tilt = [tilt[0], tilt[0]]
+                elif len(tilt) > 2:
+                    raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
+            else:
+                tilt = [tilt, tilt]
+            kwargs['tilt'] = tilt
+            kwargs.setdefault('bend', 0)
+            kwargs.setdefault('xdim', 0)
+            kwargs.setdefault('ydim', 0)
+            kwargs.setdefault('thick', 0)
+            kwargs.setdefault('crytilt', 0)
+            kwargs.setdefault('miscut', 0)
+            kwargs.setdefault('orient', 0)
         super().__init__(**kwargs)
 
 
