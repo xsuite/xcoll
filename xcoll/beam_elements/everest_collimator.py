@@ -36,7 +36,7 @@ class EverestCollimator(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
-    _depends_on = [BaseCollimator]
+    _depends_on = [BaseCollimator, InvalidCollimator]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -93,7 +93,7 @@ class EverestCrystal(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
-    _depends_on = [BaseCollimator]
+    _depends_on = [BaseCollimator, InvalidCollimator]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
