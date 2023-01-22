@@ -4,6 +4,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..tables import CollimatorImpacts
+from ..general import _pkg_root
 
 # class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
 #     pass

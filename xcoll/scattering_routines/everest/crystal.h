@@ -79,12 +79,12 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     //Rescale the total and inelastic cross-section accordigly to the average density seen
     double x_i = x;
     int np  = x_i/dP;    //Calculate in which crystalline plane the particle enters
-    x_i = x_i - np*dP;    //Rescale the incoming x at the left crystalline plane
+    x_i = x_i - np*dP;   //Rescale the incoming x at the left crystalline plane
     x_i = x_i - (dP/2.); //Rescale the incoming x in the middle of crystalline planes
 
     double pv   = pow(pc,2.)/sqrt(pow(pc,2.) + pow((pmap*1.0e-3),2.))*1.0e9;          //Calculate pv=P/E
     double Ueff = eUm*((2.*x_i)/dP)*((2.*x_i)/dP) + pv*x_i/r; //Calculate effective potential
-    double Et   = (pv*pow(xp,2.))/2. + Ueff;                            //Calculate transverse energy
+    double Et   = (pv*pow(xp,2.))/2. + Ueff;                  //Calculate transverse energy
     double Ec   = (eUm*(1.-rc/r))*(1.-rc/r);                  //Calculate critical energy in bent crystals
 
     //To avoid negative Et

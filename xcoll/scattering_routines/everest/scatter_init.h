@@ -43,7 +43,7 @@ struct ScatteringParameters calculate_scattering(double p0, MaterialData materia
     // Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
     double pptot = 0.041084 - 0.0023302*log(ecmsq) + 0.00031514*pow(log(ecmsq),2);
     // Claudia used the fit from TOTEM for ppel (in barn)
-    double ppel = (11.7-1.59*log(ecmsq)+0.134*pow(log(ecmsq),2))/1e3;
+    double ppel = (11.7-1.59*log(ecmsq)+0.134*pow(log(ecmsq),2))/1e3;                      // TODO /1.e3
     // Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
     double ppsd = (4.3+0.3*log(ecmsq))/1e3;
 

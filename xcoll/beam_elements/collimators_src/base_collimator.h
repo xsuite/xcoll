@@ -1,0 +1,27 @@
+#ifndef XCOLL_BASE_H
+#define XCOLL_BASE_H
+
+/*gpufun*/
+void xcoll_kill_all_particles(LocalParticle* part0) {
+    //start_per_particle_block (part0->part)
+        LocalParticle_set_x(part, 1e30);
+        LocalParticle_set_px(part, 1e30);
+        LocalParticle_set_y(part, 1e30);
+        LocalParticle_set_py(part, 1e30);
+        LocalParticle_set_zeta(part, 1e30);
+        LocalParticle_update_delta(part, -1);  // zero energy
+        LocalParticle_set_state(part, -399);   // xcoll lost state erro
+    //end_per_particle_block
+}
+    
+/*gpufun*/
+void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* part0) {
+    xcoll_kill_all_particles(part0);
+}
+
+/*gpufun*/
+void InvalidCollimator_track_local_particle(InvalidCollimatorData el, LocalParticle* part0) {
+    xcoll_kill_all_particles(part0);
+}
+
+#endif
