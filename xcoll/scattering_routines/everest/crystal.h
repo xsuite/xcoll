@@ -34,7 +34,7 @@ int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 int temp = 0;
 
-double* movech(double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
+double* movech(LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     static double result[5];
 
@@ -74,7 +74,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
     double ppsd  = (4.3 + 0.3*log(ecmsq))/1.0e3;
     double bpp   = 7.156 + 1.439*log(sqrt(ecmsq));
 
-    xran_cry[0] = get_random_ruth();
+    xran_cry[0] = get_random_ruth(part);
 
     //Rescale the total and inelastic cross-section accordigly to the average density seen
     double x_i = x;
@@ -186,14 +186,14 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
         nuc_cl_l = collnt/avrrho;
     }
 
-    double zlm = -nuc_cl_l*log(get_random());
+    double zlm = -nuc_cl_l*log(get_random(part));
 
     //write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
 
     if (zlm < dz) {
 
         //Choose nuclear interaction
-        double aran = get_random();
+        double aran = get_random(part);
         int i = 1;
         double bn;
         double xm2;
@@ -218,17 +218,17 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
         else if (ichoix==2) { //p-n elastic
             iProc = proc_ch_pne;
             bn    = (bnref*cs[0])/csref_tot_rsc;
-            t     = -log(get_random())/bn;
+            t     = -log(get_random(part))/bn;
         }
 
         else if (ichoix==3) { //p-p elastic
             iProc = proc_ch_ppe;
-            t     = -log(get_random())/bpp;
+            t     = -log(get_random(part))/bpp;
         }
 
         else if (ichoix==4) { //Single diffractive
             iProc = proc_ch_diff;
-            xm2   = exp(get_random()*xln15s);
+            xm2   = exp(get_random(part)*xln15s);
             pc    = pc*(1 - xm2/ecmsq);
 
             if (xm2 < 2.) {
@@ -241,12 +241,12 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
                 bsd = (7*bpp)/12.0;
             }
             //end if
-            t = -log(get_random())/bsd;
+            t = -log(get_random(part))/bsd;
         }
 
         else { //(ichoix==5)
             iProc      = proc_ch_ruth;
-            xran_cry[0] = get_random_ruth();
+            xran_cry[0] = get_random_ruth(part);
             t = xran_cry[0];
         }
 
@@ -259,8 +259,8 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
             teta = sqrt(t)/pc;
         }
 
-        tx = teta*get_random_gauss()*1.0e3;
-        tz = teta*get_random_gauss()*1.0e3;
+        tx = teta*get_random_gauss(part)*1.0e3;
+        tz = teta*get_random_gauss(part)*1.0e3;
 
         //Change p angle
         xp = xp + tx;
@@ -281,7 +281,7 @@ double* movech(double nam, double dz, double x, double xp, double yp, double pc,
 }
 
 
-double* moveam(double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
+double* moveam(LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
     static double result[4];
 
@@ -360,8 +360,8 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
     pc  = pc - dei*dz; // Energy lost because of ionization process[GeV]
 
     double dya   = (13.6/pc)*sqrt(dz/dlr); // RMS of coloumb scattering MCS (mrad)
-    double kxmcs = dya*get_random_gauss();
-    double kymcs = dya*get_random_gauss();
+    double kxmcs = dya*get_random_gauss(part);
+    double kymcs = dya*get_random_gauss(part);
 
     xp = xp+kxmcs;
     yp = yp+kymcs;
@@ -376,11 +376,11 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
     }
 
     // Can nuclear interaction happen?
-    double zlm = -collnt*log(get_random());
+    double zlm = -collnt*log(get_random(part));
 
     if (zlm < dz) {
         // Choose nuclear interaction
-        double aran = get_random();
+        double aran = get_random(part);
         int i=1;
 
         while (aran > cprob[i]) {
@@ -399,17 +399,17 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
 
         else if (ichoix==2) { // p-n elastic
             iProc = proc_pne;
-            t     = -log(get_random())/bn;
+            t     = -log(get_random(part))/bn;
         }
 
         else if (ichoix==3) { // p-p elastic
             iProc = proc_ppe;
-            t     = -log(get_random())/bpp;
+            t     = -log(get_random(part))/bpp;
         }
 
         else if (ichoix==4) { // Single diffractive
             iProc = proc_diff;
-            double xm2 = exp(get_random()*xln15s);
+            double xm2 = exp(get_random(part)*xln15s);
             double bsd = 0.0;
             pc    = pc*(1 - xm2/ecmsq);
 
@@ -423,14 +423,12 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
                 bsd = 7.0*bpp/12.0;
             }
         
-            t = -log(get_random())/bsd;
+            t = -log(get_random(part))/bsd;
         }
 
         else { //(ichoix==5)
             iProc = proc_ruth;
-        // in python: t = get_random_ruth()
-            //length_cry = 1
-            t = get_random_ruth();
+            t = get_random_ruth(part);
         }
 
         // end select
@@ -446,8 +444,8 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
             teta = sqrt(t)/pc;
         }
 
-        double tx = teta*get_random_gauss()*1.0e3;
-        double tz = teta*get_random_gauss()*1.0e3;
+        double tx = teta*get_random_gauss(part)*1.0e3;
+        double tz = teta*get_random_gauss(part)*1.0e3;
 
         // Change p angle
         xp = xp + tx;
@@ -468,7 +466,7 @@ double* moveam(double nam, double dz, double dei, double dlr, double xp, double 
 }
 
 
-double calcionloss(double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc) {
+double calcionloss(LocalParticle* part, double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc) {
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -501,7 +499,7 @@ double calcionloss(double dz, double EnLo, double betar, double bgr, double gamm
                         + ((tmax-Tt)/((4.*(pow(gammar,2.)))*(pow(pmap,2.)))));
     double prob_tail = ((cs_tail*rho)*dz)*1.0e2;
 
-    if (get_random() < prob_tail) {
+    if (get_random(part) < prob_tail) {
         EnLo = ((k*zatom)/(anuc*pow(betar,2.))) * (0.5*log((2*pmae*bgr*bgr*tmax)/(1.0e6*pow(exenergy,2.))) - pow(betar,2.) - 
                 log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5 + pow(tmax,2.)/(8.*(pow(gammar,2.))*(pow(pmap,2.))));
 
@@ -517,7 +515,7 @@ double calcionloss(double dz, double EnLo, double betar, double bgr, double gamm
 }
 
 
-double* interact(double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
+double* interact(LocalParticle* part, double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
                 double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref,
                  double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
@@ -690,10 +688,10 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
         y     = y0 + yp*s;
         iProc = proc_AM;
 
-        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+        dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+        result_am = moveam(part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
                             bnref,csref0,csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
@@ -716,10 +714,10 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
     else if (x > cry_xmax-cry_alayer && x < cry_xmax) {
         iProc = proc_AM;
         
-        dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+        dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+        result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
@@ -776,13 +774,13 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
         double N_atom = 1.0e-1;
 
         //if they can channel: 2 options
-        if (get_random() <= Chann) { //option 1:channeling
+        if (get_random(part) <= Chann) { //option 1:channeling
             double TLdech1 = (const_dech*pc)*pow((1.-1./ratio),2.); //Updated calculate typical dech. length(m)
 
-            if(get_random() <= N_atom) {
+            if(get_random(part) <= N_atom) {
                 TLdech1 = ((const_dech/2.0e2)*pc)*pow((1.-1./ratio),2.);  //Updated dechanneling length (m)      
             }
-            double Dechan = -log(get_random()); //Probability of dechanneling
+            double Dechan = -log(get_random(part)); //Probability of dechanneling
             double Ldech  = TLdech1*Dechan;   //Actual dechan. length
 
             //careful: the dechanneling lentgh is along the trajectory
@@ -792,18 +790,18 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double Dxp   = Ldech/r; //Change angle from channeling [mrad]
                 double Sdech = Ldech*cos(cry_miscut + 0.5*Dxp);
                 x  = x  + Ldech*(sin(0.5*Dxp+cry_miscut)); //Trajectory at channeling exit
-                xp    = xp + Dxp + (2*(get_random()-0.5))*xpcrit;
+                xp    = xp + Dxp + (2*(get_random(part)-0.5))*xpcrit;
                 y     = y  + yp * Sdech;
 
-                dest = calcionloss(Ldech,dest,betar,bgr,gammar,tmax,plen,
+                dest = calcionloss(part,Ldech,dest,betar,bgr,gammar,tmax,plen,
                                     exenergy,zatom,rho,anuc);
                 pc = pc - 0.5*dest*Ldech; //Energy loss to ionization while in CH [GeV]
                 x  = x  + (0.5*(s_length-Sdech))*xp;
                 y  = y  + (0.5*(s_length-Sdech))*yp;
 
-                dest = calcionloss(s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                dest = calcionloss(part,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
 
-                result_am = moveam(nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                result_am = moveam(part,nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
@@ -818,7 +816,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                result_ch = movech(nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                result_ch = movech(part,nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,eUm,collnt,iProc);
                 x = result_ch[0];
                 xp = result_ch[1];
@@ -835,19 +833,19 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     x = x + (0.5*L_chan)*xp;
                     y = y + (0.5*L_chan)*yp;
 
-                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
                     pc = pc - dest*length; //energy loss to ionization [GeV]
                 }
 
                 else {
-                    double Dxp = tdefl + (0.5*get_random_gauss())*xpcrit; //Change angle[rad]
+                    double Dxp = tdefl + (0.5*get_random_gauss(part))*xpcrit; //Change angle[rad]
                     
                     xp  = Dxp;
                     x = x + L_chan*(sin(0.5*Dxp)); //Trajectory at channeling exit
                     y   = y + s_length * yp;
 
-                    dest = calcionloss(length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                    dest = calcionloss(part,length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
                     pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]     
                 } 
             }
@@ -861,8 +859,8 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
             x  = x  + (0.5*s_length)*xp;
             y  = y  + (0.5*s_length)*yp;
 
-            dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-            result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+            dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+            result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
             xp = result_am[0];
             yp = result_am[1];
             pc = result_am[2];
@@ -881,17 +879,17 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
         //2 options: volume capture and volume reflection
 
-            if (get_random() > Vcapt || zn == 0) { //Option 1: VR
+            if (get_random(part) > Vcapt || zn == 0) { //Option 1: VR
                 iProc = proc_VR;
                 x  = x + xp*Srefl;
                 y     = y + yp*Srefl;
                 double Dxp   = Ang_avr;
-                xp    = xp + Dxp + Ang_rms*get_random_gauss();
+                xp    = xp + Dxp + Ang_rms*get_random_gauss(part);
                 x  = x  + (0.5*xp)*(s_length - Srefl);
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
-                dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
@@ -906,13 +904,13 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 y = y + yp*Srefl;
 
                 double TLdech2 = (const_dech/1.0e1)*pc*pow((1-1/ratio),2.) ;         //Updated typical dechanneling length(m)
-                double Ldech   = TLdech2 * pow((sqrt(1.0e-2 - log(get_random())) - 1.0e-1),2.); //Updated DC length
+                double Ldech   = TLdech2 * pow((sqrt(1.0e-2 - log(get_random(part))) - 1.0e-1),2.); //Updated DC length
                 double tdech   = Ldech/cry_rcurv;
                 double Sdech   = Ldech*cos(xp + 0.5*tdech);
 
                 if (Ldech < length-Lrefl) {
                     iProc = proc_DC;
-                    double Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss())*xpcrit;
+                    double Dxp   = Ldech/cry_rcurv + (0.5*get_random_gauss(part))*xpcrit;
                     x  = x + Ldech*(sin(0.5*Dxp+xp)); //Trajectory at channeling exit
                     y     = y + Sdech*yp;
                     xp    =  Dxp;
@@ -920,18 +918,18 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     x  = x + (0.5*xp)*Red_S;
                     y     = y + (0.5*yp)*Red_S;
 
-                    dest = calcionloss(Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
 
                     pc = pc - dest*Srefl; //"added" energy loss before capture
 
-                    dest = calcionloss(Sdech,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,Sdech,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
                     pc = pc - (0.5*dest)*Sdech; //"added" energy loss while captured
 
-                    dest = calcionloss(Red_S,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -948,14 +946,14 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     double tchan   = Rlength/cry_rcurv;
                     double Red_S   = Rlength*cos(xp + 0.5*tchan);
 
-                    dest = calcionloss(Lrefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,Lrefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
                     pc   = pc - dest*Lrefl; //"added" energy loss before capture
                     double xpin = xp;
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    result_ch = movech(nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                    result_ch = movech(part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,eUm,collnt,iProc);
                     x = result_ch[0];
                     xp = result_ch[1];
@@ -971,7 +969,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                         x = x + (0.5*Rlength)*xp;
                         y = y + (0.5*Rlength)*yp;
 
-                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                        dest = calcionloss(part,Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc);
                         pc = pc - dest*Rlength;
                     }
@@ -980,9 +978,9 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                         double Dxp = (length-Lrefl)/cry_rcurv;
                         x = x + sin(0.5*Dxp+xp)*Rlength; //Trajectory at channeling exit
                         y   = y + Red_S*yp;
-                        xp  = tdefl + (0.5*get_random_gauss())*xpcrit; //[mrad]
+                        xp  = tdefl + (0.5*get_random_gauss(part))*xpcrit; //[mrad]
 
-                        dest = calcionloss(Rlength,dest,betar,bgr,gammar,tmax,plen,
+                        dest = calcionloss(part,Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc);
                         pc = pc - (0.5*dest)*Rlength;  //"added" energy loss once captured
                     }
@@ -998,9 +996,9 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                 x  = x + (0.5*s_length)*xp;
                 y     = y + (0.5*s_length)*yp;
                 if(zn > 0) {
-                    dest = calcionloss(s_length,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1014,7 +1012,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 
             else {
                 double Pvr = (xp_rel-(tdefl-cry_miscut))/(2.*xpcrit);
-                if(get_random() > Pvr) {
+                if(get_random(part) > Pvr) {
 
                     iProc = proc_TRVR;
                     x  = x + xp*Srefl;
@@ -1025,9 +1023,9 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     x = x + (0.5*xp)*(s_length-Srefl);
                     y   = y + (0.5*yp)*(s_length-Srefl);
 
-                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1047,9 +1045,9 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
                     x  = x + (0.5*xp)*(s_length-Srefl);
                     y  = y + (0.5*yp)*(s_length-Srefl);
 
-                    dest = calcionloss(s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
+                    dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1075,7 +1073,7 @@ double* interact(double x, double xp, double y, double yp, double pc, double len
 }
 
 
-double* crystal(double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
+double* crystal(LocalParticle* part, double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
             double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, CrystalMaterialData material, double nhit, double nabs, double 
             cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
             cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  iProc, double  n_chan, double  n_VR, double  n_amorphous) {
@@ -1157,7 +1155,7 @@ double* crystal(double x, double xp, double z, double zp, double s, double p, do
         double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
         double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
 
-        result = interact(x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
+        result = interact(part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
                         ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
@@ -1226,7 +1224,7 @@ double* crystal(double x, double xp, double z, double zp, double s, double p, do
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                result = interact(x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
+                result = interact(part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
                                 cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);

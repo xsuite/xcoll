@@ -157,12 +157,7 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
-    def install_everest_collimators(self, names=None, *, verbose=False, random_seed=None):
-        from .scattering_routines.everest import set_random_seed
-        if random_seed is None:
-            random_seed = 0;
-        set_random_seed(int(abs(random_seed)))
-
+    def install_everest_collimators(self, names=None, *, verbose=False):
         # Do the installation
         def install_func(thiscoll, name):
             return EverestCollimator(
@@ -389,9 +384,18 @@ class CollimatorManager:
 
 
     def track(self, *args, **kwargs):
+        # Check if random generator is set 
+        r1 = np.unique(part._rng_s1)
+        r2 = np.unique(part._rng_s2)
+        r3 = np.unique(part._rng_s3)
+        # r4 = np.unique(part._rng_s4)  # not used
+        if (len(r1)==1 and r1[0]==0) or (len(r2)==1 and r2[0]==0) or (len(r3)==1 and r3[0]==0):
+            part._init_random_number_generator()
+        # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = True
         self.tracker.track(*args, **kwargs)
+        # Flag collimators as no longer tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = False
 

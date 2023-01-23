@@ -79,7 +79,7 @@ double soln3(double a, double b, double dh, double smax, double s) {
 
 }
 
-double* scamcs(double x0, double xp0, double s) {
+double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
     // double x0  = *xx;
     // double xp0 = *xxp;
@@ -89,8 +89,8 @@ double* scamcs(double x0, double xp0, double s) {
     static double result[2];
 
     while (1) {
-        v1 = 2*get_random() - 1;
-        v2 = 2*get_random() - 1;
+        v1 = 2*get_random(part) - 1;
+        v2 = 2*get_random(part) - 1;
         r2 = pow(v1,2) + pow(v2,2);
 
         if(r2 < 1) {
@@ -111,7 +111,7 @@ double* scamcs(double x0, double xp0, double s) {
 
 }
 
-double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
+double* mcs(LocalParticle* part, double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
 
     double theta = 13.6e-3/(mc_p0 * (1+mc_dpop)); // dpop   = (p - p0)/p0;
     double h   = 0.001;
@@ -145,7 +145,7 @@ double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x,
             s = h;
         }
 
-        double* res = scamcs(mc_x,mc_xp,s);
+        double* res = scamcs(part, mc_x,mc_xp,s);
         mc_x  = res[0];
         mc_xp = res[1];
 
@@ -162,7 +162,7 @@ double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x,
         rlen = rlen - s;
     }
 
-    double* res = scamcs(mc_z,mc_zp,s);
+    double* res = scamcs(part, mc_z,mc_zp,s);
     mc_z  = res[0];
     mc_zp = res[1];
 
@@ -176,7 +176,7 @@ double* mcs(double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x,
 
 }
 
-double* tetat(double t, double p) {
+double* tetat(LocalParticle* part, double t, double p) {
 
 
     double teta = sqrt(t)/p;
@@ -188,8 +188,8 @@ double* tetat(double t, double p) {
     static double result[2];
     
     while (1) {
-        va  = 2*get_random() - 1;
-        vb  = get_random();
+        va  = 2*get_random(part) - 1;
+        vb  = get_random(part);
         va2 = pow(va,2);
         vb2 = pow(vb,2);
         r2  = va2 + vb2;
@@ -206,22 +206,22 @@ double* tetat(double t, double p) {
                 
 }                
                 
-double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
+double* gettran(LocalParticle* part, double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
 
     static double res[2];
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
     if (inter==2) { // Nuclear Elastic
-        result = (-1*log(get_random()))/tt_bn;
+        result = (-1*log(get_random(part)))/tt_bn;
     }
     
     else if (inter==3) { // pp Elastic
-        result = (-1*log(get_random()))/tt_bpp;
+        result = (-1*log(get_random(part)))/tt_bpp;
     }
 
     else if (inter==4) { // Single Diffractive
-        double xm2 = exp(get_random() * tt_xln15s);
+        double xm2 = exp(get_random(part) * tt_xln15s);
         double bsd = 0;
         p = p * (1 - xm2/tt_ecmsq);
     
@@ -237,11 +237,11 @@ double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt
             bsd = (7*tt_bpp)/12.0;
         }
    
-        result = (-1*log(get_random()))/bsd;
+        result = (-1*log(get_random(part)))/bsd;
     }
 
     else if (inter==5) { // Coulomb
-        result = get_random_ruth();
+        result = get_random_ruth(part);
     }
 
     res[0] = result;
@@ -251,7 +251,7 @@ double* gettran(double inter, double p, double tt_bn, double tt_ecmsq, double tt
                 
 }
                 
-double calcionloss_jaw(double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
+double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
     double enr    = pow((mom*mom + 938.271998*938.271998),0.5); //[MeV]
@@ -292,7 +292,7 @@ double calcionloss_jaw(double p, double rlen, double il_exenergy, double il_anuc
     double prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2;
 
     // Determine based on random number if tail energy loss occurs.
-    if (get_random() < prob_tail) {
+    if (get_random(part) < prob_tail) {
         enlo = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
         enlo = (enlo*il_rho)*1.0e-1; // [GeV/m]
     }
@@ -304,9 +304,9 @@ double calcionloss_jaw(double p, double rlen, double il_exenergy, double il_anuc
     return enlo;
 }
 
-int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5) {
+int ichoix(LocalParticle* part,double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5) {
 
-    double aran = get_random();
+    double aran = get_random(part);
     int i;
     
     double ich_cprob[6];
@@ -325,7 +325,7 @@ int ichoix(double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_c
     return i;
 }
                
-double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
+double* jaw(LocalParticle* part, double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
     
 
     // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
@@ -345,7 +345,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
     // Get monte-carlo interaction length.
     while (1) {
 
-        double run_zlm1 = (-1*run_xintl)*log(get_random());
+        double run_zlm1 = (-1*run_xintl)*log(get_random(part));
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
@@ -355,7 +355,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
             
             run_zlm1 = rlen;
         
-            double* res = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+            double* res = mcs(part, s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
             s = res[0];
             x = res[1];
             xp = res[2];
@@ -363,7 +363,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
             zp = res[4];
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
+            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
             p = p-m_dpodx*s;
                     
             dpop = (p-p0)/p0;
@@ -371,7 +371,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         }
         // Otherwise do multi-coulomb scattering.
         // REGULAR STEP IN ITERATION LOOP
-        double* res1 = mcs(s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+        double* res1 = mcs(part, s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
         s = res1[0];
         x = res1[1];
         xp = res1[2];
@@ -386,7 +386,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         if(x <= 0) {
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
             p = p-m_dpodx*s;
             dpop = (p-p0)/p0;
@@ -398,13 +398,13 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         // and return.
         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        int inter = ichoix(ich_cprob0,ich_cprob1,ich_cprob2,ich_cprob3,ich_cprob4,ich_cprob5);
+        int inter = ichoix(part,ich_cprob0,ich_cprob1,ich_cprob2,ich_cprob3,ich_cprob4,ich_cprob5);
         nabs = inter;
 
         if (inter == 1) {
 
             s = (zlm-rlen)+run_zlm1;
-            m_dpodx = calcionloss_jaw(p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
 
             p = p-m_dpodx*s;
             dpop = (p-p0)/p0;
@@ -422,7 +422,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
 
         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double* res2 = gettran(inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+        double* res2 = gettran(part,inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
         t = res2[0];
         p = res2[1];
 
@@ -430,7 +430,7 @@ double* jaw(double run_exenergy, double run_anuc, double run_zatom, double run_r
         // monte-carlo fashion the angle changes for x and z planes. The
         // angle change is proportional to SQRT(t) and 1/p, as expected.
 
-        double* res3 = tetat(t,p);
+        double* res3 = tetat(part,t,p);
         tx = res3[0]; 
         tz = res3[1];
 

@@ -129,7 +129,6 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    xc.scattering_routines.everest.set_random_seed(6574654)
     if colldict['__class__'] == 'EverestCollimator':
         coll = xc.EverestCollimator.from_dict(colldict)
     elif colldict['__class__'] == 'EverestCrystal':

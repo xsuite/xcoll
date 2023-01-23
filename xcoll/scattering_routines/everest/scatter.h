@@ -214,7 +214,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             nhit = nhit + 1;
 
 
-            double* jaw_result = jaw(exenergy,
+            double* jaw_result = jaw(part, exenergy,
                             anuc,
                             zatom,
                             rho,

@@ -181,7 +181,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         double s = 0.;
         double zlm = -1*length;
 
-        double* crystal_result = crystal(x,
+        double* crystal_result = crystal(part,x,
                                 xp,
                                 z,
                                 zp,

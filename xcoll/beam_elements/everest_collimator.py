@@ -1,4 +1,5 @@
 import xobjects as xo
+import xpart as xp
 
 from .base_collimator import BaseCollimator, InvalidCollimator
 from ..scattering_routines.everest import Material, CrystalMaterial
@@ -28,6 +29,8 @@ class EverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
@@ -86,6 +89,8 @@ class EverestCrystal(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
         _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),

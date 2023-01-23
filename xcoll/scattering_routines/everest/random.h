@@ -8,36 +8,11 @@
 =========================================
 */
 
-unsigned int this_seed;
-unsigned int n_sampled = 0;
-
-static void set_random_seed(unsigned int seed){
-    /* Intializes random number generator */
-    if (seed == 0) {
-        time_t t;
-        this_seed = (unsigned) time(&t);
-    } else {
-        this_seed = seed;
-    }
-    srand(this_seed);
-}
-
-// TODO: This is wrong if not manually set first: it will return 0, but not sure what the default seed is..
-// TODO: make our own uniform random generator
-static unsigned int get_random_seed(void){
-    return this_seed;
-}
-
-static unsigned int get_n_sampled(void){
-    return n_sampled;
-}
-
 // Generate a random uniform value in [0,1]
 // Note that Ranlux (in old K2) generated randoms in ]0,1[
-static double get_random(void){
-  n_sampled = n_sampled + 1;
-  double x = (double)rand()/RAND_MAX;
-  return x;
+double get_random(LocalParticle* part){
+  double r = LocalParticle_generate_random_double(part);
+  return r;
 }
 
 
@@ -48,11 +23,9 @@ static double get_random(void){
 */
 
 // Generate a random value weighted within the normal (Gaussian) distribution
-static double get_random_gauss(void){
-  double x = get_random(),
-         y = get_random(),
-         z = sqrt(-2 * log(x)) * cos(2 * M_PI * y);
-  return z;
+double get_random_gauss(LocalParticle* part){
+  double r = LocalParticle_generate_random_double_gauss(part);
+  return r;
 }
 
 
@@ -69,10 +42,10 @@ static double get_random_gauss(void){
 unsigned int n_iter = 7;   // good enough precision
 // TODO: how to optimise Newton's method??
 
-static void set_rutherford_iterations(unsigned int n){
+void set_rutherford_iterations(unsigned int n){
     n_iter = n;
 }
-static unsigned int get_rutherford_iterations(void){
+unsigned int get_rutherford_iterations(void){
     return n_iter;
 }
 
@@ -84,10 +57,10 @@ float ruth_lower_val = 0.0009982;
 float ruth_upper_val;
 float ruth_A;
 float ruth_B;
-static double ruth_CDF(float t);
-static double ruth_PDF(float t);
+double ruth_CDF(float t);
+double ruth_PDF(float t);
 
-static void set_rutherford_parameters(float z, float emr, float upper_val){
+void set_rutherford_parameters(float z, float emr, float upper_val){
     double c = 0.8561e3; // TODO: Where tha fuck does this come from??
     ruth_A = pow(z,2);
     ruth_B = c*pow(emr,2);
@@ -100,22 +73,22 @@ static void set_rutherford_parameters(float z, float emr, float upper_val){
 
 
 // PDF of Rutherford distribution
-static double ruth_PDF(float t){
+double ruth_PDF(float t){
     return (ruth_A/pow(t,2))*(exp(-ruth_B*t));
 }
 
 // CDF of Rutherford distribution
-static double ruth_CDF(float t){
+double ruth_CDF(float t){
     return - ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*t) - t*ruth_PDF(t)
            + ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*ruth_lower_val) + ruth_lower_val*ruth_PDF(ruth_lower_val);
         
 }
 
 // Generate a random value weighted with a Rutherford distribution
-static double get_random_ruth(void){
+double get_random_ruth(LocalParticle* part){
 
     // sample a random uniform
-    double t = get_random();
+    double t = get_random(part);
     
     // initial estimate the lower border
     double x = ruth_lower_val;
