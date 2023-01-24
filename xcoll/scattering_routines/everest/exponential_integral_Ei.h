@@ -7,6 +7,8 @@
 
 #include <math.h>           // required for fabsl(), expl() and logl()        
 #include <float.h>          // required for LDBL_EPSILON, DBL_MAX
+#ifndef XCOLL_EVEREST_EI_H
+#define XCOLL_EVEREST_EI_H
 
 //                         Internally Defined Routines                        //
 double      Exponential_Integral_Ei( double x );
@@ -260,3 +262,5 @@ static long double Argument_Addition_Series_Ei(long double x)
    
    return ei[k-7] + Sn * expl(xx); 
 }
+
+#endif

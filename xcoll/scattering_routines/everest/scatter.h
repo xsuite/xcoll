@@ -1,3 +1,5 @@
+#ifndef XCOLL_EVEREST_SCAT_H
+#define XCOLL_EVEREST_SCAT_H
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,6 +55,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 //     double const csref5   = MaterialData_get_cross_section(material, 5);
 //     double const hcut     = MaterialData_get_hcut(material);
     double const radl     = MaterialData_get_radiation_length(material);
+    EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -214,7 +217,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             nhit = nhit + 1;
 
 
-            double* jaw_result = jaw(part, exenergy,
+            double* jaw_result = jaw(evran, part, exenergy,
                             anuc,
                             zatom,
                             rho,
@@ -390,3 +393,5 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     return;
 
 }
+
+#endif

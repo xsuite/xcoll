@@ -1,3 +1,5 @@
+#ifndef XCOLL_EVEREST_JAW_H
+#define XCOLL_EVEREST_JAW_H
 #include <math.h>
 #include <stdio.h>
 
@@ -206,7 +208,7 @@ double* tetat(LocalParticle* part, double t, double p) {
                 
 }                
                 
-double* gettran(LocalParticle* part, double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
+double* gettran(EverestRandomData evran, LocalParticle* part, double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
 
     static double res[2];
     // Neither if-statements below have an else, so defaulting function return to zero.
@@ -241,7 +243,7 @@ double* gettran(LocalParticle* part, double inter, double p, double tt_bn, doubl
     }
 
     else if (inter==5) { // Coulomb
-        result = get_random_ruth(part);
+        result = get_random_ruth(evran, part);
     }
 
     res[0] = result;
@@ -325,7 +327,7 @@ int ichoix(LocalParticle* part,double ich_cprob0, double ich_cprob1, double ich_
     return i;
 }
                
-double* jaw(LocalParticle* part, double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
+double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
     
 
     // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
@@ -422,7 +424,7 @@ double* jaw(LocalParticle* part, double run_exenergy, double run_anuc, double ru
 
         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double* res2 = gettran(part,inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+        double* res2 = gettran(evran, part,inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
         t = res2[0];
         p = res2[1];
 
@@ -465,3 +467,5 @@ double* jaw(LocalParticle* part, double run_exenergy, double run_anuc, double ru
 
 }  
   
+
+#endif

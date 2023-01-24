@@ -1,8 +1,7 @@
 import xobjects as xo
-import xpart as xp
 
 from .base_collimator import BaseCollimator, InvalidCollimator
-from ..scattering_routines.everest import Material, CrystalMaterial
+from ..scattering_routines.everest import Material, CrystalMaterial, EverestRandom
 from ..general import _pkg_root
 
 
@@ -17,11 +16,12 @@ from ..general import _pkg_root
 
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'offset':     xo.Float64,
-        'onesided':   xo.Int8,
-        'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':   Material,
-        '_tracking':  xo.Int8
+        'offset':           xo.Float64,
+        'onesided':         xo.Int8,
+        'tilt':             xo.Float64[:],  # TODO: how to limit this to length 2
+        'material':         Material,
+        'random_generator': EverestRandom,
+        '_tracking':        xo.Int8
     }
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -29,10 +29,6 @@ class EverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
-        _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
@@ -43,7 +39,6 @@ class EverestCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
             kwargs.setdefault('offset', 0)
             kwargs.setdefault('onesided', False)
             kwargs.setdefault('tilt', [0,0])
@@ -58,6 +53,8 @@ class EverestCollimator(BaseCollimator):
             else:
                 tilt = [tilt, tilt]
             kwargs['tilt'] = tilt
+            kwargs.setdefault('random_generator', EverestRandom())
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 
     # TODO: In principle we are not allowed to backtrack through a collimator
@@ -81,6 +78,7 @@ class EverestCrystal(BaseCollimator):
         'onesided':    xo.Int8,
         'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
         'material':    CrystalMaterial,
+        'random_generator': EverestRandom,
         '_tracking':   xo.Int8
     }
 
@@ -89,10 +87,6 @@ class EverestCrystal(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('scattering_routines','everest','exponential_integral_Ei.h'),
-        _pkg_root.joinpath('scattering_routines','everest','random.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
@@ -102,7 +96,6 @@ class EverestCrystal(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('_tracking', True)
             kwargs.setdefault('offset', 0)
             kwargs.setdefault('onesided', False)
             kwargs.setdefault('tilt', [0,0])
@@ -124,6 +117,8 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('orient', 0)
+            kwargs.setdefault('random_generator', EverestRandom())
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 
     # TODO: In principle we are not allowed to backtrack through a collimator

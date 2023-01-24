@@ -1,3 +1,5 @@
+#ifndef XCOLL_EVEREST_RAN_H
+#define XCOLL_EVEREST_RAN_H
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
@@ -10,11 +12,25 @@
 
 // Generate a random uniform value in [0,1]
 // Note that Ranlux (in old K2) generated randoms in ]0,1[
+/*gpufun*/
 double get_random(LocalParticle* part){
   double r = LocalParticle_generate_random_double(part);
   return r;
 }
 
+/*gpukern*/
+double* rsample(ParticlesData particles, int n, int n_part){
+    double result[n_part];
+    LocalParticleData part0;
+    Particles_to_LocalParticle(particles, &part0, 0);
+
+//     //start_per_particle_block (part0->part)
+//         result[LocalParticle_get_particle_id(part)] = get_random(part);
+//     //end_per_particle_block
+
+    return result;
+}
+    
 
 /*
 =========================================
@@ -23,6 +39,7 @@ double get_random(LocalParticle* part){
 */
 
 // Generate a random value weighted within the normal (Gaussian) distribution
+/*gpufun*/
 double get_random_gauss(LocalParticle* part){
   double r = LocalParticle_generate_random_double_gauss(part);
   return r;
@@ -35,63 +52,50 @@ double get_random_gauss(LocalParticle* part){
 =========================================
 */
 
-/*
-    Iterations for Newton's method
-*/
-// unsigned int n_iter = 0;   // automatic
-unsigned int n_iter = 7;   // good enough precision
 // TODO: how to optimise Newton's method??
 
-void set_rutherford_iterations(unsigned int n){
-    n_iter = n;
-}
-unsigned int get_rutherford_iterations(void){
-    return n_iter;
-}
-
-
-/*
-    Rutherford parameters
-*/
-float ruth_lower_val = 0.0009982;
-float ruth_upper_val;
-float ruth_A;
-float ruth_B;
-double ruth_CDF(float t);
-double ruth_PDF(float t);
-
-void set_rutherford_parameters(float z, float emr, float upper_val){
-    double c = 0.8561e3; // TODO: Where tha fuck does this come from??
-    ruth_A = pow(z,2);
-    ruth_B = c*pow(emr,2);
-    ruth_upper_val = upper_val;
-
-    // Normalise PDF
-    double N = ruth_CDF(ruth_upper_val);
-    ruth_A = pow(z,2) / N;
-}
-
-
 // PDF of Rutherford distribution
-double ruth_PDF(float t){
-    return (ruth_A/pow(t,2))*(exp(-ruth_B*t));
+/*gpufun*/
+double ruth_PDF(double t, double A, double B){
+    return (A/pow(t,2))*(exp(-B*t));
 }
 
 // CDF of Rutherford distribution
-double ruth_CDF(float t){
-    return - ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*t) - t*ruth_PDF(t)
-           + ruth_A*ruth_B*Exponential_Integral_Ei(-ruth_B*ruth_lower_val) + ruth_lower_val*ruth_PDF(ruth_lower_val);
+/*gpufun*/
+double ruth_CDF(double t, double A, double B, double t0){
+    return A*B*Exponential_Integral_Ei(-B*t0) + t0*ruth_PDF(t0, A, B)
+         - A*B*Exponential_Integral_Ei(-B*t)  - t*ruth_PDF(t, A, B);
         
 }
 
+void EverestRandomData_set_rutherford(EverestRandomData ran, double z, double emr, double upper_val){
+    double c = 0.8561e3; // TODO: Where tha fuck does this come from??
+    double A = pow(z,2);
+    double B = c*pow(emr,2);
+    double lower_val = EverestRandomData_get_rutherford_lower_val(ran);
+
+    // Normalise PDF
+    double N = ruth_CDF(upper_val, A, B, lower_val);
+    EverestRandomData_set_rutherford_A(ran, A/N);
+    EverestRandomData_set_rutherford_B(ran, B);
+    EverestRandomData_set_rutherford_upper_val(ran, upper_val);
+}
+
 // Generate a random value weighted with a Rutherford distribution
-double get_random_ruth(LocalParticle* part){
+/*gpufun*/
+double get_random_ruth(EverestRandomData ran, LocalParticle* part){
+
+    // get the parameters
+    double x0     = EverestRandomData_get_rutherford_lower_val(ran);
+    int8_t n_iter = EverestRandomData_get_rutherford_iterations(ran);
+    double A      = EverestRandomData_get_rutherford_A(ran);
+    double B      = EverestRandomData_get_rutherford_B(ran);
 
     // sample a random uniform
     double t = get_random(part);
-    
-    // initial estimate the lower border
-    double x = ruth_lower_val;
+
+    // initial estimate is the lower border
+    double x = x0;
 
     // HACK to let iterations depend on sample to improve speed
     // based on Berylium being worst performing and hcut as in materials table
@@ -117,12 +121,13 @@ double get_random_ruth(LocalParticle* part){
 //     }
 
     // solve CDF(x) == t for x
-    unsigned short i = 1;
+    int8_t i = 1;
     while(i <= n_iter) {
-        x = x - (ruth_CDF(x)-t)/ruth_PDF(x);
+        x = x - (ruth_CDF(x, A, B, x0)-t)/ruth_PDF(x, A, B);
         i++;
     }
 
     return x;
 }
 
+#endif

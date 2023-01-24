@@ -1,3 +1,5 @@
+#ifndef XCOLL_EVEREST_CRYSTAL_INTERACT_H
+#define XCOLL_EVEREST_CRYSTAL_INTERACT_H
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +36,7 @@ int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 int temp = 0;
 
-double* movech(LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
+double* movech(EverestRandomData evran, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     static double result[5];
 
@@ -74,7 +76,7 @@ double* movech(LocalParticle* part, double nam, double dz, double x, double xp, 
     double ppsd  = (4.3 + 0.3*log(ecmsq))/1.0e3;
     double bpp   = 7.156 + 1.439*log(sqrt(ecmsq));
 
-    xran_cry[0] = get_random_ruth(part);
+    xran_cry[0] = get_random_ruth(evran, part);
 
     //Rescale the total and inelastic cross-section accordigly to the average density seen
     double x_i = x;
@@ -246,7 +248,7 @@ double* movech(LocalParticle* part, double nam, double dz, double x, double xp, 
 
         else { //(ichoix==5)
             iProc      = proc_ch_ruth;
-            xran_cry[0] = get_random_ruth(part);
+            xran_cry[0] = get_random_ruth(evran, part);
             t = xran_cry[0];
         }
 
@@ -281,7 +283,7 @@ double* movech(LocalParticle* part, double nam, double dz, double x, double xp, 
 }
 
 
-double* moveam(LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
+double* moveam(EverestRandomData evran, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
     static double result[4];
 
@@ -319,9 +321,6 @@ double* moveam(LocalParticle* part, double nam, double dz, double dei, double dl
     double ppel  = (11.7 - 1.59*log(ecmsq) + 0.134 * pow(log(ecmsq),2.))/1.0e3;
     double ppsd  = (4.3 + 0.3*log(ecmsq))/1.0e3;
     double bpp   = 7.156 + 1.439*log(sqrt(ecmsq));
-
-    // // Distribution for Ruth. scatt.
-    set_rutherford_parameters(zatom, emr, hcut);
 
     // Cross-section calculation
     // freep: number of nucleons involved in single scattering
@@ -428,7 +427,7 @@ double* moveam(LocalParticle* part, double nam, double dz, double dei, double dl
 
         else { //(ichoix==5)
             iProc = proc_ruth;
-            t = get_random_ruth(part);
+            t = get_random_ruth(evran, part);
         }
 
         // end select
@@ -515,7 +514,7 @@ double calcionloss(LocalParticle* part, double dz, double EnLo, double betar, do
 }
 
 
-double* interact(LocalParticle* part, double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
+double* interact(EverestRandomData evran, LocalParticle* part, double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
                 double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref,
                  double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
@@ -691,7 +690,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
         dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+        result_am = moveam(evran, part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
                             bnref,csref0,csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
@@ -717,7 +716,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
         dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+        result_am = moveam(evran, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
@@ -801,7 +800,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
 
                 dest = calcionloss(part,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
 
-                result_am = moveam(part,nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                result_am = moveam(evran,part,nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
@@ -816,7 +815,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                result_ch = movech(part,nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                result_ch = movech(evran,part,nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,eUm,collnt,iProc);
                 x = result_ch[0];
                 xp = result_ch[1];
@@ -860,7 +859,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
             y  = y  + (0.5*s_length)*yp;
 
             dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-            result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+            result_am = moveam(evran, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
             xp = result_am[0];
             yp = result_am[1];
             pc = result_am[2];
@@ -889,7 +888,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
                 dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                result_am = moveam(evran,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
@@ -929,7 +928,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
 
                     dest = calcionloss(part,Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(evran,part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -953,7 +952,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    result_ch = movech(part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                    result_ch = movech(evran,part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,eUm,collnt,iProc);
                     x = result_ch[0];
                     xp = result_ch[1];
@@ -998,7 +997,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
                 if(zn > 0) {
                     dest = calcionloss(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(evran,part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1025,7 +1024,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
 
                     dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(evran,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1047,7 +1046,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
 
                     dest = calcionloss(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    result_am = moveam(evran,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
@@ -1073,7 +1072,7 @@ double* interact(LocalParticle* part, double x, double xp, double y, double yp, 
 }
 
 
-double* crystal(LocalParticle* part, double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
+double* crystal(EverestRandomData evran, LocalParticle* part, double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
             double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, CrystalMaterialData material, double nhit, double nabs, double 
             cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
             cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  iProc, double  n_chan, double  n_VR, double  n_amorphous) {
@@ -1155,7 +1154,7 @@ double* crystal(LocalParticle* part, double x, double xp, double z, double zp, d
         double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
         double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
 
-        result = interact(part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
+        result = interact(evran,part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
                         ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
@@ -1224,7 +1223,7 @@ double* crystal(LocalParticle* part, double x, double xp, double z, double zp, d
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                result = interact(part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
+                result = interact(evran,part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
                                 cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
@@ -1360,3 +1359,5 @@ double* crystal(LocalParticle* part, double x, double xp, double z, double zp, d
 
     return crystal_result;
 }
+
+#endif

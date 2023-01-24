@@ -1,6 +1,5 @@
 #ifndef XCOLL_EVEREST_CRYSTAL_H
 #define XCOLL_EVEREST_CRYSTAL_H
-
 #include <math.h>
 
 // TODO:
@@ -31,6 +30,13 @@ void cry_drift_6d(LocalParticle* part0, double length) {
 /*gpufun*/
 void track_crystal(EverestCrystalData el, LocalParticle* part0) {
 
+    if (LocalParticle_get__rng_s1(&part0[0])==0 && LocalParticle_get__rng_s2(&part0[0])==0) {
+        printf("Particles have no seeds! Aborting..");
+        fflush(stdout);
+        xcoll_kill_all_particles(part0);
+        return;
+    }
+
     double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
 
     // Material properties
@@ -40,7 +46,8 @@ void track_crystal(EverestCrystalData el, LocalParticle* part0) {
     double const hcut     = CrystalMaterialData_get_hcut(material);
 
     // Calculate scattering parameters
-    set_rutherford_parameters(zatom, emr, hcut);
+    EverestRandomData evran = EverestCrystalData_getp_random_generator(el);
+    EverestRandomData_set_rutherford(evran, zatom, emr, hcut);
 
     //start_per_particle_block (part0->part)
         scatter_cry(el, part);

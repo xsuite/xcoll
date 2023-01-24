@@ -1,3 +1,5 @@
+#ifndef XCOLL_EVEREST_SCAT_INIT_H
+#define XCOLL_EVEREST_SCAT_INIT_H
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -102,3 +104,5 @@ struct ScatteringParameters calculate_scattering(double p0, MaterialData materia
 
 }
 
+
+#endif

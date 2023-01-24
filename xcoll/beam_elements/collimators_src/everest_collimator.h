@@ -1,6 +1,5 @@
 #ifndef XCOLL_EVEREST_H
 #define XCOLL_EVEREST_H
-
 #include <math.h>
 #include <stdio.h>
 
@@ -34,6 +33,13 @@ void drift_6d(LocalParticle* part0, double length) {
 /*gpufun*/
 void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
+    if (LocalParticle_get__rng_s1(&part0[0])==0 && LocalParticle_get__rng_s2(&part0[0])==0) {
+        printf("Particles have no seeds! Aborting..");
+        fflush(stdout);
+        xcoll_kill_all_particles(part0);
+        return;
+    }
+
     double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
 
     // Material properties
@@ -44,7 +50,8 @@ void track_collimator(EverestCollimatorData el, LocalParticle* part0) {
 
     // Calculate scattering parameters
     struct ScatteringParameters scat = calculate_scattering(energy0, material);
-    set_rutherford_parameters(zatom, emr, hcut);
+    EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
+    EverestRandomData_set_rutherford(evran, zatom, emr, hcut);
 
     //start_per_particle_block (part0->part)
         scatter(el, part, scat);
