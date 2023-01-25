@@ -72,6 +72,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     } else {
         drift_6d(part0, inactive_front);
         track_collimator(el, part0);
+        //TODO: check that this only drifts surviving particles!!!
         drift_6d(part0, inactive_back);
     }
 }

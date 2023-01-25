@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import io
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
 def load_SixTrack_colldb(filename, *, emit):
     return CollDB(emit=emit, sixtrack_file=filename)
@@ -647,8 +646,6 @@ class CollDB:
         df.rename(columns={'length':'active_length'}, inplace=True)
         df['parking'] = 0.025
         df.loc[df.name.str[:3] == 'tct', 'parking'] = 0.04
-        # Need to choose second element if crystal !
-        df.material = [ SixTrack_to_xcoll[mat][0] for mat in df.material ]
 
         df = df.set_index('name')
         self._colldb = df.drop('jaw', axis=1)

@@ -4,9 +4,12 @@ import pandas as pd
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
+from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .scattering_routines.pyeverest.materials import SixTrack_to_xcoll as SixTrack_to_pyxcoll
 
-import xtrack as xt
 import xobjects as xo
+import xpart as xp
+import xtrack as xt
 
 
 
@@ -165,7 +168,9 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    material=thiscoll['material'],
+                # TODO: Need to choose second element if crystal !
+                # TODO: we should not use sixtrack materials here!!!
+                    material=SixTrack_to_xcoll[thiscoll['material']][0],
                     is_active=False,
                     _tracking=False
                    )
@@ -183,7 +188,7 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    material=thiscoll['material'],
+                    material=SixTrack_to_pyxcoll[thiscoll['material']][0],
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
@@ -201,8 +206,8 @@ class CollimatorManager:
             if name not in line.element_names:
                 raise Exception(f"Collimator {name} not found in line!")
             elif name not in self.collimator_names:
-                print(f"Warning: Collimator {name} not found in CollDB! Ignoring...")
-        if line.tracker is not None:
+                raise Exception(f"Warning: Collimator {name} not found in CollDB!...")
+        if self.tracker_ready:
             raise Exception("Tracker already built!\nPlease install collimators before building tracker!")
 
         # Get collimator centers
@@ -262,14 +267,23 @@ class CollimatorManager:
                     line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
                     line.insert_element(element=coll_aper, name=name+'_aper_back',
                                         index=line.element_names.index(name)+1)
-
+    @property
+    def installed(self):
+        return not any([ x is None for x in self.colldb.collimator_type ])
 
 
     def align_collimators_to(self, align):
-        if any([ x is None for x in self.colldb.collimator_type ]):
+        if not self.installed:
             raise ValueError("Some collimators have not yet been installed.\n"
                              + "Please install all collimators before aligning the collimators.")
         self.colldb.align_to = align
+
+    @property
+    def aligned(self):
+        return not np.any(
+                    [x is None for x in self.colldb._colldb.s_align_front]
+                    + [ x is None for x in self.colldb._colldb.s_align_back]
+                )
 
 
     def build_tracker(self, **kwargs):
@@ -284,18 +298,16 @@ class CollimatorManager:
         self.tracker = self.line.build_tracker(**kwargs)
         return self.tracker
 
+    @property
+    def tracker_ready(self):
+        return self.line is not None and self.line.tracker is not None
+
 
     def _compute_optics(self, recompute=False):
-        line = self.line
-        if line is None or line.tracker is None:
+        if not self.tracker_ready:
             raise Exception("Please build tracker before computing the optics for the openings!")
-        if np.any(
-            [x is None for x in self.colldb._colldb.s_align_front]
-            + [ x is None for x in self.colldb._colldb.s_align_back]
-        ):
-            raise Exception("Not all collimators are aligned! Please call 'align_collimators_to' "
-                            + "on the CollimationManager before computing the optics for the openings!")
-
+        if not self.aligned:
+            self.align_collimators_to('front')
         if recompute:
             self.colldb._optics_positions_to_calculate = { *set(self.colldb._colldb.s_align_front.values),\
                                                            *set(self.colldb._colldb.s_align_back.values) }
@@ -332,11 +344,10 @@ class CollimatorManager:
     # Similarily, the variable 'full_open' will set all openings of the collimators that are not
     # listed in 'gaps' to 1m.
     def set_openings(self, gaps={}, *, recompute_optics=False, to_parking=False, full_open=False):
-        line = self.line
-        if line is None or line.tracker is None:
-            raise Exception("Please build tracker before calling this method!")
+        if not self.tracker_ready:
+            raise Exception("Please build tracker before setting the openings!")
         colldb = self.colldb
-        if any([ x is None for x in colldb.collimator_type ]):
+        if not self.installed:
             raise ValueError("Some collimators have not yet been installed.\n"
                              + "Please install all collimators before setting the openings.")
         if to_parking and full_open:
@@ -355,6 +366,7 @@ class CollimatorManager:
             raise Exception("Something is wrong: not all optics needed for the jaw openings are calculated!")
 
         # Configure collimators
+        line = self.line
         for name in names:
             # Override openings if opening fully
             if full_open and name not in gaps.keys():
@@ -382,15 +394,118 @@ class CollimatorManager:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
 
+    @property
+    def openings_set(self):
+        # TODO: need to delete jaw positions if some parameters (that would influence it) are changed
+        return not np.any(
+                    [x is None for x in self.colldb._colldb.jaw_F_L]
+                    + [ x is None for x in self.colldb._colldb.jaw_F_R]
+                    + [ x is None for x in self.colldb._colldb.jaw_B_L]
+                    + [ x is None for x in self.colldb._colldb.jaw_B_R]
+                )
+
+
+    def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=1e-6, pencil_spread=1e-9,
+                                     transverse_impact_parameter=0., transverse_spread_sigma=0.01, sigma_z=7.55e-2):
+        if not self.openings_set:
+            raise ValueError("Need to set collimator openings before generating pencil distribution!")
+        if not self.tracker_ready:
+            raise Exception("Please build tracker before generating pencil distribution!")
+        if transverse_impact_parameter != 0.:
+            raise NotImplementedError
+
+        if side == '+-':
+            num_plus = int(num_particles/2)
+            num_min  = int(num_particles - num_plus)
+            part_plus = self.generate_pencil_on_collimator(collimator, num_plus, side='+',
+                            impact_parameter=impact_parameter, pencil_spread=pencil_spread,
+                            transverse_impact_parameter=transverse_impact_parameter,
+                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z)
+            part_min = self.generate_pencil_on_collimator(collimator, num_min, side='-',
+                            impact_parameter=impact_parameter, pencil_spread=pencil_spread,
+                            transverse_impact_parameter=transverse_impact_parameter,
+                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z)
+            part = xp.Particles.merge([part_plus, part_min])
+            part.start_tracking_at_element = part_plus.start_tracking_at_element
+            return part
+
+        nemitt_x   = self.colldb.emittance[0]
+        nemitt_y   = self.colldb.emittance[1]
+        tracker    = self.tracker
+        line       = self.line
+        match_at_s = self.s_match[collimator]
+        angle      = self.colldb.angle[collimator]
+        sigma      = self.colldb._beam_size_front[collimator]
+        dr_sigmas  = pencil_spread/sigma
+
+        if abs(np.mod(angle-90,180)-90) < 1e-6:
+            plane = 'x'
+            co_pencil     = line[collimator].dx
+    #         co_transverse = line[collimator].dy
+        elif abs(np.mod(angle,180)-90) < 1e-6:
+            plane = 'y'
+            co_pencil     = line[collimator].dy
+    #         co_transverse = line[collimator].dx
+        else:
+            raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
+
+        if side == '+':
+            absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
+        elif side == '-':
+            absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+
+        # Collimator plane: generate pencil distribution
+        pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
+                        plane=plane, absolute_cut=absolute_cut, dr_sigmas=dr_sigmas,
+                        side=side, tracker=tracker,
+                        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                        at_element=collimator, match_at_s=match_at_s
+        )
+
+        # Other plane: generate gaussian distribution in normalized coordinates
+        transverse_norm   = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+        p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+
+        # Longitudinal plane
+        zeta, delta = xp.generate_longitudinal_coordinates(
+                num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, tracker=tracker
+        )
+
+        if plane == 'x':
+            part = xp.build_particles(
+                    x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
+                    zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    tracker=tracker, at_element=collimator, match_at_s=match_at_s
+            )
+        else:
+            part = xp.build_particles(
+                    x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
+                    zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    tracker=tracker, at_element=collimator, match_at_s=match_at_s
+            )
+
+        part._init_random_number_generator()
+
+        return part
+
+
 
     def track(self, *args, **kwargs):
-        # Check if random generator is set 
+        if not self.tracker_ready:
+            raise Exception("Please build tracker before tracking!")
+
+        # Check if random generator is set
+        if len(args) > 0:
+            part = args[0]
+        else:
+            part = kwargs['particles']
         r1 = np.unique(part._rng_s1)
         r2 = np.unique(part._rng_s2)
         r3 = np.unique(part._rng_s3)
         # r4 = np.unique(part._rng_s4)  # not used
         if (len(r1)==1 and r1[0]==0) or (len(r2)==1 and r2[0]==0) or (len(r3)==1 and r3[0]==0):
             part._init_random_number_generator()
+
         # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = True

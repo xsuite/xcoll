@@ -24,6 +24,9 @@ class EverestCollimator(BaseCollimator):
         '_tracking':        xo.Int8
     }
 
+    isthick = True
+    behaves_like_drift = True
+
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
@@ -81,6 +84,9 @@ class EverestCrystal(BaseCollimator):
         'random_generator': EverestRandom,
         '_tracking':   xo.Int8
     }
+
+    isthick = True
+    behaves_like_drift = True
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
