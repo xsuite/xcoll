@@ -5,25 +5,10 @@
 #include <stdio.h>
 
 /*gpufun*/
-void drift_4d_single(LocalParticle* part, double length) {
-    double const rpp    = LocalParticle_get_rpp(part);
-    double const xp     = LocalParticle_get_px(part) * rpp;
-    double const yp     = LocalParticle_get_py(part) * rpp;
-    LocalParticle_add_to_x(part, xp * length );
-    LocalParticle_add_to_y(part, yp * length );
-}
-
-/*gpufun*/
-double drift_zeta_single(double rvv, double xp, double yp, double length){
+double drift_cry_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
     return length * dzeta;
-}
-
-/*gpufun*/
-void shift_4d_single(LocalParticle* part, double dx, double dy) {
-    LocalParticle_add_to_x(part, dx);
-    LocalParticle_add_to_y(part, dy);
 }
 
 /*gpufun*/
@@ -78,7 +63,8 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double p0 = LocalParticle_get_p0c(part) / 1e9;
 
     // Move to closed orbit
-    shift_4d_single(part, -co_x, -co_y);
+    LocalParticle_add_to_x(part, -co_x);
+    LocalParticle_add_to_y(part, -co_y);
 
 
     double x_in  = LocalParticle_get_x(part);
@@ -294,9 +280,6 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     LocalParticle_set_y(part, y_out);
     LocalParticle_set_py(part, yp_out/rpp_in);
 
-    // Backtrack to centre of collimator: Correction needed to be in line with sixtrack
-    drift_4d_single(part, -length/2);
-
     double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
     // Update energy    ---------------------------------------------------
@@ -306,11 +289,9 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         LocalParticle_update_ptau(part, ptau_out);
     }
 
-    // Drift to end of collimator: Correction needed to be in line with sixtrack
-    drift_4d_single(part, length/2);
-
     // Return from closed orbit
-    shift_4d_single(part, co_x, co_y);
+    LocalParticle_add_to_x(part, co_x);
+    LocalParticle_add_to_y(part, co_y);
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator
@@ -325,7 +306,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     // Absorbed particles keep coordinates at the entrance of collimator, others need correcting:
     // Non-hit particles are just drifting (zeta not yet drifted in K2, so do here)
     if (val_part_hit==0){
-        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length) );
+        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length) );
     }
     // Hit and survived particles need correcting:
     if (val_part_hit>0 && val_part_abs==0){
@@ -334,9 +315,9 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         double rvv = LocalParticle_get_rvv(part);
         double rpp = LocalParticle_get_rpp(part);
         // First we drift half the length with the old angles:
-        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
+        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
         // then half the length with the new angles:
-        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv, px*rpp, py*rpp, length/2) );
     }
 
     // Update s    --------------------------------------------------------

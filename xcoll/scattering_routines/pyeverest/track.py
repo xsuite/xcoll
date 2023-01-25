@@ -13,11 +13,6 @@ import numpy as np
 #  centre of the collimator...                                        #
 # =================================================================== #
 
-def drift_4d(x, y, xp, yp, length):
-    x += xp * length
-    y += yp * length
-    return
-
 def drift_zeta(zeta, rvv, xp, yp, length):
     rv0v = 1./rvv
     dzeta = 1 - rv0v * (1 + (xp**2 + yp**2)/2 )
@@ -242,9 +237,6 @@ def track_core(collimator, particles):
     not_lost = ~lost
     survived_hit = hit & (~lost)
 
-    # Backtrack to centre of collimator: Correction needed to be in line with sixtrack
-    drift_4d(x_part, y_part, xp_part, yp_part, -length/2)
-
     # Update energy    ---------------------------------------------------
     # Only particles that hit the jaw and survived need to be updated
     ptau_out = particles.ptau[:npart].copy()
@@ -263,9 +255,6 @@ def track_core(collimator, particles):
     # (see collimation.f90 line 1709 and mod_particles.f90 line 210)
     xp_part *= rpp_out/rpp_in
     yp_part *= rpp_out/rpp_in
-
-    # Drift to end of collimator: Correction needed to be in line with sixtrack
-    drift_4d(x_part, y_part, xp_part, yp_part, length/2)
 
     # Return from closed orbit
     x_part  += collimator.dx

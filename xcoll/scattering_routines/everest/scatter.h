@@ -5,25 +5,10 @@
 #include <stdio.h>
 
 /*gpufun*/
-void drift_4d_single(LocalParticle* part, double length) {
-    double const rpp    = LocalParticle_get_rpp(part);
-    double const xp     = LocalParticle_get_px(part) * rpp;
-    double const yp     = LocalParticle_get_py(part) * rpp;
-    LocalParticle_add_to_x(part, xp * length );
-    LocalParticle_add_to_y(part, yp * length );
-}
-
-/*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
     return length * dzeta;
-}
-
-/*gpufun*/
-void shift_4d_single(LocalParticle* part, double dx, double dy) {
-    LocalParticle_add_to_x(part, dx);
-    LocalParticle_add_to_y(part, dy);
 }
 
 /*gpufun*/
@@ -70,7 +55,8 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double p0 = LocalParticle_get_p0c(part) / 1e9;
 
     // Move to closed orbit
-    shift_4d_single(part, -co_x, -co_y);
+    LocalParticle_add_to_x(part, -co_x);
+    LocalParticle_add_to_y(part, -co_y);
 
     double x_in  = LocalParticle_get_x(part);
     double xp_in = LocalParticle_get_px(part)*rpp_in;
@@ -334,9 +320,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     LocalParticle_set_y(part, y_out);
     LocalParticle_set_py(part, yp_out/rpp_in);
 
-    // Backtrack to centre of collimator: Correction needed to be in line with sixtrack
-    drift_4d_single(part, -length/2);
-
     double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
     // Update energy    ---------------------------------------------------
@@ -346,11 +329,9 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         LocalParticle_update_ptau(part, ptau_out);
     }
 
-    // Drift to end of collimator: Correction needed to be in line with sixtrack
-    drift_4d_single(part, length/2);
-
     // Return from closed orbit
-    shift_4d_single(part, co_x, co_y);
+    LocalParticle_add_to_x(part, co_x);
+    LocalParticle_add_to_y(part, co_y);
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator

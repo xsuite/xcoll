@@ -12,7 +12,8 @@ class PyEverestCollimator(BaseCollimator):
         'offset':     xo.Float64,
         'onesided':   xo.Int8,
         'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':   Material
+        'material':   Material,
+        '_tracking':  xo.Int8
     }
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -37,6 +38,7 @@ class PyEverestCollimator(BaseCollimator):
             else:
                 tilt = [tilt, tilt]
             kwargs['tilt'] = tilt
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 
 
@@ -59,7 +61,8 @@ class PyEverestCrystal(BaseCollimator):
         'offset':      xo.Float64,
         'onesided':    xo.Int8,
         'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':    CrystalMaterial
+        'material':    CrystalMaterial,
+        '_tracking':   xo.Int8
     }
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -91,6 +94,7 @@ class PyEverestCrystal(BaseCollimator):
             kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('orient', 0)
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 
 
