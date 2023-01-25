@@ -54,6 +54,10 @@ coll_manager.create_lossmap(part)
 with open('lossmap_B2V.json', 'w') as fid:
     json.dump(coll_manager.lossmap, fid, indent=True)
 
-print(coll_manager.coll_summary(part))
+summary = coll_manager.coll_summary(part)
+with open('coll_summary_B2V.json', 'w') as fid:
+    json.dump(summary.to_json(), fid, indent=True)
+
+print(summary)
 
 exit()
