@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, K2Collimator, K2Crystal_all_collimator_types
+from .scattering_routines.k2.engine import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
@@ -25,6 +26,7 @@ class CollimatorManager:
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
+        self._k2engine = None   # only needed for FORTRAN K2Collimator
 
         # Create _buffer, _context, and _io_buffer
         if _buffer is None:
@@ -160,6 +162,28 @@ class CollimatorManager:
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
 
+    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
+        # Check for the existence of a K2Engine; warn if settings are different
+        self._k2engine = K2Engine(_capacity=max_part, random_generator_seed=seed)
+        if self._k2engine._capacity != max_part:
+            print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine._capacity} particles.\n"
+                  + f"Ignoring the requested max_part={max_part}.")
+        if seed is not None and self._k2engine.random_generator_seed != seed:
+            print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
+                  + f"Ignoring the requested seed={seed}.")
+
+        # Do the installation
+        def install_func(thiscoll, name):
+            return K2Collimator(
+                    inactive_front=thiscoll['inactive_front'],
+                    inactive_back=thiscoll['inactive_back'],
+                    active_length=thiscoll['active_length'],
+                    angle=thiscoll['angle'],
+                    material=thiscoll['material'],
+                    is_active=False
+                   )
+        self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
+
     def install_everest_collimators(self, names=None, *, verbose=False):
         # Do the installation
         def install_func(thiscoll, name):
@@ -192,6 +216,7 @@ class CollimatorManager:
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
+
 
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):
@@ -381,7 +406,7 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-                if isinstance(line[name], (EverestCollimator, PyEverestCollimator)):
+                if isinstance(line[name], (EverestCollimator, PyEverestCollimator, K2Collimator)):
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
                         line[name].onesided = False

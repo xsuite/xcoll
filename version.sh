@@ -20,8 +20,9 @@ git push origin v${new_ver}
 
 curl \
   -X POST \
-  -H "Accept: application/vnd.github.v3+json" \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer "$(cat ../github_token) \
   https://api.github.com/repos/xsuite/xcoll/releases \
-  -d '{"tag_name":"v'${new_ver}'","target_commitish":"main","name":"'${new_ver}'","body":"","draft":false,"prerelease":false,"generate_release_notes":true}'
+  -d '{"tag_name":"v'${new_ver}'","target_commitish":"main","name":"Xcoll release '${new_ver}'","body":"","draft":true,"prerelease":false,"generate_release_notes":true}'
 
-#poetry publish --build
+poetry publish --build

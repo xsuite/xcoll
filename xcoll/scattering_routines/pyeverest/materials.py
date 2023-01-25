@@ -1,7 +1,14 @@
 import xobjects as xo
 
-class GeneralMaterial(xo.HybridClass):
+# xo.Strings are complicated
+# They come in predefined size of 7, 15, 23, 31, ... characters
+# Once the string is assigned for the first time, the max size is defined,
+# and extending the string is not possible.
+# This means that, e.g. if we create a K2Collimator with Carbon and later change
+# that to Aluminium, the name of the latter will be clipped to 'Alumini' (7 chars)
 
+
+class GeneralMaterial(xo.HybridClass):
     _xofields = {
         'Z':                        xo.Float64,     # zatom
         'A':                        xo.Float64,     # anuc
@@ -20,12 +27,13 @@ class GeneralMaterial(xo.HybridClass):
     def __init__(self, **kwargs):
         kwargs.setdefault('hcut', 0.02)
         kwargs.setdefault('name', "NO NAME")
+        kwargs['name'] = kwargs['name'].ljust(55)  # Pre-allocate 64 byte using whitespace
         super().__init__(**kwargs)
+        self.name = self.name.strip()
 
 
 
 class Material(GeneralMaterial):
-
     _xofields = { **GeneralMaterial._xofields,
         'radiation_length':         xo.Float64      # radl
     }
@@ -36,7 +44,6 @@ class Material(GeneralMaterial):
 
 
 class CrystalMaterial(GeneralMaterial):
-
     _xofields = { **GeneralMaterial._xofields,
         'crystal_radiation_length': xo.Float64,     # dlri
         'crystal_nuclear_length':   xo.Float64,     # dlyi
