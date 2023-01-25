@@ -19,18 +19,36 @@ double get_random(LocalParticle* part){
 }
 
 /*gpukern*/
-double* rsample(ParticlesData particles, int n, int n_part){
-    double result[n_part];
-    LocalParticleData part0;
-    Particles_to_LocalParticle(particles, &part0, 0);
+double* EverestRandomData_get_random(ParticlesData particles, int n){
+    LocalParticle* part0;
+    Particles_to_LocalParticle(particles, part0, 0);
+    int64_t const nn_part = LocalParticle_get__num_active_particles(part0);
+    printf("num part is %i", nn_part);
+    fflush(stdout);
+    double result[nn_part];
 
-//     //start_per_particle_block (part0->part)
-//         result[LocalParticle_get_particle_id(part)] = get_random(part);
-//     //end_per_particle_block
+    //start_per_particle_block (part0->part)
+        result[LocalParticle_get_particle_id(part)] = get_random(part);
+    //end_per_particle_block
 
     return result;
 }
-    
+
+// /*gpufun*/
+// void EverestRandom_track_local_particle(EverestRandomData evran, LocalParticle* part0){
+//     return;
+// }
+
+// /*gpufun*/
+// void EverestRandomData_get_random(EverestRandomData evran, LocalParticle* part0, int_32t n, int_32t nn_part){
+//     double result[nn_part];
+
+//     //start_niet_per_particle_block (part0->part)
+//         result[LocalParticle_get_particle_id(part)] = get_random(part);
+//     //end__nietper_particle_block
+
+//     return;
+// }
 
 /*
 =========================================
