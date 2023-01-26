@@ -138,6 +138,9 @@ dmypy.json
 *.mod
 *.a
 
+# VSCode
+.vscode/
+
 # CMake
 CMakeCache*.txt
 CMakeFiles*/

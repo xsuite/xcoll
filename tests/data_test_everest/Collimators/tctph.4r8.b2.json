@@ -1,0 +1,40 @@
+{
+  "__class__": "EverestCollimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0020489177196119754,
+  "jaw_F_R": -0.0020489177196119754,
+  "jaw_B_L": 0.0020489177196119754,
+  "jaw_B_R": -0.0020489177196119754,
+  "onesided": 0,
+  "dx": -0.0026957356581573033,
+  "dy": 0.0006823251964707068,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Tungsten",
+    "Z": 74,
+    "A": 183.85,
+    "density": 19.3,
+    "excitation_energy": 7.27e-07,
+    "nuclear_radius": 0.520,
+    "nuclear_elastic_slope": 440.3,
+    "cross_section": [
+      2.765,
+      1.591,
+      0,
+      0,
+      0,
+      0.00768
+    ],
+    "hcut": 0.01,
+    "radiation_length": 0.0035
+  }
+}

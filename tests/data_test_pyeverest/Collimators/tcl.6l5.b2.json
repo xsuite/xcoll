@@ -1,0 +1,40 @@
+{
+  "__class__": "PyEverestCollimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.000948214398429912,
+  "jaw_F_R": -0.000948214398429912,
+  "jaw_B_L": 0.000948214398429912,
+  "jaw_B_R": -0.000948214398429912,
+  "onesided": 0,
+  "dx": -5.9151286556083724e-08,
+  "dy": -1.0338012862886383e-06,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Glidcop",
+    "Z": 28.8,
+    "A": 63.15,
+    "density": 8.93,
+    "excitation_energy": 3.208e-07,
+    "nuclear_radius": 0.418,
+    "nuclear_elastic_slope": 208.7,
+    "cross_section": [
+      1.246,
+      0.765,
+      0,
+      0,
+      0,
+      0.00139
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.0144
+  }
+}

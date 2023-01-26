@@ -32,7 +32,7 @@ coll_manager = xc.CollimatorManager(
     )
 
 coll_manager.colldb.parking = 1
-coll_manager.install_k2_collimators(verbose=True, seed=6554)
+coll_manager.install_everest_collimators(verbose=True, seed=6554)
 coll_manager.align_collimators_to('front')
 
 coll_manager.build_tracker()

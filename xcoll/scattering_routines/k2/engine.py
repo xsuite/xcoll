@@ -2,10 +2,9 @@ import numpy as np
 
 import xobjects as xo
 
-from ...beam_elements import K2Collimator, K2Crystal
+
 
 class K2Engine(xo.HybridClass):
-
     _xofields = {
         '_capacity':              xo.Int64,
         'random_generator_seed':  xo.Int64

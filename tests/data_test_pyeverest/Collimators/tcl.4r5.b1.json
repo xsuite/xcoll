@@ -1,0 +1,40 @@
+{
+  "__class__": "PyEverestCollimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.001357674576218948,
+  "jaw_F_R": -0.001357674576218948,
+  "jaw_B_L": 0.001357674576218948,
+  "jaw_B_R": -0.001357674576218948,
+  "onesided": 0,
+  "dx": 0.0013388627858138703,
+  "dy": -2.520103853386805e-06,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "CopperDiamond",
+    "Z": 11.9,
+    "A": 25.24,
+    "density": 5.4,
+    "excitation_energy": 1.529e-07,
+    "nuclear_radius": 0.308,
+    "nuclear_elastic_slope": 115,
+    "cross_section": [
+      0.572,
+      0.37,
+      0,
+      0,
+      0,
+      0.000279
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.0316
+  }
+}
