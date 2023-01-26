@@ -3,7 +3,8 @@ import numpy as np
 import xobjects as xo
 
 from .base_collimator import BaseCollimator
-from ..scattering_routines.pyeverest import track, Material, CrystalMaterial
+from ..scattering_routines.pyeverest import track
+from ..scattering_routines.everest import Material, CrystalMaterial
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)

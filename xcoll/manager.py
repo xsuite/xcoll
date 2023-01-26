@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, K2Collimator, K2Crystal_all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, K2Collimator, K2Crystal, _all_collimator_types
 from .scattering_routines.k2.engine import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
-from .scattering_routines.pyeverest.materials import SixTrack_to_xcoll as SixTrack_to_pyxcoll
 
 import xobjects as xo
 import xpart as xp
@@ -184,6 +183,7 @@ class CollimatorManager:
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
 
+
     def install_everest_collimators(self, names=None, *, verbose=False):
         # Do the installation
         def install_func(thiscoll, name):
@@ -212,11 +212,10 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    material=SixTrack_to_pyxcoll[thiscoll['material']][0],
+                    material=SixTrack_to_xcoll[thiscoll['material']][0],
                     is_active=False
                    )
         self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
-
 
 
     def _install_collimators(self, names, *, collimator_class, install_func, verbose):

@@ -1,18 +1,20 @@
 import numpy as np
 
-from ..scattering_routines.k2 import track, Material, CrystalMaterial
 from .base_collimator import BaseCollimator
+from ..scattering_routines.k2 import track
+from ..scattering_routines.everest import Material, CrystalMaterial
 
 import xobjects as xo
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class K2Collimator(BaseCollimator):
-    _xofields = BaseCollimator._xofields | {
+    _xofields = { **BaseCollimator._xofields,
         'offset':     xo.Float64,
         'onesided':   xo.Int8,
         'tilt':       xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':   Material
+        'material':   Material,
+        '_tracking':  xo.Int8
     }
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -40,6 +42,7 @@ class K2Collimator(BaseCollimator):
             else:
                 tilt = [tilt, tilt]
             kwargs['tilt'] = tilt
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
             from ..scattering_routines.k2.engine import K2Engine
@@ -53,7 +56,7 @@ class K2Collimator(BaseCollimator):
 
 
 class K2Crystal(BaseCollimator):
-    _xofields = BaseCollimator._xofields | {
+    _xofields = { **BaseCollimator._xofields,
         'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         'bend':        xo.Float64,
         'xdim':        xo.Float64,
@@ -65,7 +68,8 @@ class K2Crystal(BaseCollimator):
         'offset':      xo.Float64,
         'onesided':    xo.Int8,
         'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':    CrystalMaterial
+        'material':    CrystalMaterial,
+        '_tracking':  xo.Int8
     }
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -97,6 +101,7 @@ class K2Crystal(BaseCollimator):
             kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('orient', 0)
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
             from ..scattering_routines.k2.engine import K2Engine

@@ -1,0 +1,40 @@
+{
+  "__class__": "K2Collimator",
+  "active_length": 1,
+  "inactive_front": 0,
+  "inactive_back": 0,
+  "angle": 0,
+  "jaw_F_L": 0.0013432467333909324,
+  "jaw_F_R": -0.0013432467333909324,
+  "jaw_B_L": 0.0013432467333909324,
+  "jaw_B_R": -0.0013432467333909324,
+  "onesided": 0,
+  "dx": 4.1822642110977335e-07,
+  "dy": 0.0010688364725477436,
+  "offset": 0,
+  "tilt": [
+    0,
+    0
+  ],
+  "is_active": 1,
+  "material": {
+    "__class__": "Material",
+    "name": "Aluminium",
+    "Z": 13,
+    "A": 26.98,
+    "density": 2.7,
+    "excitation_energy": 1.66e-07,
+    "nuclear_radius": 0.302,
+    "nuclear_elastic_slope": 120.3,
+    "cross_section": [
+      0.643,
+      0.418,
+      0,
+      0,
+      0,
+      0.00034
+    ],
+    "hcut": 0.02,
+    "radiation_length": 0.089
+  }
+}
