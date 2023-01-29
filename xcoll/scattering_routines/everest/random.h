@@ -18,37 +18,20 @@ double get_random(LocalParticle* part){
   return r;
 }
 
-/*gpukern*/
-double* EverestRandomData_get_random(ParticlesData particles, int n){
-    LocalParticle* part0;
-    Particles_to_LocalParticle(particles, part0, 0);
-    int64_t const nn_part = LocalParticle_get__num_active_particles(part0);
-    printf("num part is %i", nn_part);
-    fflush(stdout);
-    double result[nn_part];
+/*gpufun*/
+void EverestRandomData_get_random(ParticlesData particles, ArrNFloat64 samples, int n){
+    LocalParticle thispart;
+    Particles_to_LocalParticle(particles, &thispart, 0);
+    LocalParticle* part0 = &thispart;
 
     //start_per_particle_block (part0->part)
-        result[LocalParticle_get_particle_id(part)] = get_random(part);
+    int i;
+    for (i=0; i<n; ++i){
+        ArrNFloat64_set(samples, n*LocalParticle_get_particle_id(part)+ i, LocalParticle_generate_random_double(part));
+    }
     //end_per_particle_block
-
-    return result;
 }
 
-// /*gpufun*/
-// void EverestRandom_track_local_particle(EverestRandomData evran, LocalParticle* part0){
-//     return;
-// }
-
-// /*gpufun*/
-// void EverestRandomData_get_random(EverestRandomData evran, LocalParticle* part0, int_32t n, int_32t nn_part){
-//     double result[nn_part];
-
-//     //start_niet_per_particle_block (part0->part)
-//         result[LocalParticle_get_particle_id(part)] = get_random(part);
-//     //end__nietper_particle_block
-
-//     return;
-// }
 
 /*
 =========================================
@@ -63,6 +46,33 @@ double get_random_gauss(LocalParticle* part){
   return r;
 }
 
+/*gpufun*/
+void EverestRandomData_get_random_gauss(ParticlesData particles, ArrNFloat64 samples, int n){
+    LocalParticle thispart;
+    Particles_to_LocalParticle(particles, &thispart, 0);
+    LocalParticle* part0 = &thispart;
+
+    //start_per_particle_block (part0->part)
+    int i;
+    for (i=0; i<n; ++i){
+        ArrNFloat64_set(samples, n*LocalParticle_get_particle_id(part)+ i, LocalParticle_generate_random_double_gauss(part));
+    }
+    //end_per_particle_block
+}
+
+/*gpufun*/
+void EverestRandomData_get_random_exp(ParticlesData particles, ArrNFloat64 samples, int n){
+    LocalParticle thispart;
+    Particles_to_LocalParticle(particles, &thispart, 0);
+    LocalParticle* part0 = &thispart;
+
+    //start_per_particle_block (part0->part)
+    int i;
+    for (i=0; i<n; ++i){
+        ArrNFloat64_set(samples, n*LocalParticle_get_particle_id(part)+ i, LocalParticle_generate_random_double_exp(part));
+    }
+    //end_per_particle_block
+}
 
 /*
 =========================================
@@ -86,6 +96,7 @@ double ruth_CDF(double t, double A, double B, double t0){
         
 }
 
+/*gpufun*/
 void EverestRandomData_set_rutherford(EverestRandomData ran, double z, double emr, double upper_val){
     double c = 0.8561e3; // TODO: Where tha fuck does this come from??
     double A = pow(z,2);
@@ -146,6 +157,21 @@ double get_random_ruth(EverestRandomData ran, LocalParticle* part){
     }
 
     return x;
+}
+
+
+/*gpufun*/
+void EverestRandomData_get_random_ruth(EverestRandomData ran, ParticlesData particles, ArrNFloat64 samples, int n){
+    LocalParticle thispart;
+    Particles_to_LocalParticle(particles, &thispart, 0);
+    LocalParticle* part0 = &thispart;
+
+    //start_per_particle_block (part0->part)
+    int i;
+    for (i=0; i<n; ++i){
+        ArrNFloat64_set(samples, n*LocalParticle_get_particle_id(part)+ i, get_random_ruth(ran, part));
+    }
+    //end_per_particle_block
 }
 
 #endif
