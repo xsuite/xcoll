@@ -27,6 +27,10 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double const co_x       = EverestCollimatorData_get_dx(el);
     double const co_y       = EverestCollimatorData_get_dy(el);
 
+    // Move to closed orbit
+    LocalParticle_add_to_x(part, -co_x);
+    LocalParticle_add_to_y(part, -co_y);
+
     // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
     double const zatom    = MaterialData_get_Z(material);
@@ -53,10 +57,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double const y_in2    = LocalParticle_get_y(part);
     double const py_in2   = LocalParticle_get_py(part);
     double p0 = LocalParticle_get_p0c(part) / 1e9;
-
-    // Move to closed orbit
-    LocalParticle_add_to_x(part, -co_x);
-    LocalParticle_add_to_y(part, -co_y);
 
     double x_in  = LocalParticle_get_x(part);
     double xp_in = LocalParticle_get_px(part)*rpp_in;
@@ -278,41 +278,36 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         }
 
         // Transform back to particle coordinates with opening and offset
-        if (x < 99.0e-3) {
-            // Include collimator tilt
-            if (tiltangle > 0) {
-                x  = x  + tiltangle*length;
-                xp = xp + tiltangle;
-            } else if (tiltangle < 0) {
-                x  = x  + tiltangle*length;
-                xp = xp + tiltangle;
-                x  = x  - sin(tiltangle) * length;
-            }
-
-            // Transform back to particle coordinates with opening and offset
-            x   = (x + c_aperture/2) + mirror*c_offset;
-
-            // Now mirror at the horizontal axis for negative X offset
-            x  = mirror * x;
-            xp = mirror * xp;
-
-            // Last do rotation into collimator frame
-            x_out  =  x*cRRot +  z*sRRot;
-            y_out  =  z*cRRot -  x*sRRot;
-            xp_out = xp*cRRot + zp*sRRot;
-            yp_out = zp*cRRot - xp*sRRot;
-
-            // Log output energy + nucleons as per the FLUKA coupling
-            // Do not log dead particles
-            nnuc1       = nnuc1 + 1;                           // outcoming nucleons
-            ien1        = ien1  + p_out * 1e3;                 // outcoming energy
-
-            p_out = (1 + dpop) * p0;
-            s_out = sp;
-        } else {
-            x_out = x;
-            y_out = z;
+        // Include collimator tilt
+        if (tiltangle > 0) {
+            x  = x  + tiltangle*length;
+            xp = xp + tiltangle;
+        } else if (tiltangle < 0) {
+            x  = x  + tiltangle*length;
+            xp = xp + tiltangle;
+            x  = x  - sin(tiltangle) * length;
         }
+
+        // Transform back to particle coordinates with opening and offset
+        x   = (x + c_aperture/2) + mirror*c_offset;
+
+        // Now mirror at the horizontal axis for negative X offset
+        x  = mirror * x;
+        xp = mirror * xp;
+
+        // Last do rotation into collimator frame
+        x_out  =  x*cRRot +  z*sRRot;
+        y_out  =  z*cRRot -  x*sRRot;
+        xp_out = xp*cRRot + zp*sRRot;
+        yp_out = zp*cRRot - xp*sRRot;
+
+        // Log output energy + nucleons as per the FLUKA coupling
+        // Do not log dead particles
+        nnuc1       = nnuc1 + 1;                           // outcoming nucleons
+        ien1        = ien1  + p_out * 1e3;                 // outcoming energy
+
+        p_out = (1 + dpop) * p0;
+        s_out = sp;
     }
 
     LocalParticle_set_x(part, x_out);
@@ -328,10 +323,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         double ptau_out = (energy_out - e0) / (e0 * beta0);
         LocalParticle_update_ptau(part, ptau_out);
     }
-
-    // Return from closed orbit
-    LocalParticle_add_to_x(part, co_x);
-    LocalParticle_add_to_y(part, co_y);
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator
@@ -370,6 +361,10 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     if (val_part_abs > 0){
         LocalParticle_set_state(part, -333);
     }
+
+    // Return from closed orbit
+    LocalParticle_add_to_x(part, co_x);
+    LocalParticle_add_to_y(part, co_y);
 
     return;
 
