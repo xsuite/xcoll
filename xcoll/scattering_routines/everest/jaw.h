@@ -28,9 +28,9 @@ double iterat(double a, double b, double dh, double s) {
 
 }
 
-double soln3(double a, double b, double dh, double smax, double s) {
+double soln3(double a, double b, double dh, double smax) {
 
-
+    double s;
     if (b == 0) {
         s = pow(a,0.6666666666666667);
 
@@ -113,9 +113,10 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 }
 
-double* mcs(LocalParticle* part, double s, double mc_radl, double mc_zlm1, double mc_p0, double mc_x, double mc_xp, double mc_z, double mc_zp, double mc_dpop) {
+double* mcs(LocalParticle* part, double mc_radl, double mc_zlm1, double mc_p, double mc_x, double mc_xp, double mc_z, double mc_zp) {
 
-    double theta = 13.6e-3/(mc_p0 * (1+mc_dpop)); // dpop   = (p - p0)/p0;
+    double s;
+    double theta = 13.6e-3/mc_p; // dpop   = (p - p0)/p0;
     double h   = 0.001;
     double dh  = 0.0001;
     double bn0 = 0.4330127019;
@@ -141,7 +142,7 @@ double* mcs(LocalParticle* part, double s, double mc_radl, double mc_zlm1, doubl
         // rlen = np.array(rlen, dtype=np.double64)
         // s = np.array(s, dtype=np.double64)
         // #######################################
-        s = soln3(ae,be,dh,rlen,s);
+        s = soln3(ae,be,dh,rlen);
 
         if (s < h) {
             s = h;
@@ -253,7 +254,7 @@ double* gettran(EverestRandomData evran, LocalParticle* part, double inter, doub
                 
 }
                 
-double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho, double enlo) {
+double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho) {
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
     double enr    = pow((mom*mom + 938.271998*938.271998),0.5); //[MeV]
@@ -281,7 +282,7 @@ double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exe
     double thl = ((((4*(k*il_zatom))*rlen)*1.0e2)*il_rho)/(il_anuc*pow(betar,2)); // [MeV]
 
     // Bethe-Bloch mean energy loss
-    enlo = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5);
+    double enlo = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5);
     enlo = ((enlo*il_rho)*1.0e-1)*rlen; // [GeV]
 
     // Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
@@ -306,58 +307,76 @@ double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exe
     return enlo;
 }
 
-int ichoix(LocalParticle* part,double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5) {
+int ichoix(LocalParticle* part,double cprob0, double cprob1, double cprob2, double cprob3, double cprob4, double cprob5) {
 
     double aran = get_random(part);
     int i;
     
-    double ich_cprob[6];
-    ich_cprob[0] = ich_cprob0;
-    ich_cprob[1] = ich_cprob1;
-    ich_cprob[2] = ich_cprob2;
-    ich_cprob[3] = ich_cprob3;
-    ich_cprob[4] = ich_cprob4;
-    ich_cprob[5] = ich_cprob5;
+    double cprob[6];
+    cprob[0] = cprob0;
+    cprob[1] = cprob1;
+    cprob[2] = cprob2;
+    cprob[3] = cprob3;
+    cprob[4] = cprob4;
+    cprob[5] = cprob5;
 
     for (i = 0; i < 5; ++i) {
-        if (aran <= ich_cprob[i]) {
+        if (aran <= cprob[i]) {
             break;
         }
     }
     return i;
 }
-               
-double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, double run_anuc, double run_zatom, double run_rho, double run_radl, double ich_cprob0, double ich_cprob1, double ich_cprob2, double ich_cprob3, double ich_cprob4, double ich_cprob5, double run_xintl, double run_bn, double run_ecmsq, double run_xln15s, double run_bpp, double p0, double nabs, double s, double zlm, double x, double xp, double z, double zp, double dpop) {
-    
 
-    // Note that the input parameter is dpop. Here the momentum p is constructed out of this input.
-    double p = p0*(1+dpop);
-    nabs = 0;
+double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat, double p, double zlm, double x, double xp, double z, double zp) {
+    
     static double result[11];
+    double s;
+    double nabs = 0;
       
     // Initialize the interaction length to input interaction length
     double rlen = zlm;
     double m_dpodx = 0.;
     double t;
     double tx; 
-    double tz; 
-   
+    double tz;
+
+    // Material properties
+    MaterialData material = EverestCollimatorData_getp_material(el);
+    double const zatom    = MaterialData_get_Z(material);
+    double const anuc     = MaterialData_get_A(material);
+    double const rho      = MaterialData_get_density(material);
+    double const exenergy = MaterialData_get_excitation_energy(material);
+    double const radl     = MaterialData_get_radiation_length(material);
+    EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
+
+    double cprob0 = scat.cprob0;
+    double cprob1 = scat.cprob1;
+    double cprob2 = scat.cprob2;
+    double cprob3 = scat.cprob3;
+    double cprob4 = scat.cprob4;
+    double cprob5 = scat.cprob5;
+    double xintl  = scat.xintl;
+    double bn     = scat.bn;
+    double ecmsq  = scat.ecmsq;
+    double xln15s = scat.xln15s;
+    double bpp    = scat.bpp;
 
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
     while (1) {
 
-        double run_zlm1 = (-1*run_xintl)*log(get_random(part));
+        double zlm1 = (-1*xintl)*log(get_random(part));
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
         // length, do multiple coulomb scattering and return.
         // LAST STEP IN ITERATION LOOP
-        if (run_zlm1 > rlen) {
+        if (zlm1 > rlen) {
             
-            run_zlm1 = rlen;
+            zlm1 = rlen;
         
-            double* res = mcs(part, s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+            double* res = mcs(part,radl,zlm1,p,x,xp,z,zp);
             s = res[0];
             x = res[1];
             xp = res[2];
@@ -365,15 +384,13 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
             zp = res[4];
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);  // DM routine to include tail
+            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);  // DM routine to include tail
             p = p-m_dpodx*s;
-                    
-            dpop = (p-p0)/p0;
             break;
         }
         // Otherwise do multi-coulomb scattering.
         // REGULAR STEP IN ITERATION LOOP
-        double* res1 = mcs(part, s,run_radl,run_zlm1,p0,x,xp,z,zp,dpop);
+        double* res1 = mcs(part,radl,zlm1,p,x,xp,z,zp);
         s = res1[0];
         x = res1[1];
         xp = res1[2];
@@ -388,10 +405,9 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
         if(x <= 0) {
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);
 
             p = p-m_dpodx*s;
-            dpop = (p-p0)/p0;
             break;
         }
 
@@ -400,16 +416,15 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
         // and return.
         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        int inter = ichoix(part,ich_cprob0,ich_cprob1,ich_cprob2,ich_cprob3,ich_cprob4,ich_cprob5);
+        int inter = ichoix(part,cprob0,cprob1,cprob2,cprob3,cprob4,cprob5);
         nabs = inter;
 
         if (inter == 1) {
 
-            s = (zlm-rlen)+run_zlm1;
-            m_dpodx = calcionloss_jaw(part,p,rlen,run_exenergy,run_anuc,run_zatom,run_rho,m_dpodx);
+            s = (zlm-rlen)+zlm1;
+            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);
 
             p = p-m_dpodx*s;
-            dpop = (p-p0)/p0;
 
             break;
         }
@@ -424,7 +439,7 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
 
         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double* res2 = gettran(evran, part,inter,p,run_bn,run_ecmsq,run_xln15s,run_bpp);
+        double* res2 = gettran(evran, part,inter,p,bn,ecmsq,xln15s,bpp);
         t = res2[0];
         p = res2[1];
 
@@ -443,17 +458,14 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
         // Treat single-diffractive scattering.
         if(inter == 4) {
             // added update for s
-            s    = (zlm-rlen)+run_zlm1;
-
-            // Add this code to get the momentum transfer also in the calling routine
-            dpop = (p-p0)/p0;
+            s    = (zlm-rlen)+zlm1;
         }
 
         // Calculate the remaining interaction length and close the iteration loop.
-        rlen = rlen-run_zlm1;
+        rlen = rlen-zlm1;
     }
 
-    result[0] = p0;
+    result[0] = p;
     result[1] = nabs;
     result[2] = s;
     result[3] = zlm;
@@ -461,7 +473,6 @@ double* jaw(EverestRandomData evran, LocalParticle* part, double run_exenergy, d
     result[5] = xp;
     result[6] = z;
     result[7] = zp;
-    result[8] = dpop;
 
     return result;
 

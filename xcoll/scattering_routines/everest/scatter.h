@@ -31,21 +31,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     LocalParticle_add_to_x(part, -co_x);
     LocalParticle_add_to_y(part, -co_y);
 
-    // Material properties
-    MaterialData material = EverestCollimatorData_getp_material(el);
-    double const zatom    = MaterialData_get_Z(material);
-    double const anuc     = MaterialData_get_A(material);
-    double const rho      = MaterialData_get_density(material);
-    double const exenergy = MaterialData_get_excitation_energy(material);
-//     double const emr      = MaterialData_get_nuclear_radius(material);
-//     double const bnref    = MaterialData_get_nuclear_elastic_slope(material);
-//     double const csref0   = MaterialData_get_cross_section(material, 0);
-//     double const csref1   = MaterialData_get_cross_section(material, 1);
-//     double const csref5   = MaterialData_get_cross_section(material, 5);
-//     double const hcut     = MaterialData_get_hcut(material);
-    double const radl     = MaterialData_get_radiation_length(material);
-    EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
-
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
     double const rvv_in  = LocalParticle_get_rvv(part);
@@ -75,22 +60,15 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     double val_nabs_type = 0;
     double val_linside = 0;
 
-    p0 = e0;
     double nhit   = 0;
     double nabs   = 0;
-    double fracab = 0;
-    double nnuc0  = 0;
-    double ien0   = 0;
-    double nnuc1  = 0;
-    double ien1   = 0;
 
     double x = x_in;
     double xp = xp_in;
     double z = y_in;
     double zp = yp_in;
-    double p = p_in;
+    double s_in = 0;   // wrt collimator entrance
     double sp = 0;
-    double dpop = (p - p0)/p0;
     double tiltangle = 0.;
 
     double mirror = 1.;
@@ -121,9 +99,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
     if (!onesided || (x >= 0.)) {
-        // Log input energy + nucleons as per the FLUKA coupling
-        nnuc0 = nnuc0 + 1.;
-        ien0 = ien0 + p_in * 1.0e3;
 
         // Now mirror at the horizontal axis for negative X offset
         if (x < 0) {
@@ -155,33 +130,27 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         // The definition is that the collimator jaw is at x>=0.
 
         // 1) Check whether particle hits the collimator
-        int isimp = 0;
-        double s = 0.;
-        double zlm = -1*length; 
-
+        double zlm; 
 
         if (x >= 0.) {
         // Particle hits collimator and we assume interaction length ZLM equal
         // to collimator length (what if it would leave collimator after
         // small length due to angle???)
             zlm  = length;
-            val_part_impact = x;
+            val_part_impact = x;    // store these in impact table, as interaction type 'hitting collimator' or something like that. Do with correct (lab frame) coordinates, hence do stuff in geometry branch
             val_part_indiv  = xp;
-        }
-        else if (xp <= 0.) {
+        } else if (xp <= 0.) {
         // Particle does not hit collimator. Interaction length ZLM is zero.
             zlm = 0.;
-        }
-        else {
+        } else {
         // Calculate s-coordinate of interaction point
-            s = -x/xp;
+            double s = -x/xp;
 
             if (s < length) {
                 zlm = length - s;
                 val_part_impact = 0.;
                 val_part_indiv  = xp;
-            }
-            else {
+            } else {
                 zlm = 0.;
             }
 
@@ -192,7 +161,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         if (drift_length > 0) {
             x  = x  + xp * drift_length;
             z  = z  + zp * drift_length;
-            sp = sp + drift_length;
+            s_in = drift_length;
         }
         // Now do the scattering part
         if (zlm > 0.) {
@@ -202,48 +171,25 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             }
             nhit = nhit + 1;
 
-
-            double* jaw_result = jaw(evran, part, exenergy,
-                            anuc,
-                            zatom,
-                            rho,
-                            radl,
-                            scat.cprob0,
-                            scat.cprob1,
-                            scat.cprob2,
-                            scat.cprob3,
-                            scat.cprob4,
-                            scat.cprob5,
-                            scat.xintl,
-                            scat.bn,
-                            scat.ecmsq,
-                            scat.xln15s,
-                            scat.bpp,
-                            p0,
-                            nabs,
-                            s,
+            double* jaw_result = jaw(el, part, scat,
+                            p_in,
                             zlm,
                             x,
                             xp,
                             z,
-                            zp,
-                            dpop);
+                            zp);
 
-            p0 = jaw_result[0];
+            p_out = jaw_result[0];
             nabs = jaw_result[1];
-            s = jaw_result[2];
+            s_out = jaw_result[2];
             zlm = jaw_result[3];
             x = jaw_result[4];
             xp = jaw_result[5];
             z = jaw_result[6];
             zp = jaw_result[7];
-            dpop = jaw_result[8];
 
             val_nabs_type = nabs;
             val_part_hit  = 1;
-
-            isimp = 1;
-            // simp  = s_impact
 
             // Writeout should be done for both inelastic and single diffractive. doing all transformations
             // in x_flk and making the set to 99.99 mm conditional for nabs=1
@@ -253,7 +199,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 
             // Finally, the actual coordinate change to 99 mm
                 if (nabs == 1) {
-                    fracab = fracab + 1;
                     x = 99.99e-3;
                     z = 99.99e-3;
                     val_part_linteract = zlm;
@@ -264,13 +209,13 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 
             if (nabs != 1. && zlm > 0.) {
             // Do the rest drift, if particle left collimator early
-                drift_length = (length-(s+sp));
+                drift_length = (length-(s_out+s_in));
 
                 if (drift_length > 1.0e-15) {
                     val_linside = 0;
                     x  = x  + xp * drift_length;
                     z  = z  + zp * drift_length;
-                    sp = sp + drift_length;
+                    s_out = s_in + drift_length;
                 }
                 val_part_linteract = zlm - drift_length;
             }
@@ -300,14 +245,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
         y_out  =  z*cRRot -  x*sRRot;
         xp_out = xp*cRRot + zp*sRRot;
         yp_out = zp*cRRot - xp*sRRot;
-
-        // Log output energy + nucleons as per the FLUKA coupling
-        // Do not log dead particles
-        nnuc1       = nnuc1 + 1;                           // outcoming nucleons
-        ien1        = ien1  + p_out * 1e3;                 // outcoming energy
-
-        p_out = (1 + dpop) * p0;
-        s_out = sp;
     }
 
     LocalParticle_set_x(part, x_out);
