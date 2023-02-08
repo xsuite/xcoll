@@ -7,7 +7,7 @@ def load_SixTrack_colldb(filename, *, emit):
 
 class CollDB:
     def __init__(self, *, emit, sixtrack_file=None):
-        self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy'])
+        self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
         self._optics_positions_to_calculate = {}
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
@@ -420,6 +420,38 @@ class CollDB:
         ])
         return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
+    @property
+    def alfx(self):
+        vals = np.array([
+            [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+            [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+        ])
+        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)   
+
+    @property
+    def alfy(self):
+        vals = np.array([
+            [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+            [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+        ])
+        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    
+    @property
+    def dx(self):
+        vals = np.array([
+            [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+            [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+        ])
+        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+
+    @property
+    def dy(self):
+        vals = np.array([
+            [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+            [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+        ])
+        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    
     @property
     def x(self):
         vals = np.array([

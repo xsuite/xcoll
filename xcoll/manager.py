@@ -430,7 +430,7 @@ class CollimatorManager:
 
 
     def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=1e-6, pencil_spread=1e-9,
-                                     transverse_impact_parameter=0., transverse_spread_sigma=0.01, sigma_z=7.55e-2):
+                                     transverse_impact_parameter=0., transverse_spread_sigma=0.01, sigma_z=7.55e-2, zeta=None, delta=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -491,9 +491,15 @@ class CollimatorManager:
         p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
 
         # Longitudinal plane
-        zeta, delta = xp.generate_longitudinal_coordinates(
-                num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, tracker=tracker
-        )
+        if zeta is None and delta is None:
+            zeta, delta = xp.generate_longitudinal_coordinates(
+                    num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, tracker=tracker
+            )
+        elif zeta is None:
+            zeta = 0.0
+#             delta = (self.line[collimator].jaw_F_L + self.line[collimator].dx + impact_parameter)/self.colldb.dx[collimator]
+        elif delta is None:
+            delta = 0.0
 
         if plane == 'x':
             part = xp.build_particles(
