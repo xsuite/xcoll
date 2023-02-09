@@ -113,27 +113,28 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 }
 
-double* mcs(LocalParticle* part, double mc_radl, double mc_zlm1, double mc_p, double mc_x, double mc_xp, double mc_z, double mc_zp) {
+double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, double x, double xp, double z, double zp) {
 
+    double const radl     = MaterialData_get_radiation_length(material);
     double s;
-    double theta = 13.6e-3/mc_p; // dpop   = (p - p0)/p0;
+    double theta = 13.6e-3/p; // dpop   = (p - p0)/p0;
     double h   = 0.001;
     double dh  = 0.0001;
     double bn0 = 0.4330127019;
-    double rlen0 = mc_zlm1/mc_radl;
+    double rlen0 = zlm1/radl;
     double rlen  = rlen0;
     static double result[5];
 
-    mc_x     = (mc_x/theta)/mc_radl;
-    mc_xp    = mc_xp/theta;
-    mc_z     = (mc_z/theta)/mc_radl;
-    mc_zp    = mc_zp/theta;
+    x     = (x/theta)/radl;
+    xp    = xp/theta;
+    z     = (z/theta)/radl;
+    zp    = zp/theta;
 
 
     while (1) {
         
-        double ae = bn0 * mc_x;
-        double be = bn0 * mc_xp;
+        double ae = bn0 * x;
+        double be = bn0 * xp;
 
         // #######################################
         // ae = np.array(ae, dtype=np.double64)
@@ -148,11 +149,11 @@ double* mcs(LocalParticle* part, double mc_radl, double mc_zlm1, double mc_p, do
             s = h;
         }
 
-        double* res = scamcs(part, mc_x,mc_xp,s);
-        mc_x  = res[0];
-        mc_xp = res[1];
+        double* res = scamcs(part, x,xp,s);
+        x  = res[0];
+        xp = res[1];
 
-        if (mc_x <= 0) {
+        if (x <= 0) {
             s = (rlen0-rlen)+ s;
             break; // go to 20
         }
@@ -165,22 +166,21 @@ double* mcs(LocalParticle* part, double mc_radl, double mc_zlm1, double mc_p, do
         rlen = rlen - s;
     }
 
-    double* res = scamcs(part, mc_z,mc_zp,s);
-    mc_z  = res[0];
-    mc_zp = res[1];
+    double* res = scamcs(part, z,zp,s);
+    z  = res[0];
+    zp = res[1];
 
-    result[0]  = s*mc_radl;
-    result[1]  = (mc_x*theta)*mc_radl;
-    result[2]  = mc_xp*theta;
-    result[3]  = (mc_z*theta)*mc_radl;
-    result[4]  = mc_zp*theta;
+    result[0]  = s*radl;
+    result[1]  = (x*theta)*radl;
+    result[2]  = xp*theta;
+    result[3]  = (z*theta)*radl;
+    result[4]  = zp*theta;
 
     return result;
 
 }
 
 double* tetat(LocalParticle* part, double t, double p) {
-
 
     double teta = sqrt(t)/p;
     double va = 0;
@@ -209,35 +209,35 @@ double* tetat(LocalParticle* part, double t, double p) {
                 
 }                
                 
-double* gettran(EverestRandomData evran, LocalParticle* part, double inter, double p, double tt_bn, double tt_ecmsq, double tt_xln15s, double tt_bpp) {
+double* gettran(EverestRandomData evran, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
 
     static double res[2];
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
     if (inter==2) { // Nuclear Elastic
-        result = (-1*log(get_random(part)))/tt_bn;
+        result = (-1*log(get_random(part)))/scat.bn;
     }
     
     else if (inter==3) { // pp Elastic
-        result = (-1*log(get_random(part)))/tt_bpp;
+        result = (-1*log(get_random(part)))/scat.bpp;
     }
 
     else if (inter==4) { // Single Diffractive
-        double xm2 = exp(get_random(part) * tt_xln15s);
+        double xm2 = exp(get_random(part) * scat.xln15s);
         double bsd = 0;
-        p = p * (1 - xm2/tt_ecmsq);
+        p = p * (1 - xm2/scat.ecmsq);
     
         if (xm2 < 2) {
-            bsd = 2 * tt_bpp;
+            bsd = 2 * scat.bpp;
         }
 
         else if ((xm2 >= 2) & (xm2 <= 5)) {
-            bsd = ((106.0 - 17.0*xm2)*tt_bpp)/36.0;
+            bsd = ((106.0 - 17.0*xm2)*scat.bpp)/36.0;
         }
 
         else {
-            bsd = (7*tt_bpp)/12.0;
+            bsd = (7*scat.bpp)/12.0;
         }
    
         result = (-1*log(get_random(part)))/bsd;
@@ -254,7 +254,12 @@ double* gettran(EverestRandomData evran, LocalParticle* part, double inter, doub
                 
 }
                 
-double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exenergy, double il_anuc, double il_zatom, double il_rho) {
+double calcionloss(LocalParticle* part, double p, double rlen, MaterialData material) {
+
+    double const zatom    = MaterialData_get_Z(material);
+    double const anuc     = MaterialData_get_A(material);
+    double const rho      = MaterialData_get_density(material);
+    double const exenergy = MaterialData_get_excitation_energy(material);
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
     double enr    = pow((mom*mom + 938.271998*938.271998),0.5); //[MeV]
@@ -265,13 +270,13 @@ double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exe
     double k = 0.307075;
 
     // Mean excitation energy
-    double exEn = il_exenergy*1.0e3; // [MeV]
+    double exEn = exenergy*1.0e3; // [MeV]
 
     // tmax is max energy loss from kinematics
     double tmax = kine/(1 + (2*gammar)*(0.510998902/938.271998) + pow((0.510998902/938.271998),2)); // [MeV]
 
     // Plasma energy - see PDG 2010 table 27.1
-    double plen = pow(((il_rho*il_zatom)/il_anuc),0.5)*28.816e-6; // [MeV]
+    double plen = pow(((rho*zatom)/anuc),0.5)*28.816e-6; // [MeV]
 
     // Calculate threshold energy
     // Above this threshold, the cross section for high energy loss is calculated and then
@@ -279,25 +284,25 @@ double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exe
     // below threshold, only the standard Bethe-Bloch is used (all particles get average energy loss)
 
     // thl is 2*width of Landau distribution (as in fig 27.7 in PDG 2010). See Alfredo's presentation for derivation
-    double thl = ((((4*(k*il_zatom))*rlen)*1.0e2)*il_rho)/(il_anuc*pow(betar,2)); // [MeV]
+    double thl = ((((4*(k*zatom))*rlen)*1.0e2)*rho)/(anuc*pow(betar,2)); // [MeV]
 
     // Bethe-Bloch mean energy loss
-    double enlo = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5);
-    enlo = ((enlo*il_rho)*1.0e-1)*rlen; // [GeV]
+    double enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5);
+    enlo = ((enlo*rho)*1.0e-1)*rlen; // [GeV]
 
     // Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
     double Tt = enlo*1.0e3 + thl; // [MeV]
 
     // Cross section - see Alfredo's presentation for derivation
-    double cs_tail = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*((1/Tt)-(1/tmax)) - (log(tmax/Tt)*pow(betar,2))/(2*tmax) + (tmax-Tt)/((4*pow(gammar,2))*pow(938.271998,2)));
+    double cs_tail = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*((1/Tt)-(1/tmax)) - (log(tmax/Tt)*pow(betar,2))/(2*tmax) + (tmax-Tt)/((4*pow(gammar,2))*pow(938.271998,2)));
 
     // Probability of being in tail: cross section * density * path length
-    double prob_tail = ((cs_tail*il_rho)*rlen)*1.0e2;
+    double prob_tail = ((cs_tail*rho)*rlen)*1.0e2;
 
     // Determine based on random number if tail energy loss occurs.
     if (get_random(part) < prob_tail) {
-        enlo = ((k*il_zatom)/(il_anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
-        enlo = (enlo*il_rho)*1.0e-1; // [GeV/m]
+        enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
+        enlo = (enlo*rho)*1.0e-1; // [GeV/m]
     }
     else {
         // If tail energy loss does not occur, just use the standard Bethe-Bloch
@@ -307,21 +312,13 @@ double calcionloss_jaw(LocalParticle* part, double p, double rlen, double il_exe
     return enlo;
 }
 
-int ichoix(LocalParticle* part,double cprob0, double cprob1, double cprob2, double cprob3, double cprob4, double cprob5) {
+int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
     double aran = get_random(part);
-    int i;
-    
-    double cprob[6];
-    cprob[0] = cprob0;
-    cprob[1] = cprob1;
-    cprob[2] = cprob2;
-    cprob[3] = cprob3;
-    cprob[4] = cprob4;
-    cprob[5] = cprob5;
 
+    int i;
     for (i = 0; i < 5; ++i) {
-        if (aran <= cprob[i]) {
+        if (aran <= scat.cprob[i]) {
             break;
         }
     }
@@ -341,22 +338,9 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     double tx; 
     double tz;
 
-    // Material properties
-    MaterialData material = EverestCollimatorData_getp_material(el);
-    double const zatom    = MaterialData_get_Z(material);
-    double const anuc     = MaterialData_get_A(material);
-    double const rho      = MaterialData_get_density(material);
-    double const exenergy = MaterialData_get_excitation_energy(material);
-    double const radl     = MaterialData_get_radiation_length(material);
+    MaterialData material   = EverestCollimatorData_getp_material(el);
     EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
 
-    double cprob0 = scat.cprob0;
-    double cprob1 = scat.cprob1;
-    double cprob2 = scat.cprob2;
-    double cprob3 = scat.cprob3;
-    double cprob4 = scat.cprob4;
-    double cprob5 = scat.cprob5;
-    double xintl  = scat.xintl;
     double bn     = scat.bn;
     double ecmsq  = scat.ecmsq;
     double xln15s = scat.xln15s;
@@ -366,7 +350,7 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     // Get monte-carlo interaction length.
     while (1) {
 
-        double zlm1 = (-1*xintl)*log(get_random(part));
+        double zlm1 = (-scat.xintl)*log(get_random(part));
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
@@ -376,7 +360,7 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
             
             zlm1 = rlen;
         
-            double* res = mcs(part,radl,zlm1,p,x,xp,z,zp);
+            double* res = mcs(part, material, zlm1, p, x, xp, z, zp);
             s = res[0];
             x = res[1];
             xp = res[2];
@@ -384,13 +368,13 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
             zp = res[4];
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);  // DM routine to include tail
+            m_dpodx = calcionloss(part, p, rlen, material);  // DM routine to include tail
             p = p-m_dpodx*s;
             break;
         }
         // Otherwise do multi-coulomb scattering.
         // REGULAR STEP IN ITERATION LOOP
-        double* res1 = mcs(part,radl,zlm1,p,x,xp,z,zp);
+        double* res1 = mcs(part, material, zlm1, p, x, xp, z, zp);
         s = res1[0];
         x = res1[1];
         xp = res1[2];
@@ -405,7 +389,7 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
         if(x <= 0) {
 
             s = (zlm-rlen)+s;
-            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);
+            m_dpodx = calcionloss(part, p, rlen, material);
 
             p = p-m_dpodx*s;
             break;
@@ -416,13 +400,13 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
         // and return.
         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        int inter = ichoix(part,cprob0,cprob1,cprob2,cprob3,cprob4,cprob5);
+        int inter = ichoix(part, scat);
         nabs = inter;
 
         if (inter == 1) {
 
             s = (zlm-rlen)+zlm1;
-            m_dpodx = calcionloss_jaw(part,p,rlen,exenergy,anuc,zatom,rho);
+            m_dpodx = calcionloss(part, p, rlen, material);
 
             p = p-m_dpodx*s;
 
@@ -439,7 +423,7 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
 
         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double* res2 = gettran(evran, part,inter,p,bn,ecmsq,xln15s,bpp);
+        double* res2 = gettran(evran, part, inter, p, scat);
         t = res2[0];
         p = res2[1];
 
