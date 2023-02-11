@@ -22,6 +22,7 @@ class PyEverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     iscollective = True
+    skip_in_loss_location_refinement = True
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
