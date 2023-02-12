@@ -22,6 +22,7 @@ class K2Collimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     iscollective = True # TODO: will be set to False when fully in C
+    skip_in_loss_location_refinement = True
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:

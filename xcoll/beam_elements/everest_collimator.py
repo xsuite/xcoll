@@ -26,6 +26,7 @@ class EverestCollimator(BaseCollimator):
 
     isthick = True
     behaves_like_drift = True
+    skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
