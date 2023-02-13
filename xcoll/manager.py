@@ -25,6 +25,7 @@ class CollimatorManager:
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
+        self.line._needs_rng = True
         self._k2engine = None   # only needed for FORTRAN K2Collimator
 
         # Create _buffer, _context, and _io_buffer
@@ -513,31 +514,15 @@ class CollimatorManager:
         return part
 
 
-
-    def track(self, *args, **kwargs):
-        if not self.tracker_ready:
-            raise Exception("Please build tracker before tracking!")
-
-        # Check if random generator is set
-        if len(args) > 0:
-            part = args[0]
-        else:
-            part = kwargs['particles']
-        r1 = np.unique(part._rng_s1)
-        r2 = np.unique(part._rng_s2)
-        r3 = np.unique(part._rng_s3)
-        # r4 = np.unique(part._rng_s4)  # not used
-        if (len(r1)==1 and r1[0]==0) or (len(r2)==1 and r2[0]==0) or (len(r3)==1 and r3[0]==0):
-            part._init_random_number_generator()
-
+    def enable_scattering(self):
         # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = True
-        self.tracker.track(*args, **kwargs)
-        # Flag collimators as no longer tracking
+
+    def disable_scattering(self):
+        # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = False
-
 
     @property
     def lossmap(self):

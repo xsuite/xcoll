@@ -80,7 +80,7 @@ class EverestRandom(xo.HybridClass):
 
 
     def set_rutherford_by_material(self, material):
-        self.compile_kernels(only_if_needed=True, save_source_as='randomtest.c', apply_to_source=[
+        self.compile_kernels(only_if_needed=True, apply_to_source=[
                             partial(_handle_per_particle_blocks, local_particle_src=xp.gen_local_particle_api())
         ])
         context = self._buffer.context
