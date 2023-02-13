@@ -182,11 +182,10 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             p_out = jaw_result[0];
             nabs = jaw_result[1];
             s_out = jaw_result[2];
-            zlm = jaw_result[3];
-            x = jaw_result[4];
-            xp = jaw_result[5];
-            z = jaw_result[6];
-            zp = jaw_result[7];
+            x = jaw_result[3];
+            xp = jaw_result[4];
+            z = jaw_result[5];
+            zp = jaw_result[6];
 
             val_nabs_type = nabs;
             val_part_hit  = 1;

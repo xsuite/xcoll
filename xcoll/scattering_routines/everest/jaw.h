@@ -117,7 +117,7 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
 
     double const radl     = MaterialData_get_radiation_length(material);
     double s;
-    double theta = 13.6e-3/p; // dpop   = (p - p0)/p0;
+    double theta = 13.6e-3/p;
     double h   = 0.001;
     double dh  = 0.0001;
     double bn0 = 0.4330127019;
@@ -327,11 +327,9 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
 double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat, double p, double zlm, double x, double xp, double z, double zp) {
     
-    static double result[11];
+    static double result[7];
     double s;
     double nabs = 0;
-      
-    // Initialize the interaction length to input interaction length
     double rlen = zlm;
     double m_dpodx = 0.;
     double t;
@@ -340,11 +338,6 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
 
     MaterialData material   = EverestCollimatorData_getp_material(el);
     EverestRandomData evran = EverestCollimatorData_getp_random_generator(el);
-
-    double bn     = scat.bn;
-    double ecmsq  = scat.ecmsq;
-    double xln15s = scat.xln15s;
-    double bpp    = scat.bpp;
 
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
@@ -452,11 +445,10 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     result[0] = p;
     result[1] = nabs;
     result[2] = s;
-    result[3] = zlm;
-    result[4] = x;
-    result[5] = xp;
-    result[6] = z;
-    result[7] = zp;
+    result[3] = x;
+    result[4] = xp;
+    result[5] = z;
+    result[6] = zp;
 
     return result;
 
