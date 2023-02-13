@@ -18,6 +18,7 @@ class InvalidCollimator(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+    skip_in_loss_location_refinement = True
 
     # InvalidCollimator catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [

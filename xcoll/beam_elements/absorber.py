@@ -5,7 +5,9 @@ class BlackAbsorber(BaseCollimator):
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
-    
+
+    skip_in_loss_location_refinement = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
     ]
