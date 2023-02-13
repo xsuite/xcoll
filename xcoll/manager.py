@@ -26,6 +26,7 @@ class CollimatorManager:
         else:
             self.line = line
         self.line._needs_rng = True
+        self._line_is_reversed = line_is_reversed
         self._k2engine = None   # only needed for FORTRAN K2Collimator
 
         # Create _buffer, _context, and _io_buffer
@@ -53,9 +54,8 @@ class CollimatorManager:
         self.record_impacts = record_impacts
 
         self.tracker = None
-        self._losmap = None
+        self._lossmap = None
         self._coll_summary = None
-        self._line_is_reversed = line_is_reversed
 
 
     @property
@@ -157,7 +157,8 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
-                    is_active=False
+                    is_active=False,
+                    _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
@@ -180,7 +181,8 @@ class CollimatorManager:
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
                     material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False
+                    is_active=False,
+                    _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
 
@@ -197,7 +199,8 @@ class CollimatorManager:
                 # TODO: we should not use sixtrack materials here!!!
                     material=SixTrack_to_xcoll[thiscoll['material']][0],
                     is_active=False,
-                    _tracking=False
+                    _tracking=False,
+                    _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
 
@@ -214,7 +217,8 @@ class CollimatorManager:
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
                     material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False
+                    is_active=False,
+                    _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
 

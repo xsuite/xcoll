@@ -52,13 +52,12 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
 
     isthick = True
     behaves_like_drift = True
+    skip_in_loss_location_refinement = True
     
     _skip_in_to_dict  = ['_active', 'cos_z', 'sin_z']
     _store_in_to_dict = ['is_active', 'angle']
     _internal_record_class = CollimatorImpacts
 
-    # BaseCollimator should not be used!
-    # We make sure this cannot be accidentally done by killing all particles
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
@@ -108,11 +107,6 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
         is_active = 1 if is_active == True else is_active
         is_active = 0 if is_active == False else is_active
         self._active = is_active
-#         if is_active <= 0:
-#             self.jaw_F_L = 1
-#             self.jaw_F_R = -1
-#             self.jaw_B_L = 1
-#             self.jaw_B_R = -1 
 
     @property
     def length(self):

@@ -47,7 +47,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double const cry_spTilt = sin(cry_tilt);
     double const cry_cnTilt = cos(-cry_tilt);
     double const cry_snTilt = sin(-cry_tilt);
-    EverestRandomData evran = EverestCrystalData_getp_random_generator(el);
+    RandomGeneratorData rng = EverestCrystalData_getp_random_generator(el);
 
     // Move to closed orbit
     LocalParticle_add_to_x(part, -co_x);
@@ -170,7 +170,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         double s = 0.;
         double zlm = -1*length;
 
-        double* crystal_result = crystal(evran,part,x,
+        double* crystal_result = crystal(rng,part,x,
                                 xp,
                                 z,
                                 zp,

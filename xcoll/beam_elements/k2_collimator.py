@@ -17,12 +17,15 @@ class K2Collimator(BaseCollimator):
         '_tracking':  xo.Int8
     }
 
+    isthick = True
+    iscollective = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
-    skip_in_loss_location_refinement = True
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -73,11 +76,15 @@ class K2Crystal(BaseCollimator):
         '_tracking':  xo.Int8
     }
 
+    isthick = True
+    iscollective = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    iscollective = True # TODO: will be set to False when fully in C
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:

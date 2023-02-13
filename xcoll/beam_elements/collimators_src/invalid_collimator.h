@@ -15,7 +15,7 @@ void xcoll_kill_particle(LocalParticle* part) {
 /*gpufun*/
 void xcoll_kill_all_particles(LocalParticle* part0) {
     //start_per_particle_block (part0->part)
-        xcoll_kill_particle(part)
+        xcoll_kill_particle(part);
     //end_per_particle_block
 }
 

@@ -1,7 +1,10 @@
 import xobjects as xo
+import xpart as xp
+from xpart.random_number_generator import RandomGenerator
+import xtrack as xt
 
 from .base_collimator import BaseCollimator, InvalidCollimator
-from ..scattering_routines.everest import Material, CrystalMaterial, EverestRandom
+from ..scattering_routines.everest import Material, CrystalMaterial
 from ..general import _pkg_root
 
 
@@ -20,7 +23,7 @@ class EverestCollimator(BaseCollimator):
         'onesided':         xo.Int8,
         'tilt':             xo.Float64[:],  # TODO: how to limit this to length 2
         'material':         Material,
-        'random_generator': EverestRandom,
+        'random_generator': RandomGenerator,
         '_tracking':        xo.Int8
     }
 
@@ -28,18 +31,23 @@ class EverestCollimator(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
+#     _skip_in_to_dict       = [ *BaseCollimator._skip_in_to_dict, '_material' ]
+#     _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'material' ]
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
+        xp._pkg_root.joinpath('random_number_generator','rng_src','base_rng.h'),
+        xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
-    _depends_on = [BaseCollimator, InvalidCollimator]
+    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift]
+
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -57,12 +65,21 @@ class EverestCollimator(BaseCollimator):
             else:
                 tilt = [tilt, tilt]
             kwargs['tilt'] = tilt
-            kwargs.setdefault('random_generator', EverestRandom())
+            kwargs.setdefault('random_generator', RandomGenerator())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
+#         if '_xobject' not in kwargs:
+#             self.random_generator.set_rutherford_by_xcoll_material(self.material)
 
-    # TODO: In principle we are not allowed to backtrack through a collimator
-    #       However, the loss refinement will fail if this function is not provided
+#     @property
+#     def material(self):
+#         return self._material
+
+#     @material.setter
+#     def material(self, material):
+#         self._material = material
+# #         self.random_generator.set_rutherford_by_xcoll_material(material)
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
@@ -82,24 +99,30 @@ class EverestCrystal(BaseCollimator):
         'onesided':    xo.Int8,
         'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
         'material':    CrystalMaterial,
-        'random_generator': EverestRandom,
+        'random_generator': RandomGenerator,
         '_tracking':   xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
+    skip_in_loss_location_refinement = True
 
+#     _skip_in_to_dict       = [ *BaseCollimator._skip_in_to_dict, '_material' ]
+#     _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'material' ]
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
+        xp._pkg_root.joinpath('random_number_generator','rng_src','base_rng.h'),
+        xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
-    _depends_on = [BaseCollimator, InvalidCollimator]
+    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift]
+
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -124,12 +147,21 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('orient', 0)
-            kwargs.setdefault('random_generator', EverestRandom())
+            kwargs.setdefault('random_generator', RandomGenerator())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
+#         if '_xobject' not in kwargs:
+#             self.random_generator.set_rutherford_by_xcoll_material(self.material)
 
-    # TODO: In principle we are not allowed to backtrack through a collimator
-    #       However, the loss refinement will fail if this function is not provided
+    @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, material):
+        self._material = material
+#         self.random_generator.set_rutherford_by_xcoll_material(material)
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
