@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 
-
 struct ScatteringParameters {
     double cprob[6];
     double xintl;
@@ -14,7 +13,6 @@ struct ScatteringParameters {
     double xln15s;
     double bpp;
 };
-
 
 
 struct ScatteringParameters calculate_scattering(double p0, MaterialData material) {
@@ -77,11 +75,6 @@ struct ScatteringParameters calculate_scattering(double p0, MaterialData materia
     scat.xintl = (1.0e-2*anuc)/(((fnavo * rho)*csect[0])*1e-24);
 
     // Filling CProb with cumulated normalised Cross-sections
-//     double cprob[1] = cprob0 + csect1/csect0;
-//     double cprob[2] = cprob1 + csect2/csect0;
-//     double cprob[3] = cprob2 + csect3/csect0;
-//     double cprob[4] = cprob3 + csect4/csect0;
-
     int i;
     scat.cprob[0] = 0;
     for (i=1; i<5; ++i){
@@ -94,4 +87,4 @@ struct ScatteringParameters calculate_scattering(double p0, MaterialData materia
 }
 
 
-#endif
+#endif /* XCOLL_EVEREST_SCAT_INIT_H */

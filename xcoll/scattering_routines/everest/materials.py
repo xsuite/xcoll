@@ -38,6 +38,8 @@ class Material(GeneralMaterial):
         'radiation_length':         xo.Float64      # radl
     }
 
+    _depends_on = [GeneralMaterial]
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -51,6 +53,8 @@ class CrystalMaterial(GeneralMaterial):
         'crystal_potential':        xo.Float64,     # eUm
         'nuclear_collision_length': xo.Float64      # collnt [m]
     }
+
+    _depends_on = [GeneralMaterial]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

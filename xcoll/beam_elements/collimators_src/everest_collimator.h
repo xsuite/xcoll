@@ -13,19 +13,14 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const active_length  = EverestCollimatorData_get_active_length(el);
     double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
 
-    // Material properties
     MaterialData material = EverestCollimatorData_getp_material(el);
-    double const zatom    = MaterialData_get_Z(material);
-    double const emr      = MaterialData_get_nuclear_radius(material);
-    double const hcut     = MaterialData_get_hcut(material);
-
     RandomGeneratorData rng = EverestCollimatorData_getp_random_generator(el);
-    RandomGeneratorData_set_rutherford(rng, zatom, emr, hcut);
+    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, material);
 
     //start_per_particle_block (part0->part)
         if (!is_active){
             // Drift full length
-            xcoll_drift_6d(part, inactive_front+active_length+inactive_back);
+            Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
         } else {
             // Check collimator initialisation
@@ -35,7 +30,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
             if ( is_tracking && rng_set && ruth_set) {
                 // Drift inactive front
-                xcoll_drift_6d(part, inactive_front);
+                Drift_single_particle(part, inactive_front);
 
                 // Scatter
                 double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
@@ -44,7 +39,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 // Drift inactive back (only surviving particles)
                 if (LocalParticle_get_state(part) > 0){
-                    xcoll_drift_6d(part, inactive_back);
+                    Drift_single_particle(part, inactive_back);
                 }
             }
         }

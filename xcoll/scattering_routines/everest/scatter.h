@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+// TODO:
+//    Use drift function from xtrack Drift element (call its C function)
+//    Use rotation function from xtrack XYRotation element (call its C function)
+
 /*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
@@ -306,4 +311,4 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 
 }
 
-#endif
+#endif /* XCOLL_EVEREST_SCAT_H */

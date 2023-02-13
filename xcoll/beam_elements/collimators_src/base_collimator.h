@@ -2,24 +2,6 @@
 #define XCOLL_BASE_H
 
 
-// TODO:
-//    Use drift function from xtrack Drift element (call its C function)
-//    Use rotation function from xtrack XYRotation element (call its C function)
-
-/*gpufun*/
-void xcoll_drift_6d(LocalParticle* part, double length) {
-        double const rpp    = LocalParticle_get_rpp(part);
-        double const rv0v   = 1./LocalParticle_get_rvv(part);
-        double const xp     = LocalParticle_get_px(part) * rpp;
-        double const yp     = LocalParticle_get_py(part) * rpp;
-        double const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
-
-        LocalParticle_add_to_x(part, xp * length );
-        LocalParticle_add_to_y(part, yp * length );
-        LocalParticle_add_to_s(part, length);
-        LocalParticle_add_to_zeta(part, length * dzeta );
-}
-
 /*gpufun*/
 int8_t xcoll_assert_tracking(LocalParticle* part){
     // Whenever we are not tracking, e.g. in a twiss, the particle will be at_turn < 0.
@@ -55,9 +37,21 @@ int8_t xcoll_assert_rutherford_set(RandomGeneratorData rng, LocalParticle* part)
     return 1;
 }
 
+/*gpukern*/
+void RandomGeneratorData_set_rutherford_by_xcoll_material(RandomGeneratorData ran, GeneralMaterialData material){
+    double const zatom    = GeneralMaterialData_get_Z(material);
+    double const emr      = GeneralMaterialData_get_nuclear_radius(material);
+    double const hcut     = GeneralMaterialData_get_hcut(material);
+    double const lcut     = 0.0009982;
+    double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
+    double A = pow(zatom,2);
+    double B = c*pow(emr,2);
+    RandomGeneratorData_set_rutherford(ran, A, B, lcut, hcut);
+}
+
 /*gpufun*/
 void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* part0) {
     xcoll_kill_all_particles(part0);
 }
 
-#endif
+#endif /* XCOLL_BASE_H */

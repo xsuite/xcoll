@@ -38,7 +38,6 @@ class EverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator','rng_src','base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
@@ -114,7 +113,6 @@ class EverestCrystal(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator','rng_src','base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
