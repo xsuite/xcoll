@@ -3,13 +3,11 @@
 
 
 // TODO:
-//    Do not split 4d and zeta in drifts
 //    Use drift function from xtrack Drift element (call its C function)
 //    Use rotation function from xtrack XYRotation element (call its C function)
 
 /*gpufun*/
-void xcoll_drift_6d(LocalParticle* part0, double length) {
-    //start_per_particle_block (part0->part)
+void xcoll_drift_6d(LocalParticle* part, double length) {
         double const rpp    = LocalParticle_get_rpp(part);
         double const rv0v   = 1./LocalParticle_get_rvv(part);
         double const xp     = LocalParticle_get_px(part) * rpp;
@@ -20,7 +18,6 @@ void xcoll_drift_6d(LocalParticle* part0, double length) {
         LocalParticle_add_to_y(part, yp * length );
         LocalParticle_add_to_s(part, length);
         LocalParticle_add_to_zeta(part, length * dzeta );
-    //end_per_particle_block
 }
 
 /*gpufun*/
