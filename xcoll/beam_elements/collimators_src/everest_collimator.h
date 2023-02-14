@@ -15,7 +15,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     MaterialData material = EverestCollimatorData_getp_material(el);
     RandomGeneratorData rng = EverestCollimatorData_getp_random_generator(el);
-    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, material);
+    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     //start_per_particle_block (part0->part)
         if (!is_active){

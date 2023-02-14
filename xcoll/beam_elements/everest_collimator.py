@@ -38,7 +38,6 @@ class EverestCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
@@ -113,7 +112,6 @@ class EverestCrystal(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator','rng_src','local_particle_rng.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
@@ -151,13 +149,13 @@ class EverestCrystal(BaseCollimator):
 #         if '_xobject' not in kwargs:
 #             self.random_generator.set_rutherford_by_xcoll_material(self.material)
 
-    @property
-    def material(self):
-        return self._material
+#     @property
+#     def material(self):
+#         return self._material
 
-    @material.setter
-    def material(self, material):
-        self._material = material
+#     @material.setter
+#     def material(self, material):
+#         self._material = material
 #         self.random_generator.set_rutherford_by_xcoll_material(material)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):

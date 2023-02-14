@@ -14,7 +14,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     CrystalMaterialData material = EverestCrystalData_getp_material(el);
     RandomGeneratorData rng = EverestCrystalData_getp_random_generator(el);
-    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, material);
+    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     //start_per_particle_block (part0->part)
         if (!is_active){
