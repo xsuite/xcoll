@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #ifndef XCOLL_EVEREST_CRYSTAL_INTERACT_H
 #define XCOLL_EVEREST_CRYSTAL_INTERACT_H
 #include <math.h>
@@ -36,7 +41,7 @@ int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 int temp = 0;
 
-double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
+double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     static double result[5];
 
@@ -76,7 +81,7 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
     double ppsd  = (4.3 + 0.3*log(ecmsq))/1.0e3;
     double bpp   = 7.156 + 1.439*log(sqrt(ecmsq));
 
-    xran_cry[0] = RandomGenerator_get_double_ruth(rng, part);
+    xran_cry[0] = RandomRutherford_generate(rng, part);
 
     //Rescale the total and inelastic cross-section accordigly to the average density seen
     double x_i = x;
@@ -188,14 +193,14 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
         nuc_cl_l = collnt/avrrho;
     }
 
-    double zlm = nuc_cl_l*RandomGenerator_get_double_exp(part);
+    double zlm = nuc_cl_l*RandomExponential_generate(part);
 
     //write(889,*) x_i,pv,Ueff,Et,Ec,N_am,avrrho,csref_tot_rsc,csref_inel_rsc,nuc_cl_l
 
     if (zlm < dz) {
 
         //Choose nuclear interaction
-        double aran = RandomGenerator_get_double(part);
+        double aran = RandomUniform_generate(part);
         int i = 1;
         double bn;
         double xm2;
@@ -220,17 +225,17 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
         else if (ichoix==2) { //p-n elastic
             iProc = proc_ch_pne;
             bn    = (bnref*cs[0])/csref_tot_rsc;
-            t     = RandomGenerator_get_double_exp(part)/bn;
+            t     = RandomExponential_generate(part)/bn;
         }
 
         else if (ichoix==3) { //p-p elastic
             iProc = proc_ch_ppe;
-            t     = RandomGenerator_get_double_exp(part)/bpp;
+            t     = RandomExponential_generate(part)/bpp;
         }
 
         else if (ichoix==4) { //Single diffractive
             iProc = proc_ch_diff;
-            xm2   = exp(RandomGenerator_get_double(part)*xln15s);
+            xm2   = exp(RandomUniform_generate(part)*xln15s);
             pc    = pc*(1 - xm2/ecmsq);
 
             if (xm2 < 2.) {
@@ -243,12 +248,12 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
                 bsd = (7*bpp)/12.0;
             }
             //end if
-            t = RandomGenerator_get_double_exp(part)/bsd;
+            t = RandomExponential_generate(part)/bsd;
         }
 
         else { //(ichoix==5)
             iProc      = proc_ch_ruth;
-            xran_cry[0] = RandomGenerator_get_double_ruth(rng, part);
+            xran_cry[0] = RandomRutherford_generate(rng, part);
             t = xran_cry[0];
         }
 
@@ -261,8 +266,8 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
             teta = sqrt(t)/pc;
         }
 
-        tx = teta*RandomGenerator_get_double_gauss(part)*1.0e3;
-        tz = teta*RandomGenerator_get_double_gauss(part)*1.0e3;
+        tx = teta*RandomNormal_generate(part)*1.0e3;
+        tz = teta*RandomNormal_generate(part)*1.0e3;
 
         //Change p angle
         xp = xp + tx;
@@ -283,7 +288,7 @@ double* movech(RandomGeneratorData rng, LocalParticle* part, double nam, double 
 }
 
 
-double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
+double* moveam(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
     static double result[4];
 
@@ -359,8 +364,8 @@ double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double 
     pc  = pc - dei*dz; // Energy lost because of ionization process[GeV]
 
     double dya   = (13.6/pc)*sqrt(dz/dlr); // RMS of coloumb scattering MCS (mrad)
-    double kxmcs = dya*RandomGenerator_get_double_gauss(part);
-    double kymcs = dya*RandomGenerator_get_double_gauss(part);
+    double kxmcs = dya*RandomNormal_generate(part);
+    double kymcs = dya*RandomNormal_generate(part);
 
     xp = xp+kxmcs;
     yp = yp+kymcs;
@@ -375,11 +380,11 @@ double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double 
     }
 
     // Can nuclear interaction happen?
-    double zlm = collnt*RandomGenerator_get_double_exp(part);
+    double zlm = collnt*RandomExponential_generate(part);
 
     if (zlm < dz) {
         // Choose nuclear interaction
-        double aran = RandomGenerator_get_double(part);
+        double aran = RandomUniform_generate(part);
         int i=1;
 
         while (aran > cprob[i]) {
@@ -398,17 +403,17 @@ double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double 
 
         else if (ichoix==2) { // p-n elastic
             iProc = proc_pne;
-            t     = RandomGenerator_get_double_exp(part)/bn;
+            t     = RandomExponential_generate(part)/bn;
         }
 
         else if (ichoix==3) { // p-p elastic
             iProc = proc_ppe;
-            t     = RandomGenerator_get_double_exp(part)/bpp;
+            t     = RandomExponential_generate(part)/bpp;
         }
 
         else if (ichoix==4) { // Single diffractive
             iProc = proc_diff;
-            double xm2 = exp(RandomGenerator_get_double(part)*xln15s);
+            double xm2 = exp(RandomUniform_generate(part)*xln15s);
             double bsd = 0.0;
             pc    = pc*(1 - xm2/ecmsq);
 
@@ -422,12 +427,12 @@ double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double 
                 bsd = 7.0*bpp/12.0;
             }
         
-            t = RandomGenerator_get_double_exp(part)/bsd;
+            t = RandomExponential_generate(part)/bsd;
         }
 
         else { //(ichoix==5)
             iProc = proc_ruth;
-            t = RandomGenerator_get_double_ruth(rng, part);
+            t = RandomRutherford_generate(rng, part);
         }
 
         // end select
@@ -443,8 +448,8 @@ double* moveam(RandomGeneratorData rng, LocalParticle* part, double nam, double 
             teta = sqrt(t)/pc;
         }
 
-        double tx = teta*RandomGenerator_get_double_gauss(part)*1.0e3;
-        double tz = teta*RandomGenerator_get_double_gauss(part)*1.0e3;
+        double tx = teta*RandomNormal_generate(part)*1.0e3;
+        double tz = teta*RandomNormal_generate(part)*1.0e3;
 
         // Change p angle
         xp = xp + tx;
@@ -498,7 +503,7 @@ double calcionloss(LocalParticle* part, double dz, double EnLo, double betar, do
                         + ((tmax-Tt)/((4.*(pow(gammar,2.)))*(pow(pmap,2.)))));
     double prob_tail = ((cs_tail*rho)*dz)*1.0e2;
 
-    if (RandomGenerator_get_double(part) < prob_tail) {
+    if (RandomUniform_generate(part) < prob_tail) {
         EnLo = ((k*zatom)/(anuc*pow(betar,2.))) * (0.5*log((2*pmae*bgr*bgr*tmax)/(1.0e6*pow(exenergy,2.))) - pow(betar,2.) - 
                 log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5 + pow(tmax,2.)/(8.*(pow(gammar,2.))*(pow(pmap,2.))));
 
@@ -514,7 +519,7 @@ double calcionloss(LocalParticle* part, double dz, double EnLo, double betar, do
 }
 
 
-double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
+double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double xp, double y, double yp, double pc, double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom, double emr, double dlri, double dlyi, 
                 double ai, double eUm, double collnt, double hcut, double csref0, double csref1, double csref5, double bnref,
                  double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
@@ -773,13 +778,13 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
         double N_atom = 1.0e-1;
 
         //if they can channel: 2 options
-        if (RandomGenerator_get_double(part) <= Chann) { //option 1:channeling
+        if (RandomUniform_generate(part) <= Chann) { //option 1:channeling
             double TLdech1 = (const_dech*pc)*pow((1.-1./ratio),2.); //Updated calculate typical dech. length(m)
 
-            if(RandomGenerator_get_double(part) <= N_atom) {
+            if(RandomUniform_generate(part) <= N_atom) {
                 TLdech1 = ((const_dech/2.0e2)*pc)*pow((1.-1./ratio),2.);  //Updated dechanneling length (m)      
             }
-            double Dechan = RandomGenerator_get_double_exp(part); //Probability of dechanneling
+            double Dechan = RandomExponential_generate(part); //Probability of dechanneling
             double Ldech  = TLdech1*Dechan;   //Actual dechan. length
 
             //careful: the dechanneling lentgh is along the trajectory
@@ -789,7 +794,7 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
                 double Dxp   = Ldech/r; //Change angle from channeling [mrad]
                 double Sdech = Ldech*cos(cry_miscut + 0.5*Dxp);
                 x  = x  + Ldech*(sin(0.5*Dxp+cry_miscut)); //Trajectory at channeling exit
-                xp    = xp + Dxp + (2*(RandomGenerator_get_double(part)-0.5))*xpcrit;
+                xp    = xp + Dxp + (2*(RandomUniform_generate(part)-0.5))*xpcrit;
                 y     = y  + yp * Sdech;
 
                 dest = calcionloss(part,Ldech,dest,betar,bgr,gammar,tmax,plen,
@@ -838,7 +843,7 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
                 }
 
                 else {
-                    double Dxp = tdefl + (0.5*RandomGenerator_get_double_gauss(part))*xpcrit; //Change angle[rad]
+                    double Dxp = tdefl + (0.5*RandomNormal_generate(part))*xpcrit; //Change angle[rad]
                     
                     xp  = Dxp;
                     x = x + L_chan*(sin(0.5*Dxp)); //Trajectory at channeling exit
@@ -878,12 +883,12 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
 
         //2 options: volume capture and volume reflection
 
-            if (RandomGenerator_get_double(part) > Vcapt || zn == 0) { //Option 1: VR
+            if (RandomUniform_generate(part) > Vcapt || zn == 0) { //Option 1: VR
                 iProc = proc_VR;
                 x  = x + xp*Srefl;
                 y     = y + yp*Srefl;
                 double Dxp   = Ang_avr;
-                xp    = xp + Dxp + Ang_rms*RandomGenerator_get_double_gauss(part);
+                xp    = xp + Dxp + Ang_rms*RandomNormal_generate(part);
                 x  = x  + (0.5*xp)*(s_length - Srefl);
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
@@ -903,13 +908,13 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
                 y = y + yp*Srefl;
 
                 double TLdech2 = (const_dech/1.0e1)*pc*pow((1-1/ratio),2.) ;         //Updated typical dechanneling length(m)
-                double Ldech   = TLdech2 * pow((sqrt(1.0e-2 + RandomGenerator_get_double_exp(part)) - 1.0e-1),2.); //Updated DC length
+                double Ldech   = TLdech2 * pow((sqrt(1.0e-2 + RandomExponential_generate(part)) - 1.0e-1),2.); //Updated DC length
                 double tdech   = Ldech/cry_rcurv;
                 double Sdech   = Ldech*cos(xp + 0.5*tdech);
 
                 if (Ldech < length-Lrefl) {
                     iProc = proc_DC;
-                    double Dxp   = Ldech/cry_rcurv + (0.5*RandomGenerator_get_double_gauss(part))*xpcrit;
+                    double Dxp   = Ldech/cry_rcurv + (0.5*RandomNormal_generate(part))*xpcrit;
                     x  = x + Ldech*(sin(0.5*Dxp+xp)); //Trajectory at channeling exit
                     y     = y + Sdech*yp;
                     xp    =  Dxp;
@@ -977,7 +982,7 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
                         double Dxp = (length-Lrefl)/cry_rcurv;
                         x = x + sin(0.5*Dxp+xp)*Rlength; //Trajectory at channeling exit
                         y   = y + Red_S*yp;
-                        xp  = tdefl + (0.5*RandomGenerator_get_double_gauss(part))*xpcrit; //[mrad]
+                        xp  = tdefl + (0.5*RandomNormal_generate(part))*xpcrit; //[mrad]
 
                         dest = calcionloss(part,Rlength,dest,betar,bgr,gammar,tmax,plen,
                                             exenergy,zatom,rho,anuc);
@@ -1011,7 +1016,7 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
 
             else {
                 double Pvr = (xp_rel-(tdefl-cry_miscut))/(2.*xpcrit);
-                if(RandomGenerator_get_double(part) > Pvr) {
+                if(RandomUniform_generate(part) > Pvr) {
 
                     iProc = proc_TRVR;
                     x  = x + xp*Srefl;
@@ -1072,7 +1077,7 @@ double* interact(RandomGeneratorData rng, LocalParticle* part, double x, double 
 }
 
 
-double* crystal(RandomGeneratorData rng, LocalParticle* part, double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
+double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double xp, double z, double zp, double s, double p, double x0, double xp0, double zlm, double s_imp, int isimp, double val_part_hit, 
             double val_part_abs, double val_part_impact, double val_part_indiv, double c_length, CrystalMaterialData material, double nhit, double nabs, double 
             cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, double  cry_ymax, double  cry_orient, double  cry_miscut, double  cry_cBend, double  
             cry_sBend, double  cry_cpTilt, double  cry_spTilt, double  cry_cnTilt, double  cry_snTilt, double  iProc, double  n_chan, double  n_VR, double  n_amorphous) {
@@ -1360,4 +1365,4 @@ double* crystal(RandomGeneratorData rng, LocalParticle* part, double x, double x
     return crystal_result;
 }
 
-#endif
+#endif /* XCOLL_EVEREST_CRYSTAL_INTERACT_H */

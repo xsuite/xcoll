@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #ifndef XCOLL_EVEREST_SCAT_CRY_H
 #define XCOLL_EVEREST_SCAT_CRY_H
 #include <math.h>
@@ -47,7 +52,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     double const cry_spTilt = sin(cry_tilt);
     double const cry_cnTilt = cos(-cry_tilt);
     double const cry_snTilt = sin(-cry_tilt);
-    RandomGeneratorData rng = EverestCrystalData_getp_random_generator(el);
+    RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
 
     // Move to closed orbit
     LocalParticle_add_to_x(part, -co_x);
@@ -330,4 +335,4 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
 
 }
 
-#endif
+#endif /* XCOLL_EVEREST_SCAT_CRY_H */

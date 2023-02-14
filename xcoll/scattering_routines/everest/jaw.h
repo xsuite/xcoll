@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #ifndef XCOLL_EVEREST_JAW_H
 #define XCOLL_EVEREST_JAW_H
 #include <math.h>
@@ -91,8 +96,8 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     static double result[2];
 
     while (1) {
-        v1 = 2*RandomGenerator_get_double(part) - 1;
-        v2 = 2*RandomGenerator_get_double(part) - 1;
+        v1 = 2*RandomUniform_generate(part) - 1;
+        v2 = 2*RandomUniform_generate(part) - 1;
         r2 = pow(v1,2) + pow(v2,2);
 
         if(r2 < 1) {
@@ -191,8 +196,8 @@ double* tetat(LocalParticle* part, double t, double p) {
     static double result[2];
     
     while (1) {
-        va  = 2*RandomGenerator_get_double(part) - 1;
-        vb  = RandomGenerator_get_double(part);
+        va  = 2*RandomUniform_generate(part) - 1;
+        vb  = RandomUniform_generate(part);
         va2 = pow(va,2);
         vb2 = pow(vb,2);
         r2  = va2 + vb2;
@@ -209,22 +214,22 @@ double* tetat(LocalParticle* part, double t, double p) {
                 
 }                
                 
-double* gettran(RandomGeneratorData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
+double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
 
     static double res[2];
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
     if (inter==2) { // Nuclear Elastic
-        result = RandomGenerator_get_double_exp(part)/scat.bn;
+        result = RandomExponential_generate(part)/scat.bn;
     }
     
     else if (inter==3) { // pp Elastic
-        result = RandomGenerator_get_double_exp(part)/scat.bpp;
+        result = RandomExponential_generate(part)/scat.bpp;
     }
 
     else if (inter==4) { // Single Diffractive
-        double xm2 = exp(RandomGenerator_get_double(part) * scat.xln15s);
+        double xm2 = exp(RandomUniform_generate(part) * scat.xln15s);
         double bsd = 0;
         p = p * (1 - xm2/scat.ecmsq);
     
@@ -240,11 +245,11 @@ double* gettran(RandomGeneratorData rng, LocalParticle* part, double inter, doub
             bsd = (7*scat.bpp)/12.0;
         }
    
-        result = RandomGenerator_get_double_exp(part)/bsd;
+        result = RandomExponential_generate(part)/bsd;
     }
 
     else if (inter==5) { // Coulomb
-        result = RandomGenerator_get_double_ruth(rng, part);
+        result = RandomRutherford_generate(rng, part);
     }
 
     res[0] = result;
@@ -300,7 +305,7 @@ double calcionloss(LocalParticle* part, double p, double rlen, MaterialData mate
     double prob_tail = ((cs_tail*rho)*rlen)*1.0e2;
 
     // Determine based on random number if tail energy loss occurs.
-    if (RandomGenerator_get_double(part) < prob_tail) {
+    if (RandomUniform_generate(part) < prob_tail) {
         enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
         enlo = (enlo*rho)*1.0e-1; // [GeV/m]
     }
@@ -314,7 +319,7 @@ double calcionloss(LocalParticle* part, double p, double rlen, MaterialData mate
 
 int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
-    double aran = RandomGenerator_get_double(part);
+    double aran = RandomUniform_generate(part);
 
     int i;
     for (i = 0; i < 5; ++i) {
@@ -337,13 +342,13 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     double tz;
 
     MaterialData material   = EverestCollimatorData_getp_material(el);
-    RandomGeneratorData rng = EverestCollimatorData_getp_random_generator(el);
+    RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
 
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
     while (1) {
 
-        double zlm1 = scat.xintl*RandomGenerator_get_double_exp(part);
+        double zlm1 = scat.xintl*RandomExponential_generate(part);
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
@@ -455,4 +460,4 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
 }  
   
 
-#endif
+#endif /* XCOLL_EVEREST_JAW_H */

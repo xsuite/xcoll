@@ -1,7 +1,11 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xtrack as xt
 from .base_collimator import BaseCollimator
 from ..general import _pkg_root
-
 
 
 class BlackAbsorber(BaseCollimator):

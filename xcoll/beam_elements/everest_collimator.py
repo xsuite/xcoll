@@ -1,6 +1,10 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xobjects as xo
 import xpart as xp
-from xpart.random_number_generator import RandomGenerator
 import xtrack as xt
 
 from .base_collimator import BaseCollimator, InvalidCollimator
@@ -23,7 +27,7 @@ class EverestCollimator(BaseCollimator):
         'onesided':         xo.Int8,
         'tilt':             xo.Float64[:],  # TODO: how to limit this to length 2
         'material':         Material,
-        'random_generator': RandomGenerator,
+        'rutherford_rng':   xt.RandomRutherford,
         '_tracking':        xo.Int8
     }
 
@@ -37,14 +41,14 @@ class EverestCollimator(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
+    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential]
+
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
-
-    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift]
 
 
     def __init__(self, **kwargs):
@@ -63,7 +67,7 @@ class EverestCollimator(BaseCollimator):
             else:
                 tilt = [tilt, tilt]
             kwargs['tilt'] = tilt
-            kwargs.setdefault('random_generator', RandomGenerator())
+            kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 #         if '_xobject' not in kwargs:
@@ -85,20 +89,20 @@ class EverestCollimator(BaseCollimator):
 
 class EverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
-        'bend':        xo.Float64,
-        'xdim':        xo.Float64,
-        'ydim':        xo.Float64,
-        'thick':       xo.Float64,
-        'crytilt':     xo.Float64,
-        'miscut':      xo.Float64,
-        'orient':      xo.Float64,
-        'offset':      xo.Float64,
-        'onesided':    xo.Int8,
-        'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
-        'material':    CrystalMaterial,
-        'random_generator': RandomGenerator,
-        '_tracking':   xo.Int8
+        'align_angle':    xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
+        'bend':           xo.Float64,
+        'xdim':           xo.Float64,
+        'ydim':           xo.Float64,
+        'thick':          xo.Float64,
+        'crytilt':        xo.Float64,
+        'miscut':         xo.Float64,
+        'orient':         xo.Float64,
+        'offset':         xo.Float64,
+        'onesided':       xo.Int8,
+        'tilt':           xo.Float64[:],  # TODO: how to limit this to length 2
+        'material':       CrystalMaterial,
+        'rutherford_rng': xt.RandomRutherford,
+        '_tracking':      xo.Int8
     }
 
     isthick = True
@@ -111,13 +115,13 @@ class EverestCrystal(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
+    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential, xt.RandomNormal]
+
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
-
-    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift]
 
 
     def __init__(self, **kwargs):
@@ -143,7 +147,7 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('orient', 0)
-            kwargs.setdefault('random_generator', RandomGenerator())
+            kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 #         if '_xobject' not in kwargs:

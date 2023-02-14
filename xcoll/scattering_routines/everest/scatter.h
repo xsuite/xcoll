@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #ifndef XCOLL_EVEREST_SCAT_H
 #define XCOLL_EVEREST_SCAT_H
 #include <math.h>

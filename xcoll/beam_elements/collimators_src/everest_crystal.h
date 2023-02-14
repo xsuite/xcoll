@@ -1,7 +1,12 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #ifndef XCOLL_EVEREST_CRYSTAL_H
 #define XCOLL_EVEREST_CRYSTAL_H
 #include <math.h>
-
+#include <stdio.h>
 
 
 /*gpufun*/
@@ -13,8 +18,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const inactive_back  = EverestCrystalData_get_inactive_back(el);
 
     CrystalMaterialData material = EverestCrystalData_getp_material(el);
-    RandomGeneratorData rng = EverestCrystalData_getp_random_generator(el);
-    RandomGeneratorData_set_rutherford_by_xcoll_material(rng, (GeneralMaterialData) material);
+    RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
+    RandomRutherfordData_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     //start_per_particle_block (part0->part)
         if (!is_active){
@@ -23,9 +28,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
         } else {
             // Check collimator initialisation
-            int8_t is_tracking = xcoll_assert_tracking(part);
-            int8_t rng_set     = xcoll_assert_rng_set(part);
-            int8_t ruth_set    = xcoll_assert_rutherford_set(rng, part);
+            int8_t is_tracking = assert_tracking(part, xcoll_state_invalid_tracking);
+            int8_t rng_set     = assert_rng_set(part, xcoll_state_rng_seeds_not_set);
+            int8_t ruth_set    = assert_rutherford_set(rng, part, xcoll_state_rng_rutherford_not_set);
 
             if ( is_tracking && rng_set && ruth_set) {
                 // Drift inactive front
@@ -43,4 +48,5 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     //end_per_particle_block
 }
 
-#endif
+
+#endif /* XCOLL_EVEREST_CRYSTAL_H */

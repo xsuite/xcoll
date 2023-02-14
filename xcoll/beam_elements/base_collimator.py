@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import numpy as np
 
 import xobjects as xo
@@ -22,6 +27,8 @@ class InvalidCollimator(xt.BeamElement):
 
     # InvalidCollimator catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
+        xt._pkg_root.joinpath('headers','functions.h'),
+        _pkg_root.joinpath('headers','collimator_states.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','invalid_collimator.h')
     ]
 
@@ -62,7 +69,7 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
 
-    _depends_on = [InvalidCollimator]
+    _depends_on = [InvalidCollimator, xt.RandomRutherford]
 
     def __init__(self, **kwargs):
         # TODO: quick hack to avoid instantiation; did not manage to get it to work correclty with ABC
