@@ -597,11 +597,12 @@ class CollimatorManager:
         return self.lossmap
 
     def _get_collimator_losses(self, part):
-        coll_names = [self.line.element_names[i] for i in part.at_element[part.state==-333]]
+        coll_mask = (part.state<=-333) & (part.state>=-336)
+        coll_names = [ self.line.element_names[i] for i in part.at_element[coll_mask]]
         # TODO: this way to get the collimator positions is a hack that needs to be cleaner with the new API
         coll_positions = dict(zip(self.collimator_names, self.s_center))
         coll_s = [coll_positions[name] for name in coll_names]
-        coll_length = [self.line[i].active_length for i in part.at_element[part.state==-333]]
+        coll_length = [self.line[i].active_length for i in part.at_element[coll_mask]]
         machine_length = self.line.get_length()
         if self._line_is_reversed:
             coll_s = [ machine_length - s for s in coll_s ]
@@ -610,8 +611,9 @@ class CollimatorManager:
 
 
     def _get_aperture_losses(self, part):
-        aper_s = list(part.s[part.state==0])
-        aper_names = [self.line.element_names[i] for i in part.at_element[part.state==0]]
+        aper_mask = part.state==0
+        aper_s = list(part.s[aper_mask])
+        aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         machine_length = self.line.get_length()
         if self._line_is_reversed:
             aper_s = [ machine_length - s for s in aper_s ]

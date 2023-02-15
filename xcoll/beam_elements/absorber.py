@@ -10,14 +10,14 @@ from ..general import _pkg_root
 
 class BlackAbsorber(BaseCollimator):
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/collimators_src/absorber.h')
+        _pkg_root.joinpath('beam_elements','collimators_src','absorber.h')
     ]
 
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _depends_on = [xt.Drift, xt.SRotation, xt.XYShift]
+    _depends_on = [BaseCollimator, xt.Drift, xt.SRotation, xt.XYShift]
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict

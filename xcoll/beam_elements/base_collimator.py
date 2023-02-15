@@ -27,8 +27,7 @@ class InvalidCollimator(xt.BeamElement):
 
     # InvalidCollimator catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
-        xt._pkg_root.joinpath('headers','functions.h'),
-        _pkg_root.joinpath('headers','collimator_states.h'),
+        _pkg_root.joinpath('headers','particle_states.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','invalid_collimator.h')
     ]
 
@@ -69,7 +68,7 @@ class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
 
-    _depends_on = [InvalidCollimator, xt.RandomRutherford]
+    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation]
 
     def __init__(self, **kwargs):
         # TODO: quick hack to avoid instantiation; did not manage to get it to work correclty with ABC

@@ -28,9 +28,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
         } else {
             // Check collimator initialisation
-            int8_t is_tracking = assert_tracking(part, xcoll_state_invalid_tracking);
-            int8_t rng_set     = assert_rng_set(part, xcoll_state_rng_seeds_not_set);
-            int8_t ruth_set    = assert_rutherford_set(rng, part, xcoll_state_rng_rutherford_not_set);
+            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
+            int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
             if ( is_tracking && rng_set && ruth_set) {
                 // Drift inactive front

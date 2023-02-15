@@ -8,6 +8,17 @@
 #include <math.h>
 #include <stdio.h>
 
+/*gpukern*/
+void RandomRutherfordData_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
+    double const zatom    = GeneralMaterialData_get_Z(material);
+    double const emr      = GeneralMaterialData_get_nuclear_radius(material);
+    double const hcut     = GeneralMaterialData_get_hcut(material);
+    double const lcut     = 0.0009982;
+    double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
+    double A = pow(zatom,2);
+    double B = c*pow(emr,2);
+    RandomRutherfordData_set(ran, A, B, lcut, hcut);
+}
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
@@ -28,9 +39,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
         } else {
             // Check collimator initialisation
-            int8_t is_tracking = assert_tracking(part, xcoll_state_invalid_tracking);
-            int8_t rng_set     = assert_rng_set(part, xcoll_state_rng_seeds_not_set);
-            int8_t ruth_set    = assert_rutherford_set(rng, part, xcoll_state_rng_rutherford_not_set);
+            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
+            int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
             if ( is_tracking && rng_set && ruth_set) {
                 // Drift inactive front

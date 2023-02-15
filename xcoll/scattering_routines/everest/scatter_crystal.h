@@ -324,7 +324,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
 
     // Update state    ----------------------------------------------------
     if (val_part_abs > 0){
-        LocalParticle_set_state(part, -333);
+        LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
     }
 
     // Return from closed orbit

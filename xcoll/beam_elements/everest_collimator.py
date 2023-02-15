@@ -41,7 +41,7 @@ class EverestCollimator(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential]
+    _depends_on = [BaseCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential]
 
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
@@ -115,9 +115,14 @@ class EverestCrystal(BaseCollimator):
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator, InvalidCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential, xt.RandomNormal]
+    _depends_on = [BaseCollimator, EverestCollimator, xt.Drift, xt.RandomUniform, xt.RandomExponential, xt.RandomNormal]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
+        _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
+        _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
+        _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h'),
+                           
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')

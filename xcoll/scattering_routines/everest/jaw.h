@@ -265,20 +265,23 @@ double calcionloss(LocalParticle* part, double p, double rlen, MaterialData mate
     double const anuc     = MaterialData_get_A(material);
     double const rho      = MaterialData_get_density(material);
     double const exenergy = MaterialData_get_excitation_energy(material);
+    
+    double k = 0.307075;  // Constant in front bethe-bloch [mev g^-1 cm^2]
+    double pmae = 0.510998902;
+    double pmap = 938.271998;
 
     double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
-    double enr    = pow((mom*mom + 938.271998*938.271998),0.5); //[MeV]
-    double gammar = enr/938.271998;
+    double enr    = pow(mom*mom + pmap*pmap,0.5); //[MeV]
+    double gammar = enr/pmap;
     double betar  = mom/enr;
     double bgr    = betar*gammar;
-    double kine   = ((2*0.510998902)*bgr)*bgr;
-    double k = 0.307075;
+    double kine   = 2*pmae*bgr*bgr;
 
     // Mean excitation energy
     double exEn = exenergy*1.0e3; // [MeV]
 
     // tmax is max energy loss from kinematics
-    double tmax = kine/(1 + (2*gammar)*(0.510998902/938.271998) + pow((0.510998902/938.271998),2)); // [MeV]
+    double tmax = kine/(1 + (2*gammar)*(pmae/pmap) + pow((pmae/pmap),2.)); // [MeV]
 
     // Plasma energy - see PDG 2010 table 27.1
     double plen = pow(((rho*zatom)/anuc),0.5)*28.816e-6; // [MeV]

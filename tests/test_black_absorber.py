@@ -17,7 +17,7 @@ def test_horizontal_parallel():
         mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost = np.unique(part.s[mask_hit])
         s_alive = np.unique(part.s[~mask_hit])
@@ -40,7 +40,7 @@ def test_horizontal():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])
@@ -70,7 +70,7 @@ def test_horizontal_with_tilts():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])
@@ -96,7 +96,7 @@ def test_vertical_parallel():
         mask_hit = (y >= jaw_L + coy) | (y <= jaw_R + coy)
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost = np.unique(part.s[mask_hit])
         s_alive = np.unique(part.s[~mask_hit])
@@ -119,7 +119,7 @@ def test_vertical():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])
@@ -149,7 +149,7 @@ def test_vertical_with_tilts():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])
@@ -176,7 +176,7 @@ def test_angled_parallel():
         mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost = np.unique(part.s[mask_hit])
         s_alive = np.unique(part.s[~mask_hit])
@@ -201,7 +201,7 @@ def test_angled():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])
@@ -233,7 +233,7 @@ def test_angled_with_tilts():
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
-        assert len(lost)==1 and lost[0]==-333
+        assert len(lost)==1 and lost[0]==-340
         assert len(alive)==1 and alive[0]==1
         s_lost_front = np.unique(part.s[mask_hit_front])
         s_alive = np.unique(part.s[~mask_hit])

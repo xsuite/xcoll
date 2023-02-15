@@ -106,7 +106,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         // Update dead particles
         if (!is_alive){
 
-            LocalParticle_set_state(part, -333);
+            LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
 
             // Record impact data
             if (record){
