@@ -8,17 +8,17 @@
 #include <math.h>
 #include <stdio.h>
 
-/*gpukern*/
-void RandomRutherfordData_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
-    double const zatom    = GeneralMaterialData_get_Z(material);
-    double const emr      = GeneralMaterialData_get_nuclear_radius(material);
-    double const hcut     = GeneralMaterialData_get_hcut(material);
-    double const lcut     = 0.0009982;
-    double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
-    double A = pow(zatom,2);
-    double B = c*pow(emr,2);
-    RandomRutherfordData_set(ran, A, B, lcut, hcut);
-}
+// /*gpukern*/
+// void RandomRutherfordData_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
+//     double const zatom    = GeneralMaterialData_get_Z(material);
+//     double const emr      = GeneralMaterialData_get_nuclear_radius(material);
+//     double const hcut     = GeneralMaterialData_get_hcut(material);
+//     double const lcut     = 0.0009982;
+//     double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
+//     double A = pow(zatom,2);
+//     double B = c*pow(emr,2);
+//     RandomRutherfordData_set(ran, A, B, lcut, hcut);
+// }
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
@@ -31,6 +31,21 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     MaterialData material = EverestCollimatorData_getp_material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
     RandomRutherfordData_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+
+    // Collimator properties
+    double const length     = EverestCollimatorData_get_active_length(el);
+    double const co_x       = EverestCollimatorData_get_dx(el);
+    double const co_y       = EverestCollimatorData_get_dy(el);
+    // TODO: use xtrack C-code for rotation element
+    double const cRot       = EverestCollimatorData_get_cos_z(el);
+    double const sRot       = EverestCollimatorData_get_sin_z(el);    
+    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+    //     raise NotImplementedError
+    double const c_aperture = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
+    double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
+    double const c_tilt0    = EverestCollimatorData_get_tilt(el, 0);
+    double const c_tilt1    = EverestCollimatorData_get_tilt(el, 1);
+    double const onesided   = EverestCollimatorData_get_onesided(el);
 
     //start_per_particle_block (part0->part)
         if (!is_active){
@@ -47,10 +62,19 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 
-                // Scatter
+                // Scattering parameters
                 double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
                 struct ScatteringParameters scat = calculate_scattering(energy0, material);
-                scatter(el, part, scat);
+
+                // Move to closed orbit
+                LocalParticle_add_to_x(part, -co_x);
+                LocalParticle_add_to_y(part, -co_y);
+                
+                scatter(part, length, material, rng, scat, cRot, sRot, c_aperture, c_offset, c_tilt0, c_tilt1, onesided);
+
+                // Return from closed orbit
+                LocalParticle_add_to_x(part, co_x);
+                LocalParticle_add_to_y(part, co_y);
 
                 // Drift inactive back (only surviving particles)
                 if (LocalParticle_get_state(part) > 0){

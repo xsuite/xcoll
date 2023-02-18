@@ -15,31 +15,8 @@
 //    Use rotation function from xtrack XYRotation element (call its C function)
 
 /*gpufun*/
-double drift_zeta_single(double rvv, double xp, double yp, double length){
-    double const rv0v = 1./rvv;
-    double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
-    return length * dzeta;
-}
-
-/*gpufun*/
-void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat) {
-
-    // Collimator properties
-    double const length     = EverestCollimatorData_get_active_length(el);
-    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
-    //     raise NotImplementedError
-    double const c_aperture = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
-    double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
-    double const c_tilt0    = EverestCollimatorData_get_tilt(el, 0);
-    double const c_tilt1    = EverestCollimatorData_get_tilt(el, 1);
-    double const onesided   = EverestCollimatorData_get_onesided(el);
-    double const c_rotation = atan2(EverestCollimatorData_get_sin_z(el), EverestCollimatorData_get_cos_z(el) );
-    double const co_x       = EverestCollimatorData_get_dx(el);
-    double const co_y       = EverestCollimatorData_get_dy(el);
-
-    // Move to closed orbit
-    LocalParticle_add_to_x(part, -co_x);
-    LocalParticle_add_to_y(part, -co_y);
+void scatter(LocalParticle* part, double length, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
+            double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, double onesided){
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -83,16 +60,10 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
 
     double mirror = 1.;
 
-    // TODO: use xtrack C-code for rotation element
-
-    // Compute rotation factors for collimator rotation
-    double cRot   = cos(c_rotation);
-    double sRot   = sin(c_rotation);
-    double cRRot  = cos(-c_rotation);
-    double sRRot  = sin(-c_rotation);
-
     // Transform particle coordinates to get into collimator coordinate  system
     // First do rotation into collimator frame
+    double const cRRot = cRot;
+    double const sRRot = -sRot;
     x  =  x_in*cRot + sRot*y_in;
     z  =  y_in*cRot - sRot*x_in;
     xp = xp_in*cRot + sRot*yp_in;
@@ -181,7 +152,7 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
             }
             nhit = nhit + 1;
 
-            double* jaw_result = jaw(el, part, scat,
+            double* jaw_result = jaw(part, material, rng, scat,
                             p_in,
                             zlm,
                             x,
@@ -307,10 +278,6 @@ void scatter(EverestCollimatorData el, LocalParticle* part, struct ScatteringPar
     if (val_part_abs > 0){
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST);
     }
-
-    // Return from closed orbit
-    LocalParticle_add_to_x(part, co_x);
-    LocalParticle_add_to_y(part, co_y);
 
     return;
 

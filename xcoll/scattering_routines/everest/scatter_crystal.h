@@ -9,55 +9,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/*gpufun*/
-double drift_cry_zeta_single(double rvv, double xp, double yp, double length){
-    double const rv0v = 1./rvv;
-    double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
-    return length * dzeta;
-}
 
 /*gpufun*/
-void scatter_cry(EverestCrystalData el, LocalParticle* part) {
-
-    // Crystal properties
-    double length  = EverestCrystalData_get_active_length(el);
-    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
-    //     raise NotImplementedError
-    double const c_aperture = EverestCrystalData_get_jaw_F_L(el) - EverestCrystalData_get_jaw_F_R(el);
-    double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_F_L(el) + EverestCrystalData_get_jaw_F_R(el) )/2;
-    double const c_tilt0    = EverestCrystalData_get_tilt(el, 0);
-    double const c_tilt1    = EverestCrystalData_get_tilt(el, 1);
-    double const onesided   = EverestCrystalData_get_onesided(el);
-    double const c_rotation = atan2(EverestCrystalData_get_sin_z(el), EverestCrystalData_get_cos_z(el) );
-    double const co_x       = EverestCrystalData_get_dx(el);
-    double const co_y       = EverestCrystalData_get_dy(el);
-    double const bend       = EverestCrystalData_get_bend(el);
-    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
-    double const bend_ang   = length/bend;    // temporary value
-    if (cry_tilt >= -bend_ang) {
-        length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
-    } else {
-        length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
-    }
-    double const cry_rcurv  = bend;
-    double const cry_bend   = length/cry_rcurv; //final value (with corrected length) 
-    double const cry_alayer = EverestCrystalData_get_thick(el);
-    double const cry_xmax   = EverestCrystalData_get_xdim(el);
-    double const cry_ymax   = EverestCrystalData_get_ydim(el);
-    double const cry_orient = EverestCrystalData_get_orient(el);
-    double const cry_miscut = EverestCrystalData_get_miscut(el);
-    double const cry_cBend  = cos(cry_bend); 
-    double const cry_sBend  = sin(cry_bend); 
-    double const cry_cpTilt = cos(cry_tilt);
-    double const cry_spTilt = sin(cry_tilt);
-    double const cry_cnTilt = cos(-cry_tilt);
-    double const cry_snTilt = sin(-cry_tilt);
-    RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
-
-    // Move to closed orbit
-    LocalParticle_add_to_x(part, -co_x);
-    LocalParticle_add_to_y(part, -co_y);
-
+void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
+                 double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, 
+                 double onesided, double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax,
+                 double cry_ymax, double cry_orient, double cry_miscut){
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -114,14 +71,10 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
 
     // TODO: use xtrack C-code for rotation element
 
-    // Compute rotation factors for collimator rotation
-    double cRot   = cos(c_rotation);
-    double sRot   = sin(c_rotation);
-    double cRRot  = cos(-c_rotation);
-    double sRRot  = sin(-c_rotation);
-
     // Transform particle coordinates to get into collimator coordinate  system
     // First do rotation into collimator frame
+    double const cRRot = cRot;
+    double const sRRot = -sRot;
     x  =  x_in*cRot + sRot*y_in;
     z  =  y_in*cRot - sRot*x_in;
     xp = xp_in*cRot + sRot*yp_in;
@@ -175,7 +128,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         double s = 0.;
         double zlm = -1*length;
 
-        double* crystal_result = crystal(rng,part,x,
+        double* crystal_result = crystal(rng, part, x,
                                 xp,
                                 z,
                                 zp,
@@ -191,7 +144,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
                                 val_part_impact,
                                 val_part_indiv,
                                 length,
-                                EverestCrystalData_getp_material(el),
+                                material,
                                 nhit,
                                 nabs,
                                 cry_tilt,
@@ -202,12 +155,6 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
                                 cry_ymax,
                                 cry_orient,
                                 cry_miscut,
-                                cry_cBend,
-                                cry_sBend,
-                                cry_cpTilt,
-                                cry_spTilt,
-                                cry_cnTilt,
-                                cry_snTilt,
                                 iProc,
                                 n_chan,
                                 n_VR,
@@ -302,7 +249,7 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     // Absorbed particles keep coordinates at the entrance of collimator, others need correcting:
     // Non-hit particles are just drifting (zeta not yet drifted in K2, so do here)
     if (val_part_hit==0){
-        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length) );
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length) );
     }
     // Hit and survived particles need correcting:
     if (val_part_hit>0 && val_part_abs==0){
@@ -311,9 +258,9 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
         double rvv = LocalParticle_get_rvv(part);
         double rpp = LocalParticle_get_rpp(part);
         // First we drift half the length with the old angles:
-        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
         // then half the length with the new angles:
-        LocalParticle_add_to_zeta(part, drift_cry_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+        LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
     }
 
     // Update s    --------------------------------------------------------
@@ -326,10 +273,6 @@ void scatter_cry(EverestCrystalData el, LocalParticle* part) {
     if (val_part_abs > 0){
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
     }
-
-    // Return from closed orbit
-    LocalParticle_add_to_x(part, co_x);
-    LocalParticle_add_to_y(part, co_y);
 
     return;
 

@@ -8,43 +8,37 @@
 #include <math.h>
 #include <stdio.h>
 
+
+/*gpufun*/
 double iterat(double a, double b, double dh, double s) {
-
     double ds = s;
-
     while (1) {
-        
         ds = ds*0.5;
-
         if (pow(s,3) < pow((a+b*s),2)) {
             s = s+ds;
         } else {
-            s = s-ds; 
+            s = s-ds;
         }
-
         if (ds < dh) {
             break;
-        } else { 
+        } else {
             continue;
         }
     }
-
     return s;
-
 }
 
-double soln3(double a, double b, double dh, double smax) {
 
+/*gpufun*/
+double soln3(double a, double b, double dh, double smax) {
     double s;
     if (b == 0) {
         s = pow(a,0.6666666666666667);
-
         if (s > smax) {
             s = smax;
         }
         return s;
     }
-
     if (a == 0) {    
         if (b > 0) {
             s = pow(b,2);
@@ -56,9 +50,7 @@ double soln3(double a, double b, double dh, double smax) {
         }
         return s;
     }
-        
     if (b > 0) {
-
         if (pow(smax,3) <= pow((a + b*smax),2)) {
             s = smax;
             return s;
@@ -81,13 +73,12 @@ double soln3(double a, double b, double dh, double smax) {
             s = iterat(a,b,dh,s);
         }
     }
-   
     return s;
-
 }
 
-double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
+/*gpufun*/
+double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     // double x0  = *xx;
     // double xp0 = *xxp;
     double r2 = 0;
@@ -113,11 +104,11 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
     result[0] = x0  + s*(xp0 + ((0.5*ss)*sss)*(z2 + z1*0.577350269));
     result[1] = xp0 + (ss*z2)*sss;
-
     return result;
-
 }
 
+
+/*gpufun*/
 double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, double x, double xp, double z, double zp) {
 
     double const radl     = MaterialData_get_radiation_length(material);
@@ -135,12 +126,9 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     z     = (z/theta)/radl;
     zp    = zp/theta;
 
-
     while (1) {
-        
         double ae = bn0 * x;
         double be = bn0 * xp;
-
         // #######################################
         // ae = np.array(ae, dtype=np.double64)
         // be = np.array(be, dtype=np.double64)
@@ -149,20 +137,16 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
         // s = np.array(s, dtype=np.double64)
         // #######################################
         s = soln3(ae,be,dh,rlen);
-
         if (s < h) {
             s = h;
         }
-
         double* res = scamcs(part, x,xp,s);
         x  = res[0];
         xp = res[1];
-
         if (x <= 0) {
             s = (rlen0-rlen)+ s;
             break; // go to 20
         }
-
         if ((s + dh) >= rlen) {
             s = rlen0;
             break; // go to 20
@@ -180,13 +164,12 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     result[2]  = xp*theta;
     result[3]  = (z*theta)*radl;
     result[4]  = zp*theta;
-
     return result;
-
 }
 
-double* tetat(LocalParticle* part, double t, double p) {
 
+/*gpufun*/
+double* tetat(LocalParticle* part, double t, double p) {
     double teta = sqrt(t)/p;
     double va = 0;
     double vb  = 0;
@@ -201,7 +184,6 @@ double* tetat(LocalParticle* part, double t, double p) {
         va2 = pow(va,2);
         vb2 = pow(vb,2);
         r2  = va2 + vb2;
-
         if(r2 < 1) {
             break;
         }
@@ -209,11 +191,11 @@ double* tetat(LocalParticle* part, double t, double p) {
         
     result[0] = (teta*((2*va)*vb))/r2;
     result[1]  = (teta*(va2 - vb2))/r2;
-
     return result;
-                
-}                
-                
+}
+
+
+/*gpufun*/
 double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
 
     static double res[2];
@@ -222,43 +204,32 @@ double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, dou
 
     if (inter==2) { // Nuclear Elastic
         result = RandomExponential_generate(part)/scat.bn;
-    }
-    
-    else if (inter==3) { // pp Elastic
+    } else if (inter==3) { // pp Elastic
         result = RandomExponential_generate(part)/scat.bpp;
-    }
-
-    else if (inter==4) { // Single Diffractive
+    } else if (inter==4) { // Single Diffractive
         double xm2 = exp(RandomUniform_generate(part) * scat.xln15s);
         double bsd = 0;
         p = p * (1 - xm2/scat.ecmsq);
     
         if (xm2 < 2) {
             bsd = 2 * scat.bpp;
-        }
-
-        else if ((xm2 >= 2) & (xm2 <= 5)) {
+        } else if ((xm2 >= 2) & (xm2 <= 5)) {
             bsd = ((106.0 - 17.0*xm2)*scat.bpp)/36.0;
-        }
-
-        else {
+        } else {
             bsd = (7*scat.bpp)/12.0;
         }
-   
         result = RandomExponential_generate(part)/bsd;
-    }
-
-    else if (inter==5) { // Coulomb
+    } else if (inter==5) { // Coulomb
         result = RandomRutherford_generate(rng, part);
     }
 
     res[0] = result;
     res[1] = p;
-
     return res;
-                
 }
-                
+
+
+/*gpufun*/
 double calcionloss(LocalParticle* part, double p, double rlen, MaterialData material) {
 
     double const zatom    = MaterialData_get_Z(material);
@@ -311,19 +282,18 @@ double calcionloss(LocalParticle* part, double p, double rlen, MaterialData mate
     if (RandomUniform_generate(part) < prob_tail) {
         enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
         enlo = (enlo*rho)*1.0e-1; // [GeV/m]
-    }
-    else {
+    } else {
         // If tail energy loss does not occur, just use the standard Bethe-Bloch
         enlo = enlo/rlen;  // [GeV/m]
-    }
-        
+    }  
     return enlo;
 }
 
+
+/*gpufun*/
 int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
     double aran = RandomUniform_generate(part);
-
     int i;
     for (i = 0; i < 5; ++i) {
         if (aran <= scat.cprob[i]) {
@@ -333,7 +303,10 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
     return i;
 }
 
-double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringParameters scat, double p, double zlm, double x, double xp, double z, double zp) {
+
+/*gpufun*/
+double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
+            double p, double zlm, double x, double xp, double z, double zp) {
     
     static double result[7];
     double s;
@@ -344,23 +317,17 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     double tx; 
     double tz;
 
-    MaterialData material   = EverestCollimatorData_getp_material(el);
-    RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
-
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
     while (1) {
-
         double zlm1 = scat.xintl*RandomExponential_generate(part);
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
         // length, do multiple coulomb scattering and return.
         // LAST STEP IN ITERATION LOOP
-        if (zlm1 > rlen) {
-            
+        if (zlm1 > rlen) { 
             zlm1 = rlen;
-        
             double* res = mcs(part, material, zlm1, p, x, xp, z, zp);
             s = res[0];
             x = res[1];
@@ -388,10 +355,8 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
         // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
 
         if(x <= 0) {
-
             s = (zlm-rlen)+s;
             m_dpodx = calcionloss(part, p, rlen, material);
-
             p = p-m_dpodx*s;
             break;
         }
@@ -403,14 +368,10 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
 
         int inter = ichoix(part, scat);
         nabs = inter;
-
         if (inter == 1) {
-
             s = (zlm-rlen)+zlm1;
             m_dpodx = calcionloss(part, p, rlen, material);
-
             p = p-m_dpodx*s;
-
             break;
         }
 
@@ -457,9 +418,7 @@ double* jaw(EverestCollimatorData el, LocalParticle* part, struct ScatteringPara
     result[4] = xp;
     result[5] = z;
     result[6] = zp;
-
     return result;
-
 }  
   
 
