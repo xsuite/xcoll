@@ -1,9 +1,15 @@
 import json
+import sys
 from pathlib import Path
 import numpy as np
-import xpart as xp
 
-from ...beam_elements import PyEverestCollimator, PyEverestCrystal
+import xobjects as xo
+import xpart as xp
+sys.path.append(str(Path.cwd().resolve().parents[0]))
+import duckcoll as dc
+
+dc.scattering_routines.k2.K2Engine(_capacity=50000, random_generator_seed=6574654)
+
 
 materials_b1 = {
   'BE':   'tcl.4r1.b1',
@@ -82,7 +88,7 @@ crystals_b2 = [
 ]
 
 
-path = Path('./data_test_pyeverest/')
+path = Path('./data_test_k2/')
 
 def test_primaries():
     _track_collimator('tcp.c6l7.b1')
@@ -125,18 +131,23 @@ def test_crystals():
         _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11, atold=1e-11)
 
 
-def _track_collimator(name, atolx=1e-13, atoly=1e-13, atolpx=1e-13, atolpy=1e-13, atolz=1e-13, atold=1e-13):
+def _track_collimator(name, atolx=1e-20, atoly=1e-20, atolpx=1e-20, atolpy=1e-20, atolz=1e-15, atold=1e-20):
+    # Initialise engine
+    dc.scattering_routines.k2.K2Engine.reset()
+    # Load initial particles
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
+    # Initialise collimator
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    ...scattering_routines.pyeverest.set_random_seed(6574654)
-    if colldict['__class__'] == 'PyEverestCollimator':
-        coll = PyEverestCollimator.from_dict(colldict)
-    elif colldict['__class__'] == 'PyEverestCrystal':
-        coll = PyEverestCrystal.from_dict(colldict)
+    if colldict['__class__'] == 'K2Collimator':
+        coll = dc.K2Collimator.from_dict(colldict)
+    elif colldict['__class__'] == 'K2Crystal':
+        coll = dc.K2Crystal.from_dict(colldict)
+    # Track
     coll.track(part)
     _reshuffle(part)
+    # Compare
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
     _reshuffle(part_ref)

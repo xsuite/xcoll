@@ -117,7 +117,7 @@ def track_core(k2collimator, particles):
 
     # Get crystal parameters
     from ...beam_elements import K2Crystal
-    from ..everest.materials import CrystalMaterial
+    from xcoll import CrystalMaterial
     if isinstance(k2collimator, K2Crystal):
         if not isinstance(k2collimator.material, CrystalMaterial):
             raise ValueError(f"The collimator material {k2collimator.material.name} cannot be used as a crystal!")

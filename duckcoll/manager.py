@@ -1,4 +1,5 @@
 from .beam_elements import K2Collimator, K2Crystal, PyEverestCollimator, PyEverestCrystal
+from .scattering_routines.k2 import K2Engine
 
 
 def install_k2_collimators(self, coll_manager, names=None, *, max_part=50000, seed=None, verbose=False):
@@ -27,21 +28,21 @@ def install_k2_collimators(self, coll_manager, names=None, *, max_part=50000, se
     return k2engine
 
 
-    def install_pyeverest_collimators(self, coll_manager, names=None, *, verbose=False, random_seed=None):
-        from .scattering_routines.pyeverest import set_random_seed
-        set_random_seed(random_seed)
+def install_pyeverest_collimators(self, coll_manager, names=None, *, verbose=False, random_seed=None):
+    from .scattering_routines.pyeverest import set_random_seed
+    set_random_seed(random_seed)
 
-        # Do the installation
-        def install_func(thiscoll, name):
-            return PyEverestCollimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False,
-                    _buffer=self._buffer
-                   )
-        coll_manager._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, 
-                                      verbose=verbose, support_legacy_elements=True)
+    # Do the installation
+    def install_func(thiscoll, name):
+        return PyEverestCollimator(
+                inactive_front=thiscoll['inactive_front'],
+                inactive_back=thiscoll['inactive_back'],
+                active_length=thiscoll['active_length'],
+                angle=thiscoll['angle'],
+                material=SixTrack_to_xcoll[thiscoll['material']][0],
+                is_active=False,
+                _buffer=self._buffer
+               )
+    coll_manager._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, 
+                                  verbose=verbose, support_legacy_elements=True)
 

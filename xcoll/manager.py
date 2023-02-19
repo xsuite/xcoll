@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
-from .scattering_routines.k2.engine import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
@@ -27,7 +26,6 @@ class CollimatorManager:
             self.line = line
         self.line._needs_rng = True
         self._line_is_reversed = line_is_reversed
-        self._k2engine = None   # only needed for FORTRAN K2Collimator
 
         # Create _buffer, _context, and _io_buffer
         if _buffer is None:
@@ -328,7 +326,7 @@ class CollimatorManager:
     # The variable 'to_parking' will send all collimators that are not listed in 'gaps' to parking.
     # Similarily, the variable 'full_open' will set all openings of the collimators that are not
     # listed in 'gaps' to 1m.
-    def set_openings(self, gaps={}, *, recompute_optics=False, to_parking=False, full_open=False):
+    def set_openings(self, gaps={}, *, recompute_optics=False, to_parking=False, full_open=False, support_legacy_elements=False):
         if not self.tracker_ready:
             raise Exception("Please build tracker before setting the openings!")
         colldb = self.colldb
@@ -366,7 +364,7 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-                if isinstance(line[name], (EverestCollimator, PyEverestCollimator, K2Collimator)):
+                if isinstance(line[name], (EverestCollimator)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
                         line[name].onesided = False

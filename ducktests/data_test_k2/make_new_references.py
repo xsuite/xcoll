@@ -1,13 +1,14 @@
 import json
+import sys
 from pathlib import Path
 import numpy as np
 
 import xobjects as xo
 import xpart as xp
+sys.path.append(str(Path.cwd().resolve().parents[1]))
+import duckcoll as dc
 
-from ...scattering_routines.k2 import K2Engine
-from ...beam_elements import K2Collimator, K2Crystal
-K2Engine(_capacity=50000, random_generator_seed=6574654)
+dc.scattering_routines.k2.K2Engine(_capacity=50000, random_generator_seed=6574654)
 
 collimators = [
     'tcl.4r1.b1', 'tcl.5r1.b1', 'tcl.6r1.b1', 'tctph.4l2.b1', 'tcsg.5l3.b1', 'tcsg.4r3.b1', 'tcla.b5r3.b1', 'tcla.6r3.b1', \
@@ -33,7 +34,7 @@ def _reshuffle(part):
 
 def _make_collimator_ref(name):
     # Initialise engine
-    K2Engine.reset()
+    dc.scattering_routines.k2.K2Engine.reset()
     # Load initial particles
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
@@ -41,9 +42,9 @@ def _make_collimator_ref(name):
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
     if colldict['__class__'] == 'K2Collimator':
-        coll = K2Collimator.from_dict(colldict)
+        coll = dc.K2Collimator.from_dict(colldict)
     elif colldict['__class__'] == 'K2Crystal':
-        coll = K2Crystal.from_dict(colldict)
+        coll = dc.K2Crystal.from_dict(colldict)
     # Track
     coll.track(part)
     _reshuffle(part)

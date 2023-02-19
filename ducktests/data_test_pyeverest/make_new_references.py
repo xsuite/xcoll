@@ -1,10 +1,12 @@
 import json
+import sys
 from pathlib import Path
 import numpy as np
 
 import xobjects as xo
 import xpart as xp
-from ...beam_elements import PyEverestCollimator, PyEverestCrystal
+sys.path.append(str(Path.cwd().resolve().parents[1]))
+import duckcoll as dc
 
 collimators = [
     'tcl.4r1.b1', 'tcl.5r1.b1', 'tcl.6r1.b1', 'tctph.4l2.b1', 'tcsg.5l3.b1', 'tcsg.4r3.b1', 'tcla.b5r3.b1', 'tcla.6r3.b1', \
@@ -33,11 +35,11 @@ def _make_collimator_ref(name):
         part = xp.Particles.from_dict(json.load(fid))
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
-    ...scattering_routines.pyeverest.random.set_random_seed(6574654)
+    dc.scattering_routines.pyeverest.random.set_random_seed(6574654)
     if colldict['__class__'] == 'PyEverestCollimator':
-        coll = PyEverestCollimator.from_dict(colldict)
+        coll = dc.PyEverestCollimator.from_dict(colldict)
     elif colldict['__class__'] == 'PyEverestCrystal':
-        coll = PyEverestCrystal.from_dict(colldict)
+        coll = dc.PyEverestCrystal.from_dict(colldict)
     coll.track(part)
     _reshuffle(part)
     with open(Path(path, 'Ref',name+'.json'), 'w') as fid:

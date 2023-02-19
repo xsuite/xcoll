@@ -57,7 +57,7 @@ def track_core(collimator, particles):
     from .scatter_init import calculate_scattering
     from .scatter import scatter
     from ...beam_elements.pyeverest_collimator import PyEverestCrystal
-    from ..everest.materials import CrystalMaterial
+    from xcoll import CrystalMaterial
 
     npart = particles._num_active_particles
     length = collimator.active_length
