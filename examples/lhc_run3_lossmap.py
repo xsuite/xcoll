@@ -34,14 +34,7 @@ coll_manager = xc.CollimatorManager(
 
 
 # Install collimators in line as everest collimators
-if engine == 'everest':
-    coll_manager.install_everest_collimators(verbose=True)
-elif engine == 'pyeverest':
-    coll_manager.install_pyeverest_collimators(verbose=True)
-elif engine == 'k2':
-    coll_manager.install_k2_collimators(verbose=True)
-else:
-    raise ValueError()
+coll_manager.install_everest_collimators(verbose=True)
 
     
 # Build the tracker
@@ -79,11 +72,9 @@ coll_manager.create_lossmap(part)
 with open(Path(path_out,f'lossmap_B{beam+plane}.json'), 'w') as fid:
     json.dump(coll_manager.lossmap, fid, indent=True)
 
-
-summary = coll_manager.coll_summary(part)
-with open(Path(path_out,f'coll_summary_B{beam+plane}.json'), 'w') as fid:
-    json.dump(summary.to_json(), fid, indent=True)
-
+# Save a summary of the collimator losses to a text file
+with open(Path(path_out,f'coll_summary_B{beam+plane}.out'), 'w') as fid:
+    fid.write(coll_manager.summary.__repr__())
 print(summary)
 
 exit()

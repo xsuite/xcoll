@@ -488,30 +488,37 @@ class CollimatorManager:
         for coll in self.collimator_names:
             self.line[coll]._tracking = False
 
+
     @property
-    def lossmap(self):
-        return self._lossmap
+    def summary(self):
+        return self._summary
 
-    def coll_summary(self, part):
-
-        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
-
+    def create_summary(self, part, coll_s=None, coll_names=None, coll_length=None):
+        if coll_s is None or coll_names is None or coll_length is None:
+            coll_s, coll_names, coll_length = self._get_collimator_losses(part)
         names = dict(zip(coll_s, coll_names))
         lengths = dict(zip(coll_s, coll_length))
         s = sorted(list(names.keys()))
+
         collname    =  [ names[pos] for pos in s ]
         colllengths =  [ lengths[pos] for pos in s ]
         nabs = []
         for pos in s:
             nabs.append(coll_s.count(pos))
 
-        return pd.DataFrame({
+        self._summary = pd.DataFrame({
             "collname": collname,
             "nabs":     nabs,
             "length":   colllengths,
             "s":        s
         })
 
+        return self._summary
+
+
+    @property
+    def lossmap(self):
+        return self._lossmap
 
     def create_lossmap(self, part, interpolation=0.1):
         # Loss location refinement
@@ -526,8 +533,9 @@ class CollimatorManager:
                     )
             loss_loc_refinement.refine_loss_location(part)
 
-        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
         aper_s, aper_names              = self._get_aperture_losses(part)
+        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
+        _ = self.create_summary(part, coll_s, coll_names, coll_length)
 
         self._lossmap = {
             'collimator': {
@@ -549,6 +557,7 @@ class CollimatorManager:
         }
 
         return self.lossmap
+
 
     def _get_collimator_losses(self, part):
         coll_mask = (part.state<=-333) & (part.state>=-336)
