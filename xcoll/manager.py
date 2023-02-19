@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, PyEverestCollimator, PyEverestCrystal, K2Collimator, K2Crystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
 from .scattering_routines.k2.engine import K2Engine
 from .colldb import CollDB
 from .tables import CollimatorImpacts
@@ -162,31 +162,6 @@ class CollimatorManager:
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
 
-
-    def install_k2_collimators(self, names=None, *, max_part=50000, seed=None, verbose=False):
-        # Check for the existence of a K2Engine; warn if settings are different
-        self._k2engine = K2Engine(_capacity=max_part, random_generator_seed=seed)
-        if self._k2engine._capacity != max_part:
-            print(f"Warning: K2 already initiated with a maximum allocation of {self._k2engine._capacity} particles.\n"
-                  + f"Ignoring the requested max_part={max_part}.")
-        if seed is not None and self._k2engine.random_generator_seed != seed:
-            print(f"Warning: K2 already initiated with seed {self._k2engine.random_generator_seed}.\n"
-                  + f"Ignoring the requested seed={seed}.")
-
-        # Do the installation
-        def install_func(thiscoll, name):
-            return K2Collimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False,
-                    _buffer=self._buffer
-                   )
-        self._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, verbose=verbose)
-
-
     def install_everest_collimators(self, names=None, *, verbose=False):
         # Do the installation
         def install_func(thiscoll, name):
@@ -204,26 +179,7 @@ class CollimatorManager:
                    )
         self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
 
-
-    def install_pyeverest_collimators(self, names=None, *, verbose=False, random_seed=None):
-        from .scattering_routines.pyeverest import set_random_seed
-        set_random_seed(random_seed)
-
-        # Do the installation
-        def install_func(thiscoll, name):
-            return PyEverestCollimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False,
-                    _buffer=self._buffer
-                   )
-        self._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, verbose=verbose)
-
-
-    def _install_collimators(self, names, *, collimator_class, install_func, verbose):
+    def _install_collimators(self, names, *, collimator_class, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollDB,
         # and that tracker is not yet built
         line = self.line
@@ -263,7 +219,7 @@ class CollimatorManager:
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correcft the element.")

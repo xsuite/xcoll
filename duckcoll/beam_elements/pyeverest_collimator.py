@@ -1,14 +1,13 @@
 import numpy as np
 
-from .base_collimator import BaseCollimator
-from ..scattering_routines.k2 import track
-from ..scattering_routines.everest import Material, CrystalMaterial
-
 import xobjects as xo
+
+from xcoll import BaseCollimator, Material, CrystalMaterial
+from ..scattering_routines.pyeverest import track
 
 
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
-class K2Collimator(BaseCollimator):
+class PyEverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         'offset':     xo.Float64,
         'onesided':   xo.Int8,
@@ -32,9 +31,6 @@ class K2Collimator(BaseCollimator):
             kwargs.setdefault('offset', 0)
             kwargs.setdefault('onesided', False)
             kwargs.setdefault('tilt', [0,0])
-            kwargs.setdefault('material', None)
-            if kwargs['material'] is None:
-                raise ValueError("Need to provide a material to the collimator!")
             tilt = kwargs['tilt']
             if hasattr(tilt, '__iter__'):
                 if isinstance(tilt, str):
@@ -48,9 +44,6 @@ class K2Collimator(BaseCollimator):
             kwargs['tilt'] = tilt
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            from ..scattering_routines.k2.engine import K2Engine
-            K2Engine()  # initialise the engine if it does not exist yet
 
 
     def track(self, particles):  # TODO: write impacts
@@ -59,7 +52,7 @@ class K2Collimator(BaseCollimator):
 
 
 
-class K2Crystal(BaseCollimator):
+class PyEverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         'align_angle': xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         'bend':        xo.Float64,
@@ -73,7 +66,7 @@ class K2Crystal(BaseCollimator):
         'onesided':    xo.Int8,
         'tilt':        xo.Float64[:],  # TODO: how to limit this to length 2
         'material':    CrystalMaterial,
-        '_tracking':  xo.Int8
+        '_tracking':   xo.Int8
     }
 
     isthick = True
@@ -111,9 +104,6 @@ class K2Crystal(BaseCollimator):
             kwargs.setdefault('orient', 0)
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            from ..scattering_routines.k2.engine import K2Engine
-            K2Engine()  # initialise the engine if it does not exist yet
 
 
     def track(self, particles):  # TODO: write impacts

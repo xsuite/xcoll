@@ -9,7 +9,7 @@ fi
 
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 
-cd xcoll/scattering_routines/k2/FORTRAN_src
+cd scattering_routines/k2/FORTRAN_src
 rm *.mod *.o
 
 

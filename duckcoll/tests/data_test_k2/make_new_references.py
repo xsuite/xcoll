@@ -4,7 +4,10 @@ import numpy as np
 
 import xobjects as xo
 import xpart as xp
-import xcoll as xc
+
+from ...scattering_routines.k2 import K2Engine
+from ...beam_elements import K2Collimator, K2Crystal
+K2Engine(_capacity=50000, random_generator_seed=6574654)
 
 collimators = [
     'tcl.4r1.b1', 'tcl.5r1.b1', 'tcl.6r1.b1', 'tctph.4l2.b1', 'tcsg.5l3.b1', 'tcsg.4r3.b1', 'tcla.b5r3.b1', 'tcla.6r3.b1', \
@@ -30,7 +33,7 @@ def _reshuffle(part):
 
 def _make_collimator_ref(name):
     # Initialise engine
-    xc.scattering_routines.k2.K2Engine.reset()
+    K2Engine.reset()
     # Load initial particles
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid))
@@ -38,9 +41,9 @@ def _make_collimator_ref(name):
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
     if colldict['__class__'] == 'K2Collimator':
-        coll = xc.K2Collimator.from_dict(colldict)
+        coll = K2Collimator.from_dict(colldict)
     elif colldict['__class__'] == 'K2Crystal':
-        coll = xc.K2Crystal.from_dict(colldict)
+        coll = K2Crystal.from_dict(colldict)
     # Track
     coll.track(part)
     _reshuffle(part)
@@ -48,8 +51,6 @@ def _make_collimator_ref(name):
     with open(Path(path, 'Ref',name+'.json'), 'w') as fid:
         json.dump(part.to_dict(), fid, cls=xo.JEncoder)
 
-
-xc.scattering_routines.k2.K2Engine(_capacity=50000, random_generator_seed=6574654)
 for coll in collimators:
     _make_collimator_ref(coll)
 
