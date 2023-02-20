@@ -416,8 +416,8 @@ class CollimatorManager:
                 )
 
 
-    def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=1e-6, 
-                                      pencil_spread=1e-9, transverse_impact_parameter=0., transverse_spread_sigma=0.01, 
+    def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
+                                      pencil_spread=1e-6, transverse_impact_parameter=0., transverse_spread_sigma=0.01, 
                                       sigma_z=7.55e-2, zeta=None, delta=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
