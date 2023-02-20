@@ -8,7 +8,6 @@ def load_SixTrack_colldb(filename, *, emit):
 class CollDB:
     def __init__(self, *, emit, sixtrack_file=None):
         self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
-        self._optics_positions_to_calculate = {}
         if sixtrack_file is not None:
             self.load_SixTrack(sixtrack_file)
         else:
@@ -375,30 +374,20 @@ class CollDB:
         s_center = self.s_center
         s_back = self.s_center + self.active_length/2
         mask = self.align_to == 'front'
-        self._colldb.loc[mask,'s_align_front']   = s_front[mask]
-        self._colldb.loc[mask,'s_align_back'] = s_front[mask]
+        self._colldb.loc[mask,'s_align_front'] = s_front[mask]
+        self._colldb.loc[mask,'s_align_back']  = s_front[mask]
         mask = self.align_to == 'center'
-        self._colldb.loc[mask,'s_align_front']   = s_center[mask]
-        self._colldb.loc[mask,'s_align_back'] = s_center[mask]
+        self._colldb.loc[mask,'s_align_front'] = s_center[mask]
+        self._colldb.loc[mask,'s_align_back']  = s_center[mask]
         mask = self.align_to == 'back'
-        self._colldb.loc[mask,'s_align_front']   = s_back[mask]
-        self._colldb.loc[mask,'s_align_back'] = s_back[mask]
+        self._colldb.loc[mask,'s_align_front'] = s_back[mask]
+        self._colldb.loc[mask,'s_align_back']  = s_back[mask]
         mask = self.align_to == 'angular'
-        self._colldb.loc[mask,'s_align_front']   = s_front[mask]
-        self._colldb.loc[mask,'s_align_back'] = s_back[mask]
-        # TODO: align max
-        new_optics_positions = np.unique(np.concatenate((
-                                    [ x for x in self._colldb.s_align_front if x is not None ],
-                                    [ x for x in self._colldb.s_align_back if x is not None ]
-                                )))
-        self._optics_positions_to_calculate = set(new_optics_positions) - set(self._optics.index)
+        self._colldb.loc[mask,'s_align_front'] = s_front[mask]
+        self._colldb.loc[mask,'s_align_back']  = s_back[mask]
         self._compute_jaws()
 
-    @property
-    def s_match(self):
-        return self._colldb.s_align_front
-
-    # Optics
+    # TODO: when does this need to be unset?
     @property
     def _optics_is_ready(self):
         pos = set(self._colldb.s_align_front.values) | set(self._colldb.s_align_back.values)

@@ -125,11 +125,11 @@ class CollimatorManager:
         return list(self.colldb.name)
 
     @property
-    def s_start(self):
+    def s_front(self):
         return self.colldb.s_center - self.colldb.active_length/2 - self.colldb.inactive_front
 
     @property
-    def s_start_active(self):
+    def s_active_front(self):
         return self.colldb.s_center - self.colldb.active_length/2
 
     @property
@@ -137,16 +137,12 @@ class CollimatorManager:
         return self.colldb.s_center
 
     @property
-    def s_end_active(self):
+    def s_active_back(self):
         return self.colldb.s_center + self.colldb.active_length/2
 
     @property
-    def s_end(self):
+    def s_back(self):
         return self.colldb.s_center + self.colldb.active_length/2 + self.colldb.inactive_back
-
-    @property
-    def s_match(self):
-        return self.colldb.s_match
 
     def install_black_absorbers(self, names=None, *, verbose=False):
         def install_func(thiscoll, name):
@@ -289,33 +285,22 @@ class CollimatorManager:
     def _compute_optics(self, recompute=False):
         if not self.tracker_ready:
             raise Exception("Please build tracker before computing the optics for the openings!")
-        if not self.aligned:
-            self.align_collimators_to('front')
-        if recompute:
-            self.colldb._optics_positions_to_calculate = { *set(self.colldb._colldb.s_align_front.values),\
-                                                           *set(self.colldb._colldb.s_align_back.values) }
-            self.colldb._optics = self.colldb._optics.iloc[0:0]
+        tracker = self.line.tracker
 
-        pos = list(self.colldb._optics_positions_to_calculate)
-        if pos != {}:
-            tracker = self.line.tracker
-#         TODO:
-#         This is how we'll do it once twiss bug fixed (needed once inactive_front/back != 0):
-#         (it is however much slower...)
-#             tw = tracker.twiss(at_s=pos)
-            tw = tracker.twiss()
+        if recompute or not self.colldb._optics_is_ready:
+            # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
+#             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
+            pos = { *self.s_active_front, *self.s_active_back }
+            tw = tracker.twiss(at_s=pos)
+#             tw = tracker.twiss()
             self.colldb._optics = pd.concat([
                                     self.colldb._optics,
                                     pd.DataFrame({
-#                                     This is how we'll do it once twiss bug fixed:
-#                                         opt: tw[opt] for opt in self.colldb._optics.columns
-#                                     Current hack: getting the optics of the element within 1pm
-#                                     (this will fail if the collimator is aligned to the centre)
-                                        opt: [ np.array(tw[opt])[abs(tw['s']-thispos) < 1e-12][0] for thispos in pos ]
+                                            opt: tw[opt] for opt in self.colldb._optics.columns
+#                                     opt: [ np.array(tw[opt])[abs(tw['s']-thispos) < 1e-12][0] for thispos in pos ]
                                         for opt in self.colldb._optics.columns
-                                    },index=pos)
+                                    }, index=pos)
                                 ])
-            self.colldb._optics_positions_to_calculate = {}
             self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
 
 
@@ -335,6 +320,8 @@ class CollimatorManager:
                              + "Please install all collimators before setting the openings.")
         if to_parking and full_open:
             raise ValueError("Cannot send collimators to parking and open them fully at the same time!")
+        if not self.aligned:
+            self.align_collimators_to('front')
 
         gaps_OLD = colldb.gap
         names = self.collimator_names
@@ -388,8 +375,9 @@ class CollimatorManager:
                 )
 
 
-    def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=1e-6, pencil_spread=1e-9,
-                                     transverse_impact_parameter=0., transverse_spread_sigma=0.01, sigma_z=7.55e-2, zeta=None, delta=None):
+    def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
+                                      pencil_spread=1e-6, transverse_impact_parameter=0., transverse_spread_sigma=0.01, 
+                                      sigma_z=7.55e-2, zeta=None, delta=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -416,26 +404,39 @@ class CollimatorManager:
         nemitt_y   = self.colldb.emittance[1]
         tracker    = self.tracker
         line       = self.line
-        match_at_s = self.s_match[collimator]
         angle      = self.colldb.angle[collimator]
-        sigma      = self.colldb._beam_size_front[collimator]
-        dr_sigmas  = pencil_spread/sigma
 
+        # Define the plane
         if abs(np.mod(angle-90,180)-90) < 1e-6:
             plane = 'x'
             co_pencil     = line[collimator].dx
-    #         co_transverse = line[collimator].dy
+            co_transverse = line[collimator].dy
         elif abs(np.mod(angle,180)-90) < 1e-6:
             plane = 'y'
             co_pencil     = line[collimator].dy
-    #         co_transverse = line[collimator].dx
+            co_transverse = line[collimator].dx
         else:
             raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
+
+        # Is it converging or diverging?
+        is_converging = self.colldb._optics.loc[ self.s_active_front[collimator], 'alf' + plane ] > 0
+#         is_converging = self.colldb._optics.loc[ self.s_center[collimator], 'alf' + plane ] > 0
+        print(f"Collimator is {'con' if is_converging else 'di'}verging.")
+        if is_converging:
+            # pencil at front of jaw
+            match_at_s = self.s_active_front[collimator]
+            sigma      = self.colldb._beam_size_front[collimator]
+        else:
+            # pencil at back of jaw
+            match_at_s = self.s_active_back[collimator]
+            sigma      = self.colldb._beam_size_back[collimator]
 
         if side == '+':
             absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
         elif side == '-':
             absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+
+        dr_sigmas  = pencil_spread/sigma
 
         # Collimator plane: generate pencil distribution
         pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
@@ -446,7 +447,7 @@ class CollimatorManager:
         )
 
         # Other plane: generate gaussian distribution in normalized coordinates
-        transverse_norm   = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+        transverse_norm   = np.random.normal(loc=co_transverse, scale=transverse_spread_sigma, size=num_particles)
         p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
 
         # Longitudinal plane
