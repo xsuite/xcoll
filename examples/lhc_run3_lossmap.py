@@ -75,6 +75,6 @@ with open(Path(path_out,f'lossmap_B{beam+plane}.json'), 'w') as fid:
 # Save a summary of the collimator losses to a text file
 with open(Path(path_out,f'coll_summary_B{beam+plane}.out'), 'w') as fid:
     fid.write(coll_manager.summary.__repr__())
-print(summary)
+print(coll_manager.summary)
 
 exit()
