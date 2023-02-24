@@ -14,7 +14,7 @@ double drift_zeta_single(double rvv, double xp, double yp, double length){
 }
 
 /*gpukern*/
-void RandomRutherfordData_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
+void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
     double const zatom    = GeneralMaterialData_get_Z(material);
     double const emr      = GeneralMaterialData_get_nuclear_radius(material);
     double const hcut     = GeneralMaterialData_get_hcut(material);
@@ -22,7 +22,7 @@ void RandomRutherfordData_set_by_xcoll_material(RandomRutherfordData ran, Genera
     double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
     double A = pow(zatom,2);
     double B = c*pow(emr,2);
-    RandomRutherfordData_set(ran, A, B, lcut, hcut);
+    RandomRutherford_set(ran, A, B, lcut, hcut);
 }
 
 #endif /* XCOLL_EVEREST_ENGINE_H */

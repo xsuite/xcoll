@@ -19,7 +19,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     CrystalMaterialData material = EverestCrystalData_getp_material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
-    RandomRutherfordData_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     // Crystal properties
     double length  = EverestCrystalData_get_active_length(el);
