@@ -403,11 +403,13 @@ class CollimatorManager:
             part_plus = self.generate_pencil_on_collimator(collimator, num_plus, side='+',
                             impact_parameter=impact_parameter, pencil_spread=pencil_spread,
                             transverse_impact_parameter=transverse_impact_parameter,
-                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z)
+                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z,
+                            zeta=zeta, delta=delta)
             part_min = self.generate_pencil_on_collimator(collimator, num_min, side='-',
                             impact_parameter=impact_parameter, pencil_spread=pencil_spread,
                             transverse_impact_parameter=transverse_impact_parameter,
-                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z)
+                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z,
+                            zeta=zeta, delta=delta)
             part = xp.Particles.merge([part_plus, part_min])
             part.start_tracking_at_element = part_plus.start_tracking_at_element
             return part
