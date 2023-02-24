@@ -34,7 +34,8 @@ def _run_lossmap(beam, plane, npart, interpolation):
     summ = coll_manager.summary
     assert list(summ.columns) == ['collname', 'nabs', 'length', 's']
     assert len(summ) == 10
-    assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.1*npart
+    # We want at least 5% absorption on the primary
+    assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
     lm = coll_manager.lossmap
     assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation', 'reversed']

@@ -290,7 +290,7 @@ class CollimatorManager:
         if recompute or not self.colldb._optics_is_ready:
             # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
 #             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
-            pos = { *self.s_active_front, *self.s_active_back }
+            pos = list({ *self.s_active_front, *self.s_active_back })
             tw = tracker.twiss(at_s=pos)
 #             tw = tracker.twiss()
             self.colldb._optics = pd.concat([
@@ -298,7 +298,7 @@ class CollimatorManager:
                                     pd.DataFrame({
                                             opt: tw[opt] for opt in self.colldb._optics.columns
 #                                     opt: [ np.array(tw[opt])[abs(tw['s']-thispos) < 1e-12][0] for thispos in pos ]
-                                        for opt in self.colldb._optics.columns
+#                                         for opt in self.colldb._optics.columns
                                     }, index=pos)
                                 ])
             self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
