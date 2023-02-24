@@ -30,7 +30,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     MaterialData material = EverestCollimatorData_getp_material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
-    RandomRutherfordData_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     // Collimator properties
     double const length     = EverestCollimatorData_get_active_length(el);

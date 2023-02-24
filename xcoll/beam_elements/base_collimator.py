@@ -11,10 +11,6 @@ import xtrack as xt
 from ..tables import CollimatorImpacts
 from ..general import _pkg_root
 
-# class MetaCollimator(xt.base_element.MetaBeamElement, ABCMeta):
-#     pass
-
-
 
 class InvalidCollimator(xt.BeamElement):
     _xofields = {
@@ -24,6 +20,7 @@ class InvalidCollimator(xt.BeamElement):
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
+    allow_backtrack = True
 
     # InvalidCollimator catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
@@ -40,7 +37,7 @@ class InvalidCollimator(xt.BeamElement):
 
 
 
-class BaseCollimator(xt.BeamElement):#, metaclass=MetaCollimator):
+class BaseCollimator(xt.BeamElement):
     _xofields = {
         'inactive_front': xo.Float64,
         'active_length': xo.Float64,

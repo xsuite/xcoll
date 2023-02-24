@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
-from .colldb import CollDB
+from .colldb import CollimatorDatabase
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
@@ -13,11 +13,11 @@ import xtrack as xt
 
 
 class CollimatorManager:
-    def __init__(self, *, line, line_is_reversed=False, colldb: CollDB, capacity=1e6, record_impacts=False, \
+    def __init__(self, *, line, line_is_reversed=False, colldb: CollimatorDatabase, capacity=1e6, record_impacts=False, \
                  _context=None, _buffer=None, io_buffer=None):
 
-        if not isinstance(colldb, CollDB):
-            raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
+        if not isinstance(colldb, CollimatorDatabase):
+            raise ValueError("The variable 'colldb' needs to be an xcoll CollimatorDatabase object!")
         else:
             self.colldb = colldb
         if not isinstance(line, xt.Line):
@@ -54,6 +54,10 @@ class CollimatorManager:
         self.tracker = None
         self._lossmap = None
         self._coll_summary = None
+
+
+    def __getitem__(self, name):
+        return self.colldb[name]
 
 
     @property
@@ -405,21 +409,18 @@ class CollimatorManager:
         tracker    = self.tracker
         line       = self.line
         angle      = self.colldb.angle[collimator]
+        opt        = self.colldb._optics
 
         # Define the plane
         if abs(np.mod(angle-90,180)-90) < 1e-6:
             plane = 'x'
-            co_pencil     = line[collimator].dx
-            co_transverse = line[collimator].dy
         elif abs(np.mod(angle,180)-90) < 1e-6:
             plane = 'y'
-            co_pencil     = line[collimator].dy
-            co_transverse = line[collimator].dx
         else:
             raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
 
         # Is it converging or diverging?
-        is_converging = self.colldb._optics.loc[ self.s_active_front[collimator], 'alf' + plane ] > 0
+        is_converging = opt.loc[self.s_active_front[collimator], 'alf' + plane] > 0
 #         is_converging = self.colldb._optics.loc[ self.s_center[collimator], 'alf' + plane ] > 0
         print(f"Collimator is {'con' if is_converging else 'di'}verging.")
         if is_converging:
@@ -430,6 +431,9 @@ class CollimatorManager:
             # pencil at back of jaw
             match_at_s = self.s_active_back[collimator]
             sigma      = self.colldb._beam_size_back[collimator]
+
+        co_pencil     = opt.loc[match_at_s, plane]
+        co_transverse = opt.loc[match_at_s, 'y' if plane=='x' else 'x']
 
         if side == '+':
             absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
@@ -514,7 +518,7 @@ class CollimatorManager:
             "s":        s
         })
 
-        return self._summary
+        return self.summary
 
 
     @property

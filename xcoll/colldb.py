@@ -3,9 +3,271 @@ import pandas as pd
 import io
 
 def load_SixTrack_colldb(filename, *, emit):
-    return CollDB(emit=emit, sixtrack_file=filename)
+    return CollimatorDatabase(emit=emit, sixtrack_file=filename)
 
-class CollDB:
+
+# if opening_mm is used, other variables like tilt, opening, offset_mm, .. are ignored
+_coll_properties = {'active_length': 0,
+                    'inactive_front': 0,
+                    'inactive_back': 0,
+                    'gap_L': None,
+                    'gap_R': None,
+                    'onesided': 'both',
+                    'angle_L': 0,
+                    'angle_R': 0,
+                    'offset_mm': 0,
+                    'tilt_L': 0,
+                    'tilt_R': 0,
+                    'align_to': None, 
+                    's_center': None,
+                    'parking_mm': 10e3,
+                    'material': None,
+                    'jaw_LU': None,
+                    'jaw_RU': None,
+                    'jaw_LD': None,
+                    'jaw_RD': None,
+                    'stage': None,
+                    'family': None,
+                    'collimator_type': None,
+                    'is_active': True,
+                    'crystal': False
+                   }
+_properties_without_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'angle_L', 'angle_R',
+                              'tilt_L', 'tilt_R', 'gap_L', 'gap_R']
+_add_to_dict = ['angle', 'tilt', 'opening', 'opening_mm']
+
+_crystal_properties = {
+                    'bend': None,
+                    'xdim': 0,
+                    'ydim': 0,
+                    'miscut': 0,
+                    'thick': 0
+                }
+
+
+# This creates a view on the settings of one collimator, kept in sync with the main database
+class CollimatorSettings:
+
+    def __init__(self, name, colldb=None):
+        if colldb is None:
+            colldb = pd.DataFrame({'name':name, **_coll_properties, **_crystal_properties})
+            colldb = colldb.set_index('name')
+        self._colldb = colldb
+        if name not in colldb.index:
+            raise ValueError(f"Collimator {name} not found in database!")
+        self._name = name
+        self._jaws_manually_set = False
+
+        # Automatically assign all properties from _collimator_properties
+        # ------------
+        # The getter and setter functions link each property to the corresponding
+        # entry in the DataFrame
+        def _prop_fget(self, attr_name):
+            def fget(self):
+                return self._colldb.loc[self.name, attr_name]
+            return fget
+
+        def _prop_fset(self, attr_name):
+            def fset(self, value):
+                self._colldb.loc[self.name, attr_name] = value
+                # If we want additional effects on the setter funcions, this
+                # can be achieved by defining an fset_prop method
+                if hasattr(self.__class__, 'fset_' + attr_name):
+                    getattr(self, 'fset_' + attr_name)(value)
+                self._compute_jaws()
+            return fset
+
+        # Now create @property's for each of them:
+        for pp in list(_coll_properties.keys()) + list(_crystal_properties.keys()):
+            if not pp in self._colldb.columns:
+                raise ValueError(f"Error in settings for {self.name}: "
+                               + f"Could not find property {pp} in database column header!")
+            if pp in _properties_without_setter:
+                setattr(self.__class__, pp, property(_prop_fget(self, pp)))
+            else:
+                setattr(self.__class__, pp, property(_prop_fget(self, pp), _prop_fset(self, pp)))
+
+    @property
+    def name(self):
+        return self._name
+
+    def to_dict(self):
+        props = list(_coll_properties.keys()) + list(_crystal_properties.keys()) + _add_to_dict
+        all_properties = {pp: getattr(self,pp) for pp in props if pp not in _properties_without_setter}
+        return {'name': self.name, **all_properties}
+
+    # Some easy accessors to the LR / LRUD properties:
+    # -----------------------------------------------
+
+    @property
+    def angle(self):
+        L = self.angle_L
+        R = self.angle_R
+        return L if L==R else [L,R]
+
+    @angle.setter
+    def angle(self, val):
+        self._set_LR('angle', val)
+        self._compute_jaws()
+
+    @property
+    def tilt(self):
+        L = self.tilt_L
+        R = self.tilt_R
+        return L if L==R else [L,R]
+
+    @tilt.setter
+    def tilt(self, val):
+        self._set_LR('tilt', val)
+        self._compute_jaws()
+
+    @property
+    def opening(self):
+        L = self.gap_L
+        R = self.gap_R
+        return L if L==R else [L,R]
+
+    @opening.setter
+    def opening(self, val):
+        self._set_LR('gap', val)
+        self._jaws_manually_set = False
+        self._compute_jaws()
+
+    @property
+    def opening_mm(self):
+        LU = self.jaw_LU
+        RU = self.jaw_RU
+        LD = self.jaw_LD
+        RD = self.jaw_RD
+        if LU == -RU == LD == -RD:
+            return LU
+        elif LU == LD and RU == RD:
+            return [LU, RU]
+        else:
+            return [[LU, RU], [LD, RD]]
+
+    @opening_mm.setter
+    def opening_mm(self, val):
+        self._set_LRUD('jaw', val)
+        self._jaws_manually_set = True
+        self._compute_jaws()
+
+
+    @property
+    def beam_size(self):
+        # [[LU,RU], [LC, RC], [LD,RD]]
+        pass
+
+
+    @property
+    def _optics_is_ready(self):
+        if align_to is None:
+            return False
+
+    def _compute_jaws(self):
+        if self._optics_is_ready and not self._jaws_manually_set:
+            # Default to parking
+            # TODO: parking is wrt CO, need to correct
+            jaw_LU = self.parking_mm
+            jaw_RU = -self.parking_mm
+            jaw_LD = self.parking_mm
+            jaw_RD = -self.parking_mm
+
+            if self.gap_L is not None or self.gap_R is not None:
+                # Get the beam size to be used, depending on align_to
+                if self.align_to == 'maximum':
+                    # Reset align_to to the location of the maximum
+                    self._align_to = ['front', 'center', 'back'][np.argmax(self.beam_size)]
+                if self.align_to == 'angular':
+                    sigma_U = self.beam_size[0]
+                    sigma_D = self.beam_size[2]
+                elif self.align_to == 'front':
+                    sigma_U = self.beam_size[0]
+                    sigma_D = self.beam_size[0]
+                elif self.align_to == 'center':
+                    sigma_U = self.beam_size[1]
+                    sigma_D = self.beam_size[1]
+                elif self.align_to == 'back':
+                    sigma_U = self.beam_size[2]
+                    sigma_D = self.beam_size[2]
+
+                # Get the shift due to the tilt to be used, depending on align_to
+                if align_to == front:
+                    scale = 0
+                elif align_to == back:
+                    scale = 1
+                else:
+                    scale = 0.5
+                ts_LU = -np.tan(self._tilt_L)*self.active_length*scale
+                ts_RU = -np.tan(self._tilt_R)*self.active_length*scale
+                ts_LD = np.tan(self._tilt_L)*self.active_length*(1-scale)
+                ts_RD = np.tan(self._tilt_R)*self.active_length*(1-scale)
+
+                if self.onesided in ['left', 'both']:
+                    jaw_LU = self.gap_L*sigma_U[0]  + self.offset_mm*1e-3 + ts_LU
+                    jaw_LD = self.gap_L*sigma_D[0]  + self.offset_mm*1e-3 + ts_LD
+                if self.onesided in ['right', 'both']:
+                    jaw_RU = -self.gap_R*sigma_U[1] + self.offset_mm*1e-3 + ts_RU
+                    jaw_RD = -self.gap_R*sigma_D[1] + self.offset_mm*1e-3 + ts_RD
+
+            self._jaw_LU = min(jaw_LU, self.parking_mm)
+            self._jaw_LD = min(jaw_LD, self.parking_mm)
+            self._jaw_RU = max(jaw_RU, -self.parking_mm)
+            self._jaw_RD = max(jaw_RD, -self.parking_mm)
+
+
+    def _set_LR(self, prop, val):
+        if not hasattr(val, '__iter__'):
+            val = [val]
+        if isinstance(val, str):
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` has to be a number!")
+        elif len(val) == 2:
+            val_L = val[0]
+            val_R = val[1]
+        elif len(val) == 1:
+            val_L = val[0]
+            val_R = val[0]
+        else:
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` must have one or two (L, R) values!")
+        setattr(self, '_' + prop + '_L', val_L)
+        setattr(self, '_' + prop + '_R', val_R)
+
+
+    def _set_LRUD(self, prop, val):
+        if not hasattr(val, '__iter__'):
+            val = [val]
+        if isinstance(val, str):
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` has to be a number!")
+        elif len(val) == 4:
+            val_LU = val[0]
+            val_RU = val[1]
+            val_LD = val[2]
+            val_RD = val[3]
+        elif len(val) == 2:
+            val_LU = val[0]
+            val_RU = val[1]
+            val_LD = val[0]
+            val_RD = val[1]
+        elif len(val) == 1:
+            val_LU = val[0]
+            val_RU = val[0]
+            val_LD = val[0]
+            val_RD = val[0]
+        else:
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` must have one, two (L, R), or four "
+                           + f"(LU, RU, LD, RD) values!")
+        setattr(self, '_' + prop + '_LU', val_LU)
+        setattr(self, '_' + prop + '_RU', val_RU)
+        setattr(self, '_' + prop + '_LD', val_LD)
+        setattr(self, '_' + prop + '_RD', val_RD)
+
+
+
+class CollimatorDatabase:
     def __init__(self, *, emit, sixtrack_file=None):
         self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
         if sixtrack_file is not None:
@@ -16,10 +278,7 @@ class CollDB:
         self._beta_gamma_rel = None
 
     def __getitem__(self, name):
-        if isinstance(ii, name):
-            return self._colldb.loc[name]
-        else:
-            return self._colldb.loc[self.name[name]]
+        return CollimatorSettings(name, self._colldb)
 
     def to_pandas(self):
         return pd.DataFrame({
@@ -74,14 +333,6 @@ class CollDB:
     #   - py
     #   - gamma_rel
     #   - emit
-    #
-    # Additionally, for crystals the following fields are added:
-    #   - crystal
-    #   - bend
-    #   - xdim
-    #   - ydim
-    #   - miscut
-    #   - thick
 
     @property
     def angle(self):
