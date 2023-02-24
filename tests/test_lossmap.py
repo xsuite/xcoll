@@ -49,6 +49,8 @@ def _run_lossmap(beam, plane, npart, interpolation):
     assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
     assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
     assert list(lm['aperture'].keys()) == ['s', 'name']
+    assert len(lm['aperture']['s']) == len(lm['aperture']['name'])
+    assert len(lm['aperture']['s']) > 0
     assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
     assert lm['interpolation'] == interpolation
     assert lm['reversed'] == line_is_reversed
@@ -60,14 +62,3 @@ def test_lossmap_B1H():
 def test_lossmap_B2V():
     _run_lossmap('2', 'V', 25000, 0.3)
 
-#     # Save to json
-#     # These files can be loaded, combined (for more statistics), and plotted with the 'lossmaps' package
-#     with open(Path(path_out,f'lossmap_B{beam+plane}.json'), 'w') as fid:
-#         json.dump(coll_manager.lossmap, fid, indent=True)
-
-#     # Save a summary of the collimator losses to a text file
-#     with open(Path(path_out,f'coll_summary_B{beam+plane}.out'), 'w') as fid:
-#         fid.write(coll_manager.summary.__repr__())
-#     print(summary)
-
-#     exit()
