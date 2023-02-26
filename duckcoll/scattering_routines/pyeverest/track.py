@@ -76,8 +76,8 @@ def track_core(collimator, particles):
     yp_in   = yp_part.copy()
 
     # Move to closed orbit
-    x_part  -= collimator.dx
-    y_part  -= collimator.dy
+    x_part  -= collimator.ref_xU
+    y_part  -= collimator.ref_yU
 
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
@@ -88,10 +88,10 @@ def track_core(collimator, particles):
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
-    if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+    if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
         raise NotImplementedError
-    opening = collimator.jaw_F_L - collimator.jaw_F_R
-    offset = collimator.offset + ( collimator.jaw_F_L + collimator.jaw_F_R )/2
+    opening = collimator.jaw_LU - collimator.jaw_RU
+    offset = collimator.offset + ( collimator.jaw_LU + collimator.jaw_RU )/2
 
     # Get material properties
     zatom    = collimator.material.Z
@@ -257,8 +257,8 @@ def track_core(collimator, particles):
     yp_part *= rpp_out/rpp_in
 
     # Return from closed orbit
-    x_part  += collimator.dx
-    y_part  += collimator.dy
+    x_part  += collimator.ref_xU
+    y_part  += collimator.ref_yU
 
     # Update 4D coordinates    -------------------------------------------
     # Absorbed particles get their coordinates set to the entrance of collimator

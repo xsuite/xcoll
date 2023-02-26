@@ -42,10 +42,10 @@ coll_manager.build_tracker()
 
 # We set the openings etc manually
 coll = 'pr.tdi47'
-line[coll].jaw_F_L = 0.001
-line[coll].jaw_B_L = 0.001
-line[coll].dx = 0
-line[coll].dy = 0
+line[coll].jaw_LU = 0.001
+line[coll].jaw_LD = 0.001
+line[coll].ref_xU = 0
+line[coll].ref_yU = 0
 line[coll].dpx = 0
 line[coll].dpy = 0
 line[coll].material = 'BE'
@@ -53,10 +53,10 @@ line[coll].is_active = True
 line[coll].onesided = True
 
 coll = 'pr.tdi48'
-line[coll].jaw_F_L = 0.001
-line[coll].jaw_B_L = 0.001
-line[coll].dx = 0
-line[coll].dy = 0
+line[coll].jaw_LU = 0.001
+line[coll].jaw_LD = 0.001
+line[coll].ref_xU = 0
+line[coll].ref_yU = 0
 line[coll].dpx = 0
 line[coll].dpy = 0
 line[coll].material = 'BE'
@@ -120,11 +120,11 @@ plt.show()
 # ----------------------------------------------------------------------------------------------------
 # Track, and after every turn move the dump block more inwards
 coll = 'pr.tdi47'
-line[coll].jaw_F_L = 0.06
-line[coll].jaw_B_L = 0.06
+line[coll].jaw_LU = 0.06
+line[coll].jaw_LD = 0.06
 coll = 'pr.tdi48'
-line[coll].jaw_F_L = 0.06
-line[coll].jaw_B_L = 0.06
+line[coll].jaw_LU = 0.06
+line[coll].jaw_LD = 0.06
 part = {}
 
 step = 0.005
@@ -132,11 +132,11 @@ steps = int(0.06*2/step +1)
 
 for turn in range(1,steps+1):
     coll = 'pr.tdi47'
-    line[coll].jaw_F_L -= step
-    line[coll].jaw_B_L -= step
+    line[coll].jaw_LU -= step
+    line[coll].jaw_LD -= step
     coll = 'pr.tdi48'
-    line[coll].jaw_F_L -= step
-    line[coll].jaw_B_L -= step
+    line[coll].jaw_LU -= step
+    line[coll].jaw_LD -= step
     coll_manager.track(particles, num_turns=1)
     part[turn] = particles.copy()
     

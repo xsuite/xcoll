@@ -347,8 +347,8 @@ class CollimatorManager:
                 line[name].is_active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
-                line[name].dx = colldb.x[name]
-                line[name].dy = colldb.y[name]
+                line[name].ref_xU = colldb.x[name]
+                line[name].ref_yU = colldb.y[name]
                 line[name].angle = colldb.angle[name]
                 line[name].jaw_LU = colldb._colldb.jaw_LU[name]
                 line[name].jaw_RU = colldb._colldb.jaw_RU[name]
@@ -463,7 +463,7 @@ class CollimatorManager:
             )
         elif zeta is None:
             zeta = 0.0
-#             delta = (self.line[collimator].jaw_LU + self.line[collimator].dx + impact_parameter)/self.colldb.dx[collimator]
+#             delta = (self.line[collimator].jaw_LU + self.line[collimator].ref_xU + impact_parameter)/self.colldb.ref_xU[collimator]
         elif delta is None:
             delta = 0.0
 

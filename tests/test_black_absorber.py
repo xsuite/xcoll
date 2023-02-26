@@ -58,15 +58,15 @@ def test_horizontal():
 
 def test_horizontal_with_tilts():
     for context in xo.context.get_test_contexts():
-        jaw_L, jaw_R, jaw_B_L, jaw_B_R, cox, _, L, coll = _make_absorber(tilsthift=[0.0005, -0.00015], _context=context)
+        jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(tilsthift=[0.0005, -0.00015], _context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
         _reshuffle(part)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
-        mask_hit_angle_L = ~mask_hit_front & (x + xp*L >= jaw_B_L + cox)
-        mask_hit_angle_R = ~mask_hit_front & (x + xp*L <= jaw_B_R + cox)
+        mask_hit_angle_L = ~mask_hit_front & (x + xp*L >= jaw_LD + cox)
+        mask_hit_angle_R = ~mask_hit_front & (x + xp*L <= jaw_RD + cox)
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
@@ -78,12 +78,12 @@ def test_horizontal_with_tilts():
         assert len(s_alive)==1 and s_alive[0]==L
         assert np.allclose(part.x[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
         assert np.allclose(part.x[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
-        s_hit_L = (jaw_L + cox - x[mask_hit_angle_L]) / ( xp[mask_hit_angle_L] - (jaw_B_L-jaw_L)/L)
+        s_hit_L = (jaw_L + cox - x[mask_hit_angle_L]) / ( xp[mask_hit_angle_L] - (jaw_LD-jaw_L)/L)
         assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-        assert np.allclose(part.x[mask_hit_angle_L], jaw_L + cox + (jaw_B_L-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
-        s_hit_R = (jaw_R + cox - x[mask_hit_angle_R]) / ( xp[mask_hit_angle_R] - (jaw_B_R-jaw_R)/L)
+        assert np.allclose(part.x[mask_hit_angle_L], jaw_L + cox + (jaw_LD-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
+        s_hit_R = (jaw_R + cox - x[mask_hit_angle_R]) / ( xp[mask_hit_angle_R] - (jaw_RD-jaw_R)/L)
         assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-        assert np.allclose(part.x[mask_hit_angle_R], jaw_R + cox + (jaw_B_R-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
+        assert np.allclose(part.x[mask_hit_angle_R], jaw_R + cox + (jaw_RD-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
 
 
 def test_vertical_parallel():
@@ -137,15 +137,15 @@ def test_vertical():
 
 def test_vertical_with_tilts():
     for context in xo.context.get_test_contexts():
-        jaw_L, jaw_R, jaw_B_L, jaw_B_R, _, coy, L, coll = _make_absorber(angle=90, tilsthift=[0.0005, -0.00015], _context=context)
+        jaw_L, jaw_R, jaw_LD, jaw_RD, _, coy, L, coll = _make_absorber(angle=90, tilsthift=[0.0005, -0.00015], _context=context)
         part, _, y, _, yp = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
         _reshuffle(part)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (y >= jaw_L + coy) | (y <= jaw_R + coy)
         # but also those in the opening with an angle that would kick them on the jaw halfway
-        mask_hit_angle_L = ~mask_hit_front & (y + yp*L >= jaw_B_L + coy)
-        mask_hit_angle_R = ~mask_hit_front & (y + yp*L <= jaw_B_R + coy)
+        mask_hit_angle_L = ~mask_hit_front & (y + yp*L >= jaw_LD + coy)
+        mask_hit_angle_R = ~mask_hit_front & (y + yp*L <= jaw_RD + coy)
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
@@ -157,12 +157,12 @@ def test_vertical_with_tilts():
         assert len(s_alive)==1 and s_alive[0]==L
         assert np.allclose(part.y[mask_hit_front], y[mask_hit_front], atol=1e-15, rtol=0)
         assert np.allclose(part.y[~mask_hit],      y[~mask_hit] + yp[~mask_hit]*L, atol=1e-15, rtol=0)
-        s_hit_L = (jaw_L + coy - y[mask_hit_angle_L]) / ( yp[mask_hit_angle_L] - (jaw_B_L-jaw_L)/L)
+        s_hit_L = (jaw_L + coy - y[mask_hit_angle_L]) / ( yp[mask_hit_angle_L] - (jaw_LD-jaw_L)/L)
         assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-        assert np.allclose(part.y[mask_hit_angle_L], jaw_L + coy + (jaw_B_L-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
-        s_hit_R = (jaw_R + coy - y[mask_hit_angle_R]) / ( yp[mask_hit_angle_R] - (jaw_B_R-jaw_R)/L)
+        assert np.allclose(part.y[mask_hit_angle_L], jaw_L + coy + (jaw_LD-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
+        s_hit_R = (jaw_R + coy - y[mask_hit_angle_R]) / ( yp[mask_hit_angle_R] - (jaw_RD-jaw_R)/L)
         assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-        assert np.allclose(part.y[mask_hit_angle_R], jaw_R + coy + (jaw_B_R-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
+        assert np.allclose(part.y[mask_hit_angle_R], jaw_R + coy + (jaw_RD-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
 
 
 def test_angled_parallel():
@@ -221,15 +221,15 @@ def test_angled():
 def test_angled_with_tilts():
     for context in xo.context.get_test_contexts():
         angle=17.8
-        jaw_L, jaw_R, jaw_B_L, jaw_B_R, cox, _, L, coll = _make_absorber(angle=angle, tilsthift=[0.0005, -0.00015], rotate_co=True, _context=context)
+        jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(angle=angle, tilsthift=[0.0005, -0.00015], rotate_co=True, _context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True,angle=angle, _context=context)
         coll.track(part)
         _reshuffle(part)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
-        mask_hit_angle_L = ~mask_hit_front & (x + xp*L >= jaw_B_L + cox)
-        mask_hit_angle_R = ~mask_hit_front & (x + xp*L <= jaw_B_R + cox)
+        mask_hit_angle_L = ~mask_hit_front & (x + xp*L >= jaw_LD + cox)
+        mask_hit_angle_R = ~mask_hit_front & (x + xp*L <= jaw_RD + cox)
         mask_hit = mask_hit_front | mask_hit_angle_L | mask_hit_angle_R
         lost = np.unique(part.state[mask_hit])
         alive = np.unique(part.state[~mask_hit])
@@ -242,12 +242,12 @@ def test_angled_with_tilts():
         part_x_rot = part.x * np.cos(angle/180.*np.pi) + part.y * np.sin(angle/180.*np.pi)
         assert np.allclose(part_x_rot[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
         assert np.allclose(part_x_rot[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
-        s_hit_L = (jaw_L + cox - x[mask_hit_angle_L]) / ( xp[mask_hit_angle_L] - (jaw_B_L-jaw_L)/L)
+        s_hit_L = (jaw_L + cox - x[mask_hit_angle_L]) / ( xp[mask_hit_angle_L] - (jaw_LD-jaw_L)/L)
         assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-        assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_L + cox + (jaw_B_L-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
-        s_hit_R = (jaw_R + cox - x[mask_hit_angle_R]) / ( xp[mask_hit_angle_R] - (jaw_B_R-jaw_R)/L)
+        assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_L + cox + (jaw_LD-jaw_L)/L*s_hit_L, atol=1e-15, rtol=0)
+        s_hit_R = (jaw_R + cox - x[mask_hit_angle_R]) / ( xp[mask_hit_angle_R] - (jaw_RD-jaw_R)/L)
         assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-        assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_R + cox + (jaw_B_R-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
+        assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_R + cox + (jaw_RD-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
 
 
 
@@ -261,7 +261,7 @@ def _make_absorber(angle=0, tilsthift=[0,0], rotate_co=False, _context=None):
     co = [0.0075, -0.089]
     L = 0.873
     coll = xc.BlackAbsorber(active_length=L, angle=angle, dx=co[0], dy=co[1], _context=_context,
-                            jaw_F_L=jaws[0], jaw_B_L=jaws_B[0], jaw_F_R=jaws[1], jaw_B_R=jaws_B[1])
+                            jaw_LU=jaws[0], jaw_LD=jaws_B[0], jaw_RU=jaws[1], jaw_RD=jaws_B[1])
     if rotate_co:
         cox = co[0] * np.cos(angle/180.*np.pi) + co[1] * np.sin(angle/180.*np.pi)
         coy = co[0] * np.sin(angle/180.*np.pi) + co[1] * np.cos(angle/180.*np.pi)

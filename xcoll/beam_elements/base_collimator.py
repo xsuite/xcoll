@@ -8,6 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
+from ..colldb import _get_LR, _set_LR, _get_LRUD, _set_LRUD
 from ..tables import CollimatorImpacts
 from ..general import _pkg_root
 
@@ -39,26 +40,32 @@ class InvalidCollimator(xt.BeamElement):
 
 class BaseCollimator(xt.BeamElement):
     _xofields = {
-        'inactive_front': xo.Float64,
-        'active_length': xo.Float64,
-        'inactive_back': xo.Float64,
-        'jaw_LU': xo.Float64,
-        'jaw_RU': xo.Float64,
-        'jaw_LD': xo.Float64,
-        'jaw_RD': xo.Float64,
-        'dx': xo.Float64,
-        'dy': xo.Float64,
-        'cos_z': xo.Float64,
-        'sin_z': xo.Float64,
-        '_active': xo.Int8
+        'inactive_front': xo.Float64,  # Drift before jaws
+        'active_length':  xo.Float64,  # Length of jaws
+        'inactive_back':  xo.Float64,  # Drift after jaws
+        'jaw_LU':         xo.Float64,  # jaw left upstream
+        'jaw_RU':         xo.Float64,  # jaw right upstream
+        'jaw_LD':         xo.Float64,  # jaw left downstream
+        'jaw_RD':         xo.Float64,  # jaw right downstream
+        'ref_xU':         xo.Float64,  # upstream center of collimator reference frame
+        'ref_yU':         xo.Float64,
+        'ref_xD':         xo.Float64,  # downstream center of collimator reference frame
+        'ref_yD':         xo.Float64,
+        'sin_zL':         xo.Float64,  # angle of left jaw
+        'cos_zL':         xo.Float64,
+        'sin_zR':         xo.Float64,  # angle of right jaw
+        'cos_zR':         xo.Float64,
+        '_active':        xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
     
-    _skip_in_to_dict  = ['_active', 'cos_z', 'sin_z']
-    _store_in_to_dict = ['is_active', 'angle']
+    _skip_in_to_dict  = ['_active', 'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD',
+                         'ref_xU', 'ref_yU', 'ref_xD', 'ref_yD',
+                         'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR']
+    _store_in_to_dict = ['is_active', 'angle', 'jaw', 'reference_center']
     _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
@@ -72,18 +79,13 @@ class BaseCollimator(xt.BeamElement):
         if self.__class__.__name__ == 'BaseCollimator':
             raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
         if '_xobject' not in kwargs:
-            kwargs.setdefault('jaw_LU', 1)
-            kwargs.setdefault('jaw_RU', -1)
-            kwargs.setdefault('jaw_LD', 1)
-            kwargs.setdefault('jaw_RD', -1)
+            _set_LRUD(kwargs, 'jaw', kwargs.pop('jaw', 1),
+                      neg=True, name=self.__class__.__name__)
+            _set_LRUD(kwargs, 'reference_center',
+                      kwargs.pop('reference_center', 0), name=self.__class__.__name__)
             kwargs.setdefault('inactive_front', 0)
             kwargs.setdefault('inactive_back', 0)
-            kwargs.setdefault('dx', 0)
-            kwargs.setdefault('dy', 0)
-            angle = kwargs.pop('angle', 0)
-            anglerad = angle / 180. * np.pi
-            kwargs['cos_z'] = np.cos(anglerad)
-            kwargs['sin_z'] = np.sin(anglerad)
+            kwargs['sin_zL'], kwargs['cos_zL'], kwargs['sin_zR'], kwargs['cos_zR'] = _angle_setter(angle)
             is_active = kwargs.pop('is_active', True)
             is_active = 1 if is_active == True else is_active
             is_active = 0 if is_active == False else is_active
@@ -92,14 +94,45 @@ class BaseCollimator(xt.BeamElement):
 
 
     @property
+    def jaw(self):
+        return _get_LRUD(self, 'jaw', neg=True)
+
+    @jaw.setter
+    def jaw(self, val):
+        _set_LRUD(self, 'jaw', val, neg=True)
+
+    @property
     def angle(self):
-        return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
+        angle_L = round(np.arctan2(self.sin_zL, self.cos_zL) * (180.0 / np.pi), 9)
+        angle_R = round(np.arctan2(self.sin_zR, self.cos_zR) * (180.0 / np.pi), 9)
+        return angle_L if angle_L==angle_R else [angle_L, angle_R]
+
+    def _angle_setter(self, val):
+        if not hasattr(val, '__iter__'):
+            val = [val]
+        if isinstance(val, str):
+            raise ValueError(f"Error in setting angle: not a number!")
+        elif len(val) == 2:
+            anglerad_L = val[0] / 180. * np.pi
+            anglerad_R = val[1] / 180. * np.pi
+        elif len(val) == 1:
+            anglerad_L = val[0] / 180. * np.pi
+            anglerad_R = val[0] / 180. * np.pi
+        else:
+            raise ValueError(f"Error in setting angle: must have one or two (L, R) values!")
+        return np.sin(anglerad_L), np.cos(anglerad_L), np.sin(anglerad_R), np.cos(anglerad_R)
 
     @angle.setter
     def angle(self, angle):
-        anglerad = angle / 180. * np.pi
-        self.cos_z = np.cos(anglerad)
-        self.sin_z = np.sin(anglerad)
+        self.sin_zL, self.cos_zL, self.sin_zR, self.cos_zR = _angle_setter(angle)
+
+    @property
+    def reference_center(self):
+        return _get_LRUD(self, 'ref', name_LU='_xU', name_RU='_yU', name_LD='_xD', name_RD='_yD')
+
+    @reference_center.setter
+    def reference_center(self, ref):
+        _set_LRUD(self, 'ref', ref, name_LU='_xU', name_RU='_yU', name_LD='_xD', name_RD='_yD')
 
     @property
     def is_active(self):

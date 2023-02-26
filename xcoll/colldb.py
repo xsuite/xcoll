@@ -5,6 +5,30 @@ import io
 def load_SixTrack_colldb(filename, *, emit):
     return CollimatorDatabase(emit=emit, sixtrack_file=filename)
 
+# in colldb:
+#      (gap [sigma] + offset [m] + tilt [deg]) or physical_opening [m]
+#      angle
+#      length (all three)
+#      onesided     TODO: need better name
+#      parking ??
+#      material
+#      stage
+#      family
+#      crystal
+
+# in element:
+#      jaw
+#      ref
+#      angle
+#      length (all three)
+#      onesided ??
+#      material
+#      is_active
+
+# in neither:
+#      align_to
+#      s_center
+#      collimator_type
 
 # if physical_opening is used, other variables like tilt, opening, offset, .. are ignored
 _coll_properties = {'active_length': 0,
@@ -26,10 +50,10 @@ _coll_properties = {'active_length': 0,
                     'jaw_RU': None,
                     'jaw_LD': None,
                     'jaw_RD': None,
-                    'ref_Ux': 0,
-                    'ref_Uy': 0,
-                    'ref_Dx': 0,
-                    'ref_Dy': 0,
+                    'ref_xU': 0,
+                    'ref_yU': 0,
+                    'ref_xD': 0,
+                    'ref_yD': 0,
                     'stage': None,
                     'family': None,
                     'collimator_type': None,
@@ -37,8 +61,11 @@ _coll_properties = {'active_length': 0,
                     'crystal': False
                    }
 _properties_no_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'gap_L', 'gap_R',
-                         'ref_Ux', 'ref_Uy', 'ref_Dx', 'ref_Dy', 'angle_L', 'angle_R',
+                         'ref_xU', 'ref_yU', 'ref_xD', 'ref_yD', 'angle_L', 'angle_R',
                          'tilt_L', 'tilt_R', ]
+_properties_in_element = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'angle_L', 'angle_R', 
+                          'ref_xU', 'ref_yU', 'ref_xD', 'ref_yD', 'active_length',
+                          'inactive_front', 'inactive_back']
 _add_to_dict = ['angle', 'tilt', 'opening', 'physical_opening', 'reference_center']
 
 _crystal_properties = {
@@ -50,13 +77,13 @@ _crystal_properties = {
                 }
 _optics_vals = ['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy']
 
+
 # This creates a view on the settings of one collimator, kept in sync with the main database
 class CollimatorSettings:
 
     def __init__(self, name, colldb=None, optics=None, element=None):
         if colldb is None:
-            colldb = pd.DataFrame({'name':name, **_coll_properties, **_crystal_properties})
-            colldb = colldb.set_index('name')
+            colldb = pd.DataFrame({**_coll_properties, **_crystal_properties}, index=[name])
         self._colldb = colldb
         if name not in colldb.index:
             raise ValueError(f"Collimator {name} not found in database!")
@@ -66,24 +93,6 @@ class CollimatorSettings:
         self._jaws_manually_set = False
 
         # Automatically assign all properties from _collimator_properties
-        # ------------
-        # The getter and setter functions link each property to the corresponding
-        # entry in the DataFrame
-        def _prop_fget(self, attr_name):
-            def fget(self):
-                return self._colldb.loc[self.name, attr_name]
-            return fget
-
-        def _prop_fset(self, attr_name):
-            def fset(self, value):
-                self._colldb.loc[self.name, attr_name] = value
-                # If we want additional effects on the setter funcions, this
-                # can be achieved by defining an fset_prop method
-                if hasattr(self.__class__, 'fset_' + attr_name):
-                    getattr(self, 'fset_' + attr_name)(value)
-                self._compute_jaws()
-            return fset
-
         # Now create @property's for each of them:
         for pp in set(_coll_properties.keys()).union(set(_crystal_properties.keys())):
             if not pp in self._colldb.columns:
@@ -108,20 +117,20 @@ class CollimatorSettings:
 
     @property
     def angle(self):
-        self._get_LR('angle')
+        return _get_LR(self, 'angle')
 
     @angle.setter
     def angle(self, val):
-        self._set_LR('angle', val)
+        _set_LR(self, 'angle', val)
         self._compute_jaws()
 
     @property
     def tilt(self):
-        self._get_LR('tilt')
+        return _get_LR(self, 'tilt')
 
     @tilt.setter
     def tilt(self, val):
-        self._set_LR('tilt', val)
+        _set_LR(self, 'tilt', val)
         self._compute_jaws()
 
     @property
@@ -130,26 +139,27 @@ class CollimatorSettings:
             # TODO: update gap using beam size as from jaws
             pass
         else:
-            self._get_LR('gap', neg=True)
+            return _get_LR(self, 'gap')
 
     @opening.setter
     def opening(self, val):
-        self._set_LR('gap', val, neg=True)
+        _set_LR('gap', val, neg=True)
         self._jaws_manually_set = False
         self._compute_jaws()
 
     @property
     def physical_opening(self):
-        self._get_LRUD('jaw', neg=True)
+        return _get_LRUD(self, 'jaw', neg=True)
 
     @physical_opening.setter
     def physical_opening(self, val):
-        self._set_LRUD('jaw', val, neg=True)
+        _set_LRUD(self, 'jaw', val, neg=True)
         self._jaws_manually_set = True
+        self._compute_jaws()
 
     @property
     def reference_center(self):
-        self._get_LRUD('ref', name_LU='_Ux', name_RU='_Uy', name_LD='_Dx', name_RD='_Dy')
+        return _get_LRUD(self, 'ref', name_LU='_xU', name_RU='_yU', name_LD='_xD', name_RD='_yD')
 
     @property
     def beam_size(self):
@@ -163,17 +173,15 @@ class CollimatorSettings:
 
     @property
     def _optics_is_ready(self):
-        if self.align_to is None: # TODO add check that there are optics!
+        if self.align_to is None or self._optics is None:
             return False
+        # TODO: when True
 
     def _compute_jaws(self):
         if self._optics_is_ready:
             if self._jaws_manually_set:
-                self._jaw_LU = min(self._jaw_LU, self.parking)
-                self._jaw_LD = min(self._jaw_LD, self.parking)
-                self._jaw_RU = max(self._jaw_RU, -self.parking)
-                self._jaw_RD = max(self._jaw_RD, -self.parking)
                 # TODO: upate gap
+                pass
             else:
                 # Default to parking
                 # TODO: parking is wrt CO, need to correct
@@ -201,16 +209,18 @@ class CollimatorSettings:
                         sigma_D = self.beam_size[2]
 
                     # Get the shift due to the tilt to be used, depending on align_to
+                    # TODO: is this correct?
+                    # TODO: better name for align_to?
                     if align_to == front:
                         scale = 0
                     elif align_to == back:
                         scale = 1
                     else:
                         scale = 0.5
-                    ts_LU = -np.tan(self._tilt_L)*self.active_length*scale
-                    ts_RU = -np.tan(self._tilt_R)*self.active_length*scale
-                    ts_LD = np.tan(self._tilt_L)*self.active_length*(1-scale)
-                    ts_RD = np.tan(self._tilt_R)*self.active_length*(1-scale)
+                    ts_LU = -np.tan(self.tilt_L)*self.active_length*scale
+                    ts_RU = -np.tan(self.tilt_R)*self.active_length*scale
+                    ts_LD = np.tan(self.tilt_L)*self.active_length*(1-scale)
+                    ts_RD = np.tan(self.tilt_R)*self.active_length*(1-scale)
 
                     if self.onesided in ['left', 'both']:
                         jaw_LU = self.gap_L*sigma_U[0]  + self.offset + ts_LU
@@ -219,103 +229,205 @@ class CollimatorSettings:
                         jaw_RU = -self.gap_R*sigma_U[1] + self.offset + ts_RU
                         jaw_RD = -self.gap_R*sigma_D[1] + self.offset + ts_RD
 
-                self._jaw_LU = min(jaw_LU, self.parking)
-                self._jaw_LD = min(jaw_LD, self.parking)
-                self._jaw_RU = max(jaw_RU, -self.parking)
-                self._jaw_RD = max(jaw_RD, -self.parking)
-
-    def _get_LR(self, prop, neg=False, name_L='_L', name_R='_R'):
-        sign = -1 if neg else 1
-        L = getattr(self, prop + name_L)
-        R = getattr(self, prop + name_R)
-        if L is None and R is None:
-            return None
-        elif L is None:
-            return R
-        elif R is None:
-            return L
+        if self.onesided == 'left':
+            self.jaw_LU = min(jaw_LU, self.parking)
+            self.jaw_LD = min(jaw_LD, self.parking)
+            self.jaw_RU = None
+            self.jaw_RD = None
+        elif self.onesided == 'right':
+            self.jaw_LU = None
+            self.jaw_LD = None
+            self.jaw_RU = max(jaw_RU, -self.parking)
+            self.jaw_RD = max(jaw_RD, -self.parking)
         else:
-            return L if L==sign*R else [L,R]
+            self.jaw_LU = min(jaw_LU, self.parking)
+            self.jaw_LD = min(jaw_LD, self.parking)
+            self.jaw_RU = max(jaw_RU, -self.parking)
+            self.jaw_RD = max(jaw_RD, -self.parking)
 
-    def _set_LR(self, prop, val, neg=False, name_L='_L', name_R='_R'):
-        sign = -1 if neg else 1
-        if not hasattr(val, '__iter__'):
-            val = [val]
-        if isinstance(val, str):
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` has to be a number!")
-        elif len(val) == 2:
-            val_L = val[0]
-            val_R = val[1]
-        elif len(val) == 1:
-            val_L = val[0]
-            val_R = val[0]
+
+# Helper functions to set/get properties
+# --------------------------------------
+
+def _get_LR(obj, prop, neg=False, name_L='_L', name_R='_R'):
+    # Is the property reflected along left/right?
+    sign = -1 if neg else 1
+    # Is it a property or a dict key?
+    if isinstance(obj, dict):
+        L = obj[prop + name_L]
+        R = obj[prop + name_R]
+    else:
+        L = getattr(obj, prop + name_L)
+        R = getattr(obj, prop + name_R)
+    # Find out how many values to return
+    if L is None and R is None:
+        return None
+    elif L is None:
+        return R
+    elif R is None:
+        return L
+    else:
+        return L if L==sign*R else [L,R]
+
+def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
+    # 'name' is only used for error reporting
+    if isinstance(obj, dict):
+        name = 'dict_property' if name is None else name
+    else:
+        name = obj.name if name is None else name
+    # Is the property reflected along left/right?
+    sign = -1 if neg else 1
+    # Find out how to set values
+    if not hasattr(val, '__iter__'):
+        val = [val]
+    if isinstance(val, str):
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` has to be a number!")
+    elif len(val) == 2:
+    # The value is of the form [val_L,val_R]
+        val_L = val[0]
+        val_R = val[1]
+    elif len(val) == 1:
+    # The value is of the form [val]
+        val_L = val[0]
+        val_R = val[0]
+    else:
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` must have one or two (L, R) values!")
+    # Is it a property or a dict key?
+    if isinstance(obj, dict):
+        obj[prop + name_L] = val_L
+        obj[prop + name_R] = val_R
+    else:
+        setattr(obj, prop + name_L, val_L)
+        setattr(obj, prop + name_R, val_R)
+
+def _get_LRUD(obj, prop, neg=False, name=None,
+              name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
+    # 'name' is only used for error reporting
+    if isinstance(obj, dict):
+        name = 'dict_property' if name is None else name
+    else:
+        name = obj.name if name is None else name
+    # Is the property reflected along left/right?
+    sign = -1 if neg else 1
+    # Is it a property or a dict key?
+    if isinstance(obj, dict):
+        LU = obj[prop + name_LU]
+        RU = obj[prop + name_RU]
+        LD = obj[prop + name_LD]
+        RD = obj[prop + name_RD]
+    else:
+        LU = getattr(obj, prop + name_LU)
+        RU = getattr(obj, prop + name_RU)
+        LD = getattr(obj, prop + name_LD)
+        RD = getattr(obj, prop + name_RD)
+    # Find out how many values to return
+    if LU is None and RU is None \
+    and LD is None and RD is None:
+        return None
+    elif LU is None and RU is None:
+        return LD if LD==sign*RD else [LD,RD]
+    elif LD is None and RD is None:
+        return LU if LU==sign*RU else [LU,RU]
+    elif LU is None and RD is None:
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` has values for LD and RU but not for LU and RD."
+                       + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
+    elif LD is None and RU is None:
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` has values for LU and RD but not for LD and RU."
+                       + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
+    else:
+        if LU == sign*RU == LD == sign*RD:
+            return LU
+        elif LU == LD and RU == RD:
+            return [LU, RU]
         else:
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` must have one or two (L, R) values!")
-        setattr(self, '_' + prop + name_L, val_L)
-        setattr(self, '_' + prop + name_R, val_R)
+            return [[LU, RU], [LD, RD]]
 
-    def _get_LRUD(self, prop, neg=False, name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
-        sign = -1 if neg else 1
-        LU = getattr(self, prop + name_LU)
-        RU = getattr(self, prop + name_RU)
-        LD = getattr(self, prop + name_LD)
-        RD = getattr(self, prop + name_RD)
-        if LU is None and RU is None \
-        and LD is None and RD is None:
-            return None
-        elif LU is None and RU is None:
-            return LD if LD==sign*RD else [LD,RD]
-        elif LD is None and RD is None:
-            return LU if LU==sign*RU else [LU,RU]
-        elif LU is None and RD is None:
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` has values for LD and RU but not for LU and RD."
-                           + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
-        elif LD is None and RU is None:
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` has values for LU and RD but not for LD and RU."
-                           + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
-        else:
-            if LU == sign*RU == LD == sign*RD:
-                return LU
-            elif LU == LD and RU == RD:
-                return [LU, RU]
-            else:
-                return [[LU, RU], [LD, RD]]
-
-    def _set_LRUD(self, prop, val, neg=False, name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
-        sign = -1 if neg else 1
-        if not hasattr(val, '__iter__'):
-            val = [val]
-        if isinstance(val, str):
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` has to be a number!")
-        elif len(val) == 4:
-            val_LU = val[0]
-            val_RU = val[1]
-            val_LD = val[2]
-            val_RD = val[3]
-        elif len(val) == 2:
+def _set_LRUD(obj, prop, val, neg=False, name=None,
+              name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
+    # 'name' is only used for error reporting
+    if isinstance(obj, dict):
+        name = 'dict_property' if name is None else name
+    else:
+        name = obj.name if name is None else name
+    # Is the property reflected along left/right?
+    sign = -1 if neg else 1
+    # Find out how to set values
+    if not hasattr(val, '__iter__'):
+        val = [val]
+    if isinstance(val, str):
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` has to be a number!")
+    elif len(val) == 4:
+    # The value is of the form [val_LU,val_RU,val_LD,val_RD]
+        val_LU = val[0]
+        val_RU = val[1]
+        val_LD = val[2]
+        val_RD = val[3]
+    elif len(val) == 2:
+        if not hasattr(val[0], '__iter__') and not hasattr(val[1], '__iter__'):
+        # The value is of the form [val_L,val_R]
             val_LU = val[0]
             val_RU = val[1]
             val_LD = val[0]
             val_RD = val[1]
-        elif len(val) == 1:
-            val_LU = val[0]
-            val_RU = sign*val[0]
-            val_LD = val[0]
-            val_RD = sign*val[0]
+        elif not hasattr(val[0], '__iter__') or not hasattr(val[1], '__iter__'):
+            raise ValueError(f"Error in settings for {name}: "
+                           + f"The setting `{prop}` has to be given as val, [val], "
+                           + f"[val_L, val_R], [[val_LU, val_RU], [val_LD, val_RD]], "
+                           + f"or [val_LU, val_RU, val_LD, val_RD]!")
         else:
-            raise ValueError(f"Error in settings for {self.name}: "
-                           + f"The setting `{prop}` must have one, two (L, R), or four "
-                           + f"(LU, RU, LD, RD) values!")
-        setattr(self, '_' + prop + name_LU, val_LU)
-        setattr(self, '_' + prop + name_RU, val_RU)
-        setattr(self, '_' + prop + name_LD, val_LD)
-        setattr(self, '_' + prop + name_RD, val_RD)
+        # The value is of the form [[val_LU, val_RU], [val_LD, val_RD]]
+            if isinstance(val[0], str) or isinstance(val[1], str):
+                raise ValueError(f"Error in settings for {name}: "
+                               + f"The setting `{prop}` has to be a number or a "
+                               + f"list of numbers!")
+            val_LU = val[0][0]
+            val_RU = val[0][1]
+            val_LD = val[1][0]
+            val_RD = val[1][1]
+    elif len(val) == 1:
+    # The value is of the form [val]
+        val_LU = val[0]
+        val_RU = sign*val[0]
+        val_LD = val[0]
+        val_RD = sign*val[0]
+    else:
+        raise ValueError(f"Error in settings for {name}: "
+                       + f"The setting `{prop}` has to be given as val, [val], "
+                       + f"[val_L, val_R], [[val_LU, val_RU], [val_LD, val_RD]], "
+                       + f"or [val_LU, val_RU, val_LD, val_RD]!")
+    # Is it a property or a dict key?
+    if isinstance(obj, dict):
+        obj[prop + name_LU] = val_LU
+        obj[prop + name_RU] = val_RU
+        obj[prop + name_LD] = val_LD
+        obj[prop + name_RD] = val_RD
+    else:
+        setattr(obj, prop + name_LU, val_LU)
+        setattr(obj, prop + name_RU, val_RU)
+        setattr(obj, prop + name_LD, val_LD)
+        setattr(obj, prop + name_RD, val_RD)
 
+# These getter and setter functions link each property to the corresponding
+# entry in the DataFrame
+def _prop_fget(self, attr_name):
+    def fget(self):
+        return self._colldb.loc[self.name, attr_name]
+    return fget
+
+def _prop_fset(self, attr_name):
+    def fset(self, value):
+        self._colldb.loc[self.name, attr_name] = value
+        # If we want additional effects on the setter funcions, this
+        # can be achieved by defining an fset_prop method
+        if hasattr(self.__class__, 'fset_' + attr_name):
+            getattr(self, 'fset_' + attr_name)(value)
+        # TODO: self._compute_jaws()
+    return fset
 
 
 class CollimatorDatabase:
@@ -919,7 +1031,7 @@ class CollimatorDatabase:
         fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
         fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
         fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
-        fields.update({'ref_Ux': 0, 'ref_Uy': 0, 'ref_Dx': 0, 'ref_Dy': 0})
+        fields.update({'ref_xU': 0, 'ref_yU': 0, 'ref_xD': 0, 'ref_yD': 0})
         for f, val in fields.items():
             if f not in self._colldb.columns:
                 self._colldb[f] = val
