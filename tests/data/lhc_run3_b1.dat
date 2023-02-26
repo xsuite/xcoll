@@ -1,0 +1,14 @@
+#
+NSIG_FAM TCP7                  5.0 PRIMARY
+NSIG_FAM TCSG7                 6.5 SECONDARY
+# name                                                opening/fam mat.      length[m]  angle[deg]  offset[m]
+tcp.d6l7.b1                                                  TCP7 MoGR      0.600     90.0         0.
+tcp.c6l7.b1                                                  TCP7 MoGR      0.600      0.0         0.
+tcp.b6l7.b1                                                  TCP7 C         0.600    127.5         0.
+tcsg.a6l7.b1                                                TCSG7 C         1.000    141.1         0.
+tcsg.b5l7.b1                                                TCSG7 C         1.000    143.5         0.
+tcsg.a5l7.b1                                                TCSG7 C         1.000     40.7         0.
+tcsg.d4l7.b1                                                TCSG7 MoGR      1.000     90.0         0.
+tcspm.b4l7.b1                                               TCSG7 MoGR      1.000      0.0         0.
+tcsg.a4l7.b1                                                TCSG7 C         1.000    134.6         0.
+tcsg.a4r7.b1                                                TCSG7 C         1.000     46.3         0.
