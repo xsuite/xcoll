@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..colldb import _get_LR, _set_LR, _get_LRUD, _set_LRUD
+from ..collimator_settings import _get_LR, _set_LR, _get_LRUD, _set_LRUD
 from ..tables import CollimatorImpacts
 from ..general import _pkg_root
 

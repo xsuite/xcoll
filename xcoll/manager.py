@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
-from .colldb import CollimatorDatabase
+from .collimator_settings import CollimatorDatabase
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
