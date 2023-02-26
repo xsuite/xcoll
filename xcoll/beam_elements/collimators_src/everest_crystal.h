@@ -28,10 +28,10 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // TODO: use xtrack C-code for rotation element
     double const cRot       = EverestCrystalData_get_cos_z(el);
     double const sRot       = EverestCrystalData_get_sin_z(el);
-    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+    // if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
     //     raise NotImplementedError
-    double const c_aperture = EverestCrystalData_get_jaw_F_L(el) - EverestCrystalData_get_jaw_F_R(el);
-    double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_F_L(el) + EverestCrystalData_get_jaw_F_R(el) )/2;
+    double const c_aperture = EverestCrystalData_get_jaw_LU(el) - EverestCrystalData_get_jaw_RU(el);
+    double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_LU(el) + EverestCrystalData_get_jaw_RU(el) )/2;
     double const c_tilt0    = EverestCrystalData_get_tilt(el, 0);
     double const c_tilt1    = EverestCrystalData_get_tilt(el, 1);
     double const onesided   = EverestCrystalData_get_onesided(el);

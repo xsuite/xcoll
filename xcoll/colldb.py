@@ -6,7 +6,7 @@ def load_SixTrack_colldb(filename, *, emit):
     return CollimatorDatabase(emit=emit, sixtrack_file=filename)
 
 
-# if opening_mm is used, other variables like tilt, opening, offset_mm, .. are ignored
+# if physical_opening is used, other variables like tilt, opening, offset, .. are ignored
 _coll_properties = {'active_length': 0,
                     'inactive_front': 0,
                     'inactive_back': 0,
@@ -15,26 +15,31 @@ _coll_properties = {'active_length': 0,
                     'onesided': 'both',
                     'angle_L': 0,
                     'angle_R': 0,
-                    'offset_mm': 0,
+                    'offset': 0,
                     'tilt_L': 0,
                     'tilt_R': 0,
                     'align_to': None, 
                     's_center': None,
-                    'parking_mm': 10e3,
+                    'parking': 1,
                     'material': None,
                     'jaw_LU': None,
                     'jaw_RU': None,
                     'jaw_LD': None,
                     'jaw_RD': None,
+                    'ref_Ux': 0,
+                    'ref_Uy': 0,
+                    'ref_Dx': 0,
+                    'ref_Dy': 0,
                     'stage': None,
                     'family': None,
                     'collimator_type': None,
                     'is_active': True,
                     'crystal': False
                    }
-_properties_without_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'angle_L', 'angle_R',
-                              'tilt_L', 'tilt_R', 'gap_L', 'gap_R']
-_add_to_dict = ['angle', 'tilt', 'opening', 'opening_mm']
+_properties_no_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'gap_L', 'gap_R',
+                         'ref_Ux', 'ref_Uy', 'ref_Dx', 'ref_Dy', 'angle_L', 'angle_R',
+                         'tilt_L', 'tilt_R', ]
+_add_to_dict = ['angle', 'tilt', 'opening', 'physical_opening', 'reference_center']
 
 _crystal_properties = {
                     'bend': None,
@@ -43,18 +48,20 @@ _crystal_properties = {
                     'miscut': 0,
                     'thick': 0
                 }
-
+_optics_vals = ['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy']
 
 # This creates a view on the settings of one collimator, kept in sync with the main database
 class CollimatorSettings:
 
-    def __init__(self, name, colldb=None):
+    def __init__(self, name, colldb=None, optics=None, element=None):
         if colldb is None:
             colldb = pd.DataFrame({'name':name, **_coll_properties, **_crystal_properties})
             colldb = colldb.set_index('name')
         self._colldb = colldb
         if name not in colldb.index:
             raise ValueError(f"Collimator {name} not found in database!")
+        self._optics  = optics
+        self._element = element
         self._name = name
         self._jaws_manually_set = False
 
@@ -78,11 +85,11 @@ class CollimatorSettings:
             return fset
 
         # Now create @property's for each of them:
-        for pp in list(_coll_properties.keys()) + list(_crystal_properties.keys()):
+        for pp in set(_coll_properties.keys()).union(set(_crystal_properties.keys())):
             if not pp in self._colldb.columns:
                 raise ValueError(f"Error in settings for {self.name}: "
                                + f"Could not find property {pp} in database column header!")
-            if pp in _properties_without_setter:
+            if pp in _properties_no_setter:
                 setattr(self.__class__, pp, property(_prop_fget(self, pp)))
             else:
                 setattr(self.__class__, pp, property(_prop_fget(self, pp), _prop_fset(self, pp)))
@@ -93,7 +100,7 @@ class CollimatorSettings:
 
     def to_dict(self):
         props = list(_coll_properties.keys()) + list(_crystal_properties.keys()) + _add_to_dict
-        all_properties = {pp: getattr(self,pp) for pp in props if pp not in _properties_without_setter}
+        all_properties = {pp: getattr(self,pp) for pp in props if pp not in _properties_no_setter}
         return {'name': self.name, **all_properties}
 
     # Some easy accessors to the LR / LRUD properties:
@@ -101,9 +108,7 @@ class CollimatorSettings:
 
     @property
     def angle(self):
-        L = self.angle_L
-        R = self.angle_R
-        return L if L==R else [L,R]
+        self._get_LR('angle')
 
     @angle.setter
     def angle(self, val):
@@ -112,9 +117,7 @@ class CollimatorSettings:
 
     @property
     def tilt(self):
-        L = self.tilt_L
-        R = self.tilt_R
-        return L if L==R else [L,R]
+        self._get_LR('tilt')
 
     @tilt.setter
     def tilt(self, val):
@@ -123,100 +126,119 @@ class CollimatorSettings:
 
     @property
     def opening(self):
-        L = self.gap_L
-        R = self.gap_R
-        return L if L==R else [L,R]
+        if self._jaws_manually_set:
+            # TODO: update gap using beam size as from jaws
+            pass
+        else:
+            self._get_LR('gap', neg=True)
 
     @opening.setter
     def opening(self, val):
-        self._set_LR('gap', val)
+        self._set_LR('gap', val, neg=True)
         self._jaws_manually_set = False
         self._compute_jaws()
 
     @property
-    def opening_mm(self):
-        LU = self.jaw_LU
-        RU = self.jaw_RU
-        LD = self.jaw_LD
-        RD = self.jaw_RD
-        if LU == -RU == LD == -RD:
-            return LU
-        elif LU == LD and RU == RD:
-            return [LU, RU]
-        else:
-            return [[LU, RU], [LD, RD]]
+    def physical_opening(self):
+        self._get_LRUD('jaw', neg=True)
 
-    @opening_mm.setter
-    def opening_mm(self, val):
-        self._set_LRUD('jaw', val)
+    @physical_opening.setter
+    def physical_opening(self, val):
+        self._set_LRUD('jaw', val, neg=True)
         self._jaws_manually_set = True
-        self._compute_jaws()
 
+    @property
+    def reference_center(self):
+        self._get_LRUD('ref', name_LU='_Ux', name_RU='_Uy', name_LD='_Dx', name_RD='_Dy')
 
     @property
     def beam_size(self):
-        # [[LU,RU], [LC, RC], [LD,RD]]
-        pass
+        if not self._optics_is_ready:
+            return None
+        else:
+            # TODO: calculate beam size from optic
+            # [[LU,RU], [LC, RC], [LD,RD]]
+            pass
 
 
     @property
     def _optics_is_ready(self):
-        if align_to is None:
+        if self.align_to is None: # TODO add check that there are optics!
             return False
 
     def _compute_jaws(self):
-        if self._optics_is_ready and not self._jaws_manually_set:
-            # Default to parking
-            # TODO: parking is wrt CO, need to correct
-            jaw_LU = self.parking_mm
-            jaw_RU = -self.parking_mm
-            jaw_LD = self.parking_mm
-            jaw_RD = -self.parking_mm
+        if self._optics_is_ready:
+            if self._jaws_manually_set:
+                self._jaw_LU = min(self._jaw_LU, self.parking)
+                self._jaw_LD = min(self._jaw_LD, self.parking)
+                self._jaw_RU = max(self._jaw_RU, -self.parking)
+                self._jaw_RD = max(self._jaw_RD, -self.parking)
+                # TODO: upate gap
+            else:
+                # Default to parking
+                # TODO: parking is wrt CO, need to correct
+                jaw_LU = self.parking
+                jaw_RU = -self.parking
+                jaw_LD = self.parking
+                jaw_RD = -self.parking
 
-            if self.gap_L is not None or self.gap_R is not None:
-                # Get the beam size to be used, depending on align_to
-                if self.align_to == 'maximum':
-                    # Reset align_to to the location of the maximum
-                    self._align_to = ['front', 'center', 'back'][np.argmax(self.beam_size)]
-                if self.align_to == 'angular':
-                    sigma_U = self.beam_size[0]
-                    sigma_D = self.beam_size[2]
-                elif self.align_to == 'front':
-                    sigma_U = self.beam_size[0]
-                    sigma_D = self.beam_size[0]
-                elif self.align_to == 'center':
-                    sigma_U = self.beam_size[1]
-                    sigma_D = self.beam_size[1]
-                elif self.align_to == 'back':
-                    sigma_U = self.beam_size[2]
-                    sigma_D = self.beam_size[2]
+                if self.gap_L is not None or self.gap_R is not None:
+                    # Get the beam size to be used, depending on align_to
+                    if self.align_to == 'maximum':
+                        # Reset align_to to the location of the maximum
+                        self._align_to = ['front', 'center', 'back'][np.argmax(self.beam_size)]
+                    if self.align_to == 'angular':
+                        sigma_U = self.beam_size[0]
+                        sigma_D = self.beam_size[2]
+                    elif self.align_to == 'front':
+                        sigma_U = self.beam_size[0]
+                        sigma_D = self.beam_size[0]
+                    elif self.align_to == 'center':
+                        sigma_U = self.beam_size[1]
+                        sigma_D = self.beam_size[1]
+                    elif self.align_to == 'back':
+                        sigma_U = self.beam_size[2]
+                        sigma_D = self.beam_size[2]
 
-                # Get the shift due to the tilt to be used, depending on align_to
-                if align_to == front:
-                    scale = 0
-                elif align_to == back:
-                    scale = 1
-                else:
-                    scale = 0.5
-                ts_LU = -np.tan(self._tilt_L)*self.active_length*scale
-                ts_RU = -np.tan(self._tilt_R)*self.active_length*scale
-                ts_LD = np.tan(self._tilt_L)*self.active_length*(1-scale)
-                ts_RD = np.tan(self._tilt_R)*self.active_length*(1-scale)
+                    # Get the shift due to the tilt to be used, depending on align_to
+                    if align_to == front:
+                        scale = 0
+                    elif align_to == back:
+                        scale = 1
+                    else:
+                        scale = 0.5
+                    ts_LU = -np.tan(self._tilt_L)*self.active_length*scale
+                    ts_RU = -np.tan(self._tilt_R)*self.active_length*scale
+                    ts_LD = np.tan(self._tilt_L)*self.active_length*(1-scale)
+                    ts_RD = np.tan(self._tilt_R)*self.active_length*(1-scale)
 
-                if self.onesided in ['left', 'both']:
-                    jaw_LU = self.gap_L*sigma_U[0]  + self.offset_mm*1e-3 + ts_LU
-                    jaw_LD = self.gap_L*sigma_D[0]  + self.offset_mm*1e-3 + ts_LD
-                if self.onesided in ['right', 'both']:
-                    jaw_RU = -self.gap_R*sigma_U[1] + self.offset_mm*1e-3 + ts_RU
-                    jaw_RD = -self.gap_R*sigma_D[1] + self.offset_mm*1e-3 + ts_RD
+                    if self.onesided in ['left', 'both']:
+                        jaw_LU = self.gap_L*sigma_U[0]  + self.offset + ts_LU
+                        jaw_LD = self.gap_L*sigma_D[0]  + self.offset + ts_LD
+                    if self.onesided in ['right', 'both']:
+                        jaw_RU = -self.gap_R*sigma_U[1] + self.offset + ts_RU
+                        jaw_RD = -self.gap_R*sigma_D[1] + self.offset + ts_RD
 
-            self._jaw_LU = min(jaw_LU, self.parking_mm)
-            self._jaw_LD = min(jaw_LD, self.parking_mm)
-            self._jaw_RU = max(jaw_RU, -self.parking_mm)
-            self._jaw_RD = max(jaw_RD, -self.parking_mm)
+                self._jaw_LU = min(jaw_LU, self.parking)
+                self._jaw_LD = min(jaw_LD, self.parking)
+                self._jaw_RU = max(jaw_RU, -self.parking)
+                self._jaw_RD = max(jaw_RD, -self.parking)
 
+    def _get_LR(self, prop, neg=False, name_L='_L', name_R='_R'):
+        sign = -1 if neg else 1
+        L = getattr(self, prop + name_L)
+        R = getattr(self, prop + name_R)
+        if L is None and R is None:
+            return None
+        elif L is None:
+            return R
+        elif R is None:
+            return L
+        else:
+            return L if L==sign*R else [L,R]
 
-    def _set_LR(self, prop, val):
+    def _set_LR(self, prop, val, neg=False, name_L='_L', name_R='_R'):
+        sign = -1 if neg else 1
         if not hasattr(val, '__iter__'):
             val = [val]
         if isinstance(val, str):
@@ -231,11 +253,40 @@ class CollimatorSettings:
         else:
             raise ValueError(f"Error in settings for {self.name}: "
                            + f"The setting `{prop}` must have one or two (L, R) values!")
-        setattr(self, '_' + prop + '_L', val_L)
-        setattr(self, '_' + prop + '_R', val_R)
+        setattr(self, '_' + prop + name_L, val_L)
+        setattr(self, '_' + prop + name_R, val_R)
 
+    def _get_LRUD(self, prop, neg=False, name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
+        sign = -1 if neg else 1
+        LU = getattr(self, prop + name_LU)
+        RU = getattr(self, prop + name_RU)
+        LD = getattr(self, prop + name_LD)
+        RD = getattr(self, prop + name_RD)
+        if LU is None and RU is None \
+        and LD is None and RD is None:
+            return None
+        elif LU is None and RU is None:
+            return LD if LD==sign*RD else [LD,RD]
+        elif LD is None and RD is None:
+            return LU if LU==sign*RU else [LU,RU]
+        elif LU is None and RD is None:
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` has values for LD and RU but not for LU and RD."
+                           + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
+        elif LD is None and RU is None:
+            raise ValueError(f"Error in settings for {self.name}: "
+                           + f"The setting `{prop}` has values for LU and RD but not for LD and RU."
+                           + f"Cannot mix jaws L/R with U/D! Either set all four, or only L or only R.")
+        else:
+            if LU == sign*RU == LD == sign*RD:
+                return LU
+            elif LU == LD and RU == RD:
+                return [LU, RU]
+            else:
+                return [[LU, RU], [LD, RD]]
 
-    def _set_LRUD(self, prop, val):
+    def _set_LRUD(self, prop, val, neg=False, name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
+        sign = -1 if neg else 1
         if not hasattr(val, '__iter__'):
             val = [val]
         if isinstance(val, str):
@@ -253,17 +304,17 @@ class CollimatorSettings:
             val_RD = val[1]
         elif len(val) == 1:
             val_LU = val[0]
-            val_RU = val[0]
+            val_RU = sign*val[0]
             val_LD = val[0]
-            val_RD = val[0]
+            val_RD = sign*val[0]
         else:
             raise ValueError(f"Error in settings for {self.name}: "
                            + f"The setting `{prop}` must have one, two (L, R), or four "
                            + f"(LU, RU, LD, RD) values!")
-        setattr(self, '_' + prop + '_LU', val_LU)
-        setattr(self, '_' + prop + '_RU', val_RU)
-        setattr(self, '_' + prop + '_LD', val_LD)
-        setattr(self, '_' + prop + '_RD', val_RD)
+        setattr(self, '_' + prop + name_LU, val_LU)
+        setattr(self, '_' + prop + name_RU, val_RU)
+        setattr(self, '_' + prop + name_LD, val_LD)
+        setattr(self, '_' + prop + name_RD, val_RD)
 
 
 
@@ -336,11 +387,13 @@ class CollimatorDatabase:
 
     @property
     def angle(self):
-        return self._colldb['angle']
+#         angles = np.array([self._colldb.angle_L.values,self._colldb.angle_R.values])
+#         return pd.Series([ L if L == R else [L,R] for L, R in angles.T ], index=self._colldb.index, dtype=object)
+        return self._colldb['angle_L']
 
     @angle.setter
     def angle(self, angle):
-        self._set_property('angle', angle)
+        self._set_property_LR('angle', angle)
         self._compute_jaws()
 
     @property
@@ -552,10 +605,10 @@ class CollimatorDatabase:
     @property
     def jaw(self):
         jaws = list(np.array([
-                        self._colldb.jaw_F_L.values,
-                        self._colldb.jaw_F_R.values,
-                        self._colldb.jaw_B_L.values,
-                        self._colldb.jaw_B_R.values
+                        self._colldb.jaw_LU.values,
+                        self._colldb.jaw_RU.values,
+                        self._colldb.jaw_LD.values,
+                        self._colldb.jaw_RD.values
                     ]).T)
         # Need special treatment if there are None's
         def flip(jaw):
@@ -770,14 +823,14 @@ class CollimatorDatabase:
             df = self._colldb
             beam_size_front = self._beam_size_front
             beam_size_back  = self._beam_size_back
-            jaw_F_L = df['gap_L']*beam_size_front + self.offset
-            jaw_F_R = df['gap_R']*beam_size_front - self.offset
-            jaw_B_L = df['gap_L']*beam_size_back  + self.offset
-            jaw_B_R = df['gap_R']*beam_size_back  - self.offset
-            df['jaw_F_L'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_F_L,df['parking'])
-            df['jaw_F_R'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_F_R,df['parking'])
-            df['jaw_B_L'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_B_L,df['parking'])
-            df['jaw_B_R'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_B_R,df['parking'])
+            jaw_LU = df['gap_L']*beam_size_front + self.offset
+            jaw_RU = df['gap_R']*beam_size_front - self.offset
+            jaw_LD = df['gap_L']*beam_size_back  + self.offset
+            jaw_RD = df['gap_R']*beam_size_back  - self.offset
+            df['jaw_LU'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LU,df['parking'])
+            df['jaw_RU'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RU,df['parking'])
+            df['jaw_LD'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LD,df['parking'])
+            df['jaw_RD'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RD,df['parking'])
 
 
 
@@ -861,11 +914,12 @@ class CollimatorDatabase:
             
     def _initialise_None(self):
         fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
-        fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': None})
-        fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None})
+        fields.update({'gap_L': None, 'gap_R': None, 'angle_L': 0, 'angle_R': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0})
+        fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'parking': None, 'family': None})
         fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
         fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
         fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+        fields.update({'ref_Ux': 0, 'ref_Uy': 0, 'ref_Dx': 0, 'ref_Dy': 0})
         for f, val in fields.items():
             if f not in self._colldb.columns:
                 self._colldb[f] = val
@@ -915,7 +969,9 @@ class CollimatorDatabase:
         gaps = df['jaw'].apply(lambda s: float(family_settings.get(s, s)))
 
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
-        df.rename(columns={'length':'active_length'}, inplace=True)
+        df['angle_L'] = df['angle']
+        df['angle_R'] = df['angle']
+        df.rename(columns={'length':'active_length', 'offset':'offset'}, inplace=True)
         df['parking'] = 0.025
         df.loc[df.name.str[:3] == 'tct', 'parking'] = 0.04
 

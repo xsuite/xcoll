@@ -16,10 +16,10 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
     // Collimator jaws
-    double const jaw_F_L = BlackAbsorberData_get_jaw_F_L(el);
-    double const jaw_F_R = BlackAbsorberData_get_jaw_F_R(el);
-    double const jaw_B_L = BlackAbsorberData_get_jaw_B_L(el);
-    double const jaw_B_R = BlackAbsorberData_get_jaw_B_R(el);
+    double const jaw_LU = BlackAbsorberData_get_jaw_LU(el);
+    double const jaw_RU = BlackAbsorberData_get_jaw_RU(el);
+    double const jaw_LD = BlackAbsorberData_get_jaw_LD(el);
+    double const jaw_RD = BlackAbsorberData_get_jaw_RD(el);
     // Collimator reference frame
     double const sin_z = BlackAbsorberData_get_sin_z(el);
     double const cos_z = BlackAbsorberData_get_cos_z(el);
@@ -55,7 +55,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 //             double y_F = LocalParticle_get_y(part);
 
             // Check if hit on the collimator jaw at the front
-            is_alive = is_within_aperture(part, jaw_F_L, jaw_F_R);
+            is_alive = is_within_aperture(part, jaw_LU, jaw_RU);
 
             // Continue if the particle didn't hit the collimator
             if (is_alive){
@@ -64,7 +64,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 Drift_single_particle(part, active_length);
 
                 // Check if hit on the collimator jaw at the back
-                is_alive = is_within_aperture(part, jaw_B_L, jaw_B_R);
+                is_alive = is_within_aperture(part, jaw_LD, jaw_RD);
 
                 // TODO: is there a performance difference with nesting the ifs or not?
                 // Continue if the particle didn't hit the collimator
@@ -82,9 +82,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     double length;
                     
                     if (x_B > 0){        // Left jaw
-                        length = (jaw_B_L - x_B) / (jaw_B_L - jaw_F_L - x_B + x_F) * active_length;
+                        length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * active_length;
                     } else if (x_B < 0){ // Right jaw
-                        length = (jaw_B_R - x_B) / (jaw_B_R - jaw_F_R - x_B + x_F) * active_length;
+                        length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * active_length;
                     // TODO: check this
 //                     } else if (y_B > 0){ // Upper jaw
 //                         length = (y_B - jaw_U) / (y_B - y_F) * active_length;

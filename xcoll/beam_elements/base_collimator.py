@@ -42,10 +42,10 @@ class BaseCollimator(xt.BeamElement):
         'inactive_front': xo.Float64,
         'active_length': xo.Float64,
         'inactive_back': xo.Float64,
-        'jaw_F_L': xo.Float64,
-        'jaw_F_R': xo.Float64,
-        'jaw_B_L': xo.Float64,
-        'jaw_B_R': xo.Float64,
+        'jaw_LU': xo.Float64,
+        'jaw_RU': xo.Float64,
+        'jaw_LD': xo.Float64,
+        'jaw_RD': xo.Float64,
         'dx': xo.Float64,
         'dy': xo.Float64,
         'cos_z': xo.Float64,
@@ -72,10 +72,10 @@ class BaseCollimator(xt.BeamElement):
         if self.__class__.__name__ == 'BaseCollimator':
             raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
         if '_xobject' not in kwargs:
-            kwargs.setdefault('jaw_F_L', 1)
-            kwargs.setdefault('jaw_F_R', -1)
-            kwargs.setdefault('jaw_B_L', 1)
-            kwargs.setdefault('jaw_B_R', -1)
+            kwargs.setdefault('jaw_LU', 1)
+            kwargs.setdefault('jaw_RU', -1)
+            kwargs.setdefault('jaw_LD', 1)
+            kwargs.setdefault('jaw_RD', -1)
             kwargs.setdefault('inactive_front', 0)
             kwargs.setdefault('inactive_back', 0)
             kwargs.setdefault('dx', 0)

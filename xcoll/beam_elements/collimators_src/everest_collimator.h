@@ -39,10 +39,10 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     // TODO: use xtrack C-code for rotation element
     double const cRot       = EverestCollimatorData_get_cos_z(el);
     double const sRot       = EverestCollimatorData_get_sin_z(el);    
-    // if collimator.jaw_F_L != collimator.jaw_B_L or collimator.jaw_F_R != collimator.jaw_B_R:
+    // if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
     //     raise NotImplementedError
-    double const c_aperture = EverestCollimatorData_get_jaw_F_L(el) - EverestCollimatorData_get_jaw_F_R(el);
-    double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_F_L(el) + EverestCollimatorData_get_jaw_F_R(el) )/2;
+    double const c_aperture = EverestCollimatorData_get_jaw_LU(el) - EverestCollimatorData_get_jaw_RU(el);
+    double const c_offset   = EverestCollimatorData_get_offset(el) + ( EverestCollimatorData_get_jaw_LU(el) + EverestCollimatorData_get_jaw_RU(el) )/2;
     double const c_tilt0    = EverestCollimatorData_get_tilt(el, 0);
     double const c_tilt1    = EverestCollimatorData_get_tilt(el, 1);
     double const onesided   = EverestCollimatorData_get_onesided(el);

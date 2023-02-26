@@ -350,10 +350,10 @@ class CollimatorManager:
                 line[name].dx = colldb.x[name]
                 line[name].dy = colldb.y[name]
                 line[name].angle = colldb.angle[name]
-                line[name].jaw_F_L = colldb._colldb.jaw_F_L[name]
-                line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
-                line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
-                line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
+                line[name].jaw_LU = colldb._colldb.jaw_LU[name]
+                line[name].jaw_RU = colldb._colldb.jaw_RU[name]
+                line[name].jaw_LD = colldb._colldb.jaw_LD[name]
+                line[name].jaw_RD = colldb._colldb.jaw_RD[name]
                 line[name].is_active = colldb.is_active[name]
                 if isinstance(line[name], (EverestCollimator)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
@@ -372,10 +372,10 @@ class CollimatorManager:
     def openings_set(self):
         # TODO: need to delete jaw positions if some parameters (that would influence it) are changed
         return not np.any(
-                    [x is None for x in self.colldb._colldb.jaw_F_L]
-                    + [ x is None for x in self.colldb._colldb.jaw_F_R]
-                    + [ x is None for x in self.colldb._colldb.jaw_B_L]
-                    + [ x is None for x in self.colldb._colldb.jaw_B_R]
+                    [x is None for x in self.colldb._colldb.jaw_LU]
+                    + [ x is None for x in self.colldb._colldb.jaw_RU]
+                    + [ x is None for x in self.colldb._colldb.jaw_LD]
+                    + [ x is None for x in self.colldb._colldb.jaw_RD]
                 )
 
 
@@ -436,9 +436,9 @@ class CollimatorManager:
         co_transverse = opt.loc[match_at_s, 'y' if plane=='x' else 'x']
 
         if side == '+':
-            absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
+            absolute_cut = line[collimator].jaw_LU + co_pencil + impact_parameter
         elif side == '-':
-            absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+            absolute_cut = line[collimator].jaw_RU + co_pencil - impact_parameter
 
         dr_sigmas  = pencil_spread/sigma
 
@@ -461,7 +461,7 @@ class CollimatorManager:
             )
         elif zeta is None:
             zeta = 0.0
-#             delta = (self.line[collimator].jaw_F_L + self.line[collimator].dx + impact_parameter)/self.colldb.dx[collimator]
+#             delta = (self.line[collimator].jaw_LU + self.line[collimator].dx + impact_parameter)/self.colldb.dx[collimator]
         elif delta is None:
             delta = 0.0
 
