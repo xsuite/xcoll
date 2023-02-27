@@ -103,8 +103,8 @@ class BaseCollimator(xt.BeamElement):
 
     @property
     def angle(self):
-        angle_L = round(np.arctan2(self.sin_zL, self.cos_zL) * (180.0 / np.pi), 9)
-        angle_R = round(np.arctan2(self.sin_zR, self.cos_zR) * (180.0 / np.pi), 9)
+        angle_L = round(np.arctan2(self.sin_zL, self.cos_zL) * (180.0 / np.pi), 15)
+        angle_R = round(np.arctan2(self.sin_zR, self.cos_zR) * (180.0 / np.pi), 15)
         return angle_L if angle_L==angle_R else [angle_L, angle_R]
 
     def _angle_setter(self, val):
@@ -147,3 +147,18 @@ class BaseCollimator(xt.BeamElement):
     @property
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
+
+    def jaw_func(self, pos):
+        positions = ['LU', 'RU', 'LD', 'RD']
+        if not pos in positions:
+            raise ValueError(f"Parameter {pos} needs to be one of {positions}!")
+        point_x = getattr(self, 'ref_x' + pos[-1])
+        point_y = getattr(self, 'ref_y' + pos[-1])
+        sinz    = getattr(self, 'sin_z' + pos[0])
+        cosz    = getattr(self, 'cos_z' + pos[0])
+        # Shift to the jaw, whose location is given as the shortest distance:
+        point_x += getattr(self, 'jaw' + pos) * cosz
+        point_y += getattr(self, 'jaw' + pos) * sinz
+        return lambda x: sinz/cosz*(x-point_x) + point_y
+        
+        
