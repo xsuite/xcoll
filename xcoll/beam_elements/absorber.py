@@ -9,6 +9,10 @@ from ..general import _pkg_root
 
 
 class BlackAbsorber(BaseCollimator):
+    _xofields = { **BaseCollimator._xofields,
+        '_tracking':        xo.Int8
+    }
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','collimators_src','absorber.h')
     ]
@@ -24,5 +28,7 @@ class BlackAbsorber(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     def __init__(self, **kwargs):
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
 

@@ -46,6 +46,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
         } else {
+
+            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            if (is_tracking) {
            
             // Drift inactive length before jaw
             Drift_single_particle(part, inactive_front);
@@ -69,18 +72,18 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 // TODO: is there a performance difference with nesting the ifs or not?
                 // Continue if the particle didn't hit the collimator
                 if (is_alive){
-                    
+
                     // Drift inactive length after jaw
                     Drift_single_particle(part, inactive_back);
-                    
+
                 } else {
-                    
+
                     // Backtrack to the particle position of impact
                     // This should only be done if the particle did NOT hit the front jaw
                     double x_B = LocalParticle_get_x(part);
 //                     double y_B = LocalParticle_get_y(part);
                     double length;
-                    
+
                     if (x_B > 0){        // Left jaw
                         length = (jaw_B_L - x_B) / (jaw_B_L - jaw_F_L - x_B + x_F) * active_length;
                     } else if (x_B < 0){ // Right jaw
@@ -96,6 +99,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     Drift_single_particle(part, -length);
 
                 }
+            }
             }
         }
 
