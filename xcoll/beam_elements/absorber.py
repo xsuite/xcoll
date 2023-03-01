@@ -4,6 +4,7 @@
 # ######################################### #
 
 import xtrack as xt
+import xobjects as xo
 from .base_collimator import BaseCollimator
 from ..general import _pkg_root
 
