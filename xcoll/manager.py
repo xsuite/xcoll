@@ -152,6 +152,7 @@ class CollimatorManager:
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
                     is_active=False,
+                    _tracking=False,
                     _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
