@@ -156,6 +156,7 @@ class CollimatorManager:
                     active_length=thiscoll['active_length'],
                     angle=thiscoll['angle'],
                     is_active=False,
+                    _tracking=False,
                     _buffer=self._buffer
                    )
         self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
@@ -500,15 +501,17 @@ class CollimatorManager:
     def summary(self):
         return self._summary
 
-    def create_summary(self, part, coll_s=None, coll_names=None, coll_length=None):
+    def create_summary(self, part, coll_s=None, coll_names=None, coll_length=None, coll_types=None):
         if coll_s is None or coll_names is None or coll_length is None:
-            coll_s, coll_names, coll_length = self._get_collimator_losses(part)
-        names = dict(zip(coll_s, coll_names))
+            coll_s, coll_names, coll_length, coll_types = self._get_collimator_losses(part)
+        names   = dict(zip(coll_s, coll_names))
         lengths = dict(zip(coll_s, coll_length))
-        s = sorted(list(names.keys()))
+        types   = dict(zip(coll_s, coll_types))
+        s       = sorted(list(names.keys()))
 
         collname    =  [ names[pos] for pos in s ]
         colllengths =  [ lengths[pos] for pos in s ]
+        colltypes   =  [ types[pos] for pos in s ]
         nabs = []
         for pos in s:
             nabs.append(coll_s.count(pos))
@@ -517,7 +520,8 @@ class CollimatorManager:
             "collname": collname,
             "nabs":     nabs,
             "length":   colllengths,
-            "s":        s
+            "s":        s,
+            "type":     colltypes
         })
 
         return self.summary
@@ -540,9 +544,9 @@ class CollimatorManager:
                     )
             loss_loc_refinement.refine_loss_location(part)
 
-        aper_s, aper_names              = self._get_aperture_losses(part)
-        coll_s, coll_names, coll_length = self._get_collimator_losses(part)
-        _ = self.create_summary(part, coll_s, coll_names, coll_length)
+        aper_s, aper_names                          = self._get_aperture_losses(part)
+        coll_s, coll_names, coll_length, coll_types = self._get_collimator_losses(part)
+        _ = self.create_summary(part, coll_s, coll_names, coll_length, coll_types)
 
         self._lossmap = {
             'collimator': {
@@ -567,8 +571,9 @@ class CollimatorManager:
 
 
     def _get_collimator_losses(self, part):
-        coll_mask = (part.state<=-333) & (part.state>=-336)
+        coll_mask = (part.state<=-333) & (part.state>=-340)
         coll_names = [ self.line.element_names[i] for i in part.at_element[coll_mask]]
+        coll_types = [ self.line[i].__class__.__name__ for i in part.at_element[coll_mask]]
         # TODO: this way to get the collimator positions is a hack that needs to be cleaner with the new API
         coll_positions = dict(zip(self.collimator_names, self.s_center))
         coll_s = [coll_positions[name] for name in coll_names]
@@ -577,7 +582,7 @@ class CollimatorManager:
         if self._line_is_reversed:
             coll_s = [ machine_length - s for s in coll_s ]
 
-        return coll_s, coll_names, coll_length
+        return coll_s, coll_names, coll_length, coll_types
 
 
     def _get_aperture_losses(self, part):

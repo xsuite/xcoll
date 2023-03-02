@@ -11,7 +11,8 @@ int64_t is_within_aperture(LocalParticle* part, double jaw_L, double jaw_R){
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
     // Collimator active and length
-    int8_t const is_active = BlackAbsorberData_get__active(el);
+    int8_t is_active = BlackAbsorberData_get__active(el);
+    is_active       *= BlackAbsorberData_get__tracking(el);
     double const inactive_front = BlackAbsorberData_get_inactive_front(el);
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
@@ -46,6 +47,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
         } else {
+
+            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            if (is_tracking) {
            
             // Drift inactive length before jaw
             Drift_single_particle(part, inactive_front);
@@ -69,18 +73,18 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 // TODO: is there a performance difference with nesting the ifs or not?
                 // Continue if the particle didn't hit the collimator
                 if (is_alive){
-                    
+
                     // Drift inactive length after jaw
                     Drift_single_particle(part, inactive_back);
-                    
+
                 } else {
-                    
+
                     // Backtrack to the particle position of impact
                     // This should only be done if the particle did NOT hit the front jaw
                     double x_B = LocalParticle_get_x(part);
 //                     double y_B = LocalParticle_get_y(part);
                     double length;
-                    
+
                     if (x_B > 0){        // Left jaw
                         length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * active_length;
                     } else if (x_B < 0){ // Right jaw
@@ -96,6 +100,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     Drift_single_particle(part, -length);
 
                 }
+            }
             }
         }
 
