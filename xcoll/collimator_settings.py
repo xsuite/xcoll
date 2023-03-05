@@ -143,7 +143,7 @@ class CollimatorSettings:
 
     @opening.setter
     def opening(self, val):
-        _set_LR('gap', val, neg=True)
+        _set_LR(self, 'gap', val, neg=True)
         self._jaws_manually_set = False
         self._compute_jaws()
 
@@ -180,6 +180,10 @@ class CollimatorSettings:
     def _compute_jaws(self):
         if self._optics_is_ready:
             if self._jaws_manually_set:
+                jaw_LU = self.jaw_LU
+                jaw_RU = self.jaw_RU
+                jaw_LD = self.jaw_LD
+                jaw_RD = self.jaw_RD
                 # TODO: upate gap
                 pass
             else:
@@ -194,7 +198,7 @@ class CollimatorSettings:
                     # Get the beam size to be used, depending on align_to
                     if self.align_to == 'maximum':
                         # Reset align_to to the location of the maximum
-                        self._align_to = ['front', 'center', 'back'][np.argmax(self.beam_size)]
+                        self.align_to = ['front', 'center', 'back'][np.argmax(self.beam_size)]
                     if self.align_to == 'angular':
                         sigma_U = self.beam_size[0]
                         sigma_D = self.beam_size[2]
@@ -229,21 +233,21 @@ class CollimatorSettings:
                         jaw_RU = -self.gap_R*sigma_U[1] + self.offset + ts_RU
                         jaw_RD = -self.gap_R*sigma_D[1] + self.offset + ts_RD
 
-        if self.onesided == 'left':
-            self.jaw_LU = min(jaw_LU, self.parking)
-            self.jaw_LD = min(jaw_LD, self.parking)
-            self.jaw_RU = None
-            self.jaw_RD = None
-        elif self.onesided == 'right':
-            self.jaw_LU = None
-            self.jaw_LD = None
-            self.jaw_RU = max(jaw_RU, -self.parking)
-            self.jaw_RD = max(jaw_RD, -self.parking)
-        else:
-            self.jaw_LU = min(jaw_LU, self.parking)
-            self.jaw_LD = min(jaw_LD, self.parking)
-            self.jaw_RU = max(jaw_RU, -self.parking)
-            self.jaw_RD = max(jaw_RD, -self.parking)
+            if self.onesided == 'left':
+                self.jaw_LU = min(jaw_LU, self.parking)
+                self.jaw_LD = min(jaw_LD, self.parking)
+                self.jaw_RU = None
+                self.jaw_RD = None
+            elif self.onesided == 'right':
+                self.jaw_LU = None
+                self.jaw_LD = None
+                self.jaw_RU = max(jaw_RU, -self.parking)
+                self.jaw_RD = max(jaw_RD, -self.parking)
+            else:
+                self.jaw_LU = min(jaw_LU, self.parking)
+                self.jaw_LD = min(jaw_LD, self.parking)
+                self.jaw_RU = max(jaw_RU, -self.parking)
+                self.jaw_RD = max(jaw_RD, -self.parking)
 
 
 # Helper functions to set/get properties
@@ -299,8 +303,8 @@ def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
         obj[prop + name_L] = val_L
         obj[prop + name_R] = val_R
     else:
-        setattr(obj, prop + name_L, val_L)
-        setattr(obj, prop + name_R, val_R)
+        _prop_fset(obj, prop + name_L)(obj, val_L)
+        _prop_fset(obj, prop + name_R)(obj, val_R)
 
 def _get_LRUD(obj, prop, neg=False, name=None,
               name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
@@ -407,27 +411,31 @@ def _set_LRUD(obj, prop, val, neg=False, name=None,
         obj[prop + name_LD] = val_LD
         obj[prop + name_RD] = val_RD
     else:
-        setattr(obj, prop + name_LU, val_LU)
-        setattr(obj, prop + name_RU, val_RU)
-        setattr(obj, prop + name_LD, val_LD)
-        setattr(obj, prop + name_RD, val_RD)
+        _prop_fset(obj, prop + name_LU)(obj, val_LU)
+        _prop_fset(obj, prop + name_RU)(obj, val_RU)
+        _prop_fset(obj, prop + name_LD)(obj, val_LD)
+        _prop_fset(obj, prop + name_RD)(obj, val_RD)
 
 # These getter and setter functions link each property to the corresponding
 # entry in the DataFrame
-def _prop_fget(self, attr_name):
-    def fget(self):
-        return self._colldb.loc[self.name, attr_name]
+def _prop_fget(obj, attr_name):
+    def fget(obj):
+        return obj._colldb.loc[obj.name, attr_name]
     return fget
 
-def _prop_fset(self, attr_name):
-    def fset(self, value):
-        self._colldb.loc[self.name, attr_name] = value
+def _prop_fset(obj, attr_name):
+    def fset(obj, value):
+        obj._colldb.loc[obj.name, attr_name] = value
         # If we want additional effects on the setter funcions, this
         # can be achieved by defining an fset_prop method
-        if hasattr(self.__class__, 'fset_' + attr_name):
-            getattr(self, 'fset_' + attr_name)(value)
+        if hasattr(obj.__class__, 'fset_' + attr_name):
+            getattr(obj, 'fset_' + attr_name)(value)
         # TODO: self._compute_jaws()
     return fset
+
+
+
+
 
 
 class CollimatorDatabase:
