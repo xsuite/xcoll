@@ -19,20 +19,20 @@ def _run_lossmap(beam, plane, npart, interpolation):
         )
 
     coll_manager.install_everest_collimators()
-    tracker = coll_manager.build_tracker()
+    coll_manager.build_tracker()
     coll_manager.set_openings()
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam=='1' else 'r'}7.b{beam}"
     part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=npart, zeta=0.0, delta=0.0)
 
     coll_manager.enable_scattering()
-    tracker.track(part, num_turns=2)
+    line.track(part, num_turns=2)
     coll_manager.disable_scattering()
 
     coll_manager.create_lossmap(part, interpolation=interpolation)
 
     summ = coll_manager.summary
-    assert list(summ.columns) == ['collname', 'nabs', 'length', 's']
+    assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
     assert len(summ) == 10
     # We want at least 5% absorption on the primary
     assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart

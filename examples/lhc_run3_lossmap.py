@@ -38,7 +38,7 @@ coll_manager.install_everest_collimators(verbose=True)
 
     
 # Build the tracker
-tracker = coll_manager.build_tracker()
+coll_manager.build_tracker()
 
 
 # Set the collimator openings based on the colldb,
@@ -59,7 +59,7 @@ part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=50000)
 
 # Track
 coll_manager.enable_scattering()
-tracker.track(part, num_turns=200)
+line.track(part, num_turns=200)
 coll_manager.disable_scattering()
 
 

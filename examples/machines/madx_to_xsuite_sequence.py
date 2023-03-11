@@ -83,7 +83,7 @@ else:
 # Do some simplifications on the line
 line.remove_inactive_multipoles(inplace=True)
 line.merge_consecutive_apertures(inplace=True, keep=collimator_apertures)
-line.remove_markers(inplace=True, keep=collimators)
+line.remove_markers(inplace=True, keep=collimators+ips)
 line.remove_zero_length_drifts(inplace=True, keep=collimators)
 line.merge_consecutive_drifts(inplace=True, keep=collimators)
 print(f"Reduced to {len(line.element_names)} elements!")
