@@ -29,24 +29,23 @@ def _run_lossmap(beam, plane, npart, interpolation):
     line.track(part, num_turns=2)
     coll_manager.disable_scattering()
 
-    coll_manager.create_lossmap(part, interpolation=interpolation)
-
-    summ = coll_manager.summary
+    summ = coll_manager.summary(part, show_zeros=False)
     assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
     assert len(summ) == 10
     # We want at least 5% absorption on the primary
     assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
-    lm = coll_manager.lossmap
+    lm = coll_manager.lossmap(part, interpolation=interpolation)
     assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation', 'reversed']
-    assert list(lm['collimator'].keys()) == ['s', 'name', 'length']
-    assert len(lm['collimator']['s']) == summ.nabs.sum()
-    assert len(lm['collimator']['name']) == summ.nabs.sum()
-    assert len(lm['collimator']['length']) == summ.nabs.sum()
-    assert np.all([ s == summ.loc[summ.collname==name,'s'].values[0]
-              for name,s in list(zip(lm['collimator']['name'],lm['collimator']['s'])) ])
-    assert np.all([ l == summ.loc[summ.collname==name,'length'].values[0]
-              for name,l in list(zip(lm['collimator']['name'],lm['collimator']['length'])) ])
+    assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
+    assert len(lm['collimator']['s']) == len(summ)
+    assert len(lm['collimator']['name']) == len(summ)
+    assert len(lm['collimator']['length']) == len(summ)
+    assert len(lm['collimator']['n']) == len(summ)
+    assert np.all(lm['collimator']['s'] == summ.s)
+    assert np.all(lm['collimator']['name'] == summ.collname)
+    assert np.all(lm['collimator']['length'] == summ.length)
+    assert np.all(lm['collimator']['n'] == summ.nabs)
     assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
     assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
     assert list(lm['aperture'].keys()) == ['s', 'name']

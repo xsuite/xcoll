@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import numpy as np
 import pandas as pd
 
@@ -51,8 +53,10 @@ class CollimatorManager:
         self._impacts = None
         self.record_impacts = record_impacts
 
+        # Variables for lossmap
         self._lossmap = None
-        self._coll_summary = None
+        self._summary = None
+        self._part    = None
 
 
     def __getitem__(self, name):
@@ -125,7 +129,13 @@ class CollimatorManager:
 
     @property
     def collimator_names(self):
-        return list(self.colldb.name)
+        # TODO: should only sort whenever collimators are added to colldb
+        # or when positions are updated
+        db = self.colldb._colldb
+        names = list(db[db.is_active==True].index)
+        if not np.any([s is None for s in db.s_center]):
+            names.sort(key=lambda nn: db.loc[nn, 's_center'])
+        return names
 
     @property
     def s_front(self):
@@ -500,100 +510,99 @@ class CollimatorManager:
             self.line[coll]._tracking = False
 
 
-    @property
-    def summary(self):
-        return self._summary
+    def summary(self, part, show_zeros=False, file=None):
 
-    def create_summary(self, part, coll_s=None, coll_names=None, coll_length=None, coll_types=None):
-        if coll_s is None or coll_names is None or coll_length is None:
-            coll_s, coll_names, coll_length, coll_types = self._get_collimator_losses(part)
-        names   = dict(zip(coll_s, coll_names))
-        lengths = dict(zip(coll_s, coll_length))
-        types   = dict(zip(coll_s, coll_types))
-        s       = sorted(list(names.keys()))
+        # We cache the result
+        if (self._summary is None or self._part is None
+            or not xt.line._dicts_equal(part.to_dict(), self._part)
+           ):
+            self._part   = part.to_dict()
+            coll_mask    = (part.state<=-333) & (part.state>=-340)
+            coll_losses  = np.array([self.line.element_names[i] for i in part.at_element[coll_mask]])
+            coll_loss_single = np.unique(coll_losses)
+            coll_lengths = [self.line[nn].active_length for nn in self.collimator_names] 
+            coll_pos     = [self.colldb.s_center[nn]    for nn in self.collimator_names]
+            if self._line_is_reversed:
+                machine_length = self.line.get_length()
+                coll_pos = [machine_length - s for s in coll_pos ]
+            coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
+            nabs         = [np.count_nonzero(coll_losses==nn) for nn in self.collimator_names]
 
-        collname    =  [ names[pos] for pos in s ]
-        colllengths =  [ lengths[pos] for pos in s ]
-        colltypes   =  [ types[pos] for pos in s ]
-        nabs = []
-        for pos in s:
-            nabs.append(coll_s.count(pos))
+            self._summary = pd.DataFrame({
+                        "collname": self.collimator_names,
+                        "nabs":     nabs,
+                        "length":   coll_lengths,
+                        "s":        coll_pos,
+                        "type":     coll_types
+                      })
 
-        self._summary = pd.DataFrame({
-            "collname": collname,
-            "nabs":     nabs,
-            "length":   colllengths,
-            "s":        s,
-            "type":     colltypes
-        })
+        if file is not None:
+            with open(Path(file), 'w') as fid:
+                fid.write(self._summary.__repr__())
 
-        return self.summary
+        if show_zeros:
+            return self._summary
+        else:
+            return self._summary[self._summary.nabs > 0]
 
 
-    @property
-    def lossmap(self):
+    def lossmap(self, part, interpolation=0.1, file=None):
+
+        # We cache the result
+        if (self._lossmap is None or self._part is None
+            or not xt.line._dicts_equal(part.to_dict(), self._part)
+           ):
+
+            self._part = part.to_dict()
+
+            # Loss location refinement
+            if interpolation is not None:
+                print("Performing the aperture losses refinement.")
+                loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
+                        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                        r_max = 0.5, # Maximum transverse aperture in m
+                        dr = 50e-6, # Transverse loss refinement accuracy [m]
+                        ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                        # save_refine_trackers=True # Diagnostics flag
+                        )
+                loss_loc_refinement.refine_loss_location(part)
+
+            aper_s, aper_names = self._get_aperture_losses(part)
+            coll_summary       = self.summary(part, show_zeros=False).to_dict('list')
+
+            self._lossmap = {
+                'collimator': {
+                    's':      coll_summary['s'],
+                    'name':   coll_summary['collname'],
+                    'length': coll_summary['length'],
+                    'n':      coll_summary['nabs']
+                }
+                ,
+                'aperture': {
+                    's':    aper_s,
+                    'name': aper_names
+                }
+                ,
+                'machine_length': self.line.get_length()
+                ,
+                'interpolation': interpolation
+                ,
+                'reversed': self._line_is_reversed
+            }
+
+        if file is not None:
+            with open(Path(file), 'w') as fid:
+                json.dump(self._lossmap, fid, indent=True)
+    
         return self._lossmap
-
-    def create_lossmap(self, part, interpolation=0.1):
-        # Loss location refinement
-        if interpolation is not None:
-            print("Performing the aperture losses refinement.")
-            loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
-                    n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-                    r_max = 0.5, # Maximum transverse aperture in m
-                    dr = 50e-6, # Transverse loss refinement accuracy [m]
-                    ds = interpolation, # Longitudinal loss refinement accuracy [m]
-                    # save_refine_trackers=True # Diagnostics flag
-                    )
-            loss_loc_refinement.refine_loss_location(part)
-
-        aper_s, aper_names                          = self._get_aperture_losses(part)
-        coll_s, coll_names, coll_length, coll_types = self._get_collimator_losses(part)
-        _ = self.create_summary(part, coll_s, coll_names, coll_length, coll_types)
-
-        self._lossmap = {
-            'collimator': {
-                's':      coll_s,
-                'name':   coll_names,
-                'length': coll_length
-            }
-            ,
-            'aperture': {
-                's':    aper_s,
-                'name': aper_names
-            }
-            ,
-            'machine_length': self.line.get_length()
-            ,
-            'interpolation': interpolation
-            ,
-            'reversed': self._line_is_reversed
-        }
-
-        return self.lossmap
-
-
-    def _get_collimator_losses(self, part):
-        coll_mask = (part.state<=-333) & (part.state>=-340)
-        coll_names = [ self.line.element_names[i] for i in part.at_element[coll_mask]]
-        coll_types = [ self.line[i].__class__.__name__ for i in part.at_element[coll_mask]]
-        # TODO: this way to get the collimator positions is a hack that needs to be cleaner with the new API
-        coll_positions = dict(zip(self.collimator_names, self.s_center))
-        coll_s = [coll_positions[name] for name in coll_names]
-        coll_length = [self.line[i].active_length for i in part.at_element[coll_mask]]
-        machine_length = self.line.get_length()
-        if self._line_is_reversed:
-            coll_s = [ machine_length - s for s in coll_s ]
-
-        return coll_s, coll_names, coll_length, coll_types
 
 
     def _get_aperture_losses(self, part):
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
-        machine_length = self.line.get_length()
         if self._line_is_reversed:
+            machine_length = self.line.get_length()
             aper_s = [ machine_length - s for s in aper_s ]
 
         return aper_s, aper_names

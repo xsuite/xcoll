@@ -63,18 +63,12 @@ line.track(part, num_turns=200)
 coll_manager.disable_scattering()
 
 
-# Get losses for lossmap
-coll_manager.create_lossmap(part)
-
-
-# Save to json
-# These files can be loaded, combined (for more statistics), and plotted with the 'lossmaps' package
-with open(Path(path_out,f'lossmap_B{beam+plane}.json'), 'w') as fid:
-    json.dump(coll_manager.lossmap, fid, indent=True)
+# Save lossmap to json, which can be loaded, combined (for more statistics),
+# and plotted with the 'lossmaps' package
+_ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam+plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-with open(Path(path_out,f'coll_summary_B{beam+plane}.out'), 'w') as fid:
-    fid.write(coll_manager.summary.__repr__())
-print(coll_manager.summary)
+summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam+plane}.out'))
+print(summary)
 
 exit()
