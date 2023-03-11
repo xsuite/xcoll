@@ -51,7 +51,6 @@ class CollimatorManager:
         self._impacts = None
         self.record_impacts = record_impacts
 
-        self.tracker = None
         self._lossmap = None
         self._coll_summary = None
 
@@ -102,8 +101,8 @@ class CollimatorManager:
                 xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
                                           record=self._impacts, elements=record_start)
         if record_stop:
-            if self.tracker is not None:
-                self.tracker._check_invalidated()
+            if self.line.tracker is not None:
+                self.line.tracker._check_invalidated()
             xt.stop_internal_logging(elements=record_stop)
         self._record_impacts = record_impacts
 
@@ -221,7 +220,7 @@ class CollimatorManager:
             elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
-                                 + "Please check the name, or correcft the element.")
+                                 + "Please check the name, or correct the element.")
 
             else:
                 if verbose:
@@ -235,12 +234,18 @@ class CollimatorManager:
                 df.loc[name,'collimator_type'] = collimator_class.__name__
                 # Do the installation
                 s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
-                if name+'_aper' in line.element_names:
-                    coll_aper = line[name+'_aper']
+                has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
+                if len(has_apertures) > 0:
+                    if len(has_apertures) > 1:
+                        # Choose the aperture closest to the element
+                        has_apertures = [aa for aa in has_apertures
+                                         if line.element_names.index(aa) < line.element_names.index(name)]
+                        has_apertures.sort(key=lambda nn: line.element_names.index(nn))
+                    coll_aper = line[has_apertures[-1]]
                     assert coll_aper.__class__.__name__.startswith('Limit')
-                    if np.any([name+'_aper_tilt_' in nn for nn in line.element_names]):
+                    if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
                         raise NotImplementedError("Collimator apertures with tilt not implemented!")
-                    if np.any([name+'_aper_offset_' in nn for nn in line.element_names]):
+                    if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
                         raise NotImplementedError("Collimator apertures with offset not implemented!")
                 else:
                     coll_aper = None
@@ -279,8 +284,7 @@ class CollimatorManager:
             raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
             raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
-        self.tracker = self.line.build_tracker(**kwargs)
-        return self.tracker
+        self.line.build_tracker(**kwargs)
 
     @property
     def tracker_ready(self):
@@ -290,13 +294,13 @@ class CollimatorManager:
     def _compute_optics(self, recompute=False):
         if not self.tracker_ready:
             raise Exception("Please build tracker before computing the optics for the openings!")
-        tracker = self.line.tracker
+        line = self.line
 
         if recompute or not self.colldb._optics_is_ready:
             # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
 #             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
             pos = list({ *self.s_active_front, *self.s_active_back })
-            tw = tracker.twiss(at_s=pos)
+            tw = line.twiss(at_s=pos)
 #             tw = tracker.twiss()
             self.colldb._optics = pd.concat([
                                     self.colldb._optics,
@@ -306,7 +310,7 @@ class CollimatorManager:
 #                                         for opt in self.colldb._optics.columns
                                     }, index=pos)
                                 ])
-            self.colldb.gamma_rel = tracker.particle_ref._xobject.gamma0[0]
+            self.colldb.gamma_rel = line.particle_ref._xobject.gamma0[0]
 
 
     # The variable 'gaps' is meant to specify temporary settings that will overrule the CollDB.
@@ -409,7 +413,6 @@ class CollimatorManager:
 
         nemitt_x   = self.colldb.emittance[0]
         nemitt_y   = self.colldb.emittance[1]
-        tracker    = self.tracker
         line       = self.line
         angle      = self.colldb.angle[collimator]
         opt        = self.colldb._optics
@@ -448,7 +451,7 @@ class CollimatorManager:
         # Collimator plane: generate pencil distribution
         pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
                         plane=plane, absolute_cut=absolute_cut, dr_sigmas=dr_sigmas,
-                        side=side, tracker=tracker,
+                        side=side, line=line,
                         nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                         at_element=collimator, match_at_s=match_at_s
         )
@@ -460,7 +463,7 @@ class CollimatorManager:
         # Longitudinal plane
         if zeta is None and delta is None:
             zeta, delta = xp.generate_longitudinal_coordinates(
-                    num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, tracker=tracker
+                    num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, line=line
             )
         elif zeta is None:
             zeta = 0.0
@@ -472,13 +475,13 @@ class CollimatorManager:
             part = xp.build_particles(
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    tracker=tracker, at_element=collimator, match_at_s=match_at_s
+                    line=line, at_element=collimator, match_at_s=match_at_s
             )
         else:
             part = xp.build_particles(
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    tracker=tracker, at_element=collimator, match_at_s=match_at_s
+                    line=line, at_element=collimator, match_at_s=match_at_s
             )
 
         part._init_random_number_generator()
@@ -535,7 +538,7 @@ class CollimatorManager:
         # Loss location refinement
         if interpolation is not None:
             print("Performing the aperture losses refinement.")
-            loss_loc_refinement = xt.LossLocationRefinement(self.tracker,
+            loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
                     n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
                     r_max = 0.5, # Maximum transverse aperture in m
                     dr = 50e-6, # Transverse loss refinement accuracy [m]
