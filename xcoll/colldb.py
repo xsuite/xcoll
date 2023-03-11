@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import io
 
+#TODO: niet-active collimators op non-active etc (ook crystals)
+
 def load_SixTrack_colldb(filename, *, emit):
     return CollDB(emit=emit, sixtrack_file=filename)
 
