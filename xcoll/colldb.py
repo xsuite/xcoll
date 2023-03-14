@@ -529,6 +529,21 @@ class CollDB:
             df['jaw_F_R'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_F_R,df['parking'])
             df['jaw_B_L'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_B_L,df['parking'])
             df['jaw_B_R'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_B_R,df['parking'])
+            # align crystals
+            opt = self._optics
+            df['align_angle'] = None
+            cry_mask = [c is not None for c in df.crystal]
+            df_cry = df[cry_mask]
+            if len(df_cry) > 0:
+                alfx = opt.loc[df_cry.s_align_front,'alfx'].astype(float).values
+                alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
+                betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
+                bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
+                align_angle_x = np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
+                align_angle_y = np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
+                align_angle = np.array([x if abs(ang) < 1e-6 else y
+                                        for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle.values)])
+                df.loc[cry_mask, 'align_angle'] = -align_angle*df_cry['gap_L']
 
 
 

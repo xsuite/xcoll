@@ -154,6 +154,8 @@ class CollimatorManager:
         return self.colldb.s_center + self.colldb.active_length/2 + self.colldb.inactive_back
 
     def install_black_absorbers(self, names=None, *, verbose=False):
+        if names is None:
+            names = self.collimator_names
         def install_func(thiscoll, name):
             return BlackAbsorber(
                     inactive_front=thiscoll['inactive_front'],
@@ -164,32 +166,63 @@ class CollimatorManager:
                     _tracking=False,
                     _buffer=self._buffer
                    )
-        self._install_collimators(names, collimator_class=BlackAbsorber, install_func=install_func, verbose=verbose)
+        self._install_collimators(names, install_func=install_func, verbose=verbose)
+
+    def add_everest_crystals(self, crystals):
+        df = pd.DataFrame(crystals).transpose()
+        df['stage'] = 'PRIMARY'
+        df['parking'] = 0.025
+        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
+                     'jaw_F_L', 'jaw_F_R', 'jaw_B_L', 'jaw_B_R', 'collimator_type']:
+            df[prop] = None
+        for prop in ['offset', 'tilt_L', 'tilt_R', 'inactive_front', 'inactive_back']:
+            df[prop] = 0.0
+        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
+        df['gap_R'] = df['gap_L']
+        df.loc[df['onesided']=='left', 'gap_R'] = None
+        df.loc[df['onesided']=='right', 'gap_L'] = None
+        df['is_active'] = True
+        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
 
     def install_everest_collimators(self, names=None, *, verbose=False):
-        # Do the installation
-        def install_func(thiscoll, name):
-            return EverestCollimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
-                # TODO: Need to choose second element if crystal !
-                # TODO: we should not use sixtrack materials here!!!
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False,
-                    _tracking=False,
-                    _buffer=self._buffer
-                   )
-        self._install_collimators(names, collimator_class=EverestCollimator, install_func=install_func, verbose=verbose)
+        if names is None:
+            names = self.collimator_names
+        df = self.colldb._colldb.loc[names]
+        df_coll = df[[c is None for c in df.crystal]]
+        df_cry  = df[[c is not None for c in df.crystal]]
+        # Do the installations
+        if len(df_coll) > 0:
+            def install_func(thiscoll, name):
+                return EverestCollimator(
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=thiscoll['angle'],
+                        material=SixTrack_to_xcoll[thiscoll['material']][0],
+                        is_active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                       )
+            self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
+        if len(df_cry) > 0:
+            def install_func(thiscoll, name):
+                return EverestCrystal(
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=thiscoll['angle'],
+                        material=SixTrack_to_xcoll[thiscoll['material']][1],
+                        is_active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                       )
+            self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
-    def _install_collimators(self, names, *, collimator_class, install_func, verbose, support_legacy_elements=False):
+    def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollDB,
         # and that tracker is not yet built
         line = self.line
         df = self.colldb._colldb
-        if names is None:
-            names = self.collimator_names
         mask = df.index.isin(names)
         for name in names:
             if name not in line.element_names:
@@ -205,6 +238,12 @@ class CollimatorManager:
         # Loop over collimators to install
         for name in names:
 
+            # Get the settings from the CollDB
+            thiscoll = df.loc[name]
+            # Create the collimator element
+            newcoll = install_func(thiscoll, name)
+            collimator_class = newcoll.__class__
+
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             if isinstance(line[name], tuple(_all_collimator_types - {collimator_class})):
@@ -217,9 +256,9 @@ class CollimatorManager:
                 if df.loc[name,'collimator_type'] != collimator_class.__name__:
                     raise Exception(f"Something is wrong: Collimator {name} already installed in line "
                                     + f"as {collimator_class.__name__} element, but registered in CollDB "
-                                    + f"as {df.loc[name,'collimator_type']}. Please reconstruct the line.")
-                if verbose:
-                    print(f"Collimator {name} already installed. Skipping...")
+                                    + f"as {df.loc[name, 'collimator_type']}. Please reconstruct the line.")
+                if verbose: print(f"Collimator {name} already installed. Skipping...")
+                continue
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
@@ -228,40 +267,35 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
+            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
+            # Update the position and type in the CollDB
+            df.loc[name,'s_center'] = positions[name]
+            df.loc[name,'collimator_type'] = collimator_class.__name__
+            # Do the installation
+            s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
+            has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
+            if len(has_apertures) > 0:
+                if len(has_apertures) > 1:
+                    # Choose the aperture closest to the element
+                    has_apertures = [aa for aa in has_apertures
+                                     if line.element_names.index(aa) < line.element_names.index(name)]
+                    has_apertures.sort(key=lambda nn: line.element_names.index(nn))
+                coll_aper = line[has_apertures[-1]]
+                assert coll_aper.__class__.__name__.startswith('Limit')
+                if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
+                    raise NotImplementedError("Collimator apertures with tilt not implemented!")
+                if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
+                    raise NotImplementedError("Collimator apertures with offset not implemented!")
             else:
-                if verbose:
-                    print(f"Installing {name}")
-                # Get the settings from the CollDB
-                thiscoll = df.loc[name]
-                # Create the collimator element
-                newcoll = install_func(thiscoll, name)
-                # Update the position and type in the CollDB
-                df.loc[name,'s_center'] = positions[name]
-                df.loc[name,'collimator_type'] = collimator_class.__name__
-                # Do the installation
-                s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
-                has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
-                if len(has_apertures) > 0:
-                    if len(has_apertures) > 1:
-                        # Choose the aperture closest to the element
-                        has_apertures = [aa for aa in has_apertures
-                                         if line.element_names.index(aa) < line.element_names.index(name)]
-                        has_apertures.sort(key=lambda nn: line.element_names.index(nn))
-                    coll_aper = line[has_apertures[-1]]
-                    assert coll_aper.__class__.__name__.startswith('Limit')
-                    if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
-                        raise NotImplementedError("Collimator apertures with tilt not implemented!")
-                    if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
-                        raise NotImplementedError("Collimator apertures with offset not implemented!")
-                else:
-                    coll_aper = None
+                coll_aper = None
 
-                line.insert_element(element=newcoll, name=name, at_s=s_install)
+            line.insert_element(element=newcoll, name=name, at_s=s_install)
 
-                if coll_aper is not None:
-                    line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
-                    line.insert_element(element=coll_aper, name=name+'_aper_back',
-                                        index=line.element_names.index(name)+1)
+            if coll_aper is not None:
+                line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
+                line.insert_element(element=coll_aper, name=name+'_aper_back',
+                                    index=line.element_names.index(name)+1)
+
     @property
     def installed(self):
         return not any([ x is None for x in self.colldb.collimator_type ])
@@ -366,7 +400,7 @@ class CollimatorManager:
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
                 line[name].is_active = colldb.is_active[name]
-                if isinstance(line[name], (EverestCollimator)) or support_legacy_elements:
+                if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
                         line[name].onesided = False
@@ -374,7 +408,14 @@ class CollimatorManager:
                         line[name].onesided = True
                     elif colldb.onesided[name] == 'right':
                         raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
-                    line[name].is_active = colldb.is_active[name]
+                if isinstance(line[name], EverestCrystal):
+                    line[name].align_angle = colldb._colldb.align_angle[name]
+                    line[name].bend        = colldb._colldb.bend[name]
+                    line[name].xdim        = colldb._colldb.xdim[name]
+                    line[name].ydim        = colldb._colldb.ydim[name]
+                    line[name].thick       = colldb._colldb.thick[name]
+                    line[name].crytilt     = colldb._colldb.crytilt[name]
+                    line[name].miscut      = colldb._colldb.miscut[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
