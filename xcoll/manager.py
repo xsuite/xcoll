@@ -6,7 +6,7 @@ import pandas as pd
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
 from .colldb import CollDB
 from .tables import CollimatorImpacts
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
 
 import xobjects as xo
 import xpart as xp
@@ -168,7 +168,7 @@ class CollimatorManager:
                    )
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
-    def add_everest_crystals(self, crystals):
+    def add_crystals(self, crystals):
         df = pd.DataFrame(crystals).transpose()
         df['stage'] = 'PRIMARY'
         df['parking'] = 0.025
@@ -206,12 +206,18 @@ class CollimatorManager:
             self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
         if len(df_cry) > 0:
             def install_func(thiscoll, name):
+                material = SixTrack_to_xcoll[thiscoll['material']]
+                if len(material) < 2:
+                    raise ValueError(f"Could not find crystal material definition from variable {thiscoll['material']}!")
+                material = material[1]
+                if not isinstance(material, CrystalMaterial):
+                    raise ValueError(f"The material {material.name} is not a Crystalmaterial!")
                 return EverestCrystal(
                         inactive_front=thiscoll['inactive_front'],
                         inactive_back=thiscoll['inactive_back'],
                         active_length=thiscoll['active_length'],
                         angle=thiscoll['angle'],
-                        material=SixTrack_to_xcoll[thiscoll['material']][1],
+                        material=material,
                         is_active=False,
                         _tracking=False,
                         _buffer=self._buffer

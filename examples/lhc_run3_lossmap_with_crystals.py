@@ -34,7 +34,7 @@ coll_manager = xc.CollimatorManager(
 
 
 # Manually add crystals
-coll_manager.add_everest_crystals({
+coll_manager.add_crystals({
 'tcpch.a4l7.b1': {
     'gap':      5.0, 
     'material': 'Si',
@@ -48,7 +48,6 @@ coll_manager.add_everest_crystals({
     'miscut':   0.,
     'thick':    0.,
     'crytilt':  0.,
-    'orient':   0.,
     'offset':   0,
     },
 'tcpcv.a6l7.b1': {
@@ -64,7 +63,6 @@ coll_manager.add_everest_crystals({
     'miscut':   0.,
     'thick':    0.,
     'crytilt':  0.,
-    'orient':   0.,
     'offset':   0,
     }
 })
