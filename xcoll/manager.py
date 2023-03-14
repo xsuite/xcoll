@@ -416,6 +416,13 @@ class CollimatorManager:
                     line[name].thick       = colldb._colldb.thick[name]
                     line[name].crytilt     = colldb._colldb.crytilt[name]
                     line[name].miscut      = colldb._colldb.miscut[name]
+                    if colldb._colldb.crystal[name] == 'strip':
+                        line[name].orient  = 1
+                    elif colldb._colldb.crystal[name] == 'quasi-mosaic':
+                        line[name].orient  = 2
+                    else:
+                        raise ValueError(f"Crystal definition for {name} should be either 'strip' or 'quasi-mosaic'"
+                                       + f", but got {colldb._colldb.crystal[name]}!")
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
