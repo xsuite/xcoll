@@ -59,6 +59,7 @@ part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=50000)
 
 # Track
 coll_manager.enable_scattering()
+line.optimize_for_tracking()
 line.track(part, num_turns=200)
 coll_manager.disable_scattering()
 
