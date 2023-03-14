@@ -225,9 +225,9 @@ class CollimatorManager:
                 if df.loc[name,'collimator_type'] != collimator_class.__name__:
                     raise Exception(f"Something is wrong: Collimator {name} already installed in line "
                                     + f"as {collimator_class.__name__} element, but registered in CollDB "
-                                    + f"as {df.loc[name,'collimator_type']}. Please reconstruct the line.")
+                                    + f"as {df.loc[name, 'collimator_type']}. Please reconstruct the line.")
                 if verbose: print(f"Collimator {name} already installed. Skipping...")
-                CONTINUE
+                continue
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
@@ -236,7 +236,7 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name}")
+            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
             # Update the position and type in the CollDB
             df.loc[name,'s_center'] = positions[name]
             df.loc[name,'collimator_type'] = collimator_class.__name__
