@@ -454,6 +454,11 @@ class CollimatorManager:
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
 
+        if self.colldb.onesided[collimator] = 'left':
+            side = '+'
+        if self.colldb.onesided[collimator] = 'right':
+            side = '-'
+
         if side == '+-':
             num_plus = int(num_particles/2)
             num_min  = int(num_particles - num_plus)
