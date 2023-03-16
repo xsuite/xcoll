@@ -9,8 +9,8 @@ option,-echo,-warn;
 
 System,"ln -fns /afs/cern.ch/eng/acc-models/lhc/2023 run3seq";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/runIII run3opt";
-System,"ln -fns /afs/cern.ch/work/f/fvanderv/public/MADX/layout_db/files/LHC run3aper";
-System,"ln -fns /afs/cern.ch/work/f/fvanderv/public/MADX/extra_tools extra";
+System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools/patch_layout_db run3aper";
+System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools extra";
 
 REAL CONST l.TAN   = 0.0;   REAL CONST l.TANAL = l.TAN;
 REAL CONST l.TANAR = l.TAN; REAL CONST l.TANC  = l.TAN;
@@ -47,7 +47,7 @@ if (make_thin==1){    ! Thick lattice currently does not have full aperture mode
 call, file="run3opt/RunIII_dev/Proton_2023/opticsfile.43";
 
 
-nrj     = 6800.0
+nrj     = 6800.0;
 qx0     = 62.31;
 qy0     = 60.32;
 dqx0    = 20.0;
@@ -59,7 +59,6 @@ exn     = 3.5e-06;
 numpart = 180000000000.0;   ! NPART=1.15E11
 esigma  = 9.526279441628826e-05;
 zsigma  = 0.0761;
-
 
 
 !! Set beam
@@ -152,10 +151,10 @@ if (make_thin==1){
     Option, -echo,-warn,-info;
     slicefactor=4;
     select, flag=makethin, clear;
-    select, flag=makethin, class=MB,    slice=2;
-    select, flag=makethin, class=MQ,    slice=2 * slicefactor;
-    select, flag=makethin, class=mqxa,  slice=32* slicefactor;
-    select, flag=makethin, class=mqxb,  slice=32* slicefactor;
+    select, flag=makethin, class=MB,         slice=2;
+    select, flag=makethin, class=MQ,         slice=2 * slicefactor;
+    select, flag=makethin, class=mqxa,       slice=32* slicefactor;
+    select, flag=makethin, class=mqxb,       slice=32* slicefactor;
     select, flag=makethin, pattern=mbx\. ,   slice=4;
     select, flag=makethin, pattern=mbrb\.,   slice=4;
     select, flag=makethin, pattern=mbrc\.,   slice=4;
@@ -170,23 +169,27 @@ if (make_thin==1){
     select, flag=makethin, pattern=mqtli\.,  slice=2* slicefactor;
     select, flag=makethin, pattern=mqt\.  ,  slice=2* slicefactor;
 
-    if (mylhcbeam==1){
+    if (mylhcbeam<4){
       use,sequence=lhcb1;
       makethin, sequence=lhcb1, makedipedge=false, style=teapot, makeendmarkers=true;
-     } else {
-      use,sequence=lhcb2;
-      makethin, sequence=lhcb2, makedipedge=false, style=teapot, makeendmarkers=true;
     };
+    use,sequence=lhcb2;
+    makethin, sequence=lhcb2, makedipedge=false, style=teapot, makeendmarkers=true;
 
     ! Add more aperture markers (moved to after slicing to avoid negative drifts)
     if (mylhcbeam<4){
-      call,   file="run3aper/APERTURE_YETS_2022-2023.seq";
+      call,   file="run3aper/YETS_2022-2023_patched.seq";
     } else {
-      call,   file="run3aper/APERTURE_YETS_2022-2023_b4_part1.seq";
-      call,   file="run3aper/APERTURE_YETS_2022-2023_b4_part2.seq";
+      call,   file="run3aper/YETS_2022-2023_patched_b4_part1.seq";
+      call,   file="run3aper/YETS_2022-2023_patched_b4_part2.seq";
     };
 };
 
+! Final flatten after all seqedits to ensure no fatal errors
+if (mylhcbeam<4){
+  seqedit, sequence=lhcb1; flatten; endedit;
+};
+seqedit, sequence=lhcb2; flatten; endedit;
 
 !! Use sequence (has to be set again after slicing but before errors/misalignments)
 if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
@@ -194,13 +197,20 @@ if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
 
 ! Align separation magnets
 if (make_thin==1){
-    call,file="extra/align_sepdip.madx";
-    exec, align_mbxw;
-    exec, align_mbrc15;
-    exec, align_mbx28;
-    exec, align_mbrc28;
-    exec, align_mbrs;
-    exec, align_mbrb;
+  call,file="extra/align_sepdip.madx";
+  exec, align_mbxw;
+  exec, align_mbrc15;
+  exec, align_mbx28;
+  exec, align_mbrc28;
+  exec, align_mbrs;
+  exec, align_mbrb;
+
+  ! Applying aperture offsets
+  if (mylhcbeam<4){
+    call,file="extra/aperoffset_elements.madx";
+  } else {
+    call,file="extra/aperoffset_elements_b4.madx";
+  };
 };
 
 
@@ -210,7 +220,7 @@ if (make_thin==1){
 
 !! Octupole Settings
 brho:=NRJ*1e9/clight;
-if (mylhcbeam==1){
+if (mylhcbeam<4){
   KOF.A12B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A23B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
   KOF.A34B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A45B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
   KOF.A56B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A67B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
@@ -220,16 +230,14 @@ if (mylhcbeam==1){
   KOD.A56B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A67B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
   KOD.A78B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A81B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
 };
-if (mylhcbeam>1){
-  KOF.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOF.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOF.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOF.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOD.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOD.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOD.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-  KOD.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
-};
+KOF.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
 
 
 !! Activate crossing
@@ -311,14 +319,18 @@ ACSCA.D5R4.B2, HARMON := HRF400;
 !#################
 
 if(createOutput==1){ 
-    select,flag=twiss,clear;
-    select,flag=twiss,class=collimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
-    select,flag=twiss,class=rcollimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
-    twiss,file="collimators_B1.tfs";
-    
-    select,flag=twiss,clear;
-    select,flag=twiss, column=name,keyword,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy,apertype,mech_sep;
-    twiss,file="all_optics_B1.tfs";
+  select,flag=twiss,clear;
+  select,flag=twiss,class=collimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
+  select,flag=twiss,class=rcollimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
+  twiss,file="collimators_B1.tfs";
+};
+
+select,flag=twiss,clear;
+select,flag=twiss, column=name,keyword,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy,apertype,mech_sep;
+if(createOutput==1){
+  twiss,file="all_optics_B1.tfs";
+} else {
+  twiss;
 };
 
 
@@ -329,4 +341,6 @@ value,table(twiss,IP7,x)*1e6,table(twiss,IP7,y)*1e6,table(twiss,IP1,x),table(twi
 
 system,"rm run3seq run3opt run3aper extra";
 return;
+
+
 
