@@ -28,6 +28,7 @@ class CollimatorManager:
             self.line = line
         self.line._needs_rng = True
         self._line_is_reversed = line_is_reversed
+        self._machine_length = self.line.get_length()
 
         # Create _buffer, _context, and _io_buffer
         if _buffer is None:
@@ -58,6 +59,10 @@ class CollimatorManager:
         self._summary = None
         self._part    = None
 
+
+    @property
+    def machine_length(self):
+        return self._machine_length
 
     @property
     def impacts(self):
@@ -513,6 +518,97 @@ class CollimatorManager:
         for coll in self.collimator_names:
             self.line[coll]._tracking = False
 
+    @property
+    def scattering_enabled(self):
+        all_enabled  = np.all([self.line[coll]._tracking for coll in self.collimator_names])
+        some_enabled = np.any([self.line[coll]._tracking for coll in self.collimator_names])
+        if some_enabled and not all_enabled:
+            raise ValueError("Some collimators are enabled for tracking but not all! "
+                           + "This should not happen.")
+        return all_enabled
+
+
+    def rf_sweep(self, sweep=0, num_turns=0, particles=None, verbose=True, *args, **kwargs):
+
+        # Get base frequency of cavities
+        cavities = self.line.get_elements_of_type(xt.Cavity)[1]
+        freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])
+        if len(freq) > 1:
+            raise NotImplementedError(f"Cannot sweep multiple cavities with different frequencies!")
+        freq = freq[0]
+
+        # Install Zeta shift element if not yet present
+        if not 'rf_sweep' in self.line.element_names:
+            s_cav = min([self.line.get_s_position(cav) for cav in cavities])
+            if self.line.tracker is not None:
+                self.line.unfreeze()
+                line_was_built = True
+            else:
+                line_was_built = False
+            self.line.insert_element(element=xt.ZetaShift(dzeta=0), name='rf_sweep', at_s=s_cav)
+            if line_was_built:
+                self.line.build_tracker()
+
+        # Was there a previous sweep?
+        # If yes, we do not overwrite it but continue from there
+        dzeta = self.line['rf_sweep'].dzeta
+        existing_sweep = freq * dzeta/(self.machine_length-dzeta)
+
+        # Some info
+        scattering_enabled = False
+        if self.line.tracker is not None:
+            if self.scattering_enabled:
+                scattering_enabled = True
+                self.disable_scattering()
+            tw = self.line.twiss()
+            V = np.array([self.line[cav].voltage for cav in cavities]).sum()
+            beta0 = self.line.particle_ref.beta0
+            q = self.line.particle_ref.q0
+            h = freq * tw.T_rev
+            eta = tw.slip_factor
+            E = self.line.particle_ref.energy0
+            phi = np.array([self.line[cav].lag for cav in cavities])[0]*np.pi/180
+            bucket_height = np.sqrt(abs(q*V*beta0**2 / (np.pi*h*eta*E) * (2*np.cos(phi) +(2*phi-np.pi)*np.sin(phi))))[0]
+            delta_shift = -sweep / freq / tw.slip_factor
+            bucket_shift = delta_shift / bucket_height / 2
+            if verbose:
+                print(f"This sweep will move the center of the bucket with \u0394\u03B4 = "
+                    + f"{delta_shift} ({bucket_shift} buckets).")
+
+        # Just set the new RF frequency, no tracking
+        if num_turns == 0:
+            sweep += existing_sweep
+            if verbose:
+                print(f"The current frequency is {freq + existing_sweep}Hz, moving to {freq + sweep}Hz."
+                     + "No tracking performed.")
+            self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
+
+        # Sweep and track
+        else:
+            if self.line.tracker is None:
+                raise ValueError("Need to build tracker first!")
+            if particles is None:
+                raise ValueError("Need particles to track!")
+            rf_shift_per_turn = sweep / num_turns
+            if verbose:
+                print(f"The current frequency is {freq + existing_sweep}Hz, sweeping {rf_shift_per_turn}Hz "
+                    + f"per turn until {freq + existing_sweep + sweep} (for {num_turns} turns).")
+            if num_turns < 5*bucket_shift/tw.qs:
+                print(f"Warning: This is a very fast sweep, moving ~{round(bucket_shift,2)} buckets in "
+                    + f"~{round(num_turns*tw.qs,2)} synchrotron oscillations (on average). If the "
+                    + f"bucket moves faster than a particle can follow, that particle will move out of "
+                    + f"the bucket and remain uncaptured.")
+            if scattering_enabled:
+                self.enable_scattering()
+            for i in range(num_turns):
+                sweep = existing_sweep + i*rf_shift_per_turn
+                self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
+                self.line.track(particles, *args, **kwargs)
+                if not np.any(particles.state == 1):
+                    if verbose:
+                        print(f"All particles lost at turn {i}, stopped sweep at {i*rf_shift_per_turn}Hz.")
+                    break
+
 
     def summary(self, part, show_zeros=False, file=None):
 
@@ -527,8 +623,7 @@ class CollimatorManager:
             coll_lengths = [self.line[nn].active_length for nn in self.collimator_names] 
             coll_pos     = [self.colldb.s_center[nn]    for nn in self.collimator_names]
             if self._line_is_reversed:
-                machine_length = self.line.get_length()
-                coll_pos = [machine_length - s for s in coll_pos ]
+                coll_pos = [self.machine_length - s for s in coll_pos ]
             coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
             nabs         = [np.count_nonzero(coll_losses==nn) for nn in self.collimator_names]
 
@@ -573,6 +668,7 @@ class CollimatorManager:
 
             aper_s, aper_names = self._get_aperture_losses(part)
             coll_summary       = self.summary(part, show_zeros=False).to_dict('list')
+        # freq = np.unique([line[cav].frequency for  cav in cavities], return_counts=True)
 
             self._lossmap = {
                 'collimator': {
@@ -587,7 +683,7 @@ class CollimatorManager:
                     'name': aper_names
                 }
                 ,
-                'machine_length': self.line.get_length()
+                'machine_length': self.machine_length
                 ,
                 'interpolation': interpolation
                 ,
@@ -606,8 +702,7 @@ class CollimatorManager:
         aper_s = list(part.s[aper_mask])
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
-            machine_length = self.line.get_length()
-            aper_s = [ machine_length - s for s in aper_s ]
+            aper_s = [ self.machine_length - s for s in aper_s ]
 
         return aper_s, aper_names
 
