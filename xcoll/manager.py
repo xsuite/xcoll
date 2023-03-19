@@ -527,6 +527,15 @@ class CollimatorManager:
                            + "This should not happen.")
         return all_enabled
 
+    @property
+    def current_sweep_value(self):
+        if not 'rf_sweep' in self.line.element_names:
+            return 0
+        else:
+            cavities = self.line.get_elements_of_type(xt.Cavity)[1]
+            freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])[0]
+            dzeta = self.line['rf_sweep'].dzeta
+            return round(freq * dzeta/(self.machine_length-dzeta),6)
 
     def rf_sweep(self, sweep=0, num_turns=0, particles=None, verbose=True, *args, **kwargs):
 
@@ -551,8 +560,7 @@ class CollimatorManager:
 
         # Was there a previous sweep?
         # If yes, we do not overwrite it but continue from there
-        dzeta = self.line['rf_sweep'].dzeta
-        existing_sweep = freq * dzeta/(self.machine_length-dzeta)
+        existing_sweep = self.current_sweep_value
 
         # Some info
         scattering_enabled = False
@@ -593,17 +601,24 @@ class CollimatorManager:
             if verbose:
                 print(f"The current frequency is {freq + existing_sweep}Hz, sweeping {rf_shift_per_turn}Hz "
                     + f"per turn until {freq + existing_sweep + sweep} (for {num_turns} turns).")
-            if num_turns < 5*bucket_shift/tw.qs:
+            if num_turns < 3*bucket_shift/tw.qs:
                 print(f"Warning: This is a very fast sweep, moving ~{round(bucket_shift,2)} buckets in "
                     + f"~{round(num_turns*tw.qs,2)} synchrotron oscillations (on average). If the "
                     + f"bucket moves faster than a particle can follow, that particle will move out of "
                     + f"the bucket and remain uncaptured.")
             if scattering_enabled:
                 self.enable_scattering()
+            if 'time' in kwargs and ['time']:
+                self.line.tracker.time_last_track = 0
             for i in range(num_turns):
                 sweep = existing_sweep + i*rf_shift_per_turn
                 self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
-                self.line.track(particles, *args, **kwargs)
+                if 'time' in kwargs and ['time']:
+                    prev_time = self.line.time_last_track
+                self.line.track(particles, num_turns=1, *args, **kwargs)
+                print(self.line.time_last_track)
+                if 'time' in kwargs and ['time']:
+                    self.line.tracker.time_last_track += prev_time
                 if not np.any(particles.state == 1):
                     if verbose:
                         print(f"All particles lost at turn {i}, stopped sweep at {i*rf_shift_per_turn}Hz.")
