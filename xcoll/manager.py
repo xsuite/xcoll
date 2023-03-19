@@ -400,7 +400,7 @@ class CollimatorManager:
 
     def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
                                       pencil_spread=1e-6, transverse_impact_parameter=0., transverse_spread_sigma=0.01, 
-                                      sigma_z=7.55e-2, zeta=None, delta=None):
+                                      sigma_z=7.61e-2, zeta=None, delta=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -527,6 +527,7 @@ class CollimatorManager:
                            + "This should not happen.")
         return all_enabled
 
+
     @property
     def current_sweep_value(self):
         if not 'rf_sweep' in self.line.element_names:
@@ -616,7 +617,6 @@ class CollimatorManager:
                 if 'time' in kwargs and ['time']:
                     prev_time = self.line.time_last_track
                 self.line.track(particles, num_turns=1, *args, **kwargs)
-                print(self.line.time_last_track)
                 if 'time' in kwargs and ['time']:
                     self.line.tracker.time_last_track += prev_time
                 if not np.any(particles.state == 1):

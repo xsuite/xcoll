@@ -15,7 +15,7 @@ num_particles  = 2000
 sweep          = 300
 sweep          = -sweep if lmtype == 'DPpos' else sweep
 pretrack_turns = 500
-num_turns      = 20*sweep
+num_turns      = 20*abs(sweep)
 at_element     = 'ip3'
 engine         = 'everest'
 
@@ -24,9 +24,7 @@ path_out = Path.cwd()
 
 
 # Load from json
-with open(Path(path_in,'machines',f'lhc_run3_b{beam}.json'), 'r') as fid:
-    loaded_dct = json.load(fid)
-line = xt.Line.from_dict(loaded_dct)
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Aperture model check

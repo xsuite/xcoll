@@ -19,9 +19,7 @@ path_out = Path.cwd()
 
 
 # Load from json
-with open(Path(path_in,'machines',f'lhc_run3_b{beam}.json'), 'r') as fid:
-    loaded_dct = json.load(fid)
-line = xt.Line.from_dict(loaded_dct)
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Aperture model check
@@ -34,7 +32,7 @@ assert not np.any(df_imported.has_aperture_problem)
 line_is_reversed = True if beam=='2' else False
 coll_manager = xc.CollimatorManager(
     line=line, line_is_reversed=line_is_reversed,
-    colldb=xc.load_SixTrack_colldb(Path(path_in,'colldb',f'lhc_run3_b{beam}.dat'), emit=3.5e-6)
+    colldb=xc.load_SixTrack_colldb(path_in / 'colldb' / f'lhc_run3_b{beam}.dat', emit=3.5e-6)
     )
 
 
