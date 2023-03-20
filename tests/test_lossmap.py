@@ -23,7 +23,7 @@ def _run_lossmap(beam, plane, npart, interpolation):
     coll_manager.set_openings()
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam=='1' else 'r'}7.b{beam}"
-    part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=npart, zeta=0.0, delta=0.0)
+    part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=npart)
 
     coll_manager.enable_scattering()
     line.track(part, num_turns=2)
@@ -48,9 +48,10 @@ def _run_lossmap(beam, plane, npart, interpolation):
     assert np.all(lm['collimator']['n'] == summ.nabs)
     assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
     assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
-    assert list(lm['aperture'].keys()) == ['s', 'name']
-    assert len(lm['aperture']['s']) == len(lm['aperture']['name'])
+    assert list(lm['aperture'].keys()) == ['s', 'name', 'n']
     assert len(lm['aperture']['s']) > 0
+    assert len(lm['aperture']['s']) == len(lm['aperture']['name'])
+    assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
     assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
     assert lm['interpolation'] == interpolation
     assert lm['reversed'] == line_is_reversed

@@ -12,6 +12,9 @@ def install_k2_collimators(self, coll_manager, names=None, *, max_part=50000, se
         print(f"Warning: K2 already initiated with seed {k2engine.random_generator_seed}.\n"
               + f"Ignoring the requested seed={seed}.")
 
+    if names is None:
+        names = self.collimator_names
+
     # Do the installation
     def install_func(thiscoll, name):
         return K2Collimator(
@@ -23,14 +26,16 @@ def install_k2_collimators(self, coll_manager, names=None, *, max_part=50000, se
                 is_active=False,
                 _buffer=self._buffer
                )
-    coll_manager._install_collimators(names, collimator_class=K2Collimator, install_func=install_func, 
-                                      verbose=verbose, support_legacy_elements=True)
+    coll_manager._install_collimators(names, install_func=install_func, verbose=verbose, support_legacy_elements=True)
     return k2engine
 
 
 def install_pyeverest_collimators(self, coll_manager, names=None, *, verbose=False, random_seed=None):
     from .scattering_routines.pyeverest import set_random_seed
     set_random_seed(random_seed)
+
+    if names is None:
+        names = self.collimator_names
 
     # Do the installation
     def install_func(thiscoll, name):
@@ -43,6 +48,5 @@ def install_pyeverest_collimators(self, coll_manager, names=None, *, verbose=Fal
                 is_active=False,
                 _buffer=self._buffer
                )
-    coll_manager._install_collimators(names, collimator_class=PyEverestCollimator, install_func=install_func, 
-                                  verbose=verbose, support_legacy_elements=True)
+    coll_manager._install_collimators(names, install_func=install_func, verbose=verbose, support_legacy_elements=True)
 
