@@ -721,11 +721,12 @@ class CollimatorManager:
             return self._summary[self._summary.nabs > 0]
 
 
-    def lossmap(self, part, interpolation=0.1, file=None):
+    def lossmap(self, part, interpolation=0.1, file=None, recompute=False):
 
         # We cache the result
         if (self._lossmap is None or self._part is None
             or not xt.line._dicts_equal(part.to_dict(), self._part)
+            or recompute
            ):
 
             self._part = part.to_dict()
@@ -742,9 +743,8 @@ class CollimatorManager:
                         )
                 loss_loc_refinement.refine_loss_location(part)
 
-            aper_s, aper_names = self._get_aperture_losses(part)
-            coll_summary       = self.summary(part, show_zeros=False).to_dict('list')
-        # freq = np.unique([line[cav].frequency for  cav in cavities], return_counts=True)
+            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
+            coll_summary = self.summary(part, show_zeros=False).to_dict('list')
 
             self._lossmap = {
                 'collimator': {
@@ -755,8 +755,9 @@ class CollimatorManager:
                 }
                 ,
                 'aperture': {
-                    's':    aper_s,
-                    'name': aper_names
+                    's':    list(aper_s),
+                    'name': list(aper_names),
+                    'n':    list(aper_nabs)
                 }
                 ,
                 'machine_length': self.machine_length
@@ -779,6 +780,9 @@ class CollimatorManager:
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
             aper_s = [ self.machine_length - s for s in aper_s ]
-
-        return aper_s, aper_names
+        result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
+        aper_names = result[0].transpose()[0]
+        aper_s = [float(s) for s in result[0].transpose()[1]]
+        aper_nabs = [int(n) for n in result[1]]
+        return aper_s, aper_names, aper_nabs
 
