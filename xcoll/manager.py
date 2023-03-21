@@ -733,15 +733,17 @@ class CollimatorManager:
 
             # Loss location refinement
             if interpolation is not None:
-                print("Performing the aperture losses refinement.")
-                loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
-                        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-                        r_max = 0.5, # Maximum transverse aperture in m
-                        dr = 50e-6, # Transverse loss refinement accuracy [m]
-                        ds = interpolation, # Longitudinal loss refinement accuracy [m]
-                        # save_refine_trackers=True # Diagnostics flag
-                        )
-                loss_loc_refinement.refine_loss_location(part)
+                aper_s = list(part.s[part.state==0])
+                if len(aper_s) > 0:
+                    print("Performing the aperture losses refinement.")
+                    loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
+                            n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                            r_max = 0.5, # Maximum transverse aperture in m
+                            dr = 50e-6, # Transverse loss refinement accuracy [m]
+                            ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                            # save_refine_trackers=True # Diagnostics flag
+                            )
+                    loss_loc_refinement.refine_loss_location(part)
 
             aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
             coll_summary = self.summary(part, show_zeros=False).to_dict('list')
@@ -755,9 +757,9 @@ class CollimatorManager:
                 }
                 ,
                 'aperture': {
-                    's':    list(aper_s),
-                    'name': list(aper_names),
-                    'n':    list(aper_nabs)
+                    's':    aper_s,
+                    'name': aper_names,
+                    'n':    aper_nabs
                 }
                 ,
                 'machine_length': self.machine_length
@@ -777,11 +779,13 @@ class CollimatorManager:
     def _get_aperture_losses(self, part):
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
+        if len(aper_s) == 0:
+            return [], [], []
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
             aper_s = [ self.machine_length - s for s in aper_s ]
         result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
-        aper_names = result[0].transpose()[0]
+        aper_names = list(result[0].transpose()[0])
         aper_s = [float(s) for s in result[0].transpose()[1]]
         aper_nabs = [int(n) for n in result[1]]
         return aper_s, aper_names, aper_nabs
