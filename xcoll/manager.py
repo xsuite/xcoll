@@ -634,7 +634,7 @@ class CollimatorManager:
             V = np.array([self.line[cav].voltage for cav in cavities]).sum()
             beta0 = self.line.particle_ref.beta0
             q = self.line.particle_ref.q0
-            h = freq * tw.T_rev
+            h = freq * tw.T_rev0
             eta = tw.slip_factor
             E = self.line.particle_ref.energy0
             phi = np.array([self.line[cav].lag for cav in cavities])[0]*np.pi/180
