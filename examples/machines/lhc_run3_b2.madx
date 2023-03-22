@@ -213,6 +213,8 @@ if (make_thin==1){
   };
 };
 
+!! Use sequence (TODO: this kills alignment of the separation dipoles: to be tested for compatibility with Bjorns script)
+if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
 
 !##################
 !# Machine tuning #

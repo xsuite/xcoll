@@ -22,7 +22,7 @@ mad = Madx()
 mad.call(input_file.as_posix())
 sequence = 'lhcb1' if beam==1 else 'lhcb2'
 
-line = xt.Line.from_madx_sequence(mad.sequence[sequence], apply_madx_errors=True, install_apertures=True)
+line = xt.Line.from_madx_sequence(mad.sequence[sequence], apply_madx_errors=True, install_apertures=True, verbose=False)
 print(f"Imported {len(line.element_names)} elements.")
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=mad.sequence[sequence].beam.gamma)
 
@@ -91,7 +91,7 @@ else:
 
 
 print("Aperture check after patching:")
-df_patched = line.check_aperture(needs_aperture=collimators)
+df_patched = line.check_aperture(needs_aperture=collimators, verbose=False)
 assert not np.any(df_patched.has_aperture_problem)
 
 
@@ -104,7 +104,7 @@ with open(output_file, 'w') as fid:
 print("Reloading file to test json is not corrupted..")
 with open(output_file, 'r') as fid:
     loaded_dct = json.load(fid)
-newline = xt.Line.from_dict(loaded_dct)
+newline = xt.Line.from_dict(loaded_dct, verbose=False)
 assert xt._lines_equal(line, newline)
 print("All done.")
     
