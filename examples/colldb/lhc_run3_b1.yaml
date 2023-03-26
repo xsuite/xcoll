@@ -23,34 +23,38 @@
 #   - the & represents a unique name tag
 #   - the * dereferences the named element
 #   - the merge operator << merges the subsequent element with the surrounding container (giving higher priority to the other elements in the container than those in the merged element, as to allow overwriting)
-Families:
+families:
   # Momentum cleaning
-  - &TCP3    { gap: 15,    stage: primary,    material: C,     length: 0.6                }
-  - &TCSG3   { gap: 18,    stage: secondary,  material: C,     length: 1                  }
-  - &TCLA3   { gap: 20,    stage: tertiary,   material: Iner,  length: 1                  }
+  - &TCP3    { gap: 15,    stage: primary,    material: C,     length: 0.6,               parking: 0.025 }
+  - &TCSG3   { gap: 18,    stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
+  - &TCLA3   { gap: 20,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   # Betatron cleaning
-  - &TCP7    { gap: 5,     stage: primary,    material: C,     length: 0.6                }
-  - &TCSG7   { gap: 6.5,   stage: secondary,  material: C,     length: 1                  }
-  - &TCLA7   { gap: 10,    stage: tertiary,   material: Iner,  length: 1                  }
+  - &TCP7    { gap: 5,     stage: primary,    material: C,     length: 0.6,               parking: 0.025 }
+  - &TCSG7   { gap: 6.5,   stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
+  - &TCLA7   { gap: 10,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   - &CRY7    { gap: null,  stage: special,    material: Si,    length: 0.004,             onesided: left,  crystal: strip }
   # Injection protection
-  - &TCLI    { gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90  }
-  - &TDI     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90  }
+  - &TCLI    { gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90, parking: 0.025 }
+  - &TDI     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90, parking: 0.025 }
   # Dump protection
-  - &TCDQ    { gap: 7.3,   stage: tertiary,   material: C,     length: 3,      angle: 0,  onesided: left }
-  - &TCSP    { gap: 7.3,   stage: secondary,  material: C,     length: 1,      angle: 0   }
+  - &TCDQ    { gap: 7.3,   stage: tertiary,   material: C,     length: 3,      angle: 0,  parking: 0.025, onesided: left }
+  - &TCSP    { gap: 7.3,   stage: secondary,  material: C,     length: 1,      angle: 0,  parking: 0.025 }
   # Physics background minimalisation
-  - &TCT15   { gap: 8.5,   stage: tertiary,   material: Iner,  length: 1                  }
-  - &TCT2    { gap: 37,    stage: tertiary,   material: Iner,  length: 1                  }
-  - &TCT8    { gap: 15,    stage: tertiary,   material: Iner,  length: 1                  }
+  - &TCT15   { gap: 8.5,   stage: tertiary,   material: Iner,  length: 1,                 parking: 0.020 }
+  - &TCT2    { gap: 37,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
+  - &TCT8    { gap: 11.5,  stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   # Physics debris
-  - &TCL4    { gap: 17,    stage: tertiary,   material: CU,    length: 1,      angle: 0   }
-  - &TCL5    { gap: 42,    stage: tertiary,   material: CU,    length: 1,      angle: 0   }
-  - &TCL6    { gap: 20,    stage: tertiary,   material: Iner,  length: 1,      angle: 0   }
+  - &TCL4    { gap: 17,    stage: tertiary,   material: CU,    length: 1,      angle: 0,  parking: 0.025 }
+  - &TCL5    { gap: 42,    stage: tertiary,   material: CU,    length: 1,      angle: 0,  parking: 0.025 }
+  - &TCL6    { gap: 20,    stage: tertiary,   material: Iner,  length: 1,      angle: 0,  parking: 0.025 }
   # Physics debris in ALICE (only for ions)
-  - &TCLD    { gap: null,  stage: tertiary,   material: Iner,  length: 0.6,    angle: 0   }
+  - &TCLD    { gap: null,  stage: tertiary,   material: Iner,  length: 0.6,    angle: 0,  parking: 0.025 }
 
-Collimators:
+emittance:
+  x: 3.5e-6
+  y: 3.5e-6
+
+collimators:
   tcl.4r1.b1:         { <<: *TCL4                   }
   tcl.5r1.b1:         { <<: *TCL5                   }
   tcl.6r1.b1:         { <<: *TCL6                   }

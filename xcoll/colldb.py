@@ -1,21 +1,191 @@
+import io
+import json
 import numpy as np
 import pandas as pd
-import io
+
 
 #TODO: niet-active collimators op non-active etc (ook crystals)
 
 def load_SixTrack_colldb(filename, *, emit):
-    return CollDB(emit=emit, sixtrack_file=filename)
+    print("Warning: Using 'xcoll.load_SixTrack_colldb()' is deprecated! "
+        + "Use 'xcoll.CollDB.from_Sixtrack()' instead.")
+    return CollDB.from_SixTrack(file=filename, nemitt_x=emit, nemitt_y=emit)
+
 
 class CollDB:
-    def __init__(self, *, emit, sixtrack_file=None):
-        self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
-        if sixtrack_file is not None:
-            self.load_SixTrack(sixtrack_file)
+
+    _init_vars = ['collimator_dict', 'family_dict', 'beam', 'nemitt_x', 'nemitt_y', '_yaml_merged']
+    _init_var_defaults = {'family_dict': {}, 'beam': None, '_yaml_merged': False}
+
+    # -------------------------------
+    # ------ Loading functions ------
+    # -------------------------------
+
+    @classmethod
+    def from_yaml(cls, file, **kwargs):
+
+        # Only do the import here, as to not force people to install
+        # ruamel if they don't load CollDB yaml's
+        from ruamel.yaml import YAML
+        yaml = YAML(typ='safe')
+        if isinstance(file, io.IOBase):
+            dct = yaml.load(file)
         else:
-            self._colldb = None
-        self.emittance = emit
+            with open(file, 'r') as fid:
+                dct = yaml.load(fid)
+
+        # If the colldb uses YAML merging, we need a bit of hackery to get the
+        # family names from the tags (anchors/aliases)
+        _yaml_merged = False
+        if 'families' in dct.keys() and not isinstance(dct['families'], dict):
+            _yaml_merged = True
+
+            # First we load a round-trip yaml
+            yaml = YAML()
+            if isinstance(file, io.IOBase):
+                full_dct = yaml.load(file)
+            else:
+                with open(file, 'r') as fid:
+                    full_dct = yaml.load(fid)
+            families = {}
+
+            # We loop over family names to get the name tag ('anchor') of each family
+            for fam, full_fam in zip(dct['families'], full_dct['families']):
+                if full_fam.anchor.value is None:
+                    raise ValueError("Missing name tag / anchor in "
+                                   + "CollDB['families']!")
+                # We get the anchor from the rt yaml, and use it as key in the families dict
+                families[full_fam.anchor.value.lower()] = fam
+            dct['families'] = families
+
+            # Now we need to loop over each collimator, and verify which family was used
+            for coll, full_coll in zip(dct['collimators'].values(),
+                                       full_dct['collimators'].values()):
+                if 'family' in coll.keys():
+                    raise ValueError(f"Error in {coll}: Cannot use merging for families "
+                                    + "and manually specify family as well!")
+                elif len(full_coll.merge) > 0:
+                    coll['family'] = full_coll.merge[0][1].anchor.value.lower()
+                    # Check if some family settings are overwritten for this collimator
+                    overwritten_keys = [key for key in coll.keys()
+                                        if full_coll._unmerged_contains(key)
+                                        and key in families[coll['family']].keys()]
+                    if len(overwritten_keys) > 0:
+                        coll['overwritten_keys'] = overwritten_keys
+                else:
+                    coll['family'] = None
+
+        return cls.from_dict(dct, _yaml_merged=_yaml_merged, **kwargs)
+
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+        if isinstance(file, io.IOBase):
+            dct = json.load(file)
+        else:
+            with open(file, 'r') as fid:
+                dct = json.load(fid)
+        return cls.from_dict(dct, **kwargs)
+
+
+    @classmethod
+    def from_dict(cls, dct, beam=None, _yaml_merged=False, nemitt_x=None, nemitt_y=None):
+        # We make all keys case-insensitive to avoid confusion between different conventions
+        # The families are optional
+        fam = {}
+        dct = {k.lower(): v for k,v in dct.items()}
+
+        # Get the emittance
+        if nemitt_x is None and nemitt_y is None:
+            if 'emittance' not in dct.keys():
+                raise ValueError("Missing emittance info! Add 'emittance' as a key to "
+                               + "the colldb file, or specify it as 'nemitt_x' and "
+                               + "'nemitt_y' to the loader!")
+            nemitt_x = dct['emittance']['x']
+            nemitt_y = dct['emittance']['y']
+        elif nemitt_x is None or nemitt_y is None:
+            raise ValueError("Need to provide both 'nemitt_x' and 'nemitt_y'!")
+        elif 'emittance' in dct.keys():
+            if dct['emittance']['x'] != nemitt_x or dct['emittance']['y'] != nemitt_y:
+                raise ValueError("Emittance in colldb file different from 'nemitt_x' "
+                               + "and 'nemitt_y'!")
+
+        # Get family and collimator dicts
+        if 'families' in dct.keys():
+            if not 'collimators' in dct.keys():
+                raise ValueError("Could not find 'collimators' dict in CollDB!")
+            fam  = dct['families']
+            coll = dct['collimators']
+        elif 'collimators' in dct.keys():
+            coll = dct['collimators']
+        else:
+            coll = dct
+        fam  = {k.lower(): v for k,v in fam.items()}
+        coll = {k.lower(): v for k,v in coll.items()}
+
+        return cls(collimator_dict=coll, family_dict=fam, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                   beam=beam, _yaml_merged=_yaml_merged)
+
+
+    @classmethod
+    def from_SixTrack(cls, file, **kwargs):
+        with open(file, 'r') as infile:
+            coll_data_string = ''
+            family_settings = {}
+            family_types = {}
+            onesided = {}
+
+            for l_no, line in enumerate(infile):
+                if line.startswith('#'):
+                    continue # Comment
+
+                sline = line.split()
+                if len(sline) > 0 and len(sline) < 6:
+                    if sline[0].lower() == 'nsig_fam':
+                        family_settings[sline[1]] = float(sline[2])
+                        family_types[sline[1]] = sline[3]
+                    elif sline[0].lower() == 'onesided':
+                        onesided[sline[1]] = int(sline[2])
+                    elif sline[0].lower() == 'settings':
+                        # TODO CRYSTAL
+                        pass # Acknowledge and ignore this line
+                    else:
+                        print(f"Unknown setting {line}")
+                else:
+                    coll_data_string += line
+
+        names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
+
+        df = pd.read_csv(io.StringIO(coll_data_string), delim_whitespace=True,
+                        index_col=False, names=names)
+
+        df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
+        sides = df['name'].apply(lambda s: onesided.get(s, 0))
+        df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
+        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
+        df['parking'] = 0.025
+        df = df.set_index('name')
+        df['onesided'] = sides.values
+        df['onesided'] = [ 'both'  if s==0 else s for s in df['onesided'] ]
+        df['onesided'] = [ 'left'  if s==1 else s for s in df['onesided'] ]
+        df['onesided'] = [ 'right' if s==2 else s for s in df['onesided'] ]
+        return cls.from_dict(df.transpose().to_dict(), **kwargs)
+
+
+    def __init__(self, **kwargs):
+        # Get all arguments
+        for var in self._init_vars:
+            if var in self._init_var_defaults:
+                kwargs.setdefault(var, self._init_var_defaults[var])
+            elif var not in kwargs.keys():
+                raise ValueError(f"CollDB is missing required argument '{var}'!")
+
+        self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
+        self._parse_dict(kwargs['collimator_dict'], kwargs['family_dict'],
+                         kwargs['beam'], kwargs['_yaml_merged'])
+        self.emittance = [kwargs['nemitt_x'], kwargs['nemitt_y']]
         self._beta_gamma_rel = None
+
 
     def __getitem__(self, name):
         if isinstance(ii, name):
@@ -38,6 +208,81 @@ class CollDB:
                 'active_length':   self.active_length,
                 'collimator_type': self.collimator_type,
             }, index=self.name)
+
+
+    def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False):
+
+        # We make all keys case-insensitive to avoid confusion between different conventions
+        fam  = {k.lower(): v for k,v in fam.items()}
+        coll = {k.lower(): v for k,v in coll.items()}
+
+        # The dictionary can be a colldb for a single beam (beam=None)
+        # or for both beams (beam='b1' or beam='b2)
+        if coll.keys() == ['b1','b2']:
+            if beam is None:
+                raise ValueError("Need to specify a beam, because the given dict is for both beams!")
+            coll = coll[beam]
+            coll = {k.lower(): v for k,v in coll.items()}
+        elif beam is not None:
+            raise ValueError("Specified a beam, but the dict is for a single beam only!")
+
+        # Apply family settings
+        for thiscoll, settings in coll.items():
+            settings = {k.lower(): v for k,v in settings.items()}
+            if 'family' in settings.keys() and settings['family'] is not None:
+                settings['family'] = settings['family'].lower()
+                thisfam = settings['family']
+                if thisfam not in fam.keys():
+                    raise ValueError(f"Collimator {thiscoll} depends on family {thisfam}, "
+                                   + f"but the latter is not defined!")
+
+                # Check if some family settings are overwritten for this collimator
+                # Only do this check if we didn't do a YAML merge earlier (because then it
+                # is already taken care of)
+                if not _yaml_merged:
+                    overwritten_keys = [key for key in settings.keys() if key in fam[thisfam]]
+                    if len(overwritten_keys) > 0:
+                        settings['overwritten_keys'] = overwritten_keys
+
+                # Load family settings, potentially overwriting settings for this collimator
+                settings = {**fam[thisfam], **settings}
+
+            else:
+                settings['family'] = None
+            coll[thiscoll] = settings
+
+        # Check that all collimators have gap settings
+        if not np.all(['gap' in val.keys() or 'opening' in val.keys() for val in coll.values()]):
+            raise ValueError("Ill-defined CollDB: Not all collimators have a gap or opening setting, "
+                           + "(or the keys / structure of the dictionary is wrong)!")
+
+        # Update collimators with default values for missing keys
+        for collimator in coll.values():
+            if 'length' in collimator.keys():
+                collimator['active_length'] = collimator.pop('length')
+            if ('gap' in collimator.keys() and collimator['gap'] is not None
+                and collimator['gap'] > 900
+               ):
+                collimator['gap'] = None
+            if 'overwritten_keys' not in collimator.keys():
+                collimator['overwritten_keys'] = []
+            self._initialise_None(collimator)
+
+        self._collimator_dict = coll
+        self._family_dict = fam
+        self._colldb = pd.DataFrame(coll).transpose()
+
+
+    def _initialise_None(self, collimator):
+        fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
+        fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': 1})
+        fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None})
+        fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
+        fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
+        fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+        for f, val in fields.items():
+            if f not in collimator.keys():
+                collimator[f] = val
 
     @property
     def name(self):
@@ -608,79 +853,8 @@ class CollDB:
 
         df[prop + "_L"] = df[prop + "_L"].astype('object', copy=False)
         df[prop + "_R"] = df[prop + "_R"].astype('object', copy=False)
-                
-            
-    def _initialise_None(self):
-        fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
-        fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': None})
-        fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None})
-        fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
-        fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
-        fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
-        for f, val in fields.items():
-            if f not in self._colldb.columns:
-                self._colldb[f] = val
 
 
-
-
-
-    # -------------------------------
-    # ------ Loading functions ------
-    # -------------------------------
-
-    def load_SixTrack(self,filename):
-        with open(filename, 'r') as infile:
-            coll_data_string = ''
-            family_settings = {}
-            family_types = {}
-            onesided = {}
-
-            for l_no, line in enumerate(infile):
-                if line.startswith('#'):
-                    continue # Comment
-
-                sline = line.split()
-                if len(sline) > 0 and len(sline) < 6:
-                    if sline[0].lower() == 'nsig_fam':
-                        family_settings[sline[1]] = float(sline[2])
-                        family_types[sline[1]] = sline[3]
-                    elif sline[0].lower() == 'onesided':
-                        onesided[sline[1]] = int(sline[2])
-                    elif sline[0].lower() == 'settings':
-                        pass # Acknowledge and ignore this line
-                    else:
-                        print(f"Unknown setting {line}")
-                else:
-                    coll_data_string += line
-
-        names = ['name', 'jaw', 'material', 'length', 'angle', 'offset']
-
-        df = pd.read_csv(io.StringIO(coll_data_string), delim_whitespace=True,
-                        index_col=False, names=names)
-
-        df = df[['name', 'jaw', 'length', 'angle', 'material', 'offset']]
-        df.insert(5,'stage', df['jaw'].apply(lambda s: family_types.get(s, 'UNKNOWN')))   
-
-        sides = df['name'].apply(lambda s: onesided.get(s, 0))
-        gaps = df['jaw'].apply(lambda s: float(family_settings.get(s, s)))
-
-        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
-        df.rename(columns={'length':'active_length'}, inplace=True)
-        df['parking'] = 0.025
-        df.loc[df.name.str[:3] == 'tct', 'parking'] = 0.04
-
-        df = df.set_index('name')
-        self._colldb = df.drop('jaw', axis=1)
-
-        self._initialise_None()
-        self.gap = gaps.values
-        self._colldb.onesided = sides.values
-        self._colldb.onesided = [ 'both' if s==0 else s for s in self._colldb.onesided ]
-        self._colldb.onesided = [ 'left' if s==1 else s for s in self._colldb.onesided ]
-        self._colldb.onesided = [ 'right' if s==2 else s for s in self._colldb.onesided ]
-        
-        self.gap = self.gap
 
         # Check if collimator active
         # Check if gap is list (assymetric jaws)

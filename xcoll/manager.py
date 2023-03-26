@@ -15,22 +15,73 @@ import xtrack as xt
 
 
 class CollimatorManager:
-    def __init__(self, *, line, line_is_reversed=False, colldb: CollDB, capacity=1e6, record_impacts=False, \
-                 _context=None, _buffer=None, io_buffer=None):
 
+    _init_vars = ['colldb', 'line', 'beam', 'capacity', 'record_impacts', '_context', '_buffer', 'io_buffer']
+    _init_var_defaults = {'beam': None, 'capacity': 1e6, 'record_impacts': False, \
+                          '_context': None, '_buffer': None, 'io_buffer': None}
+
+    # -------------------------------
+    # ------ Loading functions ------
+    # -------------------------------
+
+    @classmethod
+    def from_yaml(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_yaml(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_json(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_dict(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_dict(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+
+    def __init__(self, **kwargs):
+        # Get all arguments
+        for var in self._init_vars:
+            if var in self._init_var_defaults:
+                kwargs.setdefault(var, _init_var_defaults[var])
+            elif var not in kwargs.keys():
+                raise ValueError(f"CollimatorManager is missing required argument '{var}'!")
+
+        colldb = kwargs['colldb']
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
             self.colldb = colldb
+
+        line = kwargs['line']
+        beam = kwargs['beam']
         if not isinstance(line, xt.Line):
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
         self.line._needs_rng = True
-        self._line_is_reversed = line_is_reversed
+        if beam is not None and beam > 1:
+            self._line_is_reversed = True
+        else:
+            self._line_is_reversed = False
         self._machine_length = self.line.get_length()
 
         # Create _buffer, _context, and _io_buffer
+        _buffer  = kwargs['_buffer']
+        _context = kwargs['_context']
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -42,7 +93,8 @@ class CollimatorManager:
         self._buffer = _buffer
 
         # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
-        self._capacity = int(capacity)
+        self._capacity = int(kwargs['capacity'])
+        io_buffer = kwargs['io_buffer']
         if io_buffer is None:
             io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
         elif self._buffer.context != io_buffer._context:
@@ -293,11 +345,11 @@ class CollimatorManager:
         kwargs.setdefault('_buffer', self._buffer)
         kwargs.setdefault('io_buffer', self._io_buffer)
         if kwargs['_buffer'] != self._buffer:
-            raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+            raise ValueError("Cannot build tracker with different buffer than the CollimatorManager buffer!")
         if kwargs['io_buffer'] != self._io_buffer:
-            raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
+            raise ValueError("Cannot build tracker with different io_buffer than the CollimatorManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
-            raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
+            raise ValueError("Cannot build tracker with different context than the CollimatorManager context!")
         self.line.build_tracker(**kwargs)
 
     @property
