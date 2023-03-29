@@ -41,10 +41,10 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
     // Status flags
     int val_part_hit = 0;
     int val_part_abs = 0;
-    int val_part_impact = -1;
-    double val_part_indiv = -1.;
-    double val_part_linteract = -1.;
-    double val_nabs_type = 0;
+    // int val_part_impact = -1;
+    // double val_part_indiv = -1.;
+    // double val_part_linteract = -1.;
+    // double val_nabs_type = 0;
     double val_linside = 0;
 
     double nhit   = 0;
@@ -55,7 +55,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
     double z = y_in;
     double zp = yp_in;
     double s_in = 0;   // wrt collimator entrance
-    double sp = 0;
+    // double sp = 0;
     double tiltangle = 0.;
 
     double mirror = 1.;
@@ -118,8 +118,8 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         // to collimator length (what if it would leave collimator after
         // small length due to angle???)
             zlm  = length;
-            val_part_impact = x;    // store these in impact table, as interaction type 'hitting collimator' or something like that. Do with correct (lab frame) coordinates, hence do stuff in geometry branch
-            val_part_indiv  = xp;
+            // val_part_impact = x;    // store these in impact table, as interaction type 'hitting collimator' or something like that. Do with correct (lab frame) coordinates, hence do stuff in geometry branch
+            // val_part_indiv  = xp;
         } else if (xp <= 0.) {
         // Particle does not hit collimator. Interaction length ZLM is zero.
             zlm = 0.;
@@ -129,8 +129,8 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
 
             if (s < length) {
                 zlm = length - s;
-                val_part_impact = 0.;
-                val_part_indiv  = xp;
+                // val_part_impact = 0.;
+                // val_part_indiv  = xp;
             } else {
                 zlm = 0.;
             }
@@ -168,7 +168,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
             z = jaw_result[5];
             zp = jaw_result[6];
 
-            val_nabs_type = nabs;
+            // val_nabs_type = nabs;
             val_part_hit  = 1;
 
             // Writeout should be done for both inelastic and single diffractive. doing all transformations
@@ -181,7 +181,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
                 if (nabs == 1) {
                     x = 99.99e-3;
                     z = 99.99e-3;
-                    val_part_linteract = zlm;
+                    // val_part_linteract = zlm;
                     val_part_abs = 1;
                 // Collimator jaw interaction
                 }
@@ -197,7 +197,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
                     z  = z  + zp * drift_length;
                     s_out = s_in + drift_length;
                 }
-                val_part_linteract = zlm - drift_length;
+                // val_part_linteract = zlm - drift_length;
             }
 
         }
