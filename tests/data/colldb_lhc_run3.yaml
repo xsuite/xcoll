@@ -153,3 +153,4 @@ collimators:
     tcld.a11l2.b2:      { <<: *TCLD                   }
     tctph.4r1.b2:       { <<: *TCT15,  angle:   0     }
     tctpv.4r1.b2:       { <<: *TCT15,  angle:  90     }
+
