@@ -19,7 +19,7 @@ NSIG_FAM TCSTCDQ               7.3 SECONDARY
 # Physics background minimalisation
 NSIG_FAM TCT15                 8.5 TERTIARY
 NSIG_FAM TCT2                 37.0 TERTIARY
-NSIG_FAM TCT8                 15.0 TERTIARY
+NSIG_FAM TCT8                 11.5 TERTIARY
 # Physics debris
 NSIG_FAM TCL4                 17.0 TERTIARY
 NSIG_FAM TCL5                 42.0 TERTIARY

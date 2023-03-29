@@ -134,10 +134,10 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11
     elif colldict['__class__'] == 'EverestCrystal':
         coll = xc.EverestCrystal.from_dict(colldict)
     coll.track(part)
-    _reshuffle(part)
+    part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
-    _reshuffle(part_ref)
+    part_ref.sort(interleave_lost_particles=True)
     assert np.array_equal(part.particle_id[part.state<1], part_ref.particle_id[part_ref.state<1])
     assert np.allclose(part.x[part.state>0],     part_ref.x[part_ref.state>0], atol=atolx, rtol=0)
     assert np.allclose(part.y[part.state>0],     part_ref.y[part_ref.state>0], atol=atoly, rtol=0)
@@ -146,13 +146,3 @@ def _track_collimator(name, atolx=1e-11, atoly=1e-11, atolpx=1e-11, atolpy=1e-11
     assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
 
-def _reshuffle(part):
-    # part.move(_context=xo.ContextCpu())
-    if part.lost_particles_are_hidden:
-        part.unhide_lost_particles()
-
-    sort = np.argsort(part.particle_id)
-    with part._bypass_linked_vars():
-        for tt, nn in part._structure['per_particle_vars']:
-            vv = getattr(part, nn)
-            vv[:] = vv[sort]
