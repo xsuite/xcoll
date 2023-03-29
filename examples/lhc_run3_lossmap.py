@@ -29,11 +29,7 @@ assert not np.any(df_imported.has_aperture_problem)
 
 
 # Initialise collmanager
-line_is_reversed = True if beam=='2' else False
-coll_manager = xc.CollimatorManager(
-    line=line, line_is_reversed=line_is_reversed,
-    colldb=xc.load_SixTrack_colldb(path_in / 'colldb' / f'lhc_run3_b{beam}.dat', emit=3.5e-6)
-    )
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam)
 
 
 # Install collimators into line

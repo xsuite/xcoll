@@ -9,13 +9,13 @@ import xcoll as xc
 # On a modern CPU, we get ~5000 particle*turns/s
 # So this script should take around 45 minutes
 beam      = 1
-lmtype    = 'DPpos'
+plane    = 'DPpos'
 
 num_particles  = 2000
 sweep          = 300
-sweep          = -sweep if lmtype == 'DPpos' else sweep
+sweep          = -sweep if plane == 'DPpos' else sweep
 pretrack_turns = 500
-num_turns      = 20*abs(sweep)
+num_turns      = int(20*abs(sweep))
 at_element     = 'ip3'
 engine         = 'everest'
 
@@ -34,11 +34,7 @@ assert not np.any(df_imported.has_aperture_problem)
 
 
 # Initialise collmanager
-line_is_reversed = True if beam=='2' else False
-coll_manager = xc.CollimatorManager(
-    line=line, line_is_reversed=line_is_reversed,
-    colldb=xc.load_SixTrack_colldb(Path(path_in,'colldb',f'lhc_run3_b{beam}.dat'), emit=3.5e-6)
-    )
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam)
 
 
 # Install collimators into line
@@ -107,10 +103,10 @@ print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-_ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam+plane}.json'))
+_ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam+plane}.out'))
+summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
 print(summary)
 
 exit()
