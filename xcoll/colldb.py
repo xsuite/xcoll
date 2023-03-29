@@ -12,6 +12,42 @@ def load_SixTrack_colldb(filename, *, emit):
     return CollDB.from_SixTrack(file=filename, nemitt_x=emit, nemitt_y=emit)
 
 
+def _initialise_None(collimator):
+    fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
+    fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': 1})
+    fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None, 'family': None, 'overwritten_keys': []})
+    fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
+    fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
+    fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+    for f, val in fields.items():
+        if f not in collimator.keys():
+            collimator[f] = val
+    for key in collimator.keys():
+        if key not in fields.keys():
+            raise ValueError(f"Illegal setting {key} in collimator!")
+
+
+def _dict_keys_to_lower(dct):
+    if isinstance(dct, dict):
+        return {k.lower(): _dict_keys_to_lower(v) for k,v in dct.items()}
+    else:
+        return dct
+
+def _get_coll_dct_by_beam(coll, beam):
+    # The dictionary can be a colldb for a single beam (beam=None)
+    # or for both beams (beam='b1' or beam='b2)
+    if list(coll.keys()) == ['b1','b2']:
+        if beam is None:
+            raise ValueError("Need to specify a beam, because the given dict is for both beams!")
+        elif isinstance(beam, int) or len(beam) == 1:
+            beam = f'b{beam}'
+        return coll[beam.lower()]
+    elif beam is not None:
+        print("Warning: Specified a beam, but the CollDB is for a single beam only!")
+    else:
+        return coll
+
+
 class CollDB:
 
     _init_vars = ['collimator_dict', 'family_dict', 'beam', 'nemitt_x', 'nemitt_y', '_yaml_merged']
@@ -21,6 +57,7 @@ class CollDB:
     # ------ Loading functions ------
     # -------------------------------
 
+    
     @classmethod
     def from_yaml(cls, file, **kwargs):
 
@@ -33,6 +70,7 @@ class CollDB:
         else:
             with open(file, 'r') as fid:
                 dct = yaml.load(fid)
+        dct = _dict_keys_to_lower(dct)
 
         # If the colldb uses YAML merging, we need a bit of hackery to get the
         # family names from the tags (anchors/aliases)
@@ -47,10 +85,12 @@ class CollDB:
             else:
                 with open(file, 'r') as fid:
                     full_dct = yaml.load(fid)
+            famkey = [key for key in full_dct.keys() if key.lower() == 'families'][0]
+            collkey = [key for key in full_dct.keys() if key.lower() == 'collimators'][0]
             families = {}
 
             # We loop over family names to get the name tag ('anchor') of each family
-            for fam, full_fam in zip(dct['families'], full_dct['families']):
+            for fam, full_fam in zip(dct['families'], full_dct[famkey]):
                 if full_fam.anchor.value is None:
                     raise ValueError("Missing name tag / anchor in "
                                    + "CollDB['families']!")
@@ -59,17 +99,19 @@ class CollDB:
             dct['families'] = families
 
             # Now we need to loop over each collimator, and verify which family was used
-            for coll, full_coll in zip(dct['collimators'].values(),
-                                       full_dct['collimators'].values()):
+            beam = kwargs.get('beam', None)
+            coll_dct = _get_coll_dct_by_beam(dct['collimators'], beam)
+            full_coll_dct = _get_coll_dct_by_beam(full_dct[collkey], beam)
+            for coll, full_coll in zip(coll_dct.values(), full_coll_dct.values()):
                 if 'family' in coll.keys():
                     raise ValueError(f"Error in {coll}: Cannot use merging for families "
                                     + "and manually specify family as well!")
                 elif len(full_coll.merge) > 0:
                     coll['family'] = full_coll.merge[0][1].anchor.value.lower()
                     # Check if some family settings are overwritten for this collimator
-                    overwritten_keys = [key for key in coll.keys()
+                    overwritten_keys = [key.lower() for key in full_coll.keys()
                                         if full_coll._unmerged_contains(key)
-                                        and key in families[coll['family']].keys()]
+                                        and key.lower() in families[coll['family']].keys()]
                     if len(overwritten_keys) > 0:
                         coll['overwritten_keys'] = overwritten_keys
                 else:
@@ -85,6 +127,7 @@ class CollDB:
         else:
             with open(file, 'r') as fid:
                 dct = json.load(fid)
+        dct = _dict_keys_to_lower(dct)
         return cls.from_dict(dct, **kwargs)
 
 
@@ -93,7 +136,7 @@ class CollDB:
         # We make all keys case-insensitive to avoid confusion between different conventions
         # The families are optional
         fam = {}
-        dct = {k.lower(): v for k,v in dct.items()}
+        dct = _dict_keys_to_lower(dct)
 
         # Get the emittance
         if nemitt_x is None and nemitt_y is None:
@@ -120,8 +163,6 @@ class CollDB:
             coll = dct['collimators']
         else:
             coll = dct
-        fam  = {k.lower(): v for k,v in fam.items()}
-        coll = {k.lower(): v for k,v in coll.items()}
 
         return cls(collimator_dict=coll, family_dict=fam, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    beam=beam, _yaml_merged=_yaml_merged)
@@ -213,18 +254,12 @@ class CollDB:
     def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False):
 
         # We make all keys case-insensitive to avoid confusion between different conventions
-        fam  = {k.lower(): v for k,v in fam.items()}
-        coll = {k.lower(): v for k,v in coll.items()}
+        coll = _dict_keys_to_lower(coll)
+        fam  = _dict_keys_to_lower(fam)
 
         # The dictionary can be a colldb for a single beam (beam=None)
         # or for both beams (beam='b1' or beam='b2)
-        if coll.keys() == ['b1','b2']:
-            if beam is None:
-                raise ValueError("Need to specify a beam, because the given dict is for both beams!")
-            coll = coll[beam]
-            coll = {k.lower(): v for k,v in coll.items()}
-        elif beam is not None:
-            raise ValueError("Specified a beam, but the dict is for a single beam only!")
+        coll = _get_coll_dct_by_beam(coll, beam)
 
         # Apply family settings
         for thiscoll, settings in coll.items():
@@ -258,31 +293,29 @@ class CollDB:
 
         # Update collimators with default values for missing keys
         for collimator in coll.values():
+            # Change all values to lower case
+            for key, val in collimator.items():
+                collimator[key] = val.lower() if isinstance(val, str) else val
             if 'length' in collimator.keys():
                 collimator['active_length'] = collimator.pop('length')
-            if ('gap' in collimator.keys() and collimator['gap'] is not None
-                and collimator['gap'] > 900
-               ):
-                collimator['gap'] = None
-            if 'overwritten_keys' not in collimator.keys():
-                collimator['overwritten_keys'] = []
-            self._initialise_None(collimator)
+            if 'gap' in collimator.keys():
+                if collimator['gap'] is not None and collimator['gap'] > 900:
+                    collimator['gap'] = None
+                if 'onesided' in collimator.keys() and collimator['onesided'] == 'left':
+                    collimator['gap_L'] = collimator.pop('gap')
+                    collimator['gap_R'] = None
+                elif 'onesided' in collimator.keys() and collimator['onesided'] == 'right':
+                    collimator['gap_L'] = None
+                    collimator['gap_R'] = collimator.pop('gap')
+                else:
+                    collimator['gap_L'] = collimator['gap']
+                    collimator['gap_R'] = collimator.pop('gap')
+            _initialise_None(collimator)
 
         self._collimator_dict = coll
         self._family_dict = fam
         self._colldb = pd.DataFrame(coll).transpose()
 
-
-    def _initialise_None(self, collimator):
-        fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
-        fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'tilt_L': 0, 'tilt_R': 0, 'parking': 1})
-        fields.update({'jaw_F_L': None, 'jaw_F_R': None, 'jaw_B_L': None, 'jaw_B_R': None})
-        fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'is_active': True})
-        fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
-        fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
-        for f, val in fields.items():
-            if f not in collimator.keys():
-                collimator[f] = val
 
     @property
     def name(self):
@@ -384,12 +417,12 @@ class CollDB:
         self._compute_jaws()
 
     @property
-    def is_active(self):
-        return self._colldb['is_active']
+    def active(self):
+        return self._colldb['active']
 
-    @is_active.setter
-    def is_active(self, is_active):
-        self._set_property('is_active', is_active, single_default_allowed=True)
+    @active.setter
+    def active(self, active):
+        self._set_property('active', active, single_default_allowed=True)
 
 #     @property
 #     def crystal(self):

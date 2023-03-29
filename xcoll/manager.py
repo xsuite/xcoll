@@ -51,12 +51,21 @@ class CollimatorManager:
         colldb = CollDB.from_dict(file, **kwargs_colldb)
         return cls(colldb=colldb, **kwargs_manager)
 
+    @classmethod
+    def from_SixTrack(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_SixTrack(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
 
     def __init__(self, **kwargs):
         # Get all arguments
         for var in self._init_vars:
             if var in self._init_var_defaults:
-                kwargs.setdefault(var, _init_var_defaults[var])
+                kwargs.setdefault(var, self._init_var_defaults[var])
             elif var not in kwargs.keys():
                 raise ValueError(f"CollimatorManager is missing required argument '{var}'!")
 
@@ -68,6 +77,8 @@ class CollimatorManager:
 
         line = kwargs['line']
         beam = kwargs['beam']
+        if isinstance(beam, str):
+            beam = int(beam[-1])
         if not isinstance(line, xt.Line):
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
@@ -104,7 +115,7 @@ class CollimatorManager:
         # Initialise impacts table
         self._record_impacts = []
         self._impacts = None
-        self.record_impacts = record_impacts
+        self.record_impacts = kwargs['record_impacts']
 
         # Variables for lossmap
         self._lossmap = None
@@ -185,7 +196,8 @@ class CollimatorManager:
         # TODO: should only sort whenever collimators are added to colldb
         # or when positions are updated
         db = self.colldb._colldb
-        names = list(db[db.is_active==True].index)
+#         names = list(db[db.active==True].index)
+        names = list(db.index)
         if not np.any([s is None for s in db.s_center]):
             names.sort(key=lambda nn: db.loc[nn, 's_center'])
         return names
@@ -322,9 +334,10 @@ class CollimatorManager:
                 line.insert_element(element=coll_aper, name=name+'_aper_back',
                                     index=line.element_names.index(name)+1)
 
+
     @property
     def installed(self):
-        return not any([ x is None for x in self.colldb.collimator_type ])
+        return not any([coll is None for coll in self.colldb.collimator_type])
 
 
     def align_collimators_to(self, align):
@@ -425,7 +438,7 @@ class CollimatorManager:
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                line[name].is_active = colldb.is_active[name]
+                line[name].is_active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
@@ -434,7 +447,7 @@ class CollimatorManager:
                         line[name].onesided = True
                     elif colldb.onesided[name] == 'right':
                         raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
-                    line[name].is_active = colldb.is_active[name]
+                    line[name].is_active = colldb.active[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
