@@ -508,6 +508,8 @@ class CollimatorManager:
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
 
+        # TODO: check collimator in colldb and installed!
+
         if self.colldb.onesided[collimator] == 'left':
             side = '+'
         if self.colldb.onesided[collimator] == 'right':
