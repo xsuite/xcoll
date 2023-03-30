@@ -290,18 +290,18 @@ Inermet = Material(
 
 
 SixTrack_to_xcoll = {
-    "BE":   [Berylium],
-    "AL":   [Aluminium],
-    "CU":   [Copper],
-    "W":    [Tungsten, TungstenCrystal],
-    "PB":   [Lead],
-    "C":    [Carbon, CarbonCrystal],
-    "C2":   [Carbon2],
-    "Si":   [Silicon, SiliconCrystal],
-    "Ge":   [Germanium, GermaniumCrystal],
-    "MoGR": [MolybdenumGraphite],
-    "CuCD": [CopperDiamond],
-    "Mo":   [Molybdenum],
-    "Glid": [Glidcop],
-    "Iner": [Inermet]
+    "be":   [Berylium],
+    "al":   [Aluminium],
+    "cu":   [Copper],
+    "w":    [Tungsten, TungstenCrystal],
+    "pb":   [Lead],
+    "c":    [Carbon, CarbonCrystal],
+    "c2":   [Carbon2],
+    "si":   [Silicon, SiliconCrystal],
+    "ge":   [Germanium, GermaniumCrystal],
+    "mogr": [MolybdenumGraphite],
+    "cucd": [CopperDiamond],
+    "mo":   [Molybdenum],
+    "glid": [Glidcop],
+    "iner": [Inermet]
 }

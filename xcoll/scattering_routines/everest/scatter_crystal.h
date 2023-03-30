@@ -43,7 +43,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
     int val_part_abs = 0;
     int val_part_impact = -1;
     double val_part_indiv = -1.;
-    double val_part_linteract = -1.;
+    // double val_part_linteract = -1.;
 
     p0 = e0;
     double x0     = 0;
@@ -185,7 +185,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
 
         if (nabs != 0.) {
             val_part_abs = 1.;
-            val_part_linteract = zlm;
+            // val_part_linteract = zlm;
         }
         s_imp  = (s - length) + s_imp;
 

@@ -22,15 +22,6 @@ collimators = [
 
 path = Path.cwd()
 
-def _reshuffle(part):
-    # part.move(_context=xo.ContextCpu())
-    if part.lost_particles_are_hidden:
-        part.unhide_lost_particles()
-    sort = np.argsort(part.particle_id)
-    with part._bypass_linked_vars():
-        for tt, nn in part._structure['per_particle_vars']:
-            vv = getattr(part, nn)
-            vv[:] = vv[sort]
 
 def _make_collimator_ref(name):
     # Initialise engine
@@ -47,7 +38,7 @@ def _make_collimator_ref(name):
         coll = dc.K2Crystal.from_dict(colldict)
     # Track
     coll.track(part)
-    _reshuffle(part)
+    part.sort(interleave_lost_particles=True)
     # Store reference
     with open(Path(path, 'Ref',name+'.json'), 'w') as fid:
         json.dump(part.to_dict(), fid, cls=xo.JEncoder)

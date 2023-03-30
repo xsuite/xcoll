@@ -15,21 +15,84 @@ import xtrack as xt
 
 
 class CollimatorManager:
-    def __init__(self, *, line, line_is_reversed=False, colldb: CollDB, capacity=1e6, record_impacts=False, \
-                 _context=None, _buffer=None, io_buffer=None):
 
+    _init_vars = ['colldb', 'line', 'beam', 'capacity', 'record_impacts', '_context', '_buffer', 'io_buffer']
+    _init_var_defaults = {'beam': None, 'capacity': 1e6, 'record_impacts': False, \
+                          '_context': None, '_buffer': None, 'io_buffer': None}
+
+    # -------------------------------
+    # ------ Loading functions ------
+    # -------------------------------
+
+    @classmethod
+    def from_yaml(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_yaml(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_json(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_dict(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_dict(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_SixTrack(cls, file, **kwargs):
+        if 'colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollDB file and specify 'colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollDB._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollDB.from_SixTrack(file, **kwargs_colldb)
+        return cls(colldb=colldb, **kwargs_manager)
+
+
+    def __init__(self, **kwargs):
+        # Get all arguments
+        for var in self._init_vars:
+            if var in self._init_var_defaults:
+                kwargs.setdefault(var, self._init_var_defaults[var])
+            elif var not in kwargs.keys():
+                raise ValueError(f"CollimatorManager is missing required argument '{var}'!")
+
+        colldb = kwargs['colldb']
         if not isinstance(colldb, CollDB):
             raise ValueError("The variable 'colldb' needs to be an xcoll CollDB object!")
         else:
             self.colldb = colldb
+
+        line = kwargs['line']
+        beam = kwargs['beam']
+        if isinstance(beam, str):
+            beam = int(beam[-1])
         if not isinstance(line, xt.Line):
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
         self.line._needs_rng = True
-        self._line_is_reversed = line_is_reversed
+        if beam is not None and beam > 1:
+            self._line_is_reversed = True
+        else:
+            self._line_is_reversed = False
+        self._machine_length = self.line.get_length()
 
         # Create _buffer, _context, and _io_buffer
+        _buffer  = kwargs['_buffer']
+        _context = kwargs['_context']
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -41,7 +104,8 @@ class CollimatorManager:
         self._buffer = _buffer
 
         # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
-        self._capacity = int(capacity)
+        self._capacity = int(kwargs['capacity'])
+        io_buffer = kwargs['io_buffer']
         if io_buffer is None:
             io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
         elif self._buffer.context != io_buffer._context:
@@ -51,13 +115,17 @@ class CollimatorManager:
         # Initialise impacts table
         self._record_impacts = []
         self._impacts = None
-        self.record_impacts = record_impacts
+        self.record_impacts = kwargs['record_impacts']
 
         # Variables for lossmap
         self._lossmap = None
         self._summary = None
         self._part    = None
 
+
+    @property
+    def machine_length(self):
+        return self._machine_length
 
     @property
     def impacts(self):
@@ -128,7 +196,8 @@ class CollimatorManager:
         # TODO: should only sort whenever collimators are added to colldb
         # or when positions are updated
         db = self.colldb._colldb
-        names = list(db[db.is_active==True].index)
+#         names = list(db[db.active==True].index)
+        names = list(db.index)
         if not np.any([s is None for s in db.s_center]):
             names.sort(key=lambda nn: db.loc[nn, 's_center'])
         return names
@@ -168,6 +237,7 @@ class CollimatorManager:
                    )
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
+
     def add_crystals(self, crystals):
         df = pd.DataFrame(crystals).transpose()
         df['stage'] = 'PRIMARY'
@@ -181,8 +251,9 @@ class CollimatorManager:
         df['gap_R'] = df['gap_L']
         df.loc[df['onesided']=='left', 'gap_R'] = None
         df.loc[df['onesided']=='right', 'gap_L'] = None
-        df['is_active'] = True
+        df['active'] = True
         self.colldb._colldb = pd.concat([self.colldb._colldb, df])
+
 
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
@@ -224,6 +295,7 @@ class CollimatorManager:
                        )
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
+
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollDB,
         # and that tracker is not yet built
@@ -243,6 +315,12 @@ class CollimatorManager:
 
         # Loop over collimators to install
         for name in names:
+ 
+            # Get the settings from the CollDB
+            thiscoll = df.loc[name]
+            # Create the collimator element
+            newcoll = install_func(thiscoll, name)
+            collimator_class = newcoll.__class__
 
             # Get the settings from the CollDB
             thiscoll = df.loc[name]
@@ -302,9 +380,10 @@ class CollimatorManager:
                 line.insert_element(element=coll_aper, name=name+'_aper_back',
                                     index=line.element_names.index(name)+1)
 
+
     @property
     def installed(self):
-        return not any([ x is None for x in self.colldb.collimator_type ])
+        return not any([coll is None for coll in self.colldb.collimator_type])
 
 
     def align_collimators_to(self, align):
@@ -325,11 +404,11 @@ class CollimatorManager:
         kwargs.setdefault('_buffer', self._buffer)
         kwargs.setdefault('io_buffer', self._io_buffer)
         if kwargs['_buffer'] != self._buffer:
-            raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+            raise ValueError("Cannot build tracker with different buffer than the CollimatorManager buffer!")
         if kwargs['io_buffer'] != self._io_buffer:
-            raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
+            raise ValueError("Cannot build tracker with different io_buffer than the CollimatorManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
-            raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
+            raise ValueError("Cannot build tracker with different context than the CollimatorManager context!")
         self.line.build_tracker(**kwargs)
 
     @property
@@ -405,7 +484,7 @@ class CollimatorManager:
                 line[name].jaw_F_R = colldb._colldb.jaw_F_R[name]
                 line[name].jaw_B_L = colldb._colldb.jaw_B_L[name]
                 line[name].jaw_B_R = colldb._colldb.jaw_B_R[name]
-                line[name].is_active = colldb.is_active[name]
+                line[name].is_active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
@@ -429,6 +508,7 @@ class CollimatorManager:
                     else:
                         raise ValueError(f"Crystal definition for {name} should be either 'strip' or 'quasi-mosaic'"
                                        + f", but got {colldb._colldb.crystal[name]}!")
+
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
@@ -444,9 +524,44 @@ class CollimatorManager:
                 )
 
 
+    def _generate_4D_pencil_one_jaw(self, num_particles, collimator, plane, side, impact_parameter,
+                                    dr_sigmas, transverse_spread_sigma, match_at_s):
+
+        line = self.line
+
+        if plane == 'x':
+            co_pencil     = line[collimator].dx
+            co_transverse = line[collimator].dy
+        else:
+            co_pencil     = line[collimator].dy
+            co_transverse = line[collimator].dx
+
+        nemitt_x   = self.colldb.emittance[0]
+        nemitt_y   = self.colldb.emittance[1]
+
+        if side == '+':
+            absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
+        elif side == '-':
+            absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+
+        # Collimator plane: generate pencil distribution
+        pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
+                        plane=plane, absolute_cut=absolute_cut, dr_sigmas=dr_sigmas,
+                        side=side, line=line, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                        at_element=collimator, match_at_s=match_at_s
+        )
+
+        # Other plane: generate gaussian distribution in normalized coordinates
+        transverse_norm   = np.random.normal(loc=co_transverse, scale=transverse_spread_sigma, size=num_particles)
+        p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+
+        return [pencil, p_pencil, transverse_norm, p_transverse_norm]
+
+
     def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
-                                      pencil_spread=1e-6, transverse_impact_parameter=0., transverse_spread_sigma=0.01, 
-                                      sigma_z=7.55e-2, zeta=None, delta=None):
+                                      pencil_spread=1e-6, transverse_impact_parameter=0.,
+                                      transverse_spread_sigma=0.01, longitudinal=None,
+                                      longitudinal_betatron_cut=None, sigma_z=7.61e-2):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -454,49 +569,28 @@ class CollimatorManager:
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
 
+        # TODO: check collimator in colldb and installed!
+
         if self.colldb.onesided[collimator] == 'left':
             side = '+'
         if self.colldb.onesided[collimator] == 'right':
             side = '-'
 
-        if side == '+-':
-            num_plus = int(num_particles/2)
-            num_min  = int(num_particles - num_plus)
-            part_plus = self.generate_pencil_on_collimator(collimator, num_plus, side='+',
-                            impact_parameter=impact_parameter, pencil_spread=pencil_spread,
-                            transverse_impact_parameter=transverse_impact_parameter,
-                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z,
-                            zeta=zeta, delta=delta)
-            part_min = self.generate_pencil_on_collimator(collimator, num_min, side='-',
-                            impact_parameter=impact_parameter, pencil_spread=pencil_spread,
-                            transverse_impact_parameter=transverse_impact_parameter,
-                            transverse_spread_sigma=transverse_spread_sigma, sigma_z=sigma_z,
-                            zeta=zeta, delta=delta)
-            part = xp.Particles.merge([part_plus, part_min])
-            part.start_tracking_at_element = part_plus.start_tracking_at_element
-            return part
-
-        nemitt_x   = self.colldb.emittance[0]
-        nemitt_y   = self.colldb.emittance[1]
-        line       = self.line
-        angle      = self.colldb.angle[collimator]
-
         # Define the plane
+        angle = self.colldb.angle[collimator]
         if abs(np.mod(angle-90,180)-90) < 1e-6:
             plane = 'x'
-            co_pencil     = line[collimator].dx
-            co_transverse = line[collimator].dy
         elif abs(np.mod(angle,180)-90) < 1e-6:
             plane = 'y'
-            co_pencil     = line[collimator].dy
-            co_transverse = line[collimator].dx
         else:
             raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
 
+        nemitt_x   = self.colldb.emittance[0]
+        nemitt_y   = self.colldb.emittance[1]
+
         # Is it converging or diverging?
         is_converging = self.colldb._optics.loc[ self.s_active_front[collimator], 'alf' + plane ] > 0
-#         is_converging = self.colldb._optics.loc[ self.s_center[collimator], 'alf' + plane ] > 0
-        print(f"Collimator is {'con' if is_converging else 'di'}verging.")
+        print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
         if is_converging:
             # pencil at front of jaw
             match_at_s = self.s_active_front[collimator]
@@ -506,52 +600,101 @@ class CollimatorManager:
             match_at_s = self.s_active_back[collimator]
             sigma      = self.colldb._beam_size_back[collimator]
 
-        if side == '+':
-            absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
-        elif side == '-':
-            absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+        dr_sigmas = pencil_spread/sigma
 
-        dr_sigmas  = pencil_spread/sigma
-
-        # Collimator plane: generate pencil distribution
-        pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
-                        plane=plane, absolute_cut=absolute_cut, dr_sigmas=dr_sigmas,
-                        side=side, line=line,
-                        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                        at_element=collimator, match_at_s=match_at_s
-        )
-
-        # Other plane: generate gaussian distribution in normalized coordinates
-        transverse_norm   = np.random.normal(loc=co_transverse, scale=transverse_spread_sigma, size=num_particles)
-        p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+        # Generate 4D coordinates
+        if side == '+-':
+            num_plus = int(num_particles/2)
+            num_min  = int(num_particles - num_plus)
+            coords_plus = self._generate_4D_pencil_one_jaw(num_plus, collimator, plane, '+',
+                                                           impact_parameter, dr_sigmas,
+                                                           transverse_spread_sigma, match_at_s)
+            coords_min  = self._generate_4D_pencil_one_jaw(num_min, collimator, plane, '-',
+                                                           impact_parameter, dr_sigmas,
+                                                           transverse_spread_sigma, match_at_s)
+            coords      = [ [*c_plus, *c_min] for c_plus, c_min in zip(coords_plus, coords_min)]
+        else:
+            coords      = self._generate_4D_pencil_one_jaw(num_particles, collimator, plane, side,
+                                                           impact_parameter, dr_sigmas,
+                                                           transverse_spread_sigma, match_at_s)
+        pencil            = coords[0]
+        p_pencil          = coords[1]
+        transverse_norm   = coords[2]
+        p_transverse_norm = coords[3]
 
         # Longitudinal plane
-        if zeta is None and delta is None:
+        # TODO: make this more general, make this better
+        if longitudinal is None:
+            delta = 0
+            zeta  = 0
+        elif longitudinal == 'matched_dispersion':
+            if longitudinal_betatron_cut is None:
+                cut = 0
+            else:
+                cut = np.random.uniform(-longitudinal_betatron_cut, longitudinal_betatron_cut, num_particles)
+            delta = self.generate_delta_from_dispersion(at_element=collimator, plane=plane, position_mm=pencil,
+                                                        betatron_cut=cut)
+            zeta  = 0
+        elif longitudinal == 'bucket':
             zeta, delta = xp.generate_longitudinal_coordinates(
-                    num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, line=line
+                    num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, line=self.line
             )
-        elif zeta is None:
-            zeta = 0.0
-#             delta = (self.line[collimator].jaw_F_L + self.line[collimator].dx + impact_parameter)/self.colldb.dx[collimator]
-        elif delta is None:
-            delta = 0.0
+        elif not hasattr(longitudinal, '__iter__'):
+            raise ValueError
+        elif len(longitudinal) != 2:
+            raise ValueError
+        elif isinstance(longitudinal, str):
+            raise ValueError
+        elif isinstance(longitudinal, dict):
+            zeta = longitudinal['zeta']
+            delta = longitudinal['delta']
+        else:
+            zeta = longitudinal[0]
+            delta = longitudinal[1]
 
+        # Build the particles
         if plane == 'x':
             part = xp.build_particles(
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s
             )
         else:
             part = xp.build_particles(
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s
             )
 
         part._init_random_number_generator()
 
         return part
+
+
+    def generate_delta_from_dispersion(self, at_element, *, plane, position_mm, betatron_cut=0):
+        line = self.line
+        if line.tracker is None:
+            raise ValueError("Need to build tracker first!")
+        if not hasattr(betatron_cut, '__iter__'):
+            if hasattr(position_mm, '__iter__'):
+                betatron_cut = np.full_like(position_mm, betatron_cut)
+        elif not hasattr(position_mm, '__iter__'):
+            position_mm = np.full_like(betatron_cut, position_mm)
+        elif len(position_mm) != len(betatron_cut):
+            raise ValueError
+        tw = line.twiss()
+        if isinstance(at_element, str):
+            idx = line.element_names.index(at_element)
+        betagamma = line.particle_ref.beta0[0] * line.particle_ref.gamma0[0]
+        if plane == 'x':
+            sigma = np.sqrt(tw.betx[idx]*self.colldb.emittance[0]/betagamma)
+            delta = (position_mm - betatron_cut*sigma - tw.x[idx]) / tw.dx[idx]
+        elif plane == 'y':
+            sigma = np.sqrt(tw.bety[idx]*self.colldb.emittance[1]/betagamma)
+            delta = (position_mm - betatron_cut*sigma - tw.y[idx]) / tw.dy[idx]
+        else:
+            raise ValueError("The variable 'plane' needs to be either 'x' or 'y'!")
+        return delta
 
 
     def enable_scattering(self):
@@ -563,6 +706,112 @@ class CollimatorManager:
         # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = False
+
+    @property
+    def scattering_enabled(self):
+        all_enabled  = np.all([self.line[coll]._tracking for coll in self.collimator_names])
+        some_enabled = np.any([self.line[coll]._tracking for coll in self.collimator_names])
+        if some_enabled and not all_enabled:
+            raise ValueError("Some collimators are enabled for tracking but not all! "
+                           + "This should not happen.")
+        return all_enabled
+
+
+    @property
+    def current_sweep_value(self):
+        if not 'rf_sweep' in self.line.element_names:
+            return 0
+        else:
+            cavities = self.line.get_elements_of_type(xt.Cavity)[1]
+            freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])[0]
+            dzeta = self.line['rf_sweep'].dzeta
+            return round(freq * dzeta/(self.machine_length-dzeta),6)
+
+    def rf_sweep(self, sweep=0, num_turns=0, particles=None, verbose=True, *args, **kwargs):
+
+        # Get base frequency of cavities
+        cavities = self.line.get_elements_of_type(xt.Cavity)[1]
+        freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])
+        if len(freq) > 1:
+            raise NotImplementedError(f"Cannot sweep multiple cavities with different frequencies!")
+        freq = freq[0]
+
+        # Install Zeta shift element if not yet present
+        if not 'rf_sweep' in self.line.element_names:
+            s_cav = min([self.line.get_s_position(cav) for cav in cavities])
+            if self.line.tracker is not None:
+                self.line.unfreeze()
+                line_was_built = True
+            else:
+                line_was_built = False
+            self.line.insert_element(element=xt.ZetaShift(dzeta=0), name='rf_sweep', at_s=s_cav)
+            if line_was_built:
+                self.line.build_tracker()
+
+        # Was there a previous sweep?
+        # If yes, we do not overwrite it but continue from there
+        existing_sweep = self.current_sweep_value
+
+        # Some info
+        scattering_enabled = False
+        if self.line.tracker is not None:
+            if self.scattering_enabled:
+                scattering_enabled = True
+                self.disable_scattering()
+            tw = self.line.twiss()
+            V = np.array([self.line[cav].voltage for cav in cavities]).sum()
+            beta0 = self.line.particle_ref.beta0
+            q = self.line.particle_ref.q0
+            h = freq * tw.T_rev0
+            eta = tw.slip_factor
+            E = self.line.particle_ref.energy0
+            phi = np.array([self.line[cav].lag for cav in cavities])[0]*np.pi/180
+            bucket_height = np.sqrt(abs(q*V*beta0**2 / (np.pi*h*eta*E) * (2*np.cos(phi) +(2*phi-np.pi)*np.sin(phi))))[0]
+            delta_shift = -sweep / freq / tw.slip_factor
+            bucket_shift = delta_shift / bucket_height / 2
+            if verbose:
+                print(f"This sweep will move the center of the bucket with \u0394\u03B4 = "
+                    + f"{delta_shift} ({bucket_shift} buckets).")
+
+        # Just set the new RF frequency, no tracking
+        if num_turns == 0:
+            sweep += existing_sweep
+            if verbose:
+                print(f"The current frequency is {freq + existing_sweep}Hz, moving to {freq + sweep}Hz."
+                     + "No tracking performed.")
+            self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
+
+        # Sweep and track
+        else:
+            if self.line.tracker is None:
+                raise ValueError("Need to build tracker first!")
+            if particles is None:
+                raise ValueError("Need particles to track!")
+            rf_shift_per_turn = sweep / num_turns
+            if verbose:
+                print(f"The current frequency is {freq + existing_sweep}Hz, sweeping {rf_shift_per_turn}Hz "
+                    + f"per turn until {freq + existing_sweep + sweep} (for {num_turns} turns).")
+            if num_turns < 3*bucket_shift/tw.qs:
+                print(f"Warning: This is a very fast sweep, moving ~{round(bucket_shift,2)} buckets in "
+                    + f"~{round(num_turns*tw.qs,2)} synchrotron oscillations (on average). If the "
+                    + f"bucket moves faster than a particle can follow, that particle will move out of "
+                    + f"the bucket and remain uncaptured.")
+            if scattering_enabled:
+                self.enable_scattering()
+            if 'time' in kwargs and ['time']:
+                self.line.tracker.time_last_track = 0
+            for i in range(num_turns):
+                sweep = existing_sweep + i*rf_shift_per_turn
+                self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
+                if 'time' in kwargs and ['time']:
+                    prev_time = self.line.time_last_track
+                self.line.track(particles, num_turns=1, *args, **kwargs)
+                if 'time' in kwargs and ['time']:
+                    self.line.tracker.time_last_track += prev_time
+                if not np.any(particles.state == 1):
+                    if verbose:
+                        print(f"All particles lost at turn {i}, stopped sweep at {i*rf_shift_per_turn}Hz.")
+                    break
 
 
     def summary(self, part, show_zeros=False, file=None):
@@ -578,8 +827,7 @@ class CollimatorManager:
             coll_lengths = [self.line[nn].active_length for nn in self.collimator_names] 
             coll_pos     = [self.colldb.s_center[nn]    for nn in self.collimator_names]
             if self._line_is_reversed:
-                machine_length = self.line.get_length()
-                coll_pos = [machine_length - s for s in coll_pos ]
+                coll_pos = [self.machine_length - s for s in coll_pos ]
             coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
             nabs         = [np.count_nonzero(coll_losses==nn) for nn in self.collimator_names]
 
@@ -601,29 +849,32 @@ class CollimatorManager:
             return self._summary[self._summary.nabs > 0]
 
 
-    def lossmap(self, part, interpolation=0.1, file=None):
+    def lossmap(self, part, interpolation=0.1, file=None, recompute=False):
 
         # We cache the result
         if (self._lossmap is None or self._part is None
             or not xt.line._dicts_equal(part.to_dict(), self._part)
+            or recompute
            ):
 
             self._part = part.to_dict()
 
             # Loss location refinement
             if interpolation is not None:
-                print("Performing the aperture losses refinement.")
-                loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
-                        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-                        r_max = 0.5, # Maximum transverse aperture in m
-                        dr = 50e-6, # Transverse loss refinement accuracy [m]
-                        ds = interpolation, # Longitudinal loss refinement accuracy [m]
-                        # save_refine_trackers=True # Diagnostics flag
-                        )
-                loss_loc_refinement.refine_loss_location(part)
+                aper_s = list(part.s[part.state==0])
+                if len(aper_s) > 0:
+                    print("Performing the aperture losses refinement.")
+                    loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
+                            n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                            r_max = 0.5, # Maximum transverse aperture in m
+                            dr = 50e-6, # Transverse loss refinement accuracy [m]
+                            ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                            # save_refine_trackers=True # Diagnostics flag
+                            )
+                    loss_loc_refinement.refine_loss_location(part)
 
-            aper_s, aper_names = self._get_aperture_losses(part)
-            coll_summary       = self.summary(part, show_zeros=False).to_dict('list')
+            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
+            coll_summary = self.summary(part, show_zeros=False).to_dict('list')
 
             self._lossmap = {
                 'collimator': {
@@ -635,10 +886,11 @@ class CollimatorManager:
                 ,
                 'aperture': {
                     's':    aper_s,
-                    'name': aper_names
+                    'name': aper_names,
+                    'n':    aper_nabs
                 }
                 ,
-                'machine_length': self.line.get_length()
+                'machine_length': self.machine_length
                 ,
                 'interpolation': interpolation
                 ,
@@ -655,10 +907,14 @@ class CollimatorManager:
     def _get_aperture_losses(self, part):
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
+        if len(aper_s) == 0:
+            return [], [], []
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
-            machine_length = self.line.get_length()
-            aper_s = [ machine_length - s for s in aper_s ]
-
-        return aper_s, aper_names
+            aper_s = [ self.machine_length - s for s in aper_s ]
+        result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
+        aper_names = list(result[0].transpose()[0])
+        aper_s = [float(s) for s in result[0].transpose()[1]]
+        aper_nabs = [int(n) for n in result[1]]
+        return aper_s, aper_names, aper_nabs
 

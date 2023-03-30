@@ -34,8 +34,8 @@ collimators = [name for name in line.element_names
                     and not name[:4] == 'tcdd' and not name[:5] == 'tclim' and not name[:3] == 'tca'
                     and not (name[-5]=='.' and name[-3]=='.') and not name[:5] == 'tcdqm'
               ]
-collimator_apertures = [f'{coll}_aper' + p for p in ['', '_patch'] for coll in collimators]
-ips = [f'ip{i+1}' for i in range(8)]
+# collimator_apertures = [f'{coll}_aper' + p for p in ['', '_patch'] for coll in collimators]
+# ips = [f'ip{i+1}' for i in range(8)]
 
 
 # Patch the aperture model by fixing missing apertures
@@ -81,16 +81,17 @@ else:
 
 
 # Do some simplifications on the line
-line.remove_inactive_multipoles(inplace=True)
-line.merge_consecutive_apertures(inplace=True, keep=collimator_apertures)
-line.remove_markers(inplace=True, keep=collimators+ips)
-line.remove_zero_length_drifts(inplace=True, keep=collimators)
-line.merge_consecutive_drifts(inplace=True, keep=collimators)
-print(f"Reduced to {len(line.element_names)} elements!")
+# No, we don't want to do this by default
+# line.remove_inactive_multipoles(inplace=True)
+# line.remove_redundant_apertures(inplace=True, keep=collimator_apertures)
+# line.remove_markers(inplace=True, keep=collimators+ips)
+# line.remove_zero_length_drifts(inplace=True, keep=collimators)
+# line.merge_consecutive_drifts(inplace=True, keep=collimators)
+# print(f"Reduced to {len(line.element_names)} elements!")
 
 
 print("Aperture check after patching:")
-df_patched = line.check_aperture(needs_aperture=collimators)
+df_patched = line.check_aperture(needs_aperture=collimators, verbose=False)
 assert not np.any(df_patched.has_aperture_problem)
 
 
@@ -103,7 +104,7 @@ with open(output_file, 'w') as fid:
 print("Reloading file to test json is not corrupted..")
 with open(output_file, 'r') as fid:
     loaded_dct = json.load(fid)
-newline = xt.Line.from_dict(loaded_dct)
+newline = xt.Line.from_dict(loaded_dct, verbose=False)
 assert xt._lines_equal(line, newline)
 print("All done.")
     
