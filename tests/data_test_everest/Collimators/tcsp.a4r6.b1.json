@@ -1,40 +1,34 @@
 {
-  "__class__": "EverestCollimator",
-  "active_length": 1,
-  "inactive_front": 0,
-  "inactive_back": 0,
-  "angle": 0,
-  "jaw_F_L": 0.0012575400408489305,
-  "jaw_F_R": -0.0012575400408489305,
-  "jaw_B_L": 0.0012575400408489305,
-  "jaw_B_R": -0.0012575400408489305,
-  "onesided": 0,
-  "dx": 6.956014279331954e-07,
-  "dy": 3.843472222833655e-07,
-  "offset": 0,
-  "tilt": [
-    0,
-    0
+ "__class__": "EverestCollimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "onesided": 0,
+ "is_active": 1,
+ "reference_center": [
+  6.956014279331954e-07,
+  3.843472222833655e-07
+ ],
+ "jaw": 0.0012575400408489305,
+ "material": {
+  "__class__": "Material",
+  "name": "Inermet",
+  "Z": 67.7,
+  "A": 166.7,
+  "density": 18,
+  "excitation_energy": 6.822e-07,
+  "nuclear_radius": 0.578,
+  "nuclear_elastic_slope": 392.1,
+  "cross_section": [
+   2.548,
+   1.473,
+   0,
+   0,
+   0,
+   0.00574
   ],
-  "is_active": 1,
-  "material": {
-    "__class__": "Material",
-    "name": "Inermet",
-    "Z": 67.7,
-    "A": 166.7,
-    "density": 18,
-    "excitation_energy": 6.822e-07,
-    "nuclear_radius": 0.578,
-    "nuclear_elastic_slope": 392.1,
-    "cross_section": [
-      2.548,
-      1.473,
-      0,
-      0,
-      0,
-      0.00574
-    ],
-    "hcut": 0.02,
-    "radiation_length": 0.00385
-  }
+  "hcut": 0.02,
+  "radiation_length": 0.00385
+ }
 }

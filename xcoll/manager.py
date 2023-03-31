@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
-from .collimator_settings import CollimatorDatabase
+from .colldb import CollimatorDatabase
 from .tables import CollimatorImpacts
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
 
 import xobjects as xo
 import xpart as xp
@@ -15,22 +15,84 @@ import xtrack as xt
 
 
 class CollimatorManager:
-    def __init__(self, *, line, line_is_reversed=False, colldb: CollimatorDatabase, capacity=1e6, record_impacts=False, \
-                 _context=None, _buffer=None, io_buffer=None):
 
+    _init_vars = ['_colldb', 'line', 'beam', 'capacity', 'record_impacts', '_context', '_buffer', 'io_buffer']
+    _init_var_defaults = {'_colldb': None, 'beam': None, 'capacity': 1e6, 'record_impacts': False, \
+                          '_context': None, '_buffer': None, 'io_buffer': None}
+
+    # -------------------------------
+    # ------ Loading functions ------
+    # -------------------------------
+
+    @classmethod
+    def from_yaml(cls, file, **kwargs):
+        if '_colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollimatorDatabase file and specify '_colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollimatorDatabase._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollimatorDatabase.from_yaml(file, **kwargs_colldb)
+        return cls(_colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+        if '_colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollimatorDatabase file and specify '_colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollimatorDatabase._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollimatorDatabase.from_json(file, **kwargs_colldb)
+        return cls(_colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_dict(cls, file, **kwargs):
+        if '_colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollimatorDatabase file and specify '_colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollimatorDatabase._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollimatorDatabase.from_dict(file, **kwargs_colldb)
+        return cls(_colldb=colldb, **kwargs_manager)
+
+    @classmethod
+    def from_SixTrack(cls, file, **kwargs):
+        if '_colldb' in kwargs.keys():
+            raise ValueError("Cannot load CollimatorDatabase file and specify '_colldb' argument in loader!")
+        kwargs_colldb  = {key: val for key, val in kwargs.items() if key in CollimatorDatabase._init_vars}
+        kwargs_manager = {key: val for key, val in kwargs.items() if key in cls._init_vars}
+        colldb = CollimatorDatabase.from_SixTrack(file, **kwargs_colldb)
+        return cls(_colldb=colldb, **kwargs_manager)
+
+
+    def __init__(self, **kwargs):
+        # Get all arguments
+        for var in self._init_vars:
+            if var in self._init_var_defaults:
+                kwargs.setdefault(var, self._init_var_defaults[var])
+            elif var not in kwargs.keys():
+                raise ValueError(f"CollimatorManager is missing required argument '{var}'!")
+
+        colldb = kwargs['_colldb']
         if not isinstance(colldb, CollimatorDatabase):
-            raise ValueError("The variable 'colldb' needs to be an xcoll CollimatorDatabase object!")
+            raise ValueError("The variable '_colldb' needs to be an xcoll CollimatorDatabase object!")
         else:
             self.colldb = colldb
+
+        line = kwargs['line']
+        beam = kwargs['beam']
+        if isinstance(beam, str):
+            beam = int(beam[-1])
         if not isinstance(line, xt.Line):
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
         self.line._needs_rng = True
-        self._line_is_reversed = line_is_reversed
+        if beam is not None and beam > 1:
+            self._line_is_reversed = True
+        else:
+            self._line_is_reversed = False
         self._machine_length = self.line.get_length()
 
         # Create _buffer, _context, and _io_buffer
+        _buffer  = kwargs['_buffer']
+        _context = kwargs['_context']
         if _buffer is None:
             if _context is None:
                 _context = xo.ContextCpu()
@@ -42,7 +104,8 @@ class CollimatorManager:
         self._buffer = _buffer
 
         # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
-        self._capacity = int(capacity)
+        self._capacity = int(kwargs['capacity'])
+        io_buffer = kwargs['io_buffer']
         if io_buffer is None:
             io_buffer = xt.new_io_buffer(_context=self._buffer.context, capacity=self.capacity)
         elif self._buffer.context != io_buffer._context:
@@ -52,7 +115,7 @@ class CollimatorManager:
         # Initialise impacts table
         self._record_impacts = []
         self._impacts = None
-        self.record_impacts = record_impacts
+        self.record_impacts = kwargs['record_impacts']
 
         # Variables for lossmap
         self._lossmap = None
@@ -137,7 +200,8 @@ class CollimatorManager:
         # TODO: should only sort whenever collimators are added to colldb
         # or when positions are updated
         db = self.colldb._colldb
-        names = list(db[db.is_active==True].index)
+#         names = list(db[db.active==True].index)
+        names = list(db.index)
         if not np.any([s is None for s in db.s_center]):
             names.sort(key=lambda nn: db.loc[nn, 's_center'])
         return names
@@ -177,27 +241,67 @@ class CollimatorManager:
                    )
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
+
+    def add_crystals(self, crystals):
+        df = pd.DataFrame(crystals).transpose()
+        df['stage'] = 'PRIMARY'
+        df['parking'] = 0.025
+        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
+                     'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'collimator_type']:
+            df[prop] = None
+        for prop in ['inactive_front', 'inactive_back']:
+            df[prop] = 0.0
+        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
+        df['gap_R'] = df['gap_L']
+        df.loc[df['onesided']=='left', 'gap_R'] = None
+        df.loc[df['onesided']=='right', 'gap_L'] = None
+        df['active'] = True
+        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
+
+
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
-        # Do the installation
-        def install_func(thiscoll, name):
-            return EverestCollimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
-                # TODO: Need to choose second element if crystal !
-                # TODO: we should not use sixtrack materials here!!!
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
-                    is_active=False,
-                    _tracking=False,
-                    _buffer=self._buffer
-                   )
-        self._install_collimators(names, install_func=install_func, verbose=verbose)
+        df = self.colldb._colldb.loc[names]
+        df_coll = df[[c is None for c in df.crystal]]
+        df_cry  = df[[c is not None for c in df.crystal]]
+        # Do the installations
+        if len(df_coll) > 0:
+            def install_func(thiscoll, name):
+                return EverestCollimator(
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=thiscoll['angle'],
+                        material=SixTrack_to_xcoll[thiscoll['material']][0],
+                        is_active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                       )
+            self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
+        if len(df_cry) > 0:
+            def install_func(thiscoll, name):
+                material = SixTrack_to_xcoll[thiscoll['material']]
+                if len(material) < 2:
+                    raise ValueError(f"Could not find crystal material definition from variable {thiscoll['material']}!")
+                material = material[1]
+                if not isinstance(material, CrystalMaterial):
+                    raise ValueError(f"The material {material.name} is not a Crystalmaterial!")
+                return EverestCrystal(
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=thiscoll['angle'],
+                        material=material,
+                        is_active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                       )
+            self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
+
 
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
-        # Check that collimator marker exists in Line and CollDB,
+        # Check that collimator marker exists in Line and CollimatorDatabase,
         # and that tracker is not yet built
         line = self.line
         df = self.colldb._colldb
@@ -206,7 +310,7 @@ class CollimatorManager:
             if name not in line.element_names:
                 raise Exception(f"Collimator {name} not found in line!")
             elif name not in self.collimator_names:
-                raise Exception(f"Warning: Collimator {name} not found in CollDB!...")
+                raise Exception(f"Warning: Collimator {name} not found in CollimatorDatabase!...")
         if self.tracker_ready:
             raise Exception("Tracker already built!\nPlease install collimators before building tracker!")
 
@@ -216,7 +320,13 @@ class CollimatorManager:
         # Loop over collimators to install
         for name in names:
  
-            # Get the settings from the CollDB
+            # Get the settings from the CollimatorDatabase
+            thiscoll = df.loc[name]
+            # Create the collimator element
+            newcoll = install_func(thiscoll, name)
+            collimator_class = newcoll.__class__
+
+            # Get the settings from the CollimatorDatabase
             thiscoll = df.loc[name]
             # Create the collimator element
             newcoll = install_func(thiscoll, name)
@@ -233,7 +343,7 @@ class CollimatorManager:
             elif isinstance(line[name], collimator_class):
                 if df.loc[name,'collimator_type'] != collimator_class.__name__:
                     raise Exception(f"Something is wrong: Collimator {name} already installed in line "
-                                    + f"as {collimator_class.__name__} element, but registered in CollDB "
+                                    + f"as {collimator_class.__name__} element, but registered in CollimatorDatabase "
                                     + f"as {df.loc[name, 'collimator_type']}. Please reconstruct the line.")
                 if verbose: print(f"Collimator {name} already installed. Skipping...")
                 continue
@@ -246,7 +356,7 @@ class CollimatorManager:
                                  + "Please check the name, or correct the element.")
 
             if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
-            # Update the position and type in the CollDB
+            # Update the position and type in the CollimatorDatabase
             df.loc[name,'s_center'] = positions[name]
             df.loc[name,'collimator_type'] = collimator_class.__name__
             # Do the installation
@@ -274,9 +384,10 @@ class CollimatorManager:
                 line.insert_element(element=coll_aper, name=name+'_aper_back',
                                     index=line.element_names.index(name)+1)
 
+
     @property
     def installed(self):
-        return not any([ x is None for x in self.colldb.collimator_type ])
+        return not any([coll is None for coll in self.colldb.collimator_type])
 
 
     def align_collimators_to(self, align):
@@ -297,11 +408,11 @@ class CollimatorManager:
         kwargs.setdefault('_buffer', self._buffer)
         kwargs.setdefault('io_buffer', self._io_buffer)
         if kwargs['_buffer'] != self._buffer:
-            raise ValueError("Cannot build tracker with different buffer than the CollimationManager buffer!")
+            raise ValueError("Cannot build tracker with different buffer than the CollimatorManager buffer!")
         if kwargs['io_buffer'] != self._io_buffer:
-            raise ValueError("Cannot build tracker with different io_buffer than the CollimationManager io_buffer!")
+            raise ValueError("Cannot build tracker with different io_buffer than the CollimatorManager io_buffer!")
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
-            raise ValueError("Cannot build tracker with different context than the CollimationManager context!")
+            raise ValueError("Cannot build tracker with different context than the CollimatorManager context!")
         self.line.build_tracker(**kwargs)
 
     @property
@@ -331,9 +442,9 @@ class CollimatorManager:
             self.colldb.gamma_rel = line.particle_ref._xobject.gamma0[0]
 
 
-    # The variable 'gaps' is meant to specify temporary settings that will overrule the CollDB.
+    # The variable 'gaps' is meant to specify temporary settings that will overrule the CollimatorDatabase.
     # As such, its settings will be applied to the collimator elements in the line, but not
-    # written to the CollDB. Hence two successive calls to set_openings will not be combined,
+    # written to the CollimatorDatabase. Hence two successive calls to set_openings will not be combined,
     # and only the last call will be applied to the line.
     # The variable 'to_parking' will send all collimators that are not listed in 'gaps' to parking.
     # Similarily, the variable 'full_open' will set all openings of the collimators that are not
@@ -370,15 +481,15 @@ class CollimatorManager:
                 line[name].is_active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
-                line[name].ref_xU = colldb.x[name]
-                line[name].ref_yU = colldb.y[name]
+                line[name].ref_x = colldb.x[name]
+                line[name].ref_y = colldb.y[name]
                 line[name].angle = colldb.angle[name]
                 line[name].jaw_LU = colldb._colldb.jaw_LU[name]
                 line[name].jaw_RU = colldb._colldb.jaw_RU[name]
                 line[name].jaw_LD = colldb._colldb.jaw_LD[name]
                 line[name].jaw_RD = colldb._colldb.jaw_RD[name]
                 line[name].is_active = colldb.is_active[name]
-                if isinstance(line[name], (EverestCollimator)) or support_legacy_elements:
+                if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
                         line[name].onesided = False
@@ -386,7 +497,22 @@ class CollimatorManager:
                         line[name].onesided = True
                     elif colldb.onesided[name] == 'right':
                         raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
-                    line[name].is_active = colldb.is_active[name]
+                if isinstance(line[name], EverestCrystal):
+                    line[name].align_angle = colldb._colldb.align_angle[name]
+                    line[name].bend        = colldb._colldb.bend[name]
+                    line[name].xdim        = colldb._colldb.xdim[name]
+                    line[name].ydim        = colldb._colldb.ydim[name]
+                    line[name].thick       = colldb._colldb.thick[name]
+                    line[name].crytilt     = colldb._colldb.crytilt[name]
+                    line[name].miscut      = colldb._colldb.miscut[name]
+                    if colldb._colldb.crystal[name] == 'strip':
+                        line[name].orient  = 1
+                    elif colldb._colldb.crystal[name] == 'quasi-mosaic':
+                        line[name].orient  = 2
+                    else:
+                        raise ValueError(f"Crystal definition for {name} should be either 'strip' or 'quasi-mosaic'"
+                                       + f", but got {colldb._colldb.crystal[name]}!")
+
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD
@@ -418,9 +544,9 @@ class CollimatorManager:
         nemitt_y   = self.colldb.emittance[1]
 
         if side == '+':
-            absolute_cut = line[collimator].jaw_F_L + co_pencil + impact_parameter
+            absolute_cut = line[collimator].jaw_LU + co_pencil + impact_parameter
         elif side == '-':
-            absolute_cut = line[collimator].jaw_F_R + co_pencil - impact_parameter
+            absolute_cut = line[collimator].jaw_RU + co_pencil - impact_parameter
 
         # Collimator plane: generate pencil distribution
         pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
@@ -446,6 +572,8 @@ class CollimatorManager:
             raise Exception("Please build tracker before generating pencil distribution!")
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
+
+        # TODO: check collimator in colldb and installed!
 
         if self.colldb.onesided[collimator] == 'left':
             side = '+'
@@ -638,7 +766,7 @@ class CollimatorManager:
             V = np.array([self.line[cav].voltage for cav in cavities]).sum()
             beta0 = self.line.particle_ref.beta0
             q = self.line.particle_ref.q0
-            h = freq * tw.T_rev
+            h = freq * tw.T_rev0
             eta = tw.slip_factor
             E = self.line.particle_ref.energy0
             phi = np.array([self.line[cav].lag for cav in cavities])[0]*np.pi/180
@@ -737,15 +865,17 @@ class CollimatorManager:
 
             # Loss location refinement
             if interpolation is not None:
-                print("Performing the aperture losses refinement.")
-                loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
-                        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-                        r_max = 0.5, # Maximum transverse aperture in m
-                        dr = 50e-6, # Transverse loss refinement accuracy [m]
-                        ds = interpolation, # Longitudinal loss refinement accuracy [m]
-                        # save_refine_trackers=True # Diagnostics flag
-                        )
-                loss_loc_refinement.refine_loss_location(part)
+                aper_s = list(part.s[part.state==0])
+                if len(aper_s) > 0:
+                    print("Performing the aperture losses refinement.")
+                    loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
+                            n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+                            r_max = 0.5, # Maximum transverse aperture in m
+                            dr = 50e-6, # Transverse loss refinement accuracy [m]
+                            ds = interpolation, # Longitudinal loss refinement accuracy [m]
+                            # save_refine_trackers=True # Diagnostics flag
+                            )
+                    loss_loc_refinement.refine_loss_location(part)
 
             aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
             coll_summary = self.summary(part, show_zeros=False).to_dict('list')
@@ -759,9 +889,9 @@ class CollimatorManager:
                 }
                 ,
                 'aperture': {
-                    's':    list(aper_s),
-                    'name': list(aper_names),
-                    'n':    list(aper_nabs)
+                    's':    aper_s,
+                    'name': aper_names,
+                    'n':    aper_nabs
                 }
                 ,
                 'machine_length': self.machine_length
@@ -781,11 +911,13 @@ class CollimatorManager:
     def _get_aperture_losses(self, part):
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
+        if len(aper_s) == 0:
+            return [], [], []
         aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
             aper_s = [ self.machine_length - s for s in aper_s ]
         result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
-        aper_names = result[0].transpose()[0]
+        aper_names = list(result[0].transpose()[0])
         aper_s = [float(s) for s in result[0].transpose()[1]]
         aper_nabs = [int(n) for n in result[1]]
         return aper_s, aper_names, aper_nabs

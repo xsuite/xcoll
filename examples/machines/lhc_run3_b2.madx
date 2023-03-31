@@ -50,11 +50,11 @@ call, file="run3opt/RunIII_dev/Proton_2023/opticsfile.43";
 nrj     = 6800.0;
 qx0     = 62.31;
 qy0     = 60.32;
-dqx0    = 20.0;
-dqy0    = 20.0;
-I_MO_B1 = 0.0;     ! This represents the value of the KOF
-I_MO_B2 = 0.0;     ! This represents the value of the KOF
-on_disp = 0;
+dqx0    = 3.0;
+dqy0    = 3.0;
+I_MO_B1 = 0;     ! This represents the value of the KOF
+I_MO_B2 = 0;     ! This represents the value of the KOF
+on_disp = 1;
 exn     = 3.5e-06;
 numpart = 180000000000.0;   ! NPART=1.15E11
 esigma  = 9.526279441628826e-05;
@@ -178,10 +178,10 @@ if (make_thin==1){
 
     ! Add more aperture markers (moved to after slicing to avoid negative drifts)
     if (mylhcbeam<4){
-      call,   file="run3aper/YETS_2022-2023_patched.seq";
+      call,   file="run3aper/layout_2023.seq";
     } else {
-      call,   file="run3aper/YETS_2022-2023_patched_b4_part1.seq";
-      call,   file="run3aper/YETS_2022-2023_patched_b4_part2.seq";
+      call,   file="run3aper/layout_2023_b4_part1.seq";
+      call,   file="run3aper/layout_2023_b4_part2.seq";
     };
 };
 
@@ -213,6 +213,8 @@ if (make_thin==1){
   };
 };
 
+!! Use sequence (TODO: this kills alignment of the separation dipoles: to be tested for compatibility with Bjorns script)
+if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
 
 !##################
 !# Machine tuning #

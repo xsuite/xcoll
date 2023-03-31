@@ -23,9 +23,7 @@ from ..general import _pkg_root
 
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'offset':           xo.Float64,
         'onesided':         xo.Int8,
-        'tilt':             xo.Float64[:],  # TODO: how to limit this to length 2
         'material':         Material,
         'rutherford_rng':   xt.RandomRutherford,
         '_tracking':        xo.Int8
@@ -50,20 +48,7 @@ class EverestCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('offset', 0)
             kwargs.setdefault('onesided', False)
-            kwargs.setdefault('tilt', [0,0])
-            tilt = kwargs['tilt']
-            if hasattr(tilt, '__iter__'):
-                if isinstance(tilt, str):
-                    raise ValueError("Variable tilt has to be a number or array of numbers!")
-                elif len(tilt) == 1:
-                    tilt = [tilt[0], tilt[0]]
-                elif len(tilt) > 2:
-                    raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
-            else:
-                tilt = [tilt, tilt]
-            kwargs['tilt'] = tilt
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
@@ -94,9 +79,7 @@ class EverestCrystal(BaseCollimator):
         'crytilt':        xo.Float64,
         'miscut':         xo.Float64,
         'orient':         xo.Float64,
-        'offset':         xo.Float64,
         'onesided':       xo.Int8,
-        'tilt':           xo.Float64[:],  # TODO: how to limit this to length 2
         'material':       CrystalMaterial,
         'rutherford_rng': xt.RandomRutherford,
         '_tracking':      xo.Int8
@@ -121,20 +104,7 @@ class EverestCrystal(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('offset', 0)
             kwargs.setdefault('onesided', False)
-            kwargs.setdefault('tilt', [0,0])
-            tilt = kwargs['tilt']
-            if hasattr(tilt, '__iter__'):
-                if isinstance(tilt, str):
-                    raise ValueError("Variable tilt has to be a number or array of numbers!")
-                elif len(tilt) == 1:
-                    tilt = [tilt[0], tilt[0]]
-                elif len(tilt) > 2:
-                    raise ValueError("Variable tilt cannot have more than two elements (tilt_L and tilt_R)!")
-            else:
-                tilt = [tilt, tilt]
-            kwargs['tilt'] = tilt
             kwargs.setdefault('bend', 0)
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)

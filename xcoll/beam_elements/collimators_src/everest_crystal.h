@@ -23,17 +23,17 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     // Crystal properties
     double length  = EverestCrystalData_get_active_length(el);
-    double const co_x       = EverestCrystalData_get_dx(el);
-    double const co_y       = EverestCrystalData_get_dy(el);
+    double const co_x       = EverestCrystalData_get_ref_x(el);
+    double const co_y       = EverestCrystalData_get_ref_y(el);
     // TODO: use xtrack C-code for rotation element
-    double const cRot       = EverestCrystalData_get_cos_z(el);
-    double const sRot       = EverestCrystalData_get_sin_z(el);
-    // if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
-    //     raise NotImplementedError
+    // TODO: we are ignoring the angle of the right jaw
+    double const cRot       = EverestCrystalData_get_cos_zL(el);
+    double const sRot       = EverestCrystalData_get_sin_zL(el);
     double const c_aperture = EverestCrystalData_get_jaw_LU(el) - EverestCrystalData_get_jaw_RU(el);
-    double const c_offset   = EverestCrystalData_get_offset(el) + ( EverestCrystalData_get_jaw_LU(el) + EverestCrystalData_get_jaw_RU(el) )/2;
-    double const c_tilt0    = EverestCrystalData_get_tilt(el, 0);
-    double const c_tilt1    = EverestCrystalData_get_tilt(el, 1);
+    double const c_offset   = ( EverestCrystalData_get_jaw_LU(el) + EverestCrystalData_get_jaw_RU(el) ) /2;
+    double const c_tilt0    = asin((EverestCrystalData_get_jaw_LD(el) - EverestCrystalData_get_jaw_LU(el)) / length);
+    double const c_tilt1    = asin((EverestCrystalData_get_jaw_RD(el) - EverestCrystalData_get_jaw_RU(el)) / length);
+    
     double const onesided   = EverestCrystalData_get_onesided(el);
     double const bend       = EverestCrystalData_get_bend(el);
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);

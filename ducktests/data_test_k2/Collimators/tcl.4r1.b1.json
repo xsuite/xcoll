@@ -1,40 +1,34 @@
 {
-  "__class__": "K2Collimator",
-  "active_length": 1,
-  "inactive_front": 0,
-  "inactive_back": 0,
-  "angle": 0,
-  "jaw_F_L": 0.0013576529428618372,
-  "jaw_F_R": -0.0013576529428618372,
-  "jaw_B_L": 0.0013576529428618372,
-  "jaw_B_R": -0.0013576529428618372,
-  "onesided": 0,
-  "dx": 5.504641143149078e-07,
-  "dy": 0.0020318054079665852,
-  "offset": 0,
-  "tilt": [
-    0,
-    0
+ "__class__": "K2Collimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "onesided": 0,
+ "is_active": 1,
+ "reference_center": [
+  5.504641143149078e-07,
+  0.0020318054079665852
+ ],
+ "jaw": 0.0013576529428618372,
+ "material": {
+  "__class__": "Material",
+  "name": "Berylium",
+  "Z": 4,
+  "A": 9.01,
+  "density": 1.848,
+  "excitation_energy": 6.37e-08,
+  "nuclear_radius": 0.22,
+  "nuclear_elastic_slope": 74.7,
+  "cross_section": [
+   0.271,
+   0.192,
+   0,
+   0,
+   0,
+   3.5e-05
   ],
-  "is_active": 1,
-  "material": {
-    "__class__": "Material",
-    "name": "Berylium",
-    "Z": 4,
-    "A": 9.01,
-    "density": 1.848,
-    "excitation_energy": 6.37e-08,
-    "nuclear_radius": 0.22,
-    "nuclear_elastic_slope": 74.7,
-    "cross_section": [
-      0.271,
-      0.192,
-      0,
-      0,
-      0,
-      3.5e-05
-    ],
-    "hcut": 0.02,
-    "radiation_length": 0.353
-  }
+  "hcut": 0.02,
+  "radiation_length": 0.353
+ }
 }

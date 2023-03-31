@@ -76,8 +76,8 @@ def track_core(collimator, particles):
     yp_in   = yp_part.copy()
 
     # Move to closed orbit
-    x_part  -= collimator.ref_xU
-    y_part  -= collimator.ref_yU
+    x_part  -= collimator.ref_x
+    y_part  -= collimator.ref_y
 
     # Initialise arrays for FORTRAN call
     part_hit       = np.zeros(len(x_part), dtype=np.int32)
@@ -257,8 +257,8 @@ def track_core(collimator, particles):
     yp_part *= rpp_out/rpp_in
 
     # Return from closed orbit
-    x_part  += collimator.ref_xU
-    y_part  += collimator.ref_yU
+    x_part  += collimator.ref_x
+    y_part  += collimator.ref_y
 
     # Update 4D coordinates    -------------------------------------------
     # Absorbed particles get their coordinates set to the entrance of collimator

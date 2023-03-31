@@ -1,0 +1,59 @@
+%YAML 1.2
+---
+tcl.4r1.b1:         { gap: 17,  stage: tertiary,  material: CU,   length: 1,  angle:    0,   parking: 0.025 }
+tcl.5r1.b1:         { gap: 42,  stage: tertiary,  material: CU,   length: 1,  angle:    0,   parking: 0.025 }
+tcl.6r1.b1:         { gap: 20,  stage: tertiary,  material: Iner, length: 1,  angle:    0,   parking: 0.025 }
+tctph.4l2.b1:       { gap: 37,  STAGE: tertiary,  material: Iner, length: 1,  angle:    0,   parking: 0.025 }
+tctpv.4l2.b1:       { gap: 37,  STAGE: tertiary,  material: Iner, length: 1,  angle:   90,   parking: 0.025 }
+tdisa.a4l2.b1:      { gap: null, stage: tertiary, material: CU,   length: 1.565, angle: 90,  parking: 0.025 }
+tdisb.a4l2.b1:      { gap: null, stage: tertiary, material: CU,   length: 1.565, angle: 90,  parking: 0.025 }
+tdisc.a4l2.b1:      { gap: null, stage: tertiary, material: CU,   length: 1.565, angle: 90,  parking: 0.025 }
+tclia.4r2:          { Gap: null, stage: tertiary, material: C,    length: 1,     angle: 90,  parking: 0.025 }
+tclib.6r2.b1:       { Gap: null, stage: tertiary, material: C,    length: 1,     angle: 90,  parking: 0.025 }
+tcld.a11r2.b1:      { GAP: null, stage: tertiary, material: Iner, length: 0.6, angle:   0,   parking: 0.025 }
+tcp.6l3.b1:         { gap: 15,  stage: primary,   material: C,    length: 0.6, angle:   0,   parking: 0.025 }
+tcsg.5l3.b1:        { gap: 18,  stage: secondary, material: C,    length: 1,   angle:   0,   parking: 0.025 }
+tcsg.4r3.b1:        { gap: 18,  stage: secondary, material: C,    length: 1,   angle:   0,   parking: 0.025 }
+tcsg.a5r3.b1:       { gap: 18,  stage: secondary, material: C,    length: 1,   angle: 170.7, parking: 0.025 }
+tcsg.b5r3.b1:       { gap: 18,  stage: secondary, material: C,    length: 1,   ANGLE:  10.8, parking: 0.025 }
+tcla.a5r3.b1:       { gap: 20,  stage: tertiary,  material: Iner, length: 1,   anGle:  90.,  parking: 0.025 }
+tcla.b5r3.b1:       { gap: 20,  stage: tertiary,  material: Iner, length: 1,   angle:   0.,  parking: 0.025 }
+TCLA.6r3.b1:        { gap: 20,  stage: tertiary,  material: Iner, length: 1,   angle:   0.,  parking: 0.025 }
+tcla.7r3.b1:        { gap: 20,  stage: tertiary,  material: Iner, length: 1,   angle:   0.,  parking: 0.025 }
+tctph.4l5.b1:       { gap: 8.5, stage: tertiary,  material: Iner, length: 1,  angle:    0,   parking: 0.020 }
+tctpv.4l5.b1:       { gap: 8.5, stage: tertiary,  material: Iner, length: 1,  angle:   90,   parking: 0.020 }
+tcl.4r5.b1:         { gap: 17,  stage: tertiary,  material: CU,   length: 1,   angle:   0,   parking: 0.025 }
+tcl.5r5.b1:         { gap: 42,  stage: tertiary,  material: CU,   length: 1,   angle:   0,   parking: 0.025 }
+TCL.6r5.b1:         { gap: 20,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }
+tcdqa.a4r6.b1:      { gap: 7.3, stage: tertiary,  material: C,    length: 3,   angle:   0,   parking: 0.025, onesided: left }
+tcdqa.c4r6.b1:      { gap: 7.3, stage: tertiary,  material: C,    length: 3,   angle:   0,   parking: 0.025, onesided: left }
+tcdqa.b4r6.b1:      { gap: 7.3, stage: tertiary,  material: C,    length: 3,   angle:   0,   parking: 0.025, onesided: left }
+tcsp.a4r6.b1:       { gap: 7.3, stage: SECONDARY, material: C,    Length: 1,   angle:   0,   parking: 0.025 }
+TCP.D6l7.B1:        { gap: 5,   stage: primary,   material: MoGR, length: 0.6, angle:  90,   parking: 0.025 }
+tcp.c6l7.b1:        { gap: 5,   stage: primary,   MATeRIAL: MoGR, length: 0.6, angle:   0,   parking: 0.025 }
+tcp.b6l7.b1:        { gap: 5,   stage: primary,   material: C,    length: 0.6, angle: 127.5, parking: 0.025 }
+tcsg.a6l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 141.1, parking: 0.025 }
+tcpcv.a6l7.b1:      { gap: null, stage: special,  material: Si, length: 0.004, angle:  90,   parking: 0.025, onesided: left,  crystal: strip, Bend: 85.10, Xdim: 5.0e-3, ydim: 30.0e-3 }
+tcsg.b5l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 143.5, parking: 0.025 }
+tcsg.a5l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle:  40.7, parking: 0.025 }
+tcsg.d4l7.b1:       { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle:  90,   parking: 0.025 }
+tcpch.a4l7.b1:      { gap: null, stage: special,  material: Si, length: 0.004, angle:   0,   parking: 0.025, onesided: left,  crystal: strip, bend: 61.54,  xdim: 2.0e-3,  Ydim: 50.0e-3  }
+tcsg.b4l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle:   0,   parking: 0.025, Active: false }
+tcspm.B4L7.b1:      { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle:   0,   parking: 0.025 }
+tcsg.a4l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 134.6, parking: 0.025 }
+tcsg.a4r7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle:  46.3, parking: 0.025 }
+tcsg.b5r7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 141.5, parking: 0.025 }
+tcsg.d5r7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle:  51.4, parking: 0.025 }
+TCSG.e5r7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 130.5, parking: 0.025, active: false }
+tcspm.e5r7.b1:      { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle: 130.5, parking: 0.025 }
+tcsg.6r7.b1:        { gap: 6.5, stage: secondary, material: C,    length: 1,   angle:   0.5, parking: 0.025, active: false }
+tcspm.6r7.b1:       { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle:   0.5, parking: 0.025 }
+tcla.a6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:  90,   parking: 0.025 }
+tcla.b6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }
+tcla.c6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:  90,   parking: 0.025 }
+tcla.d6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }
+tcla.a7r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }
+tctph.4l8.b1:       { gap: 11.5, stage: tertiary, material: Iner, length: 1,  angle:    0,   parking: 0.025 }
+tctpv.4l8.b1:       { gap: 11.5, sTAGE: tertiary, material: Iner, length: 1,  angle:   90,   parking: 0.025 }
+tctph.4l1.b1:       { gap: 8.5, stage: tertiary,  material: Iner, length: 1,  angle:    0,   parking: 0.020 }
+tctpv.4l1.b1:       { gap: 8.5, stage: tertiary,  material: Iner, length: 1,  angle:   90,   parking: 0.020 }

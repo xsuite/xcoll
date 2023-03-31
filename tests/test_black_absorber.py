@@ -12,7 +12,7 @@ def test_horizontal_parallel():
         jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(_context=context)
         part, x, _, _, _ = _generate_particles(_context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # As the angles are zero, only particles that started in front of the jaw are lost
         mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         lost = np.unique(part.state[mask_hit])
@@ -31,7 +31,7 @@ def test_horizontal():
         jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(_context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -61,7 +61,7 @@ def test_horizontal_with_tilts():
         jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(tilsthift=[0.0005, -0.00015], _context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -91,7 +91,7 @@ def test_vertical_parallel():
         jaw_L, jaw_R, _, _, _, coy, L, coll = _make_absorber(angle=90, _context=context)
         part, _, y, _, _ = _generate_particles(_context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # As the angles are zero, only particles that started in front of the jaw are lost
         mask_hit = (y >= jaw_L + coy) | (y <= jaw_R + coy)
         lost = np.unique(part.state[mask_hit])
@@ -110,7 +110,7 @@ def test_vertical():
         jaw_L, jaw_R, _, _, _, coy, L, coll = _make_absorber(angle=90, _context=context)
         part, _, y, _, yp = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (y >= jaw_L + coy) | (y <= jaw_R + coy)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -140,7 +140,7 @@ def test_vertical_with_tilts():
         jaw_L, jaw_R, jaw_LD, jaw_RD, _, coy, L, coll = _make_absorber(angle=90, tilsthift=[0.0005, -0.00015], _context=context)
         part, _, y, _, yp = _generate_particles(four_dim=True, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (y >= jaw_L + coy) | (y <= jaw_R + coy)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -171,7 +171,7 @@ def test_angled_parallel():
         jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(angle=angle, rotate_co=True, _context=context)
         part, x, _, _, _ = _generate_particles(angle=angle, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # As the angles are zero, only particles that started in front of the jaw are lost
         mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         lost = np.unique(part.state[mask_hit])
@@ -192,7 +192,7 @@ def test_angled():
         jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(angle=angle, rotate_co=True, _context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True, angle=angle, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -224,7 +224,7 @@ def test_angled_with_tilts():
         jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(angle=angle, tilsthift=[0.0005, -0.00015], rotate_co=True, _context=context)
         part, x, _, xp, _ = _generate_particles(four_dim=True,angle=angle, _context=context)
         coll.track(part)
-        _reshuffle(part)
+        part.sort(interleave_lost_particles=True)
         # Particles in front of the jaw are lost, ...
         mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
         # but also those in the opening with an angle that would kick them on the jaw halfway
@@ -260,8 +260,7 @@ def _make_absorber(angle=0, tilsthift=[0,0], rotate_co=False, _context=None):
     jaws_B = jaws + tilsthift
     co = [0.0075, -0.089]
     L = 0.873
-    coll = xc.BlackAbsorber(active_length=L, angle=angle, dx=co[0], dy=co[1], _context=_context,
-                            jaw_LU=jaws[0], jaw_LD=jaws_B[0], jaw_RU=jaws[1], jaw_RD=jaws_B[1])
+    coll = xc.BlackAbsorber(active_length=L, angle=angle, reference_center=co, jaw=[jaws, jaws_B], _context=_context)
     if rotate_co:
         cox = co[0] * np.cos(angle/180.*np.pi) + co[1] * np.sin(angle/180.*np.pi)
         coy = co[0] * np.sin(angle/180.*np.pi) + co[1] * np.cos(angle/180.*np.pi)
@@ -269,6 +268,7 @@ def _make_absorber(angle=0, tilsthift=[0,0], rotate_co=False, _context=None):
         cox = co[0]
         coy = co[1]
     return jaws[0], jaws[1], jaws_B[0],  jaws_B[1], cox, coy, L, coll
+
 
 def _generate_particles(four_dim=False, angle=0, _context=None):
     if _context is None:
@@ -292,16 +292,6 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     xp_rot = part_init.px * part_init.rpp * np.cos(angle/180.*np.pi) + part_init.py * part_init.rpp * np.sin(angle/180.*np.pi)
     yp_rot = part_init.px * part_init.rpp * np.sin(angle/180.*np.pi) + part_init.py * part_init.rpp * np.cos(angle/180.*np.pi)
     return part, x_rot, y_rot, xp_rot, yp_rot
-
-def _reshuffle(part):
-    part.move(_context=xo.ContextCpu())
-    if part.lost_particles_are_hidden:
-        part.unhide_lost_particles()
-    sort = np.argsort(part.particle_id)
-    with part._bypass_linked_vars():
-        for tt, nn in part._structure['per_particle_vars']:
-            vv = getattr(part, nn)
-            vv[:] = vv[sort]
 
 
 

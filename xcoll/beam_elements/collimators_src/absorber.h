@@ -22,10 +22,10 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const jaw_LD = BlackAbsorberData_get_jaw_LD(el);
     double const jaw_RD = BlackAbsorberData_get_jaw_RD(el);
     // Collimator reference frame
-    double const sin_z = BlackAbsorberData_get_sin_z(el);
-    double const cos_z = BlackAbsorberData_get_cos_z(el);
-    double const dx = BlackAbsorberData_get_dx(el);
-    double const dy = BlackAbsorberData_get_dy(el);
+    double const sin_z = BlackAbsorberData_get_sin_zL(el);
+    double const cos_z = BlackAbsorberData_get_cos_zL(el);
+    double const dx = BlackAbsorberData_get_ref_x(el);
+    double const dy = BlackAbsorberData_get_ref_y(el);
     // Impact table
     CollimatorImpactsData record = BlackAbsorberData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;

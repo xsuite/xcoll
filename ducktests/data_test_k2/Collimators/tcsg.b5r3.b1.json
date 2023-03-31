@@ -1,40 +1,34 @@
 {
-  "__class__": "K2Collimator",
-  "active_length": 1,
-  "inactive_front": 0,
-  "inactive_back": 0,
-  "angle": 10.8,
-  "jaw_F_L": 0.0011403000367858594,
-  "jaw_F_R": -0.0011403000367858594,
-  "jaw_B_L": 0.0011403000367858594,
-  "jaw_B_R": -0.0011403000367858594,
-  "onesided": 0,
-  "dx": -3.4967668204980223e-07,
-  "dy": 9.038014547089588e-07,
-  "offset": 0,
-  "tilt": [
-    0,
-    0
+ "__class__": "K2Collimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 10.8,
+ "onesided": 0,
+ "is_active": 1,
+ "reference_center": [
+  -3.4967668204980223e-07,
+  9.038014547089588e-07
+ ],
+ "jaw": 0.0011403000367858594,
+ "material": {
+  "__class__": "Material",
+  "name": "MolybdenumGraphite",
+  "Z": 6.65,
+  "A": 13.53,
+  "density": 2.5,
+  "excitation_energy": 8.71e-08,
+  "nuclear_radius": 0.25,
+  "nuclear_elastic_slope": 76.7,
+  "cross_section": [
+   0.362,
+   0.247,
+   0,
+   0,
+   0,
+   9.4e-05
   ],
-  "is_active": 1,
-  "material": {
-    "__class__": "Material",
-    "name": "MolybdenumGraphite",
-    "Z": 6.65,
-    "A": 13.53,
-    "density": 2.5,
-    "excitation_energy": 8.71e-08,
-    "nuclear_radius": 0.25,
-    "nuclear_elastic_slope": 76.7,
-    "cross_section": [
-      0.362,
-      0.247,
-      0,
-      0,
-      0,
-      9.4e-05
-    ],
-    "hcut": 0.02,
-    "radiation_length": 0.1193
-  }
+  "hcut": 0.02,
+  "radiation_length": 0.1193
+ }
 }
