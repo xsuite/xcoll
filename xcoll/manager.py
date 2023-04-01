@@ -234,7 +234,7 @@ class CollimatorManager:
                     inactive_front=thiscoll['inactive_front'],
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
-                    angle=thiscoll['angle'],
+                    angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                     is_active=False,
                     _tracking=False,
                     _buffer=self._buffer
@@ -272,7 +272,7 @@ class CollimatorManager:
                         inactive_front=thiscoll['inactive_front'],
                         inactive_back=thiscoll['inactive_back'],
                         active_length=thiscoll['active_length'],
-                        angle=thiscoll['angle'],
+                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=SixTrack_to_xcoll[thiscoll['material']][0],
                         is_active=False,
                         _tracking=False,
@@ -291,7 +291,7 @@ class CollimatorManager:
                         inactive_front=thiscoll['inactive_front'],
                         inactive_back=thiscoll['inactive_back'],
                         active_length=thiscoll['active_length'],
-                        angle=thiscoll['angle'],
+                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=material,
                         is_active=False,
                         _tracking=False,
@@ -488,7 +488,7 @@ class CollimatorManager:
                 line[name].jaw_RU = colldb._colldb.jaw_RU[name]
                 line[name].jaw_LD = colldb._colldb.jaw_LD[name]
                 line[name].jaw_RD = colldb._colldb.jaw_RD[name]
-                line[name].is_active = colldb.is_active[name]
+                line[name].is_active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':
@@ -534,11 +534,11 @@ class CollimatorManager:
         line = self.line
 
         if plane == 'x':
-            co_pencil     = line[collimator].dx
-            co_transverse = line[collimator].dy
+            co_pencil     = line[collimator].ref_x
+            co_transverse = line[collimator].ref_y
         else:
-            co_pencil     = line[collimator].dy
-            co_transverse = line[collimator].dx
+            co_pencil     = line[collimator].ref_y
+            co_transverse = line[collimator].ref_x
 
         nemitt_x   = self.colldb.emittance[0]
         nemitt_y   = self.colldb.emittance[1]

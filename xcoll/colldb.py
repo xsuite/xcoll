@@ -14,7 +14,7 @@ def load_SixTrack_colldb(filename, *, emit):
 
 def _initialise_None(collimator):
     fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
-    fields.update({'gap_L': None, 'gap_R': None, 'angle': 0, 'offset': 0, 'parking': 1})
+    fields.update({'gap_L': None, 'gap_R': None, 'angle_L': 0, 'angle_R': 0, 'offset': 0, 'parking': 1})
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
@@ -307,6 +307,9 @@ class CollimatorDatabase:
                 else:
                     collimator['gap_L'] = collimator['gap']
                     collimator['gap_R'] = collimator.pop('gap')
+            if 'angle' in collimator.keys():
+                collimator['angle_L'] = collimator['angle']
+                collimator['angle_R'] = collimator.pop('angle')
             _initialise_None(collimator)
 
         self._collimator_dict = coll
@@ -754,6 +757,7 @@ class CollimatorDatabase:
 
     @property
     def _beam_size_front(self):
+        # TODO: curretnly only for angle_L
         df = self._colldb
         opt = self._optics
         betx = opt.loc[df.s_align_front,'betx'].astype(float)
@@ -761,14 +765,15 @@ class CollimatorDatabase:
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
         result = np.sqrt(
-                    (sigmax*np.cos(np.float_(df.angle.values)*np.pi/180))**2
-                    + (sigmay*np.sin(np.float_(df.angle.values)*np.pi/180))**2
+                    (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
+                    + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
                 )
         result.index = self._colldb.index
         return result
 
     @property
     def _beam_size_back(self):
+        # TODO: curretnly only for angle_L
         df = self._colldb
         opt = self._optics
         betx = opt.loc[df.s_align_back,'betx'].astype(float)
@@ -776,8 +781,8 @@ class CollimatorDatabase:
         sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
         sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
         result = np.sqrt(
-                    (sigmax*np.cos(np.float_(df.angle.values)*np.pi/180))**2
-                    + (sigmay*np.sin(np.float_(df.angle.values)*np.pi/180))**2
+                    (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
+                    + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
                 )
         result.index = self._colldb.index
         return result

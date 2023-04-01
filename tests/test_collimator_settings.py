@@ -6,6 +6,6 @@ import xcoll as xc
 
 
 def test_create_settings():
-    collset = xc.collimator_settings.CollimatorSettings()
+    collset = xc.collimator_settings.CollimatorSettings('test')
     collset.to_dict()
     

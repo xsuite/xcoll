@@ -49,6 +49,8 @@ class EverestCollimator(BaseCollimator):
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs.setdefault('onesided', False)
+            if kwargs['material'] is None:
+                raise ValueError("Need to provide a material to the collimator!")
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
@@ -64,8 +66,8 @@ class EverestCollimator(BaseCollimator):
 #         self._material = material
 #         self.random_generator.set_rutherford_by_xcoll_material(material)
 
-#     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-#         return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 
@@ -105,6 +107,8 @@ class EverestCrystal(BaseCollimator):
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs.setdefault('onesided', False)
+            if kwargs['material'] is None:
+                raise ValueError("Need to provide a material to the collimator!")
             kwargs.setdefault('bend', 0)
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)
@@ -127,7 +131,7 @@ class EverestCrystal(BaseCollimator):
 #         self._material = material
 #         self.random_generator.set_rutherford_by_xcoll_material(material)
 
-#     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-#         return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 

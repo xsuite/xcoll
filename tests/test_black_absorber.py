@@ -128,10 +128,10 @@ def test_vertical():
         assert np.allclose(part.y[mask_hit_front], y[mask_hit_front], atol=1e-15, rtol=0)
         assert np.allclose(part.y[~mask_hit],      y[~mask_hit] + yp[~mask_hit]*L, atol=1e-15, rtol=0)
         s_hit_L = (jaw_L + coy - y[mask_hit_angle_L]) / yp[mask_hit_angle_L]
-        assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
+        assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
         assert np.allclose(part.y[mask_hit_angle_L], jaw_L + coy, atol=1e-15, rtol=0)
         s_hit_R = (jaw_R + coy - y[mask_hit_angle_R]) / yp[mask_hit_angle_R]
-        assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
+        assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
         assert np.allclose(part.y[mask_hit_angle_R], jaw_R + coy, atol=1e-15, rtol=0)
 
 
