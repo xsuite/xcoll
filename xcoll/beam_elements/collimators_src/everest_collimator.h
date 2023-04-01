@@ -11,8 +11,8 @@
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
-    int8_t is_active = EverestCollimatorData_get_active(el);
-    is_active       *= EverestCollimatorData_get__tracking(el);
+    int8_t active = EverestCollimatorData_get_active(el);
+    active       *= EverestCollimatorData_get__tracking(el);
     double const inactive_front = EverestCollimatorData_get_inactive_front(el);
     double const active_length  = EverestCollimatorData_get_active_length(el);
     double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
@@ -33,10 +33,10 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const c_offset   = ( EverestCollimatorData_get_jaw_LU(el) + EverestCollimatorData_get_jaw_RU(el) ) /2;
     double const c_tilt0    = asin((EverestCollimatorData_get_jaw_LD(el) - EverestCollimatorData_get_jaw_LU(el)) / length);
     double const c_tilt1    = asin((EverestCollimatorData_get_jaw_RD(el) - EverestCollimatorData_get_jaw_RU(el)) / length);
-    double const onesided   = EverestCollimatorData_get_onesided(el);
+    int    const side       = EverestCollimatorData_get__side(el);
 
     //start_per_particle_block (part0->part)
-        if (!is_active){
+        if (!active){
             // Drift full length
             Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
@@ -46,7 +46,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
             int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
-            if ( is_tracking && rng_set && ruth_set) {
+            if (is_tracking && rng_set && ruth_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 
@@ -58,7 +58,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 LocalParticle_add_to_x(part, -co_x);
                 LocalParticle_add_to_y(part, -co_y);
                 
-                scatter(part, length, material, rng, scat, cRot, sRot, c_aperture, c_offset, c_tilt0, c_tilt1, onesided);
+                scatter(part, length, material, rng, scat, cRot, sRot, c_aperture, c_offset, c_tilt0, c_tilt1, side);
 
                 // Return from closed orbit
                 LocalParticle_add_to_x(part, co_x);

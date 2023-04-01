@@ -167,6 +167,14 @@ def track_core(collimator, particles):
 
     cprob, xintl, bn, ecmsq, xln15s, bpp, csect = calculate_scattering(e0_ref,anuc,rho,zatom,emr,csref0,csref1,csref5,bnref)
 
+
+    if collimator.side == 'left':
+        onesided = 1   # left in PyEverest
+    elif collimator.side == 'both':
+        onesided = 0   # both in PyEverest
+    else:
+        raise ValueError(f"Value {collimator.side} for 'side' not supported in K2!")
+
     scatter(npart=npart,
             x_part=x_part,
             xp_part=xp_part,
@@ -210,7 +218,7 @@ def track_core(collimator, particles):
             c_offset=offset,
             c_tilt=[0,0],
             c_enom=e0_ref, # Reference energy in MeV
-            onesided=collimator.onesided,
+            onesided=onesided,
             length=length,
             material=collimator.material, 
             run_csect=csect,

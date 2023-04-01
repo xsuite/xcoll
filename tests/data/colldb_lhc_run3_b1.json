@@ -48,7 +48,7 @@
       "material": "Si",
       "length": 0.004,
       "parking": 0.025,
-      "onesided": "left",
+      "side": "left",
       "crystal": "strip"
     },
     "TCLI": {
@@ -74,7 +74,7 @@
       "length": 3,
       "angle": 0,
       "parking": 0.025,
-      "onesided": "left"
+      "side": "left"
     },
     "TCSP": {
       "gap": 7.3,

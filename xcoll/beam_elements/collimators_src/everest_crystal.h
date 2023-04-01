@@ -11,8 +11,8 @@
 
 /*gpufun*/
 void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
-    int8_t is_active      = EverestCrystalData_get_active(el);
-    is_active            *= EverestCrystalData_get__tracking(el);
+    int8_t active      = EverestCrystalData_get_active(el);
+    active            *= EverestCrystalData_get__tracking(el);
     double const inactive_front = EverestCrystalData_get_inactive_front(el);
     double const active_length  = EverestCrystalData_get_active_length(el);
     double const inactive_back  = EverestCrystalData_get_inactive_back(el);
@@ -34,7 +34,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const c_tilt0    = asin((EverestCrystalData_get_jaw_LD(el) - EverestCrystalData_get_jaw_LU(el)) / length);
     double const c_tilt1    = asin((EverestCrystalData_get_jaw_RD(el) - EverestCrystalData_get_jaw_RU(el)) / length);
     
-    double const onesided   = EverestCrystalData_get_onesided(el);
+    int    const side       = EverestCrystalData_get__side(el);
     double const bend       = EverestCrystalData_get_bend(el);
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
     double const bend_ang   = length/bend;    // temporary value
@@ -52,7 +52,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const cry_miscut = EverestCrystalData_get_miscut(el);
 
     //start_per_particle_block (part0->part)
-        if (!is_active){
+        if (!active){
             // Drift full length
             Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
@@ -62,7 +62,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
             int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
-            if ( is_tracking && rng_set && ruth_set) {
+            if (is_tracking && rng_set && ruth_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 
@@ -73,7 +73,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_add_to_y(part, -co_y);
 
                 scatter_cry(part, length, material, rng, cRot, sRot, c_aperture, c_offset, c_tilt0, c_tilt1, 
-                            onesided, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
+                            side, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
                             cry_miscut);
 
                 // Return from closed orbit

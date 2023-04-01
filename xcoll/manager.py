@@ -253,8 +253,8 @@ class CollimatorManager:
             df[prop] = 0.0
         df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
         df['gap_R'] = df['gap_L']
-        df.loc[df['onesided']=='left', 'gap_R'] = None
-        df.loc[df['onesided']=='right', 'gap_L'] = None
+        df.loc[df['side']=='left', 'gap_R'] = None
+        df.loc[df['side']=='right', 'gap_L'] = None
         df['active'] = True
         self.colldb._colldb = pd.concat([self.colldb._colldb, df])
 
@@ -481,22 +481,17 @@ class CollimatorManager:
                 line[name].active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
-                line[name].ref_x = colldb.x[name]
-                line[name].ref_y = colldb.y[name]
-                line[name].angle = colldb.angle[name]
+                line[name].ref_x  = colldb.x[name]
+                line[name].ref_y  = colldb.y[name]
+                line[name].angle  = colldb.angle[name]
                 line[name].jaw_LU = colldb._colldb.jaw_LU[name]
                 line[name].jaw_RU = colldb._colldb.jaw_RU[name]
                 line[name].jaw_LD = colldb._colldb.jaw_LD[name]
                 line[name].jaw_RD = colldb._colldb.jaw_RD[name]
+                line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
-                    if colldb.onesided[name] == 'both':
-                        line[name].onesided = False
-                    elif colldb.onesided[name] == 'left':
-                        line[name].onesided = True
-                    elif colldb.onesided[name] == 'right':
-                        raise ValueError(f"Right-sided collimators not implemented for Collimator {name}!")
                 if isinstance(line[name], EverestCrystal):
                     line[name].align_angle = colldb._colldb.align_angle[name]
                     line[name].bend        = colldb._colldb.bend[name]
@@ -575,9 +570,9 @@ class CollimatorManager:
 
         # TODO: check collimator in colldb and installed!
 
-        if self.colldb.onesided[collimator] == 'left':
+        if self.colldb.side[collimator] == 'left':
             side = '+'
-        if self.colldb.onesided[collimator] == 'right':
+        if self.colldb.side[collimator] == 'right':
             side = '-'
 
         # Define the plane

@@ -9,7 +9,6 @@ import xobjects as xo
 # TODO: remove dx, dy, offset, tilt, as this should only be in colldb (and here only the jaw positions)
 class K2Collimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'onesided':   xo.Int8,
         'material':   Material,
         '_tracking':  xo.Int8
     }
@@ -26,7 +25,6 @@ class K2Collimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('onesided', False)
             kwargs.setdefault('material', None)
             if kwargs['material'] is None:
                 raise ValueError("Need to provide a material to the collimator!")
@@ -53,7 +51,6 @@ class K2Crystal(BaseCollimator):
         'crytilt':     xo.Float64,
         'miscut':      xo.Float64,
         'orient':      xo.Float64,
-        'onesided':    xo.Int8,
         'material':    CrystalMaterial,
         '_tracking':  xo.Int8
     }
@@ -70,7 +67,7 @@ class K2Crystal(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('onesided', False)
+            kwargs.setdefault('material', None)
             if kwargs['material'] is None:
                 raise ValueError("Need to provide a material to the collimator!")
             kwargs.setdefault('bend', 0)

@@ -16,7 +16,7 @@ def _initialise_None(collimator):
     fields = {'s_center':None, 'align_to': None, 's_align_front': None, 's_align_back': None }
     fields.update({'gap_L': None, 'gap_R': None, 'angle_L': 0, 'angle_R': 0, 'offset': 0, 'parking': 1})
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
-    fields.update({'onesided': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
+    fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
     fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
     for f, val in fields.items():
@@ -174,7 +174,7 @@ class CollimatorDatabase:
             coll_data_string = ''
             family_settings = {}
             family_types = {}
-            onesided = {}
+            side = {}
 
             for l_no, line in enumerate(infile):
                 if line.startswith('#'):
@@ -186,7 +186,7 @@ class CollimatorDatabase:
                         family_settings[sline[1]] = float(sline[2])
                         family_types[sline[1]] = sline[3]
                     elif sline[0].lower() == 'onesided':
-                        onesided[sline[1]] = int(sline[2])
+                        side[sline[1]] = int(sline[2])
                     elif sline[0].lower() == 'settings':
                         # TODO CRYSTAL
                         pass # Acknowledge and ignore this line
@@ -201,15 +201,15 @@ class CollimatorDatabase:
                         index_col=False, names=names)
 
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
-        sides = df['name'].apply(lambda s: onesided.get(s, 0))
+        sides = df['name'].apply(lambda s: side.get(s, 0))
         df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df['parking'] = 0.025
         df = df.set_index('name')
-        df['onesided'] = sides.values
-        df['onesided'] = [ 'both'  if s==0 else s for s in df['onesided'] ]
-        df['onesided'] = [ 'left'  if s==1 else s for s in df['onesided'] ]
-        df['onesided'] = [ 'right' if s==2 else s for s in df['onesided'] ]
+        df['side'] = sides.values
+        df['side'] = [ 'both'  if s==0 else s for s in df['side'] ]
+        df['side'] = [ 'left'  if s==1 else s for s in df['side'] ]
+        df['side'] = [ 'right' if s==2 else s for s in df['side'] ]
         return cls.from_dict(df.transpose().to_dict(), **kwargs)
 
 
@@ -298,10 +298,10 @@ class CollimatorDatabase:
             if 'gap' in collimator.keys():
                 if collimator['gap'] is not None and collimator['gap'] > 900:
                     collimator['gap'] = None
-                if 'onesided' in collimator.keys() and collimator['onesided'] == 'left':
+                if 'side' in collimator.keys() and collimator['side'] == 'left':
                     collimator['gap_L'] = collimator.pop('gap')
                     collimator['gap_R'] = None
-                elif 'onesided' in collimator.keys() and collimator['onesided'] == 'right':
+                elif 'side' in collimator.keys() and collimator['side'] == 'right':
                     collimator['gap_L'] = None
                     collimator['gap_R'] = collimator.pop('gap')
                 else:
@@ -340,7 +340,7 @@ class CollimatorDatabase:
     #   - offset
     #   - tilt
     #   - stage
-    #   - onesided
+    #   - side
     #   - active_length
     #   - inactive_front
     #   - inactive_back
@@ -525,8 +525,8 @@ class CollimatorDatabase:
             else:
                 # mask those that have an active side for the gap under consideration
                 # and have a setting less than 900; the others are set to None
-                mask_L = np.logical_and(df.onesided.isin(['both','left']), ~(gaps >= 900))
-                mask_R = np.logical_and(df.onesided.isin(['both','right']), ~(gaps >= 900))
+                mask_L = np.logical_and(df.side.isin(['both','left']), ~(gaps >= 900))
+                mask_R = np.logical_and(df.side.isin(['both','right']), ~(gaps >= 900))
                 df.loc[mask_L, 'gap_L'] = gaps[mask_L]
                 df.loc[~mask_L, 'gap_L'] = None
                 df.loc[mask_R, 'gap_R'] = gaps[mask_R]
@@ -538,7 +538,7 @@ class CollimatorDatabase:
             for name, gap in gaps.items():
                 if name not in self.name:
                     raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
-                side = df.onesided[name]
+                side = df.side[name]
                 if hasattr(gap, '__iter__'):
                     if isinstance(gap, str):
                         raise ValueError("The gap setting has to be a number!")
@@ -596,12 +596,12 @@ class CollimatorDatabase:
         return pd.Series(jaws, index=self._colldb.index, dtype=object)
 
     @property
-    def onesided(self):
-        return self._colldb.onesided
+    def side(self):
+        return self._colldb.side
 
-    @onesided.setter
-    def onesided(self, sides):
-        self._set_property('onesided', sides, single_default_allowed=True)
+    @side.setter
+    def side(self, sides):
+        self._set_property('side', sides, single_default_allowed=True)
         self.gap = self.gap
 
     @property

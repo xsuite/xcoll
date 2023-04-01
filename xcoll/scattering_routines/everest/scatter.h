@@ -16,7 +16,7 @@
 
 /*gpufun*/
 void scatter(LocalParticle* part, double length, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
-            double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, double onesided){
+            double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, double side){
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -79,7 +79,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
 
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
-    if (!onesided || (x >= 0.)) {
+    if (side==0 || (side==1 && x>=0.) || (side==2 && x<=0.)) {
 
         // Now mirror at the horizontal axis for negative X offset
         if (x < 0) {

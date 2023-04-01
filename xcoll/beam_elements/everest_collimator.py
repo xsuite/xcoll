@@ -23,7 +23,6 @@ from ..general import _pkg_root
 
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'onesided':         xo.Int8,
         'material':         Material,
         'rutherford_rng':   xt.RandomRutherford,
         '_tracking':        xo.Int8
@@ -48,7 +47,7 @@ class EverestCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('onesided', False)
+            kwargs.setdefault('material', None)
             if kwargs['material'] is None:
                 raise ValueError("Need to provide a material to the collimator!")
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
@@ -81,7 +80,6 @@ class EverestCrystal(BaseCollimator):
         'crytilt':        xo.Float64,
         'miscut':         xo.Float64,
         'orient':         xo.Float64,
-        'onesided':       xo.Int8,
         'material':       CrystalMaterial,
         'rutherford_rng': xt.RandomRutherford,
         '_tracking':      xo.Int8
@@ -106,7 +104,7 @@ class EverestCrystal(BaseCollimator):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs.setdefault('onesided', False)
+            kwargs.setdefault('material', None)
             if kwargs['material'] is None:
                 raise ValueError("Need to provide a material to the collimator!")
             kwargs.setdefault('bend', 0)

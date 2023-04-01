@@ -4,7 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "onesided": 1,
  "bend": 80,
  "xdim": 0.002,
  "ydim": 0.05,
@@ -18,6 +17,7 @@
   4.2043279746083743e-07
  ],
  "jaw": 0.002316613838625109,
+ "side": "left",
  "material": {
   "__class__": "CrystalMaterial",
   "Z": 14.0,

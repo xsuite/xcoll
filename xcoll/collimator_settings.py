@@ -8,7 +8,7 @@ import pandas as pd
 #      (gap [sigma] + offset [m] + tilt [deg]) or opening [m]
 #      angle
 #      length (all three)
-#      onesided     TODO: need better name
+#      side
 #      parking ??
 #      material
 #      stage
@@ -20,11 +20,11 @@ import pandas as pd
 #      ref
 #      angle
 #      length (all three)
-#      onesided ??
+#      side
 #      material
 #      is_active
 
-# in neither:
+# in neither (as they are sequence/session-dependent):
 #      align_to
 #      s_center
 #      collimator_type
@@ -35,7 +35,7 @@ _coll_properties = {'active_length': 0,
                     'inactive_back': 0,
                     'gap_L': None,
                     'gap_R': None,
-                    'onesided': 'both',
+                    'side': 'both',
                     'angle_L': 0,
                     'angle_R': 0,
                     'offset': 0,
@@ -225,19 +225,19 @@ class CollimatorSettings:
                     ts_LD = np.tan(self.tilt_L)*self.active_length*(1-scale)
                     ts_RD = np.tan(self.tilt_R)*self.active_length*(1-scale)
 
-                    if self.onesided in ['left', 'both']:
+                    if self.side in ['left', 'both']:
                         jaw_LU = self.gap_L*sigma_U[0]  + self.offset + ts_LU
                         jaw_LD = self.gap_L*sigma_D[0]  + self.offset + ts_LD
-                    if self.onesided in ['right', 'both']:
+                    if self.side in ['right', 'both']:
                         jaw_RU = -self.gap_R*sigma_U[1] + self.offset + ts_RU
                         jaw_RD = -self.gap_R*sigma_D[1] + self.offset + ts_RD
 
-            if self.onesided == 'left':
+            if self.side == 'left':
                 self.jaw_LU = min(jaw_LU, self.parking)
                 self.jaw_LD = min(jaw_LD, self.parking)
                 self.jaw_RU = None
                 self.jaw_RD = None
-            elif self.onesided == 'right':
+            elif self.side == 'right':
                 self.jaw_LU = None
                 self.jaw_LD = None
                 self.jaw_RU = max(jaw_RU, -self.parking)

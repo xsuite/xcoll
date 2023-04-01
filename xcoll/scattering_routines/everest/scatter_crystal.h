@@ -13,7 +13,7 @@
 /*gpufun*/
 void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
                  double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, 
-                 double onesided, double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax,
+                 int side, double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax,
                  double cry_ymax, double cry_orient, double cry_miscut){
 
     // Store initial coordinates for updating later
@@ -89,7 +89,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
 
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
-    if (!onesided || (x >= 0.)) {
+    if (side==0 || (side==1 && x>=0.) || (side==2 && x<=0.)) {
         // Log input energy + nucleons as per the FLUKA coupling
         nnuc0 = nnuc0 + 1.;
         ien0 = ien0 + p_in * 1.0e3;

@@ -53,16 +53,17 @@ class BaseCollimator(xt.BeamElement):
         'cos_zL':         xo.Float64,
         'sin_zR':         xo.Float64,  # angle of right jaw
         'cos_zR':         xo.Float64,
-        'active':        xo.Int8
+        '_side':          xo.Int8,     # is it a side collimator?
+        'active':         xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
     
-    _skip_in_to_dict  = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD',
-                         'ref_x', 'ref_y', 'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR']
-    _store_in_to_dict = ['angle', 'jaw', 'reference_center']
+    _skip_in_to_dict  = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'ref_x', 'ref_y',
+                         'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
+    _store_in_to_dict = ['angle', 'jaw', 'reference_center', 'side']
     _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
@@ -80,6 +81,8 @@ class BaseCollimator(xt.BeamElement):
             _set_LR(kwargs, 'ref', kwargs.pop('reference_center', 0), name_L='_x', name_R='_y')
             kwargs.setdefault('inactive_front', 0)
             kwargs.setdefault('inactive_back', 0)
+            side = kwargs.pop('side', 'both')
+            kwargs['_side'] = _side_setter(side)
             angle = kwargs.pop('angle', 0)
             kwargs['sin_zL'], kwargs['cos_zL'], kwargs['sin_zR'], kwargs['cos_zR'] = _angle_setter(angle)
             kwargs.setdefault('active', True)
@@ -116,6 +119,20 @@ class BaseCollimator(xt.BeamElement):
     def length(self):
         return (self.inactive_front + self.active_length + self.inactive_back)
 
+    @property
+    def side(self):
+        if self._side == 0:
+            return 'both'
+        elif self._side == 1:
+            return 'left'
+        elif self._side == 2:
+            return 'right'
+
+    @side.setter
+    def side(self, side):
+        self._side = _side_setter(side)
+
+
     def jaw_func(self, pos):
         positions = ['LU', 'RU', 'LD', 'RD']
         if not pos in positions:
@@ -129,6 +146,17 @@ class BaseCollimator(xt.BeamElement):
         point_y += getattr(self, 'jaw_' + pos) * sinz
         return lambda x: sinz/cosz*(x-point_x) + point_y
 
+
+def _side_setter(val):
+    if val.lower() == 'both' or val == '+-':
+        return 0
+    elif val.lower() == 'left' or val.lower() == 'l' or val == '+':
+        return 1
+    elif val.lower() == 'right' or val.lower() == 'r' or val == '-':
+        return 2
+    else:
+        raise ValueError(f"Unkown setting {val} for 'side'! Choose from "
+                       + f"('left', 'L', '+'), ('right', 'R', '-'), or ('both', '+-').")
 
 def _angle_setter(val):
     if not hasattr(val, '__iter__'):

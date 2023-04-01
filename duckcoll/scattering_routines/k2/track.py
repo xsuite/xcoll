@@ -156,6 +156,13 @@ def track_core(k2collimator, particles):
         )
         length = new_length
 
+    if k2collimator.side == 'left':
+        onesided = 1   # left in K2
+    elif k2collimator.side == 'both':
+        onesided = 0   # both in K2
+    else:
+        raise ValueError(f"Value {k2collimator.side} for 'side' not supported in K2!")
+
     tilt = np.zeros(2, dtype=float)
     pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
@@ -194,7 +201,7 @@ def track_core(k2collimator, particles):
               c_offset=offset,
               c_tilt=tilt,
               c_enom=particles.energy0[0]/1e6, # Reference energy
-              onesided=k2collimator.onesided
+              onesided=onesided
               )
 
     # Masks of hit and survived particles
