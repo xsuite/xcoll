@@ -19,9 +19,7 @@ bety0=11.41817476
 
 
 # Load from json
-with open('machines/ps_b1.json', 'r') as fid:
-    loaded_dct = json.load(fid)
-line = xt.Line.from_dict(loaded_dct)
+line = xt.Line.from_json('machines/ps_b1.json')
 
 
 
@@ -42,25 +40,19 @@ coll_manager.build_tracker()
 
 # We set the openings etc manually
 coll = 'pr.tdi47'
-line[coll].jaw_LU = 0.001
-line[coll].jaw_LD = 0.001
-line[coll].ref_xU = 0
-line[coll].ref_yU = 0
-line[coll].dpx = 0
-line[coll].dpy = 0
+line[coll].jaw = 0.001
+line[coll].ref_x = 0
+line[coll].ref_y = 0
 line[coll].material = 'BE'
-line[coll].is_active = True
+line[coll].active = True
 line[coll].onesided = True
 
 coll = 'pr.tdi48'
-line[coll].jaw_LU = 0.001
-line[coll].jaw_LD = 0.001
-line[coll].ref_xU = 0
-line[coll].ref_yU = 0
-line[coll].dpx = 0
-line[coll].dpy = 0
+line[coll].jaw = 0.001
+line[coll].ref_x = 0
+line[coll].ref_y = 0
 line[coll].material = 'BE'
-line[coll].is_active = True
+line[coll].active = True
 line[coll].onesided = True
 
 

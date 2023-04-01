@@ -51,7 +51,7 @@ def track(k2collimator, particles):  # TODO: write impacts
         
         # TODO: when in C, drifting should call routine from drift element
         #       such that can be exact etc
-        if not k2collimator.is_active:
+        if not k2collimator.active:
             # Drift full length
             drift_6d(particles, k2collimator.length)
         else:

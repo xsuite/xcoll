@@ -41,7 +41,7 @@ def track(collimator, particles):  # TODO: write impacts
         
         # TODO: when in C, drifting should call routine from drift element
         #       such that can be exact etc
-        if not collimator.is_active:
+        if not collimator.active:
             # Drift full length
             drift_6d(particles, collimator.length)
         else:

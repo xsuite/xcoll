@@ -235,7 +235,7 @@ class CollimatorManager:
                     inactive_back=thiscoll['inactive_back'],
                     active_length=thiscoll['active_length'],
                     angle=[thiscoll['angle_L'],thiscoll['angle_R']],
-                    is_active=False,
+                    active=False,
                     _tracking=False,
                     _buffer=self._buffer
                    )
@@ -274,7 +274,7 @@ class CollimatorManager:
                         active_length=thiscoll['active_length'],
                         angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=SixTrack_to_xcoll[thiscoll['material']][0],
-                        is_active=False,
+                        active=False,
                         _tracking=False,
                         _buffer=self._buffer
                        )
@@ -293,7 +293,7 @@ class CollimatorManager:
                         active_length=thiscoll['active_length'],
                         angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=material,
-                        is_active=False,
+                        active=False,
                         _tracking=False,
                         _buffer=self._buffer
                        )
@@ -478,7 +478,7 @@ class CollimatorManager:
         for name in names:
             # Override openings if opening fully
             if full_open and name not in gaps.keys():
-                line[name].is_active = False
+                line[name].active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
                 line[name].ref_x = colldb.x[name]
@@ -488,7 +488,7 @@ class CollimatorManager:
                 line[name].jaw_RU = colldb._colldb.jaw_RU[name]
                 line[name].jaw_LD = colldb._colldb.jaw_LD[name]
                 line[name].jaw_RD = colldb._colldb.jaw_RD[name]
-                line[name].is_active = colldb.active[name]
+                line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
                     line[name].material = colldb.material[name]
                     if colldb.onesided[name] == 'both':

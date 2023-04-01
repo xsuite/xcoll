@@ -53,16 +53,16 @@ class BaseCollimator(xt.BeamElement):
         'cos_zL':         xo.Float64,
         'sin_zR':         xo.Float64,  # angle of right jaw
         'cos_zR':         xo.Float64,
-        '_active':        xo.Int8
+        'active':        xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
     
-    _skip_in_to_dict  = ['_active', 'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD',
+    _skip_in_to_dict  = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD',
                          'ref_x', 'ref_y', 'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR']
-    _store_in_to_dict = ['is_active', 'angle', 'jaw', 'reference_center']
+    _store_in_to_dict = ['angle', 'jaw', 'reference_center']
     _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
@@ -76,18 +76,13 @@ class BaseCollimator(xt.BeamElement):
         if self.__class__.__name__ == 'BaseCollimator':
             raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
         if '_xobject' not in kwargs:
-            _set_LRUD(kwargs, 'jaw', kwargs.pop('jaw', 1),
-                      neg=True, name=self.__class__.__name__)
-            _set_LR(kwargs, 'ref', kwargs.pop('reference_center', 0),
-                    name_L='_x', name_R='_y', name=self.__class__.__name__)
+            _set_LRUD(kwargs, 'jaw', kwargs.pop('jaw', 1), neg=True)
+            _set_LR(kwargs, 'ref', kwargs.pop('reference_center', 0), name_L='_x', name_R='_y')
             kwargs.setdefault('inactive_front', 0)
             kwargs.setdefault('inactive_back', 0)
             angle = kwargs.pop('angle', 0)
             kwargs['sin_zL'], kwargs['cos_zL'], kwargs['sin_zR'], kwargs['cos_zR'] = _angle_setter(angle)
-            is_active = kwargs.pop('is_active', True)
-            is_active = 1 if is_active == True else is_active
-            is_active = 0 if is_active == False else is_active
-            kwargs['_active'] = is_active
+            kwargs.setdefault('active', True)
         super().__init__(**kwargs)
 
 
@@ -116,16 +111,6 @@ class BaseCollimator(xt.BeamElement):
     @reference_center.setter
     def reference_center(self, ref):
         _set_LR(self, 'ref', ref, name_L='_x', name_R='_y')
-
-    @property
-    def is_active(self):
-        return True if self._active == 1 else False
-
-    @is_active.setter
-    def is_active(self, is_active):
-        is_active = 1 if is_active == True else is_active
-        is_active = 0 if is_active == False else is_active
-        self._active = is_active
 
     @property
     def length(self):

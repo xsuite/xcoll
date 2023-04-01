@@ -23,7 +23,7 @@ def install_k2_collimators(self, coll_manager, names=None, *, max_part=50000, se
                 active_length=thiscoll['active_length'],
                 angle=thiscoll['angle'],
                 material=SixTrack_to_xcoll[thiscoll['material']][0],
-                is_active=False,
+                active=False,
                 _buffer=self._buffer
                )
     coll_manager._install_collimators(names, install_func=install_func, verbose=verbose, support_legacy_elements=True)
@@ -45,7 +45,7 @@ def install_pyeverest_collimators(self, coll_manager, names=None, *, verbose=Fal
                 active_length=thiscoll['active_length'],
                 angle=thiscoll['angle'],
                 material=SixTrack_to_xcoll[thiscoll['material']][0],
-                is_active=False,
+                active=False,
                 _buffer=self._buffer
                )
     coll_manager._install_collimators(names, install_func=install_func, verbose=verbose, support_legacy_elements=True)

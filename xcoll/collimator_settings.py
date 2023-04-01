@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # in colldb:
-#      (gap [sigma] + offset [m] + tilt [deg]) or physical_opening [m]
+#      (gap [sigma] + offset [m] + tilt [deg]) or opening [m]
 #      angle
 #      length (all three)
 #      onesided     TODO: need better name
@@ -56,7 +56,7 @@ _coll_properties = {'active_length': 0,
                     'stage': None,
                     'family': None,
                     'collimator_type': None,
-                    'is_active': True,
+                    'active': True,
                     'crystal': False
                    }
 _properties_no_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'gap_L', 'gap_R',
@@ -274,10 +274,11 @@ def _get_LR(obj, prop, neg=False, name_L='_L', name_R='_R'):
 
 def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
     # 'name' is only used for error reporting
-    if isinstance(obj, dict):
-        name = 'dict_property' if name is None else name
-    else:
-        name = obj.name if name is None else name
+    if name is None:
+        if isinstance(obj, dict):
+            name = 'dict_property'
+        else:
+            name = obj.name if hasattr(obj, 'name') else obj.__class__.__name__
     # Is the property reflected along left/right?
     sign = -1 if neg else 1
     # Find out how to set values
@@ -308,10 +309,11 @@ def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
 def _get_LRUD(obj, prop, neg=False, name=None,
               name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
     # 'name' is only used for error reporting
-    if isinstance(obj, dict):
-        name = 'dict_property' if name is None else name
-    else:
-        name = obj.name if name is None else name
+    if name is None:
+        if isinstance(obj, dict):
+            name = 'dict_property'
+        else:
+            name = obj.name if hasattr(obj, 'name') else obj.__class__.__name__
     # Is the property reflected along left/right?
     sign = -1 if neg else 1
     # Is it a property or a dict key?
@@ -352,10 +354,11 @@ def _get_LRUD(obj, prop, neg=False, name=None,
 def _set_LRUD(obj, prop, val, neg=False, name=None,
               name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
     # 'name' is only used for error reporting
-    if isinstance(obj, dict):
-        name = 'dict_property' if name is None else name
-    else:
-        name = obj.name if name is None else name
+    if name is None:
+        if isinstance(obj, dict):
+            name = 'dict_property'
+        else:
+            name = obj.name if hasattr(obj, 'name') else obj.__class__.__name__
     # Is the property reflected along left/right?
     sign = -1 if neg else 1
     # Find out how to set values
