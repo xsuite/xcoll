@@ -101,7 +101,7 @@ def track_core(k2collimator, particles):
     if k2collimator.jaw_LU != k2collimator.jaw_LD or k2collimator.jaw_RU != k2collimator.jaw_RD:
         raise NotImplementedError
     opening = k2collimator.jaw_LU - k2collimator.jaw_RU
-    offset = k2collimator.offset + ( k2collimator.jaw_LU + k2collimator.jaw_RU )/2
+    offset = ( k2collimator.jaw_LU + k2collimator.jaw_RU )/2
 
     # Get material properties
     zatom    = k2collimator.material.Z
@@ -156,6 +156,7 @@ def track_core(k2collimator, particles):
         )
         length = new_length
 
+    tilt = np.zeros(2, dtype=float)
     pyk2_run(x_particles=x_part,
               xp_particles=xp_part,
               y_particles=y_part,
@@ -191,7 +192,7 @@ def track_core(k2collimator, particles):
               c_rotation=k2collimator.angle/180.*np.pi,
               c_aperture=opening,
               c_offset=offset,
-              c_tilt=k2collimator.tilt,
+              c_tilt=tilt,
               c_enom=particles.energy0[0]/1e6, # Reference energy
               onesided=k2collimator.onesided
               )

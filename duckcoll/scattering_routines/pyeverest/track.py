@@ -91,7 +91,7 @@ def track_core(collimator, particles):
     if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
         raise NotImplementedError
     opening = collimator.jaw_LU - collimator.jaw_RU
-    offset = collimator.offset + ( collimator.jaw_LU + collimator.jaw_RU )/2
+    offset = ( collimator.jaw_LU + collimator.jaw_RU )/2
 
     # Get material properties
     zatom    = collimator.material.Z
@@ -208,7 +208,7 @@ def track_core(collimator, particles):
             c_rotation=collimator.angle/180.*np.pi,
             c_aperture=opening,
             c_offset=offset,
-            c_tilt=collimator.tilt,
+            c_tilt=[0,0],
             c_enom=e0_ref, # Reference energy in MeV
             onesided=collimator.onesided,
             length=length,
