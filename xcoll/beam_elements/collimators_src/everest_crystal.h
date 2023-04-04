@@ -36,6 +36,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     
     int    const side       = EverestCrystalData_get__side(el);
     double const bend       = EverestCrystalData_get_bend(el);
+    // TODO: cry_tilt should be given by jaw positions...?
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
     double const bend_ang   = length/bend;    // temporary value
     if (cry_tilt >= -bend_ang) {

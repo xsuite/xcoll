@@ -30,51 +30,45 @@ import pandas as pd
 #      collimator_type
 
 # if physical_opening is used, other variables like tilt, opening, offset, .. are ignored
-_coll_properties = {'active_length': 0,
-                    'inactive_front': 0,
-                    'inactive_back': 0,
-                    'gap_L': None,
-                    'gap_R': None,
-                    'side': 'both',
-                    'angle_L': 0,
-                    'angle_R': 0,
-                    'offset': 0,
-                    'tilt_L': 0,
-                    'tilt_R': 0,
-                    'align_to': None, 
-                    's_center': None,
-                    'parking': 1,
-                    'material': None,
-                    'jaw_LU': None,
-                    'jaw_RU': None,
-                    'jaw_LD': None,
-                    'jaw_RD': None,
-                    'ref_xU': 0,
-                    'ref_yU': 0,
-                    'ref_xD': 0,
-                    'ref_yD': 0,
-                    'stage': None,
-                    'family': None,
-                    'collimator_type': None,
-                    'active': True,
-                    'crystal': False
-                   }
-_properties_no_setter = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'gap_L', 'gap_R',
-                         'ref_xU', 'ref_yU', 'ref_xD', 'ref_yD', 'angle_L', 'angle_R',
-                         'tilt_L', 'tilt_R', ]
-_properties_in_element = ['jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'angle_L', 'angle_R', 
-                          'ref_xU', 'ref_yU', 'ref_xD', 'ref_yD', 'active_length',
-                          'inactive_front', 'inactive_back']
-_add_to_dict = ['angle', 'tilt', 'opening', 'physical_opening', 'reference_center']
-
-_crystal_properties = {
-                    'bend': None,
-                    'xdim': 0,
-                    'ydim': 0,
-                    'miscut': 0,
-                    'thick': 0
-                }
-_optics_vals = ['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy']
+_element_properties  = {
+                        'active_length':    0,
+                        'inactive_front':   0,
+                        'inactive_back':    0,
+                        'jaw':              None,
+                        'reference_center': None,
+                        'angle':            0,
+                        'side':             'both',
+                        'material':         None,
+                        'active':           True,
+                        'crystal':          False
+                       }
+_crystal_properties  = {
+                        'bend':             None,
+                        'xdim':             0,
+                        'ydim':             0,
+                        'miscut':           0,
+                        'thick':            0,
+#         'align_angle':    xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
+#         'crytilt':        xo.Float64,
+#         'orient':         xo.Float64,
+                       }
+_sequence_properties = {
+                        's_center':         None,
+                        'align_to':         None,
+                        'collimator_type':  None,
+                       }
+_colldb_properties   = {
+                        'gap':              None,  # [L, R]
+                        'offset':           0,     # single value: shift of gap in mm
+                        'extra_mm':         0,     # single value: widening of gap
+                        'opening_mm':       None,  # [L, R]
+                        'tilt':             0,
+                        'parking':          1,
+                        'stage':            None,
+                        'family':           None,
+                        'overwritten_keys': []
+                       }
+_optics_vals = ['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy', 'sigma_x', 'sigma_y']
 
 
 # This creates a view on the settings of one collimator, kept in sync with the main database
