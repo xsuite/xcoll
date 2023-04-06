@@ -303,6 +303,7 @@ class CollimatorManager:
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
         # and that tracker is not yet built
+        # TODO: need check that all collimators have aperture before and after
         line = self.line
         df = self.colldb._colldb
         mask = df.index.isin(names)
@@ -860,10 +861,24 @@ class CollimatorManager:
 
             # Loss location refinement
             if interpolation is not None:
+                # We need to correct for particles scattered out of the collimator beyond the aperture restriction:
+                # TODO: this should be done in the scattering code!!!
+                new_state = part.state
+                new_elem  = part.at_element
+                for idx, elem in enumerate(part.at_element):
+                    if (part.state[idx]==0 and elem > 0 and
+                        self.line.element_names[elem-1] in self.collimator_names
+                       ):
+                        print(f"Found at {self.line.element_names[elem]}, should be {self.line.element_names[elem-1]}")
+                        new_state[idx] = -339 # lost on collimator, special state  ## TODO get the correct flag
+                        new_elem[idx] = elem - 1
+                part.state      = new_state
+                part.at_element = new_elem
+                # Do the interpolation
                 aper_s = list(part.s[part.state==0])
                 if len(aper_s) > 0:
                     print("Performing the aperture losses refinement.")
-                    loss_loc_refinement = xt.LossLocationRefinement(self.line.tracker,
+                    loss_loc_refinement = xt.LossLocationRefinement(self.line,
                             n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
                             r_max = 0.5, # Maximum transverse aperture in m
                             dr = 50e-6, # Transverse loss refinement accuracy [m]

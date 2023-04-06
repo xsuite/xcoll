@@ -44,8 +44,7 @@ def _get_coll_dct_by_beam(coll, beam):
         return coll[beam.lower()]
     elif beam is not None:
         print("Warning: Specified a beam, but the CollimatorDatabase is for a single beam only!")
-    else:
-        return coll
+    return coll
 
 
 class CollimatorDatabase:
