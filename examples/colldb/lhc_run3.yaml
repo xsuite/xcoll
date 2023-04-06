@@ -5,7 +5,7 @@
 #       gap [sigma], length [m], angle [deg], material [BE/AL/CU/W/PB/C/C2/Si/Ge/MoGR/CuCD/Mo/Glid/Iner/VA/BL], stage
 #       (a gap equal to 'null' disables the collimator from tracking)
 #   optional keys:
-#       offset [m], onesided [left/right], tilt [deg] (or tilt_left and tilt_right if different for each jaw)
+#       offset [m], side [left/right], tilt [deg] (or tilt_left and tilt_right if different for each jaw)
 #   special keys:
 #       active [bool] : Whether or not a collimator is still active in operation. If false, the gap is set to null.
 #                       The difference with just manually setting the gap to 'null' is mainly semantic: these are collimators that are in principle no longer used but still present in the machine.
@@ -35,12 +35,12 @@ families:
   - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: C,     length: 0.6    }
   - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: C,     length: 1      }
   - &TCLA7   { <<: *ALL,  gap: 10,    stage: tertiary,   material: Iner,  length: 1      }
-  - &CRY7    { <<: *ALL,  gap: null,  stage: special,    material: Si,    length: 0.004, onesided: left,  crystal: strip, active: false }
+  - &CRY7    { <<: *ALL,  gap: null,  stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip, active: false }
   # Injection protection
   - &TCLI    { <<: *ALL,  gap: null,  stage: tertiary,   material: C,     length: 1,     angle: 90 }
   - &TDI     { <<: *ALL,  gap: null,  stage: tertiary,   material: CU,    length: 1.565, angle: 90 }
   # Dump protection
-  - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: C,     length: 3,     angle: 0,  onesided: left }
+  - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: C,     length: 3,     angle: 0,  side: left }
   - &TCSP    { <<: *ALL,  gap: 7.3,   stage: secondary,  material: C,     length: 1,     angle: 0 }
   # Physics background minimalisation
   - &TCT15   { <<: *ALL,  gap: 8.5,   stage: tertiary,   material: Iner,  length: 1,     parking: 0.020 }

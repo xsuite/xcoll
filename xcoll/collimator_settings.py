@@ -76,7 +76,7 @@ class CollimatorSettings:
 
     def __init__(self, name, colldb=None, optics=None, element=None):
         if colldb is None:
-            colldb = pd.DataFrame({**_coll_properties, **_crystal_properties}, index=[name])
+            colldb = pd.DataFrame({**_element_properties, **_crystal_properties}, index=[name])
         self._colldb = colldb
         if name not in colldb.index:
             raise ValueError(f"Collimator {name} not found in database!")
