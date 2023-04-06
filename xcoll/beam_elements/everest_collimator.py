@@ -80,7 +80,8 @@ class EverestCollimator(BaseCollimator):
 # #         self.random_generator.set_rutherford_by_xcoll_material(material)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        # TODO: this should be an InvalidCollimator
+        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 
@@ -158,6 +159,7 @@ class EverestCrystal(BaseCollimator):
 #         self.random_generator.set_rutherford_by_xcoll_material(material)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        # TODO: this should be an InvalidCollimator
+        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 

@@ -44,6 +44,7 @@ def _get_coll_dct_by_beam(coll, beam):
         return coll[beam.lower()]
     elif beam is not None:
         print("Warning: Specified a beam, but the CollDB is for a single beam only!")
+        return coll
     else:
         return coll
 
