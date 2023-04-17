@@ -91,7 +91,7 @@ else:
 
 
 print("Aperture check after patching:")
-df_patched = line.check_aperture(needs_aperture=collimators, verbose=False)
+df_patched = line.check_aperture(needs_aperture=collimators)
 assert not np.any(df_patched.has_aperture_problem)
 
 
@@ -104,7 +104,7 @@ with open(output_file, 'w') as fid:
 print("Reloading file to test json is not corrupted..")
 with open(output_file, 'r') as fid:
     loaded_dct = json.load(fid)
-newline = xt.Line.from_dict(loaded_dct, verbose=False)
+newline = xt.Line.from_dict(loaded_dct)
 assert xt._lines_equal(line, newline)
 print("All done.")
     
