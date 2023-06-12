@@ -88,10 +88,10 @@ def track_core(collimator, particles):
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
-    if collimator.jaw_LU != collimator.jaw_LD or collimator.jaw_RU != collimator.jaw_RD:
+    if collimator.sin_yL != 0 or collimator.sin_yR != 0:
         raise NotImplementedError
-    opening = collimator.jaw_LU - collimator.jaw_RU
-    offset = ( collimator.jaw_LU + collimator.jaw_RU )/2
+    opening = collimator.jaw_L - collimator.jaw_R
+    offset = ( collimator.jaw_L + collimator.jaw_R )/2
 
     # Get material properties
     zatom    = collimator.material.Z
@@ -140,7 +140,7 @@ def track_core(collimator, particles):
         cry_alayer = collimator.thick
         cry_xmax   = collimator.xdim
         cry_ymax   = collimator.ydim
-        cry_orient = collimator.orient
+        cry_orient = collimator._orient
         cry_miscut = collimator.miscut
         cry_cBend  = np.cos(cry_bend)
         cry_sBend  = np.sin(cry_bend)

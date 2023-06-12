@@ -98,10 +98,10 @@ def track_core(k2collimator, particles):
     nabs_type      = np.zeros(len(x_part), dtype=np.int32)
     linside        = np.zeros(len(x_part), dtype=np.int32)
 
-    if k2collimator.jaw_LU != k2collimator.jaw_LD or k2collimator.jaw_RU != k2collimator.jaw_RD:
+    if k2collimator.sin_yL != 0 or k2collimator.sin_yR != 0:
         raise NotImplementedError
-    opening = k2collimator.jaw_LU - k2collimator.jaw_RU
-    offset = ( k2collimator.jaw_LU + k2collimator.jaw_RU )/2
+    opening = k2collimator.jaw_L - k2collimator.jaw_R
+    offset = ( k2collimator.jaw_L + k2collimator.jaw_R )/2
 
     # Get material properties
     zatom    = k2collimator.material.Z
@@ -151,7 +151,7 @@ def track_core(k2collimator, particles):
             crythick=k2collimator.thick,
             cryxdim=k2collimator.xdim,
             cryydim=k2collimator.ydim,
-            cryorient=k2collimator.orient,
+            cryorient=k2collimator._orient,
             crymiscut=k2collimator.miscut
         )
         length = new_length
@@ -196,7 +196,7 @@ def track_core(k2collimator, particles):
               run_collnt=collnt,
               is_crystal=is_crystal,
               c_length=length,
-              c_rotation=k2collimator.angle/180.*np.pi,
+              c_rotation=k2collimator.angle_L/180.*np.pi,
               c_aperture=opening,
               c_offset=offset,
               c_tilt=tilt,

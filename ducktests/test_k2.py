@@ -104,7 +104,7 @@ def test_materials_b2():
 
 def test_angles_b1():
     for key, name in angles_b1.items():
-        _track_collimator(name)
+        _track_collimator(name, atolx=1e-17, atoly=1e-17, atolpx=1e-18, atolpy=1e-18, atold=1e-18)
 
 def test_angles_b2():
     for key, name in angles_b2.items():
@@ -124,7 +124,7 @@ def test_offsets_b1():
 
 def test_offsets_b2():
     for key, name in offsets_b2.items():
-        _track_collimator(name, atolx=1e-17, atoly=1e-18, atolpx=1e-18, atolpy=1e-18, atold=1e-18)
+        _track_collimator(name, atolx=1e-17, atoly=1e-17, atolpx=1e-18, atolpy=1e-18, atold=1e-18)
 
 def test_crystals():
     for name in crystals_b1 + crystals_b2:

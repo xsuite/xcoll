@@ -10,7 +10,7 @@
  "thick": 0.0013,
  "crytilt": 0,
  "miscut": 0,
- "orient": 0,
+ "lattice": "strip",
  "align_angle": 1.897468989084058e-05,
  "reference_center": [
   -3.5502158114771156e-07,
