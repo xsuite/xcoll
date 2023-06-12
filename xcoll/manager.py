@@ -71,6 +71,7 @@ class CollimatorManager:
 
         colldb = kwargs['_colldb']
         if not isinstance(colldb, CollimatorDatabase):
+            # TODO allow None as empty database
             raise ValueError("The variable '_colldb' needs to be an xcoll CollimatorDatabase object!")
         else:
             self.colldb = colldb
@@ -485,14 +486,13 @@ class CollimatorManager:
                 line[name].ref_x  = colldb.x[name]
                 line[name].ref_y  = colldb.y[name]
                 line[name].angle  = colldb.angle[name]
-                line[name].jaw_LU = colldb._colldb.jaw_LU[name]
-                line[name].jaw_RU = colldb._colldb.jaw_RU[name]
-                line[name].jaw_LD = colldb._colldb.jaw_LD[name]
-                line[name].jaw_RD = colldb._colldb.jaw_RD[name]
+                line[name].jaw_L = colldb._colldb.jaw_LU[name]
+                line[name].jaw_R = colldb._colldb.jaw_RU[name]
+                # TODO
                 line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
-                    line[name].material = colldb.material[name]
+                    line[name].material = SixTrack_to_xcoll[colldb.material[name]][0]
                 if isinstance(line[name], EverestCrystal):
                     line[name].align_angle = colldb._colldb.align_angle[name]
                     line[name].bend        = colldb._colldb.bend[name]
@@ -501,14 +501,7 @@ class CollimatorManager:
                     line[name].thick       = colldb._colldb.thick[name]
                     line[name].crytilt     = colldb._colldb.crytilt[name]
                     line[name].miscut      = colldb._colldb.miscut[name]
-                    if colldb._colldb.crystal[name] == 'strip':
-                        line[name].orient  = 1
-                    elif colldb._colldb.crystal[name] == 'quasi-mosaic':
-                        line[name].orient  = 2
-                    else:
-                        raise ValueError(f"Crystal definition for {name} should be either 'strip' or 'quasi-mosaic'"
-                                       + f", but got {colldb._colldb.crystal[name]}!")
-
+                    line[name].lattice     = colldb._colldb.crystal[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD

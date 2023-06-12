@@ -17,7 +17,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const active_length  = EverestCollimatorData_get_active_length(el);
     double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
 
-    MaterialData material = EverestCollimatorData_getp_material(el);
+    MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
@@ -27,12 +27,17 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const co_y       = EverestCollimatorData_get_ref_y(el);
     // TODO: use xtrack C-code for rotation element
     // TODO: we are ignoring the angle of the right jaw
-    double const cRot       = EverestCollimatorData_get_cos_zL(el);
-    double const sRot       = EverestCollimatorData_get_sin_zL(el);
-    double const c_aperture = EverestCollimatorData_get_jaw_LU(el) - EverestCollimatorData_get_jaw_RU(el);
-    double const c_offset   = ( EverestCollimatorData_get_jaw_LU(el) + EverestCollimatorData_get_jaw_RU(el) ) /2;
-    double const c_tilt0    = asin((EverestCollimatorData_get_jaw_LD(el) - EverestCollimatorData_get_jaw_LU(el)) / length);
-    double const c_tilt1    = asin((EverestCollimatorData_get_jaw_RD(el) - EverestCollimatorData_get_jaw_RU(el)) / length);
+    double const sin_zL     = EverestCollimatorData_get_sin_zL(el);
+    double const cos_zL     = EverestCollimatorData_get_cos_zL(el);
+    double const sin_zR     = EverestCollimatorData_get_sin_zR(el);
+    double const cos_zR     = EverestCollimatorData_get_cos_zR(el);
+    if (abs(sin_zL-sin_zR) > 1.e-10 || abs(cos_zL-cos_zR) > 1.e-10 ){
+        kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
+    };
+    double const c_aperture = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
+    double const c_offset   = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
+    double const c_tilt0    = asin(EverestCollimatorData_get_sin_yL(el));
+    double const c_tilt1    = asin(EverestCollimatorData_get_sin_yR(el));
     int    const side       = EverestCollimatorData_get__side(el);
 
     //start_per_particle_block (part0->part)
@@ -58,7 +63,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 LocalParticle_add_to_x(part, -co_x);
                 LocalParticle_add_to_y(part, -co_y);
                 
-                scatter(part, length, material, rng, scat, cRot, sRot, c_aperture, c_offset, c_tilt0, c_tilt1, side);
+                scatter(part, length, material, rng, scat, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, side);
 
                 // Return from closed orbit
                 LocalParticle_add_to_x(part, co_x);

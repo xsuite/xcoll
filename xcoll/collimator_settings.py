@@ -266,6 +266,7 @@ def _get_LR(obj, prop, neg=False, name_L='_L', name_R='_R'):
     else:
         return L if L==sign*R else [L,R]
 
+
 def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
     # 'name' is only used for error reporting
     if name is None:
@@ -278,18 +279,25 @@ def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
     # Find out how to set values
     if not hasattr(val, '__iter__'):
         val = [val]
+    error_dimension = False
     if isinstance(val, str):
         raise ValueError(f"Error in settings for {name}: "
                        + f"The setting `{prop}` has to be a number!")
     elif len(val) == 2:
     # The value is of the form [val_L,val_R]
+        if hasattr(val[0], '__iter__') or hasattr(val[1], '__iter__'):
+            error_dimension = True
         val_L = val[0]
         val_R = val[1]
     elif len(val) == 1:
     # The value is of the form [val]
+        if hasattr(val[0], '__iter__'):
+            error_dimension = True
         val_L = val[0]
-        val_R = val[0]
+        val_R = sign*val[0]
     else:
+        error_dimension = True
+    if error_dimension:
         raise ValueError(f"Error in settings for {name}: "
                        + f"The setting `{prop}` must have one or two (L, R) values!")
     # Is it a property or a dict key?
@@ -299,6 +307,7 @@ def _set_LR(obj, prop, val, neg=False, name=None, name_L='_L', name_R='_R'):
     else:
         _prop_fset(obj, prop + name_L)(obj, val_L)
         _prop_fset(obj, prop + name_R)(obj, val_R)
+
 
 def _get_LRUD(obj, prop, neg=False, name=None,
               name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
@@ -345,6 +354,7 @@ def _get_LRUD(obj, prop, neg=False, name=None,
         else:
             return [[LU, RU], [LD, RD]]
 
+
 def _set_LRUD(obj, prop, val, neg=False, name=None,
               name_LU='_LU', name_RU='_RU', name_LD='_LD', name_RD='_RD'):
     # 'name' is only used for error reporting
@@ -355,14 +365,19 @@ def _set_LRUD(obj, prop, val, neg=False, name=None,
             name = obj.name if hasattr(obj, 'name') else obj.__class__.__name__
     # Is the property reflected along left/right?
     sign = -1 if neg else 1
+
     # Find out how to set values
     if not hasattr(val, '__iter__'):
         val = [val]
+    error_string    = False
+    error_dimension = False
     if isinstance(val, str):
-        raise ValueError(f"Error in settings for {name}: "
-                       + f"The setting `{prop}` has to be a number!")
+        error_string = True
     elif len(val) == 4:
     # The value is of the form [val_LU,val_RU,val_LD,val_RD]
+        if hasattr(val[0], '__iter__') or hasattr(val[1], '__iter__') \
+        or hasattr(val[2], '__iter__') or hasattr(val[3], '__iter__'):
+            error_dimension = True
         val_LU = val[0]
         val_RU = val[1]
         val_LD = val[2]
@@ -375,31 +390,38 @@ def _set_LRUD(obj, prop, val, neg=False, name=None,
             val_LD = val[0]
             val_RD = val[1]
         elif not hasattr(val[0], '__iter__') or not hasattr(val[1], '__iter__'):
-            raise ValueError(f"Error in settings for {name}: "
-                           + f"The setting `{prop}` has to be given as val, [val], "
-                           + f"[val_L, val_R], [[val_LU, val_RU], [val_LD, val_RD]], "
-                           + f"or [val_LU, val_RU, val_LD, val_RD]!")
+            error_dimension = True
         else:
         # The value is of the form [[val_LU, val_RU], [val_LD, val_RD]]
             if isinstance(val[0], str) or isinstance(val[1], str):
-                raise ValueError(f"Error in settings for {name}: "
-                               + f"The setting `{prop}` has to be a number or a "
-                               + f"list of numbers!")
+                error_string = True
+            if hasattr(val[0][0], '__iter__') or hasattr(val[0][1], '__iter__') \
+            or hasattr(val[1][0], '__iter__') or hasattr(val[1][1], '__iter__'):
+                error_dimension = True
             val_LU = val[0][0]
             val_RU = val[0][1]
             val_LD = val[1][0]
             val_RD = val[1][1]
     elif len(val) == 1:
     # The value is of the form [val]
+        if hasattr(val[0], '__iter__'):
+            error_dimension = True
         val_LU = val[0]
         val_RU = sign*val[0]
         val_LD = val[0]
         val_RD = sign*val[0]
     else:
+        error_dimension = True
+    if error_dimension:
         raise ValueError(f"Error in settings for {name}: "
                        + f"The setting `{prop}` has to be given as val, [val], "
                        + f"[val_L, val_R], [[val_LU, val_RU], [val_LD, val_RD]], "
                        + f"or [val_LU, val_RU, val_LD, val_RD]!")
+    if error_string:
+        raise ValueError(f"Error in settings for {name}: "
+                               + f"The setting `{prop}` has to be a number or a "
+                               + f"list of numbers!")
+
     # Is it a property or a dict key?
     if isinstance(obj, dict):
         obj[prop + name_LU] = val_LU
@@ -412,6 +434,7 @@ def _set_LRUD(obj, prop, val, neg=False, name=None,
         _prop_fset(obj, prop + name_LD)(obj, val_LD)
         _prop_fset(obj, prop + name_RD)(obj, val_RD)
 
+
 # These getter and setter functions link each property to the corresponding
 # entry in the DataFrame
 def _prop_fget(obj, attr_name):
@@ -421,7 +444,10 @@ def _prop_fget(obj, attr_name):
 
 def _prop_fset(obj, attr_name):
     def fset(obj, value):
-        obj._colldb.loc[obj.name, attr_name] = value
+        if hasattr(obj, '_colldb'):
+            obj._colldb.loc[obj.name, attr_name] = value
+        if hasattr(obj, attr_name):
+            setattr(obj, attr_name, value)
         # If we want additional effects on the setter funcions, this
         # can be achieved by defining an fset_prop method
         if hasattr(obj.__class__, 'fset_' + attr_name):

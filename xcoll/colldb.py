@@ -33,15 +33,28 @@ def _dict_keys_to_lower(dct):
     else:
         return dct
 
+
 def _get_coll_dct_by_beam(coll, beam):
     # The dictionary can be a CollimatorDatabase for a single beam (beam=None)
     # or for both beams (beam='b1' or beam='b2)
-    if list(coll.keys()) == ['b1','b2']:
+    if beam is not None:
+        if isinstance(beam, int) or len(beam) == 1:
+            beam = f'b{beam}'
+        beam = beam.lower()
+    beam_in_db = list(coll.keys())
+
+    if beam_in_db == ['b1','b2']:
         if beam is None:
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
-        elif isinstance(beam, int) or len(beam) == 1:
-            beam = f'b{beam}'
-        return coll[beam.lower()]
+        return coll[beam]
+
+    elif len(beam_in_db) == 1:
+        if beam is None:
+            beam = beam_in_db[0].lower()
+        elif beam != beam_in_db[0].lower():
+            raise ValueError("Variable 'beam' does not match beam specified in CollimatorDatabase!")
+        return coll[beam]
+
     elif beam is not None:
         print("Warning: Specified a beam, but the CollimatorDatabase is for a single beam only!")
     return coll

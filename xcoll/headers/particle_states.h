@@ -13,6 +13,8 @@
 #define  XC_LOST_ON_ABSORBER        -340
 
 #define  XC_ERR_INVALID_TRACK       -390
+#define  XC_ERR_NOT_IMPLEMENTED     -391
+#define  XC_ERR_INVALID_XOFIELD     -392
 #define  XC_ERR                     -399
     
 #endif /* XCOLL_STATES_H */
