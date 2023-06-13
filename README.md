@@ -16,8 +16,6 @@ Collimation in xtrack simulations
     * numpy
     * pandas
     * xsuite (in particular xobjects, xdeps, xtrack, xpart)
-* to use K2:
-    * gfortran 
 
 ### Installing
 `xcoll` is packaged using `poetry`, and can be easily installed with `pip`:
@@ -29,17 +27,6 @@ For a local installation, clone and install in editable mode (need to have `pip`
 git clone git@github.com:xsuite/xcoll.git
 pip install -e xcoll
 ```
-
-### Using K2
-To be able to use the K2 scattering algorithms, these need to be compiled from source.
-There is a small script that does this (you can ignore the warnings):
-```bash
-cd xcoll
-./compile_K2.sh
-```
-This installs a shared library in the package that is tailored to your current python installation.
-
-Without compilation, K2 Collimators can be installed in a `Line`, but not tracked.
 
 ### Example
 
