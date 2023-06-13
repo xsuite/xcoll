@@ -68,15 +68,15 @@ base_dict_fields = {
         {'val':  [40, 47],  'expected': {'sin_zL': np.sin(40*np.pi/180), 'cos_zL': np.cos(40*np.pi/180),
                                          'sin_zR': np.sin(47*np.pi/180), 'cos_zR': np.cos(47*np.pi/180)}}],
     'tilt': [
-        {'val':  5.2,        'expected': {'sin_yL': np.sin(5.2*np.pi/180), 'cos_yL': np.cos(5.2*np.pi/180),
-                                          'sin_yR': np.sin(5.2*np.pi/180), 'cos_yR': np.cos(5.2*np.pi/180),
-                                          'tan_yL': np.tan(5.2*np.pi/180), 'tan_yR': np.tan(5.2*np.pi/180)}},
-        {'val':  [5.2],      'expected': {'sin_yL': np.sin(5.2*np.pi/180), 'cos_yL': np.cos(5.2*np.pi/180),
-                                          'sin_yR': np.sin(5.2*np.pi/180), 'cos_yR': np.cos(5.2*np.pi/180),
-                                          'tan_yL': np.tan(5.2*np.pi/180), 'tan_yR': np.tan(5.2*np.pi/180)}},
-        {'val':  [5.2, 3.7], 'expected': {'sin_yL': np.sin(5.2*np.pi/180), 'cos_yL': np.cos(5.2*np.pi/180),
-                                          'sin_yR': np.sin(3.7*np.pi/180), 'cos_yR': np.cos(3.7*np.pi/180),
-                                          'tan_yL': np.tan(5.2*np.pi/180), 'tan_yR': np.tan(3.7*np.pi/180)}}],
+        {'val':  5.2e-2,           'expected': {'sin_yL': np.sin(5.2e-2), 'cos_yL': np.cos(5.2e-2),
+                                                'sin_yR': np.sin(5.2e-2), 'cos_yR': np.cos(5.2e-2),
+                                                'tan_yL': np.tan(5.2e-2), 'tan_yR': np.tan(5.2e-2)}},
+        {'val':  [5.2e-2],         'expected': {'sin_yL': np.sin(5.2e-2), 'cos_yL': np.cos(5.2e-2),
+                                                'sin_yR': np.sin(5.2e-2), 'cos_yR': np.cos(5.2e-2),
+                                                'tan_yL': np.tan(5.2e-2), 'tan_yR': np.tan(5.2e-2)}},
+        {'val':  [5.2e-2, 3.7e-2], 'expected': {'sin_yL': np.sin(5.2e-2), 'cos_yL': np.cos(5.2e-2),
+                                                'sin_yR': np.sin(3.7e-2), 'cos_yR': np.cos(3.7e-2),
+                                                'tan_yL': np.tan(5.2e-2), 'tan_yR': np.tan(3.7e-2)}}],
     'reference_center': [
         {'val':  0,                  'expected': {'ref_x': 0,       'ref_y': 0}},
         {'val':  [4.78e-5, -3.2e-5], 'expected': {'ref_x': 4.78e-5, 'ref_y': -3.2e-5}}],
@@ -94,9 +94,9 @@ base_dict_fields = {
 base_user_fields = {
     'angle_L': [{'val':  40, 'expected': {'sin_zL': np.sin(40*np.pi/180), 'cos_zL': np.cos(40*np.pi/180)}}],
     'angle_R': [{'val':  40, 'expected': {'sin_zR': np.sin(40*np.pi/180), 'cos_zR': np.cos(40*np.pi/180)}}],
-    'tilt_L':  [{'val':  0.5, 'expected': {
+    'tilt_L':  [{'val':  0.5*np.pi/180, 'expected': {
                 'sin_yL': np.sin(0.5*np.pi/180), 'cos_yL': np.cos(0.5*np.pi/180), 'tan_yL': np.tan(0.5*np.pi/180)}}],
-    'tilt_R':  [{'val':  0.7, 'expected': {
+    'tilt_R':  [{'val':  0.7*np.pi/180, 'expected': {
                 'sin_yR': np.sin(0.7*np.pi/180), 'cos_yR': np.cos(0.7*np.pi/180), 'tan_yR': np.tan(0.7*np.pi/180)}}],
     # Assuming jaw is previously set to [0.015, -0.014] and tilt to [0.5,0.7] and active_length to 1.3
     # In other words, the current setting is: jaw_LU = 0.009327751926056942
