@@ -6,4 +6,4 @@ from .scattering_routines.everest.materials import GeneralMaterial, Material, Cr
 from .manager import CollimatorManager
 from .colldb import CollimatorDatabase, load_SixTrack_colldb
 
-__version__ = '0.1.2'
+__version__ = '0.2.0'
