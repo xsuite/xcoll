@@ -126,13 +126,15 @@ class BaseCollimator(xt.BeamElement):
                     raise ValuError("Cannot use both 'tilt' and 'tilt_L/R'!")
                 kwargs['sin_yL'], kwargs['cos_yL'], kwargs['tan_yL'], \
                 kwargs['sin_yR'], kwargs['cos_yR'], kwargs['tan_yR'] \
-                                = _angle_setter(kwargs.pop('tilt', 0))
+                                = _angle_setter(kwargs.pop('tilt', 0), rad=True)
             else:
-                anglerad_L = kwargs.pop('tilt_L', 0) / 180. * np.pi
+#                 anglerad_L = kwargs.pop('tilt_L', 0) / 180. * np.pi
+                anglerad_L = kwargs.pop('tilt_L', 0)
                 kwargs['sin_yL'] = np.sin(anglerad_L)
                 kwargs['cos_yL'] = np.cos(anglerad_L)
                 kwargs['tan_yL'] = np.cos(anglerad_L)
-                anglerad_R = kwargs.pop('tilt_R', 0) / 180. * np.pi
+#                 anglerad_R = kwargs.pop('tilt_R', 0) / 180. * np.pi
+                anglerad_R = kwargs.pop('tilt_R', 0)
                 kwargs['sin_yR'] = np.sin(anglerad_R)
                 kwargs['cos_yR'] = np.cos(anglerad_R)
                 kwargs['tan_yR'] = np.cos(anglerad_R)
@@ -282,24 +284,30 @@ class BaseCollimator(xt.BeamElement):
     def side(self, side):
         self._side = _side_setter(side)
 
+    # TODO: tilts are in rad! Do we want that? It's a bit inconsistent with angle which is in deg...
+    # ==============================================================================================
     @property
     def tilt_L(self):
-        return round(np.arctan2(self.sin_yL, self.cos_yL) * (180.0 / np.pi), 10)
+#         return round(np.arctan2(self.sin_yL, self.cos_yL) * (180.0 / np.pi), 10)
+        return round(np.arctan2(self.sin_yL, self.cos_yL), 10)
 
     @tilt_L.setter
     def tilt_L(self, tilt_L):
-        anglerad_L = tilt_L / 180. * np.pi
+#         anglerad_L = tilt_L / 180. * np.pi
+        anglerad_L = tilt_L
         self.sin_yL = np.sin(anglerad_L)
         self.cos_yL = np.cos(anglerad_L)
         self.tan_yL = np.tan(anglerad_L)
 
     @property
     def tilt_R(self):
-        return round(np.arctan2(self.sin_yR, self.cos_yR) * (180.0 / np.pi), 10)
+#         return round(np.arctan2(self.sin_yR, self.cos_yR) * (180.0 / np.pi), 10)
+        return round(np.arctan2(self.sin_yR, self.cos_yR), 10)
 
     @tilt_R.setter
     def tilt_R(self, tilt_R):
-        anglerad_R = tilt_R / 180. * np.pi
+#         anglerad_R = tilt_R / 180. * np.pi
+        anglerad_R = tilt_R
         self.sin_yR = np.sin(anglerad_R)
         self.cos_yR = np.cos(anglerad_R)
         self.tan_yR = np.tan(anglerad_R)
@@ -310,7 +318,7 @@ class BaseCollimator(xt.BeamElement):
 
     @tilt.setter
     def tilt(self, tilt):
-        self.sin_yL, self.cos_yL, self.tan_yL, self.sin_yR, self.cos_yR, self.tan_yR = _angle_setter(tilt)
+        self.sin_yL, self.cos_yL, self.tan_yL, self.sin_yR, self.cos_yR, self.tan_yR = _angle_setter(tilt, rad=True)
 
     def jaw_func(self, pos):
         positions = ['LU', 'RU', 'LD', 'RD']
@@ -337,17 +345,18 @@ def _side_setter(val):
     raise ValueError(f"Unkown setting {val} for 'side'! Choose from "
                    + f"('left', 'L', '+'), ('right', 'R', '-'), or ('both', '+-').")
 
-def _angle_setter(val):
+def _angle_setter(val, rad=False):
     if not hasattr(val, '__iter__'):
         val = [val]
+    conversion = 1 if rad else np.pi / 180.
     if isinstance(val, str):
         raise ValueError(f"Error in setting angle: not a number!")
     elif len(val) == 2:
-        anglerad_L = val[0] / 180. * np.pi
-        anglerad_R = val[1] / 180. * np.pi
+        anglerad_L = val[0] * conversion
+        anglerad_R = val[1] * conversion
     elif len(val) == 1:
-        anglerad_L = val[0] / 180. * np.pi
-        anglerad_R = val[0] / 180. * np.pi
+        anglerad_L = val[0] * conversion
+        anglerad_R = val[0] * conversion
     else:
         raise ValueError(f"Error in setting angle: must have one or two (L, R) values!")
     return np.sin(anglerad_L), np.cos(anglerad_L), np.tan(anglerad_L), \

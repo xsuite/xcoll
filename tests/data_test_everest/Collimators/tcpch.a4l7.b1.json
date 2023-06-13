@@ -8,7 +8,6 @@
  "xdim": 0.002,
  "ydim": 0.05,
  "thick": 0,
- "crytilt": 0,
  "miscut": 0.0003,
  "lattice": "strip",
  "align_angle": 1.3856013282612604e-05,

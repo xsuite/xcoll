@@ -39,10 +39,13 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const c_offset   = ( EverestCrystalData_get_jaw_L(el) + EverestCrystalData_get_jaw_R(el) ) /2;
     double const c_tilt0    = asin(EverestCrystalData_get_sin_yL(el));
     double const c_tilt1    = asin(EverestCrystalData_get_sin_yR(el));
+    if (abs(c_tilt1) > 1.e-10){
+        kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+    };
     int    const side       = EverestCrystalData_get__side(el);
     double const bend       = EverestCrystalData_get_bend(el);
     // TODO: cry_tilt should be given by jaw positions...?
-    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + EverestCrystalData_get_crytilt(el);
+    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;
     double const bend_ang   = length/bend;    // temporary value
     if (cry_tilt >= -bend_ang) {
         length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
@@ -78,7 +81,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_add_to_x(part, -co_x);
                 LocalParticle_add_to_y(part, -co_y);
 
-                scatter_cry(part, length, material, rng, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, 
+                scatter_cry(part, length, material, rng, cos_zL, sin_zL, c_aperture, c_offset,
                             side, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
                             cry_miscut);
 

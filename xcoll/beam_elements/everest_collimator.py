@@ -82,7 +82,6 @@ class EverestCrystal(BaseCollimator):
         'xdim':           xo.Float64,
         'ydim':           xo.Float64,
         'thick':          xo.Float64,
-        'crytilt':        xo.Float64,
         'miscut':         xo.Float64,
         '_orient':        xo.Int8,
         '_material':      CrystalMaterial,
@@ -118,7 +117,6 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)
             kwargs.setdefault('thick', 0)
-            kwargs.setdefault('crytilt', 0)
             kwargs.setdefault('miscut', 0)
             kwargs['_orient'] = _lattice_setter(kwargs.pop('lattice', 'strip'))
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())

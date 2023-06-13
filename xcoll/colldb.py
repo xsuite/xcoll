@@ -252,8 +252,8 @@ class CollimatorDatabase:
                 'aligned_to':      self.align_to,
                 'angle':           self.angle,
                 'material':        self.material,
-                'offset':          self.offset,
-                'tilt':            self.tilt,
+#                 'offset':          self.offset,
+#                 'tilt':            self.tilt,
                 'stage':           self.stage,
                 'active_length':   self.active_length,
                 'collimator_type': self.collimator_type,
@@ -828,7 +828,7 @@ class CollimatorDatabase:
                 align_angle_x = np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
                 align_angle_y = np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
                 align_angle = np.array([x if abs(ang) < 1e-6 else y
-                                        for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle.values)])
+                                        for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
                 df.loc[cry_mask, 'align_angle'] = -align_angle*df_cry['gap_L']
 
 

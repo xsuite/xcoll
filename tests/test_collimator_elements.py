@@ -144,7 +144,6 @@ everest_crystal_fields = {**everest_fields,
     'xdim':              2.0e-3,
     'ydim':              50.0e-3,
     'thick':             1e-6,
-    'crytilt':           75e-6,
     'miscut':            1.2e-6,
     '_orient':           2
 }

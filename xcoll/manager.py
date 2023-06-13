@@ -492,14 +492,16 @@ class CollimatorManager:
                 line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
-                    line[name].material = SixTrack_to_xcoll[colldb.material[name]][0]
+                    if colldb._colldb.crystal[name] is None:
+                        line[name].material = SixTrack_to_xcoll[colldb.material[name]][0]
+                    else:
+                        line[name].material = SixTrack_to_xcoll[colldb.material[name]][1]
                 if isinstance(line[name], EverestCrystal):
                     line[name].align_angle = colldb._colldb.align_angle[name]
                     line[name].bend        = colldb._colldb.bend[name]
                     line[name].xdim        = colldb._colldb.xdim[name]
                     line[name].ydim        = colldb._colldb.ydim[name]
                     line[name].thick       = colldb._colldb.thick[name]
-                    line[name].crytilt     = colldb._colldb.crytilt[name]
                     line[name].miscut      = colldb._colldb.miscut[name]
                     line[name].lattice     = colldb._colldb.crystal[name]
             else:

@@ -12,9 +12,9 @@
 
 /*gpufun*/
 void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
-                 double cRot, double sRot, double c_aperture, double c_offset, double c_tilt0, double c_tilt1, 
-                 int side, double cry_tilt, double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax,
-                 double cry_ymax, double cry_orient, double cry_miscut){
+                 double cRot, double sRot, double c_aperture, double c_offset, int side, double cry_tilt,
+                 double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax, double cry_ymax, 
+                 double cry_orient, double cry_miscut){
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -65,7 +65,6 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
     double z = y_in;
     double zp = yp_in;
     double p = p_in;
-    double tiltangle = 0.;
 
     double mirror = 1.;
 
@@ -97,25 +96,14 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
         // Now mirror at the horizontal axis for negative X offset
         if (x < 0) {
             mirror    = -1;
-            tiltangle = -1*c_tilt1;
         } else {
             mirror    = 1;
-            tiltangle = c_tilt0;
         }
         x  = mirror*x;
         xp = mirror*xp;
 
         // Shift with opening and offset
         x = (x - c_aperture/2.) - mirror*c_offset;
-
-        // Include collimator tilt
-        if (tiltangle > 0.) {
-            xp = xp - tiltangle;
-        }
-        if (tiltangle < 0.) {
-            x  = x + sin(tiltangle) * length;
-            xp = xp - tiltangle;
-        }
 
         // particle passing above the jaw are discarded => take new event
         // entering by the face, shorten the length (zlm) and keep track of
@@ -188,17 +176,6 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
             // val_part_linteract = zlm;
         }
         s_imp  = (s - length) + s_imp;
-
-        // Transform back to particle coordinates with opening and offset
-        // Include collimator tilt
-        if (tiltangle > 0) {
-            x  = x  + tiltangle*length;
-            xp = xp + tiltangle;
-        } else if (tiltangle < 0) {
-            x  = x  + tiltangle*length;
-            xp = xp + tiltangle;
-            x  = x  - sin(tiltangle) * length;
-        }
 
         // Transform back to particle coordinates with opening and offset
         x   = (x + c_aperture/2) + mirror*c_offset;
