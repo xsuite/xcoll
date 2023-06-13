@@ -62,8 +62,8 @@ def _get_coll_dct_by_beam(coll, beam):
 
 class CollimatorDatabase:
 
-    _init_vars = ['collimator_dict', 'family_dict', 'beam', 'nemitt_x', 'nemitt_y', '_yaml_merged']
-    _init_var_defaults = {'family_dict': {}, 'beam': None, '_yaml_merged': False}
+    _init_vars = ['collimator_dict', 'family_dict', 'beam', 'nemitt_x', 'nemitt_y', '_yaml_merged', 'ignore_crystals']
+    _init_var_defaults = {'family_dict': {}, 'beam': None, '_yaml_merged': False, 'ignore_crystals': True}
 
     # -------------------------------
     # ------ Loading functions ------
@@ -144,7 +144,7 @@ class CollimatorDatabase:
 
 
     @classmethod
-    def from_dict(cls, dct, beam=None, _yaml_merged=False, nemitt_x=None, nemitt_y=None):
+    def from_dict(cls, dct, beam=None, _yaml_merged=False, nemitt_x=None, nemitt_y=None, ignore_crystals=True):
         # We make all keys case-insensitive to avoid confusion between different conventions
         # The families are optional
         fam = {}
@@ -177,7 +177,7 @@ class CollimatorDatabase:
             coll = dct
 
         return cls(collimator_dict=coll, family_dict=fam, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                   beam=beam, _yaml_merged=_yaml_merged)
+                   beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
 
 
     @classmethod
@@ -235,7 +235,7 @@ class CollimatorDatabase:
 
         self._optics = pd.DataFrame(columns=['x', 'px', 'y', 'py', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'])
         self._parse_dict(kwargs['collimator_dict'], kwargs['family_dict'],
-                         kwargs['beam'], kwargs['_yaml_merged'])
+                         kwargs['beam'], kwargs['_yaml_merged'], kwargs.get('ignore_crystals', True))
         self.emittance = [kwargs['nemitt_x'], kwargs['nemitt_y']]
         self._beta_gamma_rel = None
 
@@ -260,7 +260,7 @@ class CollimatorDatabase:
             }, index=self.name)
 
 
-    def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False):
+    def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False, ignore_crystals=True):
 
         # We make all keys case-insensitive to avoid confusion between different conventions
         coll = _dict_keys_to_lower(coll)
@@ -271,6 +271,7 @@ class CollimatorDatabase:
         coll = _get_coll_dct_by_beam(coll, beam)
 
         # Apply family settings
+        crystals = []
         for thiscoll, settings in coll.items():
             settings = {k.lower(): v for k,v in settings.items()}
             if 'family' in settings.keys() and settings['family'] is not None:
@@ -293,7 +294,15 @@ class CollimatorDatabase:
 
             else:
                 settings['family'] = None
-            coll[thiscoll] = settings
+
+            # Save list of crystals
+            if 'crystal' in settings:
+                crystals += [thiscoll]
+
+        # Remove crystals from colldb
+        if ignore_crystals:
+            for thiscoll in crystals:
+                del coll[thiscoll]
 
         # Check that all collimators have gap settings
         if not np.all(['gap' in val.keys() or 'opening' in val.keys() for val in coll.values()]):

@@ -54,6 +54,12 @@ coll_manager.build_tracker()
 coll_manager.set_openings()
 
 
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
+
+
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam=='1' else 'r'}7.b{beam}"
 part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=num_particles)
