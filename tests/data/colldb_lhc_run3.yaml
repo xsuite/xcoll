@@ -112,7 +112,7 @@ collimators:
     tcpcv.a6r7.b2:      { <<: *CRY7,   angle:  90,    bend: 74.88,  xdim: 5.0e-3,  ydim: 30.0e-3  }
     tcsg.b5r7.b2:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5r7.b2:       { <<: *TCSG7,  angle:  40.7   }
-    tcpch.a5r7.b2:      { <<: *CRY7,   angle:   0,    bend: 80.00,  xdim: 2.0e-3,  YDIM: 50.0e-3,  tilt: 14.324e-3,  miscut: -14.324e-3  }
+    tcpch.a5r7.b2:      { <<: *CRY7,   angle:   0,    bend: 80.00,  xdim: 2.0e-3,  YDIM: 50.0e-3,  miscut: -14.324e-3  }
     tcsg.d4r7.b2:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
     tcspm.d4r7.b2:      { <<: *TCSG7,  angle:  90,    material: MoGR,  active: false  } # prototype
     tcsg.b4r7.b2:       { <<: *TCSG7,  angle:   0,    active: false   }
