@@ -13,7 +13,7 @@ plane    = 'DPpos'
 
 num_particles  = 2000
 sweep          = 300
-sweep          = -sweep if plane == 'DPpos' else sweep
+sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 pretrack_turns = 500
 num_turns      = int(20*abs(sweep))
 at_element     = 'ip3'
@@ -49,7 +49,7 @@ print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
-    
+
 # Build the tracker
 coll_manager.build_tracker()
 
@@ -93,6 +93,7 @@ print(f"Done pre-tracking to empty halo in {line.time_last_track:.1f}s.")
 
 # We remove the lost particles, as we don't want them in the loss map
 part = part.filter(part.state == 1)
+print(f"{len(part.x)} particles left after initial tracking.")
 
 # Track during RF sweep:
 coll_manager.enable_scattering()
@@ -105,8 +106,10 @@ print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 # and plotted with the 'lossmaps' package
 _ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
+
 # Save a summary of the collimator losses to a text file
 summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
 print(summary)
+
 
 exit()

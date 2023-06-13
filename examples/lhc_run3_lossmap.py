@@ -81,11 +81,11 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-_ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam+plane}.json'))
+_ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
 
 # Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam+plane}.out'))
+summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
 print(summary)
 
 
