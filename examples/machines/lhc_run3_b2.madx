@@ -7,24 +7,25 @@
 !#######################
 option,-echo,-warn;
 
-System,"ln -fns /afs/cern.ch/eng/acc-models/lhc/v2022.2 run3seq";
+System,"ln -fns /afs/cern.ch/eng/acc-models/lhc/2023 run3seq";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/runIII run3opt";
-System,"ln -fns /afs/cern.ch/work/f/fvanderv/public/MADX/layout_db/files/LHC run3aper";
-System,"ln -fns /afs/cern.ch/work/f/fvanderv/public/MADX/extra_tools extra";
+System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools/patch_layout_db run3aper";
+System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools extra";
+
+REAL CONST l.TAN   = 0.0;   REAL CONST l.TANAL = l.TAN;
+REAL CONST l.TANAR = l.TAN; REAL CONST l.TANC  = l.TAN;
+REAL CONST l.TCT   = 1.0;   REAL CONST l.TCTH  = l.TCT;REAL CONST l.TCTVA = l.TCT;
+REAL CONST l.MBAS2 = 0;     REAL CONST l.MBAW  = 0;
+REAL CONST l.MBCS2 = 0;     REAL CONST l.MBLS2 = 0;
+REAL CONST l.MBLW  = 0;     REAL CONST l.MBWMD = 0;
+REAL CONST l.MBXWH = 0;     REAL CONST l.MBXWS = 0;
+REAL CONST l.MBXWT = 0;
 
 mylhcbeam=4;
-on_collision=1;
 rematchIR7=0;
+createOutput=0;
+make_thin=1;
 
-
-REAL CONST l.TAN   = 0.0  ;REAL CONST l.TANAL = l.TAN;
-REAL CONST l.TANAR = l.TAN;REAL CONST l.TANC  = l.TAN;
-REAL CONST l.TCT   = 1.0;REAL CONST l.TCTH  = l.TCT;REAL CONST l.TCTVA = l.TCT;
-REAL CONST l.MBAS2             =0 ; REAL CONST l.MBAW              =0 ;
-REAL CONST l.MBCS2             =0 ; REAL CONST l.MBLS2             =0 ;
-REAL CONST l.MBLW              =0 ; REAL CONST l.MBWMD             =0 ;
-REAL CONST l.MBXWH             =0 ; REAL CONST l.MBXWS             =0 ;
-REAL CONST l.MBXWT             =0 ;
 
 call,file="run3opt/toolkit/macro.madx";
 if (mylhcbeam<4){
@@ -35,29 +36,36 @@ if (mylhcbeam<4){
   bv_aux=-1;
 };
 
-if (mylhcbeam<4){
-  call,   file="run3seq/aperture/aperture_as-built.b1.madx";
-  call,   file="run3seq/aperture/aper_tol_as-built.b1.madx";
+if (make_thin==1){    ! Thick lattice currently does not have full aperture model
+    if (mylhcbeam<4){
+      call, file="run3seq/aperture/aperture_as-built.b1.madx";
+      call, file="run3seq/aperture/aper_tol_as-built.b1.madx";
+    };
+    call, file="run3seq/aperture/aperture_as-built.b2.madx";
+    call, file="run3seq/aperture/aper_tol_as-built.b2.madx";
 };
-call,   file="run3seq/aperture/aperture_as-built.b2.madx";
-call,   file="run3seq/aperture/aper_tol_as-built.b2.madx";
+call, file="run3opt/RunIII_dev/Proton_2023/opticsfile.43";
 
-!! Load some optics
-call,file="run3opt/RunIII_dev/2021_V6/PROTON/opticsfile.32";
 
-!! Save tunes for matching later
-qx0=Qxb1;
-qy0=Qyb1;
-qprime=3;   !qprime=15;  ! Overwrite, because value in optics is 0
-I_MO=0;     !I_MO=-300;
-ON_DISP=1;
+nrj     = 6800.0;
+qx0     = 62.31;
+qy0     = 60.32;
+dqx0    = 3.0;
+dqy0    = 3.0;
+I_MO_B1 = 0;     ! This represents the value of the KOF
+I_MO_B2 = 0;     ! This represents the value of the KOF
+on_disp = 1;
+exn     = 3.5e-06;
+numpart = 180000000000.0;   ! NPART=1.15E11
+esigma  = 9.526279441628826e-05;
+zsigma  = 0.0761;
 
-exn=3.5e-6;
+
 !! Set beam
 if (mylhcbeam<4){
-  Beam,particle=proton,sequence=lhcb1,energy=NRJ,NPART=1.4e11,sige=4.5e-4,ex=exn*pmass/nrj,ey=exn*pmass/nrj;
+  Beam,particle=proton,sequence=lhcb1,energy=NRJ,NPART=numpart,sige=esigma,sigt=zsigma, ex=exn*pmass/nrj,ey=exn*pmass/nrj;          
 };
-Beam,particle=proton,sequence=lhcb2,energy=NRJ,bv=-bv_aux,NPART=1.4e11,sige=4.5e-4,ex=exn*pmass/nrj,ey=exn*pmass/nrj;
+Beam,particle=proton,sequence=lhcb2,energy=NRJ,bv=-bv_aux,NPART=numpart,sige=esigma,sigt=zsigma, ex=exn*pmass/nrj,ey=exn*pmass/nrj;
 
 !! Which beta*, which telescope, which corresponding pre-squeezed beta* ?
 if (mylhcbeam<4){
@@ -78,72 +86,135 @@ betxip1b2_pre=betxip1b2*rx_IP1;betyip1b2_pre=betyip1b2*ry_IP1;betxip5b2_pre=betx
 value,betxip1b2_pre,betyip1b2_pre,betxip5b2_pre,betyip5b2_pre;
 
 
-!! Save crossing scheme
-on_x1_aux=on_x1;on_x5_aux=on_x5;on_x2_aux=on_x2;on_x8_aux=on_x8;on_sep1_aux=on_sep1;on_sep2_aux=on_sep2;on_sep5_aux=on_sep5;on_sep8_aux=on_sep8;on_alice_aux=on_alice;on_lhcb_aux=on_lhcb;
+! Crossing scheme
+on_x1    = -160.0;
+on_x2h   = 0;
+on_x2v   = 200.0;
+on_x5    = 160.0;
+on_x8h   = 0.0;
+on_x8v   = 200.0;
+on_sep1  = 0.0;
+on_sep2h = 0.0;
+on_sep2v = 0;
+on_sep5  = 0.0;
+on_sep8h = 0.0;
+on_sep8v = 0.0;
+on_a1    = 0;
+on_a2    = 0.0;
+on_a5    = 0;
+on_a8    = 0.0;
+on_o1    = 0;
+on_o2    = 0;
+on_o5    = 0;
+on_o8    = 0;
+on_alice     = 1;
+on_lhcb      = 1;
+on_sol_atlas = 0;
+on_sol_cms   = 0;
+on_sol_alice = 0;
+
+! Store crossing
+on_x1_aux = on_x1; on_x2h_aux = on_x2h; on_x2v_aux = on_x2v;
+on_x5_aux = on_x5; on_x8h_aux = on_x8h; on_x8v_aux = on_x8v;
+on_sep1_aux = on_sep1; on_sep2h_aux = on_sep2h; on_sep2v_aux = on_sep2v;
+on_sep5_aux = on_sep5; on_sep8h_aux = on_sep8h; on_sep8v_aux = on_sep8v;
+on_a1_aux = on_a1; on_a2_aux = on_a2; on_a5_aux = on_a5; on_a8_aux = on_a8;
+on_o1_aux = on_o1; on_o2_aux = on_o2; on_o5_aux = on_o5; on_o8_aux = on_o8;
+on_alice_aux = on_alice; on_lhcb_aux = on_lhcb;
+on_sol_atlas_aux = on_sol_atlas; on_sol_cms_aux = on_sol_cms; on_sol_alice_aux = on_sol_alice;
 
 
 !###################
 !# Check and Slice #
 !###################
 
-!! Make a twiss of the flat machine and check wether the optics is  matched as expected
-on_x1=0;on_x5=0;on_x2=0;on_x8=0;on_sep1=0;on_sep2=0;on_sep5=0;on_sep8=0;on_alice=0;on_lhcb=0;
-if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
-twiss;
-Value, table(summ,q1),table(summ,q2),table(summ,dq1),table(summ,dq2);
-Value, table(twiss,IP1,betx),table(twiss,IP2,betx),table(twiss,IP5,betx),table(twiss,IP8,betx);
+if (make_thin==1){
+    print,text="";
+    print,text="";
+    print,text="Preparing Beam 4 -----------------------------------------------------";
+    print,text="";
+    print,text="";
+
+    !! Make a twiss of the flat machine and check wether the optics is  matched as expected
+    on_x1 = 0; on_x2h = 0; on_x2v = 0; on_x5 = 0; on_x8h = 0; on_x8v = 0;
+    on_sep1 = 0; on_sep2h = 0; on_sep2v = 0; on_sep5 = 0; on_sep8h = 0; on_sep8v = 0;
+    on_a1 = 0; on_a2 = 0; on_a5 = 0; on_a8 = 0; on_o1 = 0;
+    on_o2 = 0; on_o5 = 0; on_o8 = 0;
+    on_alice = 0; on_lhcb = 0; on_sol_atlas = 0; on_sol_cms = 0; on_sol_alice = 0; 
+    if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
+    twiss;
+    Value, table(summ,q1),table(summ,q2),table(summ,dq1),table(summ,dq2);
+    Value, table(twiss,IP1,betx),table(twiss,IP2,betx),table(twiss,IP5,betx),table(twiss,IP8,betx);
 
 
-!! Slice
-Option, -echo,-warn,-info;
-slicefactor=4;
-select, flag=makethin, clear;
-select, flag=makethin, class=MB,    slice= 2;
-select, flag=makethin, class=MQ,    slice=2 * slicefactor;
-select, flag=makethin, class=mqxa,  slice=32* slicefactor;
-select, flag=makethin, class=mqxb,  slice=32* slicefactor;
-select, flag=makethin, pattern=mbx\. ,   slice=4;
-select, flag=makethin, pattern=mbrb\.,   slice=4;
-select, flag=makethin, pattern=mbrc\.,   slice=4;
-select, flag=makethin, pattern=mbrs\.,   slice=4;
-select, flag=makethin, pattern=mqwa\.,   slice=4;
-select, flag=makethin, pattern=mqwb\.,   slice=4;
-select, flag=makethin, pattern=mqy\.,    slice=4* slicefactor;
-select, flag=makethin, pattern=mqm\.,    slice=4* slicefactor;
-select, flag=makethin, pattern=mqmc\.,   slice=4* slicefactor;
-select, flag=makethin, pattern=mqml\.,   slice=4* slicefactor;
-select, flag=makethin, pattern=mqtlh\.,  slice=2* slicefactor;
-select, flag=makethin, pattern=mqtli\.,  slice=2* slicefactor;
-select, flag=makethin, pattern=mqt\.  ,  slice=2* slicefactor;
+    !! Slice
+    Option, -echo,-warn,-info;
+    slicefactor=4;
+    select, flag=makethin, clear;
+    select, flag=makethin, class=MB,         slice=2;
+    select, flag=makethin, class=MQ,         slice=2 * slicefactor;
+    select, flag=makethin, class=mqxa,       slice=32* slicefactor;
+    select, flag=makethin, class=mqxb,       slice=32* slicefactor;
+    select, flag=makethin, pattern=mbx\. ,   slice=4;
+    select, flag=makethin, pattern=mbrb\.,   slice=4;
+    select, flag=makethin, pattern=mbrc\.,   slice=4;
+    select, flag=makethin, pattern=mbrs\.,   slice=4;
+    select, flag=makethin, pattern=mqwa\.,   slice=4;
+    select, flag=makethin, pattern=mqwb\.,   slice=4;
+    select, flag=makethin, pattern=mqy\.,    slice=4* slicefactor;
+    select, flag=makethin, pattern=mqm\.,    slice=4* slicefactor;
+    select, flag=makethin, pattern=mqmc\.,   slice=4* slicefactor;
+    select, flag=makethin, pattern=mqml\.,   slice=4* slicefactor;
+    select, flag=makethin, pattern=mqtlh\.,  slice=2* slicefactor;
+    select, flag=makethin, pattern=mqtli\.,  slice=2* slicefactor;
+    select, flag=makethin, pattern=mqt\.  ,  slice=2* slicefactor;
 
-if (mylhcbeam==1){
-  use,sequence=lhcb1;
-  makethin, sequence=lhcb1, makedipedge=false, style=teapot, makeendmarkers=true;
- } else {
-  use,sequence=lhcb2;
-  makethin, sequence=lhcb2, makedipedge=false, style=teapot, makeendmarkers=true;
+    if (mylhcbeam<4){
+      use,sequence=lhcb1;
+      makethin, sequence=lhcb1, makedipedge=false, style=teapot, makeendmarkers=true;
+    };
+    use,sequence=lhcb2;
+    makethin, sequence=lhcb2, makedipedge=false, style=teapot, makeendmarkers=true;
+
+    ! Add more aperture markers (moved to after slicing to avoid negative drifts)
+    if (mylhcbeam<4){
+      call,   file="run3aper/layout_2023.seq";
+    } else {
+      call,   file="run3aper/layout_2023_b4_part1.seq";
+      call,   file="run3aper/layout_2023_b4_part2.seq";
+    };
 };
 
-! Add more aperture markers (moved to after slicing to avoid negative drifts)
+! Final flatten after all seqedits to ensure no fatal errors
 if (mylhcbeam<4){
-  call,   file="run3aper/APERTURE_YETS_2021-2022.seq";
-} else {
-  call,   file="run3aper/APERTURE_YETS_2021-2022_b4_part1.seq";
-  call,   file="run3aper/APERTURE_YETS_2021-2022_b4_part2.seq";
+  seqedit, sequence=lhcb1; flatten; endedit;
 };
+seqedit, sequence=lhcb2; flatten; endedit;
 
 !! Use sequence (has to be set again after slicing but before errors/misalignments)
 if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
 
-! Align separation magnets
-call,file="extra/align_sepdip.madx";
-exec, align_mbxw;
-exec, align_mbrc15;
-exec, align_mbx28;
-exec, align_mbrc28;
-exec, align_mbrs;
-exec, align_mbrb;
 
+! Align separation magnets
+if (make_thin==1){
+  call,file="extra/align_sepdip.madx";
+  exec, align_mbxw;
+  exec, align_mbrc15;
+  exec, align_mbx28;
+  exec, align_mbrc28;
+  exec, align_mbrs;
+  exec, align_mbrb;
+
+  ! Applying aperture offsets
+  if (mylhcbeam<4){
+    call,file="extra/aperoffset_elements.madx";
+  } else {
+    call,file="extra/aperoffset_elements_b4.madx";
+  };
+};
+
+!! Use sequence (TODO: this kills alignment of the separation dipoles: to be tested for compatibility with Bjorns script)
+if (mylhcbeam==1){ use,sequence=lhcb1; } else { use,sequence=lhcb2; };
 
 !##################
 !# Machine tuning #
@@ -151,68 +222,69 @@ exec, align_mbrb;
 
 !! Octupole Settings
 brho:=NRJ*1e9/clight;
-if (mylhcbeam==1){
-  KOF.A12B1:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A23B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A34B1:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A45B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A56B1:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A67B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A78B1:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A81B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A12B1:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A23B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A34B1:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A45B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A56B1:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A67B1:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A78B1:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A81B1:=Kmax_MO*I_MO/Imax_MO/brho;
+if (mylhcbeam<4){
+  KOF.A12B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A23B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOF.A34B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A45B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOF.A56B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A67B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOF.A78B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOF.A81B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOD.A12B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A23B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOD.A34B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A45B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOD.A56B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A67B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
+  KOD.A78B1:=Kmax_MO*I_MO_B1/Imax_MO/brho; KOD.A81B1:=Kmax_MO*I_MO_B1/Imax_MO/brho;
 };
-if (mylhcbeam>1){
-  KOF.A12B2:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A23B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A34B2:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A45B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A56B2:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A67B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOF.A78B2:=Kmax_MO*I_MO/Imax_MO/brho; KOF.A81B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A12B2:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A23B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A34B2:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A45B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A56B2:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A67B2:=Kmax_MO*I_MO/Imax_MO/brho;
-  KOD.A78B2:=Kmax_MO*I_MO/Imax_MO/brho; KOD.A81B2:=Kmax_MO*I_MO/Imax_MO/brho;
-};
+KOF.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOF.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOF.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A12B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A23B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A34B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A45B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A56B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A67B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
+KOD.A78B2:=Kmax_MO*I_MO_B2/Imax_MO/brho; KOD.A81B2:=Kmax_MO*I_MO_B2/Imax_MO/brho;
 
 
 !! Activate crossing
-on_x1=on_x1_aux; on_x5=on_x5_aux; on_x2=on_x2_aux; on_x8=on_x8_aux; on_sep1=on_sep1_aux; on_sep2=on_sep2_aux; on_sep5=on_sep5_aux; on_sep8=on_sep8_aux; on_alice=on_alice_aux; on_lhcb=on_lhcb_aux;
+on_x1 = on_x1_aux; on_x2h = on_x2h_aux; on_x2v = on_x2v_aux;
+on_x5 = on_x5_aux; on_x8h = on_x8h_aux; on_x8v = on_x8v_aux;
+on_sep1 = on_sep1_aux; on_sep2h = on_sep2h_aux; on_sep2v = on_sep2v_aux;
+on_sep5 = on_sep5_aux; on_sep8h = on_sep8h_aux; on_sep8v = on_sep8v_aux;
+on_a1 = on_a1_aux; on_a2 = on_a2_aux; on_a5 = on_a5_aux; on_a8 = on_a8_aux;
+on_o1 = on_o1_aux; on_o2 = on_o2_aux; on_o5 = on_o5_aux; on_o8 = on_o8_aux; 
+on_alice = on_alice_aux; on_lhcb = on_lhcb_aux;
+on_sol_atlas = on_sol_atlas_aux; on_sol_cms = on_sol_cms_aux; on_sol_alice = on_sol_alice_aux; 
 
-if(on_collision==1){
-  !! Remove separation (we are simulating collisions)
-  on_sep1=0; on_sep5=0; on_sep2=0; on_sep8=0;
-};
 
 !! Match tune and chroma
-if(mylhcbeam==1){
-  kqtf=dQx.b1_sq;kqtd=dQy.b1_sq;  dQx.b1_sq:=kqtf;dQy.b1_sq:=kqtd;
-  ksf=dQpx.b1_sq;ksd=dQpy.b1_sq;  dQpx.b1_sq:=ksf;dQpy.b1_sq:=ksd;
-};
-if(mylhcbeam>1){
-  kqtf=dQx.b2_sq;kqtd=dQy.b2_sq;  dQx.b2_sq:=kqtf;dQy.b2_sq:=kqtd;
-  ksf=dQpx.b2_sq;ksd=dQpy.b2_sq;  dQpx.b2_sq:=ksf;dQpy.b2_sq:=ksd;
-};
+kqtf=dQx.b2_sq;
+kqtd=dQy.b2_sq;
+dQx.b2_sq:=kqtf;
+dQy.b2_sq:=kqtd;
+ksf=dQpx.b2_sq;
+ksd=dQpy.b2_sq;
+dQpx.b2_sq:=ksf;
+dQpy.b2_sq:=ksd;
 
 match;
 global, q1=qx0, q2=qy0;
-vary,   name=kqtf, step=1.0E-7 ;
-vary,   name=kqtd, step=1.0E-7 ;
-lmdif,  calls=100, tolerance=1.0E-21;
+vary,   name=kqtf, step=1.0E-7;
+vary,   name=kqtd, step=1.0E-7;
+jacobian,  calls=100, tolerance=1.0E-11;
 endmatch;
 
 match,chrom;
-global, dq1=qprime, dq2=qprime;
+global, dq1=dqx0, dq2=dqy0;
 vary,   name=ksf;
 vary,   name=ksd;
-lmdif,  calls=100, tolerance=1.0E-21;
+jacobian,  calls=100, tolerance=1.0E-11;
 endmatch;
 
 match,chrom;
-global, dq1=qprime, dq2=qprime;
-global, q1=qx0, q2=qy0;
+global, q1=qx0,   q2=qy0;
+global, dq1=dqx0, dq2=dqy0;
 vary,   name=ksf;
 vary,   name=ksd;
-vary,   name=kqtf, step=1.0E-7 ;
-vary,   name=kqtd, step=1.0E-7 ;
-lmdif,  calls=500, tolerance=1.0E-21;
+vary,   name=kqtf, step=1.0E-7;
+vary,   name=kqtd, step=1.0E-7;
+jacobian,  calls=500, tolerance=1.0E-11;
 endmatch;
 
 if(rematchIR7==1){
@@ -220,9 +292,10 @@ if(rematchIR7==1){
 };
 
 !! RF cavities on
-VRF400=16;  !8MV for injection, 16MV for collision
-LAGRF400.b1=0.5;
-LAGRF400.b2=0.;   ! Need to set this to 0, because the reflection to beam 4 is implemented wrong..
+VRF400=12.0;  !8MV for injection, 16MV for collision
+LAGRF400.B1=0.5;
+LAGRF400.B2=0.0;  ! Needs to be reflected for B4
+
 ! Need to manually specify harmonic number, as some sequences in the repository are missing it
 ! HRF400              := 35640;
 ACSCA.D5L4.B1, HARMON := HRF400;
@@ -242,9 +315,34 @@ ACSCA.B5R4.B2, HARMON := HRF400;
 ACSCA.C5R4.B2, HARMON := HRF400;
 ACSCA.D5R4.B2, HARMON := HRF400;
 
-System,"rm run3seq";
-System,"rm run3opt";
-System,"rm run3aper";
-System,"rm extra";
 
+!#################
+!# Create Output #
+!#################
+
+if(createOutput==1){ 
+  select,flag=twiss,clear;
+  select,flag=twiss,class=collimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
+  select,flag=twiss,class=rcollimator, column=name,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy;
+  twiss,file="collimators_B2.tfs";
+};
+
+select,flag=twiss,clear;
+select,flag=twiss, column=name,keyword,s,L,betx,bety,alfx,alfy,mux,muy,x,y,px,py,dx,dy,dpx,dpy,apertype,mech_sep;
+if(createOutput==1){
+  twiss,file="all_optics_B2.tfs";
+} else {
+  twiss;
+};
+
+
+set,format="20.14f";
+value,table(twiss,IP1,betx),table(twiss,IP1,bety),table(twiss,IP5,betx),table(twiss,IP5,bety), table(twiss,IP2,betx),table(twiss,IP2,bety),table(twiss,IP8,betx),table(twiss,IP8,bety);
+value,table(twiss,IP7,x)*1e6,table(twiss,IP7,y)*1e6,table(twiss,IP1,x),table(twiss,IP1,py), table(twiss,IP5,y),table(twiss,IP5,px);
+
+
+system,"rm run3seq run3opt run3aper extra";
 return;
+
+
+

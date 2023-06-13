@@ -1,4 +1,5 @@
+from .base_collimator import BaseCollimator
 from .absorber import BlackAbsorber
-from .k2_collimator import K2Collimator, K2Crystal
+from .everest_collimator import EverestCollimator, EverestCrystal
 
-_all_collimator_types = { BlackAbsorber, K2Collimator, K2Crystal }
+_all_collimator_types = { BlackAbsorber, EverestCollimator, EverestCrystal }

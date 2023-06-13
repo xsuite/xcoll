@@ -1,0 +1,32 @@
+{
+ "__class__": "K2Collimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "reference_center": [
+  3.856605966311988e-05,
+  -0.0016417943749942425
+ ],
+ "jaw": 0.00100982863569859,
+ "material": {
+  "__class__": "Material",
+  "name": "Tungsten",
+  "Z": 74,
+  "A": 183.85,
+  "density": 19.3,
+  "excitation_energy": 7.27e-07,
+  "nuclear_radius": 0.52,
+  "nuclear_elastic_slope": 440.3,
+  "cross_section": [
+   2.765,
+   1.591,
+   0,
+   0,
+   0,
+   0.00768
+  ],
+  "hcut": 0.01,
+  "radiation_length": 0.0035
+ }
+}

@@ -19,9 +19,7 @@ bety0=11.41817476
 
 
 # Load from json
-with open('machines/ps_b1.json', 'r') as fid:
-    loaded_dct = json.load(fid)
-line = xt.Line.from_dict(loaded_dct)
+line = xt.Line.from_json('machines/ps_b1.json')
 
 
 
@@ -32,7 +30,7 @@ coll_manager = xc.CollimatorManager(
     )
 
 coll_manager.colldb.parking = 1
-coll_manager.install_k2_collimators(verbose=True, seed=6554)
+coll_manager.install_everest_collimators(verbose=True, seed=6554)
 coll_manager.align_collimators_to('front')
 
 coll_manager.build_tracker()
@@ -42,25 +40,19 @@ coll_manager.build_tracker()
 
 # We set the openings etc manually
 coll = 'pr.tdi47'
-line[coll].jaw_F_L = 0.001
-line[coll].jaw_B_L = 0.001
-line[coll].dx = 0
-line[coll].dy = 0
-line[coll].dpx = 0
-line[coll].dpy = 0
+line[coll].jaw = 0.001
+line[coll].ref_x = 0
+line[coll].ref_y = 0
 line[coll].material = 'BE'
-line[coll].is_active = True
+line[coll].active = True
 line[coll].onesided = True
 
 coll = 'pr.tdi48'
-line[coll].jaw_F_L = 0.001
-line[coll].jaw_B_L = 0.001
-line[coll].dx = 0
-line[coll].dy = 0
-line[coll].dpx = 0
-line[coll].dpy = 0
+line[coll].jaw = 0.001
+line[coll].ref_x = 0
+line[coll].ref_y = 0
 line[coll].material = 'BE'
-line[coll].is_active = True
+line[coll].active = True
 line[coll].onesided = True
 
 
@@ -120,11 +112,11 @@ plt.show()
 # ----------------------------------------------------------------------------------------------------
 # Track, and after every turn move the dump block more inwards
 coll = 'pr.tdi47'
-line[coll].jaw_F_L = 0.06
-line[coll].jaw_B_L = 0.06
+line[coll].jaw_LU = 0.06
+line[coll].jaw_LD = 0.06
 coll = 'pr.tdi48'
-line[coll].jaw_F_L = 0.06
-line[coll].jaw_B_L = 0.06
+line[coll].jaw_LU = 0.06
+line[coll].jaw_LD = 0.06
 part = {}
 
 step = 0.005
@@ -132,11 +124,11 @@ steps = int(0.06*2/step +1)
 
 for turn in range(1,steps+1):
     coll = 'pr.tdi47'
-    line[coll].jaw_F_L -= step
-    line[coll].jaw_B_L -= step
+    line[coll].jaw_LU -= step
+    line[coll].jaw_LD -= step
     coll = 'pr.tdi48'
-    line[coll].jaw_F_L -= step
-    line[coll].jaw_B_L -= step
+    line[coll].jaw_LU -= step
+    line[coll].jaw_LD -= step
     coll_manager.track(particles, num_turns=1)
     part[turn] = particles.copy()
     

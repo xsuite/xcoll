@@ -7,8 +7,6 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-import sixtracktools as st
-
 
 # --------------------------------------------------------
 # -------------------- Initialisation --------------------

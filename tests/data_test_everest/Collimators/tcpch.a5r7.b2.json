@@ -1,0 +1,44 @@
+{
+ "__class__": "EverestCrystal",
+ "active_length": 0.004,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "bend": 91,
+ "xdim": 0.0056,
+ "ydim": 0.045,
+ "thick": 0,
+ "miscut": 0.0001,
+ "lattice": "quasi-mosaic",
+ "align_angle": 2.84287e-05,
+ "reference_center": [
+  1.3982225860971822e-06,
+  5.403106164147752e-07
+ ],
+ "jaw": 0.0016228626016286682,
+ "side": "left",
+ "material": {
+  "__class__": "CrystalMaterial",
+  "Z": 14.0,
+  "A": 28.08,
+  "density": 2.33,
+  "excitation_energy": 1.73e-07,
+  "nuclear_radius": 0.441,
+  "nuclear_elastic_slope": 120.14,
+  "cross_section": [
+   0.664,
+   0.43,
+   0,
+   0,
+   0,
+   0.00039
+  ],
+  "hcut": 0.02,
+  "name": "Silicon",
+  "crystal_radiation_length": 0.0937,
+  "crystal_nuclear_length": 0.4652,
+  "crystal_plane_distance": 9.6e-08,
+  "crystal_potential": 21.34,
+  "nuclear_collision_length": 0.3016
+ }
+}

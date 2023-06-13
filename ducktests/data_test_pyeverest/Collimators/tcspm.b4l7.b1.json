@@ -1,0 +1,35 @@
+{
+ "__class__": "PyEverestCollimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "reference_center": [
+  -2.4736210038525023e-07,
+  4.2203909489975496e-07
+ ],
+ "jaw": [
+  -0.003063910212062276,
+  -0.004336089787937724
+ ],
+ "material": {
+  "__class__": "Material",
+  "name": "MolybdenumGraphite",
+  "Z": 6.65,
+  "A": 13.53,
+  "density": 2.5,
+  "excitation_energy": 8.71e-08,
+  "nuclear_radius": 0.25,
+  "nuclear_elastic_slope": 76.7,
+  "cross_section": [
+   0.362,
+   0.247,
+   0,
+   0,
+   0,
+   9.4e-05
+  ],
+  "hcut": 0.02,
+  "radiation_length": 0.1193
+ }
+}

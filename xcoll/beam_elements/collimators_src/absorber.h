@@ -3,66 +3,39 @@
 
 /*gpufun*/
 int64_t is_within_aperture(LocalParticle* part, double jaw_L, double jaw_R){
-
     double const x = LocalParticle_get_x(part);
     return (int64_t)((x > jaw_R) && (x < jaw_L) );
-}
-
-/*gpufun*/
-void drift_for_collimator(LocalParticle* part, double const length){
-
-    double const rpp    = LocalParticle_get_rpp(part);
-    double const rv0v    = 1./LocalParticle_get_rvv(part);
-    double const xp     = LocalParticle_get_px(part) * rpp;
-    double const yp     = LocalParticle_get_py(part) * rpp;
-    double const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
-
-    LocalParticle_add_to_x(part, xp * length );
-    LocalParticle_add_to_y(part, yp * length );
-    LocalParticle_add_to_s(part, length);
-    LocalParticle_add_to_zeta(part, length * dzeta );
-
-}
-
-/*gpufun*/
-void rotation_for_collimator(LocalParticle* part,
-                             double const sin_z, double const cos_z){
-
-    double const x  = LocalParticle_get_x(part);
-    double const y  = LocalParticle_get_y(part);
-    double const px = LocalParticle_get_px(part);
-    double const py = LocalParticle_get_py(part);
-
-    double const x_hat  =  cos_z * x  + sin_z * y;
-    double const y_hat  = -sin_z * x  + cos_z * y;
-    double const px_hat =  cos_z * px + sin_z * py;
-    double const py_hat = -sin_z * px + cos_z * py;
-
-    LocalParticle_set_x(part, x_hat);
-    LocalParticle_set_y(part, y_hat);
-    LocalParticle_set_px(part, px_hat);
-    LocalParticle_set_py(part, py_hat);
-
 }
 
 /*gpufun*/
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
 
     // Collimator active and length
-    int8_t const is_active = BlackAbsorberData_get__active(el);
+    int8_t is_active = BlackAbsorberData_get_active(el);
+    is_active       *= BlackAbsorberData_get__tracking(el);
     double const inactive_front = BlackAbsorberData_get_inactive_front(el);
     double const inactive_back = BlackAbsorberData_get_inactive_back(el);
     double const active_length = BlackAbsorberData_get_active_length(el);
     // Collimator jaws
-    double const jaw_F_L = BlackAbsorberData_get_jaw_F_L(el);
-    double const jaw_F_R = BlackAbsorberData_get_jaw_F_R(el);
-    double const jaw_B_L = BlackAbsorberData_get_jaw_B_L(el);
-    double const jaw_B_R = BlackAbsorberData_get_jaw_B_R(el);
+    double const jaw_L  = BlackAbsorberData_get_jaw_L(el);
+    double const jaw_R  = BlackAbsorberData_get_jaw_R(el);
+    double const sin_yL = BlackAbsorberData_get_sin_yL(el);
+    double const sin_yR = BlackAbsorberData_get_sin_yR(el);
+    double const jaw_LU = jaw_L - sin_yL*active_length/2.;
+    double const jaw_LD = jaw_L + sin_yL*active_length/2.;
+    double const jaw_RU = jaw_R - sin_yR*active_length/2.;
+    double const jaw_RD = jaw_R + sin_yR*active_length/2.;
+    // TODO: need shortening of active length!
     // Collimator reference frame
-    double const sin_z = BlackAbsorberData_get_sin_z(el);
-    double const cos_z = BlackAbsorberData_get_cos_z(el);
-    double const dx = BlackAbsorberData_get_dx(el);
-    double const dy = BlackAbsorberData_get_dy(el);
+    double const sin_zL = BlackAbsorberData_get_sin_zL(el);
+    double const cos_zL = BlackAbsorberData_get_cos_zL(el);
+    double const sin_zR = BlackAbsorberData_get_sin_zR(el);
+    double const cos_zR = BlackAbsorberData_get_cos_zR(el);
+    if (abs(sin_zL-sin_zR) > 1.e-10 || abs(cos_zL-cos_zR) > 1.e-10 ){
+        kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
+    };
+    double const dx = BlackAbsorberData_get_ref_x(el);
+    double const dy = BlackAbsorberData_get_ref_y(el);
     // Impact table
     CollimatorImpactsData record = BlackAbsorberData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
@@ -73,57 +46,59 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     //start_per_particle_block (part0->part)
 
         // Go to collimator reference system (centered around orbit)
-        LocalParticle_add_to_x(part, -dx);
-        LocalParticle_add_to_y(part, -dy);
-        rotation_for_collimator(part, sin_z, cos_z);
+        XYShift_single_particle(part, dx, dy);
+        SRotation_single_particle(part, sin_zL, cos_zL);
 
         int64_t is_alive = 1;
 
         if (!is_active){
 
             // If collimator not active, replace with drift
-            drift_for_collimator(part, inactive_front + active_length + inactive_back);
+            Drift_single_particle(part, inactive_front+active_length+inactive_back);
 
         } else {
+
+            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            if (is_tracking) {
            
             // Drift inactive length before jaw
-            drift_for_collimator(part, inactive_front);
+            Drift_single_particle(part, inactive_front);
 
             // Store transversal coordinates for potential backtracking later
             double x_F = LocalParticle_get_x(part);
 //             double y_F = LocalParticle_get_y(part);
 
             // Check if hit on the collimator jaw at the front
-            is_alive = is_within_aperture(part, jaw_F_L, jaw_F_R);
+            is_alive = is_within_aperture(part, jaw_LU, jaw_RU);
 
             // Continue if the particle didn't hit the collimator
             if (is_alive){
 
                 // Drift the jaw length
-                drift_for_collimator(part, active_length);
+                Drift_single_particle(part, active_length);
 
                 // Check if hit on the collimator jaw at the back
-                is_alive = is_within_aperture(part, jaw_B_L, jaw_B_R);
+                is_alive = is_within_aperture(part, jaw_LD, jaw_RD);
 
                 // TODO: is there a performance difference with nesting the ifs or not?
                 // Continue if the particle didn't hit the collimator
                 if (is_alive){
-                    
+
                     // Drift inactive length after jaw
-                    drift_for_collimator(part, inactive_back);
-                    
+                    Drift_single_particle(part, inactive_back);
+
                 } else {
-                    
+
                     // Backtrack to the particle position of impact
                     // This should only be done if the particle did NOT hit the front jaw
                     double x_B = LocalParticle_get_x(part);
 //                     double y_B = LocalParticle_get_y(part);
                     double length;
-                    
+
                     if (x_B > 0){        // Left jaw
-                        length = (jaw_B_L - x_B) / (jaw_B_L - jaw_F_L - x_B + x_F) * active_length;
+                        length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * active_length;
                     } else if (x_B < 0){ // Right jaw
-                        length = (jaw_B_R - x_B) / (jaw_B_R - jaw_F_R - x_B + x_F) * active_length;
+                        length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * active_length;
                     // TODO: check this
 //                     } else if (y_B > 0){ // Upper jaw
 //                         length = (y_B - jaw_U) / (y_B - y_F) * active_length;
@@ -132,21 +107,21 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     } else {
                         length = 0;
                     }
-                    drift_for_collimator(part, -length);
+                    Drift_single_particle(part, -length);
 
                 }
+            }
             }
         }
 
         // Move back from collimator reference system
-        rotation_for_collimator(part, -sin_z, cos_z);
-        LocalParticle_add_to_x(part, dx);
-        LocalParticle_add_to_y(part, dy);
+        SRotation_single_particle(part, -sin_zL, cos_zL);
+        XYShift_single_particle(part, -dx, -dy);
 
         // Update dead particles
         if (!is_alive){
 
-            LocalParticle_set_state(part, -333);
+            LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
 
             // Record impact data
             if (record){

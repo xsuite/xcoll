@@ -1,0 +1,32 @@
+{
+ "__class__": "K2Collimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "reference_center": [
+  1.4256006685582399e-06,
+  6.057342908043416e-08
+ ],
+ "jaw": 0.0006628730033503883,
+ "material": {
+  "__class__": "Material",
+  "name": "Lead",
+  "Z": 82,
+  "A": 207.19,
+  "density": 11.35,
+  "excitation_energy": 8.23e-07,
+  "nuclear_radius": 0.542,
+  "nuclear_elastic_slope": 455.3,
+  "cross_section": [
+   3.016,
+   1.724,
+   0,
+   0,
+   0,
+   0.00907
+  ],
+  "hcut": 0.01,
+  "radiation_length": 0.0056
+ }
+}

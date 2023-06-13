@@ -1,0 +1,32 @@
+{
+ "__class__": "K2Collimator",
+ "active_length": 1,
+ "inactive_front": 0,
+ "inactive_back": 0,
+ "angle": 0,
+ "reference_center": [
+  0.00017134611030100274,
+  -1.926551596399643e-06
+ ],
+ "jaw": 0.001345866426631924,
+ "material": {
+  "__class__": "Material",
+  "name": "Molybdenum",
+  "Z": 42,
+  "A": 95.96,
+  "density": 10.22,
+  "excitation_energy": 4.24e-07,
+  "nuclear_radius": 0.481,
+  "nuclear_elastic_slope": 273.9,
+  "cross_section": [
+   1.713,
+   1.023,
+   0,
+   0,
+   0,
+   0.00265
+  ],
+  "hcut": 0.02,
+  "radiation_length": 0.0096
+ }
+}
