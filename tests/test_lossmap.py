@@ -8,11 +8,11 @@ import xcoll as xc
 path = Path.cwd() / 'data'
 
 
-def _run_lossmap(beam, plane, npart, interpolation):
+def _run_lossmap(beam, plane, npart, interpolation, ignore_crystals=True):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
-    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', line=line, beam=beam)
+    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', line=line, beam=beam, ignore_crystals=ignore_crystals)
 
     coll_manager.install_everest_collimators()
     coll_manager.build_tracker()
@@ -59,4 +59,10 @@ def test_lossmap_B1H():
 
 def test_lossmap_B2V():
     _run_lossmap(2, 'V', 25000, 0.3)
+
+def test_lossmap_crystals_B1V():
+    _run_lossmap(1, 'V', 35000, 0.1, ignore_crystals=False)
+
+def test_lossmap_crystals_B2H():
+    _run_lossmap(2, 'H', 30000, 0.15, ignore_crystals=False)
 
