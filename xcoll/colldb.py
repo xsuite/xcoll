@@ -68,7 +68,6 @@ class CollimatorDatabase:
     # -------------------------------
     # ------ Loading functions ------
     # -------------------------------
-
     
     @classmethod
     def from_yaml(cls, file, **kwargs):
@@ -180,6 +179,8 @@ class CollimatorDatabase:
                    beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
 
 
+    # TODO: load crystals with SixTrack loader
+    # TODO: load families with SixTrack loader
     @classmethod
     def from_SixTrack(cls, file, **kwargs):
         with open(file, 'r') as infile:
@@ -294,6 +295,7 @@ class CollimatorDatabase:
 
             else:
                 settings['family'] = None
+            coll[thiscoll] = settings
 
             # Save list of crystals
             if 'crystal' in settings:
