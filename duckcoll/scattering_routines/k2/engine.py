@@ -1,5 +1,9 @@
-import numpy as np
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
 
+import numpy as np
 import xobjects as xo
 
 
