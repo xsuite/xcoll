@@ -34,6 +34,7 @@ git switch main
 git pull
 PR=$( gh pr list --head $branch | tail -1 | awk '{print $1;}' )
 gh pr merge ${PR} --merge --admin --delete-branch
+git pull
 
 # Make a tag
 git tag v${new_ver}
