@@ -81,7 +81,7 @@ crystals_b2 = [
 ]
 
 
-path = Path('./data_test_everest/')
+path = Path(__file__).parent / 'data_test_everest'
 
 def test_primaries():
     _track_collimator('tcp.c6l7.b1')

@@ -6,7 +6,7 @@ import xcoll as xc
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 
-path = Path.cwd() / 'data'
+path = Path(__file__).parent / 'data'
 
 # https://github.com/xsuite/xtrack/blob/18b1ac33d6a9d87a156e87bfb71cb2c8011085f6/tests/test_radiation.py#LL138C5-L138C29
 @retry()
