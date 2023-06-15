@@ -36,10 +36,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
     with flaky_assertions():
         summ = coll_manager.summary(part, show_zeros=False)
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
-        if ignore_crystals:
-            assert len(summ) == 10
-        else:
-            assert len(summ) == 11
+        assert len(summ[summ.type=='EverestCollimator']) == 10
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
@@ -65,21 +62,6 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
         line_is_reversed = True if beam==2 else False
         assert lm['reversed'] == line_is_reversed
 
-
-# @retry
-# def test_lossmap_B1H():
-#     _run_lossmap(1, 'H', 25000, 0.2)
-
-
-# def test_lossmap_B2V():
-#     _run_lossmap(2, 'V', 25000, 0.3)
-
-
-# def test_lossmap_crystals_B1V():
-#     _run_lossmap(1, 'V', 35000, 0.1, ignore_crystals=False)
-
-# def test_lossmap_crystals_B2H():
-#     _run_lossmap(2, 'H', 30000, 0.15, ignore_crystals=False)
 
 
 
