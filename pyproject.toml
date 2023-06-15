@@ -17,6 +17,7 @@ include = [ "LICENSE", "NOTICE" ]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+ruamel-yaml = { version = "^0.17.31", optional = true }
 numpy = ">=1.0"
 pandas = ">=1.4"
 xobjects = "^0.2.6"
@@ -27,7 +28,10 @@ xfields = "^0.12.1"
 xcoll = "^0.2.1"
 
 [tool.poetry.dev-dependencies]
-pytest = ">7"
+pytest = ">=7.3"
+
+[tool.poetry.extras]
+tests = ["pytest", "ruamel-yaml"]
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
