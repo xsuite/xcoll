@@ -1,0 +1,120 @@
+GEOM
+
+COMMENT-------------------------------------------------------------------------
+    %STUDY%    
+NEXT
+
+SETTINGS------------------------------------------------------------------------
+    QUIET 2
+    WRITEFORT12 OFF
+!    INITIALSTATE text  ! Does not work with pyflusix  ! Does not work with pyflusix
+NEXT
+
+TRACKING
+    2 0 10000 0 17 0 1 0 0 0 0
+    1 1 1 0 1
+    0 0 0 0 0 0 2
+NEXT
+
+INITIAL COORDINATES
+    2 0 0 1
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    0.0
+    .000001
+    0.0
+    0.0
+    0.0
+    0.0
+    7000000.0
+    7000000.0
+    7000000.0
+NEXT
+
+DIST----------------------------------------------------------------------------
+    READ "initial.dat"
+NEXT
+
+RANDOM NUMBERS------------------------------------------------------------------
+    SEED 6854654
+NEXT
+
+ITERATION ACCURACY--------------------------------------------------------------
+    5000 0.10E-13 0.10E-14
+    10 0.10E-09 0.10E-09
+    10 0.10E-04 0.10E-05
+    0.10E-07 0.10E-11 0.10E-09
+NEXT
+
+LINEAR OPTICS-------------------------------------------------------------------
+    ELEMENT  0 1 0 3.5 3.5
+NEXT
+
+SYNC----------------------------------------------------------------------------
+    35640 0.000348  12  0 26658.883200  938.27231  1
+    1     1
+NEXT
+
+LIMI----------------------------------------------------------------------------
+    LOAD fort3.limi
+NEXT
+
+FLUCTUATION---------------------------------------------------------------------
+    100000 1 7 3
+NEXT
+
+FLUKA
+tcl.4r1.b1           ecl.4r1.b1              1    1.48200 
+tcl.5r1.b1           ecl.5r1.b1              2    1.48200 
+tcl.6r1.b1           ecl.6r1.b1              3    1.48200 
+tctph.4l2.b1         ectph.4l2.b1            4    1.48200 
+tctpv.4l2.b1         ectpv.4l2.b1            5    1.48200 
+tcp.6l3.b1           ecp.6l3.b1             12    1.48200 
+tcsg.5l3.b1          ecsg.5l3.b1            13    1.48200 
+tcsg.4r3.b1          ecsg.4r3.b1            14    1.48200 
+tcsg.a5r3.b1         ecsg.a5r3.b1           15    1.48200 
+tcsg.b5r3.b1         ecsg.b5r3.b1           16    1.48200 
+tcla.a5r3.b1         ecla.a5r3.b1           17    1.48200 
+tcla.b5r3.b1         ecla.b5r3.b1           18    1.48200 
+tcla.6r3.b1          ecla.6r3.b1            19    1.48200 
+tcla.7r3.b1          ecla.7r3.b1            20    1.48200 
+tctph.4l5.b1         ectph.4l5.b1           21    1.48200 
+tctpv.4l5.b1         ectpv.4l5.b1           22    1.48200 
+tcl.4r5.b1           ecl.4r5.b1             23    1.48200 
+tcl.5r5.b1           ecl.5r5.b1             24    1.48200 
+tcl.6r5.b1           ecl.6r5.b1             25    1.48200 
+tcdqa.a4r6.b1        ecdqa.a4r6.b1          26    3.30200 
+tcdqa.c4r6.b1        ecdqa.c4r6.b1          27    3.30200 
+tcdqa.b4r6.b1        ecdqa.b4r6.b1          28    3.30200 
+tcsp.a4r6.b1         ecsp.a4r6.b1           29    1.48200 
+tcp.d6l7.b1          ecp.d6l7.b1            30    1.48200 
+tcp.c6l7.b1          ecp.c6l7.b1            31    1.48200 
+tcp.b6l7.b1          ecp.b6l7.b1            32    1.48200 
+tcsg.a6l7.b1         ecsg.a6l7.b1           33    1.48200 
+tcsg.b5l7.b1         ecsg.b5l7.b1           34    1.48200 
+tcsg.a5l7.b1         ecsg.a5l7.b1           35    1.48200 
+tcsg.d4l7.b1         ecsg.d4l7.b1           36    1.58200 
+tcspm.b4l7.b1        ecspm.b4l7.b1          37    1.58200 
+tcsg.a4l7.b1         ecsg.a4l7.b1           38    1.48200 
+tcsg.a4r7.b1         ecsg.a4r7.b1           39    1.48200 
+tcsg.b5r7.b1         ecsg.b5r7.b1           40    1.48200 
+tcsg.d5r7.b1         ecsg.d5r7.b1           41    1.48200 
+tcspm.e5r7.b1        ecspm.e5r7.b1          42    1.58200 
+tcspm.6r7.b1         ecspm.6r7.b1           43    1.58200 
+tcla.a6r7.b1         ecla.a6r7.b1           44    1.48200 
+tcla.b6r7.b1         ecla.b6r7.b1           45    1.48200 
+tcla.c6r7.b1         ecla.c6r7.b1           46    1.48200 
+tcla.d6r7.b1         ecla.d6r7.b1           47    1.48200 
+tcla.a7r7.b1         ecla.a7r7.b1           48    1.48200 
+tctph.4l8.b1         ectph.4l8.b1           49    1.48200 
+tctpv.4l8.b1         ectpv.4l8.b1           50    1.48200 
+tctph.4l1.b1         ectph.4l1.b1           51    1.48200 
+tctpv.4l1.b1         ectpv.4l1.b1           52    1.48200 
+NEXT
+
+ENDE
+

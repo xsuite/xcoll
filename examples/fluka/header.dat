@@ -1,0 +1,68 @@
+ # 
+ # requested sampling populations:
+ #   * hor betatron:   "FLATC   "
+ #   * ver betatron:   "GAUSS   "
+ #   * longitudinal:   "PENCIL  "
+ # 
+ #
+ # linear optics functions:
+ #   * horizontal plane:
+ #     BET        [m]:    142.01850718899999     
+ #     ALF         []:    1.8521087735999999     
+ #     GAM      [m-1]:   -1.7112607063330225E-002
+ #     D          [m]:   0.26291354551599999     
+ #     DP          []:   -1.8466470540000001E-003
+ #   * vertical plane: 
+ #     BET        [m]:    74.783335531800006     
+ #     ALF         []:   -1.0043731598100001     
+ #     GAM      [m-1]:   -1.1721119530696328E-004
+ #     D          [m]:    4.8273891271100003E-002
+ #     DP          []:    4.4072627630000003E-003
+ #
+ #
+ # other parameters:
+ #   * hor. emittance       (nor,geo) [m rad]:    3.4999999999999999E-006   4.6913604400000001E-010
+ #   * ver. emittance       (nor,geo) [m rad]:    3.4999999999999999E-006   4.6913604400000001E-010
+ #   * ave. beam momentum, energy [GeV/c,GeV]:    7000.0000000000000        7000.0000628824646     
+ #   * sigma delta_p/p, sigma delta_E/E    []:    1.1000000000000000E-004   1.0999999802369400E-004
+ #   * bunch length (4 sigma_t)          [ns]:    2.5000000000000000     
+ #   * longitudinal emittance          [eV s]:    6.0475658038338036     
+ #
+ #
+ # sampling limits (in sigma units):
+ #   * horizontal   min/max:    4.9843214500000004        4.9843253199999999     
+ #   * vertical     min/max:    0.0000000000000000        1.0000000000000000     
+ #
+ #
+ # Offset values:
+ #     x      [m]:   -3.7089689618300002E-007
+ #     y      [m]:    2.5167124513999998E-007
+ #     x'   [rad]:    3.7205905629999998E-010
+ #     y'   [rad]:    8.4312421320000004E-009
+ #     dt    [ns]:    0.0000000000000000     
+ #     pc [GeV/c]:    0.0000000000000000     
+ #
+ #
+ # - geometry acceptance on dimen           1   [mm]  :   1.2865537000000000        1.2865547000000002     
+ #   using ABSOLUTE values     
+ #   before addition of OFFSETs!
+ # - full geometry acceptance on dimen           2
+ # - full geometry acceptance on dimen           3
+ # - full geometry acceptance on dimen           4
+ # - full geometry acceptance on dimen           5
+ # - full geometry acceptance on dimen           6
+ #
+ #
+ # APPLYING S-SHIFT BY [m]: -0.44100000000000000     
+ # shift applied using appr. drift Hamiltonian
+ #    same map as non-FAST SixTrack flag
+ # un-shifted distribution dumped in file: unshifted_initial.dat                   
+ #
+ #
+ # Output file: initial.dat                             
+ #
+ #
+ # random seed set to:        36465
+ #
+ # Columns in initial.dat                             
+ #PART_ID  PARENT_ID  WEIGTH  X[m]  Y[m]  Z[m]                                                             X'[rad]  Y'[rad]  Z'[rad]  MASS_NUM  ATOM_NUM  PART_MASS[GeV]                                                                 MOMENTUM[GeV]  TIME_DELAY[s]

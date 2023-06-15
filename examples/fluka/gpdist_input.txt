@@ -1,0 +1,100 @@
+***************************************************************************
+** Produced on 23-09-2021 by make_beam_collimator.py
+** Automatically generated input - CHECK ALL PARAMETERS before running!
+***************************************************************************
+* INPUT GENERATION FOR HISIX [2018]
+***************************************************************************
+
+**** OPTICS PARAMETERS ****************************************************
+***************************************************************************
+****    Optics/Beam parameters    ****************************************
+*
+*  WHAT(1) : index of the plane
+*           1 -> horizonal;  2 -> vertical;
+*    WHAT(2) : Beta function [m]  
+*    WHAT(3) : derivative of Beta function []
+*    WHAT(4) : Dispersion function [m]
+*    WHAT(5) : derivative of Dispersion function []
+*    WHAT(6) : Normalized emittance [m]
+*           3 -> longitudinal;
+*    WHAT(2) : particle mass [GeV/c2]  
+*    WHAT(3) : momentum of synchronous particle [GeV/c]
+*    WHAT(4) : sigma delta_p/p []
+*    WHAT(5) : bunch length (actually 4*sigma_l) [s]
+*    WHAT(6) : not used
+*
+***************************************************************************
+** Beam at tcp.c6l7.b1 with 1.0 um impact parameter
+*
+PARAM     1        142.018507189  1.8521087736   0.262913545516  -0.001846647054   3.5e-06
+PARAM     2        74.7833355318  -1.00437315981   0.0482738912711  0.004407262763   3.5e-06
+PARAM     3        0.938272088  7000.0   0.00011   2.5e-09
+*PARAM     4        1 1 1
+*PARAM     5        0  1
+*
+***************************************************************************
+
+**** SAMPLING DISTRIBUTIONS ***********************************************
+*************************************************************************** 
+*
+DTYPE     1         FLATC     4.98432145    4.98432532
+DTYPE     2         GAUSS     0          1      
+DTYPE     3         PENCIL         
+*
+***************************************************************************
+
+**** OFFSETS **************************************************************
+***************************************************************************
+*
+OFFSET      -3.70896896183e-07  3.720590563e-10  2.5167124514e-07  8.431242132e-09  0.0  0.0
+*
+***************************************************************************
+
+****    Geometrical Acceptance ********************************************
+*
+*  WHAT(1) : 1: x; 2: xp;
+*          : 3: y; 4: yp;
+*          : 5: t; 6: pc;
+*  WHAT(2) : cut expressed in normalised (N) or real (R) units
+*            - N:  sig;
+*            - R:  x/y:   m
+*                  xp/yp: rad
+*                  t:     s
+*                  pc:    GeV
+*  WHAT(3) : min value
+*  WHAT(4) : max value
+*  WHAT(5) : (optional) check on absolute value (A)
+*  WHAT(6) : (optional) check on absolute value performed after adding
+*            offsets (A)
+*
+***************************************************************************
+*
+GEOACC      1     R     1.28655370E-03     1.28655470E-03   A
+*
+***************************************************************************
+
+**** S SHIFT **************************************************************
+*************************************************************************** 
+*  WHAT(1) : length of drift;
+*          : > 0 the final point is downstream of where the sampling is done 
+*          : < 0 the final point is upstream of where the sampling is done
+*  WHAT(2) : (optional, no default) name of file where to dump the orginal
+*            distribution before being shifted
+*  WHAT(3) : (opional, default 0) type of tracking along the drift
+*            0: approximated Hamiltonian, corresponding to FAST compilation
+*                flag of SixTrack
+*            1: exact Hamiltonian
+*            2: approximated Hamiltonian, corresponding the non -=FAST=
+*                compilation flag of SixTrack
+***************************************************************************
+*
+SSHIFT     -0.441    unshifted_initial.dat
+*
+***************************************************************************
+
+**** SAMPLE PARAMETERS ****************************************************
+***************************************************************************
+*
+OUTPUT  20000  36465  initial.dat header.dat 0 0
+*
+***************************************************************************
