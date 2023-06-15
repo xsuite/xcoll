@@ -31,7 +31,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const cos_zL = BlackAbsorberData_get_cos_zL(el);
     double const sin_zR = BlackAbsorberData_get_sin_zR(el);
     double const cos_zR = BlackAbsorberData_get_cos_zR(el);
-    if (abs(sin_zL-sin_zR) > 1.e-10 || abs(cos_zL-cos_zR) > 1.e-10 ){
+    if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
     double const dx = BlackAbsorberData_get_ref_x(el);

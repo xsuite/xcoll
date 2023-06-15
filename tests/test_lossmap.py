@@ -6,10 +6,10 @@ import xcoll as xc
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 
-path = Path.cwd() / 'data'
+path = Path(__file__).parent / 'data'
 
 # https://github.com/xsuite/xtrack/blob/18b1ac33d6a9d87a156e87bfb71cb2c8011085f6/tests/test_radiation.py#LL138C5-L138C29
-@retry
+@retry()
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
                             [1, 'H', 25000, 0.2, True],
                             [2, 'V', 25000, 0.3, True],
@@ -36,7 +36,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
     with flaky_assertions():
         summ = coll_manager.summary(part, show_zeros=False)
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
-        assert len(summ) == 10
+        assert len(summ[summ.type=='EverestCollimator']) == 10
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
@@ -62,21 +62,6 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
         line_is_reversed = True if beam==2 else False
         assert lm['reversed'] == line_is_reversed
 
-
-# @retry
-# def test_lossmap_B1H():
-#     _run_lossmap(1, 'H', 25000, 0.2)
-
-
-# def test_lossmap_B2V():
-#     _run_lossmap(2, 'V', 25000, 0.3)
-
-
-# def test_lossmap_crystals_B1V():
-#     _run_lossmap(1, 'V', 35000, 0.1, ignore_crystals=False)
-
-# def test_lossmap_crystals_B2H():
-#     _run_lossmap(2, 'H', 30000, 0.15, ignore_crystals=False)
 
 
 

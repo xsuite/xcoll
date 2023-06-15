@@ -13,6 +13,7 @@ def test_horizontal_parallel(test_context):
     jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(_context=test_context)
     part, x, _, _, _ = _generate_particles(_context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
     mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -32,6 +33,7 @@ def test_horizontal(test_context):
     jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(_context=test_context)
     part, x, _, xp, _ = _generate_particles(four_dim=True, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -62,6 +64,7 @@ def test_horizontal_with_tilts(test_context):
     jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(tilts=[0.0005, -0.00015], _context=test_context)
     part, x, _, xp, _ = _generate_particles(four_dim=True, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -92,6 +95,7 @@ def test_vertical_parallel(test_context):
     jaw_L, jaw_R, _, _, _, coy, L, coll = _make_absorber(angle=90, _context=test_context)
     part, _, y, _, _ = _generate_particles(_context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
     mask_hit = (y >= jaw_L + coy) | (y <= jaw_R + coy)
@@ -111,6 +115,7 @@ def test_vertical(test_context):
     jaw_L, jaw_R, _, _, _, coy, L, coll = _make_absorber(angle=90, _context=test_context)
     part, _, y, _, yp = _generate_particles(four_dim=True, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (y >= jaw_L + coy) | (y <= jaw_R + coy)
@@ -141,6 +146,7 @@ def test_vertical_with_tilts(test_context):
     jaw_L, jaw_R, jaw_LD, jaw_RD, _, coy, L, coll = _make_absorber(angle=90, tilts=[0.0005, -0.00015], _context=test_context)
     part, _, y, _, yp = _generate_particles(four_dim=True, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (y >= jaw_L + coy) | (y <= jaw_R + coy)
@@ -172,6 +178,7 @@ def test_angled_parallel(test_context):
     jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(angle=angle, rotate_co=True, _context=test_context)
     part, x, _, _, _ = _generate_particles(angle=angle, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
     mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -193,6 +200,7 @@ def test_angled(test_context):
     jaw_L, jaw_R, _, _, cox, _, L, coll = _make_absorber(angle=angle, rotate_co=True, _context=test_context)
     part, x, _, xp, _ = _generate_particles(four_dim=True, angle=angle, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -225,6 +233,7 @@ def test_angled_with_tilts(test_context):
     jaw_L, jaw_R, jaw_LD, jaw_RD, cox, _, L, coll = _make_absorber(angle=angle, tilts=[0.0005, -0.00015], rotate_co=True, _context=test_context)
     part, x, _, xp, _ = _generate_particles(four_dim=True,angle=angle, _context=test_context)
     coll.track(part)
+    part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # Particles in front of the jaw are lost, ...
     mask_hit_front = (x >= jaw_L + cox) | (x <= jaw_R + cox)
@@ -249,8 +258,6 @@ def test_angled_with_tilts(test_context):
     s_hit_R = (jaw_R + cox - x[mask_hit_angle_R]) / ( xp[mask_hit_angle_R] - (jaw_RD-jaw_R)/L)
     assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
     assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_R + cox + (jaw_RD-jaw_R)/L*s_hit_R, atol=1e-15, rtol=0)
-
-
 
 
 def _make_absorber(angle=0, tilts=[0,0], rotate_co=False, _context=None):
@@ -291,6 +298,3 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     xp_rot = part_init.px * part_init.rpp * np.cos(angle/180.*np.pi) + part_init.py * part_init.rpp * np.sin(angle/180.*np.pi)
     yp_rot = part_init.px * part_init.rpp * np.sin(angle/180.*np.pi) + part_init.py * part_init.rpp * np.cos(angle/180.*np.pi)
     return part, x_rot, y_rot, xp_rot, yp_rot
-
-
-

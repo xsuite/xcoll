@@ -1,4 +1,5 @@
 dist/** -linguist-detectable
 examples/** -linguist-detectable
 tests/** -linguist-detectable
-xcoll/scattering_routines/k2/FORTRAN_src/** linguist-vendored
+dev/** linguist-vendored
+duckcoll/scattering_routines/k2/FORTRAN_src/** linguist-vendored
