@@ -1,3 +1,3 @@
 import xcoll as xc
 
-xc.FLUKAEngine.start_server("lhc_coupling_B1_exp.inp")
+xc.FLUKAEngine.start_server("lhc_run3_30cm.inp")

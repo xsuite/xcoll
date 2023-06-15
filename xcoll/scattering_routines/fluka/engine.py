@@ -23,53 +23,97 @@ class FLUKAEngine(xo.HybridClass):
             cls.instance._initialised = False
         return cls.instance
 
+    def __del__(self, *args, **kwargs):
+        self.stop_server()
 
-    def __init__(self, fluka=None, flukaserver=None, **kwargs):
+    def __init__(self, fluka=None, flukaserver=None, verbose=True, **kwargs):
         if(self._initialised):
             return
         self._initialised = True
         if '_xobject' not in kwargs:
-            if fluka is None:
-                self._fluka = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
-                                        'fluka4-3.3.x86-Linux-gfor9', 'bin', 'rfluka')
-            else:
-                self._fluka = Path(fluka)
-            if flukaserver is None:
-                self._flukaserver = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
-                                              'fluka_coupling', 'fluka', 'flukaserver')
-            else:
-                self._flukaserver = Path(flukaserver)
+            self._verbose = verbose
             self._cwd = None
             self._network_nfo = None
             self._log = None
             self._log_fid = None
             self._server_process = None
             self.server_pid = None
+            self._gfortran_installed = False
+            if fluka is None:
+                self._fluka = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
+                                        'fluka4-3.3.x86-Linux-gfor9', 'bin', 'rfluka').resolve()
+            else:
+                self._fluka = Path(fluka).resolve()
+            if not self._fluka.exists():
+                raise ValueError(f"Could not find FLUKA executable {self._fluka}!")
+            if flukaserver is None:
+                self._flukaserver = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
+                                              'fluka_coupling', 'fluka', 'flukaserver').resolve()
+            else:
+                self._flukaserver = Path(flukaserver).resolve()
+            if not self._flukaserver.exists():
+                raise ValueError(f"Could not find FLUKA server executable {self._flukaserver}!")
+            self.test_gfortran()
             kwargs.setdefault('network_port', 0)
-            # test gfortran
         super().__init__(**kwargs)
-
-    def __del__(self, *args, **kwargs):
-        self.stop_server()
 
 
     @classmethod
-    def start_server(cls, input_file, path=None, fluka=None, flukaserver=None):
-        cls(fluka, flukaserver)
+    def test_gfortran(cls, *args, **kwargs):
+        cls(*args, **kwargs)
+        this = cls.instance
+        try:
+            cmd = subprocess.run(["gfortran", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            this._gfortran_installed = False
+            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher for FLUKA.")
+        if cmd.returncode == 0:
+            version = int(cmd.stdout.decode('UTF-8').strip().split('\n')[0])
+            if version < 9:
+                this._gfortran_installed = False
+                raise RuntimeError(f"Need gfortran 9 or higher for FLUKA, but found gfortran {version}!")
+            this._gfortran_installed = True
+            if this._verbose:
+                cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if cmd2.returncode == 0:
+                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
+                    print(f"Found gfortran {version} in {file}")
+                else:
+                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
+                    raise RuntimeError(f"Could not run 'which gfortran'! Error given is:\n{stderr}")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            this._gfortran_installed = False
+            raise RuntimeError(f"Could not run gfortran! Verify its installation.")
+
+
+    @classmethod
+    def start_server(cls, input_file, *args, **kwargs):
+        cls(*args, **kwargs)
         this = cls.instance
         if this.is_running():
             print("Server already running.")
             return
+        if not this._gfortran_installed:
+            return
+
+        # Check files
+        input_file = Path(input_file).resolve()
+        if not input_file.exists():
+            raise ValueError(f"Input file {input_file.as_posix()} not found!")
+        this._cwd = input_file.parent
+        insertion_file = this._cwd / "insertion.txt"
+        if not insertion_file.exists():
+            raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
 
         # Declare network
-        this._cwd = Path.cwd() if path is None else Path(path)
         this._network_nfo = this._cwd / "network.nfo"
         cmd = subprocess.run(["hostname"], cwd=this._cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode == 0:
             host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise ValueError(f"Could not declare hostname! Error given is:\n{stderr}")
+            raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         with this._network_nfo.open('w') as fid:
             fid.write(f"{host}\n")
 
@@ -97,8 +141,8 @@ class FLUKAEngine(xo.HybridClass):
 
 
     @classmethod
-    def stop_server(cls, fluka=None, flukaserver=None):
-        cls(fluka, flukaserver)
+    def stop_server(cls, *args, **kwargs):
+        cls(*args, **kwargs)
         this = cls.instance
         # If the Popen process is still running, terminate it
         if this._server_process is not None:
@@ -114,8 +158,8 @@ class FLUKAEngine(xo.HybridClass):
 
 
     @classmethod
-    def is_running(cls, fluka=None, flukaserver=None):
-        cls(fluka, flukaserver)
+    def is_running(cls, *args, **kwargs):
+        cls(*args, **kwargs)
         this = cls.instance
         # Is the Popen process still running?
         if this._server_process is None or this._server_process.poll() is not None:
@@ -127,14 +171,14 @@ class FLUKAEngine(xo.HybridClass):
             whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise ValueError(f"Could not find username! Error given is:\n{stderr}")
+            raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
         # Get FLUKA processes for this user
         cmd = subprocess.run(["ps", "-u", whoami], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode == 0:
             processes = cmd.stdout.decode('UTF-8').strip().split('\n')
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise ValueError(f"Could not list running processes! Error given is:\n{stderr}")
+            raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
         processes = [proc for proc in processes if 'rfluka' in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
@@ -147,6 +191,7 @@ class FLUKAEngine(xo.HybridClass):
             return True
         else:
             print("Warning: Found other instances of rfluka but not the current one!")
+            this.stop_server()
             return False
 
 
