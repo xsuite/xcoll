@@ -9,7 +9,7 @@ from xpart.test_helpers import flaky_assertions, retry
 path = Path.cwd() / 'data'
 
 # https://github.com/xsuite/xtrack/blob/18b1ac33d6a9d87a156e87bfb71cb2c8011085f6/tests/test_radiation.py#LL138C5-L138C29
-@retry
+@retry()
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
                             [1, 'H', 25000, 0.2, True],
                             [2, 'V', 25000, 0.3, True],
@@ -36,7 +36,10 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
     with flaky_assertions():
         summ = coll_manager.summary(part, show_zeros=False)
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
-        assert len(summ) == 10
+        if ignore_crystals:
+            assert len(summ) == 10
+        else:
+            assert len(summ) == 11
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 

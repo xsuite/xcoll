@@ -32,14 +32,14 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const cos_zL     = EverestCrystalData_get_cos_zL(el);
     double const sin_zR     = EverestCrystalData_get_sin_zR(el);
     double const cos_zR     = EverestCrystalData_get_cos_zR(el);
-    if (abs(sin_zL-sin_zR) > 1.e-10 || abs(cos_zL-cos_zR) > 1.e-10 ){
+    if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
     double const c_aperture = EverestCrystalData_get_jaw_L(el) - EverestCrystalData_get_jaw_R(el);
     double const c_offset   = ( EverestCrystalData_get_jaw_L(el) + EverestCrystalData_get_jaw_R(el) ) /2;
     double const c_tilt0    = asin(EverestCrystalData_get_sin_yL(el));
     double const c_tilt1    = asin(EverestCrystalData_get_sin_yR(el));
-    if (abs(c_tilt1) > 1.e-10){
+    if (fabs(c_tilt1) > 1.e-10){
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
     };
     int    const side       = EverestCrystalData_get__side(el);
