@@ -7,4 +7,4 @@ from .scattering_routines.fluka import FLUKAEngine
 from .manager import CollimatorManager
 from .colldb import CollimatorDatabase, load_SixTrack_colldb
 
-__version__ = '0.2.0'
+__version__ = '0.2.2'

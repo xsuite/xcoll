@@ -3,7 +3,7 @@ from pathlib import Path
 import xcoll as xc
 
 
-path = Path.cwd() / 'data'
+path =  Path(__file__).parent / 'data'
 
 
 def test_loading():

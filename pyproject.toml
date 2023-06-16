@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.2.0"
+version = "0.2.2"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
@@ -17,16 +17,21 @@ include = [ "LICENSE", "NOTICE" ]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-#numpy
-#pandas
-#scipy
-#xobjects
-#xdeps
-#xpart
-#xtrack
+ruamel-yaml = { version = "^0.17.31", optional = true }
+numpy = ">=1.0"
+pandas = ">=1.4"
+xobjects = "^0.2.6"
+xdeps = "^0.1.1"
+xpart = "^0.15.0"
+xtrack = "^0.36.5"
+xfields = "^0.12.1"
+xcoll = "^0.2.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = ">=7.3"
+
+[tool.poetry.extras]
+tests = ["pytest", "ruamel-yaml"]
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)

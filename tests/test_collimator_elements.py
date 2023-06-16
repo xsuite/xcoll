@@ -244,7 +244,9 @@ def test_black_absorber_length_instantiation(test_context):
         elem = xc.BlackAbsorber(length=1.1, active_length=0.5, inactive_front=0.4, inactive_back=0.2, _context=test_context)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
@@ -287,7 +289,9 @@ def test_everest(test_context):
             setattr(elem, field, 0.3)
 
             
-@for_all_test_contexts
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
 def test_everest_crystal(test_context):
     # Test instantiation
     elem = xc.EverestCrystal(length=1, material=xc.materials.SiliconCrystal, _context=test_context)
