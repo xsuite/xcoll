@@ -1,0 +1,3 @@
+[submodule "xcoll/scattering_routines/fluka/flukaio"]
+	path = xcoll/scattering_routines/fluka/flukaio
+	url = https://gitlab.cern.ch/bmi/fedb/coupling/flukaio.git

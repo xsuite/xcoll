@@ -9,14 +9,13 @@ fi
 
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 
-cd xcoll/scattering_routines/fluka/FORTRAN_src
-rm *.mod *.o
+git submodule update --init --recursive
 
-cd flukaio
+cd xcoll/scattering_routines/fluka/flukaio
 make libs BUILD64=Y
-mv lib/* ../
-cd ..
 
+cd ../FORTRAN_src
+rm *.mod *.o
 
 gfortran -fpic -c \
  core_tools.f90 \
@@ -40,6 +39,8 @@ f2py -m pyflukaf -c pyfluka.f90 \
  mod_units.o \
  pdgid.o \
  mod_fluka.o \
- libFlukaIO64.a
+ ../flukaio/lib/libFlukaIO64.a
+
+mv pyflukaf.* ../
 
 cd ../../../..
