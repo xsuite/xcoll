@@ -1,3 +1,0 @@
-[submodule "xcoll/scattering_routines/fluka/FORTRAN_src/xcoll/scattering_routines/fluka/FORTRAN_src/flukaio"]
-	path = xcoll/scattering_routines/fluka/FORTRAN_src/xcoll/scattering_routines/fluka/FORTRAN_src/flukaio
-	url = ssh://git@gitlab.cern.ch:7999/bmi/fedb/coupling/flukaio.git
