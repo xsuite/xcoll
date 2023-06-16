@@ -61,8 +61,8 @@ module mod_fluka
            ntsendipt,   &
            ntrecv,      &
            ntwait,      &
-           ntsendnpart, &
-           ntsendbrhono
+           ntsendnpart!, &
+!           ntsendbrhono
 
   integer(kind=int32) :: ntconnect,   &
                          ntsendp,     &
@@ -72,7 +72,7 @@ module mod_fluka
                          ntrecv,      &
                          ntwait,      &
                          ntsendnpart, &
-                         ntsendbrhono,&
+!                         ntsendbrhono,&
                          ntend
 
   ! FlukaIO Message types
@@ -218,14 +218,14 @@ contains
     read(unit=net_nfo_unit, fmt=*, iostat=ios) host
     if(ios .ne. 0) then
       write(lerr,'(A)') 'FLUKA> ERROR Could not read the host name from network.nfo'
-      call prror
+      ERROR STOP 'ENDED WITH ERROR.'
     end if
 
     read(unit=net_nfo_unit, fmt=*, iostat=ios) port
     if(ios .ne. 0) then
       write(lerr,'(A)') 'FLUKA> ERROR Could not read the port number from network.nfo'
       write(lerr,'(A)') 'FLUKA>       Is the FLUKA server running and has it had time to write the port number?'
-      call prror
+      ERROR STOP 'ENDED WITH ERROR.'
     end if
 
     call f_close(net_nfo_unit)
@@ -582,7 +582,9 @@ contains
          if(fluka_nrecv .gt. npart) then
 
             !If we hit the particle limit, we will need to  do a global array expand on npart, lets increase by 50 for now
-            call expand_arrays(nele, npart+50, nblz, nblo, nbb)
+            
+            ! call expand_arrays(nele, npart+50, nblz, nblo, nbb)
+            ERROR STOP 'HIT END OF PARTICLE ARRAY'
 
 !            write(fluka_log_unit, *) &
 !                 '# FlukaIO error: reached maximum number of particles, ', &
@@ -693,7 +695,7 @@ contains
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
 
     ! inform Fluka about the new magnetic rigidity
-    n = ntsendbrhono(fluka_cid, fluka_brho0)
+!    n = ntsendbrhono(fluka_cid, fluka_brho0)
     if (n .lt. 0) then
       fluka_set_synch_part = -1
       return
@@ -1012,7 +1014,7 @@ subroutine kernel_fluka_element( nturn, i, ix )
       if (ret.lt.0) then
          write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
          write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send_receive...'
-         call prror
+         ERROR STOP 'ENDED WITH ERROR.'
       end if
 
       nnuc1 = 0                 ! hisix: number of nucleons leaving the collimato
@@ -1174,7 +1176,7 @@ subroutine kernel_fluka_entrance( nturn, i, ix )
       if (ret.lt.0) then
          write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret,' in Fluka communication returned by fluka_send...'
          write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send...'
-         call prror
+         ERROR STOP 'ENDED WITH ERROR.'
       end if
 
 !     au revoir:
@@ -1225,7 +1227,7 @@ subroutine kernel_fluka_exit
       if (ret.lt.0) then
          write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_receive...'
          write(fluka_log_unit,'(A,i0,A)')'# Error ',ret, ' in Fluka communication returned by fluka_receive...'
-         call prror
+         ERROR STOP 'ENDED WITH ERROR.'
       end if
 
       nnuc1 = 0                 ! hisix: number of nucleons leaving the collimator
@@ -1414,7 +1416,7 @@ subroutine check_coupling_integrity
       if ( lerror ) then
         write(lout,'(a)') ' at least one inconsistency in flagging elements'
         write(lout,'(a)') '    for coupling: please check carefully...'
-        call prror
+        ERROR STOP 'ENDED WITH ERROR.'
       endif
 
 !     au revoir:
@@ -1464,7 +1466,7 @@ subroutine check_coupling_start_point()
         write(lerr,"(a,i0)") "FLUKA>       The actual lattice starting point should be outside a FLUKA insergion region"
         write(lerr,"(a,i0)") "FLUKA>       Please update your lattice structure or set the GO in a sensible position"
         iInside=fluka_geo_index(ix)
-        call prror
+        ERROR STOP 'ENDED WITH ERROR.'
         exit
       elseif ( fluka_type(ix).eq.FLUKA_ENTRY .or. fluka_type(ix).eq.FLUKA_ELEMENT ) then
         write(lout,"(a)") ""

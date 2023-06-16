@@ -639,30 +639,7 @@ subroutine str_toReal32(theString, theValue, rErr)
   real(kind=real32), intent(out)   :: theValue
   logical,           intent(inout) :: rErr
 
-  character(len=:),  allocatable   :: tmpString
-  real(kind=real64)                :: tmpValue
-  integer                          :: readErr
-
-
-  real(kind=fPrec)                 :: round_near
-  character(len=:),  allocatable   :: cString
-  integer                          :: cLen, cErr
-
-  tmpString = trim(theString%chr)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real32 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-
-  theValue = real(tmpValue,kind=real32)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine str_toReal32
 
@@ -677,28 +654,7 @@ subroutine chr_toReal32(theString, theValue, rErr)
   real(kind=real32), intent(out)   :: theValue
   logical,           intent(inout) :: rErr
 
-  character(len=:),  allocatable   :: tmpString
-  real(kind=real64)                :: tmpValue
-  integer                          :: readErr
-
-  real(kind=fPrec)                 :: round_near
-  character(len=:),  allocatable   :: cString
-  integer                          :: cLen, cErr
-
-  tmpString = trim(theString)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real32 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-  theValue = real(tmpValue,kind=real32)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine chr_toReal32
 
@@ -713,28 +669,7 @@ subroutine str_toReal64(theString, theValue, rErr)
   real(kind=real64), intent(out)   :: theValue
   logical,           intent(inout) :: rErr
 
-  character(len=:),  allocatable   :: tmpString
-  real(kind=real64)                :: tmpValue
-  integer                          :: readErr
-
-  real(kind=fPrec)                 :: round_near
-  character(len=:),  allocatable   :: cString
-  integer                          :: cLen, cErr
-
-  tmpString = trim(theString%chr)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real64 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-  theValue = real(tmpValue,kind=real64)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine str_toReal64
 
@@ -749,28 +684,7 @@ subroutine chr_toReal64(theString, theValue, rErr)
   real(kind=real64), intent(out)   :: theValue
   logical,           intent(inout) :: rErr
 
-  character(len=:),  allocatable   :: tmpString
-  real(kind=real64)                :: tmpValue
-  integer                          :: readErr
-
-  real(kind=fPrec)                 :: round_near
-  character(len=:),  allocatable   :: cString
-  integer                          :: cLen, cErr
-
-  tmpString = trim(theString)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real64 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-  theValue = real(tmpValue,kind=real64)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine chr_toReal64
 
@@ -785,28 +699,7 @@ subroutine str_toReal128(theString, theValue, rErr)
   real(kind=real128), intent(out)   :: theValue
   logical,            intent(inout) :: rErr
 
-  character(len=:),   allocatable   :: tmpString
-  real(kind=real64)                 :: tmpValue
-  integer                           :: readErr
-
-  real(kind=fPrec)                  :: round_near
-  character(len=:),   allocatable   :: cString
-  integer                           :: cLen, cErr
-
-  tmpString = trim(theString%chr)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real128 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-  theValue = real(tmpValue,kind=real128)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine str_toReal128
 
@@ -821,28 +714,7 @@ subroutine chr_toReal128(theString, theValue, rErr)
   real(kind=real128), intent(out)   :: theValue
   logical,            intent(inout) :: rErr
 
-  character(len=:),   allocatable   :: tmpString
-  real(kind=real64)                 :: tmpValue
-  integer                           :: readErr
-
-  real(kind=fPrec)                  :: round_near
-  character(len=:),   allocatable   :: cString
-  integer                           :: cLen, cErr
-
-  tmpString = trim(theString)
-  cLen      = len(tmpString) + 1
-  cString   = tmpString//char(0)
-  tmpValue  = round_near(cErr,cLen,cString)
-
-  if(cErr /= 0) then
-    write(lerr,"(a,i0)") "TYPECAST> ERROR CRLIBM Failed to cast '"//tmpString//"' to real128 width error ",cErr
-    rErr = .true.
-  end if
-
-
-
-
-  theValue = real(tmpValue,kind=real128)
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine chr_toReal128
 
@@ -1039,51 +911,7 @@ subroutine chr_fromReal(theValue, theString, nPrec, ePrec, rErr)
   character(len=nPrec+ePrec+4), intent(out)   :: theString
   logical,                      intent(inout) :: rErr
 
-  character(len=11) dFmt
-  character :: dStr(nPrec)
-  integer   :: dtoaf, fLen, nStr, dPoint, iSign, i
-  write(dFmt,"(a3,i2.2,a1,i2.2,a1,i1,a1)") "(es",(nPrec+ePrec+4),".",(nPrec-1),"e",ePrec,")"
-
-  fLen = nPrec
-  nStr = dtoaf(theValue, 2, nPrec, dPoint, iSign, dStr(1), 1)
-
-  theString = " "
-  if(dPoint == 9999) then
-    ! This is infinity or nan, so just use default output
-    write(theString,dFmt) theValue
-  else
-    if(iSign /= 0) theString(1:1) = "-"
-    theString(2:3) = dStr(1)//"."
-    do i=2,nStr ! Get the numbers returned from dtoaf
-      theString(i+2:i+2) = dStr(i)
-    end do
-    do i=nStr+3,nPrec+2 ! Pad the rest with 0
-      theString(i:i) = "0"
-    end do
-    if(dPoint < 1) then
-      theString(nPrec+3:nPrec+4) = "E-"
-    else
-      theString(nPrec+3:nPrec+4) = "E+"
-    end if
-    select case(ePrec)
-    case(2)
-      write(theString(nPrec+5:nPrec+6),"(i2.2)") abs(dPoint-1)
-    case(3)
-      write(theString(nPrec+5:nPrec+7),"(i3.3)") abs(dPoint-1)
-    case default
-      write(lerr,"(a)") "DTOAF> ERROR Exponent must be either 2 or 3. This is a bug."
-      rErr = .true.
-      return
-    end select
-  end if
-
-  ! write(lout,"(a)")           "DTOAF> TESTING:"
-  ! write(lout,"(a,i0)")        "DTOAF>  * nStr      = ",nStr
-  ! write(lout,"(a,i0)")        "DTOAF>  * dPoint    = ",dPoint
-  ! write(lout,"(a,i0)")        "DTOAF>  * iSign     = ",iSign
-  ! write(lout,"(a,es24.16e3)") "DTOAF>  * theValue  = ",theValue
-  ! write(lout,"(a)")           "DTOAF>  * theString = "//theString
-
+  ERROR STOP 'DELETED THIS CODE BECAUSE OF COMPILATION ERRORS. SHOULD NOT HAVE BEEN NEEDED. UNDO.'
 
 end subroutine chr_fromReal
 

@@ -215,7 +215,7 @@ subroutine GetFLUKAid_fromPDG(pdgid, fluka_id)
   else
     !something else
     write(lerr,"(a,i0,a)") "PDGID> ERROR Unknown particle ID ",pdgid," in FLUKA conversion"
-    call prror
+    ERROR STOP 'ENDED WITH ERROR.'
   end if
 
 end subroutine GetFLUKAid_fromPDG
@@ -334,7 +334,7 @@ subroutine GetPDGid_fromFLUKA(fluka_id, pdg_id, A, Z)
   else
     ! something else
     write(lerr,"(a,i0,a)") "PDGID> ERROR Unknown particle ID ",fluka_id," in PDG ID conversion"
-    call prror
+    ERROR STOP 'ENDED WITH ERROR.'
   end if
 
 end subroutine GetPDGid_fromFLUKA

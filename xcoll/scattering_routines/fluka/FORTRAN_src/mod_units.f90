@@ -91,7 +91,7 @@ subroutine f_requestUnit(file,unit)
   if(len_trim(file) > mPathName) then
     write(lerr,"(2(a,i0))") "UNITS> ERROR Max length of file path in f_requestUnit is ",mPathName,&
       " characters, got ",len_trim(file)
-    !call prror
+    !call ERROR STOP 'ENDED WITH ERROR.'
   end if
 
   unit = -1
@@ -129,7 +129,7 @@ subroutine f_requestUnit(file,unit)
     units_nextUnit = unit + 1
   else
     write(lerr,"(a,i0)") "UNITS> ERROR Could not find an available file unit within the allowed range."
-    !call prror
+    !call ERROR STOP 'ENDED WITH ERROR.'
   end if
 
 end subroutine f_requestUnit
