@@ -11,6 +11,12 @@ import time
 import xobjects as xo
 
 
+default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
+                          'bin', 'rfluka').resolve()
+default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
+                                'fluka', 'flukaserver').resolve()
+
+
 class FLUKAEngine(xo.HybridClass):
     _xofields = {
         'network_port':    xo.Int64
@@ -26,11 +32,13 @@ class FLUKAEngine(xo.HybridClass):
     def __del__(self, *args, **kwargs):
         self.stop_server()
 
-    def __init__(self, fluka=None, flukaserver=None, verbose=True, **kwargs):
+    def __init__(self, fluka=None, flukaserver=None, verbose=True, testing=False, **kwargs):
         if(self._initialised):
             return
         self._initialised = True
         if '_xobject' not in kwargs:
+
+            # Initialise python fields
             self._verbose = verbose
             self._cwd = None
             self._network_nfo = None
@@ -39,23 +47,46 @@ class FLUKAEngine(xo.HybridClass):
             self._server_process = None
             self.server_pid = None
             self._gfortran_installed = False
+            self._warning_given = False
+            kwargs.setdefault('network_port', 0)
+
+            # Get paths to executables
             if fluka is None:
-                self._fluka = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
-                                        'fluka4-3.3.x86-Linux-gfor9', 'bin', 'rfluka').resolve()
+                if testing:
+                    self._fluka = "NEED_TO_MAKE_MOCKUP"
+                else:
+                    self._fluka = default_fluka_path
+            elif testing:
+                raise ValueError("Cannot specify fluka executable when 'testing=True'!")
             else:
                 self._fluka = Path(fluka).resolve()
             if not self._fluka.exists():
                 raise ValueError(f"Could not find FLUKA executable {self._fluka}!")
             if flukaserver is None:
-                self._flukaserver = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling',
-                                              'fluka_coupling', 'fluka', 'flukaserver').resolve()
+                if testing:
+                    self._flukaserver = "NEED_TO_MAKE_MOCKUP"
+                else:
+                    self._flukaserver = default_flukaserver_path
+            elif testing:
+                raise ValueError("Cannot specify flukaserver executable when 'testing=True'!")
             else:
                 self._flukaserver = Path(flukaserver).resolve()
             if not self._flukaserver.exists():
                 raise ValueError(f"Could not find FLUKA server executable {self._flukaserver}!")
+
             self.test_gfortran()
-            kwargs.setdefault('network_port', 0)
+            try:
+                from .pyflukaf import pyflukaf_init
+            except ImportError:
+                self._warn_pyfluka()
         super().__init__(**kwargs)
+
+
+    def _warn_pyfluka(self):
+        if not self._warning_given:
+            print("Warning: Failed to import pyfluka (did you compile?). " \
+                + "FLUKACollimators will be installed but are not trackable.")
+            self._warning_given = True
 
 
     @classmethod
