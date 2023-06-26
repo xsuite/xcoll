@@ -19,7 +19,8 @@ default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-co
 
 class FLUKAEngine(xo.HybridClass):
     _xofields = {
-        'network_port':    xo.Int64
+        'network_port':    xo.Int64,
+        'n_alloc':         xo.Int64
     }
 
     # The engine is a singleton
@@ -47,8 +48,10 @@ class FLUKAEngine(xo.HybridClass):
             self._server_process = None
             self.server_pid = None
             self._gfortran_installed = False
+            self._flukaio_connected = False
             self._warning_given = False
             kwargs.setdefault('network_port', 0)
+            kwargs.setdefault('n_alloc', 50000)
 
             # Get paths to executables
             if fluka is None:
@@ -76,9 +79,11 @@ class FLUKAEngine(xo.HybridClass):
 
             self.test_gfortran()
             try:
-                from .pyflukaf import pyflukaf_init
+                from .pyflukaf import pyfluka_init
+                pyfluka_init(n_alloc=kwargs['n_alloc'])
             except ImportError:
                 self._warn_pyfluka()
+
         super().__init__(**kwargs)
 
 
@@ -169,6 +174,12 @@ class FLUKAEngine(xo.HybridClass):
                     this.network_port = int(lines[1].strip())
                     break
         print(f"Started FLUKA server on network port {this.network_port}.")
+        try:
+            from .pyflukaf import pyfluka_connect
+            pyfluka_connect()
+            this._flukaio_connected = True
+        except ImportError:
+            this._warn_pyfluka()
 
 
     @classmethod
@@ -186,6 +197,12 @@ class FLUKAEngine(xo.HybridClass):
             if not this._log_fid.closed:
                 this._log_fid.close()
             this._log_fid = None
+        if this._flukaio_connected:
+            try:
+                from .pyflukaf import pyfluka_close
+                pyfluka_close()
+            except ImportError:
+                this._warn_pyfluka()
 
 
     @classmethod
