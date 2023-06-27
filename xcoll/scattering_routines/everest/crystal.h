@@ -9,43 +9,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-double tlcut_cry = 0.0009982;
+double const tlcut_cry = 0.0009982;
 
-double aTF = 0.194e-10; // Screening function [m]
-double dP  = 1.920e-10; // Distance between planes (110) [m]
-double u1  = 0.075e-10; // Thermal vibrations amplitude
+double const aTF = 0.194e-10; // Screening function [m]
+double const dP  = 1.920e-10; // Distance between planes (110) [m]
+double const u1  = 0.075e-10; // Thermal vibrations amplitude
 
 // pp cross-sections and parameters for energy dependence
-double pptref_cry = 0.040;
-double freeco_cry = 1.618;
+double const pptref_cry = 0.040;
+double const freeco_cry = 1.618;
 
 // Processes
-int proc_out         =  -1;     // Crystal not hit
-int proc_AM          =   1;     // Amorphous
-int proc_VR          =   2;     // Volume reflection
-int proc_CH          =   3;     // Channeling
-int proc_VC          =   4;     // Volume capture
-int proc_absorbed    =   5;     // Absorption
-int proc_DC          =   6;     // Dechanneling
-int proc_pne         =   7;     // Proton-neutron elastic interaction
-int proc_ppe         =   8;     // Proton-proton elastic interaction
-int proc_diff        =   9;     // Single diffractive
-int proc_ruth        =  10;     // Rutherford scattering
-int proc_ch_absorbed =  15;     // Channeling followed by absorption
-int proc_ch_pne      =  17;     // Channeling followed by proton-neutron elastic interaction
-int proc_ch_ppe      =  18;     // Channeling followed by proton-proton elastic interaction
-int proc_ch_diff     =  19;     // Channeling followed by single diffractive
-int proc_ch_ruth     =  20;     // Channeling followed by Rutherford scattering
-int proc_TRVR        = 100;     // Volume reflection in VR-AM transition region
-int proc_TRAM        = 101;     // Amorphous in VR-AM transition region
-
-int temp = 0;
+int const proc_out         =  -1;     // Crystal not hit
+int const proc_AM          =   1;     // Amorphous
+int const proc_VR          =   2;     // Volume reflection
+int const proc_CH          =   3;     // Channeling
+int const proc_VC          =   4;     // Volume capture
+int const proc_absorbed    =   5;     // Absorption
+int const proc_DC          =   6;     // Dechanneling
+int const proc_pne         =   7;     // Proton-neutron elastic interaction
+int const proc_ppe         =   8;     // Proton-proton elastic interaction
+int const proc_diff        =   9;     // Single diffractive
+int const proc_ruth        =  10;     // Rutherford scattering
+int const proc_ch_absorbed =  15;     // Channeling followed by absorption
+int const proc_ch_pne      =  17;     // Channeling followed by proton-neutron elastic interaction
+int const proc_ch_ppe      =  18;     // Channeling followed by proton-proton elastic interaction
+int const proc_ch_diff     =  19;     // Channeling followed by single diffractive
+int const proc_ch_ruth     =  20;     // Channeling followed by Rutherford scattering
+int const proc_TRVR        = 100;     // Volume reflection in VR-AM transition region
+int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 
 /*gpufun*/
 double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     static double result[5];
+#pragma omp threadprivate(result)
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -275,6 +274,7 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double
 double* moveam(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
     static double result[4];
+#pragma omp threadprivate(result)
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -494,6 +494,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
 
     static double result[6];
+#pragma omp threadprivate(result)
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -1059,6 +1060,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
     iProc  = proc_out;
 
     static double crystal_result[21];
+#pragma omp threadprivate(crystal_result)
     double* result;
 
     double const cry_cBend  = cos(cry_bend);

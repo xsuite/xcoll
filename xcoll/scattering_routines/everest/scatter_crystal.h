@@ -14,7 +14,7 @@
 void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
                  double cRot, double sRot, double c_aperture, double c_offset, int side, double cry_tilt,
                  double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax, double cry_ymax, 
-                 double cry_orient, double cry_miscut){
+                 double cry_orient, double cry_miscut, CollimatorImpactsData record, RecordIndex record_index){
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);

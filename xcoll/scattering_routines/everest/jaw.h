@@ -85,6 +85,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double v1 = 0;
     double v2 = 0;
     static double result[2];
+#pragma omp threadprivate(result)
 
     while (1) {
         v1 = 2*RandomUniform_generate(part) - 1;
@@ -120,6 +121,7 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     double rlen0 = zlm1/radl;
     double rlen  = rlen0;
     static double result[5];
+#pragma omp threadprivate(result)
 
     x     = (x/theta)/radl;
     xp    = xp/theta;
@@ -177,6 +179,7 @@ double* tetat(LocalParticle* part, double t, double p) {
     double vb2 = 0;
     double r2  = 0;
     static double result[2];
+#pragma omp threadprivate(result)
     
     while (1) {
         va  = 2*RandomUniform_generate(part) - 1;
@@ -199,6 +202,7 @@ double* tetat(LocalParticle* part, double t, double p) {
 double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
 
     static double res[2];
+#pragma omp threadprivate(res)
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
@@ -309,6 +313,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
             double p, double zlm, double x, double xp, double z, double zp) {
     
     static double result[7];
+#pragma omp threadprivate(result)
     double s;
     double nabs = 0;
     double rlen = zlm;
