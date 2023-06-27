@@ -171,6 +171,8 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
         n_VR = crystal_result[19];
         n_amorphous = crystal_result[20];
 
+        free(crystal_result);
+
         if (nabs != 0.) {
             val_part_abs = 1.;
             // val_part_linteract = zlm;

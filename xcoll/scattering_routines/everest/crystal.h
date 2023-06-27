@@ -43,8 +43,7 @@ int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 /*gpufun*/
 double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
-    static double result[5];
-#pragma omp threadprivate(result)
+    double* result = (double*)malloc(5 * sizeof(double));
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -273,8 +272,7 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double
 /*gpufun*/
 double* moveam(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
-    static double result[4];
-#pragma omp threadprivate(result)
+    double* result = (double*)malloc(4 * sizeof(double));
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -493,8 +491,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                  double cry_tilt, double cry_rcurv, double cry_alayer, double cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc) {
 
-    static double result[6];
-#pragma omp threadprivate(result)
+    double* result = (double*)malloc(6 * sizeof(double));
 
 //     // Material properties
 //     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -512,9 +509,6 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 //     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
 //     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
 //     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
-
-    double* result_am;
-    double* result_ch;
 
     double dest = 0.;
     double pmap = 938.271998;
@@ -655,12 +649,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(rng, part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+        double* result_am = moveam(rng, part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
                             bnref,csref0,csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
         pc = result_am[2];
         iProc = result_am[3];
+        free(result_am);
 
         x = x + xp*(s_length-s);
         y = y + yp*(s_length-s);
@@ -679,12 +674,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                             exenergy,zatom,rho,anuc);
 
-        result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+        double* result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
         xp = result_am[0];
         yp = result_am[1];
         pc = result_am[2];
         iProc = result_am[3];
+        free(result_am);
 
         result[0] = x;
         result[1] = xp;
@@ -760,11 +756,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                 dest = calcionloss_cry(part,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
 
-                result_am = moveam(rng,part,nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                double* result_am = moveam(rng,part,nam,s_length-Sdech,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
                 iProc = result_am[3];
+                free(result_am);
 
                 x = x + (0.5*(s_length-Sdech))*xp;
                 y = y + (0.5*(s_length-Sdech))*yp;
@@ -774,13 +771,14 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                result_ch = movech(rng,part,nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                double* result_ch = movech(rng,part,nam,L_chan,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                 csref0,csref1,csref5,eUm,collnt,iProc);
                 x = result_ch[0];
                 xp = result_ch[1];
                 yp = result_ch[2];
                 pc = result_ch[3];
                 iProc = result_ch[4];
+                free(result_ch);
 
                 if (iProc != proc_CH) {
                     //if an nuclear interaction happened, move until the middle with initial xp,yp:
@@ -814,11 +812,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
             y  = y  + (0.5*s_length)*yp;
 
             dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-            result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+            double* result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
             xp = result_am[0];
             yp = result_am[1];
             pc = result_am[2];
             iProc = result_am[3];
+            free(result_am);
 
             x = x + (0.5*s_length)*xp;
             y = y + (0.5*s_length)*yp;  
@@ -841,11 +840,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
                 dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
                 iProc = result_am[3];
+                free(result_am);
 
                 x = x + (0.5*xp)*(s_length - Srefl);
                 y = y + (0.5*yp)*(s_length - Srefl);
@@ -879,12 +879,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(rng,part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    double* result_am = moveam(rng,part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
                     iProc = result_am[3];
+                    free(result_am);
                     
                     x = x + (0.5*xp)*Red_S;
                     y = y + (0.5*yp)*Red_S;
@@ -901,13 +902,14 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    result_ch = movech(rng,part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
+                    double* result_ch = movech(rng,part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
                                     csref0,csref1,csref5,eUm,collnt,iProc);
                     x = result_ch[0];
                     xp = result_ch[1];
                     yp = result_ch[2];
                     pc = result_ch[3];
                     iProc = result_ch[4];
+                    free(result_ch);
                                     
                     if (iProc != proc_VC) {
                         //if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
@@ -942,12 +944,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 if(zn > 0) {
                     dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(rng,part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    double* result_am = moveam(rng,part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
                     iProc = result_am[3];
+                    free(result_am);
                 }
             
                 x = x + (0.5*s_length)*xp;
@@ -967,12 +970,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
                     iProc = result_am[3];
+                    free(result_am);
 
                     x = x + (0.5*xp)*(s_length - Srefl);
                     y = y + (0.5*yp)*(s_length - Srefl);
@@ -987,12 +991,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+                    double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
                         csref1,csref5,collnt,iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
                     iProc = result_am[3];
+                    free(result_am);
 
                     x = x + (0.5*xp)*(s_length - Srefl);
                     y = y + (0.5*yp)*(s_length - Srefl);
@@ -1059,9 +1064,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
     s_imp  = 0.;
     iProc  = proc_out;
 
-    static double crystal_result[21];
-#pragma omp threadprivate(crystal_result)
-    double* result;
+    double* crystal_result = (double*)malloc(21 * sizeof(double));
 
     double const cry_cBend  = cos(cry_bend);
     double const cry_sBend  = sin(cry_bend);
@@ -1102,7 +1105,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
         double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
         double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
 
-        result = interact(rng,part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
+        double* result = interact(rng,part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
                         ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
                         cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
                         cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
@@ -1113,6 +1116,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
         zp = result[3];
         p = result[4];
         iProc = result[5];
+        free(result);
 
         s   = cry_rcurv*cry_sBend;
         zlm = cry_rcurv*cry_sBend;
@@ -1167,7 +1171,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                result = interact(rng,part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
+                double* result = interact(rng,part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
                                 zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
                                 cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
                                 cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc);
@@ -1178,6 +1182,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
                 zp = result[3];
                 p = result[4];
                 iProc = result[5];
+                free(result);
 
                 s   = cry_rcurv*sin(cry_bend - tilt_int);
                 zlm = cry_rcurv*sin(cry_bend - tilt_int);
@@ -1269,7 +1274,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
     } else if (iProc == proc_ch_absorbed) {
         nabs = 1;
     }
-    
+
     crystal_result[0] = val_part_hit;
     crystal_result[1] = val_part_abs;
     crystal_result[2] = val_part_impact;

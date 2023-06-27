@@ -44,7 +44,7 @@ class EverestCollimator(BaseCollimator):
     ]
 
     _per_particle_kernels = {
-        '_set_material': xo.Kernel(
+        '_EverestCollimator_set_material': xo.Kernel(
                 c_name='EverestCollimator_set_material',
                 args=[]
             )
@@ -64,7 +64,7 @@ class EverestCollimator(BaseCollimator):
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self._set_material(xp.Particles())
+            self._EverestCollimator_set_material(xp.Particles())
 
     @property
     def material(self):
@@ -76,7 +76,7 @@ class EverestCollimator(BaseCollimator):
             if not isinstance('material', dict) or material['__class__'] != "Material":
                 raise ValueError("Invalid material!")
         self._material = material
-        self._set_material(xp.Particles())
+        self._EverestCollimator_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         # TODO: this should be an InvalidCollimator
@@ -113,7 +113,7 @@ class EverestCrystal(BaseCollimator):
     ]
 
     _per_particle_kernels = {
-        '_set_material': xo.Kernel(
+        '_EverestCrystal_set_material': xo.Kernel(
                 c_name='EverestCrystal_set_material',
                 args=[]
             )
@@ -139,7 +139,7 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self._set_material(xp.Particles())
+            self._EverestCrystal_set_material(xp.Particles())
 
     @property
     def lattice(self):
@@ -164,7 +164,7 @@ class EverestCrystal(BaseCollimator):
             if not isinstance(material, dict) or material['__class__'] != "CrystalMaterial":
                 raise ValueError("Invalid material!")
         self._material = material
-        self._set_material(xp.Particles())
+        self._EverestCrystal_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         # TODO: this should be an InvalidCollimator
