@@ -84,7 +84,7 @@ class CollimatorManager:
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
-        self.line._needs_rng = True
+        self.line._needs_rng = True  # TODO not needed if only BlackAbsorbers
         if beam is not None and beam > 1:
             self._line_is_reversed = True
         else:
@@ -652,13 +652,15 @@ class CollimatorManager:
             part = xp.build_particles(
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=self.line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s,
+                    _context=self._buffer.context
             )
         else:
             part = xp.build_particles(
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=self.line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s,
+                    _context=self._buffer.context
             )
 
         part._init_random_number_generator()
