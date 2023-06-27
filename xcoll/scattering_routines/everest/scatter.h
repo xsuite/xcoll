@@ -167,6 +167,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
             xp = jaw_result[4];
             z = jaw_result[5];
             zp = jaw_result[6];
+            free(jaw_result);
 
             // val_nabs_type = nabs;
             val_part_hit  = 1;

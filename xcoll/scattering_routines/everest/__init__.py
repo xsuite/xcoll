@@ -1,2 +1,2 @@
-from .materials import Material, CrystalMaterial
+from .materials import GeneralMaterial, Material, CrystalMaterial
 from .everest import EverestEngine

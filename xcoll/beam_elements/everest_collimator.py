@@ -8,7 +8,7 @@ import xpart as xp
 import xtrack as xt
 
 from .base_collimator import BaseCollimator, InvalidCollimator
-from ..scattering_routines.everest import Material, CrystalMaterial, EverestEngine
+from ..scattering_routines.everest import GeneralMaterial, Material, CrystalMaterial, EverestEngine
 from ..general import _pkg_root
 
 
@@ -19,6 +19,8 @@ from ..general import _pkg_root
 #      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
 #      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify 
 #      get_backtrack_element. We want it nicer..
+
+# TODO: _per_particle_kernels should be a normal kernel (such that we don't need to pass a dummy Particles() )
 
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
@@ -41,6 +43,13 @@ class EverestCollimator(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
 
+    _per_particle_kernels = {
+        '_EverestCollimator_set_material': xo.Kernel(
+                c_name='EverestCollimator_set_material',
+                args=[]
+            )
+        }
+
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -54,8 +63,8 @@ class EverestCollimator(BaseCollimator):
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
-#         if '_xobject' not in kwargs:
-#             self.random_generator.set_rutherford_by_xcoll_material(self.material)
+        if '_xobject' not in kwargs:
+            self._EverestCollimator_set_material(xp.Particles())
 
     @property
     def material(self):
@@ -67,7 +76,7 @@ class EverestCollimator(BaseCollimator):
             if not isinstance('material', dict) or material['__class__'] != "Material":
                 raise ValueError("Invalid material!")
         self._material = material
-#         self.random_generator.set_rutherford_by_xcoll_material(material)
+        self._EverestCollimator_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         # TODO: this should be an InvalidCollimator
@@ -103,6 +112,13 @@ class EverestCrystal(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
     ]
 
+    _per_particle_kernels = {
+        '_EverestCrystal_set_material': xo.Kernel(
+                c_name='EverestCrystal_set_material',
+                args=[]
+            )
+        }
+
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -122,8 +138,8 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
-#         if '_xobject' not in kwargs:
-#             self.random_generator.set_rutherford_by_xcoll_material(self.material)
+        if '_xobject' not in kwargs:
+            self._EverestCrystal_set_material(xp.Particles())
 
     @property
     def lattice(self):
@@ -148,7 +164,7 @@ class EverestCrystal(BaseCollimator):
             if not isinstance(material, dict) or material['__class__'] != "CrystalMaterial":
                 raise ValueError("Invalid material!")
         self._material = material
-#         self.random_generator.set_rutherford_by_xcoll_material(material)
+        self._EverestCrystal_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         # TODO: this should be an InvalidCollimator
