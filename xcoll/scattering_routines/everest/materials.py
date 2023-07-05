@@ -76,8 +76,8 @@ class CrystalMaterial(GeneralMaterial):
 
 
 # BE
-Berylium = Material(
-        name = 'Berylium',
+Beryllium = Material(
+        name = 'Beryllium',
         Z = 4.00,
         A = 9.01,
         density = 1.848,
@@ -290,7 +290,7 @@ Inermet = Material(
 
 
 SixTrack_to_xcoll = {
-    "be":   [Berylium],
+    "be":   [Beryllium],
     "al":   [Aluminium],
     "cu":   [Copper],
     "w":    [Tungsten, TungstenCrystal],
