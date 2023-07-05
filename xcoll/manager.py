@@ -13,12 +13,18 @@ import xpart as xp
 import xtrack as xt
 
 
+# Logic of buffers:
+#    A buffer is a continuous stream of memory, containing a bunch of xobjects.
+#    It is an architecture-invariant way to work with pointers, as the pointers to the individual
+#    xobjects are stored as offsets to the start of the buffer.
+#    The tracker manages three buffers: one for the line and all elements, one for the particles,
+#    and an io_buffer for record logging.
 
 class CollimatorManager:
 
-    _init_vars = ['_colldb', 'line', 'beam', 'capacity', 'record_impacts', '_context', '_buffer', 'io_buffer']
+    _init_vars = ['_colldb', 'line', 'beam', 'capacity', 'record_impacts', '_context', '_buffer', 'io_buffer', '_part_buffer']
     _init_var_defaults = {'_colldb': None, 'beam': None, 'capacity': 1e6, 'record_impacts': False, \
-                          '_context': None, '_buffer': None, 'io_buffer': None}
+                          '_context': None, '_buffer': None, 'io_buffer': None, '_part_buffer': None}
 
     # -------------------------------
     # ------ Loading functions ------
@@ -103,8 +109,13 @@ class CollimatorManager:
                              + "Make sure the buffer is generated inside the provided context, or alternatively, "
                              + "only pass one of _buffer or _context.")
         self._buffer = _buffer
+        self._part_buffer  = kwargs['_part_buffer']
+        if self._part_buffer is not None and self._part_buffer.context != _context:
+            raise ValueError("The provided particle buffer and context do not match! "
+                             + "Make sure the particle buffer is generated inside the provided context.")
 
-        # TODO: currently capacity is only for io_buffer (hence for _impacts). Do we need it in the _buffer as well?
+        # TODO: currently capacity is only for io_buffer (hence for impacts).
+        # Do we need it in the _buffer as well?
         self._capacity = int(kwargs['capacity'])
         io_buffer = kwargs['io_buffer']
         if io_buffer is None:
@@ -114,9 +125,9 @@ class CollimatorManager:
         self._io_buffer = io_buffer
 
         # Initialise impacts table
-        self._record_impacts = []
-        self._impacts = None
+        self._recording_elements = []
         self.record_impacts = kwargs['record_impacts']
+        self._impacts = None
 
         # Variables for lossmap
         self._lossmap = None
@@ -134,24 +145,7 @@ class CollimatorManager:
 
     @property
     def impacts(self):
-        interactions = {
-            -1: 'Black', 1: 'Nuclear-Inelastic', 2: 'Nuclear-Elastic', 3: 'pp-Elastic', 4: 'Single-Diffractive', 5: 'Coulomb'
-        }
-        n_rows = self._impacts._index + 1
-        df = pd.DataFrame({
-                'collimator':        [self.line.element_names[elemid] for elemid in self._impacts.at_element[:n_rows]],
-                's':                 self._impacts.s[:n_rows],
-                'turn':              self._impacts.at_turn[:n_rows],
-                'interaction_type':  [ interactions[int_id] for int_id in self._impacts.interaction_type[:n_rows] ],
-            })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
-        for particle in ['parent', 'child']:
-            multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
-            newdf = pd.DataFrame(index=df.index, columns=multicols)
-            for col in cols:
-                newdf[particle, col] = getattr(self._impacts,particle + '_' + col)[:n_rows]
-            df = pd.concat([df, newdf], axis=1)
-        return df
+        return self._impacts
 
     @property
     def record_impacts(self):
@@ -159,25 +153,58 @@ class CollimatorManager:
 
     @record_impacts.setter
     def record_impacts(self, record_impacts):
-        # TODO: how to get impacts if different collimator types in line?
-        if record_impacts is True:
-            record_impacts = self.collimator_names
-        elif record_impacts is False or record_impacts is None:
-            record_impacts = []
-        record_start = set(record_impacts) - set(self._record_impacts)
-        record_stop = set(self._record_impacts) - set(record_impacts)
-        if record_start:
-            if self._impacts is None:
-                self._impacts = xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
-                                                          elements=record_start)
-            else:
-                xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
-                                          record=self._impacts, elements=record_start)
+        if record_impacts is False or record_impacts is None:
+            record_stop  = [self.line[name] for name in self._recording_elements]
+            record_start = False
+        elif record_impacts is True:
+            record_stop  = []
+            record_start = True
+        else:
+            if not hasattr(record_impacts, '__iter__') or isinstance(record_impacts, str):
+                record_impacts = [record_impacts]
+            record_stop  = [self.line[name] for name in set(self._recording_elements) - set(record_impacts)]
+            record_start = record_impacts
+
+        # We stop logging these elements
         if record_stop:
             if self.line.tracker is not None:
                 self.line.tracker._check_invalidated()
             xt.stop_internal_logging(elements=record_stop)
-        self._record_impacts = record_impacts
+            # Removed the stopped collimators from list of logged elements
+            self._recording_elements = list(set(self._recording_elements) - set(record_stop))
+
+        # We will start logging these elements
+        self._record_impacts = record_start
+        self._set_record_impacts()
+
+    def _set_record_impacts(self):
+        record_impacts = self._record_impacts
+        if record_impacts is True:
+            record_impacts = self.collimator_names
+        if record_impacts is False or record_impacts is None:
+            record_impacts = []
+        if not hasattr(record_impacts, '__iter__') or isinstance(record_impacts, str):
+            record_impacts = [record_impacts]
+        if record_impacts and np.all([isinstance(self.line[elem], BaseCollimator) for elem in record_impacts]):
+            for name in record_impacts:
+                if name not in self.line.element_names:
+                    raise ValueError(f"Trying to initialise impact table, but collimator {name} not found in line!")
+            elements_to_record = list(set(record_impacts) - set(self._recording_elements))
+            elements_to_stop = list(set(self._recording_elements) - set(record_impacts))
+            if elements_to_stop:
+                # These should have been stopped by the setter function above
+                raise ValueError("Some elements are recording but are not supposed to!")
+            # Any new elements that need recording but aren't recording yet?
+            if elements_to_record:
+                elements_to_record = [self.line[name] for name in elements_to_record]
+                if self.impacts is None:
+                    self._impacts = xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                                              elements=elements_to_record)
+                else:
+                    xt.start_internal_logging(io_buffer=self._io_buffer, capacity=self.capacity, \
+                                              record=self.impacts, elements=elements_to_record)
+                self._recording_elements = record_impacts
+            self.impacts._coll_ids = {self.line.element_names.index(name): name for name in self._recording_elements}
 
     @property
     def capacity(self):
@@ -192,7 +219,7 @@ class CollimatorManager:
             return
         else:
             self._io_buffer.grow(capacity-self.capacity)
-            if self._impacts is not None:
+            if self.impacts is not None:
                 # TODO: increase capacity of iobuffer AND of _impacts
                 raise NotImplementedError
 
@@ -243,26 +270,10 @@ class CollimatorManager:
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
 
-    def add_crystals(self, crystals):
-        df = pd.DataFrame(crystals).transpose()
-        df['stage'] = 'PRIMARY'
-        df['parking'] = 0.025
-        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
-                     'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'collimator_type']:
-            df[prop] = None
-        for prop in ['inactive_front', 'inactive_back']:
-            df[prop] = 0.0
-        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
-        df['gap_R'] = df['gap_L']
-        df.loc[df['side']=='left', 'gap_R'] = None
-        df.loc[df['side']=='right', 'gap_L'] = None
-        df['active'] = True
-        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
-
-
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
+        names = list(names) # Dataframe does not like to be indexed with a set
         df = self.colldb._colldb.loc[names]
         df_coll = df[[c is None for c in df.crystal]]
         df_cry  = df[[c is not None for c in df.crystal]]
@@ -306,6 +317,8 @@ class CollimatorManager:
         # and that tracker is not yet built
         # TODO: need check that all collimators have aperture before and after
         line = self.line
+        if not hasattr(names, '__iter__') or isinstance(names, str):
+            names = [names]
         df = self.colldb._colldb
         mask = df.index.isin(names)
         for name in names:
@@ -385,6 +398,7 @@ class CollimatorManager:
                 line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
                 line.insert_element(element=coll_aper, name=name+'_aper_back',
                                     index=line.element_names.index(name)+1)
+        self._set_record_impacts()
 
 
     @property
@@ -416,6 +430,7 @@ class CollimatorManager:
         if '_context' in kwargs and kwargs['_context'] != self._buffer.context:
             raise ValueError("Cannot build tracker with different context than the CollimatorManager context!")
         self.line.build_tracker(**kwargs)
+        self._set_record_impacts()
 
     @property
     def tracker_ready(self):
@@ -653,14 +668,14 @@ class CollimatorManager:
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s,
-                    _context=self._buffer.context
+                    _buffer=self._part_buffer
             )
         else:
             part = xp.build_particles(
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s,
-                    _context=self._buffer.context
+                    _buffer=self._part_buffer
             )
 
         part._init_random_number_generator()
@@ -698,6 +713,7 @@ class CollimatorManager:
         # Prepare collimators for tracking
         for coll in self.collimator_names:
             self.line[coll]._tracking = True
+        self._set_record_impacts()
 
     def disable_scattering(self):
         # Prepare collimators for tracking
