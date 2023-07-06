@@ -21,6 +21,7 @@ class CollimatorImpacts(xo.HybridClass):
         's':                 xo.Float64[:],
         '_inter':            xo.Int64[:],
         'parent_id':         xo.Int64[:],
+        'parent_ds':         xo.Int64[:],
         'parent_x':          xo.Float64[:],
         'parent_px':         xo.Float64[:],
         'parent_y':          xo.Float64[:],
@@ -34,6 +35,7 @@ class CollimatorImpacts(xo.HybridClass):
         'parent_a':          xo.Int64[:],
         'parent_pdgid':      xo.Int64[:],
         'child_id':          xo.Int64[:],
+        'child_ds':          xo.Int64[:],
         'child_x':           xo.Float64[:],
         'child_px':          xo.Float64[:],
         'child_y':           xo.Float64[:],
@@ -54,7 +56,8 @@ class CollimatorImpacts(xo.HybridClass):
 
     @property
     def interaction_type(self):
-        return np.array([interactions[inter] for inter in self._inter])
+        n_rows = self._index.num_recorded
+        return np.array([interactions[inter] for inter in self._inter[:n_rows]])
 
     def collimator_name(self, element_id):
         if not hasattr(self, '_coll_ids'):
@@ -72,9 +75,9 @@ class CollimatorImpacts(xo.HybridClass):
                 coll_header:         [self.collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 's':                 self.s[:n_rows],
                 'turn':              self.at_turn[:n_rows],
-                'interaction_type':  self.interaction_type[:n_rows],
+                'interaction_type':  self.interaction_type,
             })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
+        cols = ['id', 'ds', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
         for particle in ['parent', 'child']:
             multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
             newdf = pd.DataFrame(index=df.index, columns=multicols)

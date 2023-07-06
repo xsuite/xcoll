@@ -140,6 +140,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     CollimatorImpactsData_set__inter(record, i_slot, XC_ABSORBED);
 
                     CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(part));
+                    CollimatorImpactsData_set_parent_ds(record, i_slot, 0);
                     CollimatorImpactsData_set_parent_x(record, i_slot, LocalParticle_get_x(part));
                     CollimatorImpactsData_set_parent_px(record, i_slot, LocalParticle_get_px(part));
                     CollimatorImpactsData_set_parent_y(record, i_slot, LocalParticle_get_y(part));
@@ -157,6 +158,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     // We need to fill in child data, or the arrays will not have the same length
                     // (when secondaries are be made elsewhere in other collimators)
                     CollimatorImpactsData_set_child_id(record, i_slot, -1);
+                    CollimatorImpactsData_set_child_ds(record, i_slot, -1);
                     CollimatorImpactsData_set_child_x(record, i_slot, -1);
                     CollimatorImpactsData_set_child_px(record, i_slot, -1);
                     CollimatorImpactsData_set_child_y(record, i_slot, -1);
