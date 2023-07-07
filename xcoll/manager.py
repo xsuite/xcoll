@@ -302,6 +302,65 @@ class CollimatorManager:
                        )
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
+    def initialise_geant4_engine(self, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
+        ref_part = self.line.particle_ref
+
+        kinetic_energy = lambda part: part.energy0 - part.mass0
+        reference_kinetic_energy = kinetic_energy(ref_part)
+
+        _mass_close_tol = 50 # eV
+        if ref_part.q0 == -1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # electron
+            reference_pdg_id = -11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # positron
+            reference_pdg_id = 11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.PROTON_MASS_EV, atol=_mass_close_tol):
+            # proton
+            reference_pdg_id = 2212
+        else:
+            # TODO: implement support for ions
+            raise ValueError(f'Cannot deduce PDG particle id for',
+                             'reference particle {ref_part.to_dict()}.\n'
+                             ' Likely bad input or a disallowed particle type')
+
+        Geant4Engine(random_generator_seed=random_seed, 
+                     reference_pdg_id=reference_pdg_id, 
+                     reference_kinetic_energy=reference_kinetic_energy, 
+                     relative_energy_cut=relative_energy_cut, 
+                     bdsim_config_file=bdsim_config_file)
+        
+        print('Geant4 engine initialised')
+        
+
+    def install_geant4_collimators(self, names=None, *, verbose=False):
+        # if Geant4Engine():
+        #     raise Exception('The Geant4 engine is not initialised,'
+        #                     'unable to install Geant4 collimators. '
+        #                     'Use CollimatorManager.initialise_geant4_engine(...)')
+        if names is None:
+            names = self.collimator_names
+        df = self.colldb._colldb.loc[names]
+        df_coll = df[[c is None for c in df.crystal]]
+        df_cry  = df[[c is not None for c in df.crystal]]
+
+        # Do the installations
+        if len(df_coll) > 0:
+            def install_func(thiscoll, name):
+                return Geant4Collimator(
+                        collimator_id = name,
+                        material = thiscoll['material'],
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
+                        tilt_L=thiscoll.get('tilt_L', 0.0),
+                        tilt_R=thiscoll.get('tilt_R', 0.0),
+                        active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                    )
+            self._install_collimators(names, install_func=install_func, verbose=verbose)
 
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
