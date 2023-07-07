@@ -617,7 +617,7 @@ class CollimatorManager:
     def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
                                       pencil_spread=1e-6, transverse_impact_parameter=0.,
                                       transverse_spread_sigma=0.01, longitudinal=None,
-                                      longitudinal_betatron_cut=None, sigma_z=7.61e-2):
+                                      longitudinal_betatron_cut=None, sigma_z=7.61e-2, capacity=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -626,6 +626,8 @@ class CollimatorManager:
             raise NotImplementedError
 
         # TODO: check collimator in colldb and installed!
+        if capacity is None:
+            capacity = num_particles
 
         if self.colldb.side[collimator] == 'left':
             side = '+'
@@ -711,12 +713,14 @@ class CollimatorManager:
         # Build the particles
         if plane == 'x':
             part = xp.build_particles(
+                    _capacity=capacity,
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s
             )
         else:
             part = xp.build_particles(
+                    _capacity=capacity,
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s
