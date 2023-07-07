@@ -3,10 +3,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, Geant4Collimator, _all_collimator_types
 from .colldb import CollimatorDatabase
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
+
+from .scattering_routines.geant4 import Geant4Engine
 
 import xobjects as xo
 import xpart as xp
