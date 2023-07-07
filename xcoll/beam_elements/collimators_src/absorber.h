@@ -44,6 +44,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     }
 
     //start_per_particle_block (part0->part)
+    
+        double s_collimator = LocalParticle_get_s(part);
 
         // Go to collimator reference system (centered around orbit)
         XYShift_single_particle(part, dx, dy);
@@ -114,10 +116,6 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             }
         }
 
-        // Move back from collimator reference system
-        SRotation_single_particle(part, -sin_zL, cos_zL);
-        XYShift_single_particle(part, -dx, -dy);
-
         // Update dead particles
         if (!is_alive){
 
@@ -136,11 +134,11 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
                     CollimatorImpactsData_set_at_element(record, i_slot, LocalParticle_get_at_element(part));
                     CollimatorImpactsData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(part));
-                    CollimatorImpactsData_set_s(record, i_slot, LocalParticle_get_s(part));
+                    CollimatorImpactsData_set_s(record, i_slot, s_collimator);
                     CollimatorImpactsData_set__inter(record, i_slot, XC_ABSORBED);
 
                     CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(part));
-                    CollimatorImpactsData_set_parent_ds(record, i_slot, 0);
+                    CollimatorImpactsData_set_parent_ds(record, i_slot, LocalParticle_get_s(part) - s_collimator);
                     CollimatorImpactsData_set_parent_x(record, i_slot, LocalParticle_get_x(part));
                     CollimatorImpactsData_set_parent_px(record, i_slot, LocalParticle_get_px(part));
                     CollimatorImpactsData_set_parent_y(record, i_slot, LocalParticle_get_y(part));
@@ -174,6 +172,10 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 }
             }
         }
+
+        // Move back from collimator reference system
+        SRotation_single_particle(part, -sin_zL, cos_zL);
+        XYShift_single_particle(part, -dx, -dy);
 
     //end_per_particle_block
 
