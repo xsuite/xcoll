@@ -146,7 +146,9 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
                                 iProc,
                                 n_chan,
                                 n_VR,
-                                n_amorphous
+                                n_amorphous,
+                                record,
+                                record_index
                                 );
 
         val_part_hit = crystal_result[0];
