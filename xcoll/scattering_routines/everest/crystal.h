@@ -41,7 +41,7 @@ int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 
 /*gpufun*/
-double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
+double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double x, double xp, double yp, double pc, double r, double rc, double rho, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double eUm, double collnt, double iProc) {
 
     double* result = (double*)malloc(5 * sizeof(double));
 
@@ -167,16 +167,6 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double
     //Multiple Coulomb Scattering
     xp = xp*1.0e3;
     yp = yp*1.0e3;
-
-    //Turn on/off nuclear interactions
-    if (nam == 0) {
-        result[0] = x;
-        result[1] = xp;
-        result[2] = yp;
-        result[3] = pc;
-        result[4] = iProc;
-        return result;
-    }
     
     double nuc_cl_l;
     //Can nuclear interaction happen?
@@ -270,7 +260,7 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double nam, double
 
 
 /*gpufun*/
-double* moveam(RandomRutherfordData rng, LocalParticle* part, double nam, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
+double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double dei, double dlr, double xp, double yp, double pc, double anuc, double zatom, double emr, double hcut, double bnref, double csref0, double csref1, double csref5, double collnt, double iProc) {
 
     double* result = (double*)malloc(4 * sizeof(double));
 
@@ -351,15 +341,6 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double nam, double
 
     xp = xp+kxmcs;
     yp = yp+kymcs;
-
-    if (nam == 0) {
-
-        result[0] = xp;
-        result[1] = yp;
-        result[2] = pc;
-        result[3] = iProc;
-        return result; // Turn on/off nuclear interactions
-    }
 
     // Can nuclear interaction happen?
     double zlm = collnt*RandomExponential_generate(part);
@@ -521,7 +502,6 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
     double c_v1 =  1.7;   // Fitting coefficient
     double c_v2 = -1.5;   // Fitting coefficient
 
-    int nam = 1; // Switch on/off the nuclear interaction (NAM) and the MCS (ZN)
     int zn  = 1;
 
     // dE/dX and dechanneling length calculation
@@ -655,7 +635,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 //         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
 //                             exenergy,zatom,rho,anuc);
 
-//         double* result_am = moveam(rng, part,nam,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
+//         double* result_am = moveam(rng, part,am_len,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,
 //                             bnref,csref0,csref1,csref5,collnt,iProc);
 //         xp = result_am[0];
 //         yp = result_am[1];
@@ -683,7 +663,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 //         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
 //                             exenergy,zatom,rho,anuc);
 
-//         double* result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
+//         double* result_am = moveam(rng, part,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
 //                         csref1,csref5,collnt,iProc);
 //         xp = result_am[0];
 //         yp = result_am[1];
@@ -772,7 +752,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                 dest = calcionloss_cry(part,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
 
-                double* result_am = moveam(rng, part, nam, s_length-Sdech, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut,
+                double* result_am = moveam(rng, part, s_length-Sdech, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut,
                                            bnref, csref0, csref1, csref5, collnt, iProc);
                 xp = result_am[0];
                 yp = result_am[1];
@@ -790,7 +770,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 double ypin  = yp;
 
                 //check if a nuclear interaction happen while in CH
-                double* result_ch = movech(rng, part, nam, L_chan, x, xp, yp, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
+                double* result_ch = movech(rng, part, L_chan, x, xp, yp, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
                                            hcut, bnref, csref0, csref1, csref5, eUm, collnt, iProc);
                 x = result_ch[0];
                 xp = result_ch[1];
@@ -833,7 +813,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
             y  = y  + (0.5*s_length)*yp;
 
             dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-            double* result_am = moveam(rng, part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+            double* result_am = moveam(rng, part, s_length, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut, bnref, csref0,
+                                       csref1, csref5, collnt, iProc);
             xp = result_am[0];
             yp = result_am[1];
             pc = result_am[2];
@@ -861,7 +842,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 y     = y  + (0.5*yp)*(s_length - Srefl);
 
                 dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,csref1,csref5,collnt,iProc);
+                double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut, bnref,
+                                           csref0, csref1, csref5, collnt, iProc);
                 xp = result_am[0];
                 yp = result_am[1];
                 pc = result_am[2];
@@ -900,8 +882,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,Red_S,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    double* result_am = moveam(rng,part,nam,Red_S,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc);
+                    double* result_am = moveam(rng, part, Red_S, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut, bnref,
+                                               csref0, csref1, csref5, collnt, iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
@@ -923,8 +905,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    double* result_ch = movech(rng,part,nam,Rlength,x,xp,yp,pc,cry_rcurv,Rcrit,rho,anuc,zatom,emr,hcut,bnref,
-                                    csref0,csref1,csref5,eUm,collnt,iProc);
+                    double* result_ch = movech(rng, part, Rlength, x, xp, yp, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
+                                               hcut, bnref, csref0, csref1, csref5, eUm, collnt, iProc);
                     x = result_ch[0];
                     xp = result_ch[1];
                     yp = result_ch[2];
@@ -965,8 +947,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 if(zn > 0) {
                     dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    double* result_am = moveam(rng,part,nam,s_length,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc);
+                    double* result_am = moveam(rng, part, s_length, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut, bnref,
+                                               csref0, csref1, csref5, collnt, iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
@@ -991,8 +973,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc);
+                    double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut,
+                                               bnref, csref0, csref1, csref5, collnt, iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
@@ -1012,8 +994,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
-                    double* result_am = moveam(rng,part,nam,s_length-Srefl,dest,dlri,xp,yp,pc,anuc,zatom,emr,hcut,bnref,csref0,
-                        csref1,csref5,collnt,iProc);
+                    double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, xp, yp, pc, anuc, zatom, emr, hcut,
+                                               bnref, csref0, csref1, csref5, collnt, iProc);
                     xp = result_am[0];
                     yp = result_am[1];
                     pc = result_am[2];
