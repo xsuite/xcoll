@@ -56,7 +56,7 @@ class Geant4Collimator(BeamInteraction, BaseCollimator ):
     #     Geant4Engine().deregister_collimator(self)
 
     def track(self, part):
-        if self.active and self._tracking:
+        if self.active and self._tracking and Geant4Engine().connected:
             Geant4Engine().enable_scattering()
             BeamInteraction.track(self, part)
         else:

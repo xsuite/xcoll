@@ -23,46 +23,47 @@ class Geant4Engine(xo.HybridClass):
             cls.instance = super().__new__(cls)
             cls.instance._initialised = False
         return cls.instance
-    
+
+
     def __init__(self, batch_mode=True, **kwargs):
         if(self._initialised):
             return
-        if not kwargs: # If trying to use before intialising
-            super().__init__(random_generator_seed = -1,
-                             reference_pdg_id = -1,   
-                             reference_kinetic_energy = -1,
-                             relative_energy_cut = -1,
-                             bdsim_config_file = -1)
-            return
-        
-        # Allow seed to be set to None to get default:
-        kwargs.setdefault('random_generator_seed', None)
-        if kwargs['random_generator_seed'] is None:
-            kwargs['random_generator_seed'] = np.random.randint(1, 10000000)
-
-        super().__init__(**kwargs)
-        try:
-            import collimasim as cs
-        except ImportError:
-            global _geant4_warning_given
-            if not _geant4_warning_given:
-                print("Warning: Failed to import collimasim. " \
-                      + "Geant4Collimators will be installed but are not trackable.")
-                _geant4_warning_given = True
-        else:
-            unit_GeV = 1e9 # GeV to eV
-            self.g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
-                                             referencePdgId=self.reference_pdg_id,
-                                             referenceEk=self.reference_kinetic_energy / unit_GeV, # BDSIM expects GeV
-                                             relativeEnergyCut=self.relative_energy_cut,
-                                             seed=self.random_generator_seed, batchMode=batch_mode)
-
-
         self._initialised = True
 
-        self.registered_collimators = {}
-        self._geometry_constructed = False
-        self._built_collimators = {}
+        if '_xobject' not in kwargs:
+            # Allow seed to be set to None to get default:
+            kwargs.setdefault('random_generator_seed', None)
+            if kwargs['random_generator_seed'] is None:
+                kwargs['random_generator_seed'] = np.random.randint(1, 10000000)
+            kwargs.setdefault('reference_pdg_id', -1)
+            kwargs.setdefault('reference_kinetic_energy', -1)
+            kwargs.setdefault('relative_energy_cut', -1)
+            kwargs.setdefault('bdsim_config_file', '')
+            self.registered_collimators = {}
+            self._geometry_constructed = False
+            self._built_collimators = {}
+            try:
+                import collimasim as cs
+            except ImportError:
+                global _geant4_warning_given
+                if not _geant4_warning_given:
+                    print("Warning: Failed to import collimasim. " \
+                          + "Geant4Collimators will be installed but are not trackable.")
+                    _geant4_warning_given = True
+                    self.g4link = None
+            else:
+                unit_GeV = 1e9 # GeV to eV
+                self.g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
+                                                 referencePdgId=self.reference_pdg_id,
+                                                 referenceEk=self.reference_kinetic_energy / unit_GeV, # BDSIM expects GeV
+                                                 relativeEnergyCut=self.relative_energy_cut,
+                                                 seed=self.random_generator_seed, batchMode=batch_mode)
+            print('Geant4 engine initialised')
+        super().__init__(**kwargs)
+
+    @property
+    def connected(self):
+        return self.g4link is not None
 
 
     def register_collimator(self, collimator):

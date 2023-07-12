@@ -245,23 +245,6 @@ class CollimatorManager:
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
 
-    def add_crystals(self, crystals):
-        df = pd.DataFrame(crystals).transpose()
-        df['stage'] = 'PRIMARY'
-        df['parking'] = 0.025
-        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
-                     'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'collimator_type']:
-            df[prop] = None
-        for prop in ['inactive_front', 'inactive_back']:
-            df[prop] = 0.0
-        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
-        df['gap_R'] = df['gap_L']
-        df.loc[df['side']=='left', 'gap_R'] = None
-        df.loc[df['side']=='right', 'gap_L'] = None
-        df['active'] = True
-        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
-
-
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
@@ -302,7 +285,8 @@ class CollimatorManager:
                        )
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
-    def initialise_geant4_engine(self, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
+
+    def _initialise_geant4_engine(self, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
         ref_part = self.line.particle_ref
 
         kinetic_energy = lambda part: part.energy0 - part.mass0
@@ -329,15 +313,16 @@ class CollimatorManager:
                      reference_kinetic_energy=reference_kinetic_energy, 
                      relative_energy_cut=relative_energy_cut, 
                      bdsim_config_file=bdsim_config_file)
-        
-        print('Geant4 engine initialised')
-        
 
-    def install_geant4_collimators(self, names=None, *, verbose=False):
-        # if Geant4Engine():
-        #     raise Exception('The Geant4 engine is not initialised,'
-        #                     'unable to install Geant4 collimators. '
-        #                     'Use CollimatorManager.initialise_geant4_engine(...)')
+    def install_geant4_collimators(self, names=None, *, verbose=False, bdsim_config_file=None, relative_energy_cut=0.15,
+                                   random_seed=None):
+        if hasattr(Geant4Engine, 'instance'):
+            print(f"Warning: Geant4Engine already initialised as {Geant4Engine()}.")
+        else:
+            if bdsim_config_file is None:
+                raise NotImplementedError
+            self._initialise_geant4_engine(bdsim_config_file, relative_energy_cut, random_seed)
+
         if names is None:
             names = self.collimator_names
         df = self.colldb._colldb.loc[names]
