@@ -309,7 +309,8 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
 /*gpufun*/
 double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
-            double p, double zlm, double x, double xp, double z, double zp) {
+            double p, double zlm, double x, double xp, double z, double zp,
+            CollimatorImpactsData record, RecordIndex record_index) {
 
     double* result = (double*)malloc(7 * sizeof(double));
     double s;

@@ -763,6 +763,10 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                 x = x + (0.5*(s_length-Sdech))*xp;
                 y = y + (0.5*(s_length-Sdech))*yp;
 
+                CollimatorImpactsData_set_interaction(record, record_index, part, 0, Ldech, XC_CRYSTAL_CHANNELING);
+                CollimatorImpactsData_set_interaction(record, record_index, part, Ldech, Ldech, XC_CRYSTAL_DECHANNELING);
+                CollimatorImpactsData_set_interaction(record, record_index, part, Ldech, L_chan, XC_CRYSTAL_AMORPHOUS);
+
             } else {
             // We are channeling (never dechannel spontaneously)   (CH  or  CH  -> PP/..)
                 iProc = proc_CH;
@@ -791,6 +795,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     dest = calcionloss_cry(part,length,dest,betar,bgr,gammar,tmax,plen,
                                         exenergy,zatom,rho,anuc);
                     pc = pc - dest*length; //energy loss to ionization [GeV]
+                    CollimatorImpactsData_set_interaction(record, record_index, part, 0, 0.5*L_chan, XC_CRYSTAL_CHANNELING);
+                    CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, L_chan, XC_CRYSTAL_AMORPHOUS);
 
                 } else {
                     double Dxp = tdefl + (0.5*RandomNormal_generate(part))*xpcrit; //Change angle[rad]
@@ -800,7 +806,9 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     y   = y + s_length * yp;
 
                     dest = calcionloss_cry(part,length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
-                    pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]     
+                    pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]    
+
+                    CollimatorImpactsData_set_interaction(record, record_index, part, 0, L_chan, XC_CRYSTAL_CHANNELING);
                 } 
             }
 

@@ -5,7 +5,7 @@ import pandas as pd
 
 from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
 from .colldb import CollimatorDatabase
-from .tables import CollimatorImpacts
+from .impacts import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
 
 import xobjects as xo

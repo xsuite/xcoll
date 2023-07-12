@@ -45,6 +45,13 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const c_tilt1    = asin(EverestCollimatorData_get_sin_yR(el));
     int    const side       = EverestCollimatorData_get__side(el);
 
+    // Impact table
+    CollimatorImpactsData record = EverestCollimatorData_getp_internal_record(el, part0);
+    RecordIndex record_index = NULL;
+    if (record){
+        record_index = CollimatorImpactsData_getp__index(record);
+    }
+
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -68,7 +75,8 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 LocalParticle_add_to_x(part, -co_x);
                 LocalParticle_add_to_y(part, -co_y);
                 
-                scatter(part, length, material, rng, scat, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, side);
+                scatter(part, length, material, rng, scat, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, side,
+                        record, record_index);
 
                 // Return from closed orbit
                 LocalParticle_add_to_x(part, co_x);
