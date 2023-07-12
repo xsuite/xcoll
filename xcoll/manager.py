@@ -3,10 +3,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, Geant4Collimator, _all_collimator_types
 from .colldb import CollimatorDatabase
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
+
+from .scattering_routines.geant4 import Geant4Engine
 
 import xobjects as xo
 import xpart as xp
@@ -300,6 +302,65 @@ class CollimatorManager:
                        )
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
+    def initialise_geant4_engine(self, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
+        ref_part = self.line.particle_ref
+
+        kinetic_energy = lambda part: part.energy0 - part.mass0
+        reference_kinetic_energy = kinetic_energy(ref_part)
+
+        _mass_close_tol = 50 # eV
+        if ref_part.q0 == -1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # electron
+            reference_pdg_id = -11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # positron
+            reference_pdg_id = 11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.PROTON_MASS_EV, atol=_mass_close_tol):
+            # proton
+            reference_pdg_id = 2212
+        else:
+            # TODO: implement support for ions
+            raise ValueError(f'Cannot deduce PDG particle id for',
+                             'reference particle {ref_part.to_dict()}.\n'
+                             ' Likely bad input or a disallowed particle type')
+
+        Geant4Engine(random_generator_seed=random_seed, 
+                     reference_pdg_id=reference_pdg_id, 
+                     reference_kinetic_energy=reference_kinetic_energy, 
+                     relative_energy_cut=relative_energy_cut, 
+                     bdsim_config_file=bdsim_config_file)
+        
+        print('Geant4 engine initialised')
+        
+
+    def install_geant4_collimators(self, names=None, *, verbose=False):
+        # if Geant4Engine():
+        #     raise Exception('The Geant4 engine is not initialised,'
+        #                     'unable to install Geant4 collimators. '
+        #                     'Use CollimatorManager.initialise_geant4_engine(...)')
+        if names is None:
+            names = self.collimator_names
+        df = self.colldb._colldb.loc[names]
+        df_coll = df[[c is None for c in df.crystal]]
+        df_cry  = df[[c is not None for c in df.crystal]]
+
+        # Do the installations
+        if len(df_coll) > 0:
+            def install_func(thiscoll, name):
+                return Geant4Collimator(
+                        collimator_id = name,
+                        material = thiscoll['material'],
+                        inactive_front=thiscoll['inactive_front'],
+                        inactive_back=thiscoll['inactive_back'],
+                        active_length=thiscoll['active_length'],
+                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
+                        tilt_L=thiscoll.get('tilt_L', 0.0),
+                        tilt_R=thiscoll.get('tilt_R', 0.0),
+                        active=False,
+                        _tracking=False,
+                        _buffer=self._buffer
+                    )
+            self._install_collimators(names, install_func=install_func, verbose=verbose)
 
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
@@ -556,7 +617,7 @@ class CollimatorManager:
     def generate_pencil_on_collimator(self, collimator, num_particles, *, side='+-', impact_parameter=0, 
                                       pencil_spread=1e-6, transverse_impact_parameter=0.,
                                       transverse_spread_sigma=0.01, longitudinal=None,
-                                      longitudinal_betatron_cut=None, sigma_z=7.61e-2):
+                                      longitudinal_betatron_cut=None, sigma_z=7.61e-2, capacity=None):
         if not self.openings_set:
             raise ValueError("Need to set collimator openings before generating pencil distribution!")
         if not self.tracker_ready:
@@ -565,6 +626,8 @@ class CollimatorManager:
             raise NotImplementedError
 
         # TODO: check collimator in colldb and installed!
+        if capacity is None:
+            capacity = num_particles
 
         if self.colldb.side[collimator] == 'left':
             side = '+'
@@ -650,12 +713,14 @@ class CollimatorManager:
         # Build the particles
         if plane == 'x':
             part = xp.build_particles(
+                    _capacity=capacity,
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s
             )
         else:
             part = xp.build_particles(
+                    _capacity=capacity,
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s
