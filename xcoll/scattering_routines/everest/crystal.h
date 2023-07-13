@@ -468,31 +468,29 @@ double calcionloss_cry(LocalParticle* part, double dz, double EnLo, double betar
 
 /*gpufun*/
 double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double xp, double y, double yp, double pc,
-                 double length, double s_P, double x_P, double exenergy, double rho, double anuc, double zatom,
-                 double emr, double dlri, double dlyi, double ai, double eUm, double collnt, double hcut, double csref0,
-                 double csref1, double csref5, double bnref, double cry_tilt, double cry_rcurv, double cry_alayer,
-                 double cry_xmax, double cry_ymax, double cry_orient, double cry_miscut, double cry_bend, double cry_cBend,
-                 double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt, double cry_snTilt, double iProc,
-                 CollimatorImpactsData record, RecordIndex record_index) {
+                 double length, double s_P, double x_P, CrystalMaterialData material, double cry_tilt, double cry_rcurv,
+                 double cry_alayer, double cry_xmax, double cry_ymax, double cry_orient, double cry_miscut, double cry_bend,
+                 double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt,
+                 double cry_snTilt, double iProc, CollimatorImpactsData record, RecordIndex record_index) {
 
     double* result = (double*)malloc(6 * sizeof(double));
 
-//     // Material properties
-//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
-//     double const rho      = CrystalMaterialData_get_density(material);
-//     double const anuc     = CrystalMaterialData_get_A(material);
-//     double const zatom    = CrystalMaterialData_get_Z(material);
-//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
-//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
-//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
-//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
-//     double const hcut     = CrystalMaterialData_get_hcut(material);
-//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
-//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
-//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
-//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
+    // Material properties
+    double const exenergy = CrystalMaterialData_get_excitation_energy(material);
+    double const rho      = CrystalMaterialData_get_density(material);
+    double const anuc     = CrystalMaterialData_get_A(material);
+    double const zatom    = CrystalMaterialData_get_Z(material);
+    double const emr      = CrystalMaterialData_get_nuclear_radius(material);
+    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
+    double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
+    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
+    double const eum      = CrystalMaterialData_get_crystal_potential(material);
+    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+    double const hcut     = CrystalMaterialData_get_hcut(material);
+    double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
+    double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
+    double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
+    double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
 
     double dest = 0.;
     double pmap = 938.271998;
@@ -682,8 +680,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
     
     //THIRD CASE: the p interacts with the crystal.
     //Define typical angles/probabilities for orientation 110
-    double xpcrit0 = sqrt((2.0e-9*eUm)/pc);   //Critical angle (rad) for straight crystals
-    double Rcrit   = (pc/(2.0e-6*eUm))*ai; //Critical curvature radius [m]
+    double xpcrit0 = sqrt((2.0e-9*eum)/pc);   //Critical angle (rad) for straight crystals
+    double Rcrit   = (pc/(2.0e-6*eum))*ai; //Critical curvature radius [m]
 
     //If R>Rcritical=>no channeling is possible (ratio<1)
     double ratio  = cry_rcurv/Rcrit;
@@ -775,7 +773,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                 //check if a nuclear interaction happen while in CH
                 double* result_ch = movech(rng, part, L_chan, x, xp, yp, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
-                                           hcut, bnref, csref0, csref1, csref5, eUm, collnt, iProc);
+                                           hcut, bnref, csref0, csref1, csref5, eum, collnt, iProc);
                 x = result_ch[0];
                 xp = result_ch[1];
                 yp = result_ch[2];
@@ -796,14 +794,15 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                                         exenergy,zatom,rho,anuc);
                     pc = pc - dest*length; //energy loss to ionization [GeV]
                     CollimatorImpactsData_set_interaction(record, record_index, part, 0, 0.5*L_chan, XC_CRYSTAL_CHANNELING);
-                    CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, L_chan, XC_CRYSTAL_AMORPHOUS);
+                    CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, L_chan,
+                                                          XC_CRYSTAL_AMORPHOUS);
 
                 } else {
                     double Dxp = tdefl + (0.5*RandomNormal_generate(part))*xpcrit; //Change angle[rad]
                     
-                    xp  = Dxp;
-                    x = x + L_chan*(sin(0.5*Dxp)); //Trajectory at channeling exit
-                    y   = y + s_length * yp;
+                    xp = Dxp;
+                    x  = x + L_chan*(sin(0.5*Dxp)); //Trajectory at channeling exit
+                    y  = y + s_length * yp;
 
                     dest = calcionloss_cry(part,length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
                     pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]    
@@ -830,9 +829,15 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
             free(result_am);
 
             x = x + (0.5*s_length)*xp;
-            y = y + (0.5*s_length)*yp;  
+            y = y + (0.5*s_length)*yp;
+            CollimatorImpactsData_set_interaction(record, record_index, part, 0, 0.5*L_chan, XC_CRYSTAL_DRIFT);
+            CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, 0.5*L_chan,
+                                                  XC_CRYSTAL_VOLUME_REFLECTION);
+            CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, L_chan,
+                                                  XC_CRYSTAL_AMORPHOUS);
         }
-    } else { //case 3-2: no good for channeling. check if the  can VR
+
+    } else { //case 3-2: no good for channeling. check if the can VR
         double Lrefl = xp_rel*r; //Distance of refl. point [m]
         double Srefl = sin(xp_rel/2. + cry_miscut)*Lrefl;
 
@@ -860,6 +865,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                 x = x + (0.5*xp)*(s_length - Srefl);
                 y = y + (0.5*yp)*(s_length - Srefl);
+
             } else { //Option 2: VC
                 x = x + xp*Srefl;
                 y = y + yp*Srefl;
@@ -900,6 +906,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     
                     x = x + (0.5*xp)*Red_S;
                     y = y + (0.5*yp)*Red_S;
+
                 } else {
                     iProc   = proc_VC;
                     double Rlength = length - Lrefl;
@@ -914,7 +921,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     //Check if a nuclear interaction happen while in ch
                     double* result_ch = movech(rng, part, Rlength, x, xp, yp, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
-                                               hcut, bnref, csref0, csref1, csref5, eUm, collnt, iProc);
+                                               hcut, bnref, csref0, csref1, csref5, eum, collnt, iProc);
                     x = result_ch[0];
                     xp = result_ch[1];
                     yp = result_ch[2];
@@ -945,6 +952,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
                     }
                 }
             }
+
         } else {
             //Case 3-3: move in amorphous substance (big input angles)
             //Modified for transition vram daniele
@@ -966,6 +974,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
             
                 x = x + (0.5*s_length)*xp;
                 y = y + (0.5*s_length)*yp;
+
             } else {
                 double Pvr = (xp_rel-(tdefl-cry_miscut))/(2.*xpcrit);
                 if(RandomUniform_generate(part) > Pvr) {
@@ -991,6 +1000,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
 
                     x = x + (0.5*xp)*(s_length - Srefl);
                     y = y + (0.5*yp)*(s_length - Srefl);
+
                 } else {
                     iProc = proc_TRAM;
                     x = x + xp*Srefl;
@@ -1034,22 +1044,6 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
                 double nabs, double cry_tilt, double  cry_rcurv, double  cry_bend, double  cry_alayer, double  cry_xmax, 
                 double cry_ymax, double cry_orient, double cry_miscut, double iProc, 
                 double n_chan, double n_VR, double n_amorphous, CollimatorImpactsData record, RecordIndex record_index) {
-
-    double const exenergy = CrystalMaterialData_get_excitation_energy(material);
-    double const rho      = CrystalMaterialData_get_density(material);
-    double const anuc     = CrystalMaterialData_get_A(material);
-    double const zatom    = CrystalMaterialData_get_Z(material);
-    double const emr      = CrystalMaterialData_get_nuclear_radius(material);
-    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-    double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
-    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-    double const eum      = CrystalMaterialData_get_crystal_potential(material);
-    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
-    double const hcut     = CrystalMaterialData_get_hcut(material);
-    double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
-    double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
-    double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
-    double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
 
     double s_temp     = 0.;
     double s_shift    = 0.;
@@ -1116,10 +1110,10 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
         double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
         double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
 
-        double* result = interact(rng,part,x,xp,z,zp,p,cry_length,s_P,x_P,exenergy,rho,anuc,zatom,emr,dlri,dlyi,
-                        ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,cry_tilt,
-                        cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,cry_bend,cry_cBend,
-                        cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc, record, record_index);
+        double* result = interact(rng, part, x, xp, z, zp, p, cry_length, s_P, x_P, material, cry_tilt,
+                                  cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut,
+                                  cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt,
+                                  cry_snTilt, iProc, record, record_index);
 
         x = result[0];
         xp = result[1];
@@ -1182,11 +1176,10 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double x, double 
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                double* result = interact(rng,part,x,xp,z,zp,p,cry_length-(tilt_int*cry_rcurv),s_P,x_P,exenergy,rho,anuc,
-                                          zatom,emr,dlri,dlyi,ai,eum,collnt,hcut,csref0,csref1,csref5,bnref,
-                                          cry_tilt,cry_rcurv,cry_alayer,cry_xmax,cry_ymax,cry_orient,cry_miscut,
-                                          cry_bend,cry_cBend,cry_sBend,cry_cpTilt,cry_spTilt,cry_cnTilt,cry_snTilt,iProc,
-                                          record, record_index);
+                double* result = interact(rng, part, x, xp, z, zp, p, cry_length-(tilt_int*cry_rcurv), s_P, x_P,
+                                          material, cry_tilt, cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
+                                          cry_miscut, cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt,
+                                          cry_snTilt, iProc, record, record_index);
 
                 x = result[0];
                 xp = result[1];
