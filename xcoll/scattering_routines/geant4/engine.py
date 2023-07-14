@@ -42,6 +42,8 @@ class Geant4Engine(xo.HybridClass):
             self.registered_collimators = {}
             self._geometry_constructed = False
             self._built_collimators = {}
+        super().__init__(**kwargs)
+        if '_xobject' not in kwargs:
             try:
                 import collimasim as cs
             except ImportError:
@@ -59,7 +61,6 @@ class Geant4Engine(xo.HybridClass):
                                                  relativeEnergyCut=self.relative_energy_cut,
                                                  seed=self.random_generator_seed, batchMode=batch_mode)
             print('Geant4 engine initialised')
-        super().__init__(**kwargs)
 
     @property
     def connected(self):
