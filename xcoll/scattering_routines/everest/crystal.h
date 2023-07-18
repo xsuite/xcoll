@@ -1088,12 +1088,12 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
     double const cry_cBend  = cos(cry_bend);
     double const cry_sBend  = sin(cry_bend);
 
-    // Transform in the crystal reference system
-    // 1st transformation: shift of the center of the reference frame
     double const cry_cpTilt = cos(cry_tilt);
     double const cry_spTilt = sin(cry_tilt);
     double const cry_cnTilt = cry_cpTilt;
     double const cry_snTilt = -cry_spTilt;
+
+    // Move origin of x to inner front corner (transformation 4 in Figure 3.3 of thesis Valentina Previtali)
     if (cry_tilt < 0) {
         s_shift = s;
         shift   = cry_rcurv*(1 - cry_cpTilt);
@@ -1107,7 +1107,7 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
         x_shift = x;
     }
 
-    // 2nd transformation: rotation
+    // Rotate tilt (transformation 5 in Figure 3.3 of thesis Valentina Previtali)
     s_rot  = x_shift*cry_spTilt + s_shift*cry_cpTilt;
     x_rot  = x_shift*cry_cpTilt - s_shift*cry_spTilt;
     xp_rot = xp - cry_tilt;
