@@ -467,13 +467,19 @@ double calcionloss_cry(LocalParticle* part, double dz, double EnLo, double betar
 
 
 /*gpufun*/
-double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double xp, double y, double yp, double pc,
+double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                  double length, double s_P, double x_P, CrystalMaterialData material, double cry_tilt, double cry_rcurv,
                  double cry_alayer, double cry_xmax, double cry_ymax, double cry_orient, double cry_miscut, double cry_bend,
                  double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt,
                  double cry_snTilt, double iProc, CollimatorImpactsData record, RecordIndex record_index) {
 
     double* result = (double*)malloc(6 * sizeof(double));
+    
+    double rpp_in  = LocalParticle_get_rpp(part);
+    double x  = LocalParticle_get_x(part);
+    double xp = LocalParticle_get_px(part)*rpp_in;
+    double y  = LocalParticle_get_y(part);
+    double yp = LocalParticle_get_py(part)*rpp_in;
 
     // Material properties
     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
@@ -587,12 +593,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
         x  = x + xp*s_length;
         y     = y + yp*s_length;
         iProc = proc_out;
-        result[0] = x;
-        result[1] = xp;
-        result[2] = y;
-        result[3] = yp;
-        result[4] = pc;
-        result[5] = iProc;
+        LocalParticle_set_x(part,  x);
+        LocalParticle_set_px(part, xp/rpp_in);
+        LocalParticle_set_y(part,  y);
+        LocalParticle_set_py(part, yp/rpp_in);
+        result[0] = pc;
+        result[1] = iProc;
         return result;
 
     } else if (x < cry_alayer || y-ymin < cry_alayer || ymax-y < cry_alayer) {
@@ -1027,12 +1033,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double x, double
         }            
     }
 
-    result[0] = x;
-    result[1] = xp;
-    result[2] = y;
-    result[3] = yp;
-    result[4] = pc;
-    result[5] = iProc;
+    LocalParticle_set_x(part,  x);
+    LocalParticle_set_px(part, xp/rpp_in);
+    LocalParticle_set_y(part,  y);
+    LocalParticle_set_py(part, yp/rpp_in);
+    result[0] = pc;
+    result[1] = iProc;
     return result;
 }
 
@@ -1044,16 +1050,10 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
                 CollimatorImpactsData record, RecordIndex record_index) {
 
     double s_temp     = 0.;
-    double s_shift    = 0.;
-    double s_rot      = 0.;
     double s_int      = 0.;
     double x_temp     = 0.;
-    double x_shift    = 0.;
-    double x_rot      = 0.;
     double x_int      = 0.;
     double xp_temp    = 0.;
-    double xp_shift   = 0.;
-    double xp_rot     = 0.;
     double xp_int     = 0.;
     double xp_tangent = 0.;
     double tilt_int   = 0.;
@@ -1063,7 +1063,6 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
     double b_eq       = 0.;
     double c_eq       = 0.;
     double cry_length  = c_length;
-    double s  = 0.;
 
     // Status flags
     int val_part_hit = 0;
@@ -1079,11 +1078,6 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
     iProc  = proc_out;
 
     double* crystal_result = (double*)malloc(4 * sizeof(double));
-    double rpp_in  = LocalParticle_get_rpp(part);
-    double x  = LocalParticle_get_x(part);
-    double xp = LocalParticle_get_px(part)*rpp_in;
-    double z  = LocalParticle_get_y(part);
-    double zp = LocalParticle_get_py(part)*rpp_in;
 
     double const cry_cBend  = cos(cry_bend);
     double const cry_sBend  = sin(cry_bend);
@@ -1092,30 +1086,38 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
     double const cry_spTilt = sin(cry_tilt);
     double const cry_cnTilt = cry_cpTilt;
     double const cry_snTilt = -cry_spTilt;
+    
+    double rpp_in  = LocalParticle_get_rpp(part);
+    double x  = 0;
+    double xp = 0;
+    double z  = 0;
+    double zp = 0;
 
     // Move origin of x to inner front corner (transformation 4 in Figure 3.3 of thesis Valentina Previtali)
     if (cry_tilt < 0) {
-        s_shift = s;
         shift   = cry_rcurv*(1 - cry_cpTilt);
 
         if (cry_tilt < -cry_bend) {
             shift = cry_rcurv*(cry_cnTilt - cos(cry_bend - cry_tilt));
         }
-        x_shift = x - shift;
-    } else {
-        s_shift = s;
-        x_shift = x;
-    }
+        LocalParticle_add_to_x(part, -shift);
+    } 
 
     // Rotate tilt (transformation 5 in Figure 3.3 of thesis Valentina Previtali)
-    s_rot  = x_shift*cry_spTilt + s_shift*cry_cpTilt;
-    x_rot  = x_shift*cry_cpTilt - s_shift*cry_spTilt;
-    xp_rot = xp - cry_tilt;
+    double s = 0;
+    x = LocalParticle_get_x(part);
+    double s_rot  = x*cry_spTilt + s*cry_cpTilt;
+    LocalParticle_set_x(part, x*cry_cpTilt - s*cry_spTilt);
+    LocalParticle_add_to_px(part,-cry_tilt/rpp_in);
 
     // 3rd transformation: drift to the new coordinate s=0
-    xp = xp_rot;
-    x  = x_rot - xp_rot*s_rot;
-    z  = z - zp*s_rot;
+    LocalParticle_add_to_x(part, -s_rot*LocalParticle_get_px(part)*rpp_in);
+    LocalParticle_add_to_y(part, -s_rot*LocalParticle_get_py(part)*rpp_in);
+    
+    x = LocalParticle_get_x(part);
+    xp = LocalParticle_get_px(part)*rpp_in;
+    z = LocalParticle_get_y(part);
+    zp = LocalParticle_get_py(part)*rpp_in;
 
     // Check that particle hit the crystal
     if (x >= 0. && x < cry_xmax) {
@@ -1123,17 +1125,18 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
         double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
         double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
 
-        double* result = interact(rng, part, x, xp, z, zp, p, cry_length, s_P, x_P, material, cry_tilt,
+        double* result = interact(rng, part, p, cry_length, s_P, x_P, material, cry_tilt,
                                   cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut,
                                   cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt,
                                   cry_snTilt, iProc, record, record_index);
 
-        x = result[0];
-        xp = result[1];
-        z = result[2];
-        zp = result[3];
-        p = result[4];
-        iProc = result[5];
+        rpp_in = LocalParticle_get_rpp(part);
+        x  = LocalParticle_get_x(part);
+        xp = LocalParticle_get_px(part)*rpp_in;
+        z  = LocalParticle_get_y(part);
+        zp = LocalParticle_get_py(part)*rpp_in;
+        p = result[0];
+        iProc = result[1];
         free(result);
 
         s   = cry_rcurv*cry_sBend;
@@ -1169,12 +1172,12 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
                 // Transform to a new reference system: shift and rotate
                 x_int  = xp*s_int + x;
                 xp_int = xp;
-                z      = z + zp*s_int;
-                x      = 0.;
+                LocalParticle_add_to_y(part, LocalParticle_get_py(part)*rpp_in*s_int);
+                LocalParticle_set_x(part, 0.);
                 s      = 0.;
 
                 tilt_int = s_int/cry_rcurv;
-                xp    = xp-tilt_int;
+                LocalParticle_add_to_px(part, -tilt_int/rpp_in);
 
                 // MISCUT first step (bis): transform P in new reference system
                 // Translation
@@ -1184,40 +1187,25 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                double* result = interact(rng, part, x, xp, z, zp, p, cry_length-(tilt_int*cry_rcurv), s_P, x_P,
+                double* result = interact(rng, part, p, cry_length-(tilt_int*cry_rcurv), s_P, x_P,
                                           material, cry_tilt, cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
                                           cry_miscut, cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cnTilt,
                                           cry_snTilt, iProc, record, record_index);
 
-                x = result[0];
-                xp = result[1];
-                z = result[2];
-                zp = result[3];
-                p = result[4];
-                iProc = result[5];
+                rpp_in = LocalParticle_get_rpp(part);
+                x  = LocalParticle_get_x(part);
+                xp = LocalParticle_get_px(part)*rpp_in;
+                z  = LocalParticle_get_y(part);
+                zp = LocalParticle_get_py(part)*rpp_in;
+                p = result[0];
+                iProc = result[1];
                 free(result);
 
                 s   = cry_rcurv*sin(cry_bend - tilt_int);
                 
                 if (iProc != proc_out) {
-                    x_rot    = x_int;
-                    s_rot    = s_int;
-                    xp_rot   = xp_int;
-                    s_shift  =  s_rot*cry_cnTilt + x_rot*cry_snTilt;
-                    x_shift  = -s_rot*cry_snTilt + x_rot*cry_cnTilt;
-                    xp_shift = xp_rot + cry_tilt;
-
-//                     if (cry_tilt < 0.) {
-//                         x0  = x_shift + shift;
-//                         xp0 = xp_shift;
-//                     }
-//                     else {
-//                         x0  = x_shift;
-//                         xp0 = xp_shift;
-//                     }
                     nhit      = nhit + 1.;
                     val_part_hit    = 1.;
-                    //
                 }
 
                 // un-rotate
@@ -1245,13 +1233,13 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
 
     // transform back from the crystal to the collimator reference system
     // 1st: un-rotate the coordinates
-    x_rot  = x;
+    double x_rot  = x;
     s_rot  = s;
-    xp_rot = xp;
+    double xp_rot = xp;
 
-    s_shift  =  s_rot*cry_cnTilt + x_rot*cry_snTilt;
-    x_shift  = -s_rot*cry_snTilt + x_rot*cry_cnTilt;
-    xp_shift = xp_rot + cry_tilt;
+    double s_shift  =  s_rot*cry_cnTilt + x_rot*cry_snTilt;
+    double x_shift  = -s_rot*cry_snTilt + x_rot*cry_cnTilt;
+    double xp_shift = xp_rot + cry_tilt;
 
     // 2nd: shift back the reference frame
     if (cry_tilt < 0) {
