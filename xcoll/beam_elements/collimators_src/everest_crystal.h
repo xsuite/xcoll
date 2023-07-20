@@ -87,17 +87,17 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 // Scatter
 
-                // Move to closed orbit
-                LocalParticle_add_to_x(part, -co_x);
-                LocalParticle_add_to_y(part, -co_y);
+                // Move to collimator frame
+                XYShift_single_particle(part, co_x, co_y);
+                SRotation_single_particle(part, sin_zL, cos_zL);
 
-                scatter_cry(part, length, material, rng, cos_zL, sin_zL, c_aperture, c_offset,
+                scatter_cry(part, length, material, rng, c_aperture, c_offset,
                             side, cry_tilt, bend, bend_ang, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
                             cry_miscut, record, record_index);
 
-                // Return from closed orbit
-                LocalParticle_add_to_x(part, co_x);
-                LocalParticle_add_to_y(part, co_y);
+                // Return from collimator frame
+                SRotation_single_particle(part, -sin_zL, cos_zL);
+                XYShift_single_particle(part, -co_x, -co_y);
 
                 // Drift inactive back (only surviving particles)
                 if (LocalParticle_get_state(part) > 0){
