@@ -363,11 +363,39 @@ double calcionloss_cry(LocalParticle* part, double length, struct CrystalPropert
     }
 }
 
+/*gpufun*/
+double Channel_single_particle_4d(LocalParticle* part, double arc_length, double bend_ang, double miscut, double sigma_ran) {
+    // Channeling: happens over an arc length L_chan (potentially less if dechanneling)
+    //             This equates to an opening angle tP wrt. to the point P (center of miscut)
+    //             The angle xp at the start of channeling (I) is tP/2 + miscut
+    //             The angle xp at the end of channeling (F) is tP + miscut
+    //             In practice: we drift from start to end, but also update the angle afterwards
+
+    // The distance from I to F is the chord length of the angle tP: d = 2 r sin(tP/2)
+    // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
+    // xp at the start of channeling: s = 2 r sin(tP/2)cos(tP/2 + miscut)
+    //                                  = 2 r sin(tP/2)cos(tP/2)cos(miscut) - 2 r sin(tP/2)sin(tP/2)sin(miscut)
+    //                                  = r sin(tP)cos(miscut) - 2 r sin(tP/2)^2 sin(miscut)
+    //                                  = L_chan/tP ( sin(tP)cos(miscut) - 2 sin(tP/2)^2 sin(miscut) )
+
+    double drift_length = arc_length/bend_ang * (
+                            sin(bend_ang)*cos(miscut)
+                            - 2.*sin(bend_ang/2.)*sin(bend_ang/2.)*sin(miscut)
+                          );
+
+    double rpp = LocalParticle_get_rpp(part);
+    LocalParticle_set_px(part, (bend_ang/2. + miscut)/rpp);          // Angle at start of channeling
+    Drift_single_particle_4d(part, drift_length);
+    double ran_angle = 0.5*RandomNormal_generate(part)*sigma_ran;    // Extra random angle spread at exit
+    LocalParticle_set_px(part, (bend_ang + miscut + ran_angle)/rpp); // Angle at end of channeling
+    return drift_length;
+}
+
 
 /*gpufun*/
 double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
-                 double length, double s_P, double x_P, CrystalMaterialData material, double cry_tilt, double cry_rcurv,
-                 double cry_alayer, double cry_xmax, double cry_ymax, double cry_orient, double cry_miscut, double cry_bend,
+                 double length, double s_P, double x_P, CrystalMaterialData material, double cry_tilt, double bend_r,
+                 double cry_alayer, double xdim, double ydim, double cry_orient, double cry_miscut, double bend_ang,
                  double cry_cBend, double cry_sBend, double cry_cpTilt, double cry_spTilt, double cry_cnTilt,
                  double cry_snTilt, double iProc, CollimatorImpactsData record, RecordIndex record_index) {
 
@@ -407,23 +435,21 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
     double const_dech = properties.const_dech;
 
-    double s_length = cry_rcurv*sin(length/cry_rcurv);
-    double L_chan   = length;
-
     // MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
-    double s_K = cry_rcurv*sin(length/cry_rcurv);
-    double x_K = cry_rcurv*(1.-cos(length/cry_rcurv));
-    double s_M = (cry_rcurv-cry_xmax)*sin(length/cry_rcurv);
-    double x_M = cry_xmax + (cry_rcurv-cry_xmax)*(1.-cos(length/cry_rcurv));
+    double s_K = length;
+    double x_K = bend_r * (1.-cos(bend_ang));
+    double s_M = (bend_r-xdim) * sin(bend_ang);
+    double x_M = xdim + (bend_r-xdim)*(1.-cos(bend_ang));
     double r   = sqrt(pow(s_P,2.) + pow((x-x_P),2.));
 
     // MISCUT third step: F coordinates (exit point) on crystal exit face
-    double A_F = pow((tan(length/cry_rcurv)),2.) + 1.;
-    double B_F = ((-2)*pow((tan(length/cry_rcurv)),2.))*cry_rcurv + (2.*tan(length/cry_rcurv))*s_P - 2.*x_P;
-    double C_F = pow((tan(length/cry_rcurv)),2.)*(pow(cry_rcurv,2.)) - ((2.*tan(length/cry_rcurv))*s_P)*cry_rcurv + pow(s_P,2.) + pow(x_P,2.) - pow(r,2.);
+    double A_F = pow((tan(bend_ang)),2.) + 1.;
+    double B_F = ((-2)*pow((tan(bend_ang)),2.))*bend_r + (2.*tan(bend_ang))*s_P - 2.*x_P;
+    double C_F = pow((tan(bend_ang)),2.)*(pow(bend_r,2.)) - ((2.*tan(bend_ang))*s_P)*bend_r + pow(s_P,2.) + pow(x_P,2.) - pow(r,2.);
 
+    // Coordinates of exit point F
     double x_F = (-B_F-sqrt(pow(B_F,2.)-4.*(A_F*C_F)))/(2.*A_F);
-    double s_F = (-tan(length/cry_rcurv))*(x_F-cry_rcurv);
+    double s_F = (-tan(bend_ang))*(x_F-bend_r);
 
     if (x_F < x_K || x_F > x_M || s_F < s_M || s_F > s_K) {
 
@@ -442,18 +468,18 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
         // MISCUT Third step (bis): F coordinates (exit point)  on bent side
             if (cry_miscut < 0) {
             // Intersect with bottom side
-                alpha_F = (cry_rcurv-x_P)/x_P;
+                alpha_F = (bend_r-x_P)/x_P;
                 beta_F = -(pow(r,2.)-pow(s_P,2.)-pow(x_P,2.))/(2*s_P);
                 A_F = pow(alpha_F,2.) + 1.;
-                B_F = 2.*(alpha_F*beta_F) - 2.*cry_rcurv;
+                B_F = 2.*(alpha_F*beta_F) - 2.*bend_r;
                 C_F = pow(beta_F,2.);
             } else {
             // Intersect with top side
-                alpha_F = (cry_rcurv-x_P)/s_P;
-                beta_F = -(pow(r,2.)+cry_xmax*(cry_xmax-(2.*cry_rcurv))-pow(s_P,2.)-pow(x_P,2.))/(2.*s_P);
+                alpha_F = (bend_r-x_P)/s_P;
+                beta_F = -(pow(r,2.)+xdim*(xdim-(2.*bend_r))-pow(s_P,2.)-pow(x_P,2.))/(2.*s_P);
                 A_F = pow(alpha_F,2.) + 1.;
-                B_F = 2.*(alpha_F*beta_F) - 2.*cry_rcurv;
-                C_F = pow(beta_F,2.) - cry_xmax*(cry_xmax-2.*cry_rcurv);
+                B_F = 2.*(alpha_F*beta_F) - 2.*bend_r;
+                C_F = pow(beta_F,2.) - xdim*(xdim-2.*bend_r);
             }
             
             x_F = (-B_F-sqrt(pow(B_F,2.)-4.*(A_F*C_F)))/(2.*A_F);
@@ -462,18 +488,23 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
     }
 
     // MISCUT 4th step: deflection and length calculation
-    double a = sqrt(pow(s_F,2.)+pow((x-x_F),2.));
-    double tP = acos((2.*pow(r,2.)-pow(a,2.))/(2.*pow(r,2.)));
-    double tdefl = asin((s_F-s_P)/r);
-    L_chan = r*tP;
+    double a = sqrt(pow(s_F,2.) + pow((x-x_F),2.));  // Line from entrance point I to exit point F
+    double tP = acos((2.*pow(r,2.) - pow(a,2.))/(2.*pow(r,2.)));  // Angle in P that spans I to F
+    double tdefl = asin((s_F-s_P)/r); // final total deflection in crystal reference frame (exit angle)
+    double L_chan = r*tP;   // channeling length (if no miscut, this would be r*bend_ang): along the trajectory
+
+    // Channeling: happens over a length L_chan (potentially less if dechanneling)
+    //             This equates to an opening angle to the point P (center of miscut) tP
+    //             The angle xp at the start of channeling is tP/2 + miscut
+    //             The angle xp at the end of channeling is tP + miscut
 
     double xp_rel = xp - cry_miscut;
-    double ymin = -cry_ymax/2.;
-    double ymax =  cry_ymax/2.;
+    double ymin = -ydim/2.;
+    double ymax =  ydim/2.;
 
     // FIRST CASE: p don't interact with crystal
-    if (y < ymin || y > ymax || x > cry_xmax) {
-        Drift_single_particle_4d(part, s_length);
+    if (y < ymin || y > ymax || x > xdim) {
+        Drift_single_particle_4d(part, length);
         iProc = proc_out;
         result[0] = pc;
         result[1] = iProc;
@@ -487,12 +518,12 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 //         double x0    = x;
 //         double y0    = y;
 //         double a_eq  = 1. + pow(xp,2.);
-//         double b_eq  = (2.*x)*xp - (2.*xp)*cry_rcurv;
-//         double c_eq  = pow(x,2.) - (2.*x)*cry_rcurv;
+//         double b_eq  = (2.*x)*xp - (2.*xp)*bend_r;
+//         double c_eq  = pow(x,2.) - (2.*x)*bend_r;
 //         double delta = pow(b_eq,2.) - (4.*a_eq)*c_eq;
 //         s = (-b_eq+sqrt(delta))/(2.*a_eq);
-//         if (s >= s_length) {
-//             s = s_length;
+//         if (s >= length) {
+//             s = length;
 //         }
 //         x   =  xp*s + x0;
 //         double len_xs = sqrt(pow((x-x0),2.) + pow(s,2.));
@@ -514,15 +545,15 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 //         y     = y0 + yp*s;
 //         iProc = proc_AM;
 
-//         energy_loss = calcionloss_cry(part, s_length, properties);
+//         energy_loss = calcionloss_cry(part, length, properties);
 
 //         double* result_am = moveam(rng, part, am_len, energy_loss, pc, material);
 //         pc = result_am[0];
 //         iProc = result_am[1];
 //         free(result_am);
 
-//         x = x + xp*(s_length-s);
-//         y = y + yp*(s_length-s);
+//         x = x + xp*(length-s);
+//         y = y + yp*(length-s);
 
 //         result[0] = x;
 //         result[1] = xp;
@@ -532,15 +563,15 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 //         result[5] = iProc;
 //         return result;
 
-    } else if (x > cry_xmax-cry_alayer && x < cry_xmax) {
+    } else if (x > xdim-cry_alayer && x < xdim) {
     // TODO: NOT SUPPORTED
         LocalParticle_kill_particle(part, XC_ERR_NOT_IMPLEMENTED);
         return result;
 //         iProc = proc_AM;
         
-//         energy_loss = calcionloss_cry(part, s_length, properties);
+//         energy_loss = calcionloss_cry(part, length, properties);
 
-//         double* result_am = moveam(rng, part, s_length, energy_loss, pc, material);
+//         double* result_am = moveam(rng, part, length, energy_loss, pc, material);
 //         pc = result_am[0];
 //         iProc = result_am[1];
 //         free(result_am);
@@ -560,8 +591,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
     double Rcrit   = (pc/(2.0e-6*eum))*ai; //Critical curvature radius [m]
 
     //If R>Rcritical=>no channeling is possible (ratio<1)
-    double ratio  = cry_rcurv/Rcrit;
-    double xpcrit = (xpcrit0*(cry_rcurv-Rcrit))/cry_rcurv; //Critical angle for curved crystal
+    double ratio  = bend_r/Rcrit;
+    double xpcrit = (xpcrit0*(bend_r-Rcrit))/bend_r; //Critical angle for curved crystal
 
     double Ang_rms;
     double Ang_avr;
@@ -620,17 +651,17 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                 energy_loss = calcionloss_cry(part, Ldech, properties);
                 pc = pc - 0.5*energy_loss*Ldech; //Energy loss to ionization while in CH [GeV]
-                Drift_single_particle_4d(part, 0.5*(s_length-Sdech));
+                Drift_single_particle_4d(part, 0.5*(length-Sdech));
 
-                energy_loss = calcionloss_cry(part, s_length-Sdech, properties);
+                energy_loss = calcionloss_cry(part, length-Sdech, properties);
 
-                double* result_am = moveam(rng, part, s_length-Sdech, energy_loss, pc, material, iProc);
+                double* result_am = moveam(rng, part, length-Sdech, energy_loss, pc, material, iProc);
 
                 pc = result_am[0];
                 iProc = result_am[1];
                 free(result_am);
 
-                Drift_single_particle_4d(part, 0.5*(s_length-Sdech));
+                Drift_single_particle_4d(part, 0.5*(length-Sdech));
 
                 CollimatorImpactsData_set_interaction(record, record_index, part, 0, Ldech, XC_CRYSTAL_CHANNELING);
                 CollimatorImpactsData_set_interaction(record, record_index, part, Ldech, Ldech, XC_CRYSTAL_DECHANNELING);
@@ -643,7 +674,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 double ypin = yp;
 
                 //check if a nuclear interaction happen while in CH
-                double* result_ch = movech(rng, part, L_chan, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
+                double* result_ch = movech(rng, part, L_chan, pc, bend_r, Rcrit, rho, anuc, zatom, emr,
                                            hcut, bnref, csref0, csref1, csref5, eum, collnt, iProc);
                 pc = result_ch[0];
                 iProc = result_ch[1];
@@ -665,15 +696,17 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                                                           XC_CRYSTAL_AMORPHOUS);
 
                 } else {
-                    double Dxp = tdefl + (0.5*RandomNormal_generate(part))*xpcrit; //Change angle[rad]
-                    LocalParticle_set_px(part, Dxp/rpp);
-                    LocalParticle_add_to_x(part, L_chan*(sin(0.5*Dxp))); //Trajectory at channeling exit
-                    LocalParticle_add_to_y(part, s_length * yp);
+                    // Channel
+                    double channeled_length = Channel_single_particle_4d(part, L_chan, tP, cry_miscut, xpcrit);
+                    energy_loss = calcionloss_cry(part, channeled_length, properties);
+                    pc = pc - (0.5*energy_loss)*channeled_length; //energy loss to ionization [GeV]  // TODO: why 0.5 ?
+                    // TODO: the px at exit of channeling should be calculated from xp with updated energy
 
-                    energy_loss = calcionloss_cry(part, length, properties);
-                    pc = pc - (0.5*energy_loss)*length; //energy loss to ionization [GeV]
+                    // Drift remaining length
+                    Drift_single_particle_4d(part, length-channeled_length);
 
-                    CollimatorImpactsData_set_interaction(record, record_index, part, 0, L_chan, XC_CRYSTAL_CHANNELING);
+                    CollimatorImpactsData_set_interaction(record, record_index, part, 0, channeled_length,
+                                                          XC_CRYSTAL_CHANNELING);
                 } 
             }
 
@@ -681,17 +714,17 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             //good for channeling but don't channel (1-2)
             iProc = proc_VR;
             LocalParticle_add_to_px(part, 0.45*(xp_rel/xpcrit + 1)*Ang_avr/rpp);
-            Drift_single_particle_4d(part, 0.5*s_length);
+            Drift_single_particle_4d(part, 0.5*length);
 
-            energy_loss = calcionloss_cry(part, s_length, properties);
+            energy_loss = calcionloss_cry(part, length, properties);
 
-            double* result_am = moveam(rng, part, s_length, energy_loss, pc, material, iProc);
+            double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
 
             pc = result_am[0];
             iProc = result_am[1];
             free(result_am);
 
-            Drift_single_particle_4d(part, 0.5*s_length);
+            Drift_single_particle_4d(part, 0.5*length);
 
             CollimatorImpactsData_set_interaction(record, record_index, part, 0, 0.5*L_chan, XC_CRYSTAL_DRIFT);
             CollimatorImpactsData_set_interaction(record, record_index, part, 0.5*L_chan, 0.5*L_chan,
@@ -715,33 +748,33 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                 double Dxp = Ang_avr;
                 LocalParticle_add_to_px(part, Dxp/rpp + Ang_rms*RandomNormal_generate(part)/rpp);
-                Drift_single_particle_4d(part, 0.5*(s_length - Srefl));
+                Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
-                energy_loss = calcionloss_cry(part, s_length-Srefl, properties);
+                energy_loss = calcionloss_cry(part, length-Srefl, properties);
 
-                double* result_am = moveam(rng, part, s_length-Srefl, energy_loss, pc, material, iProc);
+                double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
 
                 pc = result_am[0];
                 iProc = result_am[1];
                 free(result_am);
 
-                Drift_single_particle_4d(part, 0.5*(s_length - Srefl));
+                Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
             } else { //Option 2: VC
                 Drift_single_particle_4d(part, Srefl);
 
                 double TLdech2 = (const_dech/1.0e1)*pc*pow((1-1/ratio),2.) ;         //Updated typical dechanneling length(m)
                 double Ldech   = TLdech2 * pow((sqrt(1.0e-2 + RandomExponential_generate(part)) - 1.0e-1),2.); //Updated DC length
-                double tdech   = Ldech/cry_rcurv;
+                double tdech   = Ldech/bend_r;
                 double Sdech   = Ldech*cos(xp + 0.5*tdech);
 
                 if (Ldech < length-Lrefl) {
                     iProc = proc_DC;
-                    double Dxp = Ldech/cry_rcurv + (0.5*RandomNormal_generate(part))*xpcrit;
+                    double Dxp = Ldech/bend_r + (0.5*RandomNormal_generate(part))*xpcrit;
                     LocalParticle_add_to_x(part, Ldech*(sin(0.5*Dxp+xp))); //Trajectory at channeling exit
                     LocalParticle_add_to_y(part, Sdech*yp);
                     LocalParticle_set_px(part, Dxp/rpp);
-                    double Red_S = (s_length - Srefl) - Sdech;
+                    double Red_S = (length - Srefl) - Sdech;
                     Drift_single_particle_4d(part, 0.5*Red_S);
 
                     energy_loss = calcionloss_cry(part, Srefl, properties);
@@ -764,7 +797,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 } else {
                     iProc   = proc_VC;
                     double Rlength = length - Lrefl;
-                    double tchan   = Rlength/cry_rcurv;
+                    double tchan   = Rlength/bend_r;
                     double Red_S   = Rlength*cos(xp + 0.5*tchan);
 
                     energy_loss = calcionloss_cry(part, Lrefl, properties);
@@ -773,7 +806,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     double ypin = yp;
 
                     //Check if a nuclear interaction happen while in ch
-                    double* result_ch = movech(rng, part, Rlength, pc, cry_rcurv, Rcrit, rho, anuc, zatom, emr,
+                    double* result_ch = movech(rng, part, Rlength, pc, bend_r, Rcrit, rho, anuc, zatom, emr,
                                                hcut, bnref, csref0, csref1, csref5, eum, collnt, iProc);
                     pc = result_ch[0];
                     iProc = result_ch[1];
@@ -790,7 +823,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                         pc = pc - energy_loss*Rlength;
 
                     } else {
-                        double Dxp = (length-Lrefl)/cry_rcurv;
+                        double Dxp = (length-Lrefl)/bend_r;
                         LocalParticle_add_to_x(part, sin(0.5*Dxp+xp)*Rlength); //Trajectory at channeling exit
                         LocalParticle_add_to_y(part, Red_S*yp);
                         LocalParticle_set_px(part, tdefl/rpp + (0.5*RandomNormal_generate(part))*xpcrit/rpp); //[mrad]
@@ -807,17 +840,17 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             //Modified for transition vram daniele
             if (xp_rel > tdefl-cry_miscut + 2*xpcrit || xp_rel < -xpcrit) {
                 iProc = proc_AM;
-                Drift_single_particle_4d(part, 0.5*s_length);
+                Drift_single_particle_4d(part, 0.5*length);
                 if(zn > 0) {
-                    energy_loss = calcionloss_cry(part, s_length, properties);
+                    energy_loss = calcionloss_cry(part, length, properties);
 
-                    double* result_am = moveam(rng, part, s_length, energy_loss, pc, material, iProc);
+                    double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
                 }
 
-                Drift_single_particle_4d(part, 0.5*s_length);
+                Drift_single_particle_4d(part, 0.5*length);
 
             } else {
                 double Pvr = (xp_rel-(tdefl-cry_miscut))/(2.*xpcrit);
@@ -827,31 +860,31 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                     double Dxp = (((-3.*Ang_rms)*xp_rel)/(2.*xpcrit) + Ang_avr) + ((3.*Ang_rms)*(tdefl-cry_miscut))/(2.*xpcrit);
                     LocalParticle_add_to_px(part, Dxp/rpp);
-                    Drift_single_particle_4d(part, 0.5*(s_length-Srefl));
+                    Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
-                    energy_loss = calcionloss_cry(part, s_length-Srefl, properties);
+                    energy_loss = calcionloss_cry(part, length-Srefl, properties);
 
-                    double* result_am = moveam(rng, part, s_length-Srefl, energy_loss, pc, material, iProc);
+                    double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
 
-                    Drift_single_particle_4d(part, 0.5*(s_length - Srefl));
+                    Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
                 } else {
                     iProc = proc_TRAM;
                     Drift_single_particle_4d(part, Srefl);
-                    double Dxp = ((((-1.*(13.6/pc))*sqrt(s_length/dlri))*1.0e-3)*xp_rel)/(2.*xpcrit) + (((13.6/pc)*sqrt(s_length/dlri))*1.0e-3)*(1.+(tdefl-cry_miscut)/(2.*xpcrit));
+                    double Dxp = ((((-1.*(13.6/pc))*sqrt(length/dlri))*1.0e-3)*xp_rel)/(2.*xpcrit) + (((13.6/pc)*sqrt(length/dlri))*1.0e-3)*(1.+(tdefl-cry_miscut)/(2.*xpcrit));
                     LocalParticle_add_to_px(part, Dxp/rpp);
-                    Drift_single_particle_4d(part, 0.5*(s_length-Srefl));
+                    Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
-                    energy_loss = calcionloss_cry(part, s_length-Srefl, properties);
-                    double* result_am = moveam(rng, part, s_length-Srefl, energy_loss, pc, material, iProc);
+                    energy_loss = calcionloss_cry(part, length-Srefl, properties);
+                    double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
 
-                    Drift_single_particle_4d(part, 0.5*(s_length - Srefl));
+                    Drift_single_particle_4d(part, 0.5*(length - Srefl));
                 }
             }
         }            
@@ -865,24 +898,24 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
 /*gpufun*/
 double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
-                double length, CrystalMaterialData material, double cry_tilt, double cry_rcurv, double cry_bend,
-                double cry_alayer, double cry_xmax, double cry_ymax, double cry_orient, double cry_miscut,
+                double length, CrystalMaterialData material, double cry_tilt, double bend_r, double bend_ang,
+                double cry_alayer, double xdim, double ydim, double cry_orient, double cry_miscut,
                 CollimatorImpactsData record, RecordIndex record_index) {
 
     double* crystal_result = (double*)malloc(3 * sizeof(double));
     double iProc = proc_out;
 
-    double const cry_cBend  = cos(cry_bend);
-    double const cry_sBend  = sin(cry_bend);
+    double const cry_cBend  = cos(bend_ang);
+    double const cry_sBend  = sin(bend_ang);
     double const cry_cpTilt = cos(cry_tilt);
     double const cry_spTilt = sin(cry_tilt);
 
     // Move origin of x to inner front corner (transformation 4 in Figure 3.3 of thesis Valentina Previtali)
     double shift = 0;
     if (cry_tilt < 0) {
-        shift = cry_rcurv*(1 - cry_cpTilt);
-        if (cry_tilt < -cry_bend) {
-            shift = cry_rcurv*(cry_cpTilt - cos(cry_bend - cry_tilt));
+        shift = bend_r*(1 - cry_cpTilt);
+        if (cry_tilt < -bend_ang) {
+            shift = bend_r*(cry_cpTilt - cos(bend_ang - cry_tilt));
         }
         LocalParticle_add_to_x(part, -shift);
     } 
@@ -897,27 +930,27 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
     double x = LocalParticle_get_x(part);
     double rpp_in  = LocalParticle_get_rpp(part);
     double xp = LocalParticle_get_px(part)*rpp_in;
-    if (x >= 0. && x < cry_xmax) {
+    if (x >= 0. && x < xdim) {
         // MISCUT first step: P coordinates (center of curvature of crystalline planes)
-        double s_P = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
-        double x_P = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
+        double s_P = (bend_r-xdim)*sin(-cry_miscut);
+        double x_P = xdim + (bend_r-xdim)*cos(-cry_miscut);
         double* result = interact(rng, part, p, length, s_P, x_P, material, cry_tilt,
-                                  cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, cry_miscut,
-                                  cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cpTilt,
+                                  bend_r, cry_alayer, xdim, ydim, cry_orient, cry_miscut,
+                                  bend_ang, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cpTilt,
                                   -cry_spTilt, iProc, record, record_index);
 
         p = result[0];
         iProc = result[1];
         free(result);
 
-        s = cry_rcurv*cry_sBend;
+        s = bend_r*cry_sBend;
 
     } else {
         double xp_tangent=0;
         if (x < 0) { // Crystal can be hit from below
-            xp_tangent = sqrt((-(2.*x)*cry_rcurv + pow(x,2.))/(pow(cry_rcurv,2.)));
+            xp_tangent = sqrt((-(2.*x)*bend_r + pow(x,2.))/(pow(bend_r,2.)));
         } else {             // Crystal can be hit from above
-            xp_tangent = asin((cry_rcurv*(1. - cry_cBend) - x)/sqrt(((2.*cry_rcurv)*(cry_rcurv - x))*(1 - cry_cBend) + pow(x,2.)));
+            xp_tangent = asin((bend_r*(1. - cry_cBend) - x)/sqrt(((2.*bend_r)*(bend_r - x))*(1 - cry_cBend) + pow(x,2.)));
         }
         // If the hit is below, the angle must be greater or equal than the tangent,
         // or if the hit is above, the angle must be smaller or equal than the tangent
@@ -925,18 +958,18 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
 
             // If it hits the crystal, calculate in which point and apply the transformation and drift to that point
             double a_eq  = 1 + pow(xp,2.);
-            double b_eq  = (2.*xp)*(x - cry_rcurv);
-            double c_eq  = -(2.*x)*cry_rcurv + pow(x,2.);
+            double b_eq  = (2.*xp)*(x - bend_r);
+            double c_eq  = -(2.*x)*bend_r + pow(x,2.);
             double delta = pow(b_eq,2.) - 4*(a_eq*c_eq);
             double s_int = (-b_eq - sqrt(delta))/(2*a_eq);
 
             // MISCUT first step: P coordinates (center of curvature of crystalline planes)
-            double s_P_tmp = (cry_rcurv-cry_xmax)*sin(-cry_miscut);
-            double x_P_tmp = cry_xmax + (cry_rcurv-cry_xmax)*cos(-cry_miscut);
+            double s_P_tmp = (bend_r-xdim)*sin(-cry_miscut);
+            double x_P_tmp = xdim + (bend_r-xdim)*cos(-cry_miscut);
 
-            if (s_int < cry_rcurv*cry_sBend) {
+            if (s_int < bend_r*cry_sBend) {
                 // Transform to a new reference system: shift and rotate
-                double tilt_int = s_int/cry_rcurv;
+                double tilt_int = s_int/bend_r;
                 double x_int  = xp*s_int + x;
                 LocalParticle_add_to_y(part, LocalParticle_get_py(part)*rpp_in*s_int);
                 LocalParticle_set_x(part, 0.);
@@ -950,16 +983,16 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
                 double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
                 double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
-                double* result = interact(rng, part, p, length-(tilt_int*cry_rcurv), s_P, x_P,
-                                          material, cry_tilt, cry_rcurv, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
-                                          cry_miscut, cry_bend, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cpTilt,
+                double* result = interact(rng, part, p, length-(tilt_int*bend_r), s_P, x_P,
+                                          material, cry_tilt, bend_r, cry_alayer, xdim, ydim, cry_orient, 
+                                          cry_miscut, bend_ang, cry_cBend, cry_sBend, cry_cpTilt, cry_spTilt, cry_cpTilt,
                                           -cry_spTilt, iProc, record, record_index);
 
                 p = result[0];
                 iProc = result[1];
                 free(result);
 
-                s = cry_rcurv*sin(cry_bend - tilt_int);
+                s = bend_r*sin(bend_ang - tilt_int);
 
                 // un-rotate
                 s = YRotation_single_particle_rotate_only(part, s, -tilt_int);
@@ -969,12 +1002,12 @@ double* crystal(RandomRutherfordData rng, LocalParticle* part, double p,
                 s = s + s_int;
             } else {
                 // Drift
-                s = cry_rcurv*sin(length/cry_rcurv);
+                s = bend_r*sin(length/bend_r);
                 Drift_single_particle_4d(part, s);
             }
         } else {
             // Drift
-            s = cry_rcurv*sin(length/cry_rcurv);
+            s = bend_r*sin(length/bend_r);
             Drift_single_particle_4d(part, s);
         }
     }

@@ -49,7 +49,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
     };
     int    const side       = EverestCrystalData_get__side(el);
-    double const bend       = EverestCrystalData_get__bend(el);
+    double const bend_r     = EverestCrystalData_get__bending_radius(el);
     // TODO: cry_tilt should be given by jaw positions...?
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;
     double const bend_ang   = EverestCrystalData_get__bending_angle(el);
@@ -61,8 +61,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // 2) we should not use the adapted scatter length, as we rotate the S-X frame, so
     //    we anyway have to drift the full length!    
     double const cry_alayer = EverestCrystalData_get_thick(el);
-    double const cry_xmax   = EverestCrystalData_get_xdim(el);
-    double const cry_ymax   = EverestCrystalData_get_ydim(el);
+    double const xdim       = EverestCrystalData_get_xdim(el);
+    double const ydim       = EverestCrystalData_get_ydim(el);
     double const cry_orient = EverestCrystalData_get__orient(el);
     double const cry_miscut = EverestCrystalData_get_miscut(el);
 
@@ -95,7 +95,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
                 scatter_cry(part, active_length, material, rng, c_aperture, c_offset,
-                            side, cry_tilt, bend, bend_ang, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
+                            side, cry_tilt, bend_r, bend_ang, cry_alayer, xdim, ydim, cry_orient, 
                             cry_miscut, record, record_index);
 
                 // Return from collimator frame

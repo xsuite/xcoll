@@ -512,13 +512,13 @@ class CollimatorManager:
                     else:
                         line[name].material = SixTrack_to_xcoll[colldb.material[name]][1]
                 if isinstance(line[name], EverestCrystal):
-                    line[name].align_angle = colldb._colldb.align_angle[name]
-                    line[name].bend        = colldb._colldb.bend[name]
-                    line[name].xdim        = colldb._colldb.xdim[name]
-                    line[name].ydim        = colldb._colldb.ydim[name]
-                    line[name].thick       = colldb._colldb.thick[name]
-                    line[name].miscut      = colldb._colldb.miscut[name]
-                    line[name].lattice     = colldb._colldb.crystal[name]
+                    line[name].align_angle    = colldb._colldb.align_angle[name]
+                    line[name].bending_radius = colldb._colldb.bending_radius[name]
+                    line[name].xdim           = colldb._colldb.xdim[name]
+                    line[name].ydim           = colldb._colldb.ydim[name]
+                    line[name].thick          = colldb._colldb.thick[name]
+                    line[name].miscut         = colldb._colldb.miscut[name]
+                    line[name].lattice        = colldb._colldb.crystal[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
         colldb.gap = gaps_OLD

@@ -18,7 +18,7 @@ def _initialise_None(collimator):
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
-    fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+    fields.update({'crystal': None, 'bending_radius': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
     for f, val in fields.items():
         if f not in collimator.keys():
             collimator[f] = val

@@ -17,7 +17,7 @@
 /*gpufun*/
 void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
                  double aperture, double offset, int side, double cry_tilt,
-                 double cry_rcurv, double cry_bend, double cry_alayer, double cry_xmax, double cry_ymax, 
+                 double bend_r, double bend_ang, double cry_alayer, double xdim, double ydim, 
                  double cry_orient, double cry_miscut, CollimatorImpactsData record, RecordIndex record_index){
 
     // Store initial coordinates for updating later
@@ -67,11 +67,11 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
                                 length,
                                 material,
                                 cry_tilt,
-                                cry_rcurv,
-                                cry_bend,
+                                bend_r,
+                                bend_ang,
                                 cry_alayer,
-                                cry_xmax,
-                                cry_ymax,
+                                xdim,
+                                ydim,
                                 cry_orient,
                                 cry_miscut,
                                 record,

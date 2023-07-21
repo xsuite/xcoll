@@ -4,7 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 90,
- "bend": 79.63,
+ "bending_radius": 79.63,
  "xdim": 0.0032,
  "ydim": 0.04,
  "thick": 0,

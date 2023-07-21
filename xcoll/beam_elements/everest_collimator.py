@@ -88,9 +88,8 @@ class EverestCollimator(BaseCollimator):
 class EverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         'align_angle':        xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
-        '_bend':              xo.Float64,
+        '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
-#         '_scatter_length':    xo.Float64,
         'xdim':               xo.Float64,
         'ydim':               xo.Float64,
         'thick':              xo.Float64,
@@ -105,9 +104,9 @@ class EverestCrystal(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material', '_bend',
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material', '_bending_radius',
                               '_bending_angle']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bend']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bending_radius', 'bending_angle']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, EverestEngine]
@@ -133,15 +132,15 @@ class EverestCrystal(BaseCollimator):
                 or kwargs['material']['__class__'] != "CrystalMaterial":
                     raise ValueError("Invalid material!")
             kwargs['_material'] = kwargs.pop('material')
-            bend          = False
-            bending_angle = False
-            if 'bend' in kwargs:
+            bending_radius = False
+            bending_angle  = False
+            if 'bending_radius' in kwargs:
                 if 'bending_angle' in kwargs:
-                    raise ValueError("Need to choose between 'bend' and 'bending_angle'!")
-                bend = kwargs['bend']
+                    raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
+                bending_radius = kwargs['bending_radius']
             elif 'bending_angle' in kwargs:
                 bending_angle = kwargs['bending_angle']
-            kwargs['_bend'] = kwargs.pop('bend',0)
+            kwargs['_bending_radius'] = kwargs.pop('bending_radius',0)
             kwargs['_bending_angle'] = kwargs.pop('bending_angle', 0)
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)
@@ -152,20 +151,20 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            if bend:
-                self._bending_angle = np.arcsin(self.active_length/bend)
+            if bending_radius:
+                self._bending_angle = np.arcsin(self.active_length/bending_radius)
             if bending_angle:
-                self._bend = self.active_length / np.sin(bending_angle)
+                self._bending_radius = self.active_length / np.sin(bending_angle)
             self._EverestCrystal_set_material(xp.Particles())
 
     @property
-    def bend(self):
-        return self._bend
+    def bending_radius(self):
+        return self._bending_radius
 
-    @bend.setter
-    def bend(self, bend):
-        self._bend = bend
-        self._bending_angle = np.arcsin(self.active_length/bend)
+    @bending_radius.setter
+    def bending_radius(self, bending_radius):
+        self._bending_radius = bending_radius
+        self._bending_angle = np.arcsin(self.active_length/bending_radius)
 
     @property
     def bending_angle(self):
@@ -174,11 +173,7 @@ class EverestCrystal(BaseCollimator):
     @bending_angle.setter
     def bending_angle(self, bending_angle):
         self._bending_angle = bending_angle
-        self._bend = self.active_length / np.sin(bending_angle)
-
-    @property
-    def scatter_length(self):
-        return self._scatter_length
+        self._bending_radius = self.active_length / np.sin(bending_angle)
 
     @property
     def lattice(self):
