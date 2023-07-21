@@ -90,7 +90,7 @@ class EverestCrystal(BaseCollimator):
         'align_angle':        xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         '_bend':              xo.Float64,
         '_bending_angle':     xo.Float64,
-        '_scatter_length':    xo.Float64,
+#         '_scatter_length':    xo.Float64,
         'xdim':               xo.Float64,
         'ydim':               xo.Float64,
         'thick':              xo.Float64,
@@ -106,9 +106,8 @@ class EverestCrystal(BaseCollimator):
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material', '_bend',
-                              '_bending_angle', '_scatter_length']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bend',
-                             'scatter_length']
+                              '_bending_angle']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bend']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, EverestEngine]
@@ -157,7 +156,6 @@ class EverestCrystal(BaseCollimator):
                 self._bending_angle = np.arcsin(self.active_length/bend)
             if bending_angle:
                 self._bend = self.active_length / np.sin(bending_angle)
-            self._calculate_scatter_length()
             self._EverestCrystal_set_material(xp.Particles())
 
     @property
@@ -168,7 +166,6 @@ class EverestCrystal(BaseCollimator):
     def bend(self, bend):
         self._bend = bend
         self._bending_angle = np.arcsin(self.active_length/bend)
-        self._calculate_scatter_length()
 
     @property
     def bending_angle(self):
@@ -178,7 +175,6 @@ class EverestCrystal(BaseCollimator):
     def bending_angle(self, bending_angle):
         self._bending_angle = bending_angle
         self._bend = self.active_length / np.sin(bending_angle)
-        self._calculate_scatter_length()
 
     @property
     def scatter_length(self):
@@ -208,16 +204,6 @@ class EverestCrystal(BaseCollimator):
                 raise ValueError("Invalid material!")
         self._material = material
         self._EverestCrystal_set_material(xp.Particles())
-
-    def _calculate_scatter_length(self):
-        # The variable length in the BeamElement is the longitudinal extent of the crystal,
-        # perpendicular to the front face.
-        # In tracking, we need to correct for the tilt, which will make the length longer.
-        cry_tilt = self.align_angle + np.arcsin(self.sin_yL);
-        if (cry_tilt >= -self.bending_angle):
-            self._scatter_length = self.bend*(np.sin(self.bending_angle + cry_tilt) - np.sin(cry_tilt))
-        else:
-            self._scatter_length = self.bend*(np.sin(self.bending_angle - cry_tilt) + np.sin(cry_tilt))
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
