@@ -15,18 +15,18 @@ struct ScatteringParameters {
 };
 
 
-struct ScatteringParameters calculate_scattering(double p0, MaterialData material) {
+struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData material) {
 
     struct ScatteringParameters scat;
 
     // Material properties
-    double const anuc  = MaterialData_get_A(material);
-    double const rho   = MaterialData_get_density(material);
-    double const bnref = MaterialData_get_nuclear_elastic_slope(material);
+    double const anuc  = GeneralMaterialData_get_A(material);
+    double const rho   = GeneralMaterialData_get_density(material);
+    double const bnref = GeneralMaterialData_get_nuclear_elastic_slope(material);
     double csref[6];
-    csref[0]           = MaterialData_get_cross_section(material, 0);
-    csref[1]           = MaterialData_get_cross_section(material, 1);
-    csref[5]           = MaterialData_get_cross_section(material, 5);
+    csref[0]           = GeneralMaterialData_get_cross_section(material, 0);
+    csref[1]           = GeneralMaterialData_get_cross_section(material, 1);
+    csref[5]           = GeneralMaterialData_get_cross_section(material, 5);
 
     double csect[6];
     

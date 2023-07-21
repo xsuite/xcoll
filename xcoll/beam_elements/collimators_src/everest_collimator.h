@@ -69,7 +69,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 // Scattering parameters
                 double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
-                struct ScatteringParameters scat = calculate_scattering(energy0, material);
+                struct ScatteringParameters scat = calculate_scattering(energy0, (GeneralMaterialData) material);
 
                 // Move to closed orbit
                 LocalParticle_add_to_x(part, -co_x);
