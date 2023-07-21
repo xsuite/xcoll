@@ -371,6 +371,8 @@ double Channel_single_particle_4d(LocalParticle* part, double arc_length, double
     //             The angle xp at the end of channeling (F) is tP + miscut
     //             In practice: we drift from start to end, but also update the angle afterwards
 
+    // TODO: random angle distribution: only at exit?
+
     // The distance from I to F is the chord length of the angle tP: d = 2 r sin(tP/2)
     // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
     // xp at the start of channeling: s = 2 r sin(tP/2)cos(tP/2 + miscut)
@@ -642,30 +644,26 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             if (Ldech < L_chan) {
             // We are dechanneling: channeling until Ldech, then amorphous (CH -> MCS -> ..)
                 iProc = proc_DC;
-                double Dxp   = Ldech/r; //Change angle from channeling [mrad]
-                double Sdech = Ldech*cos(cry_miscut + 0.5*Dxp);
+                double channeled_length = Channel_single_particle_4d(part, Ldech, Ldech/r, cry_miscut, xpcrit);
+                energy_loss = calcionloss_cry(part, channeled_length, properties);
+                pc = pc - 0.5*energy_loss*channeled_length; //Energy loss to ionization while in CH [GeV]  // TODO: why 0.5 ?
 
-                LocalParticle_add_to_x(part, Ldech*(sin(0.5*Dxp+cry_miscut))); //Trajectory at channeling exit
-                LocalParticle_add_to_y(part, LocalParticle_get_py(part)*rpp * Sdech);
-                LocalParticle_add_to_px(part, Dxp/rpp + (2*(RandomUniform_generate(part)-0.5))*xpcrit/rpp);
-
-                energy_loss = calcionloss_cry(part, Ldech, properties);
-                pc = pc - 0.5*energy_loss*Ldech; //Energy loss to ionization while in CH [GeV]
-                Drift_single_particle_4d(part, 0.5*(length-Sdech));
-
-                energy_loss = calcionloss_cry(part, length-Sdech, properties);
-
-                double* result_am = moveam(rng, part, length-Sdech, energy_loss, pc, material, iProc);
+                // Remaining part is amorphous
+                Drift_single_particle_4d(part, 0.5*(length-channeled_length));
+                energy_loss = calcionloss_cry(part, length-channeled_length, properties);
+                double* result_am = moveam(rng, part, length-channeled_length, energy_loss, pc, material, iProc);
 
                 pc = result_am[0];
                 iProc = result_am[1];
                 free(result_am);
 
-                Drift_single_particle_4d(part, 0.5*(length-Sdech));
+                Drift_single_particle_4d(part, 0.5*(length-channeled_length));
 
-                CollimatorImpactsData_set_interaction(record, record_index, part, 0, Ldech, XC_CRYSTAL_CHANNELING);
-                CollimatorImpactsData_set_interaction(record, record_index, part, Ldech, Ldech, XC_CRYSTAL_DECHANNELING);
-                CollimatorImpactsData_set_interaction(record, record_index, part, Ldech, L_chan, XC_CRYSTAL_AMORPHOUS);
+                CollimatorImpactsData_set_interaction(record, record_index, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
+                CollimatorImpactsData_set_interaction(record, record_index, part, channeled_length, channeled_length,
+                                                      XC_CRYSTAL_DECHANNELING);
+                CollimatorImpactsData_set_interaction(record, record_index, part, channeled_length, length,
+                                                      XC_CRYSTAL_AMORPHOUS);
 
             } else {
             // We are channeling (never dechannel spontaneously)   (CH  or  CH  -> PP/..)
@@ -699,7 +697,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     // Channel
                     double channeled_length = Channel_single_particle_4d(part, L_chan, tP, cry_miscut, xpcrit);
                     energy_loss = calcionloss_cry(part, channeled_length, properties);
-                    pc = pc - (0.5*energy_loss)*channeled_length; //energy loss to ionization [GeV]  // TODO: why 0.5 ?
+                    pc = pc - 0.5*energy_loss*channeled_length; //energy loss to ionization [GeV]  // TODO: why 0.5 ?
                     // TODO: the px at exit of channeling should be calculated from xp with updated energy
 
                     // Drift remaining length
