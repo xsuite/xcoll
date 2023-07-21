@@ -11,7 +11,7 @@
 
 double const tlcut_cry = 0.0009982;
 
-double const aTF = 0.194e-10; // Screening function [m]
+// double const aTF = 0.194e-10; // Screening function [m]
 double const dP  = 1.920e-10; // Distance between planes (110) [m]
 double const u1  = 0.075e-10; // Thermal vibrations amplitude
 
@@ -407,49 +407,16 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double 
 
 
 /*gpufun*/
-double calcionloss_cry(LocalParticle* part, double dz, double EnLo, double betar, double bgr, double gammar, double tmax, double plen, double exenergy, double zatom, double rho, double anuc) {
+double calcionloss_cry(LocalParticle* part, double length, struct CrystalProperties prop) {
 
-//     // Material properties
-//     double const exenergy = CrystalMaterialData_get_excitation_energy(material);
-//     double const rho      = CrystalMaterialData_get_density(material);
-//     double const anuc     = CrystalMaterialData_get_A(material);
-//     double const zatom    = CrystalMaterialData_get_Z(material);
-//     double const emr      = CrystalMaterialData_get_nuclear_radius(material);
-//     double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-//     double const dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
-//     double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-//     double const eum      = CrystalMaterialData_get_crystal_potential(material);
-//     double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
-//     double const hcut     = CrystalMaterialData_get_hcut(material);
-//     double const bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
-//     double const csref0   = CrystalMaterialData_get_cross_section(material, 0);
-//     double const csref1   = CrystalMaterialData_get_cross_section(material, 1);
-//     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
-
-    double k = 0.307075; // Constant in front bethe-bloch [mev g^-1 cm^2]
-    double pmae = 0.51099890;
-    double pmap = 938.271998;
-
-    double thl  = (((((4.*k)*zatom)*dz)*1.0e2)*rho)/(anuc* pow(betar,2)); // [MeV]
-    EnLo = ((k*zatom)/(anuc* pow(betar,2.))) * (0.5*log(((((2.*pmae)*bgr)*bgr)*tmax)/(1.0e6* pow(exenergy,2.))) -
-            pow(betar,2.) - log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5);
-    EnLo = ((EnLo*rho)*1.0e-1)*dz; // [GeV]
-    double Tt   = (EnLo*1.0e3)+thl; // [MeV]
-
-    double cs_tail   = ((k*zatom)/(anuc* pow(betar,2.))) * ((0.5*((1/Tt)-(1./tmax))) - (log(tmax/Tt)*(pow(betar,2.))/(2.*tmax)) 
-                        + ((tmax-Tt)/((4.*(pow(gammar,2.)))*(pow(pmap,2.)))));
-    double prob_tail = ((cs_tail*rho)*dz)*1.0e2;
+    double prob_tail = prop.prob_tail_c1 + prop.prob_tail_c2 * length
+                     + prop.prob_tail_c3 * length * log(length) + prop.prob_tail_c4 * length * length;
 
     if (RandomUniform_generate(part) < prob_tail) {
-        EnLo = ((k*zatom)/(anuc*pow(betar,2.))) * (0.5*log((2*pmae*bgr*bgr*tmax)/(1.0e6*pow(exenergy,2.))) - pow(betar,2.) - 
-                log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5 + pow(tmax,2.)/(8.*(pow(gammar,2.))*(pow(pmap,2.))));
-
-        EnLo = (EnLo*rho)*1.0e-1; // [GeV/m]
+        return prop.energy_loss_tail;
     } else {
-        EnLo = EnLo/dz; // [GeV/m]
+        return prop.energy_loss;
     }
-
-    return EnLo;
 }
 
 
@@ -480,36 +447,22 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
     double const csref5   = CrystalMaterialData_get_cross_section(material, 5);
 
     double const rpp  = LocalParticle_get_rpp(part);
-    double x  = LocalParticle_get_x(part);
-    double xp = LocalParticle_get_px(part)*rpp;
-    double y  = LocalParticle_get_y(part);
-    double yp = LocalParticle_get_py(part)*rpp;
+    double const x  = LocalParticle_get_x(part);
+    double const xp = LocalParticle_get_px(part)*rpp;
+    double const y  = LocalParticle_get_y(part);
+    double const yp = LocalParticle_get_py(part)*rpp;
 
     double dest = 0.;
-    double pmap = 938.271998;
-    double pmae = 0.51099890;
-    double crade = 2.817940285e-15;
 
     double c_v1 =  1.7;   // Fitting coefficient
     double c_v2 = -1.5;   // Fitting coefficient
 
     int zn  = 1;
 
-    // dE/dX and dechanneling length calculation
-    double mom    = pc*1.0e3;                // [GeV]
-    double enr    = sqrt(pow(mom,2.) + pow(pmap,2.)); // [MeV]
-    double gammar = enr/pmap;
-    double betar  = mom/enr;
-    double bgr    = betar*gammar;
-    double mep    = pmae/pmap;  // Electron/proton
+    struct CrystalProperties properties = calculate_crystal_properties(pc, material);
 
-    double tmax = (2.*pmae*pow(bgr,2.))/(1. + 2.*gammar*mep + pow(mep,2.));  // [MeV]
-    double plen = sqrt((rho*zatom)/anuc)*28.816e-6; // [MeV]
+    double const_dech = properties.const_dech;
 
-    double const_dech = ((256.0/(9*pow(M_PI,2.))) * (1./(log(((2.*pmae)*gammar)/(exenergy*1.0e3)) - 1.))) * ((aTF*dP)/(crade*pmae)); // [m/MeV]
-    const_dech = const_dech*1.0e3; // [m/GeV]
-
-//     double s = 0.;
     double s_length = cry_rcurv*sin(length/cry_rcurv);
     double L_chan   = length;
 
@@ -617,8 +570,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 //         y     = y0 + yp*s;
 //         iProc = proc_AM;
 
-//         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
-//                             exenergy,zatom,rho,anuc);
+//         dest = calcionloss_cry(part, s_length, properties);
 
 //         double* result_am = moveam(rng, part,am_len,dest,dlri,pc,anuc,zatom,emr,hcut,
 //                             bnref,csref0,csref1,csref5,collnt,iProc);
@@ -643,8 +595,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
         return result;
 //         iProc = proc_AM;
         
-//         dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
-//                             exenergy,zatom,rho,anuc);
+//         dest = calcionloss_cry(part, s_length, properties);
 
 //         double* result_am = moveam(rng, part,s_length,dest,dlri,pc,anuc,zatom,emr,hcut,bnref,csref0,
 //                         csref1,csref5,collnt,iProc);
@@ -725,12 +676,11 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 LocalParticle_add_to_y(part, LocalParticle_get_py(part)*rpp * Sdech);
                 LocalParticle_add_to_px(part, Dxp/rpp + (2*(RandomUniform_generate(part)-0.5))*xpcrit/rpp);
 
-                dest = calcionloss_cry(part,Ldech,dest,betar,bgr,gammar,tmax,plen,
-                                    exenergy,zatom,rho,anuc);
+                dest = calcionloss_cry(part, Ldech, properties);
                 pc = pc - 0.5*dest*Ldech; //Energy loss to ionization while in CH [GeV]
                 Drift_single_particle_4d(part, 0.5*(s_length-Sdech));
 
-                dest = calcionloss_cry(part,s_length-Sdech,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                dest = calcionloss_cry(part, s_length-Sdech, properties);
 
                 double* result_am = moveam(rng, part, s_length-Sdech, dest, dlri, pc, anuc, zatom, emr, hcut,
                                            bnref, csref0, csref1, csref5, collnt, iProc);
@@ -766,8 +716,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_y(part, (0.5*L_chan)*ypin);
                     Drift_single_particle_4d(part, 0.5*L_chan);
 
-                    dest = calcionloss_cry(part,length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, length, properties);
                     pc = pc - dest*length; //energy loss to ionization [GeV]
 
                     CollimatorImpactsData_set_interaction(record, record_index, part, 0, 0.5*L_chan, XC_CRYSTAL_CHANNELING);
@@ -780,7 +729,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_x(part, L_chan*(sin(0.5*Dxp))); //Trajectory at channeling exit
                     LocalParticle_add_to_y(part, s_length * yp);
 
-                    dest = calcionloss_cry(part,length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, length, properties);
                     pc = pc - (0.5*dest)*length; //energy loss to ionization [GeV]    
 
                     CollimatorImpactsData_set_interaction(record, record_index, part, 0, L_chan, XC_CRYSTAL_CHANNELING);
@@ -793,7 +742,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             LocalParticle_add_to_px(part, 0.45*(xp_rel/xpcrit + 1)*Ang_avr/rpp);
             Drift_single_particle_4d(part, 0.5*s_length);
 
-            dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+            dest = calcionloss_cry(part, s_length, properties);
 
             double* result_am = moveam(rng, part, s_length, dest, dlri, pc, anuc, zatom, emr, hcut, bnref, csref0,
                                        csref1, csref5, collnt, iProc);
@@ -828,7 +777,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 LocalParticle_add_to_px(part, Dxp/rpp + Ang_rms*RandomNormal_generate(part)/rpp);
                 Drift_single_particle_4d(part, 0.5*(s_length - Srefl));
 
-                dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,exenergy,zatom,rho,anuc);
+                dest = calcionloss_cry(part, s_length-Srefl, properties);
 
                 double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, pc, anuc, zatom, emr, hcut, bnref,
                                            csref0, csref1, csref5, collnt, iProc);
@@ -856,17 +805,14 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     double Red_S = (s_length - Srefl) - Sdech;
                     Drift_single_particle_4d(part, 0.5*Red_S);
 
-                    dest = calcionloss_cry(part,Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, Srefl, properties);
 
                     pc = pc - dest*Srefl; //"added" energy loss before capture
 
-                    dest = calcionloss_cry(part,Sdech,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, Sdech, properties);
                     pc = pc - (0.5*dest)*Sdech; //"added" energy loss while captured
 
-                    dest = calcionloss_cry(part,Red_S,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, Red_S, properties);
 
                     double* result_am = moveam(rng, part, Red_S, dest, dlri, pc, anuc, zatom, emr, hcut, bnref,
                                                csref0, csref1, csref5, collnt, iProc);
@@ -883,8 +829,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     double tchan   = Rlength/cry_rcurv;
                     double Red_S   = Rlength*cos(xp + 0.5*tchan);
 
-                    dest = calcionloss_cry(part,Lrefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, Lrefl, properties);
                     pc   = pc - dest*Lrefl; //"added" energy loss before capture
                     double xpin = xp;
                     double ypin = yp;
@@ -903,8 +848,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                         LocalParticle_add_to_y(part, (0.5*Rlength)*ypin);
                         Drift_single_particle_4d(part, 0.5*Rlength);
 
-                        dest = calcionloss_cry(part,Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc);
+                        dest = calcionloss_cry(part, Rlength, properties);
                         pc = pc - dest*Rlength;
 
                     } else {
@@ -913,8 +857,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                         LocalParticle_add_to_y(part, Red_S*yp);
                         LocalParticle_set_px(part, tdefl/rpp + (0.5*RandomNormal_generate(part))*xpcrit/rpp); //[mrad]
 
-                        dest = calcionloss_cry(part,Rlength,dest,betar,bgr,gammar,tmax,plen,
-                                            exenergy,zatom,rho,anuc);
+                        dest = calcionloss_cry(part, Rlength, properties);
                         pc = pc - (0.5*dest)*Rlength;  //"added" energy loss once captured
 
                     }
@@ -928,8 +871,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 iProc = proc_AM;
                 Drift_single_particle_4d(part, 0.5*s_length);
                 if(zn > 0) {
-                    dest = calcionloss_cry(part,s_length,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, s_length, properties);
 
                     double* result_am = moveam(rng, part, s_length, dest, dlri, pc, anuc, zatom, emr, hcut, bnref,
                                                csref0, csref1, csref5, collnt, iProc);
@@ -950,8 +892,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_px(part, Dxp/rpp);
                     Drift_single_particle_4d(part, 0.5*(s_length-Srefl));
 
-                    dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, s_length-Srefl, properties);
 
                     double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, pc, anuc, zatom, emr, hcut,
                                                bnref, csref0, csref1, csref5, collnt, iProc);
@@ -968,8 +909,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_px(part, Dxp/rpp);
                     Drift_single_particle_4d(part, 0.5*(s_length-Srefl));
 
-                    dest = calcionloss_cry(part,s_length-Srefl,dest,betar,bgr,gammar,tmax,plen,
-                                        exenergy,zatom,rho,anuc);
+                    dest = calcionloss_cry(part, s_length-Srefl, properties);
                     double* result_am = moveam(rng, part, s_length-Srefl, dest, dlri, pc, anuc, zatom, emr, hcut,
                                                bnref, csref0, csref1, csref5, collnt, iProc);
                     pc = result_am[0];
