@@ -9,15 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-double const tlcut_cry = 0.0009982;
-
-// double const aTF = 0.194e-10; // Screening function [m]
-double const dP  = 1.920e-10; // Distance between planes (110) [m]
-double const u1  = 0.075e-10; // Thermal vibrations amplitude
-
-// pp cross-sections and parameters for energy dependence
-double const pptref_cry = 0.040;
-double const freeco_cry = 1.618;
 
 // Processes
 int const proc_out         =  -1;     // Crystal not hit
@@ -47,8 +38,10 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double 
     double* result = (double*)malloc(2 * sizeof(double));
 
     // Material properties
-    double const eum      = CrystalMaterialData_get_crystal_potential(material);
-    double collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+    double const anuc   = CrystalMaterialData_get_A(material);
+    double const rho    = CrystalMaterialData_get_density(material);
+    double const eum    = CrystalMaterialData_get_crystal_potential(material);
+    double       collnt = CrystalMaterialData_get_nuclear_collision_length(material);
 
     double pc_in = pc;
 
@@ -56,35 +49,35 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double 
     double rpp = LocalParticle_get_rpp(part);
     double x_i = LocalParticle_get_x(part);
     double xp  = LocalParticle_get_px(part)*rpp;
-    int np  = x_i/dP;    //Calculate in which crystalline plane the particle enters
-    x_i = x_i - (np + 0.5)*dP;   //Rescale the incoming x to the middle of the crystalline plane
+    int np  = x_i/XC_PLANE_DISTANCE;    //Calculate in which crystalline plane the particle enters
+    x_i = x_i - (np + 0.5)*XC_PLANE_DISTANCE;   //Rescale the incoming x to the middle of the crystalline plane
 
-    double pv   = pow(pc,2.)/sqrt(pow(pc, 2.) + pow((pmap*1.0e-3), 2.))*1.0e9;          //Calculate pv=P/E   TODO: this is beta?
-    double Ueff = eum*4.*pow(x_i/dP, 2.) + pv*x_i/r; //Calculate effective potential
+    double pv   = pow(pc, 2.)/sqrt(pow(pc, 2.) + pow(XC_PROTON_MASS*1.0e-3, 2.))*1.0e9;          //Calculate pv=P/E   TODO: this is beta?
+    double Ueff = eum*4.*pow(x_i/XC_PLANE_DISTANCE, 2.) + pv*x_i/r; //Calculate effective potential
     double Et   = pv*pow(xp, 2.)/2. + Ueff;          //Calculate transverse energy
-    double Ec   = eum*pow(1.-rc/r, 2.);              //Calculate critical energy in bent crystals
+    double Ec   = eum*pow(1. - rc/r, 2.);              //Calculate critical energy in bent crystals
 
     //To avoid negative Et
-    double xminU = ((-pow(dP,2.)*pc)*1.0e9)/(8.*eum*r);
-    double Umin  = fabs((eum*((2.*xminU)/dP))*((2.*xminU)/dP) + pv*xminU/r);
+    double xminU = -pow(XC_PLANE_DISTANCE, 2.)*pc*1.0e9/(8.*eum*r);
+    double Umin  = fabs(eum*4.*pow(xminU/XC_PLANE_DISTANCE, 2.) + pv*xminU/r);
     Et    = Et + Umin;
     Ec    = Ec + Umin;
 
     //Calculate min e max of the trajectory between crystalline planes
-    double x_min = (-(dP/2.)*rc)/r - (dP/2.)*sqrt(Et/Ec);
-    double x_max = (-(dP/2.)*rc)/r + (dP/2.)*sqrt(Et/Ec);
+    double x_min = (-(XC_PLANE_DISTANCE/2.)*rc)/r - (XC_PLANE_DISTANCE/2.)*sqrt(Et/Ec);
+    double x_max = (-(XC_PLANE_DISTANCE/2.)*rc)/r + (XC_PLANE_DISTANCE/2.)*sqrt(Et/Ec);
 
     //Change ref. frame and go back with 0 on the crystalline plane on the left
-    x_min = x_min - dP/2.;
-    x_max = x_max - dP/2.;
+    x_min = x_min - XC_PLANE_DISTANCE/2.;
+    x_max = x_max - XC_PLANE_DISTANCE/2.;
 
     //Calculate the "normal density" in m^-3
     double N_am  = rho*6.022e23*1.0e6/anuc;
 
     //Calculate atomic density at min and max of the trajectory oscillation
     // erf returns the error function of complex argument
-    double rho_max = N_am*dP/2.*(erf(x_max/sqrt(2*pow(u1,2.))) - erf((dP-x_max)/sqrt(2*pow(u1,2.))));
-    double rho_min = N_am*dP/2.*(erf(x_min/sqrt(2*pow(u1,2.))) - erf((dP-x_min)/sqrt(2*pow(u1,2.))));
+    double rho_max = N_am*XC_PLANE_DISTANCE/2.*(erf(x_max/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.))) - erf((XC_PLANE_DISTANCE-x_max)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.))));
+    double rho_min = N_am*XC_PLANE_DISTANCE/2.*(erf(x_min/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.))) - erf((XC_PLANE_DISTANCE-x_min)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.))));
 
     //"zero-approximation" of average nuclear density seen along the trajectory
     double avrrho  = (rho_max - rho_min)/(x_max - x_min);
@@ -98,7 +91,7 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double 
     if (avrrho == 0) {
         collnt = 1.0e6;
     } else {
-        collnt /= avrrho;
+        collnt = collnt/avrrho;
     }
 
     double zlm = collnt*RandomExponential_generate(part);
@@ -109,7 +102,7 @@ double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double 
         double aran = RandomUniform_generate(part);
         int i = 1;
 
-        while (aran > cprob[i]) {
+        while (aran > scat.cprob[i]) {
             i=i+1;
         }
         
@@ -175,7 +168,7 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double 
 //     double iProc = proc_out;
     double* result = (double*)malloc(2 * sizeof(double));
 
-    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material);
+    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, 1.);
 
     // Material properties
     double const dlr      = CrystalMaterialData_get_crystal_radiation_length(material);

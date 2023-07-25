@@ -16,6 +16,7 @@ class EverestEngine(xo.HybridClass):
     _depends_on = [Material, CrystalMaterial, xt.RandomUniform, xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('scattering_routines','everest','constants.h'),
         _pkg_root.joinpath('scattering_routines','everest','everest.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
