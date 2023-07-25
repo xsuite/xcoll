@@ -40,21 +40,25 @@ struct CrystalProperties calculate_crystal_properties(double pc, CrystalMaterial
 
 
     // Dechanneling length calculation
-    prop.const_dech = ((256.0/(9*pow(M_PI,2.))) * (1./(log(((2.*XC_ELECTRON_MASS)*gammar)/(exenergy*1.0e3)) - 1.))) * ((XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)); // [m/MeV]
-    prop.const_dech = prop.const_dech*1.0e3; // [m/GeV]
-
+    prop.const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/(exenergy*1.0e3)) - 1.);
+    prop.const_dech *= (XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)*1.0e3; // [m/GeV]
 
     // Ionisation loss
-    double tmax = (2.*XC_ELECTRON_MASS*pow(bgr,2.))/(1. + 2.*gammar*mep + pow(mep,2.));  // [MeV]
-    double plen = sqrt((rho*zatom)/anuc)*28.816e-6; // [MeV]
+    double tmax = 2.*XC_ELECTRON_MASS*pow(bgr, 2.)/ (1. + 2.*gammar*mep + pow(mep,2.));  // [MeV]
+    double plen = sqrt(rho*zatom/anuc)*28.816e-6; // [MeV]
 
-    prop.energy_loss = (XC_BETHE_BLOCH*zatom/(anuc* pow(betar,2.))) * (0.5*log(((((2.*XC_ELECTRON_MASS)*bgr)*bgr)*tmax)/(1.0e6* pow(exenergy,2.))) -
-            pow(betar,2.) - log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5);
-    prop.energy_loss = prop.energy_loss*rho*1.0e-1; // [GeV]
-    prop.energy_loss_tail = ((XC_BETHE_BLOCH*zatom)/(anuc*pow(betar,2.))) * (0.5*log((2*XC_ELECTRON_MASS*bgr*bgr*tmax)/(1.0e6*pow(exenergy,2.)))
-                                                           - pow(betar,2.) - 
-                log(plen/(exenergy*1.0e3)) - log(bgr) + 0.5 + pow(tmax,2.)/(8.*(pow(gammar,2.))*(pow(XC_PROTON_MASS,2.))));
-    prop.energy_loss_tail = prop.energy_loss_tail*rho*1.0e-1; // [GeV/m]
+    prop.energy_loss = 0.5*log(2.*XC_ELECTRON_MASS*bgr*bgr*tmax/(1.0e6* pow(exenergy,2.))) + 0.5;
+    prop.energy_loss -= pow(betar, 2.);
+    prop.energy_loss -= log(plen/(exenergy*1.0e3));
+    prop.energy_loss -= log(bgr);
+    prop.energy_loss *= XC_BETHE_BLOCH*zatom/(anuc* pow(betar, 2.))*rho*1.0e-1; // [GeV]
+
+    prop.energy_loss_tail = 0.5*log(2*XC_ELECTRON_MASS*bgr*bgr*tmax/(1.0e6*pow(exenergy,2.))) + 0.5;
+    prop.energy_loss_tail -= pow(betar, 2.);
+    prop.energy_loss_tail -= log(plen/(exenergy*1.0e3));
+    prop.energy_loss_tail -= log(bgr);
+    prop.energy_loss_tail += pow(tmax, 2.)/(8.*pow(gammar, 2.)*pow(XC_PROTON_MASS, 2.));
+    prop.energy_loss_tail *= XC_BETHE_BLOCH*zatom/(anuc*pow(betar, 2.))*rho*1.0e-1; // [GeV/m]
 
     double Tt = prop.energy_loss*1.0e3 + XC_BETHE_BLOCH*zatom*4.0e2*rho/(anuc*pow(betar, 2.)); // [MeV]
 
@@ -70,8 +74,8 @@ struct CrystalProperties calculate_crystal_properties(double pc, CrystalMaterial
 
     return prop;
 }
-    
-    
-    
-    
+
+
+
+
 #endif /* XCOLL_EVEREST_CRY_PROP_H */
