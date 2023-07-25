@@ -15,7 +15,7 @@ struct ScatteringParameters {
 };
 
 
-struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData material) {
+struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData material, double rescale) {
 
     struct ScatteringParameters scat;
 
@@ -36,20 +36,27 @@ struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData 
     double pmap   = 938.271998;
     double fnavo  = 6.02214076e23;
 
-    scat.ecmsq = (2*(pmap*1.0e-3)) * p0;
+    scat.ecmsq = 2*pmap*1.0e-3*p0;
     scat.xln15s = log(0.15*scat.ecmsq);
+
     // Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-    double pptot = 0.041084 - 0.0023302*log(scat.ecmsq) + 0.00031514*pow(log(scat.ecmsq),2);
+    double pptot = 0.041084 - 0.0023302*log(scat.ecmsq) + 0.00031514*pow(log(scat.ecmsq), 2.);
+
     // Claudia used the fit from TOTEM for ppel (in barn)
-    double ppel = (11.7-1.59*log(scat.ecmsq)+0.134*pow(log(scat.ecmsq),2))/1e3;                      // TODO /1.e3
+    double ppel = (11.7 - 1.59*log(scat.ecmsq) + 0.134*pow(log(scat.ecmsq), 2.))/1e3;                      // TODO /1.e3
+
     // Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
-    double ppsd = (4.3+0.3*log(scat.ecmsq))/1e3;
+    double ppsd = (4.3 + 0.3*log(scat.ecmsq))/1e3;
 
     // Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
     scat.bpp = 7.156 + 1.439*log(sqrt(scat.ecmsq));
 
     // freep: number of nucleons involved in single scattering
     double freep = freeco * pow(anuc,(1./3.));
+
+    // Rescale reference cross sections (only used for crystals)
+    csref[0] *= rescale;
+    csref[1] *= rescale;
 
     // compute pp and pn el+single diff contributions to cross-section
     // (both added : quasi-elastic or qel later)
@@ -59,10 +66,14 @@ struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData 
     // correct TOT-CSec for energy dependence of qel
     // TOT CS is here without a Coulomb contribution
     csect[0] = csref[0] + freep * (pptot - pptref);
-    scat.bn = bnref * csect[0] / csref[0];
+    //Also correct inel-CS
+    if(csref[0] == 0) {   // TODO: is this needed?
+        csect[1] = 0;
+    } else {
+        csect[1] = csref[1]*csect[0]/csref[0];
+    }
 
-    // also correct inel-CS
-    csect[1] = csref[1] * csect[0] / csref[0];
+    scat.bn = bnref * csect[0] / csref[0];
 
     // Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
     csect[2] = csect[0] - csect[1] - csect[3] - csect[4];
@@ -72,13 +83,19 @@ struct ScatteringParameters calculate_scattering(double p0, GeneralMaterialData 
     csect[0] += csect[5];
 
     // Interaction length in meter
-    scat.xintl = (1.0e-2*anuc)/(((fnavo * rho)*csect[0])*1e-24);
+    scat.xintl = 1.0e-2*anuc/(fnavo*rho*csect[0]*1e-24);
 
     // Filling CProb with cumulated normalised Cross-sections
     int i;
     scat.cprob[0] = 0;
-    for (i=1; i<5; ++i){
-        scat.cprob[i] = scat.cprob[i-1] + csect[i]/csect[0];
+    if(csect[0] == 0) {   // TODO: is this needed?
+        for (i=1; i<5; ++i){
+            scat.cprob[i] = scat.cprob[i-1];
+        }
+    } else {
+        for (i=1; i<5; ++i){
+            scat.cprob[i] = scat.cprob[i-1] + csect[i]/csect[0];
+        }
     }
     scat.cprob[5] = 1;
     
