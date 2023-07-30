@@ -30,7 +30,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
     double const px_in   = LocalParticle_get_px(part);
     double const y_in    = LocalParticle_get_y(part);
     double const py_in   = LocalParticle_get_py(part);
-    double p0 = LocalParticle_get_p0c(part) / 1e9;
+    double const p0 = LocalParticle_get_p0c(part) / 1e9;
 
     // TODO: missing correction due to m/m0 (but also wrong in xpart...)
     double energy = p0*ptau_in + e0; // energy in GeV
@@ -39,8 +39,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
     int is_hit = 0;
     int is_abs = 0;
 
-    // Transform particle coordinates to get into collimator coordinate  system
-    double x  = LocalParticle_get_x(part);
+    double x = LocalParticle_get_x(part);
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
     // TODO: particles on the wrong side are not drifted !!!!! I think this is wrong...
@@ -87,13 +86,15 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
         LocalParticle_add_to_x(part, aperture/2. + mirror*offset);
 
         // Now mirror at the horizontal axis for negative X offset
-        if (x < 0) {
+        if (mirror < 0) {
             LocalParticle_scale_x(part, mirror);
             LocalParticle_scale_px(part, mirror);
         }
+    } else {
+        Drift_single_particle_4d(part, length);
     }
 
-    //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
+    // Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
     // Update energy    ---------------------------------------------------
     // Only particles that hit the jaw and survived need to be updated

@@ -51,7 +51,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     int    const side       = EverestCrystalData_get__side(el);
     double const bend_r     = EverestCrystalData_get__bending_radius(el);
     // TODO: cry_tilt should be given by jaw positions...?
-    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;
+    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;   // TODO: only left-sided crystals
     double const bend_ang   = EverestCrystalData_get__bending_angle(el);
     // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
     // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5

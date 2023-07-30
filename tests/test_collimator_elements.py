@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xcoll as xc
 import xtrack as xt
 from xtrack.line import _dicts_equal
@@ -11,7 +16,7 @@ import pytest
 # ======================
 #
 # This testing script might look a bit unorthodox, as we try to capture all cases
-# where read/write fields of the collimators.
+# where we read/write fields of the collimators.
 #
 # The dictonary 'base_fields contains all xofields of BaseCollimator, with some
 # values to set each field to (which will then be verified if correctly written).

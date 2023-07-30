@@ -309,10 +309,9 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
 /*gpufun*/
 double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
-            double p, double zlm, double x, double xp, double z, double zp,
-            CollimatorImpactsData record, RecordIndex record_index) {
+            double p, double zlm, CollimatorImpactsData record, RecordIndex record_index) {
 
-    double* result = (double*)malloc(7 * sizeof(double));
+    double* result = (double*)malloc(3 * sizeof(double));
     double s;
     double nabs = 0;
     double rlen = zlm;
@@ -320,6 +319,12 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
     double t;
     double tx; 
     double tz;
+
+    double rpp_in  = LocalParticle_get_rpp(part);
+    double x  = LocalParticle_get_x(part);
+    double xp = LocalParticle_get_px(part)*rpp_in;
+    double z  = LocalParticle_get_y(part);
+    double zp = LocalParticle_get_py(part)*rpp_in;
 
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
@@ -419,13 +424,14 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         rlen = rlen-zlm1;
     }
 
+    LocalParticle_set_x(part, x);
+    LocalParticle_set_px(part, xp/rpp_in);
+    LocalParticle_set_y(part, z);
+    LocalParticle_set_py(part, zp/rpp_in);
+
     result[0] = p;
     result[1] = nabs;
     result[2] = s;
-    result[3] = x;
-    result[4] = xp;
-    result[5] = z;
-    result[6] = zp;
     return result;
 }  
   

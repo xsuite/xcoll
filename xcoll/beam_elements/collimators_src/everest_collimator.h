@@ -71,16 +71,16 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
                 struct ScatteringParameters scat = calculate_scattering(energy0, (GeneralMaterialData) material, 1.);
 
-                // Move to closed orbit
-                LocalParticle_add_to_x(part, -co_x);
-                LocalParticle_add_to_y(part, -co_y);
-                
-                scatter(part, length, material, rng, scat, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, side,
+                // Move to collimator frame
+                XYShift_single_particle(part, co_x, co_y);
+                SRotation_single_particle(part, sin_zL, cos_zL);
+
+                scatter(part, length, material, rng, scat, c_aperture, c_offset, c_tilt0, c_tilt1, side,
                         record, record_index);
 
-                // Return from closed orbit
-                LocalParticle_add_to_x(part, co_x);
-                LocalParticle_add_to_y(part, co_y);
+                // Return from collimator frame
+                SRotation_single_particle(part, -sin_zL, cos_zL);
+                XYShift_single_particle(part, -co_x, -co_y);
 
                 // Drift inactive back (only surviving particles)
                 if (LocalParticle_get_state(part) > 0){
