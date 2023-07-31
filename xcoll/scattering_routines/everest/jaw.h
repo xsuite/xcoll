@@ -111,7 +111,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 /*gpufun*/
 double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, double x, double xp, double z, double zp) {
 
-    double const radl     = MaterialData_get_radiation_length(material);
+    double const radl = MaterialData_get_radiation_length(material);
     double s;
     double theta = 13.6e-3/p;
     double h   = 0.001;
@@ -121,10 +121,10 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     double rlen  = rlen0;
     double* result = (double*)malloc(5 * sizeof(double));
 
-    x     = (x/theta)/radl;
-    xp    = xp/theta;
-    z     = (z/theta)/radl;
-    zp    = zp/theta;
+    x  = (x/theta)/radl;
+    xp = xp/theta;
+    z  = (z/theta)/radl;
+    zp = zp/theta;
 
     while (1) {
         double ae = bn0 * x;
@@ -140,7 +140,8 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
         if (s < h) {
             s = h;
         }
-        double* res = scamcs(part, x,xp,s);
+        // TODO: should cap s whenever we are out (the two if cases below), because now the scamcs is applied over an s that might be (slightly) too long
+        double* res = scamcs(part, x, xp, s);
         x  = res[0];
         xp = res[1];
         free(res);
@@ -161,11 +162,11 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     zp = res[1];
     free(res);
 
-    result[0]  = s*radl;
-    result[1]  = (x*theta)*radl;
-    result[2]  = xp*theta;
-    result[3]  = (z*theta)*radl;
-    result[4]  = zp*theta;
+    result[0] = s*radl;
+    result[1] = (x*theta)*radl;
+    result[2] = xp*theta;
+    result[3] = (z*theta)*radl;
+    result[4] = zp*theta;
     return result;
 }
 
@@ -233,63 +234,16 @@ double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, dou
 
 
 /*gpufun*/
-double calcionloss(LocalParticle* part, double p, double rlen, MaterialData material) {
+double calcionloss(LocalParticle* part, double length, struct IonisationProperties prop) {
 
-    double const zatom    = MaterialData_get_Z(material);
-    double const anuc     = MaterialData_get_A(material);
-    double const rho      = MaterialData_get_density(material);
-    double const exenergy = MaterialData_get_excitation_energy(material);
-    
-    double k = 0.307075;  // Constant in front bethe-bloch [mev g^-1 cm^2]
-    double pmae = 0.510998902;
-    double pmap = 938.271998;
+    double prob_tail = prop.prob_tail_c1 + prop.prob_tail_c2 * length
+                     + prop.prob_tail_c3 * length * log(length) + prop.prob_tail_c4 * length * length;
 
-    double mom    = p*1.0e3; //[GeV/c] -> [MeV/c]
-    double enr    = pow(mom*mom + pmap*pmap,0.5); //[MeV]
-    double gammar = enr/pmap;
-    double betar  = mom/enr;
-    double bgr    = betar*gammar;
-    double kine   = 2*pmae*bgr*bgr;
-
-    // Mean excitation energy
-    double exEn = exenergy*1.0e3; // [MeV]
-
-    // tmax is max energy loss from kinematics
-    double tmax = kine/(1 + (2*gammar)*(pmae/pmap) + pow((pmae/pmap),2.)); // [MeV]
-
-    // Plasma energy - see PDG 2010 table 27.1
-    double plen = pow(((rho*zatom)/anuc),0.5)*28.816e-6; // [MeV]
-
-    // Calculate threshold energy
-    // Above this threshold, the cross section for high energy loss is calculated and then
-    // a random number is generated to determine if tail energy loss should be applied, or only mean from Bethe-Bloch
-    // below threshold, only the standard Bethe-Bloch is used (all particles get average energy loss)
-
-    // thl is 2*width of Landau distribution (as in fig 27.7 in PDG 2010). See Alfredo's presentation for derivation
-    double thl = ((((4*(k*zatom))*rlen)*1.0e2)*rho)/(anuc*pow(betar,2)); // [MeV]
-
-    // Bethe-Bloch mean energy loss
-    double enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5);
-    enlo = ((enlo*rho)*1.0e-1)*rlen; // [GeV]
-
-    // Threshold Tt is Bethe-Bloch + 2*width of Landau distribution
-    double Tt = enlo*1.0e3 + thl; // [MeV]
-
-    // Cross section - see Alfredo's presentation for derivation
-    double cs_tail = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*((1/Tt)-(1/tmax)) - (log(tmax/Tt)*pow(betar,2))/(2*tmax) + (tmax-Tt)/((4*pow(gammar,2))*pow(938.271998,2)));
-
-    // Probability of being in tail: cross section * density * path length
-    double prob_tail = ((cs_tail*rho)*rlen)*1.0e2;
-
-    // Determine based on random number if tail energy loss occurs.
     if (RandomUniform_generate(part) < prob_tail) {
-        enlo = ((k*zatom)/(anuc*pow(betar,2))) * (0.5*log((kine*tmax)/(exEn*exEn)) - pow(betar,2) - log(plen/exEn) - log(bgr) + 0.5 + pow(tmax,2)/((8*pow(gammar,2))*pow(938.271998,2)));
-        enlo = (enlo*rho)*1.0e-1; // [GeV/m]
+        return prop.energy_loss_tail;
     } else {
-        // If tail energy loss does not occur, just use the standard Bethe-Bloch
-        enlo = enlo/rlen;  // [GeV/m]
-    }  
-    return enlo;
+        return prop.energy_loss;
+    }
 }
 
 
@@ -329,6 +283,8 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
     // Do a step for a point-like interaction.
     // Get monte-carlo interaction length.
     while (1) {
+
+        struct IonisationProperties properties = calculate_ionisation_properties(p, (GeneralMaterialData) material);
         double zlm1 = scat.xintl*RandomExponential_generate(part);
                         
         // If the monte-carlo interaction length is longer than the
@@ -345,9 +301,9 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
             zp = res[4];
             free(res);
 
-            s = (zlm-rlen)+s;
-            m_dpodx = calcionloss(part, p, rlen, material);  // DM routine to include tail
-            p = p-m_dpodx*s;
+            s = zlm - rlen + s;
+            m_dpodx = calcionloss(part, rlen, properties);  // DM routine to include tail // TODO: should not be rlen but s after updating
+            p = p-m_dpodx*s; // This is correct: ionisation loss is only calculated and applied at end of while (break)
             break;
         }
         // Otherwise do multi-coulomb scattering.
@@ -366,9 +322,9 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
 
         if(x <= 0) {
-            s = (zlm-rlen)+s;
-            m_dpodx = calcionloss(part, p, rlen, material);
-            p = p-m_dpodx*s;
+            s = zlm - rlen + s;
+            m_dpodx = calcionloss(part, rlen, properties);  // TODO: should not be rlen but s after updating
+            p = p-m_dpodx*s;  // correct
             break;
         }
 
@@ -381,7 +337,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         nabs = inter;
         if (inter == 1) {
             s = (zlm-rlen)+zlm1;
-            m_dpodx = calcionloss(part, p, rlen, material);
+            m_dpodx = calcionloss(part, rlen, properties);
             p = p-m_dpodx*s;
             break;
         }

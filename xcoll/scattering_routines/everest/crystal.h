@@ -213,20 +213,6 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double 
     return result; // Turn on/off nuclear interactions
 }
 
-
-/*gpufun*/
-double calcionloss_cry(LocalParticle* part, double length, struct CrystalProperties prop) {
-
-    double prob_tail = prop.prob_tail_c1 + prop.prob_tail_c2 * length
-                     + prop.prob_tail_c3 * length * log(length) + prop.prob_tail_c4 * length * length;
-
-    if (RandomUniform_generate(part) < prob_tail) {
-        return prop.energy_loss_tail;
-    } else {
-        return prop.energy_loss;
-    }
-}
-
 /*gpufun*/
 double Channel_single_particle_4d(LocalParticle* part, double arc_length, double bend_ang, double miscut, double sigma_ran) {
     // Channeling: happens over an arc length L_chan (potentially less if dechanneling)
@@ -258,12 +244,12 @@ double Channel_single_particle_4d(LocalParticle* part, double arc_length, double
 }
 
 /*gpufun*/
-double* Drift_amorphous_4d(RandomRutherfordData rng, LocalParticle* part, double length, double pc, CrystalMaterialData material, double iProc, struct CrystalProperties properties){
+double* Drift_amorphous_4d(RandomRutherfordData rng, LocalParticle* part, double length, double pc, CrystalMaterialData material, double iProc, struct IonisationProperties properties){
 
     double* result = (double*)malloc(2 * sizeof(double));
 
     Drift_single_particle_4d(part, 0.5*length);
-    double energy_loss = calcionloss_cry(part, length, properties);
+    double energy_loss = calcionloss(part, length, properties);
     double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
 
     pc = result_am[0];
@@ -304,9 +290,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
     int zn  = 1;
 
-    struct CrystalProperties properties = calculate_crystal_properties(pc, material);
-
-    double const_dech = properties.const_dech;
+    struct IonisationProperties properties = calculate_ionisation_properties(pc, (GeneralMaterialData) material);
+    double const_dech = calculate_dechanneling_length(pc, material);
 
     // MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
     double s_K = length;
@@ -418,7 +403,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 //         y     = y0 + yp*s;
 //         iProc = proc_AM;
 
-//         energy_loss = calcionloss_cry(part, length, properties);
+//         energy_loss = calcionloss(part, length, properties);
 
 //         double* result_am = moveam(rng, part, am_len, energy_loss, pc, material);
 //         pc = result_am[0];
@@ -442,7 +427,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
         return result;
 //         iProc = proc_AM;
         
-//         energy_loss = calcionloss_cry(part, length, properties);
+//         energy_loss = calcionloss(part, length, properties);
 
 //         double* result_am = moveam(rng, part, length, energy_loss, pc, material);
 //         pc = result_am[0];
@@ -516,7 +501,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             // We are dechanneling: channeling until Ldech, then amorphous (CH -> MCS -> ..)
                 iProc = proc_DC;
                 double channeled_length = Channel_single_particle_4d(part, Ldech, Ldech/r, cry_miscut, xpcrit);
-                energy_loss = calcionloss_cry(part, channeled_length, properties);
+                energy_loss = calcionloss(part, channeled_length, properties);
                 // TODO: why only 0.5 of lost energy?
                 pc = pc - 0.5*energy_loss*channeled_length; //Energy loss to ionization while in CH [GeV]
 
@@ -535,8 +520,6 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             } else {
             // We are channeling (never dechannel spontaneously)   (CH  or  CH  -> PP/..)
                 iProc = proc_CH;
-                double xpin = xp;
-                double ypin = yp;
 
                 //check if a nuclear interaction happen while in CH
                 double* result_ch = movech(rng, part, L_chan, pc, bend_r, Rcrit, material, iProc);
@@ -548,11 +531,10 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     //if an nuclear interaction happened, move until the middle with initial xp,yp:
                     //propagate until the "crystal exit" with the new xp,yp accordingly with the rest
                     //of the code in "thin lens approx"
-                    LocalParticle_add_to_x(part, (0.5*L_chan)*xpin);
-                    LocalParticle_add_to_y(part, (0.5*L_chan)*ypin);
-                    Drift_single_particle_4d(part, 0.5*L_chan);
+                    double channeled_length = Channel_single_particle_4d(part, 0.5*L_chan, 0.5*tP, cry_miscut, xpcrit);
+                    Drift_single_particle_4d(part, length-channeled_length);
 
-                    energy_loss = calcionloss_cry(part, length, properties);
+                    energy_loss = calcionloss(part, length, properties);
                     pc = pc - energy_loss*length; //energy loss to ionization [GeV]
 
                     CollimatorImpactsData_log(record, record_index, part, part, 0, 0.5*L_chan, XC_CRYSTAL_CHANNELING);
@@ -562,7 +544,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 } else {
                     // Channel
                     double channeled_length = Channel_single_particle_4d(part, L_chan, tP, cry_miscut, xpcrit);
-                    energy_loss = calcionloss_cry(part, channeled_length, properties);
+                    energy_loss = calcionloss(part, channeled_length, properties);
                     pc = pc - 0.5*energy_loss*channeled_length; //energy loss to ionization [GeV]  // TODO: why 0.5 ?
                     // TODO: the px at exit of channeling should be calculated from xp with updated energy
 
@@ -579,7 +561,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             LocalParticle_add_to_px(part, 0.45*(xp_rel/xpcrit + 1)*Ang_avr/rpp);
             Drift_single_particle_4d(part, 0.5*length);
 
-            energy_loss = calcionloss_cry(part, length, properties);
+            energy_loss = calcionloss(part, length, properties);
 
             double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
 
@@ -613,7 +595,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 LocalParticle_add_to_px(part, Dxp/rpp + Ang_rms*RandomNormal_generate(part)/rpp);
                 Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
-                energy_loss = calcionloss_cry(part, length-Srefl, properties);
+                energy_loss = calcionloss(part, length-Srefl, properties);
 
                 double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
 
@@ -640,14 +622,14 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     double Red_S = (length - Srefl) - Sdech;
                     Drift_single_particle_4d(part, 0.5*Red_S);
 
-                    energy_loss = calcionloss_cry(part, Srefl, properties);
+                    energy_loss = calcionloss(part, Srefl, properties);
 
                     pc = pc - energy_loss*Srefl; //"added" energy loss before capture
 
-                    energy_loss = calcionloss_cry(part, Sdech, properties);
+                    energy_loss = calcionloss(part, Sdech, properties);
                     pc = pc - (0.5*energy_loss)*Sdech; //"added" energy loss while captured
 
-                    energy_loss = calcionloss_cry(part, Red_S, properties);
+                    energy_loss = calcionloss(part, Red_S, properties);
 
                     double* result_am = moveam(rng, part, Red_S, energy_loss, pc, material, iProc);
 
@@ -663,7 +645,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     double tchan   = Rlength/bend_r;
                     double Red_S   = Rlength*cos(xp + 0.5*tchan);
 
-                    energy_loss = calcionloss_cry(part, Lrefl, properties);
+                    energy_loss = calcionloss(part, Lrefl, properties);
                     pc   = pc - energy_loss*Lrefl; //"added" energy loss before capture
                     double xpin = xp;
                     double ypin = yp;
@@ -681,7 +663,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                         LocalParticle_add_to_y(part, (0.5*Rlength)*ypin);
                         Drift_single_particle_4d(part, 0.5*Rlength);
 
-                        energy_loss = calcionloss_cry(part, Rlength, properties);
+                        energy_loss = calcionloss(part, Rlength, properties);
                         pc = pc - energy_loss*Rlength;
 
                     } else {
@@ -690,7 +672,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                         LocalParticle_add_to_y(part, Red_S*yp);
                         LocalParticle_set_px(part, tdefl/rpp + (0.5*RandomNormal_generate(part))*xpcrit/rpp); //[mrad]
 
-                        energy_loss = calcionloss_cry(part, Rlength, properties);
+                        energy_loss = calcionloss(part, Rlength, properties);
                         pc = pc - (0.5*energy_loss)*Rlength;  //"added" energy loss once captured
 
                     }
@@ -704,7 +686,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 iProc = proc_AM;
                 Drift_single_particle_4d(part, 0.5*length);
                 if(zn > 0) {
-                    energy_loss = calcionloss_cry(part, length, properties);
+                    energy_loss = calcionloss(part, length, properties);
 
                     double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
                     pc = result_am[0];
@@ -724,7 +706,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_px(part, Dxp/rpp);
                     Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
-                    energy_loss = calcionloss_cry(part, length-Srefl, properties);
+                    energy_loss = calcionloss(part, length-Srefl, properties);
 
                     double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
                     pc = result_am[0];
@@ -740,7 +722,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     LocalParticle_add_to_px(part, Dxp/rpp);
                     Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
-                    energy_loss = calcionloss_cry(part, length-Srefl, properties);
+                    energy_loss = calcionloss(part, length-Srefl, properties);
                     double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
