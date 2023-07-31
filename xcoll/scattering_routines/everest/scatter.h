@@ -59,7 +59,6 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         // Include collimator tilt
         double rot_shift = YRotation_single_particle_rotate_only(part, 0., tiltangle);
         Drift_single_particle_4d(part, -rot_shift);
-//         LocalParticle_add_to_px(part, -tiltangle/rpp_in);
 
         // Check if/where particle hits collimator
         double zlm; 
@@ -118,6 +117,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
             LocalParticle_scale_x(part, mirror);
             LocalParticle_scale_px(part, mirror);
         }
+
     } else {
         Drift_single_particle_4d(part, length);
     }

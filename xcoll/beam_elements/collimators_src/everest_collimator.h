@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdio.h>
 
+
 /*gpufun*/
 void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* part0){
     MaterialData material = EverestCollimatorData_getp__material(el);
@@ -39,10 +40,10 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
-    double const c_aperture = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
-    double const c_offset   = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
-    double const c_tilt0    = asin(EverestCollimatorData_get_sin_yL(el));
-    double const c_tilt1    = asin(EverestCollimatorData_get_sin_yR(el));
+    double const aperture   = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
+    double const offset     = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
+    double const tilt_L     = asin(EverestCollimatorData_get_sin_yL(el));
+    double const tilt_R     = asin(EverestCollimatorData_get_sin_yR(el));
     int    const side       = EverestCollimatorData_get__side(el);
 
     // Impact table
@@ -75,7 +76,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
-                scatter(part, length, material, rng, scat, c_aperture, c_offset, c_tilt0, c_tilt1, side,
+                scatter(part, length, material, rng, scat, aperture, offset, tilt_L, tilt_R, side,
                         record, record_index);
 
                 // Return from collimator frame

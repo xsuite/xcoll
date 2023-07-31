@@ -14,8 +14,8 @@ void CollimatorImpacts_track_local_particle(CollimatorImpactsData el, LocalParti
 
 
 /*gpufun*/
-void CollimatorImpactsData_set_interaction(CollimatorImpactsData record, RecordIndex record_index, LocalParticle* part,
-                                           double parent_ds, double child_ds, int64_t interaction){
+void CollimatorImpactsData_log(CollimatorImpactsData record, RecordIndex record_index, LocalParticle* parent,
+                               LocalParticle* child, double parent_ds, double child_ds, int64_t interaction){
     // Record impact data
     if (record){
         // Get a slot in the record (this is thread safe)
@@ -23,12 +23,13 @@ void CollimatorImpactsData_set_interaction(CollimatorImpactsData record, RecordI
         // The returned slot id is negative if record is NULL or if record is full
 
         if (i_slot>=0){
-            CollimatorImpactsData_set_at_element(record, i_slot, LocalParticle_get_at_element(part));
-            CollimatorImpactsData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(part));
-            CollimatorImpactsData_set_s(record, i_slot, LocalParticle_get_s(part));
+            CollimatorImpactsData_set_at_element(record, i_slot, LocalParticle_get_at_element(parent));
+            CollimatorImpactsData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(parent));
+            CollimatorImpactsData_set_s(record, i_slot, LocalParticle_get_s(parent));
             CollimatorImpactsData_set__inter(record, i_slot, interaction);
 
-            CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(part));
+            // All fields have to be written, or the arrays will not have the same length
+            CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(parent));
             CollimatorImpactsData_set_parent_ds(record, i_slot, parent_ds);
             CollimatorImpactsData_set_parent_x(record, i_slot, -1);
             CollimatorImpactsData_set_parent_px(record, i_slot, -1);
@@ -44,9 +45,7 @@ void CollimatorImpactsData_set_interaction(CollimatorImpactsData record, RecordI
             CollimatorImpactsData_set_parent_a(record, i_slot, -1);
             CollimatorImpactsData_set_parent_pdgid(record, i_slot, -1);
 
-            // We need to fill in child data, or the arrays will not have the same length
-            // (when secondaries are be made elsewhere in other collimators)
-            CollimatorImpactsData_set_child_id(record, i_slot, LocalParticle_get_particle_id(part));
+            CollimatorImpactsData_set_child_id(record, i_slot, LocalParticle_get_particle_id(child));
             CollimatorImpactsData_set_child_ds(record, i_slot, child_ds);
             CollimatorImpactsData_set_child_x(record, i_slot, -1);
             CollimatorImpactsData_set_child_px(record, i_slot, -1);

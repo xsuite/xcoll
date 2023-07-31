@@ -62,12 +62,12 @@ struct ScatteringParameters calculate_scattering(double p, GeneralMaterialData m
     csect[0] = csref[0] + freep * (pptot - XC_PP_CS_REF);
     //Also correct inel-CS
     if(csref[0] == 0) {   // TODO: is this needed?
-        csect[1] = 0;
+        csect[1] = 0;   // TODO: Is this correct? It seems as if it should be huge instead
+        scat.bn = 1.e10;
     } else {
-        csect[1] = csref[1]*csect[0]/csref[0];
+        csect[1] = csref[1] * csect[0] / csref[0];
+        scat.bn = bnref * csect[0] / csref[0];
     }
-
-    scat.bn = bnref * csect[0] / csref[0];
 
     // Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
     csect[2] = csect[0] - csect[1] - csect[3] - csect[4];
@@ -84,7 +84,7 @@ struct ScatteringParameters calculate_scattering(double p, GeneralMaterialData m
     scat.cprob[0] = 0;
     if(csect[0] == 0) {   // TODO: is this needed?
         for (i=1; i<5; ++i){
-            scat.cprob[i] = scat.cprob[i-1];
+            scat.cprob[i] = scat.cprob[i-1];  // TODO: seems wrong
         }
     } else {
         for (i=1; i<5; ++i){

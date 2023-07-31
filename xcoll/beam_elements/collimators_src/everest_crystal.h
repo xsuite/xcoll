@@ -9,7 +9,6 @@
 #include <stdio.h>
 
 
-
 /*gpufun*/
 void EverestCrystal_set_material(EverestCrystalData el, LocalParticle* part0){
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
@@ -41,18 +40,21 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
-    double const c_aperture = EverestCrystalData_get_jaw_L(el) - EverestCrystalData_get_jaw_R(el);
-    double const c_offset   = ( EverestCrystalData_get_jaw_L(el) + EverestCrystalData_get_jaw_R(el) ) /2;
-    double const c_tilt0    = asin(EverestCrystalData_get_sin_yL(el));
-    double const c_tilt1    = asin(EverestCrystalData_get_sin_yR(el));
-    if (fabs(c_tilt1) > 1.e-10){
+    double const aperture   = EverestCrystalData_get_jaw_L(el) - EverestCrystalData_get_jaw_R(el);
+    double const offset     = ( EverestCrystalData_get_jaw_L(el) + EverestCrystalData_get_jaw_R(el) ) /2;
+    double const tilt_L     = asin(EverestCrystalData_get_sin_yL(el));
+    double const tilt_R     = asin(EverestCrystalData_get_sin_yR(el));
+    if (fabs(tilt_R) > 1.e-10){
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
     };
-    int    const side       = EverestCrystalData_get__side(el);
+    int    const side       = EverestCrystalData_get__side(el);  // TODO: so far only left-sided crystals
+    if (side != 1){
+        kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
+    };
     double const bend_r     = EverestCrystalData_get__bending_radius(el);
-    // TODO: cry_tilt should be given by jaw positions...?
-    double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;   // TODO: only left-sided crystals
     double const bend_ang   = EverestCrystalData_get__bending_angle(el);
+    // TODO: cry_tilt should be given by jaw positions...?
+    double const tilt   = EverestCrystalData_get_align_angle(el) + tilt_L;   // TODO: only left-sided crystals
     // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
     // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5
     // Difference is so small that this was never caught.
@@ -60,11 +62,11 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // 1) it was implemented wrong (passed unnoticed due to small effect)
     // 2) we should not use the adapted scatter length, as we rotate the S-X frame, so
     //    we anyway have to drift the full length!    
-    double const cry_alayer = EverestCrystalData_get_thick(el);
-    double const xdim       = EverestCrystalData_get_xdim(el);
-    double const ydim       = EverestCrystalData_get_ydim(el);
-    double const cry_orient = EverestCrystalData_get__orient(el);
-    double const cry_miscut = EverestCrystalData_get_miscut(el);
+    double const amorphous_layer = EverestCrystalData_get_thick(el);
+    double const xdim            = EverestCrystalData_get_xdim(el);
+    double const ydim            = EverestCrystalData_get_ydim(el);
+    double const orient          = EverestCrystalData_get__orient(el);
+    double const miscut          = EverestCrystalData_get_miscut(el);
 
     // Impact table
     CollimatorImpactsData record = EverestCrystalData_getp_internal_record(el, part0);
@@ -94,9 +96,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
-                scatter_cry(part, active_length, material, rng, c_aperture, c_offset,
-                            side, cry_tilt, bend_r, bend_ang, cry_alayer, xdim, ydim, cry_orient, 
-                            cry_miscut, record, record_index);
+                scatter_cry(part, active_length, material, rng, aperture, offset,
+                            side, tilt, bend_r, bend_ang, amorphous_layer, xdim, ydim, orient, 
+                            miscut, record, record_index);
 
                 // Return from collimator frame
                 SRotation_single_particle(part, -sin_zL, cos_zL);
