@@ -162,6 +162,20 @@ struct IonisationProperties calculate_ionisation_properties(double pc, GeneralMa
 }
 
 
+/*gpufun*/
+double calcionloss(LocalParticle* part, double length, struct IonisationProperties prop) {
+
+    double prob_tail = prop.prob_tail_c1 + prop.prob_tail_c2 * length
+                     + prop.prob_tail_c3 * length * log(length) + prop.prob_tail_c4 * length * length;
+
+    if (RandomUniform_generate(part) < prob_tail) {
+        return prop.energy_loss_tail;
+    } else {
+        return prop.energy_loss;
+    }
+}
+
+
 double calculate_dechanneling_length(double pc, CrystalMaterialData material) {
     // Material properties
     double const exenergy = CrystalMaterialData_get_excitation_energy(material)*1.0e3; // MeV

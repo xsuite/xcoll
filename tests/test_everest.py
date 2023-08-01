@@ -159,6 +159,8 @@ def test_crystals(test_context):
 def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, atolz=1e-11, atold=2e-8, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
+#     _context._cffi_verbose = True
+#     _context._compile_kernels_info = False
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid), _context=_context)
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
@@ -167,6 +169,10 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, a
         coll = xc.EverestCollimator.from_dict(colldict, _context=_context)
     elif colldict['__class__'] == 'EverestCrystal':
         coll = xc.EverestCrystal.from_dict(colldict, _context=_context)
+#   TODO: how to get compiled source, not save_source_as because 1) it doesnt work and 2) the line numbers are very wrong
+#   I want the option for the test generated code (like 197660d59cf04c979191e2a334c2c7a0.c) to be NOT deleted afterwards
+#   Also, I want to pass the following compiler flags: -Wall -Wextra for more info.
+#     coll.compile_kernels(particles_class=xp.Particles, save_source_as='test.c')
     coll.track(part)
     part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

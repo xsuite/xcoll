@@ -234,20 +234,6 @@ double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, dou
 
 
 /*gpufun*/
-double calcionloss(LocalParticle* part, double length, struct IonisationProperties prop) {
-
-    double prob_tail = prop.prob_tail_c1 + prop.prob_tail_c2 * length
-                     + prop.prob_tail_c3 * length * log(length) + prop.prob_tail_c4 * length * length;
-
-    if (RandomUniform_generate(part) < prob_tail) {
-        return prop.energy_loss_tail;
-    } else {
-        return prop.energy_loss;
-    }
-}
-
-
-/*gpufun*/
 int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
     double aran = RandomUniform_generate(part);

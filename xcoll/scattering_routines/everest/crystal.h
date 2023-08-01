@@ -10,259 +10,6 @@
 #include <stdlib.h>
 
 
-// Processes
-int const proc_out         =  -1;     // Crystal not hit
-int const proc_AM          =   1;     // Amorphous
-int const proc_VR          =   2;     // Volume reflection
-int const proc_CH          =   3;     // Channeling
-int const proc_VC          =   4;     // Volume capture
-int const proc_absorbed    =   5;     // Absorption
-int const proc_DC          =   6;     // Dechanneling
-int const proc_pne         =   7;     // Proton-neutron elastic interaction
-int const proc_ppe         =   8;     // Proton-proton elastic interaction
-int const proc_diff        =   9;     // Single diffractive
-int const proc_ruth        =  10;     // Rutherford scattering
-int const proc_ch_absorbed =  15;     // Channeling followed by absorption
-int const proc_ch_pne      =  17;     // Channeling followed by proton-neutron elastic interaction
-int const proc_ch_ppe      =  18;     // Channeling followed by proton-proton elastic interaction
-int const proc_ch_diff     =  19;     // Channeling followed by single diffractive
-int const proc_ch_ruth     =  20;     // Channeling followed by Rutherford scattering
-int const proc_TRVR        = 100;     // Volume reflection in VR-AM transition region
-int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
-
-/*gpufun*/
-double* nuclear_interation(RandomRutherfordData rng, LocalParticle* part, double pc,
-                           struct ScatteringParameters scat, double iProc) {
-
-    double* result = (double*)malloc(2 * sizeof(double));
-
-    //Choose nuclear interaction
-    double aran = RandomUniform_generate(part);
-    int ichoix = 1;
-
-    while (aran > scat.cprob[ichoix]) {
-        ichoix += 1;
-    }
-
-    //Do the interaction
-    double teta = 0 ; //default value to cover ichoix=1
-
-    if (ichoix==1) {
-        iProc = proc_ch_absorbed; //deep inelastic, impinging p disappeared
-    } else if (ichoix==2) { //p-n elastic
-        iProc = proc_ch_pne;
-        teta  = sqrt(RandomExponential_generate(part)/scat.bn)/pc;
-    } else if (ichoix==3) { //p-p elastic
-        iProc = proc_ch_ppe;
-        teta  = sqrt(RandomExponential_generate(part)/scat.bpp)/pc;
-    } else if (ichoix==4) { //Single diffractive
-        iProc = proc_ch_diff;
-        double xm2 = exp(RandomUniform_generate(part)*scat.xln15s);
-
-        double bsd = 0.0;
-        if (xm2 < 2.) {
-            bsd = 2*scat.bpp;
-        } else if (xm2 >= 2. && xm2 <= 5.) {
-            bsd = ((106.0 - 17.0*xm2)*scat.bpp)/36.0;
-        } else if (xm2 > 5.) {
-            bsd = (7*scat.bpp)/12.0;
-        }
-        teta = sqrt(RandomExponential_generate(part)/bsd)/pc;
-        pc = pc*(1 - xm2/scat.ecmsq);
-    } else { //(ichoix==5)
-        iProc = proc_ch_ruth;
-        teta  = sqrt(RandomRutherford_generate(rng, part))/pc;
-    }
-
-    double tx = teta*RandomNormal_generate(part);
-    double tz = teta*RandomNormal_generate(part);
-
-    //Change p angle
-    double rpp = LocalParticle_get_rpp(part);
-    LocalParticle_add_to_px(part, tx/rpp);
-    LocalParticle_add_to_py(part, tz/rpp);
-
-    result[0] = pc;
-    result[1] = iProc;
-    return result;
-}
-
-
-/*gpufun*/
-double* movech(RandomRutherfordData rng, LocalParticle* part, double dz, double pc, double r, double rc, 
-               CrystalMaterialData material, double iProc) {
-
-    double* result = (double*)malloc(3 * sizeof(double));
-
-    // Material properties
-    double const anuc   = CrystalMaterialData_get_A(material);
-    double const rho    = CrystalMaterialData_get_density(material);
-    double const eum    = CrystalMaterialData_get_crystal_potential(material);
-    double       collnt = CrystalMaterialData_get_nuclear_collision_length(material);
-
-    //Rescale the total and inelastic cross-section accordigly to the average density seen
-    double rpp = LocalParticle_get_rpp(part);
-    double x_i = LocalParticle_get_x(part);
-    double xp  = LocalParticle_get_px(part)*rpp;
-    int np     = x_i/XC_PLANE_DISTANCE;          //Calculate in which crystalline plane the particle enters
-    x_i       -= (np + 0.5)*XC_PLANE_DISTANCE;   //Rescale the incoming x to the middle of the crystalline plane
-
-    double pv   = pow(pc, 2.)/sqrt(pow(pc, 2.) + pow(XC_PROTON_MASS*1.0e-3, 2.))*1.0e9; //Calculate pv=P/E   TODO: this is beta?
-    double Ueff = eum*4.*pow(x_i/XC_PLANE_DISTANCE, 2.) + pv*x_i/r; //Calculate effective potential
-    double Et   = pv*pow(xp, 2.)/2. + Ueff;       //Calculate transverse energy
-    double Ec   = eum*pow(1. - rc/r, 2.);         //Calculate critical energy in bent crystals
-
-    //To avoid negative Et
-    double xminU = -pow(XC_PLANE_DISTANCE, 2.)*pc*1.0e9/(8.*eum*r);
-    double Umin  = fabs(eum*4.*pow(xminU/XC_PLANE_DISTANCE, 2.) + pv*xminU/r);
-    Et    = Et + Umin;
-    Ec    = Ec + Umin;
-
-    //Calculate min e max of the trajectory between crystalline planes
-    double x_min = (-(XC_PLANE_DISTANCE/2.)*rc)/r - (XC_PLANE_DISTANCE/2.)*sqrt(Et/Ec);
-    double x_max = (-(XC_PLANE_DISTANCE/2.)*rc)/r + (XC_PLANE_DISTANCE/2.)*sqrt(Et/Ec);
-
-    //Change ref. frame and go back with 0 on the crystalline plane on the left
-    x_min = x_min - XC_PLANE_DISTANCE/2.;
-    x_max = x_max - XC_PLANE_DISTANCE/2.;
-
-    //Calculate the "normal density" in m^-3
-    double N_am  = rho*XC_AVOGADRO*1.0e6/anuc;
-
-    //Calculate atomic density at min and max of the trajectory oscillation
-    // erf returns the error function of complex argument
-    double rho_max = erf(x_max/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_max       -= erf((XC_PLANE_DISTANCE-x_max)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_max       *= N_am*XC_PLANE_DISTANCE/2.;
-    double rho_min = erf(x_min/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_min       -= erf((XC_PLANE_DISTANCE-x_min)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_min       *= N_am*XC_PLANE_DISTANCE/2.;
-
-    //"zero-approximation" of average nuclear density seen along the trajectory
-    double avrrho  = (rho_max - rho_min)/(x_max - x_min);
-    avrrho  = 2.*avrrho/N_am;
-
-    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, avrrho);
-
-    //Multiple Coulomb Scattering
-    //Can nuclear interaction happen?
-    //Rescaled nuclear collision length
-    if (avrrho == 0) {
-        collnt = 1.e10;
-    } else {
-        collnt = collnt/avrrho;
-    }
-
-    double zlm = collnt*RandomExponential_generate(part);
-
-    if (zlm < dz) {
-        double* result_ni = nuclear_interation(rng, part, pc, scat, iProc);
-        pc    = result_ni[0];
-        iProc = result_ni[1];
-        free(result_ni);
-    } else {
-        zlm = -1; // TODO: this is a hack, to say that no interaction happened
-    }
-
-    result[0] = pc;
-    result[1] = iProc;
-    result[2] = zlm;
-    return result;
-}
-
-
-/*gpufun*/
-double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double dei, double pc,
-              CrystalMaterialData material, double iProc) {
-
-//     double iProc = proc_out;
-    double* result = (double*)malloc(3 * sizeof(double));
-
-    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, 1.);
-
-    // Material properties
-    double const dlr      = CrystalMaterialData_get_crystal_radiation_length(material);
-    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
-
-    // Multiple Coulomb Scattering
-    pc  = pc - dei*dz; // Energy lost because of ionization process[GeV]
-
-    double dya   = (13.6/pc)*sqrt(dz/dlr); // RMS of coloumb scattering MCS (mrad)
-    double kxmcs = dya*RandomNormal_generate(part)*1.0e-3;
-    double kymcs = dya*RandomNormal_generate(part)*1.0e-3;
-
-    double rpp = LocalParticle_get_rpp(part);
-    LocalParticle_add_to_px(part, kxmcs/rpp);
-    LocalParticle_add_to_py(part, kymcs/rpp);
-
-    // Can nuclear interaction happen?
-    double zlm = collnt*RandomExponential_generate(part);
-
-    if (zlm < dz) {
-        double* result_ni = nuclear_interation(rng, part, pc, scat, iProc);
-        pc    = result_ni[0];
-        iProc = result_ni[1];
-        free(result_ni);
-    } else {
-        zlm = -1; // TODO: this is a hack, to say that no interaction happened
-    }
-
-    result[0] = pc;
-    result[1] = iProc;
-    result[2] = zlm;
-    return result; // Turn on/off nuclear interactions
-}
-
-/*gpufun*/
-double Channel_single_particle_4d(LocalParticle* part, double arc_length, double bend_ang, double miscut, double sigma_ran) {
-    // Channeling: happens over an arc length L_chan (potentially less if dechanneling)
-    //             This equates to an opening angle tP wrt. to the point P (center of miscut)
-    //             The angle xp at the start of channeling (I) is tP/2 + miscut
-    //             The angle xp at the end of channeling (F) is tP + miscut
-    //             In practice: we drift from start to end, but overwrite the angle afterwards
-
-    // TODO: random angle distribution (variable sigma_ran): only at exit?
-
-    // The distance from I to F is the chord length of the angle tP: d = 2 r sin(tP/2)
-    // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
-    // xp at the start of channeling: s = 2 r sin(tP/2)cos(tP/2 + miscut)
-    //                                  = 2 r sin(tP/2)cos(tP/2)cos(miscut) - 2 r sin(tP/2)sin(tP/2)sin(miscut)
-    //                                  = r sin(tP)cos(miscut) - 2 r sin(tP/2)^2 sin(miscut)
-    //                                  = L_chan/tP ( sin(tP)cos(miscut) - 2 sin(tP/2)^2 sin(miscut) )
-
-    double drift_length = arc_length/bend_ang * (
-                            sin(bend_ang)*cos(miscut)
-                            - 2.*sin(bend_ang/2.)*sin(bend_ang/2.)*sin(miscut)
-                          );
-
-    double rpp = LocalParticle_get_rpp(part);
-    LocalParticle_set_px(part, (bend_ang/2. + miscut)/rpp);          // Angle at start of channeling
-    Drift_single_particle_4d(part, drift_length);
-    double ran_angle = 0.5*RandomNormal_generate(part)*sigma_ran;    // Extra random angle spread at exit
-    LocalParticle_set_px(part, (bend_ang + miscut + ran_angle)/rpp); // Angle at end of channeling
-    return drift_length;
-}
-
-/*gpufun*/
-double* Drift_amorphous_4d(RandomRutherfordData rng, LocalParticle* part, double length, double pc, CrystalMaterialData material, double iProc, struct IonisationProperties properties){
-
-    double* result = (double*)malloc(2 * sizeof(double));
-
-    Drift_single_particle_4d(part, 0.5*length);
-    double energy_loss = calcionloss(part, length, properties);
-    double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
-
-    pc = result_am[0];
-    iProc = result_am[1];
-    free(result_am);
-
-    Drift_single_particle_4d(part, 0.5*length);
-
-    result[0] = pc;
-    result[1] = iProc;
-    return result;
-}
-
 /*gpufun*/
 double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                  double length, double s_P, double x_P, CrystalMaterialData material, double cry_tilt, double bend_r,
@@ -290,7 +37,9 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
     int zn  = 1;
 
+    // TODO: these should be removed
     struct IonisationProperties properties = calculate_ionisation_properties(pc, (GeneralMaterialData) material);
+    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, 1.);
     double const_dech = calculate_dechanneling_length(pc, material);
 
     // MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
@@ -481,79 +230,74 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
         double alpha  = xp_rel/xpcrit;
         double Chann  = sqrt(0.9*(1 - pow(alpha,2.)))*sqrt(1.-(1./ratio)); //Saturation at 95%
-        double N_atom = 1.0e-1;
 
         //if they can channel: 2 options
         if (RandomUniform_generate(part) <= Chann) {
         //option 1:channeling
 
-            double TLdech1 = (const_dech*pc)*pow((1.-1./ratio),2.); //Updated calculate typical dech. length(m)
-
-            if(RandomUniform_generate(part) <= N_atom) {
-                TLdech1 = ((const_dech/2.0e2)*pc)*pow((1.-1./ratio),2.);  //Updated dechanneling length (m)      
-            }
-            double Dechan = RandomExponential_generate(part); //Probability of dechanneling
-            double Ldech  = TLdech1*Dechan;   //Actual dechan. length
-
+            double* result_chan = Channel(rng, part, pc, L_chan, tP, cry_miscut, length, bend_r, Rcrit, xpcrit, material,
+                                          record, record_index);
+            double remaining_length = result_chan[0];
+            pc               = result_chan[1];
+            // Drift remaining length  - outside of crystal
+            Drift_single_particle_4d(part, remaining_length);
+            
             //careful: the dechanneling length is along the trajectory
             //of the particle -not along the longitudinal coordinate...
-            if (Ldech < L_chan) {
-            // We are dechanneling: channeling until Ldech, then amorphous (CH -> MCS -> ..)
-                iProc = proc_DC;
-                double channeled_length = Channel_single_particle_4d(part, Ldech, Ldech/r, cry_miscut, xpcrit);
-                energy_loss = calcionloss(part, channeled_length, properties);
-                // TODO: why only 0.5 of lost energy?
-                pc = pc - 0.5*energy_loss*channeled_length; //Energy loss to ionization while in CH [GeV]
+//             if (Ldech < L_chan) {
+//             // We are dechanneling: channeling until Ldech, then amorphous (CH -> MCS -> ..)
+//                 iProc = proc_DC;
+//                 double channeled_length = Channel_single_particle_4d(part, Ldech, Ldech/r, cry_miscut, 0.5*xpcrit);
+//                 energy_loss = calcionloss(part, channeled_length, properties);
+//                 pc = pc - 0.5*energy_loss*channeled_length; // Energy loss to ionisation while in CH [GeV]: only 0.5.TODO: why?
 
-                // Remaining part is amorphous
-                double* result_am = Drift_amorphous_4d(rng, part, length-channeled_length, pc, material, iProc, properties);
-                pc = result_am[0];
-                iProc = result_am[1];
-                free(result_am);
+//                 // Remaining part is amorphous
+//                 double* result_am = Drift_amorphous_4d(rng, part, length-channeled_length, pc, material, iProc, properties);
+//                 pc = result_am[0];
+//                 iProc = result_am[1];
+//                 free(result_am);
 
-                CollimatorImpactsData_log(record, record_index, part, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
-                CollimatorImpactsData_log(record, record_index, part, part, channeled_length, channeled_length,
-                                                      XC_CRYSTAL_DECHANNELING);
-                CollimatorImpactsData_log(record, record_index, part, part, channeled_length, length,
-                                                      XC_CRYSTAL_AMORPHOUS);
+//                 CollimatorImpactsData_log(record, record_index, part, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
+//                 CollimatorImpactsData_log(record, record_index, part, part, channeled_length, channeled_length,
+//                                                       XC_CRYSTAL_DECHANNELING);
+//                 CollimatorImpactsData_log(record, record_index, part, part, channeled_length, length,
+//                                                       XC_CRYSTAL_AMORPHOUS);
 
-            } else {
-            // We are channeling (never dechannel spontaneously)   (CH  or  CH  -> PP/..)
-                iProc = proc_CH;
+//             } else {
+//             // We are channeling (never dechannel spontaneously)   (CH  or  CH  -> PP/..)
 
-                //check if a nuclear interaction happen while in CH
-                double* result_ch = movech(rng, part, L_chan, pc, bend_r, Rcrit, material, iProc);
-                pc = result_ch[0];
-                iProc = result_ch[1];
-                free(result_ch);
+//                 //check if a nuclear interaction happen while in CH
+//                 double zlm = 0;//channeling_interaction_length(rng, part, pc, bend_r, Rcrit, material);
+//                 if (zlm < L_chan) {
+//                     // Channel for an arc length of zlm
+//                     double channeled_length = Channel_single_particle_4d(part, zlm, zlm/bend_r, cry_miscut, 0.5*xpcrit);
+//                     energy_loss = 0.5*calcionloss(part, channeled_length, properties);
+//                     pc = pc - energy_loss*channeled_length; //energy loss to ionization [GeV]
 
-                if (iProc != proc_CH) {
-                    //if an nuclear interaction happened, move until the middle with initial xp,yp:
-                    //propagate until the "crystal exit" with the new xp,yp accordingly with the rest
-                    //of the code in "thin lens approx"
-                    double channeled_length = Channel_single_particle_4d(part, 0.5*L_chan, 0.5*tP, cry_miscut, xpcrit);
-                    Drift_single_particle_4d(part, length-channeled_length);
+//                     // Scatter
+//                     double* result_ni = nuclear_interaction(rng, part, pc, scat, iProc);
+//                     pc    = result_ni[0];
+//                     iProc = result_ni[1];
+//                     free(result_ni);
 
-                    energy_loss = calcionloss(part, length, properties);
-                    pc = pc - energy_loss*length; //energy loss to ionization [GeV]
+//                     Drift_single_particle_4d(part, length-channeled_length);
+//                     energy_loss = calcionloss(part, length-channeled_length, properties);
+//                     pc = pc - energy_loss*(length-channeled_length); //energy loss to ionization [GeV]
 
-                    CollimatorImpactsData_log(record, record_index, part, part, 0, 0.5*L_chan, XC_CRYSTAL_CHANNELING);
-                    CollimatorImpactsData_log(record, record_index, part, part, 0.5*L_chan, L_chan,
-                                                          XC_CRYSTAL_AMORPHOUS);
+//                     CollimatorImpactsData_log(record, record_index, part, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
+//                     CollimatorImpactsData_log(record, record_index, part, part, channeled_length, length,
+//                                               XC_CRYSTAL_AMORPHOUS);
+//                 } else {
+                    // Channel full length
+//                     double channeled_length = Channel_single_particle_4d(part, L_chan, tP, cry_miscut, 0.5*xpcrit);
+//                     energy_loss = 0.5*calcionloss(part, channeled_length, properties);
+//                     pc = pc - energy_loss*channeled_length; //energy loss to ionization [GeV]
 
-                } else {
-                    // Channel
-                    double channeled_length = Channel_single_particle_4d(part, L_chan, tP, cry_miscut, xpcrit);
-                    energy_loss = calcionloss(part, channeled_length, properties);
-                    pc = pc - 0.5*energy_loss*channeled_length; //energy loss to ionization [GeV]  // TODO: why 0.5 ?
-                    // TODO: the px at exit of channeling should be calculated from xp with updated energy
-
-                    // Drift remaining length
-                    Drift_single_particle_4d(part, length-channeled_length);
-
-                    CollimatorImpactsData_log(record, record_index, part, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
-                }
-            }
+//                     // Drift remaining length  - outside of crystal
+//                     Drift_single_particle_4d(part, length-channeled_length);
+//                     CollimatorImpactsData_log(record, record_index, part, part, 0, channeled_length, XC_CRYSTAL_CHANNELING);
+//                 }
+//             }
 
         } else { //Option 2: VR
             //good for channeling but don't channel (1-2)
@@ -562,8 +306,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
             Drift_single_particle_4d(part, 0.5*length);
 
             energy_loss = calcionloss(part, length, properties);
-
-            double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
+            pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
+            double* result_am = moveam(rng, part, length, pc, material, iProc);
 
             pc = result_am[0];
             iProc = result_am[1];
@@ -571,11 +315,9 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
             Drift_single_particle_4d(part, 0.5*length);
 
-            CollimatorImpactsData_log(record, record_index, part, part, 0, 0.5*L_chan, XC_CRYSTAL_DRIFT);
-            CollimatorImpactsData_log(record, record_index, part, part, 0.5*L_chan, 0.5*L_chan,
-                                                  XC_CRYSTAL_VOLUME_REFLECTION);
-            CollimatorImpactsData_log(record, record_index, part, part,  0.5*L_chan, L_chan,
-                                                  XC_CRYSTAL_AMORPHOUS);
+            CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_DRIFT); // 0.5*L_chan
+            CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_VOLUME_REFLECTION); // 0
+            CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_AMORPHOUS); // 0.5*L_chan
         }
 
     } else { //case 3-2: no good for channeling. check if the can VR
@@ -584,20 +326,21 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
         if (Lrefl > 0 && Lrefl < L_chan) { //VR point inside
 
-        //2 options: volume capture and volume reflection
+            Drift_single_particle_4d(part, Srefl); // Still need to calculate ionloss, see below
+            CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_AMORPHOUS); // Srefl
 
+            //2 options: volume capture and volume reflection
             if (RandomUniform_generate(part) > Vcapt || zn == 0) { //Option 1: VR
                 iProc = proc_VR;
 
-                Drift_single_particle_4d(part, Srefl);
 
                 double Dxp = Ang_avr;
                 LocalParticle_add_to_px(part, Dxp/rpp + Ang_rms*RandomNormal_generate(part)/rpp);
                 Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
                 energy_loss = calcionloss(part, length-Srefl, properties);
-
-                double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
+                pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
+                double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
 
                 pc = result_am[0];
                 iProc = result_am[1];
@@ -606,7 +349,6 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 Drift_single_particle_4d(part, 0.5*(length - Srefl));
 
             } else { //Option 2: VC
-                Drift_single_particle_4d(part, Srefl);
 
                 double TLdech2 = (const_dech/1.0e1)*pc*pow((1-1/ratio),2.) ;         //Updated typical dechanneling length(m)
                 double Ldech   = TLdech2 * pow((sqrt(1.0e-2 + RandomExponential_generate(part)) - 1.0e-1),2.); //Updated DC length
@@ -630,8 +372,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     pc = pc - (0.5*energy_loss)*Sdech; //"added" energy loss while captured
 
                     energy_loss = calcionloss(part, Red_S, properties);
-
-                    double* result_am = moveam(rng, part, Red_S, energy_loss, pc, material, iProc);
+                    pc  = pc - energy_loss*Red_S; // Energy lost because of ionization process[GeV]
+                    double* result_am = moveam(rng, part, Red_S, pc, material, iProc);
 
                     pc = result_am[0];
                     iProc = result_am[1];
@@ -641,41 +383,80 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                 } else {
                     iProc   = proc_VC;
-                    double Rlength = length - Lrefl;
-                    double tchan   = Rlength/bend_r;
-                    double Red_S   = Rlength*cos(xp + 0.5*tchan);
+                    double Rlength = length - Lrefl;   // TODO: Lrefl is curved, length is not. Rlength is curved.
+                    double tchan   = Rlength/bend_r;   // channeling angle
+//                     double Red_S   = Rlength*cos(xp + 0.5*tchan);
 
-                    energy_loss = calcionloss(part, Lrefl, properties);
+                    // calculate ionisation from precious amorphous movement
+                    energy_loss = calcionloss(part, Lrefl, properties);  // TODO: should be non-curved? Hence not Lrefl
                     pc   = pc - energy_loss*Lrefl; //"added" energy loss before capture
                     double xpin = xp;
                     double ypin = yp;
+                    
+                    CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_VOLUME_CAPTURE); // 0
 
                     //Check if a nuclear interaction happen while in ch
-                    double* result_ch = movech(rng, part, Rlength, pc, bend_r, Rcrit, material, iProc);
-                    pc = result_ch[0];
-                    iProc = result_ch[1];
-                    free(result_ch);
-                                    
-                    if (iProc != proc_VC) {
-                        //if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
-                        //the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
-                        LocalParticle_add_to_x(part, (0.5*Rlength)*xpin);
-                        LocalParticle_add_to_y(part, (0.5*Rlength)*ypin);
-                        Drift_single_particle_4d(part, 0.5*Rlength);
+                    double zlm = 0;//channeling_interaction_length(rng, part, pc, bend_r, Rcrit, material);
+                    if (zlm < Rlength) {
+                        // Channel for an arc length of zlm
+                        double* result_chan = channel_transport(part, pc, zlm, zlm/bend_r, cry_miscut, 0.5*xpcrit, properties,
+                                                                record, record_index);
+                        double remaining_length = result_chan[0];
+                        pc                = result_chan[1];
+                        free(result_chan);
 
-                        energy_loss = calcionloss(part, Rlength, properties);
-                        pc = pc - energy_loss*Rlength;
+                        // Scatter
+                        double* result_ni = nuclear_interaction(rng, part, pc, scat, iProc);
+                        pc    = result_ni[0];
+                        iProc = result_ni[1];
+                        free(result_ni);
 
+                        Drift_single_particle_4d(part, remaining_length);
+                        energy_loss = calcionloss(part, remaining_length, properties);
+                        pc = pc - energy_loss*remaining_length; //energy loss to ionization [GeV]
+
+                        CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_CHANNELING); // channeled_length
+                        CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_AMORPHOUS);  // length-channeled_length
                     } else {
-                        double Dxp = (length-Lrefl)/bend_r;
-                        LocalParticle_add_to_x(part, sin(0.5*Dxp+xp)*Rlength); //Trajectory at channeling exit
-                        LocalParticle_add_to_y(part, Red_S*yp);
-                        LocalParticle_set_px(part, tdefl/rpp + (0.5*RandomNormal_generate(part))*xpcrit/rpp); //[mrad]
+                        // Channel full (remaining) length
+                        double* result_chan = channel_transport(part, pc, Rlength, tchan, cry_miscut, 0.5*xpcrit, properties,
+                                                                record, record_index);
+                        double remaining_length = result_chan[0];
+                        pc                = result_chan[1];
+                        free(result_chan);
 
-                        energy_loss = calcionloss(part, Rlength, properties);
-                        pc = pc - (0.5*energy_loss)*Rlength;  //"added" energy loss once captured
-
+                        // Drift remaining length  - outside of crystal
+                        Drift_single_particle_4d(part, remaining_length);
+                        CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_CHANNELING); // channeled_length
                     }
+                    
+                    
+                    
+//                     double* result_ch = movech(rng, part, Rlength, pc, bend_r, Rcrit, material, iProc);
+//                     pc = result_ch[0];
+//                     iProc = result_ch[1];
+//                     free(result_ch);
+                                    
+//                     if (iProc != proc_VC) {
+//                         //if an nuclear interaction happened, move until the middle with initial xp,yp: propagate until
+//                         //the "crystal exit" with the new xp,yp aciordingly with the rest of the code in "thin lens approx"
+//                         LocalParticle_add_to_x(part, (0.5*Rlength)*xpin);
+//                         LocalParticle_add_to_y(part, (0.5*Rlength)*ypin);
+//                         Drift_single_particle_4d(part, 0.5*Rlength);
+
+//                         energy_loss = calcionloss(part, Rlength, properties);
+//                         pc = pc - energy_loss*Rlength;
+
+//                     } else {
+//                         double Dxp = (length-Lrefl)/bend_r;
+//                         LocalParticle_add_to_x(part, sin(0.5*Dxp+xp)*Rlength); //Trajectory at channeling exit
+//                         LocalParticle_add_to_y(part, Red_S*yp);
+//                         LocalParticle_set_px(part, tdefl/rpp + (0.5*RandomNormal_generate(part))*xpcrit/rpp); //[mrad]
+
+//                         energy_loss = calcionloss(part, Rlength, properties);
+//                         pc = pc - (0.5*energy_loss)*Rlength;  //"added" energy loss once captured
+
+//                     }
                 }
             }
 
@@ -687,8 +468,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 Drift_single_particle_4d(part, 0.5*length);
                 if(zn > 0) {
                     energy_loss = calcionloss(part, length, properties);
-
-                    double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
+                    pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
+                    double* result_am = moveam(rng, part, length, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
@@ -707,8 +488,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
                     energy_loss = calcionloss(part, length-Srefl, properties);
-
-                    double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
+                    pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
+                    double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
@@ -723,7 +504,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                     Drift_single_particle_4d(part, 0.5*(length-Srefl));
 
                     energy_loss = calcionloss(part, length-Srefl, properties);
-                    double* result_am = moveam(rng, part, length-Srefl, energy_loss, pc, material, iProc);
+                    pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
+                    double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
