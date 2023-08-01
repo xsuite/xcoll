@@ -10,42 +10,33 @@
 #include <stdio.h>
 
 
-struct ScatteringParameters {
-    double cprob[6];
-    double xintl;
-    double bn;
-    double ecmsq;
-    double xln15s;
-    double bpp;
-};
-
-void calculate_scattering(struct ScatteringParameters* scat, double p, GeneralMaterialData material, double rescale) {
+void calculate_scattering(EverestData restrict coll, double p, double rescale) {
 
     // Material properties
-    double const anuc  = GeneralMaterialData_get_A(material);
-    double const rho   = GeneralMaterialData_get_density(material);
-    double const bnref = GeneralMaterialData_get_nuclear_elastic_slope(material);
+    double const anuc  = coll->anuc;
+    double const rho   = coll->rho;
+    double const bnref = coll->bnref;
     double csref[6];
-    csref[0]           = GeneralMaterialData_get_cross_section(material, 0);
-    csref[1]           = GeneralMaterialData_get_cross_section(material, 1);
-    csref[5]           = GeneralMaterialData_get_cross_section(material, 5);
+    csref[0] = coll->csref[0];
+    csref[1] = coll->csref[1];
+    csref[5] = coll->csref[5];
 
     double csect[6];
 
-    scat->ecmsq = 2*XC_PROTON_MASS*1.0e-3*p;
-    scat->xln15s = log(0.15*scat->ecmsq);
+    coll->ecmsq = 2*XC_PROTON_MASS*1.0e-3*p;
+    coll->xln15s = log(0.15*coll->ecmsq);
 
     // Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-    double pptot = 0.041084 - 0.0023302*log(scat->ecmsq) + 0.00031514*pow(log(scat->ecmsq), 2.);
+    double pptot = 0.041084 - 0.0023302*log(coll->ecmsq) + 0.00031514*pow(log(coll->ecmsq), 2.);
 
     // Claudia used the fit from TOTEM for ppel (in barn)
-    double ppel = (11.7 - 1.59*log(scat->ecmsq) + 0.134*pow(log(scat->ecmsq), 2.))/1e3;   // TODO /1.e3
+    double ppel = (11.7 - 1.59*log(coll->ecmsq) + 0.134*pow(log(coll->ecmsq), 2.))/1e3;   // TODO /1.e3
 
     // Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
-    double ppsd = (4.3 + 0.3*log(scat->ecmsq))/1e3;
+    double ppsd = (4.3 + 0.3*log(coll->ecmsq))/1e3;
 
     // Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
-    scat->bpp = 7.156 + 1.439*log(sqrt(scat->ecmsq));
+    coll->bpp = 7.156 + 1.439*log(sqrt(coll->ecmsq));
 
     // freep: number of nucleons involved in single scattering
     double freep = XC_FREE_CO * pow(anuc,(1./3.));
@@ -65,10 +56,10 @@ void calculate_scattering(struct ScatteringParameters* scat, double p, GeneralMa
     //Also correct inel-CS
     if(csref[0] == 0) {   // TODO: is this needed?
         csect[1] = 0;   // TODO: Is this correct? It seems as if it should be huge instead
-        scat->bn = 1.e10;
+        coll->bn = 1.e10;
     } else {
         csect[1] = csref[1] * csect[0] / csref[0];
-        scat->bn = bnref * csect[0] / csref[0];
+        coll->bn = bnref * csect[0] / csref[0];
     }
 
     // Nuclear Elastic is TOT-inel-qel ( see definition in RPP)
@@ -79,40 +70,31 @@ void calculate_scattering(struct ScatteringParameters* scat, double p, GeneralMa
     csect[0] += csect[5];
 
     // Interaction length in meter
-    scat->xintl = 1.0e-2*anuc/(XC_AVOGADRO*rho*csect[0]*1e-24);
+    coll->xintl = 1.0e-2*anuc/(XC_AVOGADRO*rho*csect[0]*1e-24);
 
     // Filling CProb with cumulated normalised Cross-sections
     int i;
-    scat->cprob[0] = 0;
+    coll->cprob[0] = 0;
     if(csect[0] == 0) {   // TODO: is this needed?
         for (i=1; i<5; ++i){
-            scat->cprob[i] = scat->cprob[i-1];  // TODO: seems wrong
+            coll->cprob[i] = coll->cprob[i-1];  // TODO: seems wrong
         }
     } else {
         for (i=1; i<5; ++i){
-            scat->cprob[i] = scat->cprob[i-1] + csect[i]/csect[0];
+            coll->cprob[i] = coll->cprob[i-1] + csect[i]/csect[0];
         }
     }
-    scat->cprob[5] = 1;
+    coll->cprob[5] = 1;
 }
 
 
-struct IonisationProperties {
-    double prob_tail_c1;
-    double prob_tail_c2;
-    double prob_tail_c3;
-    double prob_tail_c4;
-    double energy_loss;
-    double energy_loss_tail;
-};
-
-void calculate_ionisation_properties(struct IonisationProperties* prop, double pc, GeneralMaterialData material) {
+void calculate_ionisation_properties(EverestData restrict coll, double pc) {
 
     // Material properties
-    double const exenergy = GeneralMaterialData_get_excitation_energy(material)*1.0e3; // MeV
-    double const rho      = GeneralMaterialData_get_density(material);
-    double const anuc     = GeneralMaterialData_get_A(material);
-    double const zatom    = GeneralMaterialData_get_Z(material);
+    double const exenergy = coll->exenergy;
+    double const rho      = coll->rho;
+    double const anuc     = coll->anuc;
+    double const zatom    = coll->zatom;
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]
@@ -126,52 +108,50 @@ void calculate_ionisation_properties(struct IonisationProperties* prop, double p
     double tmax = 2.*XC_ELECTRON_MASS*pow(bgr, 2.)/ (1. + 2.*gammar*mep + pow(mep, 2.));  // [MeV]
     double plen = sqrt(rho*zatom/anuc)*28.816e-6; // [MeV]
 
-    prop->energy_loss = 0.5*log(2.*XC_ELECTRON_MASS*bgr*bgr*tmax/pow(exenergy, 2.)) + 0.5;
-    prop->energy_loss -= pow(betar, 2.);
-    prop->energy_loss -= log(plen/exenergy);
-    prop->energy_loss -= log(bgr);
-    prop->energy_loss *= XC_BETHE_BLOCH*zatom/(anuc* pow(betar, 2.))*rho*1.0e-1; // [GeV/m]
+    coll->energy_loss = 0.5*log(2.*XC_ELECTRON_MASS*bgr*bgr*tmax/pow(exenergy, 2.)) + 0.5;
+    coll->energy_loss -= pow(betar, 2.);
+    coll->energy_loss -= log(plen/exenergy);
+    coll->energy_loss -= log(bgr);
+    coll->energy_loss *= XC_BETHE_BLOCH*zatom/(anuc* pow(betar, 2.))*rho*1.0e-1; // [GeV/m]
 
-    prop->energy_loss_tail = 0.5*log(2*XC_ELECTRON_MASS*bgr*bgr*tmax/pow(exenergy, 2.)) + 0.5;
-    prop->energy_loss_tail -= pow(betar, 2.);
-    prop->energy_loss_tail -= log(plen/exenergy);
-    prop->energy_loss_tail -= log(bgr);
-    prop->energy_loss_tail += pow(tmax, 2.)/(8.*pow(energy, 2.));
-    prop->energy_loss_tail *= XC_BETHE_BLOCH*zatom/(anuc*pow(betar, 2.))*rho*1.0e-1; // [GeV/m]
+    coll->energy_loss_tail = 0.5*log(2*XC_ELECTRON_MASS*bgr*bgr*tmax/pow(exenergy, 2.)) + 0.5;
+    coll->energy_loss_tail -= pow(betar, 2.);
+    coll->energy_loss_tail -= log(plen/exenergy);
+    coll->energy_loss_tail -= log(bgr);
+    coll->energy_loss_tail += pow(tmax, 2.)/(8.*pow(energy, 2.));
+    coll->energy_loss_tail *= XC_BETHE_BLOCH*zatom/(anuc*pow(betar, 2.))*rho*1.0e-1; // [GeV/m]
 
-    double Tt = prop->energy_loss*1.0e3 + XC_BETHE_BLOCH*zatom*4.0e2*rho/(anuc*pow(betar, 2.)); // [MeV/m]
+    double Tt = coll->energy_loss*1.0e3 + XC_BETHE_BLOCH*zatom*4.0e2*rho/(anuc*pow(betar, 2.)); // [MeV/m]
 
     // Calculate different coefficients for terms in dz (length) to get the tail probability
     double const prob_factor = rho*1.e2*XC_BETHE_BLOCH*zatom/(anuc*pow(betar, 2.));
-    prop->prob_tail_c1 = prob_factor * 0.5 / Tt;
-    prop->prob_tail_c2 = prob_factor * (
+    coll->prob_tail_c1 = prob_factor * 0.5 / Tt;
+    coll->prob_tail_c2 = prob_factor * (
                         tmax/(4.*pow(energy, 2.)) - 0.5/tmax
                         - log(tmax/Tt)*pow(betar,2.)/(2.*tmax)
                    );  // * dz
-    prop->prob_tail_c3 = prob_factor * pow(betar,2.)/(2.*tmax);  // * dz * log(dz)
-    prop->prob_tail_c4 = -prob_factor * Tt/(4.*pow(energy, 2.));  // * dz * dz
-
-    return prop;
+    coll->prob_tail_c3 = prob_factor * pow(betar,2.)/(2.*tmax);  // * dz * log(dz)
+    coll->prob_tail_c4 = -prob_factor * Tt/(4.*pow(energy, 2.));  // * dz * dz
 }
 
 
 /*gpufun*/
-double calcionloss(LocalParticle* part, double length, struct IonisationProperties* prop) {
+double calcionloss(EverestData restrict coll, LocalParticle* part, double length) {
 
-    double prob_tail = prop->prob_tail_c1 + prop->prob_tail_c2 * length
-                     + prop->prob_tail_c3 * length * log(length) + prop->prob_tail_c4 * length * length;
+    double prob_tail = coll->prob_tail_c1 + coll->prob_tail_c2 * length
+                     + coll->prob_tail_c3 * length * log(length) + coll->prob_tail_c4 * length * length;
 
     if (RandomUniform_generate(part) < prob_tail) {
-        return prop->energy_loss_tail;
+        return coll->energy_loss_tail;
     } else {
-        return prop->energy_loss;
+        return coll->energy_loss;
     }
 }
 
 
-double calculate_dechanneling_length(double pc, CrystalMaterialData material) {
+double calculate_dechanneling_length(EverestData restrict coll, double pc) {
     // Material properties
-    double const exenergy = CrystalMaterialData_get_excitation_energy(material)*1.0e3; // MeV
+    double const exenergy = coll->exenergy;
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]

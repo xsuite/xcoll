@@ -15,10 +15,15 @@
 //    Use rotation function from xtrack XYRotation element (call its C function)
 
 /*gpufun*/
-void scatter(LocalParticle* part, double length, MaterialData material, RandomRutherfordData rng,
-             struct ScatteringParameters* scat, double aperture, double offset,
-             double tilt_L, double tilt_R, double side, CollimatorImpactsData record, RecordIndex record_index){
+void scatter(EverestData restrict coll, LocalParticle* part, double length){
 
+    // geometry values
+    double aperture = coll->aperture;
+    double offset   = coll->offset;
+    double tilt_L   = coll->tilt_L;
+    double tilt_R   = coll->tilt_R;
+    double side     = coll->side;
+                 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
     double const rvv_in  = LocalParticle_get_rvv(part);
@@ -89,7 +94,7 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         if (zlm > 0.) {
             is_hit = 1;
 
-            double* jaw_result = jaw(part, material, rng, scat, energy, zlm, record, record_index);
+            double* jaw_result = jaw(coll, part, energy, zlm);
 
             energy = jaw_result[0];
             if (jaw_result[1] == 1){

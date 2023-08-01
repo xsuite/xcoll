@@ -6,6 +6,48 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
+
+typedef struct EverestData_{
+    // Collimator properties
+    double aperture;   // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
+    double offset;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
+    double tilt_L;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
+    double tilt_R;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
+    double side;       // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
+    RandomRutherfordData restrict rng;
+    CollimatorImpactsData restrict record;
+    RecordIndex restrict record_index;
+    // Material parameters
+    // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read then, ie *coll->exenergy
+    double exenergy;
+    double rho;
+    double anuc;
+    double zatom;
+    double bnref;
+    double csref[6];
+    double radl;
+    double dlri;
+    double dlyi;
+    double ai;
+    double eum;
+    double collnt;
+    // Dynamic parameters
+    double cprob[6];
+    double xintl;
+    double bn;
+    double ecmsq;
+    double xln15s;
+    double bpp;
+    double prob_tail_c1;
+    double prob_tail_c2;
+    double prob_tail_c3;
+    double prob_tail_c4;
+    double energy_loss;
+    double energy_loss_tail;
+} *EverestData;
+
+
+
 /*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;

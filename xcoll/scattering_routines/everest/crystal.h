@@ -20,15 +20,15 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
     double* result = (double*)malloc(6 * sizeof(double));
 
     // Material properties
-    double const dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-    double const ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-    double const eum      = CrystalMaterialData_get_crystal_potential(material);
+    double const dlri = CrystalMaterialData_get_crystal_radiation_length(material);
+    double const ai   = CrystalMaterialData_get_crystal_plane_distance(material);
+    double const eum  = CrystalMaterialData_get_crystal_potential(material);
 
-    double const rpp  = LocalParticle_get_rpp(part);
-    double const x  = LocalParticle_get_x(part);
-    double const xp = LocalParticle_get_px(part)*rpp;
-    double const y  = LocalParticle_get_y(part);
-    double const yp = LocalParticle_get_py(part)*rpp;
+    double const rpp = LocalParticle_get_rpp(part);
+    double const x   = LocalParticle_get_x(part);
+    double const xp  = LocalParticle_get_px(part)*rpp;
+    double const y   = LocalParticle_get_y(part);
+    double const yp  = LocalParticle_get_py(part)*rpp;
 
     double energy_loss = 0.;
 
