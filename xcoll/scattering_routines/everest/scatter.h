@@ -16,7 +16,7 @@
 
 /*gpufun*/
 void scatter(LocalParticle* part, double length, MaterialData material, RandomRutherfordData rng,
-             struct ScatteringParameters scat, double aperture, double offset,
+             struct ScatteringParameters* scat, double aperture, double offset,
              double tilt_L, double tilt_R, double side, CollimatorImpactsData record, RecordIndex record_index){
 
     // Store initial coordinates for updating later

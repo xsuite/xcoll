@@ -199,7 +199,7 @@ double* tetat(LocalParticle* part, double t, double p) {
 
 
 /*gpufun*/
-double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
+double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters* scat) {
 
     double* res = (double*)malloc(2 * sizeof(double));
 
@@ -207,20 +207,20 @@ double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, dou
     double result = 0;
 
     if (inter==2) { // Nuclear Elastic
-        result = RandomExponential_generate(part)/scat.bn;
+        result = RandomExponential_generate(part)/scat->bn;
     } else if (inter==3) { // pp Elastic
-        result = RandomExponential_generate(part)/scat.bpp;
+        result = RandomExponential_generate(part)/scat->bpp;
     } else if (inter==4) { // Single Diffractive
-        double xm2 = exp(RandomUniform_generate(part) * scat.xln15s);
+        double xm2 = exp(RandomUniform_generate(part) * scat->xln15s);
         double bsd = 0;
-        p = p * (1 - xm2/scat.ecmsq);
+        p = p * (1 - xm2/scat->ecmsq);
     
         if (xm2 < 2) {
-            bsd = 2 * scat.bpp;
+            bsd = 2 * scat->bpp;
         } else if ((xm2 >= 2) & (xm2 <= 5)) {
-            bsd = ((106.0 - 17.0*xm2)*scat.bpp)/36.0;
+            bsd = ((106.0 - 17.0*xm2)*scat->bpp)/36.0;
         } else {
-            bsd = (7*scat.bpp)/12.0;
+            bsd = (7*scat->bpp)/12.0;
         }
         result = RandomExponential_generate(part)/bsd;
     } else if (inter==5) { // Coulomb
@@ -234,12 +234,12 @@ double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, dou
 
 
 /*gpufun*/
-int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
+int ichoix(LocalParticle* part, struct ScatteringParameters* scat) {
 
     double aran = RandomUniform_generate(part);
     int i;
     for (i = 0; i < 5; ++i) {
-        if (aran <= scat.cprob[i]) {
+        if (aran <= scat->cprob[i]) {
             break;
         }
     }
@@ -248,10 +248,13 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 
 
 /*gpufun*/
-double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
+double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters* scat,
             double p, double zlm, CollimatorImpactsData record, RecordIndex record_index) {
 
     double* result = (double*)malloc(3 * sizeof(double));
+    struct IonisationProperties* properties;
+    properties = (struct IonisationProperties*) malloc(sizeof(struct IonisationProperties));
+
     double s;
     double nabs = 0;
     double rlen = zlm;
@@ -270,8 +273,8 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
     // Get monte-carlo interaction length.
     while (1) {
 
-        struct IonisationProperties properties = calculate_ionisation_properties(p, (GeneralMaterialData) material);
-        double zlm1 = scat.xintl*RandomExponential_generate(part);
+        calculate_ionisation_properties(properties, p, (GeneralMaterialData) material);
+        double zlm1 = scat->xintl*RandomExponential_generate(part);
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
@@ -371,6 +374,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
     LocalParticle_set_y(part, z);
     LocalParticle_set_py(part, zp/rpp_in);
 
+    free(properties);
     result[0] = p;
     result[1] = nabs;
     result[2] = s;

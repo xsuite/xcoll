@@ -73,7 +73,7 @@ double channeling_average_density(LocalParticle* part, double pc, double r, doub
 
 /*gpufun*/
 double* channel_transport(LocalParticle* part, double pc, double L_chan, double t_P, double t_in, double sigma_ran,
-                         struct IonisationProperties properties, CollimatorImpactsData record, RecordIndex record_index) {
+                         struct IonisationProperties* properties, CollimatorImpactsData record, RecordIndex record_index) {
     // Channeling: happens over an arc length L_chan (potentially less if dechanneling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)
     //             The angle xp at the start of channeling (I) is t_P/2 + t_in
@@ -123,12 +123,13 @@ double* channel_transport(LocalParticle* part, double pc, double L_chan, double 
 double* Channel(RandomRutherfordData rng, LocalParticle* part, double pc, double L_chan, double t_chan, double t_in,
                 double remaining_length,
                 double bend_r, double crit_r, double crit_ang, CrystalMaterialData material,
+                struct IonisationProperties* properties, struct ScatteringParameters* scat,
                 CollimatorImpactsData record, RecordIndex record_index) {
 
     double* result = (double*)malloc(3 * sizeof(double));
     double iProc = proc_CH;
     double ratio = crit_r/bend_r;
-    struct IonisationProperties properties = calculate_ionisation_properties(pc, (GeneralMaterialData) material);
+    calculate_ionisation_properties(properties, pc, (GeneralMaterialData) material);
 
     // Calculate curved position L_dechan of dechanneling
     double const_dech = calculate_dechanneling_length(pc, material);
@@ -141,7 +142,7 @@ double* Channel(RandomRutherfordData rng, LocalParticle* part, double pc, double
     
     // Calculate curved position L_nucl of nuclear interaction
     double avrrho = channeling_average_density(part, pc, bend_r, ratio, material);
-    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, avrrho);
+    calculate_scattering(scat, pc, (GeneralMaterialData) material, avrrho);
     double collnt = CrystalMaterialData_get_nuclear_collision_length(material);
     if (avrrho == 0) {
         collnt = 1.e10;  // very large because essentially 1/0
@@ -168,7 +169,7 @@ double* Channel(RandomRutherfordData rng, LocalParticle* part, double pc, double
         free(result_chan);
         CollimatorImpactsData_log(record, record_index, part, XC_CRYSTAL_DECHANNELING);
 
-        double* result_am = Amorphous(rng, part, remaining_length, pc, material, properties, 1);
+        double* result_am = Amorphous(rng, part, remaining_length, pc, material, properties, scat, 1);
         remaining_length  = result_am[0];
         pc                = result_am[1];
 
@@ -185,7 +186,7 @@ double* Channel(RandomRutherfordData rng, LocalParticle* part, double pc, double
         iProc = result_ni[1];
         free(result_ni);
 
-        double* result_am = Amorphous(rng, part, remaining_length, pc, material, properties, 0);
+        double* result_am = Amorphous(rng, part, remaining_length, pc, material, properties, scat, 0);
         remaining_length  = result_am[0];
         pc                = result_am[1];
     }

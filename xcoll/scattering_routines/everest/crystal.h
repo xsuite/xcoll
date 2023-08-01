@@ -37,9 +37,13 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
     int zn  = 1;
 
-    // TODO: these should be removed
-    struct IonisationProperties properties = calculate_ionisation_properties(pc, (GeneralMaterialData) material);
-    struct ScatteringParameters scat = calculate_scattering(pc, (GeneralMaterialData) material, 1.);
+    // TODO: compiler flag to update at every energy change if high precision
+    struct IonisationProperties* properties;
+    properties = (struct IonisationProperties*) malloc(sizeof(struct IonisationProperties));
+    calculate_ionisation_properties(properties, pc, (GeneralMaterialData) material);
+    struct ScatteringParameters* scat;
+    scat = (struct ScatteringParameters*) malloc(sizeof(struct ScatteringParameters));
+    calculate_scattering(scat, pc, (GeneralMaterialData) material, 1.);
     double const_dech = calculate_dechanneling_length(pc, material);
 
     // MISCUT second step: fundamental coordinates (crystal edges and plane curvature radius)
@@ -236,7 +240,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
         //option 1:channeling
 
             double* result_chan = Channel(rng, part, pc, L_chan, tP, cry_miscut, length, bend_r, Rcrit, xpcrit, material,
-                                          record, record_index);
+                                          properties, scat, record, record_index);
             double remaining_length = result_chan[0];
             pc               = result_chan[1];
             // Drift remaining length  - outside of crystal
@@ -307,7 +311,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
             energy_loss = calcionloss(part, length, properties);
             pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
-            double* result_am = moveam(rng, part, length, pc, material, iProc);
+            double* result_am = moveam(rng, part, length, pc, scat, material, iProc);
 
             pc = result_am[0];
             iProc = result_am[1];
@@ -340,7 +344,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                 energy_loss = calcionloss(part, length-Srefl, properties);
                 pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
-                double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
+                double* result_am = moveam(rng, part, length-Srefl, pc, scat, material, iProc);
 
                 pc = result_am[0];
                 iProc = result_am[1];
@@ -373,7 +377,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                     energy_loss = calcionloss(part, Red_S, properties);
                     pc  = pc - energy_loss*Red_S; // Energy lost because of ionization process[GeV]
-                    double* result_am = moveam(rng, part, Red_S, pc, material, iProc);
+                    double* result_am = moveam(rng, part, Red_S, pc, scat, material, iProc);
 
                     pc = result_am[0];
                     iProc = result_am[1];
@@ -469,7 +473,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
                 if(zn > 0) {
                     energy_loss = calcionloss(part, length, properties);
                     pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
-                    double* result_am = moveam(rng, part, length, pc, material, iProc);
+                    double* result_am = moveam(rng, part, length, pc, scat, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
@@ -489,7 +493,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                     energy_loss = calcionloss(part, length-Srefl, properties);
                     pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
-                    double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
+                    double* result_am = moveam(rng, part, length-Srefl, pc, scat, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
@@ -505,7 +509,7 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
 
                     energy_loss = calcionloss(part, length-Srefl, properties);
                     pc  = pc - energy_loss*(length-Srefl); // Energy lost because of ionization process[GeV]
-                    double* result_am = moveam(rng, part, length-Srefl, pc, material, iProc);
+                    double* result_am = moveam(rng, part, length-Srefl, pc, scat, material, iProc);
                     pc = result_am[0];
                     iProc = result_am[1];
                     free(result_am);
@@ -516,6 +520,8 @@ double* interact(RandomRutherfordData rng, LocalParticle* part, double pc,
         }            
     }
 
+    free(properties);
+    free(scat);
     result[0] = pc;
     result[1] = iProc;
     return result;

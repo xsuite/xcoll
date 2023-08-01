@@ -70,7 +70,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 // Scattering parameters
                 double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
-                struct ScatteringParameters scat = calculate_scattering(energy0, (GeneralMaterialData) material, 1.);
+                struct ScatteringParameters* scat;
+                scat = (struct ScatteringParameters*) malloc(sizeof(struct ScatteringParameters));
+                calculate_scattering(scat, energy0, (GeneralMaterialData) material, 1.);
 
                 // Move to collimator frame
                 XYShift_single_particle(part, co_x, co_y);
@@ -78,6 +80,8 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 scatter(part, length, material, rng, scat, aperture, offset, tilt_L, tilt_R, side,
                         record, record_index);
+
+                free(scat);
 
                 // Return from collimator frame
                 SRotation_single_particle(part, -sin_zL, cos_zL);
