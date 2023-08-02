@@ -42,7 +42,6 @@ void scatter(EverestData restrict coll, LocalParticle* part, double length){
     double x = LocalParticle_get_x(part);
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
-    // TODO: need to drift!!
     if (side==0 || (side==1 && x>=0.) || (side==2 && x<=0.)) {
 
         double mirror = 1;

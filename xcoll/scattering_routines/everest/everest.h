@@ -17,7 +17,16 @@ typedef struct EverestData_ {
     RandomRutherfordData restrict rng;
     CollimatorImpactsData restrict record;
     RecordIndex restrict record_index;
-    // Material parameters
+    // Crystal properties
+    double bend_r;
+    double bend_ang;
+    double tilt;
+    double amorphous_layer;
+    double xdim;
+    double ydim;
+    int8_t orient;
+    double miscut;
+    // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
     double rho;
@@ -25,7 +34,7 @@ typedef struct EverestData_ {
     double zatom;
     double bnref;
     double csref[6];
-    double radl;
+    double radl;  // TODO: is this the same physically as collnt or dlri ?
     double dlri;
     double dlyi;
     double ai;
@@ -44,6 +53,8 @@ typedef struct EverestData_ {
     double prob_tail_c4;
     double energy_loss;
     double energy_loss_tail;
+    double xpcrit;
+    double Rcrit;
 } EverestData_;
 typedef EverestData_ *EverestData;
 

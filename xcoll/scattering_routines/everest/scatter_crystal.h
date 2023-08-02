@@ -15,10 +15,14 @@
 //       Workaround: make a struct (with the definition in EverestEngine) that EverestCrystal uses...?
 
 /*gpufun*/
-void scatter_cry(LocalParticle* part, double length, CrystalMaterialData material, RandomRutherfordData rng,
-                 double aperture, double offset, int side, double cry_tilt,
-                 double bend_r, double bend_ang, double cry_alayer, double xdim, double ydim, 
-                 double cry_orient, double cry_miscut, CollimatorImpactsData record, RecordIndex record_index){
+void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
+
+    // geometry values
+    double aperture = coll->aperture;
+    double offset   = coll->offset;
+    double tilt_L   = coll->tilt_L;
+    double tilt_R   = coll->tilt_R;
+    double side     = coll->side;
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -42,7 +46,6 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
     double x = LocalParticle_get_x(part);
 
     // For one-sided collimators consider only positive X. For negative X jump to the next particle
-    // TODO: particles on the wrong side are not drifted !!!!! I think this is wrong...
     if (side==0 || (side==1 && x>=0.) || (side==2 && x<=0.)) {
 
         // Now mirror at the horizontal axis for negative X offset
@@ -61,21 +64,7 @@ void scatter_cry(LocalParticle* part, double length, CrystalMaterialData materia
         // entrance longitudinal coordinate (keeps) for histograms
 
         // The definition is that the collimator jaw is at x>=0.
-        double* crystal_result = crystal(rng, part,
-                                energy,
-                                length,
-                                material,
-                                cry_tilt,
-                                bend_r,
-                                bend_ang,
-                                cry_alayer,
-                                xdim,
-                                ydim,
-                                cry_orient,
-                                cry_miscut,
-                                record,
-                                record_index
-                                );
+        double* crystal_result = crystal(coll, part, energy, length);
 
         is_hit = crystal_result[0];
         is_abs = crystal_result[1];

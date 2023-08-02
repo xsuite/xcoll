@@ -31,8 +31,7 @@ int const proc_TRVR        = 100;     // Volume reflection in VR-AM transition r
 int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
 
 /*gpufun*/
-double* nuclear_interaction(RandomRutherfordData rng, LocalParticle* part, double pc,
-                           struct ScatteringParameters* scat, double iProc) {
+double* nuclear_interaction(EverestData restrict coll, LocalParticle* part, double pc, double iProc) {
 
     double* result = (double*)malloc(2 * sizeof(double));
 
@@ -40,7 +39,7 @@ double* nuclear_interaction(RandomRutherfordData rng, LocalParticle* part, doubl
     double aran = RandomUniform_generate(part);
     int ichoix = 1;
 
-    while (aran > scat->cprob[ichoix]) {
+    while (aran > coll->cprob[ichoix]) {
         ichoix += 1;
     }
 
@@ -49,29 +48,34 @@ double* nuclear_interaction(RandomRutherfordData rng, LocalParticle* part, doubl
 
     if (ichoix==1) {
         iProc = proc_ch_absorbed; //deep inelastic, impinging p disappeared
+
     } else if (ichoix==2) { //p-n elastic
         iProc = proc_ch_pne;
-        teta  = sqrt(RandomExponential_generate(part)/scat->bn)/pc;
+        teta  = sqrt(RandomExponential_generate(part)/coll->bn)/pc;
+
     } else if (ichoix==3) { //p-p elastic
         iProc = proc_ch_ppe;
-        teta  = sqrt(RandomExponential_generate(part)/scat->bpp)/pc;
+        teta  = sqrt(RandomExponential_generate(part)/coll->bpp)/pc;
+
     } else if (ichoix==4) { //Single diffractive
         iProc = proc_ch_diff;
-        double xm2 = exp(RandomUniform_generate(part)*scat->xln15s);
+        double xm2 = exp(RandomUniform_generate(part)*coll->xln15s);
 
         double bsd = 0.0;
         if (xm2 < 2.) {
-            bsd = 2*scat->bpp;
+            bsd = 2*coll->bpp;
         } else if (xm2 >= 2. && xm2 <= 5.) {
-            bsd = ((106.0 - 17.0*xm2)*scat->bpp)/36.0;
+            bsd = ((106.0 - 17.0*xm2)*coll->bpp)/36.0;
         } else if (xm2 > 5.) {
-            bsd = (7*scat->bpp)/12.0;
+            bsd = (7*coll->bpp)/12.0;
         }
         teta = sqrt(RandomExponential_generate(part)/bsd)/pc;
-        pc = pc*(1 - xm2/scat->ecmsq);
+        pc = pc*(1 - xm2/coll->ecmsq);
+
     } else { //(ichoix==5)
         iProc = proc_ch_ruth;
-        teta  = sqrt(RandomRutherford_generate(rng, part))/pc;
+        teta  = sqrt(RandomRutherford_generate(coll->rng, part))/pc;
+
     }
 
     double tx = teta*RandomNormal_generate(part);
@@ -88,16 +92,15 @@ double* nuclear_interaction(RandomRutherfordData rng, LocalParticle* part, doubl
 }
 
 /*gpufun*/
-double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double pc,
-               struct ScatteringParameters* scat, CrystalMaterialData material, double iProc) {
+double* moveam(EverestData restrict coll, LocalParticle* part, double pc, double dz, double iProc) {
 
     double* result = (double*)malloc(3 * sizeof(double));
 
-//     calculate_scattering(scat, pc, (GeneralMaterialData) material, 1.);
+    calculate_scattering(coll, pc, 1.);
 
     // Material properties
-    double const dlr      = CrystalMaterialData_get_crystal_radiation_length(material);
-    double const collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+    double const dlr    = coll->dlri;
+    double const collnt = coll->collnt;
 
     // Multiple Coulomb Scattering
     double dya   = (13.6/pc)*sqrt(dz/dlr); // RMS of coloumb scattering MCS (mrad)
@@ -112,7 +115,7 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double 
     double zlm = collnt*RandomExponential_generate(part);
 
     if (zlm < dz) {
-        double* result_ni = nuclear_interaction(rng, part, pc, scat, iProc);
+        double* result_ni = nuclear_interaction(coll, part, pc, iProc);
         pc    = result_ni[0];
         iProc = result_ni[1];
         free(result_ni);
@@ -127,45 +130,24 @@ double* moveam(RandomRutherfordData rng, LocalParticle* part, double dz, double 
 }
 
 
-
-// double* Drift_amorphous_4d(RandomRutherfordData rng, LocalParticle* part, double length, double pc, CrystalMaterialData material, double iProc, struct IonisationProperties properties){
-
-//     double* result = (double*)malloc(2 * sizeof(double));
-
-//     Drift_single_particle_4d(part, 0.5*length);
-//     double energy_loss = calcionloss(part, length, properties);
-//     double* result_am = moveam(rng, part, length, energy_loss, pc, material, iProc);
-
-//     pc = result_am[0];
-//     iProc = result_am[1];
-//     free(result_am);
-
-//     Drift_single_particle_4d(part, 0.5*length);
-
-//     result[0] = pc;
-//     result[1] = iProc;
-//     return result;
-// }
-
 /*gpufun*/
-double* Amorphous(RandomRutherfordData rng, LocalParticle* part, double length, double pc, CrystalMaterialData material,
-                 struct IonisationProperties* properties, struct ScatteringParameters* scat, int do_moveam) {
+double* Amorphous(EverestData restrict coll, LocalParticle* part, double pc, double length, int do_moveam) {
 
     double* result = (double*)malloc(2 * sizeof(double));
     double iProc = proc_AM;
 
     if (do_moveam == 1) {
         Drift_single_particle_4d(part, 0.5*length);
-        double energy_loss = calcionloss(part, length, properties);
+        double energy_loss = calcionloss(coll, part, length);
         pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
-        double* result_am = moveam(rng, part, length, pc, scat, material, iProc);
+        double* result_am = moveam(coll, part, pc, length, iProc);
         pc = result_am[0];
         iProc = result_am[1];
         free(result_am);
         Drift_single_particle_4d(part, 0.5*length);
     } else{
         Drift_single_particle_4d(part, length);
-        double energy_loss = calcionloss(part, length, properties);
+        double energy_loss = calcionloss(coll, part, length);
         pc  = pc - energy_loss*length; // Energy lost because of ionization process[GeV]
     }
 
