@@ -32,6 +32,7 @@ EverestData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part
     coll->anuc     = MaterialData_get_A(material);
     coll->zatom    = MaterialData_get_Z(material);
     coll->bnref    = MaterialData_get_nuclear_elastic_slope(material);
+    coll->radl     = MaterialData_get_radiation_length(material);
     coll->csref[0] = MaterialData_get_cross_section(material, 0);
     coll->csref[1] = MaterialData_get_cross_section(material, 1);
     coll->csref[5] = MaterialData_get_cross_section(material, 5);
@@ -79,6 +80,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestData coll = EverestCollimator_init(el, part0);
 
+    // Preinitialise scattering parameters
+    double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
+    calculate_scattering(coll, energy0, 1.);
+    calculate_ionisation_properties(coll, energy0);
+
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -93,11 +99,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             if (is_tracking && rng_is_set && ruth_is_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
-
-                // Preinitialise scattering parameters
-                double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
-                calculate_scattering(coll, energy0, 1.);
-                calculate_ionisation_properties(coll, energy0);
 
                 // Move to collimator frame
                 XYShift_single_particle(part, co_x, co_y);
@@ -116,6 +117,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             }
         }
     //end_per_particle_block
+
     free(coll);
 }
 

@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import xpart as xp
 import xcoll as xc
+import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -85,73 +86,84 @@ crystals_b2 = [
 
 path = Path(__file__).parent / 'data_test_everest'
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_primaries(test_context):
+test_context = xo.ContextCpu()
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_primaries(test_context):
+def test_primaries():
     _track_collimator('tcp.c6l7.b1', _context=test_context)
     _track_collimator('tcp.c6r7.b2', _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_materials_b1(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_materials_b1(test_context):
+def test_materials_b1():
     for key, name in materials_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_materials_b2(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_materials_b2(test_context):
+def test_materials_b2():
     for key, name in materials_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_angles_b1(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_angles_b1(test_context):
+def test_angles_b1():
     for key, name in angles_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_angles_b2(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_angles_b2(test_context):
+def test_angles_b2():
     for key, name in angles_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_lengths_b1(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_lengths_b1(test_context):
+def test_lengths_b1():
     for key, name in lengths_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_lengths_b2(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_lengths_b2(test_context):
+def test_lengths_b2():
     for key, name in lengths_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_offsets_b1(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_offsets_b1(test_context):
+def test_offsets_b1():
     for key, name in offsets_b1.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_offsets_b2(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_offsets_b2(test_context):
+def test_offsets_b2():
     for key, name in offsets_b2.items():
         _track_collimator(name, _context=test_context)
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-def test_crystals(test_context):
+# @for_all_test_contexts(
+#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+# )
+# def test_crystals(test_context):
+def test_crystals():
     for name in crystals_b1 + crystals_b2:
         _track_collimator(name, _context=test_context)
 

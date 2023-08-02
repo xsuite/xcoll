@@ -10,10 +10,6 @@
 #include <stdio.h>
 
 
-// TODO:
-//    Use drift function from xtrack Drift element (call its C function)
-//    Use rotation function from xtrack XYRotation element (call its C function)
-
 /*gpufun*/
 void scatter(EverestData restrict coll, LocalParticle* part, double length){
 
@@ -23,7 +19,7 @@ void scatter(EverestData restrict coll, LocalParticle* part, double length){
     double tilt_L   = coll->tilt_L;
     double tilt_R   = coll->tilt_R;
     double side     = coll->side;
-                 
+
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
     double const rvv_in  = LocalParticle_get_rvv(part);
