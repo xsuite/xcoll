@@ -7,7 +7,7 @@
 #define XCOLL_EVEREST_ENGINE_H
 
 
-typedef struct EverestData_{
+typedef struct EverestData_ {
     // Collimator properties
     double aperture;   // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     double offset;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
@@ -18,7 +18,7 @@ typedef struct EverestData_{
     CollimatorImpactsData restrict record;
     RecordIndex restrict record_index;
     // Material parameters
-    // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read then, ie *coll->exenergy
+    // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
     double rho;
     double anuc;
@@ -44,7 +44,8 @@ typedef struct EverestData_{
     double prob_tail_c4;
     double energy_loss;
     double energy_loss_tail;
-} *EverestData;
+} EverestData_;
+typedef EverestData_ *EverestData;
 
 
 

@@ -22,9 +22,7 @@ void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* par
 /*gpufun*/
 EverestData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part0){
 
-    EverestData coll;
-//     coll = (EverestData) malloc(sizeof(struct EverestData_));
-    coll = (EverestData) malloc(10000);
+    EverestData coll = (EverestData) malloc(sizeof(EverestData_));
 
     // Random generator and material
     coll->rng = EverestCollimatorData_getp_rutherford_rng(el);
