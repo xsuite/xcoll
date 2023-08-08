@@ -20,9 +20,9 @@ void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* par
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 /*gpufun*/
-EverestData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part0){
+EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part0){
 
-    EverestData coll = (EverestData) malloc(sizeof(EverestData_));
+    EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
 
     // Random generator and material
     coll->rng = EverestCollimatorData_getp_rutherford_rng(el);
@@ -57,6 +57,24 @@ EverestData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part
 
 
 /*gpufun*/
+EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData coll){
+    EverestData everest = (EverestData) malloc(sizeof(EverestData_));
+    everest->coll = coll;
+    everest->rescale_scattering = 1;
+#ifndef XCOLL_REFINE_ENERGY
+    // Preinitialise scattering parameters
+    double charge_ratio = LocalParticle_get_charge_ratio(part);
+    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    calculate_scattering(everest, energy);
+    calculate_ionisation_properties(everest, energy);
+#endif
+    return everest;
+}
+
+
+/*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
     int8_t active = EverestCollimatorData_get_active(el);
     active       *= EverestCollimatorData_get__tracking(el);
@@ -78,12 +96,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
-    EverestData coll = EverestCollimator_init(el, part0);
-
-    // Preinitialise scattering parameters
-    double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
-    calculate_scattering(coll, energy0, 1.);
-    calculate_ionisation_properties(coll, energy0);
+    EverestCollData coll = EverestCollimator_init(el, part0);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -104,7 +117,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
-                scatter(coll, part, active_length);
+                EverestData everest = EverestCollimator_init_data(part0, coll);
+                scatter(everest, part, active_length);
+                free(everest);
 
                 // Return from collimator frame
                 SRotation_single_particle(part, -sin_zL, cos_zL);

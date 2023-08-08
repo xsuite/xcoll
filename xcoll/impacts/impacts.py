@@ -6,7 +6,7 @@
 import xobjects as xo
 import xtrack as xt
 
-from .interaction_types import source, interactions
+from .interaction_types import source, interactions, shortcuts
 from ..general import _pkg_root
 
 import numpy as np
@@ -57,8 +57,7 @@ class CollimatorImpacts(xt.BeamElement):
 
     @property
     def interaction_type(self):
-        n_rows = self._index.num_recorded
-        return np.array([interactions[inter] for inter in self._inter[:n_rows]])
+        return np.array([interactions[inter] for inter in self._inter])
 
     def collimator_name(self, element_id):
         if not hasattr(self, '_coll_ids'):
@@ -73,16 +72,30 @@ class CollimatorImpacts(xt.BeamElement):
         n_rows = self._index.num_recorded
         coll_header = 'collimator' if hasattr(self, '_coll_ids') else 'collimator id'
         df = pd.DataFrame({
-                coll_header:         [self.collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'ds':                self.ds[:n_rows],
                 'turn':              self.at_turn[:n_rows],
-                'interaction_type':  self.interaction_type,
+                coll_header:         [self.collimator_name(element_id) for element_id in self.at_element[:n_rows]],
+                'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
+                'ds':                self.ds[:n_rows],
+                **{
+                    f'{p} {val}': getattr(self, f'{p}_{val}')[:n_rows]
+                    for p in ['parent', 'child']
+                    for val in ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
+                }
             })
-        cols = ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
-        for particle in ['parent', 'child']:
-            multicols = pd.MultiIndex.from_tuples([(particle, col) for col in cols])
-            newdf = pd.DataFrame(index=df.index, columns=multicols)
-            for col in cols:
-                newdf[particle, col] = getattr(self, particle + '_' + col)[:n_rows]
-            df = pd.concat([df, newdf], axis=1)
         return df
+
+    # TODO: list of impacted collimators
+
+    
+    # TODO: does not work when multiple children
+    # TODO: allow to select collimator by name
+    def interactions_per_collimator(self, collimator_id=0, *, turn=None):
+        mask = (self._inter > 0) & (self.at_element == collimator_id)
+        if turn is not None:
+            mask = mask & (self.at_turn == turn)
+        df = pd.DataFrame({
+                'int':  [shortcuts[inter] for inter in self._inter[mask]],
+                'pid':               self.parent_id[mask]
+            })
+        return df.groupby('pid', sort=False)['int'].agg(list)
+        

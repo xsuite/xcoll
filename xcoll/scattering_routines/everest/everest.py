@@ -19,8 +19,10 @@ class EverestEngine(xo.HybridClass):
 
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','everest','constants.h'),
+        _pkg_root.joinpath('scattering_routines','everest','angles.h'),
         _pkg_root.joinpath('scattering_routines','everest','everest.h'),
         _pkg_root.joinpath('scattering_routines','everest','properties.h'),
+        _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),
         _pkg_root.joinpath('scattering_routines','everest','amorphous.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),

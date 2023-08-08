@@ -8,29 +8,38 @@ source = r'''
 #ifndef XCOLL_INTERACTIONS_H
 #define XCOLL_INTERACTIONS_H
 
-#define  XC_ABSORBED                      -1        // point (no children)
-#define  XC_MULTIPLE_COULOMB_SCATTERING    1        // continous
-#define  XC_PN_ELASTIC                     2        // point (no children)
-#define  XC_PP_ELASTIC                     3        // point (no children)
-#define  XC_SINGLE_DIFFRACTIVE             5        // point (no children)
-#define  XC_COULOMB                        6        // point (no children)
-#define  XC_RUTHERFORD                     7        // point (no children)
-#define  XC_CRYSTAL_CHANNELING           100        // continous
-#define  XC_CRYSTAL_VOLUME_REFLECTION    101        // point (no children)
-#define  XC_CRYSTAL_VOLUME_CAPTURE       102        // point (no children)
-#define  XC_CRYSTAL_DECHANNELING         103        // point (no children)
-#define  XC_CRYSTAL_AMORPHOUS            104        // continous
-#define  XC_CRYSTAL_DRIFT                105        // continous
+#define  XC_UNITIALISED                     0        // NAN  // Do not use
+
+#define  XC_ENTER_JAW                      -1        // JI   // point (no children)    Set ds > 0 if entering later
+#define  XC_EXIT_JAW                       -2        // JO   // point (no children)
+#define  XC_ABSORBED                        1        // A    // point (no children)    Don't use 0 (is default for unitialised)
+#define  XC_MULTIPLE_COULOMB_SCATTERING    13        // MCS  // continuous
+#define  XC_PN_ELASTIC                     14        // PN   // point (no children)
+#define  XC_PP_ELASTIC                     15        // PP   // point (no children)
+#define  XC_SINGLE_DIFFRACTIVE             16        // SD   // point (no children)
+#define  XC_COULOMB                        17        // C    // point (no children)
+#define  XC_RUTHERFORD                     18        // RU   // point (no children)
+#define  XC_CHANNELING                    100        // CH   // continuous
+#define  XC_DECHANNELING                  101        // DCH  // point (no children)
+#define  XC_VOLUME_REFLECTION_TRANS_CH    102        // VRCH // point (no children)    Transition region around +-xpcrit
+#define  XC_VOLUME_REFLECTION             103        // VR   // point (no children)
+#define  XC_VOLUME_REFLECTION_TRANS_MCS   104        // VRAM // point (no children)    Transition region around t_P
+#define  XC_MULTIPLE_COULOMB_TRANS_VR     105        // AMVR // continuous             Transition region around t_P + 2 xpcrit
+#define  XC_VOLUME_CAPTURE                106        // VC   // point (no children)
 
 #endif /* XCOLL_INTERACTIONS_H */
 '''
 
-#int const proc_TRVR        = 100;     // Volume reflection in VR-AM transition region
-#int const proc_TRAM        = 101;     // Amorphous in VR-AM transition region
-
-
 interactions = {
-    int(line.split()[2]): line.split()[1][3:].replace('_',' ').title()
+    int(line.split()[2]): line.split()[1][3:].replace('_',' ').title().\
+                            replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
+                            replace(' Ch',' CH').replace(' Vr',' VR')
+    for line in source.split('\n')
+    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
+}
+
+shortcuts = {
+    int(line.split()[2]): line.split()[4]
     for line in source.split('\n')
     if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
 }

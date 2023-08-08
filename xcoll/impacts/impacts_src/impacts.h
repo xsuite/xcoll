@@ -69,6 +69,7 @@ int64_t CollimatorImpactsData_log(CollimatorImpactsData record, RecordIndex reco
             CollimatorImpactsData_set_child_pdgid(record, i_slot, -1);
         }
     }
+//     printf("Logging %i in slot %i\n", interaction, i_slot);
     return i_slot;
 }
 
@@ -96,6 +97,7 @@ void CollimatorImpactsData_log_child(CollimatorImpactsData record, int64_t i_slo
         CollimatorImpactsData_set_child_z(record, i_slot, -1);
         CollimatorImpactsData_set_child_a(record, i_slot, -1);
         CollimatorImpactsData_set_child_pdgid(record, i_slot, -1);
+//     printf("Slot %i: length %f\n", i_slot, ds);
     }
 }
 

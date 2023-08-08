@@ -11,14 +11,14 @@
 
 
 /*gpufun*/
-void scatter(EverestData restrict coll, LocalParticle* part, double length){
+void scatter(EverestData restrict everest, LocalParticle* part, double length){
 
     // geometry values
-    double aperture = coll->aperture;
-    double offset   = coll->offset;
-    double tilt_L   = coll->tilt_L;
-    double tilt_R   = coll->tilt_R;
-    double side     = coll->side;
+    double aperture = everest->coll->aperture;
+    double offset   = everest->coll->offset;
+    double tilt_L   = everest->coll->tilt_L;
+    double tilt_R   = everest->coll->tilt_R;
+    double side     = everest->coll->side;
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -89,7 +89,7 @@ void scatter(EverestData restrict coll, LocalParticle* part, double length){
         if (zlm > 0.) {
             is_hit = 1;
 
-            double* jaw_result = jaw(coll, part, energy, zlm);
+            double* jaw_result = jaw(everest, part, energy, zlm);
 
             energy = jaw_result[0];
             if (jaw_result[1] == 1){

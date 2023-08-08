@@ -20,9 +20,9 @@ void EverestCrystal_set_material(EverestCrystalData el, LocalParticle* part0){
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 /*gpufun*/
-EverestData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
+EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
 
-    EverestData coll = (EverestData) malloc(sizeof(EverestData_));
+    EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
 
     // Random generator and material
     coll->rng = EverestCrystalData_getp_rutherford_rng(el);
@@ -77,8 +77,30 @@ EverestData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
     coll->ydim            = EverestCrystalData_get_ydim(el);
     coll->orient          = EverestCrystalData_get__orient(el);
     coll->miscut          = EverestCrystalData_get_miscut(el);
+    coll->s_P             = -coll->bend_r*sin(coll->miscut);
+    coll->x_P             = coll->bend_r*cos(coll->miscut);
 
     return coll;
+}
+
+
+/*gpufun*/
+EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData coll){
+    EverestData everest = (EverestData) malloc(sizeof(EverestData_));
+    everest->coll = coll;
+    everest->rescale_scattering = 1;
+#ifndef XCOLL_REFINE_ENERGY
+    // Preinitialise scattering parameters
+    double charge_ratio = LocalParticle_get_charge_ratio(part);
+    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    calculate_scattering(everest, energy);
+    calculate_ionisation_properties(everest, energy);
+    calculate_critical_angle(everest, part, energy);
+    calculate_VI_parameters(everest, part, energy);
+#endif
+    return everest;
 }
 
 
@@ -106,12 +128,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
-    EverestData coll = EverestCrystal_init(el, part0);
-
-    // Preinitialise scattering parameters
-    double const energy0 = LocalParticle_get_energy0(&part0[0]) / 1e9; // Reference energy in GeV
-    calculate_scattering(coll, energy0, 1.);
-    calculate_ionisation_properties(coll, energy0);
+    EverestCollData coll = EverestCrystal_init(el, part0);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -127,19 +144,23 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             if (is_tracking && rng_is_set && ruth_is_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
+                double const s_coll = LocalParticle_get_s(part);
 
                 // Move to collimator frame
                 XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
-                scatter_cry(coll, part, active_length);
+                EverestData everest = EverestCrystal_init_data(part0, coll);
+                scatter_cry(everest, part, active_length);
+                free(everest);
 
                 // Return from collimator frame
                 SRotation_single_particle(part, -sin_zL, cos_zL);
                 XYShift_single_particle(part, -co_x, -co_y);
 
-                // Drift inactive back (only surviving particles)
+                // Surviving particles are put at same numerical s, and drifted inactive back
                 if (LocalParticle_get_state(part) > 0){
+                    LocalParticle_set_s(part, s_coll + active_length);
                     Drift_single_particle(part, inactive_back);
                 }
             }

@@ -7,7 +7,7 @@
 #define XCOLL_EVEREST_ENGINE_H
 
 
-typedef struct EverestData_ {
+typedef struct EverestCollData_ {
     // Collimator properties
     double aperture;   // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     double offset;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
@@ -15,8 +15,8 @@ typedef struct EverestData_ {
     double tilt_R;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     double side;       // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     RandomRutherfordData restrict rng;
-    CollimatorImpactsData restrict record;
-    RecordIndex restrict record_index;
+    CollimatorImpactsData record;
+    RecordIndex record_index;
     // Crystal properties
     double bend_r;
     double bend_ang;
@@ -26,6 +26,8 @@ typedef struct EverestData_ {
     double ydim;
     int8_t orient;
     double miscut;
+    double s_P;
+    double x_P;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
@@ -40,6 +42,11 @@ typedef struct EverestData_ {
     double ai;
     double eum;
     double collnt;
+} EverestCollData_;
+typedef EverestCollData_ *EverestCollData;
+
+typedef struct EverestData_ {
+    EverestCollData coll;
     // Dynamic parameters
     double cprob[6];
     double xintl;
@@ -53,11 +60,18 @@ typedef struct EverestData_ {
     double prob_tail_c4;
     double energy_loss;
     double energy_loss_tail;
-    double xpcrit;
-    double Rcrit;
+    double rescale_scattering;
+    double t_c;
+    double t_c0;
+    double Rc_over_R;
+    double Ang_rms;
+    double Ang_avr;
+    double Vcapt;
+    double t_I;
+    double t_P;
+    double r;
 } EverestData_;
 typedef EverestData_ *EverestData;
-
 
 
 /*gpufun*/

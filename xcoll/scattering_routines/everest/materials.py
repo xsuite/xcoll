@@ -60,8 +60,8 @@ class CrystalMaterial(GeneralMaterial):
     _xofields = { **GeneralMaterial._xofields,
         'crystal_radiation_length': xo.Float64,     # dlri
         'crystal_nuclear_length':   xo.Float64,     # dlyi
-        'crystal_plane_distance':   xo.Float64,     # ai
-        'crystal_potential':        xo.Float64,     # eUm
+        'crystal_plane_distance':   xo.Float64,     # ai  [mm]
+        'crystal_potential':        xo.Float64,     # eum  [eV]
         'nuclear_collision_length': xo.Float64      # collnt [m]
     }
 

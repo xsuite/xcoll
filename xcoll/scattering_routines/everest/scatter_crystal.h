@@ -15,14 +15,14 @@
 //       Workaround: make a struct (with the definition in EverestEngine) that EverestCrystal uses...?
 
 /*gpufun*/
-void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
+void scatter_cry(EverestData restrict everest, LocalParticle* part, double length){
 
     // geometry values
-    double aperture = coll->aperture;
-    double offset   = coll->offset;
-    double tilt_L   = coll->tilt_L;
-    double tilt_R   = coll->tilt_R;
-    double side     = coll->side;
+    double aperture = everest->coll->aperture;
+    double offset   = everest->coll->offset;
+//     double tilt_L   = everest->coll->tilt_L;
+//     double tilt_R   = everest->coll->tilt_R;
+    double side     = everest->coll->side;
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -34,14 +34,13 @@ void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
     double const px_in   = LocalParticle_get_px(part);
     double const y_in    = LocalParticle_get_y(part);
     double const py_in   = LocalParticle_get_py(part);
-    double const p0 = LocalParticle_get_p0c(part) / 1e9;
+    double const p0      = LocalParticle_get_p0c(part) / 1e9;
 
     // TODO: missing correction due to m/m0 (but also wrong in xpart...)
     double energy = p0*ptau_in + e0; // energy in GeV
 
     // Status flags
     int is_hit = 0;
-    int is_abs = 0;
 
     double x = LocalParticle_get_x(part);
 
@@ -64,11 +63,10 @@ void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
         // entrance longitudinal coordinate (keeps) for histograms
 
         // The definition is that the collimator jaw is at x>=0.
-        double* crystal_result = crystal(coll, part, energy, length);
+        double* crystal_result = crystal(everest, part, energy, length);
 
         is_hit = crystal_result[0];
-        is_abs = crystal_result[1];
-        energy = crystal_result[2];
+        energy = crystal_result[1];
         free(crystal_result);
 
         // Transform back to particle coordinates with opening and offset
@@ -87,14 +85,14 @@ void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
 
     // Update energy    ---------------------------------------------------
     // Only particles that hit the jaw and survived need to be updated
-    if (is_hit>0 && is_abs==0){
+    if (is_hit>0 && LocalParticle_get_state(part) > 0){
         double ptau_out = (energy - e0) / (e0 * beta0);
         LocalParticle_update_ptau(part, ptau_out);
     }
 
     // Update 4D coordinates    -------------------------------------------
     // Absorbed particles get their coordinates set to the entrance of collimator
-    if (is_abs>0){
+    if (LocalParticle_get_state(part) < 0){
         LocalParticle_set_x(part, x_in);
         LocalParticle_set_px(part, px_in);
         LocalParticle_set_y(part, y_in);
@@ -108,7 +106,7 @@ void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length) );
     }
     // Hit and survived particles need correcting:
-    if (is_hit>0 && is_abs==0){
+    if (is_hit>0 && LocalParticle_get_state(part) > 0){
         double px  = LocalParticle_get_px(part);
         double py  = LocalParticle_get_py(part);
         double rvv = LocalParticle_get_rvv(part);
@@ -117,16 +115,6 @@ void scatter_cry(EverestData restrict coll, LocalParticle* part, double length){
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
         // then half the length with the new angles:
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
-    }
-
-    // Update s    --------------------------------------------------------
-    if (is_abs==0){
-        LocalParticle_add_to_s(part, length);
-    }
-
-    // Update state    ----------------------------------------------------
-    if (is_abs > 0){
-        LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
     }
 
     return;

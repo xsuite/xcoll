@@ -109,9 +109,9 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 
 /*gpufun*/
-double* mcs(EverestData restrict coll, LocalParticle* part, double zlm1, double p, double x, double xp, double z, double zp) {
+double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, double p, double x, double xp, double z, double zp) {
 
-    double const radl = coll->radl;
+    double const radl = everest->coll->radl;
     double s;
     double theta = 13.6e-3/p;
     double h   = 0.001;
@@ -199,7 +199,7 @@ double* tetat(LocalParticle* part, double t, double p) {
 
 
 /*gpufun*/
-double* gettran(EverestData restrict coll, LocalParticle* part, double inter, double p) {
+double* gettran(EverestData restrict everest, LocalParticle* part, double inter, double p) {
 
     double* res = (double*)malloc(2 * sizeof(double));
 
@@ -207,27 +207,27 @@ double* gettran(EverestData restrict coll, LocalParticle* part, double inter, do
     double result = 0;
 
     if (inter==2) { // Nuclear Elastic
-        result = RandomExponential_generate(part)/coll->bn;
+        result = RandomExponential_generate(part)/everest->bn;
 
     } else if (inter==3) { // pp Elastic
-        result = RandomExponential_generate(part)/coll->bpp;
+        result = RandomExponential_generate(part)/everest->bpp;
 
     } else if (inter==4) { // Single Diffractive
-        double xm2 = exp(RandomUniform_generate(part) * coll->xln15s);
+        double xm2 = exp(RandomUniform_generate(part) * everest->xln15s);
         double bsd = 0;
-        p = p * (1 - xm2/coll->ecmsq);
+        p = p * (1 - xm2/everest->ecmsq);
     
         if (xm2 < 2) {
-            bsd = 2 * coll->bpp;
+            bsd = 2 * everest->bpp;
         } else if ((xm2 >= 2) & (xm2 <= 5)) {
-            bsd = ((106.0 - 17.0*xm2)*coll->bpp)/36.0;
+            bsd = ((106.0 - 17.0*xm2)*everest->bpp)/36.0;
         } else {
-            bsd = (7*coll->bpp)/12.0;
+            bsd = (7*everest->bpp)/12.0;
         }
         result = RandomExponential_generate(part)/bsd;
 
     } else if (inter==5) { // Coulomb
-        result = RandomRutherford_generate(coll->rng, part);
+        result = RandomRutherford_generate(everest->coll->rng, part);
     }
 
     res[0] = result;
@@ -237,12 +237,12 @@ double* gettran(EverestData restrict coll, LocalParticle* part, double inter, do
 
 
 /*gpufun*/
-int ichoix(EverestData restrict coll, LocalParticle* part) {
+int ichoix(EverestData restrict everest, LocalParticle* part) {
 
     double aran = RandomUniform_generate(part);
     int i;
     for (i = 0; i < 5; ++i) {
-        if (aran <= coll->cprob[i]) {
+        if (aran <= everest->cprob[i]) {
             break;
         }
     }
@@ -251,7 +251,7 @@ int ichoix(EverestData restrict coll, LocalParticle* part) {
 
 
 /*gpufun*/
-double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm) {
+double* jaw(EverestData restrict everest, LocalParticle* part, double p, double zlm) {
 
     double* result = (double*)malloc(3 * sizeof(double));
 
@@ -273,8 +273,8 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
     // Get monte-carlo interaction length.
     while (1) {
 
-        calculate_ionisation_properties(coll, p);
-        double zlm1 = coll->xintl*RandomExponential_generate(part);
+        calculate_ionisation_properties(everest, p);
+        double zlm1 = everest->xintl*RandomExponential_generate(part);
                         
         // If the monte-carlo interaction length is longer than the
         // remaining collimator length, then put it to the remaining
@@ -282,7 +282,7 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
         // LAST STEP IN ITERATION LOOP
         if (zlm1 > rlen) { 
             zlm1 = rlen;
-            double* res = mcs(coll, part, zlm1, p, x, xp, z, zp);
+            double* res = mcs(everest, part, zlm1, p, x, xp, z, zp);
             s = res[0];
             x = res[1];
             xp = res[2];
@@ -291,13 +291,13 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
             free(res);
 
             s = zlm - rlen + s;
-            m_dpodx = calcionloss(coll, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
+            m_dpodx = calcionloss(everest, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
             p = p-m_dpodx*s; // This is correct: ionisation loss is only calculated and applied at end of while (break)
             break;
         }
         // Otherwise do multi-coulomb scattering.
         // REGULAR STEP IN ITERATION LOOP
-        double* res1 = mcs(coll, part, zlm1, p, x, xp, z, zp);
+        double* res1 = mcs(everest, part, zlm1, p, x, xp, z, zp);
         s = res1[0];
         x = res1[1];
         xp = res1[2];
@@ -312,7 +312,7 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
 
         if(x <= 0) {
             s = zlm - rlen + s;
-            m_dpodx = calcionloss(coll, part, rlen);  // TODO: should not be rlen but s after updating
+            m_dpodx = calcionloss(everest, part, rlen);  // TODO: should not be rlen but s after updating
             p = p-m_dpodx*s;  // correct
             break;
         }
@@ -322,11 +322,11 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
         // and return.
         // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
 
-        int inter = ichoix(coll, part);
+        int inter = ichoix(everest, part);
         nabs = inter;
         if (inter == 1) {
             s = (zlm-rlen)+zlm1;
-            m_dpodx = calcionloss(coll, part, rlen);
+            m_dpodx = calcionloss(everest, part, rlen);
             p = p-m_dpodx*s;
             break;
         }
@@ -341,7 +341,7 @@ double* jaw(EverestData restrict coll, LocalParticle* part, double p, double zlm
 
         // Gettran returns some monte carlo number, that, as I believe, gives the rms transverse momentum transfer.
 
-        double* res2 = gettran(coll, part, inter, p);
+        double* res2 = gettran(everest, part, inter, p);
         t = res2[0];
         p = res2[1];
         free(res2);
