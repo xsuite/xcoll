@@ -28,6 +28,7 @@ typedef struct EverestCollData_ {
     double miscut;
     double s_P;
     double x_P;
+    double t_VImax;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;

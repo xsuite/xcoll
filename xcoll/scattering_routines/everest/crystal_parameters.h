@@ -112,7 +112,7 @@ void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, 
     double c3 =  1.7;   // Fitting coefficient
     if (ratio > 1.) {
         // no channeling possibile
-        Ang_avr = c1*t_c0*5.e-2/ratio;        // Average angle reflection
+        Ang_avr = c1*t_c0*5.e-2/ratio;         // Average angle reflection
         Ang_rms = c3*0.42*t_c0*sin(1.4/ratio); // RMS scattering
         everest->Vcapt = 0.;                   // Probability of VC is zero
     } else if (ratio > 1./3.) {

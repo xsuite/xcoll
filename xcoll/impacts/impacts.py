@@ -77,7 +77,7 @@ class CollimatorImpacts(xt.BeamElement):
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
                 'ds':                self.ds[:n_rows],
                 **{
-                    f'{p} {val}': getattr(self, f'{p}_{val}')[:n_rows]
+                    f'{p}_{val}': getattr(self, f'{p}_{val}')[:n_rows]
                     for p in ['parent', 'child']
                     for val in ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }

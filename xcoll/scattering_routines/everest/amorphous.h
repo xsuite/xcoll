@@ -264,11 +264,22 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
         pc = Amorphous(everest, part, pc, length - length_nucl);
 
     } else {
-        // MCS to volume interaction
-        pc = amorphous_transport(everest, part, pc, length_VI);
-#ifdef XCOLL_REFINE_ENERGY
-        calculate_VI_parameters(everest, part, pc);
-#endif
+        // TODO: we believe we should MCS to the VI point. However, this changes the angles, such that
+        // by the time we arrive, the angle is certainly not correct anymore for VR or VC.
+        // This is why in the original code the proton is just drifted to the VI point (not even ionloss!).
+        // If we want to implement this, we have to solve the L where xp_MCS == t_VI. This is highly non-trivial
+        // because t_VI depends on the exact x position, which changes during MCS.
+        // Furthermore, the VRAM region implementation is not compatible with MCS to the VI point.
+        //
+//         // MCS to volume interaction
+//         pc = amorphous_transport(everest, part, pc, length_VI);
+// #ifdef XCOLL_REFINE_ENERGY
+//         calculate_VI_parameters(everest, part, pc);
+// #endif
+        int64_t i_slot = CollimatorImpactsData_log(record, record_index, part, XC_DRIFT_TO_VI);
+        Drift_single_particle_4d(part, length_VI);
+        CollimatorImpactsData_log_child(record, i_slot, part, length_VI);
+
         // Are we reflecting or captured?
         if (RandomUniform_generate(part) > everest->Vcapt) {
             // Volume Reflection

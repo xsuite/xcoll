@@ -62,8 +62,10 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
     // TODO: this should stay here
-    coll->bend_r     = EverestCrystalData_get__bending_radius(el);
-    coll->bend_ang   = EverestCrystalData_get__bending_angle(el);
+    double R         = EverestCrystalData_get__bending_radius(el);
+    coll->bend_r     = R;
+    double t_R       = EverestCrystalData_get__bending_angle(el);
+    coll->bend_ang   = t_R;
     coll->tilt       = EverestCrystalData_get_align_angle(el) + coll->tilt_L;   // TODO: only left-sided crystals
     // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
     // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5
@@ -79,6 +81,13 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
     coll->miscut          = EverestCrystalData_get_miscut(el);
     coll->s_P             = -coll->bend_r*sin(coll->miscut);
     coll->x_P             = coll->bend_r*cos(coll->miscut);
+    double Rb;
+    if (coll->miscut >0){
+        Rb = R - coll->xdim;
+    } else {
+        Rb = R;
+    }
+    coll->t_VImax = atan( (Rb*sin(t_R) - coll->s_P) / (R - Rb*cos(t_R) - coll->x_P) );
 
     return coll;
 }
