@@ -8,6 +8,12 @@
 #include <math.h>
 #include <stdio.h>
 
+/*gpufun*/
+void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* part0){
+    MaterialData material = EverestCollimatorData_getp__material(el);
+    RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
+    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+}
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
@@ -19,7 +25,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
-    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     // Collimator properties
     double const length     = EverestCollimatorData_get_active_length(el);
@@ -48,10 +53,10 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
         } else {
             // Check collimator initialisation
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
-            int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
-            int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
+            int8_t rng_is_set  = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
+            int8_t ruth_is_set = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
-            if (is_tracking && rng_set && ruth_set) {
+            if (is_tracking && rng_is_set && ruth_is_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 

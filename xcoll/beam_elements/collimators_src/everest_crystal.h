@@ -9,6 +9,14 @@
 #include <stdio.h>
 
 
+
+/*gpufun*/
+void EverestCrystal_set_material(EverestCrystalData el, LocalParticle* part0){
+    CrystalMaterialData material = EverestCrystalData_getp__material(el);
+    RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
+    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+}
+
 /*gpufun*/
 void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
     int8_t active      = EverestCrystalData_get_active(el);
@@ -19,7 +27,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
-    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 
     // Crystal properties
     double length  = EverestCrystalData_get_active_length(el);
@@ -60,6 +67,13 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     double const cry_orient = EverestCrystalData_get__orient(el);
     double const cry_miscut = EverestCrystalData_get_miscut(el);
 
+    // Impact table
+    CollimatorImpactsData record = EverestCrystalData_getp_internal_record(el, part0);
+    RecordIndex record_index = NULL;
+    if (record){
+        record_index = CollimatorImpactsData_getp__index(record);
+    }
+
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -68,10 +82,10 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         } else {
             // Check collimator initialisation
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
-            int8_t rng_set     = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
-            int8_t ruth_set    = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
+            int8_t rng_is_set  = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
+            int8_t ruth_is_set = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
 
-            if (is_tracking && rng_set && ruth_set) {
+            if (is_tracking && rng_is_set && ruth_is_set) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 
@@ -83,7 +97,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 scatter_cry(part, length, material, rng, cos_zL, sin_zL, c_aperture, c_offset,
                             side, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
-                            cry_miscut);
+                            cry_miscut, record, record_index);
 
                 // Return from closed orbit
                 LocalParticle_add_to_x(part, co_x);

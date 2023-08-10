@@ -84,7 +84,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double r2 = 0;
     double v1 = 0;
     double v2 = 0;
-    static double result[2];
+    double* result = (double*)malloc(2 * sizeof(double));
 
     while (1) {
         v1 = 2*RandomUniform_generate(part) - 1;
@@ -119,7 +119,7 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     double bn0 = 0.4330127019;
     double rlen0 = zlm1/radl;
     double rlen  = rlen0;
-    static double result[5];
+    double* result = (double*)malloc(5 * sizeof(double));
 
     x     = (x/theta)/radl;
     xp    = xp/theta;
@@ -143,6 +143,7 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
         double* res = scamcs(part, x,xp,s);
         x  = res[0];
         xp = res[1];
+        free(res);
         if (x <= 0) {
             s = (rlen0-rlen)+ s;
             break; // go to 20
@@ -158,6 +159,7 @@ double* mcs(LocalParticle* part, MaterialData material, double zlm1, double p, d
     double* res = scamcs(part, z,zp,s);
     z  = res[0];
     zp = res[1];
+    free(res);
 
     result[0]  = s*radl;
     result[1]  = (x*theta)*radl;
@@ -176,7 +178,7 @@ double* tetat(LocalParticle* part, double t, double p) {
     double va2 = 0;
     double vb2 = 0;
     double r2  = 0;
-    static double result[2];
+    double* result = (double*)malloc(2 * sizeof(double));
     
     while (1) {
         va  = 2*RandomUniform_generate(part) - 1;
@@ -198,7 +200,8 @@ double* tetat(LocalParticle* part, double t, double p) {
 /*gpufun*/
 double* gettran(RandomRutherfordData rng, LocalParticle* part, double inter, double p, struct ScatteringParameters scat) {
 
-    static double res[2];
+    double* res = (double*)malloc(2 * sizeof(double));
+
     // Neither if-statements below have an else, so defaulting function return to zero.
     double result = 0;
 
@@ -307,8 +310,8 @@ int ichoix(LocalParticle* part, struct ScatteringParameters scat) {
 /*gpufun*/
 double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng, struct ScatteringParameters scat,
             double p, double zlm, double x, double xp, double z, double zp) {
-    
-    static double result[7];
+
+    double* result = (double*)malloc(7 * sizeof(double));
     double s;
     double nabs = 0;
     double rlen = zlm;
@@ -334,6 +337,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
             xp = res[2];
             z = res[3];
             zp = res[4];
+            free(res);
 
             s = (zlm-rlen)+s;
             m_dpodx = calcionloss(part, p, rlen, material);  // DM routine to include tail
@@ -348,6 +352,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         xp = res1[2];
         z = res1[3];
         zp = res1[4];
+        free(res1);
 
         // Check if particle is outside of collimator (X.LT.0) after
         // MCS. If yes, calculate output longitudinal position (s),
@@ -388,6 +393,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         double* res2 = gettran(rng, part, inter, p, scat);
         t = res2[0];
         p = res2[1];
+        free(res2);
 
         // Tetat calculates from the rms transverse momentum transfer in
         // monte-carlo fashion the angle changes for x and z planes. The
@@ -396,6 +402,7 @@ double* jaw(LocalParticle* part, MaterialData material, RandomRutherfordData rng
         double* res3 = tetat(part,t,p);
         tx = res3[0]; 
         tz = res3[1];
+        free(res3);
 
         // Apply angle changes
         xp = xp + tx;
