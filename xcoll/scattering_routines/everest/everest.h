@@ -7,6 +7,13 @@
 #define XCOLL_EVEREST_ENGINE_H
 
 /*gpufun*/
+void Drift_single_particle_4d(LocalParticle* part, double length){
+    double zeta = LocalParticle_get_zeta(part);
+    Drift_single_particle(part, length);
+    LocalParticle_set_zeta(part, zeta);
+}
+
+/*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);

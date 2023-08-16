@@ -226,6 +226,8 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         y_out  =  z*cRRot -  x*sRRot;
         xp_out = xp*cRRot + zp*sRRot;
         yp_out = zp*cRRot - xp*sRRot;
+    } else {
+        Drift_single_particle_4d(part, length);
     }
 
     LocalParticle_set_x(part, x_out);
