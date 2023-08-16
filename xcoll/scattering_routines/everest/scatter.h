@@ -226,14 +226,19 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         y_out  =  z*cRRot -  x*sRRot;
         xp_out = xp*cRRot + zp*sRRot;
         yp_out = zp*cRRot - xp*sRRot;
+
+        LocalParticle_set_x(part, x_out);
+        LocalParticle_set_px(part, xp_out/rpp_in);
+        LocalParticle_set_y(part, y_out);
+        LocalParticle_set_py(part, yp_out/rpp_in);
+
+        if (val_part_abs==0){
+            LocalParticle_add_to_s(part, length);
+        }
+
     } else {
         Drift_single_particle_4d(part, length);
     }
-
-    LocalParticle_set_x(part, x_out);
-    LocalParticle_set_px(part, xp_out/rpp_in);
-    LocalParticle_set_y(part, y_out);
-    LocalParticle_set_py(part, yp_out/rpp_in);
 
     double energy_out = p_out;       //  Cannot assign energy directly to LocalParticle as it would update dependent variables, but needs to be corrected first!
 
@@ -269,12 +274,6 @@ void scatter(LocalParticle* part, double length, MaterialData material, RandomRu
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in2*rpp_in, py_in2*rpp_in, length/2) );
         // then half the length with the new angles:
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
-    }
-
-    // Update s    --------------------------------------------------------
-    // TODO: move absorbed particles to last impact location
-    if (val_part_abs==0){
-        LocalParticle_add_to_s(part, length);
     }
 
     // Update state    ----------------------------------------------------
