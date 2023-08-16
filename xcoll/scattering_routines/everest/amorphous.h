@@ -149,10 +149,9 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
         } else {
             // We are on the MCS side: modified angles
             i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
-            dya *= -3.*(xp_rel-t_P)/(2.*t_c);
-            // TODO: why no random number?
-            kxmcs = dya;
-            kymcs = dya;
+            dya *= 1 - (xp_rel-t_P)/(2.*t_c);
+            kxmcs = dya*RandomNormal_generate(part);
+            kymcs = dya*RandomNormal_generate(part);
         }
 
     } else {

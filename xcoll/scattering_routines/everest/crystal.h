@@ -19,7 +19,7 @@ double interact(EverestData restrict everest, LocalParticle* part, double pc, do
 
     double const rpp = LocalParticle_get_rpp(part);
     double const x   = LocalParticle_get_x(part);
-    double const xp  = LocalParticle_get_px(part)*rpp;
+    double const xp  = LocalParticle_get_xp(part);
     double const y   = LocalParticle_get_y(part);
 
     double ymin = -ydim/2.;
