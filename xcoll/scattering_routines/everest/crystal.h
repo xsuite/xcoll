@@ -17,7 +17,6 @@ double interact(EverestData restrict everest, LocalParticle* part, double pc, do
     double ydim     = everest->coll->ydim;
     double alayer   = everest->coll->amorphous_layer;
 
-    double const rpp = LocalParticle_get_rpp(part);
     double const x   = LocalParticle_get_x(part);
     double const xp  = LocalParticle_get_xp(part);
     double const y   = LocalParticle_get_y(part);

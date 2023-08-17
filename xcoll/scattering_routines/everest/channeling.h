@@ -150,11 +150,16 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
     double Chann = sqrt(1 - pow(alpha,2.))*(1. - ratio);
 
     if (RandomUniform_generate(part) > Chann) {
+#ifdef XCOLL_TRANSITION
         // TRANSITION
+        // We feel that this transition is not needed, as it interpolates between two regions
+        // (adding a slant below the channeling region) which does not seem to be present in
+        // experimental data.
 #ifdef XCOLL_REFINE_ENERGY
         calculate_VI_parameters(everest, part, pc);
 #endif
         volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
+#endif
         pc = Amorphous(everest, part, pc, length);
 
     } else {

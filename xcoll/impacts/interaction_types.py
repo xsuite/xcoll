@@ -26,7 +26,6 @@ source = r'''
 #define  XC_VOLUME_REFLECTION_TRANS_MCS   104        // VRAM // point (no children)    Transition region around t_P
 #define  XC_MULTIPLE_COULOMB_TRANS_VR     105        // AMVR // continuous             Transition region around t_P + 2 xpcrit
 #define  XC_VOLUME_CAPTURE                106        // VC   // point (no children)
-#define  XC_DRIFT_TO_VI                   107        // DRVI // continuous             Drift to the VI point (temporarily)
 
 #endif /* XCOLL_INTERACTIONS_H */
 '''

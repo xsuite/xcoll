@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// #define XCOLL_TRANSITION
+
 
 /*gpufun*/
 double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
@@ -83,8 +85,10 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
     RecordIndex record_index     = everest->coll->record_index;
     int64_t i_slot;
 
+
     double Ang_avr = everest->Ang_avr;
     double Ang_rms = everest->Ang_rms;
+
     if (transition == XC_VOLUME_REFLECTION_TRANS_CH){
         // We are in transition from CH to VR
         double xp = LocalParticle_get_xp(part);
@@ -95,18 +99,19 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
     } else if (transition == XC_VOLUME_REFLECTION_TRANS_MCS){
         // We are in transition from VR to MCS
-        double t_c = everest->t_c;
-        double t_P = everest->t_P;
-        double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
-        // TODO: where does 3 come from
-        Ang_rms *= -3.*(xp_rel-t_P)/(2.*t_c); // TODO: why no random number?
+//         double t_c = everest->t_c;
+//         double t_P = everest->t_P;
+//         double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
+//         // TODO: where does 3 come from
+//         Ang_rms *= -3.*(xp_rel-t_P)/(2.*t_c); // TODO: why no random number?
+        Ang_rms *= RandomNormal_generate(part);
         i_slot = CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_MCS);
 
     } else {
         Ang_rms *= RandomNormal_generate(part);
         i_slot = CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_REFLECTION);
-
     }
+
     double t_VR = Ang_avr + Ang_rms;
     LocalParticle_add_to_xp(part, t_VR);
     CollimatorImpactsData_log_child(record, i_slot, part, 0);
@@ -115,7 +120,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 // Amorphous transport is just Multiple Coulomb scattering
 /*gpufun*/
-double amorphous_transport(EverestData restrict everest, LocalParticle* part, double pc, double length) {
+double amorphous_transport(EverestData restrict everest, LocalParticle* part, double pc, double length, int8_t transition) {
 
     CollimatorImpactsData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -126,40 +131,20 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     // TODO: missing factor (1 + 0.038*log( L / dlri) )  ( *Z if not protons)
     double dya = (13.6/pc)*sqrt(length/everest->coll->dlri)*1.0e-3; // RMS of coloumb scattering MCS (rad)
     double kxmcs, kymcs;
-    
-    // Are we in a transition region?
-    calculate_opening_angle(everest, part);
-#ifdef XCOLL_REFINE_ENERGY
-    calculate_critical_angle(everest, part, pc);
-#endif
-    double t_c = everest->t_c;
-    double t_P = everest->t_P;
-    double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
-    if (xp_rel > 0 && xp_rel <= t_P + 2*t_c){
-       // We are in a transition region
-        double prob_MCS = (xp_rel - t_P) / (2*t_c);
-        if (RandomUniform_generate(part) > prob_MCS){
-            // We are on the VR side
-            volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
-            // Now normal MCS
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
-            kxmcs = dya*RandomNormal_generate(part);
-            kymcs = dya*RandomNormal_generate(part);
 
-        } else {
-            // We are on the MCS side: modified angles
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
-            dya *= 1 - (xp_rel-t_P)/(2.*t_c);
-            kxmcs = dya*RandomNormal_generate(part);
-            kymcs = dya*RandomNormal_generate(part);
-        }
-
+    if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
+        // Transition MCS
+        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
+//         double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
+//         double t_P = everest->t_P;
+//         double t_c = everest->t_c;
+//         dya *= 1 - (xp_rel-t_P)/(2.*t_c);
     } else {
-        // normal MCS
+        // Normal MCS
         i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
-        kxmcs = dya*RandomNormal_generate(part);
-        kymcs = dya*RandomNormal_generate(part);
     }
+    kxmcs = dya*RandomNormal_generate(part);
+    kymcs = dya*RandomNormal_generate(part);
 
     // Transport of Multiple Coulomb Scattering
     Drift_single_particle_4d(part, length);
@@ -232,53 +217,19 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
     double length_VI = everest->r * sin(xp - everest->t_I) * cos(xp);
     // If length_VI is negative, VI is not possible, so set to a big value
     if (length_VI < 0) {length_VI = 1e10;}
+    // Calculate extra length to transition region between VR and AM
+    double length_VR_trans = everest->r * sin(xp - everest->t_I - 2.*everest->t_c) * cos(xp - 2.*everest->t_c);
+    if (length_VR_trans < 0) {length_VR_trans = 1e10;}
 
-// printf("Amorphous:  L: %f,  L_E: %f,  L_n: %f,  L_VI: %f\n", length, length_exit, length_nucl, length_VI);
     // ------------------------------------------------------------------------
     // Compare the 3 lengths: the first one encountered is what will be applied
     // ------------------------------------------------------------------------
-    if (length_exit <= fmin(length_nucl, length_VI)){
-        // MCS to exit point
-        pc = amorphous_transport(everest, part, pc, length_exit);
-        // Now drift the remaining
-        // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
-        double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
-        if (s3 < fmin(s1, s2) && s4 < s2){
-            // We drift until re-entry
-            Drift_single_particle_4d(part, s4 - exit_point);
-            // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, pc, length - length_exit - s4 + exit_point);
-        } else {
-            // Drift leftover out of the crystal
-            CollimatorImpactsData_log(record, record_index, part, XC_EXIT_JAW);
-            Drift_single_particle_4d(part, length - length_exit);
-        }
-
-    } else if (length_nucl < length_VI) {
-        // MCS to nuclear interaction
-        pc = amorphous_transport(everest, part, pc, length_nucl);
-        // interact
-        pc = nuclear_interaction(everest, part, pc);
-        // We call the main Amorphous function for the leftover
-        pc = Amorphous(everest, part, pc, length - length_nucl);
-
-    } else {
-        // TODO: we believe we should MCS to the VI point. However, this changes the angles, such that
-        // by the time we arrive, the angle is certainly not correct anymore for VR or VC.
-        // This is why in the original code the proton is just drifted to the VI point (not even ionloss!).
-        // If we want to implement this, we have to solve the L where xp_MCS == t_VI. This is highly non-trivial
-        // because t_VI depends on the exact x position, which changes during MCS.
-        // Furthermore, the VRAM region implementation is not compatible with MCS to the VI point.
-        //
-//         // MCS to volume interaction
-//         pc = amorphous_transport(everest, part, pc, length_VI);
-// #ifdef XCOLL_REFINE_ENERGY
-//         calculate_VI_parameters(everest, part, pc);
-// #endif
-        int64_t i_slot = CollimatorImpactsData_log(record, record_index, part, XC_DRIFT_TO_VI);
-        Drift_single_particle_4d(part, length_VI);
-        CollimatorImpactsData_log_child(record, i_slot, part, length_VI);
-
+    if (length_VI <= fmin(length_nucl, length_exit)){
+        // MCS to volume interaction
+        pc = amorphous_transport(everest, part, pc, length_VI, 0);
+#ifdef XCOLL_REFINE_ENERGY
+        calculate_VI_parameters(everest, part, pc);
+#endif
         // Are we reflecting or captured?
         if (RandomUniform_generate(part) > everest->Vcapt) {
             // Volume Reflection
@@ -291,6 +242,53 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_CAPTURE);
             // We call the main Channel function for the leftover
             pc = Channel(everest, part, pc, length - length_VI);
+        }
+
+#ifdef XCOLL_TRANSITION
+    } else if (length_VR_trans <= fmin(length_nucl, length_exit)){
+        // Transition region between VR and AM for t_P < xp - tI < t_P + 2t_c
+#ifdef XCOLL_REFINE_ENERGY
+        calculate_critical_angle(everest, part, pc);
+#endif
+        double xp_rel = xp - everest->t_I;
+        double t_P = everest->t_P;
+        double t_c = everest->t_c;
+        double prob_MCS = (xp_rel - t_P) / (2*t_c);
+        if (RandomUniform_generate(part) > prob_MCS){
+            // We are on the VR side
+            pc = amorphous_transport(everest, part, pc, length_VR_trans, 0);
+            volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
+            pc = amorphous_transport(everest, part, pc, length - length_VR_trans, 0);
+        } else {
+            // We are on the AM side
+            pc = amorphous_transport(everest, part, pc, length, XC_MULTIPLE_COULOMB_TRANS_VR);
+        }
+#endif
+
+    } else if (length_nucl < length_exit) {
+        // MCS to nuclear interaction
+        pc = amorphous_transport(everest, part, pc, length_nucl, 0);
+        // interact
+        pc = nuclear_interaction(everest, part, pc);
+        // We call the main Amorphous function for the leftover
+        pc = Amorphous(everest, part, pc, length - length_nucl);
+
+    } else {
+        // Exit crystal
+        // MCS to exit point
+        pc = amorphous_transport(everest, part, pc, length_exit, 0);
+        // Now drift the remaining
+        // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
+        double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
+        if (s3 < fmin(s1, s2) && s4 < s2){
+            // We drift until re-entry
+            Drift_single_particle_4d(part, s4 - exit_point);
+            // We call the main Amorphous function for the leftover
+            pc = Amorphous(everest, part, pc, length - length_exit - s4 + exit_point);
+        } else {
+            // Drift leftover out of the crystal
+            CollimatorImpactsData_log(record, record_index, part, XC_EXIT_JAW);
+            Drift_single_particle_4d(part, length - length_exit);
         }
     }
 
