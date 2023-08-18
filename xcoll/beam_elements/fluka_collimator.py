@@ -47,4 +47,4 @@ class FlukaCollimator(BaseCollimator):
         super().__init__(**kwargs)
 
     def track(self, part):
-        track(part)
+        track(self, part)

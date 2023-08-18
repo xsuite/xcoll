@@ -55,7 +55,7 @@ class FlukaEngine(xo.HybridClass):
             self._flukaio_connected = False
             self._warning_given = False
             kwargs.setdefault('network_port', 0)
-            kwargs.setdefault('n_alloc', 50000)
+            kwargs.setdefault('n_alloc', 500000)
 
             # Get paths to executables
             if fluka is None:

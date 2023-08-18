@@ -10,8 +10,9 @@ def make_ion_from_properties(q, m):
     amu = 931.494061e6
     A = np.array(np.round(m/amu), dtype=np.int32)
     Z = np.array(np.round(q), dtype=np.int32)
-    # A, Z, PDG
-    return A, Z, np.array([ 1000000000 + z*10000 + a*10 for z, a in zip(Z,A)], dtype=np.int32)
+    pdgid = np.array([ 2212 if a == 1 and z == 1 else 1000000000 + z*10000 + a*10
+                      for z, a in zip(Z,A)], dtype=np.int32)
+    return A, Z, pdgid
     
 # TODO: mass info ?
 def get_particle_info_from_pdgid(pdgid):

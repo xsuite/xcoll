@@ -46,7 +46,7 @@ module mod_fluka
   ! HION variables that are only used for FLUKA
   ! ien0,ien1: ion energy entering/leaving the collimator
   real(kind=fPrec),    public :: ien0, ien1
-  integer(kind=int16), public :: nnuc0,nnuc1
+  integer(kind=int32), public :: nnuc0,nnuc1
 
   ! FlukaIO Connection parameters
   character(len = 255), public  :: fluka_host
@@ -125,9 +125,9 @@ module mod_fluka
   real(kind=fPrec), public :: fluka_pc0    ! [GeV/c]
   real(kind=fPrec), public :: fluka_mass0  ! [GeV/c2]
   real(kind=fPrec), public :: fluka_brho0  ! [Tm]
-  integer(kind=int16),          public :: fluka_chrg0  ! []
-  integer(kind=int16),          public :: fluka_a0     ! nucelon number (hisix)
-  integer(kind=int16),          public :: fluka_z0     ! nuclear charge
+  integer(kind=int32),          public :: fluka_chrg0  ! []
+  integer(kind=int32),          public :: fluka_a0     ! nucelon number (hisix)
+  integer(kind=int32),          public :: fluka_z0     ! nuclear charge
 
   save
 
@@ -258,7 +258,7 @@ contains
     ! Fluka I/O parameters
     integer(kind=int32)         :: flid, flgen
     real(kind=fPrec)  :: flwgt, flx, fly, flz, flxp, flyp, flzp, flpc, flm, flt
-    integer(kind=int16)         :: flaa, flzz, flq
+    integer(kind=int32)         :: flaa, flzz, flq
     integer(kind=int8)          :: mtype
 
     integer(kind=int32)         :: flpdgid
@@ -316,9 +316,9 @@ contains
     real(kind=fPrec) :: etot(max_part)
 
     real(kind=fPrec) :: mass(max_part)
-    integer(kind=int16) :: aa(max_part)
-    integer(kind=int16) :: zz(max_part)
-    integer(kind=int16) :: qq(max_part)
+    integer(kind=int32) :: aa(max_part)
+    integer(kind=int32) :: zz(max_part)
+    integer(kind=int32) :: qq(max_part)
     integer(kind=int32) :: pdg_id(max_part)
     integer(kind=int32) :: partID(max_part)
     integer(kind=int32) :: parentID(max_part)
@@ -329,10 +329,12 @@ contains
 
     fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
                          partID, parentID, partWeight, spinx, spiny, spinz)
+    PRINT *, "Sent all particles (return code ", fluka_send_receive, ")"
     if(fluka_send_receive.lt.0) return
 
     fluka_send_receive = fluka_receive(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
                          partID, parentID, partWeight, spinx, spiny, spinz)
+    PRINT *, "Received all particles (return code ", fluka_send_receive, ")"
   end function fluka_send_receive
 
   !----------------------------------------------------------------------------
@@ -355,9 +357,9 @@ contains
     real(kind=fPrec) :: etot(max_part)
 
     real(kind=fPrec) :: mass(max_part)
-    integer(kind=int16) :: aa(max_part)
-    integer(kind=int16) :: zz(max_part)
-    integer(kind=int16) :: qq(max_part)
+    integer(kind=int32) :: aa(max_part)
+    integer(kind=int32) :: zz(max_part)
+    integer(kind=int32) :: qq(max_part)
     integer(kind=int32) :: pdg_id(max_part)
     integer(kind=int32) :: partID(max_part)
     integer(kind=int32) :: parentID(max_part)
@@ -369,7 +371,7 @@ contains
     ! Fluka I/O parameters
     integer(kind=int32) :: flid, flgen
     real(kind=fPrec)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
-    integer(kind=int16) :: flaa, flzz, flq
+    integer(kind=int32) :: flaa, flzz, flq
     integer(kind=int8)  :: mtype
 
     integer(kind=int32) :: flpdgid
@@ -386,84 +388,76 @@ contains
 
     n = ntsendipt(fluka_cid, turn, ipt)
     if(n.lt.0) then
-      write(fluka_log_unit,'(A,i0,A)') "# FlukaIO error: ", n, " - Error sending Insertion Point"
-      fluka_cid = -1
-      fluka_send = n
-      return
+        PRINT *, "FlukaIO error (return code ", n, ") - Error sending Insertion Point"
+        fluka_cid = -1
+        fluka_send = n
+        return
     end if
     fluka_last_sent_mess=FLUKA_IPT
+    PRINT *, "Sent insertion point to FLUKA (return code ", n, ")"
 
     fluka_nsent = 0
     fluka_nrecv = 0
     mtype = 0
 
-!   atomic number:
-!    flzz = 1
-!   mass number:
-!    flaa = 1
-!   particle mass [GeV/c2]:
-!    flm  = fluka_mass0
-
     do j=1, npart
 
-      flid  = partID(j)
-      flgen = parentID(j)
-      flwgt = partWeight(j)
+        flid  = partID(j)
+        flgen = parentID(j)
+        flwgt = partWeight(j)
 
-      flx   = xv1(j) * c1m1  ! from [mm] to [cm]
-      fly   = xv2(j) * c1m1  ! from [mm] to [cm]
-      flz   = zero
+        flx   = xv1(j) * c1m1  ! from [mm] to [cm]
+        fly   = xv2(j) * c1m1  ! from [mm] to [cm]
+        flz   = zero
 
-      flxp  = yv1(j) * c1m3 ! from [1.0E-03] to [1.0]
-      flyp  = yv2(j) * c1m3 ! from [1.0E-03] to [1.0]
-      ! director cosines:
-      ! full transformation:
-      flzp  = sqrt( one / ( flxp**2 + flyp**2 + one ) )
-!      ! taylor expansion, for consistency with drifts in SixTrack:
-!      flzp  = 1d0 / ( 1d0 + ( flxp**2+flyp**2 )/2d0 )
-      flxp  = flxp * flzp
-      flyp  = flyp * flzp
+        flxp  = yv1(j) * c1m3 ! from [1.0E-03] to [1.0]
+        flyp  = yv2(j) * c1m3 ! from [1.0E-03] to [1.0]
+        ! director cosines:
+        ! full transformation:
+        flzp  = sqrt( one / ( flxp**2 + flyp**2 + one ) )
+        !      ! taylor expansion, for consistency with drifts in SixTrack:
+        !      flzp  = 1d0 / ( 1d0 + ( flxp**2+flyp**2 )/2d0 )
+        flxp  = flxp * flzp
+        flyp  = flyp * flzp
 
-      ! total energy:
-      flet  = etot(j) * c1m3 ! from [MeV] to [GeV]
-      ! longitudinal phase:
-      flt   = -s(j) * c1m3 / ( (fluka_pc0/fluka_e0)*fluka_clight ) ! from [mm] to [s]
+        ! total energy:
+        flet  = etot(j) * c1m3 ! from [MeV] to [GeV]
+        ! longitudinal phase:
+        flt   = -s(j) * c1m3 / ( (fluka_pc0/fluka_e0)*fluka_clight ) ! from [mm] to [s]
 
 
-      ! Ion properties (PH for hiSix)
-      flm   = mass(j) * c1m3      ! unit is [GeV]
-      flaa  = aa(j)
-      flzz  = zz(j)
+        ! Ion properties (PH for hiSix)
+        flm   = mass(j) * c1m3      ! unit is [GeV]
+        flaa  = aa(j)
+        flzz  = zz(j)
 
-      flpdgid = pdg_id(j)
-      flq  = qq(j)
-      flsx = spinx(j)
-      flsy = spiny(j)
-      flsz = spinz(j)
+        flpdgid = pdg_id(j)
+        flq  = qq(j)
+        flsx = spinx(j)
+        flsy = spiny(j)
+        flsz = spinz(j)
 
-      if(fluka_debug) then
-        write(fluka_log_unit, '(">",2I8,12(1X,1PE25.18),4I11)') flid, flgen, &
-             flx, fly, flz, flxp, flyp, flzp, flm, flet, flt, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-        flush(fluka_log_unit)
-      end if
+!        PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+!        PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
 
-      ! Send particle
-      n = ntsendp(fluka_cid, &
+        ! Send particle
+        n = ntsendp(fluka_cid, &
             flid, flgen, flwgt, &
             flx, fly, flz, &
             flxp, flyp, flzp, &
             flm, flet, flt, &
             flpdgid, flq, flsx, flsy, flsz)
+        !      PRINT *, "Sent particle: ", n, fluka_nsent, FLUKA_PART
 
-      if(n.lt.0) then
-        write(fluka_log_unit,'(A,i0,A)') "# FlukaIO error: ", n, " - Error sending Particle"
-        fluka_cid = -1
-        fluka_send = -1
-        return
-      end if
+        if(n.lt.0) then
+            PRINT *, "FlukaIO error (return code ", n, ") - Error sending Particle"
+            fluka_cid = -1
+            fluka_send = -1
+            return
+        end if
 
-      fluka_nsent = fluka_nsent + 1
-      fluka_last_sent_mess=FLUKA_PART
+        fluka_nsent = fluka_nsent + 1
+        fluka_last_sent_mess=FLUKA_PART
 
     end do
 
@@ -471,10 +465,10 @@ contains
     n = ntsendeob(fluka_cid)
 
     if(n.lt.0) then
-      write(fluka_log_unit,'(A,i0,A)') "# FlukaIO error: ", n, " - Error sending End of Batch"
-      fluka_cid = -1
-      fluka_send = -1
-      return
+        PRINT *, "FlukaIO error (return code ", n, ") - Error sending End of Batch"
+        fluka_cid = -1
+        fluka_send = -1
+        return
     end if
     fluka_last_sent_mess=FLUKA_EOB
 
@@ -508,9 +502,9 @@ contains
     real(kind=fPrec) :: etot(max_part)
 
     real(kind=fPrec) :: mass(max_part)
-    integer(kind=int16) :: aa(max_part)
-    integer(kind=int16) :: zz(max_part)
-    integer(kind=int16) :: qq(max_part)
+    integer(kind=int32) :: aa(max_part)
+    integer(kind=int32) :: zz(max_part)
+    integer(kind=int32) :: qq(max_part)
     integer(kind=int32) :: pdg_id(max_part)
     integer(kind=int32) :: partID(max_part)
     integer(kind=int32) :: parentID(max_part)
@@ -522,7 +516,7 @@ contains
     ! Fluka I/O parameters
     integer(kind=int32) :: flid, flgen
     real(kind=fPrec)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
-    integer(kind=int16) :: flaa, flzz, flq
+    integer(kind=int32) :: flaa, flzz, flq
     integer(kind=int8)  :: mtype
 
     integer(kind=int32)         :: flpdgid
@@ -539,80 +533,66 @@ contains
 
     ! assign default values
     do j = 1, npart
-      partID(j) = j
-      parentID(j) = j
+        partID(j) = j
+        parentID(j) = j
 
-      partWeight(j) = one
+        partWeight(j) = one
 
-      xv1 (j) = zero
-      xv2 (j) = zero
-      yv1 (j) = zero
-      yv2 (j) = zero
-      etot(j) = zero
-      s   (j) = zero
-! hisix: we should also parse m0,A0,Z0
-      aa  (j) = 1
-      zz  (j) = 1
-      mass(j) = zero
-      qq  (j) = 1
-      pdg_id(j) = 0
-      spinx = zero
-      spiny = zero
-      spinz = zero
+        xv1 (j) = zero
+        xv2 (j) = zero
+        yv1 (j) = zero
+        yv2 (j) = zero
+        etot(j) = zero
+        s   (j) = zero
+        ! hisix: we should also parse m0,A0,Z0
+        aa  (j) = 1
+        zz  (j) = 1
+        mass(j) = zero
+        qq  (j) = 1
+        pdg_id(j) = 0
+        spinx = zero
+        spiny = zero
+        spinz = zero
     end do
+!    PRINT *, 'mtype before: ', mtype
 
     ! Wait until end of turn (Synchronize)
     do while(mtype.ne.FLUKA_EOB)
-      n = ntwait(fluka_cid, mtype, &
+        n = ntwait(fluka_cid, mtype, &
               flid, flgen, flwgt, &
               flx, fly, flz, &
               flxp, flyp, flzp, &
               flm, flet, flt, &
               flpdgid, flq, flsx, flsy, flsz)
 
-      if(n.lt.0) then
-        write(fluka_log_unit,'(A,i0,A)') "# FlukaIO error: ", n ," - Server timed out while waiting for message"
-        fluka_cid = -1
-        fluka_receive = n
-        return
-      end if
+!        PRINT *, 'mtype: ', mtype
+!        PRINT *, 'n: ', n
+        if(n.lt.0) then
+            PRINT *, "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
+            fluka_cid = -1
+            fluka_receive = n
+            return
+        end if
 
-      if(mtype.eq.FLUKA_PART) then
+        if(mtype.eq.FLUKA_PART) then
 
-         fluka_nrecv = fluka_nrecv + 1
-         fluka_last_rcvd_mess = FLUKA_PART
+            fluka_nrecv = fluka_nrecv + 1
+            fluka_last_rcvd_mess = FLUKA_PART
 
-         if(fluka_nrecv .gt. npart) then
-
-            !If we hit the particle limit, we will need to  do a global array expand on npart, lets increase by 50 for now
-            
-            ! call expand_arrays(nele, npart+50, nblz, nblo, nbb)
-            ERROR STOP 'HIT END OF PARTICLE ARRAY'
-
-!            write(fluka_log_unit, *) &
-!                 '# FlukaIO error: reached maximum number of particles, ', &
-!                 'no space left to store other incoming particles'
-!            fluka_cid = -1
-!            fluka_receive = -1
-!            return
-         end if
+            if(fluka_nrecv .gt. npart) then
+                PRINT *, 'FlukaIO error - HIT END OF PARTICLE ARRAY'
+                return
+            end if
 
             call CalculateAZ(flpdgid, flaa, flzz)
 
-            if(fluka_debug) then
-               write(fluka_log_unit, '("<",2I8,12(1X,1PE25.18),4I11)') flid, flgen, &
-                    flx, fly, flz, flxp, flyp, flzp, flm, flet, flt, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-               flush(fluka_log_unit)
-            end if
+            PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+            PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
 
             partID(fluka_nrecv)    = flid
             parentID(fluka_nrecv)    = flgen
             if (partID(fluka_nrecv).gt.MaximumPartID) then
-               MaximumPartID = partID(fluka_nrecv)
-
-! PH for hisix: write the particle species and their initial conditions to fort.822
-               write(isotope_log_unit,*) partID(fluka_nrecv),flgen, ipt, flaa, flzz, flet * c1e3
-
+                MaximumPartID = partID(fluka_nrecv)
             end if
 
             partWeight(fluka_nrecv)  = flwgt
@@ -631,9 +611,9 @@ contains
             spiny(fluka_nrecv)        = flsy
             spinz(fluka_nrecv)        = flsz
 
-!            The conversion is now done inside the coupling server
-!            call GetPDGid_fromFLUKA(-2, pdg_id(fluka_nrecv), flaa, flzz)
-      end if
+    !       The conversion is now done inside the coupling server
+    !       call GetPDGid_fromFLUKA(-2, pdg_id(fluka_nrecv), flaa, flzz)
+        end if
 
       !Finished waiting end of turn
     end do
@@ -641,12 +621,8 @@ contains
     napx = fluka_nrecv
     fluka_last_rcvd_mess = FLUKA_EOB
 
-    write(fluka_log_unit,*) "# FlukaIO: turn = ", turn, &
-      " ipt = ", ipt, &
-      " sent = ", fluka_nsent, &
-      " received = ", fluka_nrecv, &
-      " max_uid = ", MaximumPartID
-    flush(fluka_log_unit)
+    PRINT *, "FlukaIO: turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
+        " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
 
   end function fluka_receive
 
@@ -658,7 +634,7 @@ contains
     integer, intent(in) :: j
 
     if(fluka_debug) then
-      write(fluka_log_unit, *) '# fluka_shuffleLostParticles called with napx (lnapx for SixTrack) = ', tnapx, ', j = ', j
+      write(fluka_log_unit, *) 'fluka_shuffleLostParticles called with napx (lnapx for SixTrack) = ', tnapx, ', j = ', j
       flush(fluka_log_unit)
     end if
 
@@ -671,7 +647,7 @@ contains
 
     ! interface variables
     real(kind=fPrec) :: e0, pc0, mass0
-    integer(kind=int16) :: a0, z0, q0
+    integer(kind=int32) :: a0, z0, q0
 
     ! Auxiliary variables
     integer(kind=int32) :: n

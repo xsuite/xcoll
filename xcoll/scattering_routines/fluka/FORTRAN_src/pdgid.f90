@@ -11,8 +11,8 @@ subroutine CalculatePDGid(id, a, z)
   use, intrinsic :: iso_fortran_env
 
   integer(kind=int32), intent(out) :: id
-  integer(kind=int16), intent(in) :: a
-  integer(kind=int16), intent(in) :: z
+  integer(kind=int32), intent(in) :: a
+  integer(kind=int32), intent(in) :: z
 
   !Nuclear codes are given as 10-digit numbers ±10LZZZAAAI.
 
@@ -30,11 +30,11 @@ subroutine CalculateAZ(id, a, z)
   use, intrinsic :: iso_fortran_env
 
   integer(kind=int32), intent(in) :: id
-  integer(kind=int16), intent(out) :: a
-  integer(kind=int16), intent(out) :: z
+  integer(kind=int32), intent(out) :: a
+  integer(kind=int32), intent(out) :: z
 
-  integer(kind=int16) :: z1,z2,z3
-  integer(kind=int16) :: a1,a2,a3
+  integer(kind=int32) :: z1,z2,z3
+  integer(kind=int32) :: a1,a2,a3
   integer(kind=int32) :: tmpid
 
   if(id == 2212) then
@@ -85,8 +85,8 @@ subroutine GetFLUKAid_fromPDG(pdgid, fluka_id)
   integer(kind=int32), intent(in)  :: pdgid
   integer(kind=int32), intent(out) :: fluka_id
 
-  integer(kind=int16) :: A
-  integer(kind=int16) :: Z
+  integer(kind=int32) :: A
+  integer(kind=int32) :: Z
 
   !Only way is to do an A->B translation using the numbers in the FLUKA manual
   !FM.pdf "Table 5.1: Fluka particle names and code numbers"
@@ -231,8 +231,8 @@ subroutine GetPDGid_fromFLUKA(fluka_id, pdg_id, A, Z)
   integer(kind=int32), intent(in)  :: fluka_id
   integer(kind=int32), intent(out) :: pdg_id
 
-  integer(kind=int16), intent(in) :: A
-  integer(kind=int16), intent(in) :: Z
+  integer(kind=int32), intent(in) :: A
+  integer(kind=int32), intent(in) :: Z
 
   !Only way is to do an A->B translation using the numbers in the FLUKA manual
   !FM.pdf "Table 5.1: Fluka particle names and code numbers"

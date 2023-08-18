@@ -54,7 +54,7 @@ def track(collimator, particles):  # TODO: write impacts
             drift_6d(particles, collimator.length)
         else:
             # FLUKA uses inactive front and back, so pass full length
-            track_core(collimator, collimator.length)
+            track_core(collimator, particles)
             particles.reorganize()
         return
 
@@ -80,13 +80,13 @@ def track_core(collimator, part):
     data['yp_part']     = np.concatenate((part.py[:npart] * part.rpp[:npart] * 1000., np.zeros(max_part-npart, dtype=float)))
     data['zeta_part']   = np.concatenate((part.zeta[:npart].copy() * 1000.,           np.zeros(max_part-npart, dtype=float)))
     data['e_part']      = np.concatenate((part.energy[:npart].copy() / 1.e6,          np.zeros(max_part-npart, dtype=float)))
-    mass   = part.mass0*part.charge_ratio[:npart]/part.chi[:npart] / 1.e6
+    mass   = part.mass0*part.charge_ratio[:npart]/part.chi[:npart] 
     charge = part.q0*part.charge_ratio[:npart]
     A, Z, pdgid = make_ion_from_properties(charge, mass)
-    data['m_part']      = np.concatenate((mass,                                      np.zeros(max_part-npart, dtype=float)))
+    data['m_part']      = np.concatenate((mass / 1.e6,                               np.zeros(max_part-npart, dtype=float)))
     data['q_part']      = np.concatenate((charge.astype(np.int32),                   np.zeros(max_part-npart, dtype=np.int32)))
-    data['A_part']      = np.concatenate((A,                                         np.zeros(max_part-npart, dtype=np.int32)))
-    data['Z_part']      = np.concatenate((Z,                                         np.zeros(max_part-npart, dtype=np.int32)))
+    data['A_part']      = np.concatenate((A.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
+    data['Z_part']      = np.concatenate((Z.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
     data['pdgid_part']  = np.concatenate((pdgid,                                     np.zeros(max_part-npart, dtype=np.int32)))
     # TODO: hard-coded spin
     data['spin_x_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
@@ -97,11 +97,13 @@ def track_core(collimator, part):
     data['parentID']    = np.concatenate((part.parent_particle_id[:npart].copy().astype(np.int32),
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))
     data['partWeight']  = np.concatenate((part.weight[:npart].copy(),                np.zeros(max_part-npart, dtype=float)))
-    
+
     # send to fluka
     track_fluka(turn=part.at_turn[0],
                 fluka_id=collimator.collimator_id,
                 length=collimator.length,
+                part_p0c=part.p0c[0],
+                part_e0=part.energy0[0],
                 alive_part=npart, # max_part,
                 x_part=data['x_part'],
                 xp_part=data['xp_part'],
