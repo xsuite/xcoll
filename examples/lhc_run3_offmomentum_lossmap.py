@@ -11,7 +11,7 @@ import xcoll as xc
 beam      = 1
 plane    = 'DPpos'
 
-num_particles  = 500
+num_particles  = 5000
 sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
