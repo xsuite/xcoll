@@ -243,23 +243,6 @@ class CollimatorManager:
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
 
-    def add_crystals(self, crystals):
-        df = pd.DataFrame(crystals).transpose()
-        df['stage'] = 'PRIMARY'
-        df['parking'] = 0.025
-        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
-                     'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'collimator_type']:
-            df[prop] = None
-        for prop in ['inactive_front', 'inactive_back']:
-            df[prop] = 0.0
-        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
-        df['gap_R'] = df['gap_L']
-        df.loc[df['side']=='left', 'gap_R'] = None
-        df.loc[df['side']=='right', 'gap_L'] = None
-        df['active'] = True
-        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
-
-
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
@@ -357,7 +340,7 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
+            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}")
             # Update the position and type in the CollimatorDatabase
             df.loc[name,'s_center'] = positions[name]
             df.loc[name,'collimator_type'] = collimator_class.__name__
