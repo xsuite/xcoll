@@ -354,9 +354,9 @@ module mod_common
   real(kind=fPrec),    save :: nucmda  = pmap ! Reference mass [MeV/c^2] (DA)
   real(kind=fPrec),    save :: gamma0  = one  ! Reference beam Lorentz factor
   real(kind=fPrec),    save :: beta0   = zero ! Reference beam relativistic beta
-  integer(kind=int16), save :: aa0     = 1    ! Reference nucleon number
-  integer(kind=int16), save :: zz0     = 1    ! Reference charge multiplicity
-  integer(kind=int16), save :: qq0     = 1    ! Reference charge
+  integer(kind=int32), save :: aa0     = 1    ! Reference nucleon number
+  integer(kind=int32), save :: zz0     = 1    ! Reference charge multiplicity
+  integer(kind=int32), save :: qq0     = 1    ! Reference charge
   integer(kind=int32), save :: pdgid0  = 2212 ! Reference particle PDG ID
   integer,             save :: pdgyear = 2002 ! Reference particle PDG year
 
@@ -927,9 +927,9 @@ module mod_common_main
   real(kind=fPrec), allocatable, save :: spin_y(:)     ! y component of the particle spin
   real(kind=fPrec), allocatable, save :: spin_z(:)     ! z component of the particle spin
 
-  integer(kind=int16), allocatable, save :: nqq(:)     ! Particle charge
-  integer(kind=int16), allocatable, save :: naa(:)     ! Ion atomic mass
-  integer(kind=int16), allocatable, save :: nzz(:)     ! Ion atomic number
+  integer(kind=int32), allocatable, save :: nqq(:)     ! Particle charge
+  integer(kind=int32), allocatable, save :: naa(:)     ! Ion atomic mass
+  integer(kind=int32), allocatable, save :: nzz(:)     ! Ion atomic number
   integer(kind=int32), allocatable, save :: pdgid(:)   ! Particle PDGid
 
   integer,          allocatable, save :: numxv(:)      ! Turn in which a particle was lost

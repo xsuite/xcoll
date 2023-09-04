@@ -11,9 +11,12 @@ import time
 import xobjects as xo
 
 
-default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
-                          'bin', 'rfluka').resolve()
-default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
+#default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
+#                          'bin', 'rfluka').resolve()
+default_fluka_path = Path('/', 'home', 'ghugo', 'fluka', 'bin', 'rfluka').resolve()
+#default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
+#                                'fluka', 'flukaserver').resolve()
+default_flukaserver_path = Path('/', 'home', 'ghugo', 'xsuite', 'xcoll', 'xcoll', 'scattering_routines', 'fluka', 'fluka_coupling',
                                 'fluka', 'flukaserver').resolve()
 
 network_file = "network.nfo"
@@ -84,6 +87,7 @@ class FlukaEngine(xo.HybridClass):
             self.test_gfortran()
             try:
                 from .pyflukaf import pyfluka_init
+                print("engine.py Call pyfluka_init with n_alloc = " + str(kwargs['n_alloc']), flush=True) 
                 pyfluka_init(n_alloc=kwargs['n_alloc'])
             except ImportError as error:
                 self._warn_pyfluka(error)
@@ -94,8 +98,8 @@ class FlukaEngine(xo.HybridClass):
     def _warn_pyfluka(self, error):
         if not self._warning_given:
             print("Warning: Failed to import pyfluka (did you compile?). " \
-                + "FlukaCollimators will be installed but are not trackable.\n")
-            print(error)
+                + "FlukaCollimators will be installed but are not trackable.\n", flush=True)
+            print(error, flush=True)
             self._warning_given = True
 
 
@@ -109,7 +113,7 @@ class FlukaEngine(xo.HybridClass):
             this._gfortran_installed = False
             raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher for fluka.")
         if cmd.returncode == 0:
-            version = int(cmd.stdout.decode('UTF-8').strip().split('\n')[0])
+            version = int(cmd.stdout.decode('UTF-8').strip().split('\n')[0].split('.')[0])
             if version < 9:
                 this._gfortran_installed = False
                 raise RuntimeError(f"Need gfortran 9 or higher for fluka, but found gfortran {version}!")
@@ -118,7 +122,7 @@ class FlukaEngine(xo.HybridClass):
                 cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if cmd2.returncode == 0:
                     file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}")
+                    print(f"Found gfortran {version} in {file}", flush=True)
                 else:
                     stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
                     raise RuntimeError(f"Could not run 'which gfortran'! Error given is:\n{stderr}")
@@ -133,7 +137,7 @@ class FlukaEngine(xo.HybridClass):
         cls(*args, **kwargs)
         this = cls.instance
         if this.is_running():
-            print("Server already running.")
+            print("Server already running.", flush=True)
             return
         if not this._gfortran_installed:
             return
@@ -148,7 +152,8 @@ class FlukaEngine(xo.HybridClass):
             raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
 
         # Start with cleaning files
-        files_to_delete = [network_file, fluka_log, server_log]
+        #files_to_delete = [network_file, fluka_log, server_log]
+        files_to_delete = [fluka_log, server_log]
         for f in files_to_delete:
             if f is not None:
                 f = this._cwd / f
@@ -157,42 +162,57 @@ class FlukaEngine(xo.HybridClass):
 
         # Declare network
         this._network_nfo = this._cwd / network_file
-        cmd = subprocess.run(["hostname"], cwd=this._cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if cmd.returncode == 0:
-            host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
-        with this._network_nfo.open('w') as fid:
-            fid.write(f"{host}\n")
+        #cmd = subprocess.run(["hostname"], cwd=this._cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #if cmd.returncode == 0:
+        #    host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+        #else:
+        #    stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        #    raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
+        #host="localhost"
+        #with this._network_nfo.open('w') as fid:
+        #    #fid.write(f"{host}\n")
+        #    print("host=",host)
+        #    fid.write(f"localhost\n")
 
         # Start server
-        this._log = this._cwd / server_log
-        this._log_fid = this._log.open('w')
-        this._server_process = subprocess.Popen([this._fluka, input_file, '-e', this._flukaserver, '-M', "1"], 
-                                                 cwd=this._cwd, stdout=this._log_fid, stderr=this._log_fid)
-        this.server_pid = this._server_process.pid
-        time.sleep(1)
-        if not this.is_running():
-            raise ValueError(f"Could not start fluka server! See logfile {this._log}.")
+        #this._log = this._cwd / server_log
+        #this._log_fid = this._log.open('w')
+        #this._server_process = subprocess.Popen([this._fluka, input_file, '-e', this._flukaserver, '-M', "1"], 
+        #                                         cwd=this._cwd, stdout=this._log_fid, stderr=this._log_fid)
+        #this.server_pid = this._server_process.pid
+        #time.sleep(1)
+        #if not this.is_running():
+        #    raise ValueError(f"Could not start fluka server! See logfile {this._log}.")
         i = 0
         while True:
             time.sleep(2)
             i += 1
             if i%30 == 0:
-                print("Network port not yet established. Waiting 30s.")
+                print("Network port not yet established. Waiting 30s.", flush=True)
             with this._network_nfo.open('r') as fid:
                 lines = fid.readlines()
                 if len(lines) > 1:
                     this.network_port = int(lines[1].strip())
                     break
-        print(f"Started fluka server on network port {this.network_port}.")
-        try:
-            from .pyflukaf import pyfluka_connect
-            pyfluka_connect()
-            this._flukaio_connected = True
-        except ImportError as error:
-            this._warn_pyfluka(error)
+        print(f"@@@ Started fluka server on network port {this.network_port}.", flush=True)
+        #try:
+        #    from .pyflukaf import pyfluka_connect, pyfluka_set_n_alloc, pyfluka_set_synch_part
+
+        #except ImportError as error:
+        #    this._warn_pyfluka(error)
+
+        from .pyflukaf import pyfluka_connect
+        pyfluka_connect()
+        this._flukaio_connected = True
+        print(f"pyfluka Fully started fluka server.", flush=True)
+
+        from .pyflukaf import pyfluka_set_n_alloc
+        pyfluka_set_n_alloc(500000)
+        print(f"pyfluka Set nalloc to 500000.", flush=True)
+
+        from .pyflukaf import pyfluka_set_synch_part
+        pyfluka_set_synch_part()
+        print(f"pyfluka Set sync part.", flush=True)
 
 
     @classmethod
@@ -202,6 +222,7 @@ class FlukaEngine(xo.HybridClass):
         # Stop flukaio conneciton
         if this._flukaio_connected:
             try:
+                print(f"Closing fluka server.", flush=True)
                 from .pyflukaf import pyfluka_close
                 pyfluka_close()
             except ImportError as error:
@@ -219,8 +240,8 @@ class FlukaEngine(xo.HybridClass):
                 this._log_fid.close()
             this._log_fid = None
         # Delete network file
-        if this._network_nfo is not None and this._network_nfo.exists():
-            this._network_nfo.unlink()
+        #if this._network_nfo is not None and this._network_nfo.exists():
+        #    this._network_nfo.unlink()
 
 
     @classmethod
@@ -253,10 +274,10 @@ class FlukaEngine(xo.HybridClass):
         elif len(processes) == 1 and str(this.server_pid) in processes[0] and 'defunct' not in processes[0]:
             return True
         elif np.any([str(this.server_pid) in proc for proc in processes if 'defunct' not in proc]):
-            print("Warning: Found other instances of rfluka besides the current one!")
+            print("Warning: Found other instances of rfluka besides the current one!", flush=True)
             return True
         else:
-            print("Warning: Found other instances of rfluka but not the current one!")
+            print("Warning: Found other instances of rfluka but not the current one!", flush=True)
             this.stop_server()
             return False
 

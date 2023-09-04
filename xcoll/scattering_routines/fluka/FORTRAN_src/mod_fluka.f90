@@ -36,9 +36,9 @@ module mod_fluka
   public :: fluka_parsingDone
   public :: fluka_parseInputLine
 
-!  public :: kernel_fluka_element
-!  public :: kernel_fluka_entrance
-!  public :: kernel_fluka_exit
+  public :: kernel_fluka_element
+  public :: kernel_fluka_entrance
+  public :: kernel_fluka_exit
 
   public :: check_coupling_integrity
   public :: check_coupling_start_point
@@ -61,8 +61,9 @@ module mod_fluka
            ntsendipt,   &
            ntrecv,      &
            ntwait,      &
-           ntsendnpart!, &
-!           ntsendbrhono
+           ntsendnpart, &
+           ntsendbrhono
+  external ntrtimeout, ntwtimeout
 
   integer(kind=int32) :: ntconnect,   &
                          ntsendp,     &
@@ -72,8 +73,8 @@ module mod_fluka
                          ntrecv,      &
                          ntwait,      &
                          ntsendnpart, &
-!                         ntsendbrhono,&
-                         ntend
+                         ntsendbrhono,&
+                         ntend, ntrtimeout, ntwtimeout
 
   ! FlukaIO Message types
   integer(kind=int8), parameter :: FLUKA_PART = 1, &
@@ -147,6 +148,8 @@ contains
 
     ! temporary variables
     integer :: j
+
+    write(*,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
 
     fluka_max_npart = npart
     fluka_clight    = clight
@@ -228,6 +231,10 @@ contains
       ERROR STOP 'ENDED WITH ERROR.'
     end if
 
+    write(*,*) "fluka_read_config host=",host
+    !port = 60892
+    write(*,*) "fluka_read_config port=",port
+
     call f_close(net_nfo_unit)
 
   end subroutine fluka_read_config
@@ -237,6 +244,9 @@ contains
   integer function fluka_connect()
     implicit none
 
+    integer :: rtimeout
+    integer :: wtimeout
+
     call fluka_read_config(fluka_net_nfo_file, fluka_host, fluka_port)
 
     write(fluka_log_unit,*) '# Connecting to host: ', fluka_host, ', in port: ', fluka_port
@@ -244,6 +254,9 @@ contains
     call ntinit()
     fluka_cid = ntconnect(fluka_host, fluka_port)
     fluka_connect = fluka_cid
+
+    rtimeout = ntrtimeout(fluka_cid, 3600)
+    wtimeout = ntwtimeout(fluka_cid, 3600)
 
   end function fluka_connect
 
@@ -327,14 +340,22 @@ contains
     real(kind=fPrec) :: spiny(max_part)
     real(kind=fPrec) :: spinz(max_part)
 
-    fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
-                         partID, parentID, partWeight, spinx, spiny, spinz)
-    PRINT *, "Sent all particles (return code ", fluka_send_receive, ")"
+    fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, &
+         xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
+         partID, parentID, partWeight, spinx, spiny, spinz)
+    flush(lout)
+    write(lout,*) ""
+    write(lout,*) "Sent all particles (return code ", fluka_send_receive, ")"
+    flush(lout)
     if(fluka_send_receive.lt.0) return
 
-    fluka_send_receive = fluka_receive(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
-                         partID, parentID, partWeight, spinx, spiny, spinz)
-    PRINT *, "Received all particles (return code ", fluka_send_receive, ")"
+    fluka_send_receive = fluka_receive(turn, ipt, el, npart, max_part, &
+         xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
+         partID, parentID, partWeight, spinx, spiny, spinz)
+    flush(lout)
+    write(lout,*) ""
+    write(lout,*) "Received all particles (return code ", fluka_send_receive, ")"
+    flush(lout)
   end function fluka_send_receive
 
   !----------------------------------------------------------------------------
@@ -388,13 +409,13 @@ contains
 
     n = ntsendipt(fluka_cid, turn, ipt)
     if(n.lt.0) then
-        PRINT *, "FlukaIO error (return code ", n, ") - Error sending Insertion Point"
+        write(lout,*) "FlukaIO error (return code ", n, ") - Error sending Insertion Point"
         fluka_cid = -1
         fluka_send = n
         return
     end if
     fluka_last_sent_mess=FLUKA_IPT
-    PRINT *, "Sent insertion point to FLUKA (return code ", n, ")"
+    write(lout,*) "Sent insertion point to FLUKA (return code ", n, ")"
 
     fluka_nsent = 0
     fluka_nrecv = 0
@@ -437,8 +458,11 @@ contains
         flsy = spiny(j)
         flsz = spinz(j)
 
-!        PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-!        PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+        flush(lout)
+        write(lout,*) " "
+        write(lout,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+        write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+        flush(lout)
 
         ! Send particle
         n = ntsendp(fluka_cid, &
@@ -447,14 +471,28 @@ contains
             flxp, flyp, flzp, &
             flm, flet, flt, &
             flpdgid, flq, flsx, flsy, flsz)
-        !      PRINT *, "Sent particle: ", n, fluka_nsent, FLUKA_PART
+        !      write(lout,*) "Sent particle: ", n, fluka_nsent, FLUKA_PART
 
         if(n.lt.0) then
-            PRINT *, "FlukaIO error (return code ", n, ") - Error sending Particle"
+            write(lout,*) "FlukaIO error (return code ", n, ") - Error sending Particle"
             fluka_cid = -1
             fluka_send = -1
             return
         end if
+
+        ! Read all incoming particles to release server out buffer
+!100     continue
+        !n = ntrecv(fluka_cid, &
+        !     flid, flgen, flwgt, &
+        !     flx, fly, flz, &
+        !     flxp, flyp, flzp, &
+        !     flm, flet, flt, &
+        !     flpdgid, flq, flsx, flsy, flsz)
+        !write(*,*) "ntrecv with n", n
+        !if(n.gt.0) then
+        !   goto 100
+        !end if
+        ! End of reading incoming particles
 
         fluka_nsent = fluka_nsent + 1
         fluka_last_sent_mess=FLUKA_PART
@@ -465,7 +503,7 @@ contains
     n = ntsendeob(fluka_cid)
 
     if(n.lt.0) then
-        PRINT *, "FlukaIO error (return code ", n, ") - Error sending End of Batch"
+        write(lout,*) "FlukaIO error (return code ", n, ") - Error sending End of Batch"
         fluka_cid = -1
         fluka_send = -1
         return
@@ -554,7 +592,6 @@ contains
         spiny = zero
         spinz = zero
     end do
-!    PRINT *, 'mtype before: ', mtype
 
     ! Wait until end of turn (Synchronize)
     do while(mtype.ne.FLUKA_EOB)
@@ -565,10 +602,11 @@ contains
               flm, flet, flt, &
               flpdgid, flq, flsx, flsy, flsz)
 
-!        PRINT *, 'mtype: ', mtype
-!        PRINT *, 'n: ', n
+        write(lout,*) 'fluka_receive mtype: ', mtype
+        write(lout,*) 'fluka_receive n: ', n
+        flush(lout)
         if(n.lt.0) then
-            PRINT *, "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
+            write(lout,*) "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
             fluka_cid = -1
             fluka_receive = n
             return
@@ -580,14 +618,16 @@ contains
             fluka_last_rcvd_mess = FLUKA_PART
 
             if(fluka_nrecv .gt. npart) then
-                PRINT *, 'FlukaIO error - HIT END OF PARTICLE ARRAY'
+                write(lout,*) 'FlukaIO error - HIT END OF PARTICLE ARRAY'
                 return
             end if
 
             call CalculateAZ(flpdgid, flaa, flzz)
 
-            PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-            PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+            flush(lout)
+            write(lout,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+            write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+            flush(lout)
 
             partID(fluka_nrecv)    = flid
             parentID(fluka_nrecv)    = flgen
@@ -621,8 +661,8 @@ contains
     napx = fluka_nrecv
     fluka_last_rcvd_mess = FLUKA_EOB
 
-    PRINT *, "FlukaIO: turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
-        " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
+    write(lout,*) "FlukaIO: turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
+         " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
 
   end function fluka_receive
 
@@ -652,6 +692,9 @@ contains
     ! Auxiliary variables
     integer(kind=int32) :: n
 
+    write(lout,'(A)') 'fluka_set_synch_part'
+    flush(lout)
+
     fluka_set_synch_part = 0
 
     fluka_e0    = e0    *c1m3 ! from  [MeV]    to [GeV]
@@ -674,7 +717,7 @@ contains
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
 
     ! inform Fluka about the new magnetic rigidity
-!    n = ntsendbrhono(fluka_cid, fluka_brho0)
+    n = ntsendbrhono(fluka_cid, fluka_brho0)
     if (n .lt. 0) then
       fluka_set_synch_part = -1
       return
@@ -700,6 +743,8 @@ contains
     ! Auxiliary variables
     integer(kind=int32) :: n
 
+    write(lout,'(A)') 'mod_fluka fluka_init_max_uid'
+    flush(lout)
     fluka_init_max_uid = 0
 
     MaximumPartID = npart
@@ -752,7 +797,7 @@ subroutine fluka_close
          write(lout,'(A)') 'FLUKA>    dummy wait to have a clean closure'
          write(fluka_log_unit,'(A)') '# fluka_close called while particles are still on the Fluka side'
          write(fluka_log_unit,'(A)') '#   dummy wait to have a clean closure'
-!         call kernel_fluka_exit
+         call kernel_fluka_exit
        end if
        fluka_con = fluka_is_running()
        if(fluka_con.eq.0) then
@@ -933,7 +978,7 @@ subroutine fluka_parsingDone
 
 end subroutine fluka_parsingDone
 
-!subroutine kernel_fluka_element( nturn, i, ix )
+subroutine kernel_fluka_element( nturn, i, ix )
 !!
 !!-----------------------------------------------------------------------
 !!     A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
@@ -943,346 +988,346 @@ end subroutine fluka_parsingDone
 !!     inserted in main code by the 'fluka' compilation flag
 !!-----------------------------------------------------------------------
 !!
-!      use floatPrecision
-!      use numerical_constants, only : zero, one, c1e3, c1m3
-!      use crcoall
-!      use parpro
-!      use mod_common
-!      use mod_common_track
-!      use mod_common_main
+      use floatPrecision
+      use numerical_constants, only : zero, one, c1e3, c1m3
+      use crcoall
+      use parpro
+      use mod_common
+      use mod_common_track
+      use mod_common_main
+
+      implicit none
+
+!     interface variables:
+      integer nturn, i, ix
+
+!     temporary variables
+      integer ret, j, k
+      integer pid_q               ! ph: hisix
+      save
+
+      fluka_i = i
+      fluka_ix = ix
+      fluka_nturn = nturn
+
+      if (fluka_debug) then
+!        where are we?
+         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(fluka_ix)
+         write(fluka_log_unit,*)'#   i=', fluka_i
+         write(fluka_log_unit,*)'#   ix=', fluka_ix
+         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(fluka_ix)
+         write(fluka_log_unit,*)'#   eltot=',fluka_synch_length( fluka_ix )
+      end if
+
+!     PH hisix compute the number of nucleons sent to FLUKA
+!     PH hisix compute the total ion energy sent to FLUKA
+      nnuc0 = 0
+      ien0  = zero
+      do j=1,napx
+        nnuc0   = nnuc0 + naa(j)
+        ien0    = ien0 + ejv(j)
+        ! array of particle ids sent to FLUKA
+        pids(j) = partID(j)
+      end do
+
+
+      ret = fluka_send_receive( fluka_nturn, fluka_geo_index(fluka_ix), fluka_synch_length( fluka_ix ), &
+           napx, 500000, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, &
+           partID, parentID, partWeight, spin_x, spin_y, spin_z )
+
+      if (ret.lt.0) then
+         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
+         write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send_receive...'
+         ERROR STOP 'ENDED WITH ERROR.'
+      end if
+
+      nnuc1 = 0                 ! hisix: number of nucleons leaving the collimato
+      ien1  = zero              ! hisix: total energy leaving the collimator
+!     particles to be tracked
+      do j=1,napx
+!        Update values related to losses
+         partID(j) = j
+         pstop (j) = .false.
+!        Update variables depending on total energy
+!         ejfv  (j) = sqrt((ejv(j)-pma)*(ejv(j)+pma))
+!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))
+!         dpsv  (j) = (ejfv(j)-e0f)/e0f
+!         oidpsv(j) = one/(one+dpsv(j))
+         ejfv  (j) = sqrt((ejv(j)-nucm(j))*(ejv(j)+nucm(j)))   ! hisix: ion mass
+         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))                 ! hisix: remains unchanged
+         dpsv  (j) = (ejfv(j)*(nucm0/nucm(j))-e0f)/e0f         ! hisix: new delta
+         oidpsv(j) = one/(one+dpsv(j))
+         dpsv1 (j) = (dpsv(j)*c1e3)*oidpsv(j)
+         if(nqq(j) .eq. 0) then
+           mtc (j) = zero
+         else
+           mtc (j) = (nqq(j)*nucm0)/(qq0*nucm(j))              ! hisix: mass to charge
+         endif
+         moidpsv (j) = mtc(j)*oidpsv(j)                        ! hisix
+         omoidpsv(j) = c1e3*((one-mtc(j))*oidpsv(j))           ! hisix
+         nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
+         ien1        = ien1  + ejv(j)                          ! outcoming energy
+      end do
+
+!     hisix: compute the nucleon and energy difference
+!              reduce by factor 1e-3 to get the energy in GeV
+      if((ien0-ien1).gt.one) then
+        write(unit208,"(2(i6,1x),e24.16)") fluka_geo_index(fluka_ix), nnuc0-nnuc1, c1m3*(ien0-ien1)
+      end if
+
+!     hisix: check which particle ids have not been sent back
+!            write their ids to fort.209
+      do j=1,npart                                             ! loop over all pids possible
+        pid_q = zero
+
+        do k=1,napx                                            ! loop over pids received
+          if(pids(j).eq.partID(k)) then
+            pid_q = one
+          end if
+        end do
+      end do
+
+!     empty places
+      do j=napx+1,npart
+!        Update values related to losses
+         partID(j) = j
+         pstop (j) = .true.
+!        Update values related to momentum
+         ejv   (j) = zero
+         rvv   (j) = one
+         ejfv  (j) = zero
+         dpsv  (j) = zero
+         oidpsv(j) = one
+         dpsv1 (j) = zero
+         mtc   (j) = one            ! hiSix
+         naa   (j) = aa0            ! hiSix
+         nzz   (j) = zz0            ! hiSix
+         nqq   (j) = qq0
+         pdgid (j) = pdgid0
+         spin_x(j) = zero
+         spin_y(j) = zero
+         spin_z(j) = zero
+         nucm  (j) = nucm0          ! hiSix
+         moidpsv (j) = one          ! hiSix
+         omoidpsv(j) = zero         ! hiSix
+      end do
+
+!     au revoir:
+      fluka_i = -1
+      fluka_ix = -1
+      fluka_nturn = -1
+      flush(unit208)
+      return
+end subroutine kernel_fluka_element
+
+subroutine kernel_fluka_entrance( nturn, i, ix )
 !
-!      implicit none
+!-----------------------------------------------------------------------
+!     A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
+!     last modified: 07-02-2014
+!     'transport' subroutine, for the marker starting a Fluka insertion
+!     inserted in main code by the 'fluka' compilation flag
+!-----------------------------------------------------------------------
 !
-!!     interface variables:
-!      integer nturn, i, ix
+      use floatPrecision
+      use numerical_constants, only : zero
+      use crcoall
+      use parpro
+      use mod_common
+      use mod_common_track
+      use mod_common_main
+
+      implicit none
+
+
+!     interface variables:
+      integer nturn, i, ix, ixt
+
+!     temporary variables
+      integer ret, j
+      integer k                   ! ph: hisix
+      integer pid_q               ! ph: hisix
+
+      save
+
+!     keep track of exit element
+!     NB: check_coupling_integrity and check_coupling_start_point have
+!         already verify the conditions for which this search is always successful
+      do j=i+1,iu
+        if(ktrack(j).ne.1.and.ic(j).gt.nblo) then
+          ixt=ic(j)-nblo
+          if(fluka_geo_index(ix).eq.fluka_geo_index(ixt))then
+             fluka_i = j
+             fluka_ix = ixt
+             fluka_nturn = nturn
+             exit
+          end if
+        end if
+      end do
+
+      if (fluka_debug) then
+!        where are we?
+         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(ix)
+         write(fluka_log_unit,*)'#   i=', i
+         write(fluka_log_unit,*)'#   ix=', ix
+         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(ix)
+         write(fluka_log_unit,*)'#   eltot=',zero
+      end if
+
+      ! P. HERMES for hisix
+      ! send also A,Z,m to FLUKA
+
+!     PH hisix compute the number of nucleons sent to FLUKA
+!     PH hisix compute ion energy sent to FLUKA
+!     PH initialize array of particle ids
+      nnuc0 = 0
+      ien0  = zero
+      do j=1,npart
+        pids(j) = 0
+      end do
+
+      do j=1,napx
+        nnuc0   = nnuc0 + naa(j)
+        ien0    = ien0  + ejv(j)
+        pids(j) = partID(j)   ! array of particle ids sent to FLUKA
+!    write(*,*),'PH:',pids(j)
+      end do
+
+      ret = fluka_send( fluka_nturn, fluka_geo_index(fluka_ix), zero, &
+           napx, 500000, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, &
+           partID, parentID, partWeight, spin_x, spin_y, spin_z )
+
+      if (ret.lt.0) then
+         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret,' in Fluka communication returned by fluka_send...'
+         write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send...'
+         ERROR STOP 'ENDED WITH ERROR.'
+      end if
+
+!     au revoir:
+      return
+end subroutine kernel_fluka_entrance
+
+subroutine kernel_fluka_exit
 !
-!!     temporary variables
-!      integer ret, j, k
-!      integer pid_q               ! ph: hisix
-!      save
+!-----------------------------------------------------------------------
+!     A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
+!     last modified: 07-02-2014
+!     'transport' subroutine, for the marker closing a Fluka insertion
+!     inserted in main code by the 'fluka' compilation flag
+!-----------------------------------------------------------------------
 !
-!      fluka_i = i
-!      fluka_ix = ix
-!      fluka_nturn = nturn
-!
-!      if (fluka_debug) then
-!!        where are we?
-!         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(fluka_ix)
-!         write(fluka_log_unit,*)'#   i=', fluka_i
-!         write(fluka_log_unit,*)'#   ix=', fluka_ix
-!         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(fluka_ix)
-!         write(fluka_log_unit,*)'#   eltot=',fluka_synch_length( fluka_ix )
-!      end if
-!
-!!     PH hisix compute the number of nucleons sent to FLUKA
-!!     PH hisix compute the total ion energy sent to FLUKA
-!      nnuc0 = 0
-!      ien0  = zero
-!      do j=1,napx
-!        nnuc0   = nnuc0 + naa(j)
-!        ien0    = ien0 + ejv(j)
-!        ! array of particle ids sent to FLUKA
-!        pids(j) = partID(j)
-!      end do
-!
-!
-!      ret = fluka_send_receive( fluka_nturn, fluka_geo_index(fluka_ix), fluka_synch_length( fluka_ix ), &
-!           napx, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, &
-!           partID, parentID, partWeight, spin_x, spin_y, spin_z )
-!
-!      if (ret.lt.0) then
-!         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
-!         write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send_receive...'
-!         ERROR STOP 'ENDED WITH ERROR.'
-!      end if
-!
-!      nnuc1 = 0                 ! hisix: number of nucleons leaving the collimato
-!      ien1  = zero              ! hisix: total energy leaving the collimator
-!!     particles to be tracked
-!      do j=1,napx
-!!        Update values related to losses
-!         partID(j) = j
-!         pstop (j) = .false.
-!!        Update variables depending on total energy
-!!         ejfv  (j) = sqrt((ejv(j)-pma)*(ejv(j)+pma))
-!!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))
-!!         dpsv  (j) = (ejfv(j)-e0f)/e0f
-!!         oidpsv(j) = one/(one+dpsv(j))
-!         ejfv  (j) = sqrt((ejv(j)-nucm(j))*(ejv(j)+nucm(j)))   ! hisix: ion mass
-!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))                 ! hisix: remains unchanged
-!         dpsv  (j) = (ejfv(j)*(nucm0/nucm(j))-e0f)/e0f         ! hisix: new delta
+      use floatPrecision
+      use numerical_constants, only : zero, one, c1e3, c1m3
+      use crcoall
+      use parpro
+      use mod_common
+      use mod_common_track
+      use mod_common_main
+
+      implicit none
+
+!     interface variables:
+      integer nturn, i, ix
+
+!     temporary variables
+      integer ret, j, k
+      integer pid_q               ! ph: hisix
+
+      save
+
+      if (fluka_debug) then
+!        where are we?
+         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(fluka_ix)
+         write(fluka_log_unit,*)'#   i=', fluka_i
+         write(fluka_log_unit,*)'#   ix=', fluka_ix
+         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(fluka_ix)
+         write(fluka_log_unit,*)'#   eltot=',fluka_synch_length( fluka_ix )
+      end if
+
+      ret = fluka_receive( fluka_nturn, fluka_geo_index(fluka_ix), fluka_synch_length( fluka_ix ), &
+           napx, 500000, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, partID, parentID,&
+           partWeight, spin_x, spin_y, spin_z )
+
+      if (ret.lt.0) then
+         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_receive...'
+         write(fluka_log_unit,'(A,i0,A)')'# Error ',ret, ' in Fluka communication returned by fluka_receive...'
+         ERROR STOP 'ENDED WITH ERROR.'
+      end if
+
+      nnuc1 = 0                 ! hisix: number of nucleons leaving the collimator
+      ien1  = zero              ! hisix: total energy leaving the collimator
+!     particles to be tracked
+      do j=1,napx
+!        Update values related to losses
+         partID(j) = j
+         pstop (j) = .false.
+!        Update variables depending on total energy
+!         ejfv  (j) = sqrt((ejv(j)-pma)*(ejv(j)+pma))
+!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))
+!         dpsv  (j) = (ejfv(j)-e0f)/e0f
 !         oidpsv(j) = one/(one+dpsv(j))
 !         dpsv1 (j) = (dpsv(j)*c1e3)*oidpsv(j)
-!         if(nqq(j) .eq. 0) then
-!           mtc (j) = zero
-!         else
-!           mtc (j) = (nqq(j)*nucm0)/(qq0*nucm(j))              ! hisix: mass to charge
-!         endif
-!         moidpsv (j) = mtc(j)*oidpsv(j)                        ! hisix
-!         omoidpsv(j) = c1e3*((one-mtc(j))*oidpsv(j))           ! hisix
-!         nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
-!         ien1        = ien1  + ejv(j)                          ! outcoming energy
-!      end do
+         ejfv  (j) = sqrt((ejv(j)-nucm(j))*(ejv(j)+nucm(j)))   ! hisix: ion mass
+         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))                 ! hisix: remains unchanged
+         dpsv  (j) = (ejfv(j)*(nucm0/nucm(j))-e0f)/e0f         ! hisix: new delta
+         oidpsv(j) = one/(one+dpsv(j))
+         dpsv1 (j) = (dpsv(j)*c1e3)*oidpsv(j)
+         mtc     (j) = (nqq(j)*nucm0)/(qq0*nucm(j))            ! hisix: mass to charge
+         moidpsv (j) = mtc(j)*oidpsv(j)                        ! hisix
+         omoidpsv(j) = c1e3*((one-mtc(j))*oidpsv(j))           ! hisix
+         nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
+         ien1        = ien1  + ejv(j)                          ! outcoming energy
+      end do
+
+!       hisix: compute the nucleon and energy difference
+!              reduce by factor 1e-3 to get the energy in GeV
+        if((ien0-ien1).gt.one) then
+          write(unit208,"(2(i6,1x),e24.16)") fluka_geo_index(fluka_ix), nnuc0-nnuc1, c1m3*(ien0-ien1)
+        end if
 !
-!!     hisix: compute the nucleon and energy difference
-!!              reduce by factor 1e-3 to get the energy in GeV
-!      if((ien0-ien1).gt.one) then
-!        write(unit208,"(2(i6,1x),e24.16)") fluka_geo_index(fluka_ix), nnuc0-nnuc1, c1m3*(ien0-ien1)
-!      end if
-!
-!!     hisix: check which particle ids have not been sent back
-!!            write their ids to fort.209
-!      do j=1,npart                                             ! loop over all pids possible
-!        pid_q = zero
-!
-!        do k=1,napx                                            ! loop over pids received
-!          if(pids(j).eq.partID(k)) then
-!            pid_q = one
-!          end if
-!        end do
-!      end do
-!
-!!     empty places
-!      do j=napx+1,npart
-!!        Update values related to losses
-!         partID(j) = j
-!         pstop (j) = .true.
-!!        Update values related to momentum
-!         ejv   (j) = zero
-!         rvv   (j) = one
-!         ejfv  (j) = zero
-!         dpsv  (j) = zero
-!         oidpsv(j) = one
-!         dpsv1 (j) = zero
-!         mtc   (j) = one            ! hiSix
-!         naa   (j) = aa0            ! hiSix
-!         nzz   (j) = zz0            ! hiSix
-!         nqq   (j) = qq0
-!         pdgid (j) = pdgid0
-!         spin_x(j) = zero
-!         spin_y(j) = zero
-!         spin_z(j) = zero
-!         nucm  (j) = nucm0          ! hiSix
-!         moidpsv (j) = one          ! hiSix
-!         omoidpsv(j) = zero         ! hiSix
-!      end do
-!
-!!     au revoir:
-!      fluka_i = -1
-!      fluka_ix = -1
-!      fluka_nturn = -1
-!      flush(unit208)
-!      return
-!end subroutine kernel_fluka_element
-!
-!subroutine kernel_fluka_entrance( nturn, i, ix )
-!!
-!!-----------------------------------------------------------------------
-!!     A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
-!!     last modified: 07-02-2014
-!!     'transport' subroutine, for the marker starting a Fluka insertion
-!!     inserted in main code by the 'fluka' compilation flag
-!!-----------------------------------------------------------------------
-!!
-!      use floatPrecision
-!      use numerical_constants, only : zero
-!      use crcoall
-!      use parpro
-!      use mod_common
-!      use mod_common_track
-!      use mod_common_main
-!
-!      implicit none
-!
-!
-!!     interface variables:
-!      integer nturn, i, ix, ixt
-!
-!!     temporary variables
-!      integer ret, j
-!      integer k                   ! ph: hisix
-!      integer pid_q               ! ph: hisix
-!
-!      save
-!
-!!     keep track of exit element
-!!     NB: check_coupling_integrity and check_coupling_start_point have
-!!         already verify the conditions for which this search is always successful
-!      do j=i+1,iu
-!        if(ktrack(j).ne.1.and.ic(j).gt.nblo) then
-!          ixt=ic(j)-nblo
-!          if(fluka_geo_index(ix).eq.fluka_geo_index(ixt))then
-!             fluka_i = j
-!             fluka_ix = ixt
-!             fluka_nturn = nturn
-!             exit
-!          end if
-!        end if
-!      end do
-!
-!      if (fluka_debug) then
-!!        where are we?
-!         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(ix)
-!         write(fluka_log_unit,*)'#   i=', i
-!         write(fluka_log_unit,*)'#   ix=', ix
-!         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(ix)
-!         write(fluka_log_unit,*)'#   eltot=',zero
-!      end if
-!
-!      ! P. HERMES for hisix
-!      ! send also A,Z,m to FLUKA
-!
-!!     PH hisix compute the number of nucleons sent to FLUKA
-!!     PH hisix compute ion energy sent to FLUKA
-!!     PH initialize array of particle ids
-!      nnuc0 = 0
-!      ien0  = zero
-!      do j=1,npart
-!        pids(j) = 0
-!      end do
-!
-!      do j=1,napx
-!        nnuc0   = nnuc0 + naa(j)
-!        ien0    = ien0  + ejv(j)
-!        pids(j) = partID(j)   ! array of particle ids sent to FLUKA
-!!    write(*,*),'PH:',pids(j)
-!      end do
-!
-!      ret = fluka_send( fluka_nturn, fluka_geo_index(fluka_ix), zero, &
-!           napx, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, &
-!           partID, parentID, partWeight, spin_x, spin_y, spin_z )
-!
-!      if (ret.lt.0) then
-!         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret,' in Fluka communication returned by fluka_send...'
-!         write(fluka_log_unit,'(A,i0,A)')'# Error ', ret, ' in Fluka communication returned by fluka_send...'
-!         ERROR STOP 'ENDED WITH ERROR.'
-!      end if
-!
-!!     au revoir:
-!      return
-!end subroutine kernel_fluka_entrance
-!
-!subroutine kernel_fluka_exit
-!!
-!!-----------------------------------------------------------------------
-!!     A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
-!!     last modified: 07-02-2014
-!!     'transport' subroutine, for the marker closing a Fluka insertion
-!!     inserted in main code by the 'fluka' compilation flag
-!!-----------------------------------------------------------------------
-!!
-!      use floatPrecision
-!      use numerical_constants, only : zero, one, c1e3, c1m3
-!      use crcoall
-!      use parpro
-!      use mod_common
-!      use mod_common_track
-!      use mod_common_main
-!
-!      implicit none
-!
-!!     interface variables:
-!      integer nturn, i, ix
-!
-!!     temporary variables
-!      integer ret, j, k
-!      integer pid_q               ! ph: hisix
-!
-!      save
-!
-!      if (fluka_debug) then
-!!        where are we?
-!         write(fluka_log_unit,*)'# In fluka element of type ', fluka_type(fluka_ix)
-!         write(fluka_log_unit,*)'#   i=', fluka_i
-!         write(fluka_log_unit,*)'#   ix=', fluka_ix
-!         write(fluka_log_unit,*)'#   fluka_geo_index=',fluka_geo_index(fluka_ix)
-!         write(fluka_log_unit,*)'#   eltot=',fluka_synch_length( fluka_ix )
-!      end if
-!
-!      ret = fluka_receive( fluka_nturn, fluka_geo_index(fluka_ix), fluka_synch_length( fluka_ix ), &
-!           napx, xv1, xv2, yv1, yv2, sigmv, ejv, naa, nzz, nucm, nqq, pdgid, partID, parentID,&
-!           partWeight, spin_x, spin_y, spin_z )
-!
-!      if (ret.lt.0) then
-!         write(lerr,'(A,i0,A)')'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_receive...'
-!         write(fluka_log_unit,'(A,i0,A)')'# Error ',ret, ' in Fluka communication returned by fluka_receive...'
-!         ERROR STOP 'ENDED WITH ERROR.'
-!      end if
-!
-!      nnuc1 = 0                 ! hisix: number of nucleons leaving the collimator
-!      ien1  = zero              ! hisix: total energy leaving the collimator
-!!     particles to be tracked
-!      do j=1,napx
-!!        Update values related to losses
-!         partID(j) = j
-!         pstop (j) = .false.
-!!        Update variables depending on total energy
-!!         ejfv  (j) = sqrt((ejv(j)-pma)*(ejv(j)+pma))
-!!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))
-!!         dpsv  (j) = (ejfv(j)-e0f)/e0f
-!!         oidpsv(j) = one/(one+dpsv(j))
-!!         dpsv1 (j) = (dpsv(j)*c1e3)*oidpsv(j)
-!         ejfv  (j) = sqrt((ejv(j)-nucm(j))*(ejv(j)+nucm(j)))   ! hisix: ion mass
-!         rvv   (j) = (ejv(j)*e0f)/(e0*ejfv(j))                 ! hisix: remains unchanged
-!         dpsv  (j) = (ejfv(j)*(nucm0/nucm(j))-e0f)/e0f         ! hisix: new delta
-!         oidpsv(j) = one/(one+dpsv(j))
-!         dpsv1 (j) = (dpsv(j)*c1e3)*oidpsv(j)
-!         mtc     (j) = (nqq(j)*nucm0)/(qq0*nucm(j))            ! hisix: mass to charge
-!         moidpsv (j) = mtc(j)*oidpsv(j)                        ! hisix
-!         omoidpsv(j) = c1e3*((one-mtc(j))*oidpsv(j))           ! hisix
-!         nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
-!         ien1        = ien1  + ejv(j)                          ! outcoming energy
-!      end do
-!
-!!       hisix: compute the nucleon and energy difference
-!!              reduce by factor 1e-3 to get the energy in GeV
-!        if((ien0-ien1).gt.one) then
-!          write(unit208,"(2(i6,1x),e24.16)") fluka_geo_index(fluka_ix), nnuc0-nnuc1, c1m3*(ien0-ien1)
-!        end if
-!!
-!!     hisix: check which particle ids have not been sent back
-!!            write their ids to fort.209
-!      do j=1,npart                                       ! loop over all pids possible
-!        pid_q = zero
-!        do k=1,napx                                    ! loop over pids received
-!          if(pids(j).eq.partID(k)) then
-!            pid_q = one
-!          end if
-!        end do
-!      end do
-!
-!!     empty places
-!      do j=napx+1,npart
-!!        Update values related to losses
-!         partID(j) = j
-!         pstop (j) = .true.
-!!        Update values related to momentum
-!         ejv   (j) = zero
-!         rvv   (j) = one
-!         ejfv  (j) = zero
-!         dpsv  (j) = zero
-!         oidpsv(j) = one
-!         dpsv1 (j) = zero
-!         mtc   (j) = one            ! hiSix
-!         naa   (j) = aa0            ! hiSix
-!         nzz   (j) = zz0            ! hiSix
-!         nqq   (j) = qq0
-!         pdgid (j) = pdgid0
-!         spin_x(j) = zero
-!         spin_y(j) = zero
-!         spin_z(j) = zero
-!         nucm  (j) = nucm0          ! hiSix
-!         moidpsv (j) = one          ! hiSix
-!         omoidpsv(j) = zero         ! hiSix
-!      end do
-!
-!!     au revoir:
-!      fluka_i = -1
-!      fluka_ix = -1
-!      fluka_nturn = -1
-!      flush(unit208)
-!      return
-!end subroutine kernel_fluka_exit
+!     hisix: check which particle ids have not been sent back
+!            write their ids to fort.209
+      do j=1,npart                                       ! loop over all pids possible
+        pid_q = zero
+        do k=1,napx                                    ! loop over pids received
+          if(pids(j).eq.partID(k)) then
+            pid_q = one
+          end if
+        end do
+      end do
+
+!     empty places
+      do j=napx+1,npart
+!        Update values related to losses
+         partID(j) = j
+         pstop (j) = .true.
+!        Update values related to momentum
+         ejv   (j) = zero
+         rvv   (j) = one
+         ejfv  (j) = zero
+         dpsv  (j) = zero
+         oidpsv(j) = one
+         dpsv1 (j) = zero
+         mtc   (j) = one            ! hiSix
+         naa   (j) = aa0            ! hiSix
+         nzz   (j) = zz0            ! hiSix
+         nqq   (j) = qq0
+         pdgid (j) = pdgid0
+         spin_x(j) = zero
+         spin_y(j) = zero
+         spin_z(j) = zero
+         nucm  (j) = nucm0          ! hiSix
+         moidpsv (j) = one          ! hiSix
+         omoidpsv(j) = zero         ! hiSix
+      end do
+
+!     au revoir:
+      fluka_i = -1
+      fluka_ix = -1
+      fluka_nturn = -1
+      flush(unit208)
+      return
+end subroutine kernel_fluka_exit
 
 
 subroutine check_coupling_integrity

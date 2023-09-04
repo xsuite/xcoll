@@ -1,4 +1,15 @@
 subroutine pyfluka_init(n_alloc)
+
+    ! Initialize FLUKA
+    ! Same initialization as was done in SixTrack main_cr.f90
+    use crcoall
+    use parpro
+    use mod_settings
+    use mod_common !! This one is absolutely necessary!!
+    use mod_common_main
+    use mod_commons
+    use mod_common_track
+
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
@@ -13,6 +24,7 @@ end subroutine
 
 
 subroutine pyfluka_connect()
+    use crcoall
     use mod_fluka
     !, only : fluka_connect, fluka_connected
 
@@ -20,12 +32,36 @@ subroutine pyfluka_connect()
 
     integer fluka_con
 
-    fluka_con = fluka_connect()
-    if(fluka_con == -1) then
-      PRINT *, "ERROR Cannot connect to Fluka server"
+    !fluka_con = fluka_connect()
+    !if(fluka_con == -1) then
+    !  write(fluka_log_unit,*) "ERROR Cannot connect to Fluka server"
+    !endif
+    !write(fluka_log_unit,*) "Successfully connected to Fluka server"
+    !fluka_connected = .true.
+    !write(fluka_log_unit,*) "fluka_connected=", fluka_connected
+
+    ! A.Mereghetti, P. Garcia Ortega, D.Sinuela Pastor, V. Vlachoudis for the FLUKA Team
+    ! last modified: 11-06-2014
+    ! start connection to FLUKA and initialise max ID
+    if(fluka_enable) then
+       fluka_con = fluka_is_running()
+       if(fluka_con == -1) then
+          write(lerr,"(a)") "FLUKA> ERROR Fluka is expected to run but it is NOT actually the case"
+          write(fluka_log_unit,*) "# Fluka is expected to run but it is NOT actually the case"
+          call prror
+       end if
+       write(lout,"(a)") "FLUKA> Initializing FlukaIO interface ..."
+       write(fluka_log_unit,*) "# Initializing FlukaIO interface ..."
+       fluka_con = fluka_connect()
+       if(fluka_con == -1) then
+          write(lerr,"(a)") "FLUKA> ERROR Cannot connect to Fluka server"
+          write(fluka_log_unit,*) "# Error connecting to Fluka server"
+          call prror
+       endif
+       write(lout,"(a)") "FLUKA> Successfully connected to Fluka server"
+       write(fluka_log_unit,*) "# Successfully connected to Fluka server"
+       fluka_connected = .true.
     endif
-    PRINT *, "Successfully connected to Fluka server"
-    fluka_connected = .true.
 
 end subroutine
 
@@ -41,22 +77,76 @@ subroutine pyfluka_close()
 end subroutine
       
 
-subroutine pyfluka_set_n_alloc(n_alloc)
+subroutine pyfluka_set_n_alloc(nalloc)
+    use crcoall
     use mod_fluka
     !, only : fluka_init_max_uid, fluka_enable
 
     implicit none
-    integer, intent(in)    :: n_alloc
+    integer, intent(in)    :: nalloc
     integer fluka_con
 
+    ! P.Garcia Ortega, A.Mereghetti and V.Vlachoudis, for the FLUKA Team
+    ! last modified: 26-08-2014
+    ! send nalloc to fluka
     if(fluka_enable) then
-        PRINT *, "Changing n_alloc in FLUKA"
-        fluka_con = fluka_init_max_uid( n_alloc )
-        if(fluka_con < 0) then
-            PRINT *, "Failed to change n_alloc in FLUKA"
-        end if
-        PRINT *, "Succesfully changed n_alloc in FLUKA"
+       write(lout,"(a,i0)") "FLUKA> Sending nalloc = ",nalloc
+       write(fluka_log_unit,*) "# Sending nalloc: ", nalloc
+       fluka_con = fluka_init_max_uid( nalloc )
+
+       if(fluka_con < 0) then
+          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send nalloc ",nalloc," to fluka "
+          write(fluka_log_unit, *) "# failed to send nalloc to fluka ",nalloc
+          call prror
+       end if
+
+       write(lout,"(a)") "FLUKA> Sending nalloc successful"
+       write(fluka_log_unit,*) "# Sending nalloc successful;"
+       flush(lout)
+       flush(fluka_log_unit)
     end if
+
+end subroutine
+
+
+subroutine pyfluka_set_synch_part()
+    use crcoall
+    use mod_common
+    use mod_fluka
+
+    implicit none
+    integer fluka_con
+
+    ! remove these 2 lines
+    write(lout,"(a)") "Called pyfluka_set_synch_part"
+    flush(lout)
+    flush(lerr)
+
+    ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
+    ! last modified: 18-01-2016
+    ! initialise energy/momentum/rest mass of reference particle in mod_fluka
+    !     and synch magnetic rigidity with Fluka (for the time being, consider
+    !     only protons);
+    if(fluka_enable) then
+       write(lout,"(a)") "FLUKA> Updating the reference particle"
+       write(fluka_log_unit,*) "# Updating ref particle"
+       flush(lout)
+       flush(fluka_log_unit)
+
+       fluka_con = fluka_set_synch_part( e0, e0f, nucm0, aa0, zz0, qq0)
+
+       if(fluka_con < 0) then
+          write(lerr,"(a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to update the reference particle"
+          write(fluka_log_unit,*) "# failed to update ref particle"
+          call prror
+       end if
+
+       write(lout,"(a)") "FLUKA> Updating the reference particle successful"
+       write(fluka_log_unit,*) "# Updating ref particle successful;"
+       flush(lout)
+       flush(fluka_log_unit)
+    end if
+
 end subroutine
 
 
@@ -113,9 +203,28 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     napx = alive_part
 
     if (ret.lt.0) then
-        PRINT *, 'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
-        PRINT *, 'ENDED WITH ERROR.'
+        write(fluka_log_unit,*) 'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
+        write(fluka_log_unit,*) 'ENDED WITH ERROR.'
     end if
 
     return
 end subroutine track_fluka
+
+
+subroutine prror
+  use crcoall
+  use mod_fluka
+
+  implicit none
+
+  ! These should not go to lerr
+  write(lout,"(a)") ""
+  write(lout,"(a)") "    +++++++++++++++++++++++++++++"
+  write(lout,"(a)") "    +      ERROR DETECTED!      +"
+  write(lout,"(a)") "    + RUN TERMINATED ABNORMALLY +"
+  write(lout,"(a)") "    +++++++++++++++++++++++++++++"
+  write(lout,"(a)") ""
+
+  call fluka_close
+
+end subroutine prror
