@@ -98,7 +98,7 @@ class FlukaEngine(xo.HybridClass):
 
     def _warn_pyfluka(self, error):
         if not self._warning_given:
-            print("Warning: Failed to import pyfluka (did you compile?). " \
+            print("engine.py Warning: Failed to import pyfluka (did you compile?). " \
                 + "FlukaCollimators will be installed but are not trackable.\n", flush=True)
             print(error, flush=True)
             self._warning_given = True
@@ -123,7 +123,7 @@ class FlukaEngine(xo.HybridClass):
                 cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if cmd2.returncode == 0:
                     file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}", flush=True)
+                    print(f"engine.py Found gfortran {version} in {file}", flush=True)
                 else:
                     stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
                     raise RuntimeError(f"Could not run 'which gfortran'! Error given is:\n{stderr}")
@@ -138,7 +138,7 @@ class FlukaEngine(xo.HybridClass):
         cls(*args, **kwargs)
         this = cls.instance
         if this.is_running():
-            print("Server already running.", flush=True)
+            print("engine.py Server already running.", flush=True)
             return
         if not this._gfortran_installed:
             return
@@ -187,26 +187,26 @@ class FlukaEngine(xo.HybridClass):
             time.sleep(2)
             i += 1
             if i%30 == 0:
-                print("Network port not yet established. Waiting 30s.", flush=True)
+                print("engine.py Network port not yet established. Waiting 30s.", flush=True)
             with this._network_nfo.open('r') as fid:
                 lines = fid.readlines()
                 if len(lines) > 1:
                     this.network_port = int(lines[1].strip())
                     break
-        print(f"@@@ Started fluka server on network port {this.network_port}.", flush=True)
+        print(f"engine.py @@@ Started fluka server on network port {this.network_port}.", flush=True)
 
         from .pyflukaf import pyfluka_connect
         pyfluka_connect()
         this._flukaio_connected = True
-        print(f"pyfluka Fully started fluka server.", flush=True)
+        print(f"engine.py Fully started fluka server.", flush=True)
 
         from .pyflukaf import pyfluka_set_n_alloc
-        pyfluka_set_n_alloc(500000)
-        print(f"pyfluka Set nalloc to 500000.", flush=True)
+        pyfluka_set_n_alloc(this.n_alloc)
+        print(f"engine.py Set nalloc to {this.n_alloc}.", flush=True)
 
         from .pyflukaf import pyfluka_set_synch_part
         pyfluka_set_synch_part()
-        print(f"pyfluka Set sync part.", flush=True)
+        print(f"engine.py Set sync part.", flush=True)
 
 
     @classmethod
@@ -215,7 +215,7 @@ class FlukaEngine(xo.HybridClass):
         this = cls.instance
         # Stop flukaio connection
         if this._flukaio_connected:
-            print(f"Closing fluka server.", flush=True)
+            print(f"engine.py Closing fluka server.", flush=True)
             from .pyflukaf import pyfluka_close
             pyfluka_close()
             this._flukaio_connected = False
@@ -265,10 +265,10 @@ class FlukaEngine(xo.HybridClass):
         elif len(processes) == 1 and str(this.server_pid) in processes[0] and 'defunct' not in processes[0]:
             return True
         elif np.any([str(this.server_pid) in proc for proc in processes if 'defunct' not in proc]):
-            print("Warning: Found other instances of rfluka besides the current one!", flush=True)
+            print("engine.py Warning: Found other instances of rfluka besides the current one!", flush=True)
             return True
         else:
-            print("Warning: Found other instances of rfluka but not the current one!", flush=True)
+            print("engine.py Warning: Found other instances of rfluka but not the current one!", flush=True)
             this.stop_server()
             return False
 
