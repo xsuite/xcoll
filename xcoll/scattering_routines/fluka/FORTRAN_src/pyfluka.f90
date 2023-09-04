@@ -32,16 +32,6 @@ subroutine pyfluka_connect()
 
     integer fluka_con
 
-    !fluka_con = fluka_connect()
-    !if(fluka_con == -1) then
-    !  write(fluka_log_unit,*) "ERROR Cannot connect to Fluka server"
-    !endif
-    !write(fluka_log_unit,*) "Successfully connected to Fluka server"
-    !fluka_connected = .true.
-    !write(fluka_log_unit,*) "fluka_connected=", fluka_connected
-
-    ! A.Mereghetti, P. Garcia Ortega, D.Sinuela Pastor, V. Vlachoudis for the FLUKA Team
-    ! last modified: 11-06-2014
     ! start connection to FLUKA and initialise max ID
     if(fluka_enable) then
        fluka_con = fluka_is_running()
@@ -77,31 +67,31 @@ subroutine pyfluka_close()
 end subroutine
       
 
-subroutine pyfluka_set_n_alloc(nalloc)
+subroutine pyfluka_set_n_alloc(n_alloc)
     use crcoall
     use mod_fluka
     !, only : fluka_init_max_uid, fluka_enable
 
     implicit none
-    integer, intent(in)    :: nalloc
+    integer, intent(in)    :: n_alloc
     integer fluka_con
 
     ! P.Garcia Ortega, A.Mereghetti and V.Vlachoudis, for the FLUKA Team
     ! last modified: 26-08-2014
-    ! send nalloc to fluka
+    ! send n_alloc to fluka
     if(fluka_enable) then
-       write(lout,"(a,i0)") "FLUKA> Sending nalloc = ",nalloc
-       write(fluka_log_unit,*) "# Sending nalloc: ", nalloc
-       fluka_con = fluka_init_max_uid( nalloc )
+       write(lout,"(a,i0)") "FLUKA> Sending n_alloc = ",n_alloc
+       write(fluka_log_unit,*) "# Sending n_alloc: ", n_alloc
+       fluka_con = fluka_init_max_uid( n_alloc )
 
        if(fluka_con < 0) then
-          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send nalloc ",nalloc," to fluka "
-          write(fluka_log_unit, *) "# failed to send nalloc to fluka ",nalloc
+          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send n_alloc ",n_alloc," to fluka "
+          write(fluka_log_unit, *) "# failed to send n_alloc to fluka ",n_alloc
           call prror
        end if
 
-       write(lout,"(a)") "FLUKA> Sending nalloc successful"
-       write(fluka_log_unit,*) "# Sending nalloc successful;"
+       write(lout,"(a)") "FLUKA> Sending n_alloc successful"
+       write(fluka_log_unit,*) "# Sending n_alloc successful;"
        flush(lout)
        flush(fluka_log_unit)
     end if
@@ -116,11 +106,6 @@ subroutine pyfluka_set_synch_part()
 
     implicit none
     integer fluka_con
-
-    ! remove these 2 lines
-    write(lout,"(a)") "Called pyfluka_set_synch_part"
-    flush(lout)
-    flush(lerr)
 
     ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
     ! last modified: 18-01-2016
