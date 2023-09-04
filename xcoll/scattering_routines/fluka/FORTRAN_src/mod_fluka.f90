@@ -63,6 +63,7 @@ module mod_fluka
            ntwait,      &
            ntsendnpart, &
            ntsendbrhono
+  external ntrtimeout, ntwtimeout
 
   integer(kind=int32) :: ntconnect,   &
                          ntsendp,     &
@@ -74,6 +75,7 @@ module mod_fluka
                          ntsendnpart, &
                          ntsendbrhono,&
                          ntend
+  integer(kind=int32) :: ntrtimeout, ntwtimeout
 
   ! FlukaIO Message types
   integer(kind=int8), parameter :: FLUKA_PART = 1, &
@@ -242,6 +244,9 @@ contains
   integer function fluka_connect()
     implicit none
 
+    integer :: rtimeout
+    integer :: wtimeout
+
     call fluka_read_config(fluka_net_nfo_file, fluka_host, fluka_port)
 
     write(fluka_log_unit,*) '# Connecting to host: ', fluka_host, ', in port: ', fluka_port
@@ -249,6 +254,9 @@ contains
     call ntinit()
     fluka_cid = ntconnect(fluka_host, fluka_port)
     fluka_connect = fluka_cid
+
+    rtimeout = ntrtimeout(fluka_cid, 3600)
+    wtimeout = ntwtimeout(fluka_cid, 3600)
 
   end function fluka_connect
 
