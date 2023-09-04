@@ -39,8 +39,8 @@ class FlukaEngine(xo.HybridClass):
             cls.instance._initialised = False
         return cls.instance
 
-    def __del__(self, *args, **kwargs):
-        self.stop_server()
+    #def __del__(self, *args, **kwargs):
+    #    self.stop_server()
 
     def __init__(self, fluka=None, flukaserver=None, verbose=True, testing=False, **kwargs):
         if(self._initialised):
@@ -213,14 +213,11 @@ class FlukaEngine(xo.HybridClass):
     def stop_server(cls, *args, **kwargs):
         cls(*args, **kwargs)
         this = cls.instance
-        # Stop flukaio conneciton
+        # Stop flukaio connection
         if this._flukaio_connected:
-            try:
-                print(f"Closing fluka server.", flush=True)
-                from .pyflukaf import pyfluka_close
-                pyfluka_close()
-            except ImportError as error:
-                this._warn_pyfluka(error)
+            print(f"Closing fluka server.", flush=True)
+            from .pyflukaf import pyfluka_close
+            pyfluka_close()
             this._flukaio_connected = False
         # If the Popen process is still running, terminate it
         if this._server_process is not None:

@@ -45,3 +45,5 @@ part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e1
 #A_part, Z_part, pdgid_part, partID, parentID, partWeight, spin_x_part, spin_y_part, spin_z_part = \
 #    coll.track(part)
 coll.track(part)
+
+xc.FlukaEngine.stop_server()
