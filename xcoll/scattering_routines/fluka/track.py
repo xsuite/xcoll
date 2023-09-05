@@ -77,6 +77,7 @@ def track_ini(part):
     part_pc0 = part.p0c[0] / 1.e6 # from [eV] to [MeV/c]
     part_mass0 = part.mass0 / 1.e6 # from [eV] to [MeV/c2]
     part_q0 = part.q0
+    # TODO: hard-coded Z/A
     part_a0 = 1
     part_z0 = 1
     pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
@@ -113,17 +114,20 @@ def track_core(collimator, part):
     data['Z_part']      = np.concatenate((Z.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
     data['pdgid_part']  = np.concatenate((pdgid,                                     np.zeros(max_part-npart, dtype=np.int32)))
     # TODO: hard-coded spin
+    # NB: With SixTrack, the spin sent for protons was 0!! Probably not used under the hood?
     data['spin_x_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
     data['spin_y_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
     data['spin_z_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
-    data['partID']      = np.concatenate((part.particle_id[:npart].copy().astype(np.int32),
+    # Particles indexing start from 1 with FLUKA IO (from 0 with xpart)
+    data['partID']      = np.concatenate((part.particle_id[:npart].copy().astype(np.int32)+1,
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))
-    data['parentID']    = np.concatenate((part.parent_particle_id[:npart].copy().astype(np.int32),
+    # Particles indexing start from 1 with FLUKA IO (from 0 with xpart)
+    data['parentID']    = np.concatenate((part.parent_particle_id[:npart].copy().astype(np.int32)+1,
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))
     data['partWeight']  = np.concatenate((part.weight[:npart].copy(),                np.zeros(max_part-npart, dtype=float)))
 
     # send to fluka
-    track_fluka(turn=part.at_turn[0],
+    track_fluka(turn=part.at_turn[0]+1, # Turn indexing start from 1 with FLUKA IO (from 0 with xpart)
                 fluka_id=collimator.collimator_id,
                 length=collimator.length,
                 part_p0c=part.p0c[0],

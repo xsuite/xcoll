@@ -24,7 +24,7 @@ coll = xc.FlukaCollimator(collimator_id=31, length=1.48200)
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
 #num_part = int(10)
-num_part = int(400)
+num_part = int(20000)
 x_init   = np.random.normal(loc=1.288e-3, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
