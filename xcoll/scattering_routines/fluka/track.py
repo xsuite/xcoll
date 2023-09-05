@@ -62,10 +62,16 @@ def track(collimator, particles):  # TODO: write impacts
 
 def track_ini(part):
     try:
-        from .pyflukaf import pyfluka_set_synch_part
+        from .pyflukaf import pyfluka_set_synch_part, pyfluka_init_max_uid
     except ImportError as error:
+        from .engine import FlukaEngine
+        engine = FlukaEngine.instance
         engine._warn_pyfluka(error)
         return
+
+    # Used by FLUKA to set the new particles starting id. 
+    pyfluka_init_max_uid(part._num_active_particles)
+    print(f"track.py Set max uid to {part._num_active_particles}.", flush=True)
 
     # Reference particle
     print(f"track.py part.at_turn[0]={part.at_turn[0]}\n", flush=True)

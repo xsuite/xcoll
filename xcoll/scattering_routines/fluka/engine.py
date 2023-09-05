@@ -202,10 +202,6 @@ class FlukaEngine(xo.HybridClass):
         this._flukaio_connected = True
         print(f"engine.py Started fluka server with timeout_sec={this.timeout_sec}.", flush=True)
 
-        from .pyflukaf import pyfluka_set_n_alloc
-        pyfluka_set_n_alloc(this.n_alloc)
-        print(f"engine.py Set nalloc to {this.n_alloc}.", flush=True)
-
 
     @classmethod
     def stop_server(cls, *args, **kwargs):

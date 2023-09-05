@@ -6,6 +6,8 @@ subroutine pyfluka_init(n_alloc)
     implicit none
     integer, intent(in)    :: n_alloc
 
+    ! NB: In SixTrack, npart was passed, not n_alloc.
+    ! (probably needed for e.g. avoiding to re-compile)
     call fluka_mod_init(n_alloc, 500, clight)
     fluka_enable = .true.
 
@@ -58,33 +60,33 @@ subroutine pyfluka_close()
 end subroutine
       
 
-subroutine pyfluka_set_n_alloc(n_alloc)
+subroutine pyfluka_init_max_uid(npart)
     use crcoall
     use mod_fluka
     !, only : fluka_init_max_uid, fluka_enable
 
     implicit none
-    integer, intent(in)    :: n_alloc
+    integer, intent(in)    :: npart
     integer fluka_con
 
     ! P.Garcia Ortega, A.Mereghetti and V.Vlachoudis, for the FLUKA Team
     ! last modified: 26-08-2014
-    ! send n_alloc to fluka
+    ! send npart to fluka
     if(fluka_enable) then
-       write(lout,"(a,i0)") "FLUKA> Sending n_alloc = ",n_alloc
-       write(fluka_log_unit,*) "# Sending n_alloc: ", n_alloc
+       write(lout,"(a,i0)") "FLUKA> Sending npart = ",npart
+       write(fluka_log_unit,*) "# Sending npart: ", npart
        ! IMPORTANT: The call to fluka_init_max_uid is absolutely needed.
        ! The FLUKA server looks (in order!) for the corresponding message.
-       fluka_con = fluka_init_max_uid( n_alloc )
+       fluka_con = fluka_init_max_uid( npart )
 
        if(fluka_con < 0) then
-          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send n_alloc ",n_alloc," to fluka "
-          write(fluka_log_unit, *) "# failed to send n_alloc to fluka ",n_alloc
+          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send npart ",npart," to fluka "
+          write(fluka_log_unit, *) "# failed to send npart to fluka ",npart
           call prror
        end if
 
-       write(lout,"(a)") "FLUKA> Sending n_alloc successful"
-       write(fluka_log_unit,*) "# Sending n_alloc successful;"
+       write(lout,"(a)") "FLUKA> Sending npart successful"
+       write(fluka_log_unit,*) "# Sending npart successful;"
        flush(lout)
        flush(fluka_log_unit)
     end if
