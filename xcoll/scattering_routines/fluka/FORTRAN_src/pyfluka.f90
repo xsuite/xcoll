@@ -7,7 +7,7 @@ subroutine pyfluka_init(n_alloc)
     integer, intent(in)    :: n_alloc
 
     ! NB: In SixTrack, npart was passed, not n_alloc.
-    ! (probably needed for e.g. avoiding to re-compile)
+    ! (Needed for e.g. avoiding to re-compile?)
     call fluka_mod_init(n_alloc, 500, clight)
     fluka_enable = .true.
 

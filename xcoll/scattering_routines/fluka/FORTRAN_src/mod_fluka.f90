@@ -671,7 +671,6 @@ contains
 
   end subroutine fluka_shuffleLostParticles
 
-
   !----------------------------------------------------------------------------
   ! set reference particle properties (mainly for longitudinal dynamics)
   integer function fluka_set_synch_part( e0, pc0, mass0, a0, z0, q0 )

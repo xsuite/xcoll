@@ -11,15 +11,15 @@ import time
 import xobjects as xo
 
 
-# GAB localhost
-#default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
-#                          'bin', 'rfluka').resolve()
-default_fluka_path = Path('/', 'home', 'ghugo', 'fluka', 'bin', 'rfluka').resolve()
-# GAB localhost
-#default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
-#                                'fluka', 'flukaserver').resolve()
-default_flukaserver_path = Path('/', 'home', 'ghugo', 'xsuite', 'xcoll', 'xcoll', 'scattering_routines', 'fluka', 'fluka_coupling',
+# Default install:
+default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
+                          'bin', 'rfluka').resolve()
+default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
                                 'fluka', 'flukaserver').resolve()
+
+# Local install:
+#default_fluka_path = Path('/', 'home', 'ghugo', 'fluka', 'bin', 'rfluka').resolve()
+#default_flukaserver_path = Path('/', 'home', 'ghugo', 'xsuite', 'xcoll', 'xcoll', 'scattering_routines', 'fluka', 'fluka_coupling', 'fluka', 'flukaserver').resolve()
 
 network_file = "network.nfo"
 fluka_log  = "server_output.log"
@@ -170,8 +170,8 @@ class FlukaEngine(xo.HybridClass):
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
-        # GAB localhost
-        host="localhost"
+        # Local install:
+        #host="localhost"
         with this._network_nfo.open('w') as fid:
             fid.write(f"{host}\n")
 

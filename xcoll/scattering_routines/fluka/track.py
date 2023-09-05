@@ -69,11 +69,11 @@ def track_ini(part):
         engine._warn_pyfluka(error)
         return
 
-    # Used by FLUKA to set the new particles starting id. 
+    # Set the new particles starting id. 
     pyfluka_init_max_uid(part._num_active_particles)
     print(f"track.py Set max uid to {part._num_active_particles}.", flush=True)
 
-    # Reference particle
+    # Set the reference particle.
     print(f"track.py part.at_turn[0]={part.at_turn[0]}\n", flush=True)
     print(f"track.py part.energy0[0]={part.energy0[0]}\n", flush=True)
     print(f"track.py part.p0c[0]={part.p0c[0]}\n", flush=True)
@@ -81,7 +81,7 @@ def track_ini(part):
     print(f"track.py part.q0={part.q0}\n", flush=True)
     part_e0 = part.energy0[0] / 1.e6    # from [eV] to [MeV]
     part_pc0 = part.p0c[0]    / 1.e6    # from [eV] to [MeV/c]
-    part_mass0 = part.mass0    / 1.e6   # from [eV] to [MeV/c2]
+    part_mass0 = part.mass0   / 1.e6    # from [eV] to [MeV/c2]
     part_q0 = part.q0
     # TODO: hard-coded Z/A
     part_a0 = 1

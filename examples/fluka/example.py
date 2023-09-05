@@ -24,26 +24,27 @@ coll = xc.FlukaCollimator(collimator_id=31, length=1.48200)
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
 #num_part = int(10)
-#num_part = int(500)
-num_part = int(20000)
+num_part = int(500)
+#num_part = int(20000)
 x_init   = np.random.normal(loc=1.288e-3, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, energy0=7e12)
 
-#Can also use the file used by SixTrack for a more fair comparison
+#File used by SixTrack, for a fairer comparison.
 #f=open("initial.dat","r")
-#lines=f.readlines()
+#all_lines=f.readlines()
 #x_init=[]
 #px_init=[]
 #y_init=[]
 #py_init=[]
-#for x in lines:
-#    x_init.append(float(x.split()[3]))
-#    px_init.append(float(x.split()[6]))
-#    y_init.append(float(x.split()[4]))
-#    py_init.append(float(x.split()[7]))
+#for line in all_lines:
+#    columns = line.split()
+#    x_init.append(float(columns[3]))
+#    px_init.append(float(columns[6]))
+#    y_init.append(float(columns[4]))
+#    py_init.append(float(columns[7]))
 #f.close()
 #part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, energy0=7e12)
 
