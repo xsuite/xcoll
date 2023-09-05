@@ -89,7 +89,7 @@ module mod_fluka
   ! connection ID
   integer(kind=int32) :: fluka_cid
 
-  ! FLUK input block
+  ! FLUKA input block
   logical, public :: fluka_enable    = .false.                     ! enable coupling
   logical, public :: fluka_connected = .false.                     ! fluka is connected
   logical, public :: fluka_debug     = .false.                     ! write debug messages
@@ -585,8 +585,8 @@ contains
               flm, flet, flt, &
               flpdgid, flq, flsx, flsy, flsz)
 
-        write(lout,*) 'fluka_receive mtype: ', mtype
-        write(lout,*) 'fluka_receive n: ', n
+        !write(lout,*) 'fluka_receive mtype: ', mtype
+        !write(lout,*) 'fluka_receive n: ', n
         flush(lout)
         if(n.lt.0) then
             write(lout,*) "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
@@ -663,6 +663,7 @@ contains
 
   end subroutine fluka_shuffleLostParticles
 
+
   !----------------------------------------------------------------------------
   ! set reference particle properties (mainly for longitudinal dynamics)
   integer function fluka_set_synch_part( e0, pc0, mass0, a0, z0, q0 )
@@ -676,6 +677,13 @@ contains
     integer(kind=int32) :: n
 
     write(lout,'(A)') 'fluka_set_synch_part'
+    flush(lout)
+    write(lout,*) 'e0 = ', e0
+    write(lout,*) 'pc0 = ', pc0
+    write(lout,*) 'mass0 = ', mass0
+    write(lout,*) 'a0 = ', a0
+    write(lout,*) 'z0 = ', z0
+    write(lout,*) 'q0 = ', q0
     flush(lout)
 
     fluka_set_synch_part = 0
@@ -698,6 +706,10 @@ contains
 
     ! update magnetic rigidity, unless division by clight and 10^-9
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
+    write(lout,*) 'fluka_e0 = ', fluka_e0
+    write(lout,*) 'fluka_pc0 = ', fluka_pc0
+    write(lout,*) 'fluka_brho0 = ', fluka_brho0
+    flush(lout)
 
     ! inform Fluka about the new magnetic rigidity
     n = ntsendbrhono(fluka_cid, fluka_brho0)

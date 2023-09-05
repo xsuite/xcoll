@@ -193,20 +193,16 @@ class FlukaEngine(xo.HybridClass):
                 if len(lines) > 1:
                     this.network_port = int(lines[1].strip())
                     break
-        print(f"engine.py @@@ Started fluka server on network port {this.network_port}.", flush=True)
+        print(f"engine.py @@@ Starting fluka server on network port {this.network_port}.", flush=True)
 
         from .pyflukaf import pyfluka_connect
         pyfluka_connect()
         this._flukaio_connected = True
-        print(f"engine.py Fully started fluka server.", flush=True)
+        print(f"engine.py Started fluka server.", flush=True)
 
         from .pyflukaf import pyfluka_set_n_alloc
         pyfluka_set_n_alloc(this.n_alloc)
         print(f"engine.py Set nalloc to {this.n_alloc}.", flush=True)
-
-        from .pyflukaf import pyfluka_set_synch_part
-        pyfluka_set_synch_part()
-        print(f"engine.py Set sync part.", flush=True)
 
 
     @classmethod

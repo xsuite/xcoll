@@ -99,13 +99,19 @@ subroutine pyfluka_set_n_alloc(n_alloc)
 end subroutine
 
 
-subroutine pyfluka_set_synch_part()
+subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
     use crcoall
     use mod_common
+    !use floatPrecision
     use mod_fluka
+
+    !use, intrinsic :: ISO_FORTRAN_ENV, only : int32
 
     implicit none
     integer fluka_con
+
+    real(kind=8),        intent(in) :: part_e0, part_pc0, part_mass0
+    integer(kind=int32), intent(in) :: part_a0, part_z0, part_q0
 
     ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
     ! last modified: 18-01-2016
@@ -118,7 +124,23 @@ subroutine pyfluka_set_synch_part()
        flush(lout)
        flush(fluka_log_unit)
 
-       fluka_con = fluka_set_synch_part( e0, e0f, nucm0, aa0, zz0, qq0)
+       !e0 = part_e0
+       !e0f = part_pc0
+       !nucm0 = part_mass0
+       !aa0 = part_a0
+       !zz0 = part_z0
+       !qq0 = part_q0
+
+       !write(lout,*) 'e0 = ', e0
+       !write(lout,*) 'e0f = ', e0f
+       !write(lout,*) 'nucm0 = ', nucm0
+       !write(lout,*) 'aa0 = ', aa0
+       !write(lout,*) 'zz0 = ', zz0
+       !write(lout,*) 'qq0 = ', qq0
+       !flush(lout)
+
+       !fluka_con = fluka_set_synch_part( e0, e0f, nucm0, aa0, zz0, qq0)
+       fluka_con = fluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
 
        if(fluka_con < 0) then
           write(lerr,"(a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to update the reference particle"

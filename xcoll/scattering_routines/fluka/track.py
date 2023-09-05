@@ -54,9 +54,33 @@ def track(collimator, particles):  # TODO: write impacts
             drift_6d(particles, collimator.length)
         else:
             # FLUKA uses inactive front and back, so pass full length
+            track_ini(particles)
             track_core(collimator, particles)
             particles.reorganize()
         return
+
+
+def track_ini(part):
+    try:
+        from .pyflukaf import pyfluka_set_synch_part
+    except ImportError as error:
+        engine._warn_pyfluka(error)
+        return
+
+    # Reference particle
+    print(f"track.py part.at_turn[0]={part.at_turn[0]}\n", flush=True)
+    print(f"track.py part.energy0[0]={part.energy0[0]}\n", flush=True)
+    print(f"track.py part.p0c[0]={part.p0c[0]}\n", flush=True)
+    print(f"track.py part.mass0={part.mass0}\n", flush=True)
+    print(f"track.py part.q0={part.q0}\n", flush=True)
+    part_e0 = part.energy0[0] / 1.e6 # from [eV] to [MeV]
+    part_pc0 = part.p0c[0] / 1.e6 # from [eV] to [MeV/c]
+    part_mass0 = part.mass0 / 1.e6 # from [eV] to [MeV/c2]
+    part_q0 = part.q0
+    part_a0 = 1
+    part_z0 = 1
+    pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
+    print(f"engine.py Set sync part.", flush=True)
 
 
 def track_core(collimator, part):
