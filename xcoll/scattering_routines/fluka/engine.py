@@ -29,7 +29,8 @@ server_log = "server_output.log"
 class FlukaEngine(xo.HybridClass):
     _xofields = {
         'network_port':    xo.Int64,
-        'n_alloc':         xo.Int64
+        'n_alloc':         xo.Int64,
+        'timeout_sec':     xo.Int32
     }
 
     # The engine is a singleton
@@ -61,6 +62,7 @@ class FlukaEngine(xo.HybridClass):
             self._warning_given = False
             kwargs.setdefault('network_port', 0)
             kwargs.setdefault('n_alloc', 500000)
+            kwargs.setdefault('timeout_sec', 36000) # 10 hours
 
             # Get paths to executables
             if fluka is None:
@@ -196,9 +198,9 @@ class FlukaEngine(xo.HybridClass):
         print(f"engine.py @@@ Starting fluka server on network port {this.network_port}.", flush=True)
 
         from .pyflukaf import pyfluka_connect
-        pyfluka_connect()
+        pyfluka_connect(this.timeout_sec)
         this._flukaio_connected = True
-        print(f"engine.py Started fluka server.", flush=True)
+        print(f"engine.py Started fluka server with timeout_sec={this.timeout_sec}.", flush=True)
 
         from .pyflukaf import pyfluka_set_n_alloc
         pyfluka_set_n_alloc(this.n_alloc)

@@ -247,9 +247,10 @@ contains
 
   !----------------------------------------------------------------------------
   ! start communication with fluka
-  integer function fluka_connect()
+  integer function fluka_connect(timeout_sec)
     implicit none
 
+    integer(kind=int32) :: timeout_sec
     integer :: rtimeout
     integer :: wtimeout
 
@@ -261,8 +262,8 @@ contains
     fluka_cid = ntconnect(fluka_host, fluka_port)
     fluka_connect = fluka_cid
 
-    rtimeout = ntrtimeout(fluka_cid, 3600)
-    wtimeout = ntwtimeout(fluka_cid, 3600)
+    rtimeout = ntrtimeout(fluka_cid, timeout_sec)
+    wtimeout = ntwtimeout(fluka_cid, timeout_sec)
 
   end function fluka_connect
 
@@ -809,7 +810,7 @@ subroutine fluka_close
        if(fluka_con.eq.0) then
          if( .not. fluka_connected ) then
 !              temporarily connect to fluka, to properly terminate the run
-           fluka_con = fluka_connect()
+           fluka_con = fluka_connect(3600)
            if(fluka_con.lt.0) then
 !                no hope to properly close the run
              write(lerr,'(A)') 'FLUKA> ERROR Unable to connect to fluka while closing the simulation:'

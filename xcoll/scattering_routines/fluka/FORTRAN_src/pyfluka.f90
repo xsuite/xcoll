@@ -12,14 +12,16 @@ subroutine pyfluka_init(n_alloc)
 end subroutine
 
 
-subroutine pyfluka_connect()
+subroutine pyfluka_connect(timeout_sec)
     use crcoall
     use mod_fluka
     !, only : fluka_connect, fluka_connected
+    use, intrinsic :: ISO_FORTRAN_ENV, only : int32
 
     implicit none
 
     integer fluka_con
+    integer(kind=int32), intent(in) :: timeout_sec
 
     ! start connection to FLUKA and initialise max ID
     if(fluka_enable) then
@@ -31,7 +33,7 @@ subroutine pyfluka_connect()
        end if
        write(lout,"(a)") "FLUKA> Initializing FlukaIO interface ..."
        write(fluka_log_unit,*) "# Initializing FlukaIO interface ..."
-       fluka_con = fluka_connect()
+       fluka_con = fluka_connect(timeout_sec)
        if(fluka_con == -1) then
           write(lerr,"(a)") "FLUKA> ERROR Cannot connect to Fluka server"
           write(fluka_log_unit,*) "# Error connecting to Fluka server"
