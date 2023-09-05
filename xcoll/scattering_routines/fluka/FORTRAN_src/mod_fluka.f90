@@ -150,7 +150,10 @@ contains
     ! temporary variables
     integer :: j
 
-    !write(*,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
+    if(fluka_debug) then
+       write(lout,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
+       flush(lout)
+    end if
 
     fluka_max_npart = npart
     fluka_clight    = clight
@@ -232,8 +235,11 @@ contains
       ERROR STOP 'ENDED WITH ERROR.'
     end if
 
-    !write(*,*) "fluka_read_config host=",host
-    !write(*,*) "fluka_read_config port=",port
+    if(fluka_debug) then
+       write(lout,*) "fluka_read_config host=", host
+       write(lout,*) "fluka_read_config port=", port
+       flush(lout)
+    end if
 
     call f_close(net_nfo_unit)
 
@@ -585,9 +591,10 @@ contains
               flm, flet, flt, &
               flpdgid, flq, flsx, flsy, flsz)
 
-        !write(lout,*) 'fluka_receive mtype: ', mtype
-        !write(lout,*) 'fluka_receive n: ', n
-        flush(lout)
+        if(fluka_debug) then
+           write(lout,*) 'fluka_receive mtype=', mtype, ' ,n=', n
+           flush(lout)
+        end if
         if(n.lt.0) then
             write(lout,*) "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
             fluka_cid = -1
@@ -676,15 +683,17 @@ contains
     ! Auxiliary variables
     integer(kind=int32) :: n
 
-    write(lout,'(A)') 'fluka_set_synch_part'
-    flush(lout)
-    write(lout,*) 'e0 = ', e0
-    write(lout,*) 'pc0 = ', pc0
-    write(lout,*) 'mass0 = ', mass0
-    write(lout,*) 'a0 = ', a0
-    write(lout,*) 'z0 = ', z0
-    write(lout,*) 'q0 = ', q0
-    flush(lout)
+    if(fluka_debug) then
+       write(lout,'(A)') 'fluka_set_synch_part'
+       flush(lout)
+       write(lout,*) 'e0 = ', e0
+       write(lout,*) 'pc0 = ', pc0
+       write(lout,*) 'mass0 = ', mass0
+       write(lout,*) 'a0 = ', a0
+       write(lout,*) 'z0 = ', z0
+       write(lout,*) 'q0 = ', q0
+       flush(lout)
+    end if
 
     fluka_set_synch_part = 0
 
@@ -706,12 +715,14 @@ contains
 
     ! update magnetic rigidity, unless division by clight and 10^-9
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
-    write(lout,*) 'fluka_e0 = ', fluka_e0
-    write(lout,*) 'fluka_pc0 = ', fluka_pc0
-    write(lout,*) 'fluka_brho0 = ', fluka_brho0
-    flush(lout)
+    if(fluka_debug) then
+       write(lout,*) 'fluka_brho0 = ', fluka_brho0
+       flush(lout)
+    end if
 
     ! inform Fluka about the new magnetic rigidity
+    ! This step cannot be skipped!!!
+    ! The fluka server is waiting for this message, so that BRHONO can be set.
     n = ntsendbrhono(fluka_cid, fluka_brho0)
     if (n .lt. 0) then
       fluka_set_synch_part = -1

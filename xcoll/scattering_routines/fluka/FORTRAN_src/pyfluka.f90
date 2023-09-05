@@ -1,15 +1,4 @@
 subroutine pyfluka_init(n_alloc)
-
-    ! Initialize FLUKA
-    ! Same initialization as was done in SixTrack main_cr.f90
-    !use crcoall
-    !use parpro
-    !use mod_settings
-    !use mod_common
-    !use mod_common_main
-    !use mod_commons
-    !use mod_common_track
-
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
