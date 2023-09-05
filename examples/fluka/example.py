@@ -37,10 +37,7 @@ part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, energy0
 #    1) prepare the arrays to be fortran-compatible            (OK)
 #    2) call the fortran wrapper track_fluka() in pyfluka.f90  (OK)
 #    3) which calls fluka_send_receive() in mod_fluka.f90      (OK)
-#    4) which calls:
-#        a) fluka_send(): this fails if 238 particles or more,
-#                         even if allocating lots of memory    (NOK)
-#        b) fluka_receive(): this fails in every case.
+#    4) which calls fluka_send(), then fluka_receive()
 #npart, max_part, x_part, xp_part, y_part, yp_part, zeta_part, e_part, m_part, q_part, \
 #A_part, Z_part, pdgid_part, partID, parentID, partWeight, spin_x_part, spin_y_part, spin_z_part = \
 #    coll.track(part)
