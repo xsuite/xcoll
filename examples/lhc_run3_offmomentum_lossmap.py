@@ -5,11 +5,13 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
+context = xo.ContextCpu(omp_num_threads='auto')
+
 
 # On a modern CPU, we get ~5000 particle*turns/s
 # This script typically takes around 1 hour
-beam      = 1
-plane    = 'DPpos'
+beam  = 1
+plane = 'DPpos'
 
 num_particles  = 5000
 sweep          = 300
@@ -22,7 +24,7 @@ path_out = Path.cwd()
 
 
 # Load from json
-line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json', _context=context)
 
 
 # Aperture model check
@@ -32,7 +34,7 @@ assert not np.any(df_imported.has_aperture_problem)
 
 
 # Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam)
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam, _context=context)
 
 
 # Install collimators into line
@@ -49,7 +51,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker()
+coll_manager.build_tracker(_context=context)
 
 
 # Set the collimator openings based on the colldb,
@@ -67,11 +69,17 @@ part = xp.generate_matched_gaussian_bunch(nemitt_x=coll_manager.colldb.emittance
                                           sigma_z=7.55e-2, num_particles=num_particles, line=line)
 
 
+# Print some info of the RF sweep
+rf_sweep = xc.RFSweep(line)
+rf_sweep.info(sweep=sweep, num_turns=num_turns)
+
+
 # Track during RF sweep:
 coll_manager.enable_scattering()
-coll_manager.rf_sweep(sweep=sweep, num_turns=num_turns, particles=part, time=True)
+rf_sweep.track(sweep=sweep, num_turns=num_turns, particles=part, time=True, turn_by_turn_monitor=monitor)
 coll_manager.disable_scattering()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
+
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
