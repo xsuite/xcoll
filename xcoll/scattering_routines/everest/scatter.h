@@ -158,11 +158,6 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
         LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
     }
 
-    // Update s    --------------------------------------------------------
-    if (is_abs==0){
-        LocalParticle_add_to_s(part, length);
-    }
-
     // Update state    ----------------------------------------------------
     if (is_abs > 0){
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST);
