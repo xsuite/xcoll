@@ -65,10 +65,9 @@ EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData col
     // Preinitialise scattering parameters
     double charge_ratio = LocalParticle_get_charge_ratio(part);
     double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
-    double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
-    calculate_scattering(everest, energy0);
     double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
                      ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    calculate_scattering(everest, energy);
     calculate_ionisation_properties(everest, energy);
 #endif
     return everest;
