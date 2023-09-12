@@ -12,8 +12,8 @@ collimators = [
     'tcsg.b5r3.b1', 'tdisa.a4l2.b1', 'tcld.a11r2.b1', 'tcspm.b4l7.b1', 'tcspm.e5r7.b1', 'tcl.4l1.b2', 'tcl.5l1.b2', \
     'tcl.6l1.b2', 'tctph.4r8.b2', 'tcspm.b4r7.b2', 'tcla.b6l7.b2', 'tcla.d6l7.b2', 'tcla.a7l7.b2', 'tcsp.a4l6.b2', \
     'tctph.4r5.b2', 'tcl.4l5.b2', 'tcl.5l5.b2', 'tcl.6l5.b2', 'tcsg.5r3.b2', 'tctpv.4r8.b2', 'tcsg.a6r7.b2', 'tcsg.6l7.b2', \
-    'tdisb.a4r8.b2', 'tcld.a11l2.b2', 'tcsg.4l3.b2', 'tcsg.b5l3.b2', 'tcp.c6l7.b1', 'tcp.c6r7.b2', 'tcpcv.a6l7.b1', \
-    'tcpch.a4l7.b1', 'tcpcv.a6r7.b2', 'tcpch.a5r7.b2'
+    'tdisb.a4r8.b2', 'tcld.a11l2.b2', 'tcsg.4l3.b2', 'tcsg.b5l3.b2', 'tcp.c6l7.b1', 'tcp.c6r7.b2', \
+    'tcpcv.a6l7.b1', 'tcpch.a4l7.b1', 'tcpcv.a6r7.b2', 'tcpch.a5r7.b2'
 ]
 
 path = Path.cwd()
