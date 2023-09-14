@@ -704,12 +704,17 @@ class CollimatorManager:
         return all_enabled
 
 
-    def summary(self, part, show_zeros=False, file=None):
+    def summary(self, part, weights=None, show_zeros=False, file=None, recompute=False):
 
         # We cache the result
         if (self._summary is None or self._part is None
             or not xt.line._dicts_equal(part.to_dict(), self._part)
+            or recompute
            ):
+            if weights is None:
+                weights = np.ones(len(part.x))
+            else:
+                part.sort(interleave_lost_particles=True)
             self._part   = part.to_dict()
             coll_mask    = (part.state<=-333) & (part.state>=-340)
             coll_losses  = np.array([self.line.element_names[i] for i in part.at_element[coll_mask]])
@@ -719,7 +724,8 @@ class CollimatorManager:
             if self._line_is_reversed:
                 coll_pos = [self.machine_length - s for s in coll_pos ]
             coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
-            nabs         = [np.count_nonzero(coll_losses==nn) for nn in self.collimator_names]
+            coll_weights = weights[coll_mask]
+            nabs         = [coll_weights[coll_losses==nn].sum() for nn in self.collimator_names]
 
             self._summary = pd.DataFrame({
                         "collname": self.collimator_names,
@@ -739,7 +745,19 @@ class CollimatorManager:
             return self._summary[self._summary.nabs > 0]
 
 
-    def lossmap(self, part, interpolation=0.1, file=None, recompute=False):
+    def create_weights_from_initial_state(part, function):
+        if len(function) == 4:
+            return function[0](part.x)*function[1](part.px)*\
+                   function[2](part.y)*function[3](part.py)
+        elif len(function) == 6:
+            return function[0](part.x)*function[1](part.px)*\
+                   function[2](part.y)*function[3](part.py)*\
+                   function[4](part.zeta)*function[5](part.delta)
+        else:
+            raise NotImplementedError
+
+
+    def lossmap(self, part, interpolation=0.1, file=None, recompute=False, weights=None):
 
         # We cache the result
         if (self._lossmap is None or self._part is None
@@ -777,8 +795,8 @@ class CollimatorManager:
                             )
                     loss_loc_refinement.refine_loss_location(part)
 
-            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
-            coll_summary = self.summary(part, show_zeros=False).to_dict('list')
+            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part, weights)
+            coll_summary = self.summary(part, weights, recompute=recompute, show_zeros=False).to_dict('list')
 
             self._lossmap = {
                 'collimator': {
@@ -808,17 +826,28 @@ class CollimatorManager:
         return self._lossmap
 
 
-    def _get_aperture_losses(self, part):
+    def _get_aperture_losses(self, part, weights=None):
+        if weights is None:
+            weights = np.ones(len(part.x))
+        else:
+            part.sort(interleave_lost_particles=True)
+
+        # Get s position per particle (lost on aperture)
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
         if len(aper_s) == 0:
             return [], [], []
-        aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
             aper_s = [ self.machine_length - s for s in aper_s ]
-        result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
-        aper_names = list(result[0].transpose()[0])
-        aper_s = [float(s) for s in result[0].transpose()[1]]
-        aper_nabs = [int(n) for n in result[1]]
-        return aper_s, aper_names, aper_nabs
+
+        # Store names of aperture markers
+        aper_names   = [self.line.element_names[i] for i in part.at_element[aper_mask]]
+        name_dict    = dict(zip(aper_s, aper_names)) # TODO: not floating-point-safe and slow
+
+        # Create output arrays
+        aper_pos     = np.unique(aper_s)
+        aper_weights = weights[aper_mask]
+        aper_nabs    = [aper_weights[aper_s==ss].sum() for ss in aper_pos] # TODO: this might be slow
+        aper_names   = [name_dict[ss] for ss in aper_pos]
+        return aper_pos, aper_names, aper_nabs
 
