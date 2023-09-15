@@ -1,12 +1,20 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]
+if [ $# -eq 0 ]
 then
-    echo "This script needs exactly one argument: the new version number or a bump."
-    echo "The latter can be: patch, minor, major, prepatch, preminor, premajor, prerelease."
+    echo "This script needs one argument: the new version number or a bump."
+    echo "The latter can be: patch, minor, major."
     exit 1
 fi
+if [ $# -gt 1 ] && [[ "$2" != "--force" ]]
+then
+    echo "The second argument can only be '--force'!"
+    exit 1
+fi
+bump=$1
+force=$2
 
+# Check we are not on main
 branch=$(git status | head -1 | awk '{print $NF}')
 if [[ "$branch" == "main" ]]
 then
@@ -18,9 +26,48 @@ then
     exit 1
 fi
 
+# Check we are on the correct branch
+expected_ver=$(poetry version $bump --dry-run | awk '{print $6;}')
+if [[ "$force" != "--force" ]]
+then
+    if [[ "$branch" != "release$expected_ver" ]]
+    then
+        echo "Error: you are bumping to $expected_ver but this branch is $branch."
+        echo "If this is intentional, use version.sh 'value' --force."
+        exit 1
+    fi
+fi
+
+# Check that we are not accidentally bumping a major version
+major_ver=(${expected_ver//./ })
+if [ ${major_ver[0]} -ne 0 ]
+then
+    echo "Error: bumping a major version! If this is really what you want, then adapt version.sh"
+    exit 1
+fi
+
+# Confirm version bump
+current_ver=$( poetry version | awk '{print $2;}' )
+echo "Bumping from $current_ver to $expected_ver."
+read -n 1 -p "Press y to continue (or any other key to cancel): " answer
+case ${answer:0:1} in
+    y|Y )
+        echo
+    ;;
+    * )
+        echo "Cancelled."
+        exit 1
+    ;;
+esac
+
 # Update version in temporary branch
-poetry version $1
+poetry version $bump
 new_ver=$( poetry version | awk '{print $2;}' )
+if [[ "$new_ver" != "$expected_ver" ]]
+then
+    echo "Fatal error: poetry --dry-run expected $expected_ver, but result is $new_ver..."
+    exit 1
+fi
 sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"         xcoll/__init__.py
 sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/" tests/test_version.py
 git reset
