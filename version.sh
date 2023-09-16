@@ -19,6 +19,22 @@ fi
 bump=$1
 force=$2
 
+# Check our working directory is clean
+git diff --quiet
+if [ $? -ne 0 ]
+then
+    echo "Some changes are not staged."
+    echo "Stage and commit before bumping the version."
+    exit 1
+fi
+git diff --staged --quiet
+if [ $? -ne 0 ]
+then
+    echo "Some changes are staged."
+    echo "Commit before bumping the version."
+    exit 1
+fi
+
 # Check we are not on main
 branch=$(git status | head -1 | awk '{print $NF}')
 if [[ "$branch" == "main" ]]
