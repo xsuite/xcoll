@@ -35,7 +35,7 @@ fi
 expected_ver=$(poetry version $bump --dry-run | awk '{print $6;}')
 if [[ "$force" != "--force" ]]
 then
-    if [[ "$branch" != "release$expected_ver" ]]
+    if [[ "$branch" != "release/v$expected_ver" ]]
     then
         echo "Error: you are bumping to $expected_ver but this branch is $branch."
         echo "If this is intentional, use version.sh 'value' --force."
