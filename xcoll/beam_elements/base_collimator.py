@@ -73,10 +73,11 @@ class BaseCollimator(xt.BeamElement):
     _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers','checks.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
 
-    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
+    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, xt.RandomRutherford]
 
 
     def __init__(self, **kwargs):
