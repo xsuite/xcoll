@@ -9,7 +9,7 @@ families:
   - &TCP7    { gap: 5,     stage: Primary,    material: C,     length: 0.6,               parking: 0.025 }
   - &TCSG7   { gap: 6.5,   stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
   - &TCLA7   { gap: 10,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
-  - &CRY7    { gap: null,  stage: special,    material: Si,    length: 0.004, parking: 0.025, side: left,  crystal: strip }
+  - &CRY7    { gap: null,  stage: special,    material: Si,    length: 0.004,             parking: 0.025, side: left,  crystal: strip }
   # Injection protection
   - &TCLI    { Gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90, parking: 0.025 }
   - &TDI     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90, parking: 0.025 }
