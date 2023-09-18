@@ -54,9 +54,40 @@ def track(collimator, particles):  # TODO: write impacts
             drift_6d(particles, collimator.length)
         else:
             # FLUKA uses inactive front and back, so pass full length
+            track_ini(particles)
             track_core(collimator, particles)
             particles.reorganize()
         return
+
+
+def track_ini(part):
+    try:
+        from .pyflukaf import pyfluka_set_synch_part, pyfluka_init_max_uid
+    except ImportError as error:
+        from .engine import FlukaEngine
+        engine = FlukaEngine.instance
+        engine._warn_pyfluka(error)
+        return
+
+    # Set the new particles starting id. 
+    pyfluka_init_max_uid(part._num_active_particles)
+    print(f"track.py Set max uid to {part._num_active_particles}.", flush=True)
+
+    # Set the reference particle.
+    print(f"track.py part.at_turn[0]={part.at_turn[0]}\n", flush=True)
+    print(f"track.py part.energy0[0]={part.energy0[0]}\n", flush=True)
+    print(f"track.py part.p0c[0]={part.p0c[0]}\n", flush=True)
+    print(f"track.py part.mass0={part.mass0}\n", flush=True)
+    print(f"track.py part.q0={part.q0}\n", flush=True)
+    part_e0 = part.energy0[0] / 1.e6    # from [eV] to [MeV]
+    part_pc0 = part.p0c[0]    / 1.e6    # from [eV] to [MeV/c]
+    part_mass0 = part.mass0   / 1.e6    # from [eV] to [MeV/c2]
+    part_q0 = part.q0
+    # TODO: hard-coded Z/A
+    part_a0 = 1
+    part_z0 = 1
+    pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
+    print(f"engine.py Set sync part.", flush=True)
 
 
 def track_core(collimator, part):
@@ -75,8 +106,12 @@ def track_core(collimator, part):
     # Get particle data
     data = {}
     data['x_part']      = np.concatenate((part.x[:npart].copy() * 1000.,              np.zeros(max_part-npart, dtype=float)))
+    # NB: xp is already normalized, unlike with SixTrack.
+    # (does not matter, because FLUKA does normalization when not done yet)
     data['xp_part']     = np.concatenate((part.px[:npart] * part.rpp[:npart] * 1000., np.zeros(max_part-npart, dtype=float)))
     data['y_part']      = np.concatenate((part.y[:npart].copy() * 1000.,              np.zeros(max_part-npart, dtype=float)))
+    # NB: yp is already normalized, unlike with SixTrack.
+    # (does not matter, because FLUKA does normalization when not done yet)
     data['yp_part']     = np.concatenate((part.py[:npart] * part.rpp[:npart] * 1000., np.zeros(max_part-npart, dtype=float)))
     data['zeta_part']   = np.concatenate((part.zeta[:npart].copy() * 1000.,           np.zeros(max_part-npart, dtype=float)))
     data['e_part']      = np.concatenate((part.energy[:npart].copy() / 1.e6,          np.zeros(max_part-npart, dtype=float)))
@@ -89,18 +124,21 @@ def track_core(collimator, part):
     data['Z_part']      = np.concatenate((Z.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
     data['pdgid_part']  = np.concatenate((pdgid,                                     np.zeros(max_part-npart, dtype=np.int32)))
     # TODO: hard-coded spin
+    # NB: With SixTrack, the spin sent for protons was 0!! Not used by FLUKA?
     data['spin_x_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
     data['spin_y_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
     data['spin_z_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
-    data['partID']      = np.concatenate((part.particle_id[:npart].copy().astype(np.int32),
+    # Particles indexing start from 1 with FLUKA IO (start from 0 with xpart)
+    data['partID']      = np.concatenate((part.particle_id[:npart].copy().astype(np.int32)+1,
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))
-    data['parentID']    = np.concatenate((part.parent_particle_id[:npart].copy().astype(np.int32),
+    # Particles indexing start from 1 with FLUKA IO (start from 0 with xpart)
+    data['parentID']    = np.concatenate((part.parent_particle_id[:npart].copy().astype(np.int32)+1,
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))
     data['partWeight']  = np.concatenate((part.weight[:npart].copy(),                np.zeros(max_part-npart, dtype=float)))
 
     # send to fluka
-    track_fluka(turn=part.at_turn[0],
-                fluka_id=collimator.collimator_id,
+    track_fluka(turn=part.at_turn[0]+1, # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
+                fluka_id=collimator.collimator_id, # TODO: Check collimator indexing is OK in terms of shift by 1.
                 length=collimator.length,
                 part_p0c=part.p0c[0],
                 part_e0=part.energy0[0],

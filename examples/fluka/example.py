@@ -23,12 +23,30 @@ coll = xc.FlukaCollimator(collimator_id=31, length=1.48200)
 
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
-num_part = int(1e2)
+#num_part = int(10)
+num_part = int(500)
+#num_part = int(20000)
 x_init   = np.random.normal(loc=1.288e-3, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
+part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, energy0=7e12)
+
+#File used by SixTrack, for a fairer comparison.
+#f=open("initial.dat","r")
+#all_lines=f.readlines()
+#x_init=[]
+#px_init=[]
+#y_init=[]
+#py_init=[]
+#for line in all_lines:
+#    columns = line.split()
+#    x_init.append(float(columns[3]))
+#    px_init.append(float(columns[6]))
+#    y_init.append(float(columns[4]))
+#    py_init.append(float(columns[7]))
+#f.close()
+#part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, energy0=7e12)
 
 
 # Do the tracking.
@@ -36,10 +54,12 @@ part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e1
 #    1) prepare the arrays to be fortran-compatible            (OK)
 #    2) call the fortran wrapper track_fluka() in pyfluka.f90  (OK)
 #    3) which calls fluka_send_receive() in mod_fluka.f90      (OK)
-#    4) which calls:
-#        a) fluka_send(): this fails if 238 particles or more,
-#                         even if allocating lots of memory    (NOK)
-#        b) fluka_send(): this fails in every case.
-npart, max_part, x_part, xp_part, y_part, yp_part, zeta_part, e_part, m_part, q_part, \
-A_part, Z_part, pdgid_part, partID, parentID, partWeight, spin_x_part, spin_y_part, spin_z_part = \
-    coll.track(part)
+#    4) which calls fluka_send(), then fluka_receive()
+#npart, max_part, x_part, xp_part, y_part, yp_part, zeta_part, e_part, m_part, q_part, \
+#A_part, Z_part, pdgid_part, partID, parentID, partWeight, spin_x_part, spin_y_part, spin_z_part = \
+#    coll.track(part)
+coll.track(part)
+
+
+# Stop the FLUKA server
+xc.FlukaEngine.stop_server()

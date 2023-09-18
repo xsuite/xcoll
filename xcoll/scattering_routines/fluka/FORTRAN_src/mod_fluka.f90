@@ -61,8 +61,9 @@ module mod_fluka
            ntsendipt,   &
            ntrecv,      &
            ntwait,      &
-           ntsendnpart!, &
-!           ntsendbrhono
+           ntsendnpart, &
+           ntsendbrhono
+  external ntrtimeout, ntwtimeout
 
   integer(kind=int32) :: ntconnect,   &
                          ntsendp,     &
@@ -72,8 +73,9 @@ module mod_fluka
                          ntrecv,      &
                          ntwait,      &
                          ntsendnpart, &
-!                         ntsendbrhono,&
+                         ntsendbrhono,&
                          ntend
+  integer(kind=int32) :: ntrtimeout, ntwtimeout
 
   ! FlukaIO Message types
   integer(kind=int8), parameter :: FLUKA_PART = 1, &
@@ -87,7 +89,7 @@ module mod_fluka
   ! connection ID
   integer(kind=int32) :: fluka_cid
 
-  ! FLUK input block
+  ! FLUKA input block
   logical, public :: fluka_enable    = .false.                     ! enable coupling
   logical, public :: fluka_connected = .false.                     ! fluka is connected
   logical, public :: fluka_debug     = .false.                     ! write debug messages
@@ -147,6 +149,11 @@ contains
 
     ! temporary variables
     integer :: j
+
+    if(fluka_debug) then
+       write(lout,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
+       flush(lout)
+    end if
 
     fluka_max_npart = npart
     fluka_clight    = clight
@@ -228,14 +235,24 @@ contains
       ERROR STOP 'ENDED WITH ERROR.'
     end if
 
+    if(fluka_debug) then
+       write(lout,*) "fluka_read_config host=", host
+       write(lout,*) "fluka_read_config port=", port
+       flush(lout)
+    end if
+
     call f_close(net_nfo_unit)
 
   end subroutine fluka_read_config
 
   !----------------------------------------------------------------------------
   ! start communication with fluka
-  integer function fluka_connect()
+  integer function fluka_connect(timeout_sec)
     implicit none
+
+    integer(kind=int32) :: timeout_sec
+    integer :: rtimeout
+    integer :: wtimeout
 
     call fluka_read_config(fluka_net_nfo_file, fluka_host, fluka_port)
 
@@ -244,6 +261,9 @@ contains
     call ntinit()
     fluka_cid = ntconnect(fluka_host, fluka_port)
     fluka_connect = fluka_cid
+
+    rtimeout = ntrtimeout(fluka_cid, timeout_sec)
+    wtimeout = ntwtimeout(fluka_cid, timeout_sec)
 
   end function fluka_connect
 
@@ -327,14 +347,20 @@ contains
     real(kind=fPrec) :: spiny(max_part)
     real(kind=fPrec) :: spinz(max_part)
 
-    fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
-                         partID, parentID, partWeight, spinx, spiny, spinz)
-    PRINT *, "Sent all particles (return code ", fluka_send_receive, ")"
+    fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, &
+         xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
+         partID, parentID, partWeight, spinx, spiny, spinz)
+    write(lout,*) ""
+    write(lout,*) "Sent all particles (return code ", fluka_send_receive, ")"
+    flush(lout)
     if(fluka_send_receive.lt.0) return
 
-    fluka_send_receive = fluka_receive(turn, ipt, el, npart, max_part, xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
-                         partID, parentID, partWeight, spinx, spiny, spinz)
-    PRINT *, "Received all particles (return code ", fluka_send_receive, ")"
+    fluka_send_receive = fluka_receive(turn, ipt, el, npart, max_part, &
+         xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
+         partID, parentID, partWeight, spinx, spiny, spinz)
+    write(lout,*) ""
+    write(lout,*) "Received all particles (return code ", fluka_send_receive, ")"
+    flush(lout)
   end function fluka_send_receive
 
   !----------------------------------------------------------------------------
@@ -388,13 +414,13 @@ contains
 
     n = ntsendipt(fluka_cid, turn, ipt)
     if(n.lt.0) then
-        PRINT *, "FlukaIO error (return code ", n, ") - Error sending Insertion Point"
+        write(lout,*) "FlukaIO error (return code ", n, ") - Error sending Insertion Point"
         fluka_cid = -1
         fluka_send = n
         return
     end if
     fluka_last_sent_mess=FLUKA_IPT
-    PRINT *, "Sent insertion point to FLUKA (return code ", n, ")"
+    write(lout,*) "Sent insertion point to FLUKA (return code ", n, ")"
 
     fluka_nsent = 0
     fluka_nrecv = 0
@@ -437,8 +463,10 @@ contains
         flsy = spiny(j)
         flsz = spinz(j)
 
-!        PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-!        PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+        write(lout,*) " "
+        write(lout,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+        write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+        flush(lout)
 
         ! Send particle
         n = ntsendp(fluka_cid, &
@@ -447,10 +475,10 @@ contains
             flxp, flyp, flzp, &
             flm, flet, flt, &
             flpdgid, flq, flsx, flsy, flsz)
-        !      PRINT *, "Sent particle: ", n, fluka_nsent, FLUKA_PART
+        !      write(lout,*) "Sent particle: ", n, fluka_nsent, FLUKA_PART
 
         if(n.lt.0) then
-            PRINT *, "FlukaIO error (return code ", n, ") - Error sending Particle"
+            write(lout,*) "FlukaIO error (return code ", n, ") - Error sending Particle"
             fluka_cid = -1
             fluka_send = -1
             return
@@ -465,7 +493,7 @@ contains
     n = ntsendeob(fluka_cid)
 
     if(n.lt.0) then
-        PRINT *, "FlukaIO error (return code ", n, ") - Error sending End of Batch"
+        write(lout,*) "FlukaIO error (return code ", n, ") - Error sending End of Batch"
         fluka_cid = -1
         fluka_send = -1
         return
@@ -554,7 +582,6 @@ contains
         spiny = zero
         spinz = zero
     end do
-!    PRINT *, 'mtype before: ', mtype
 
     ! Wait until end of turn (Synchronize)
     do while(mtype.ne.FLUKA_EOB)
@@ -565,10 +592,12 @@ contains
               flm, flet, flt, &
               flpdgid, flq, flsx, flsy, flsz)
 
-!        PRINT *, 'mtype: ', mtype
-!        PRINT *, 'n: ', n
+        if(fluka_debug) then
+           write(lout,*) 'fluka_receive mtype=', mtype, ' ,n=', n
+           flush(lout)
+        end if
         if(n.lt.0) then
-            PRINT *, "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
+            write(lout,*) "FlukaIO error (return code ", n ,") - Server timed out while waiting for message"
             fluka_cid = -1
             fluka_receive = n
             return
@@ -580,14 +609,15 @@ contains
             fluka_last_rcvd_mess = FLUKA_PART
 
             if(fluka_nrecv .gt. npart) then
-                PRINT *, 'FlukaIO error - HIT END OF PARTICLE ARRAY'
+                write(lout,*) 'FlukaIO error - HIT END OF PARTICLE ARRAY'
                 return
             end if
 
             call CalculateAZ(flpdgid, flaa, flzz)
 
-            PRINT *, "Particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-            PRINT *, flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+            write(lout,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+            write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+            flush(lout)
 
             partID(fluka_nrecv)    = flid
             parentID(fluka_nrecv)    = flgen
@@ -621,8 +651,9 @@ contains
     napx = fluka_nrecv
     fluka_last_rcvd_mess = FLUKA_EOB
 
-    PRINT *, "FlukaIO: turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
-        " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
+    write(lout,*) "FlukaIO: turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
+         " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
+    flush(lout)
 
   end function fluka_receive
 
@@ -652,6 +683,18 @@ contains
     ! Auxiliary variables
     integer(kind=int32) :: n
 
+    if(fluka_debug) then
+       write(lout,'(A)') 'fluka_set_synch_part'
+       flush(lout)
+       write(lout,*) 'e0 = ', e0
+       write(lout,*) 'pc0 = ', pc0
+       write(lout,*) 'mass0 = ', mass0
+       write(lout,*) 'a0 = ', a0
+       write(lout,*) 'z0 = ', z0
+       write(lout,*) 'q0 = ', q0
+       flush(lout)
+    end if
+
     fluka_set_synch_part = 0
 
     fluka_e0    = e0    *c1m3 ! from  [MeV]    to [GeV]
@@ -672,9 +715,15 @@ contains
 
     ! update magnetic rigidity, unless division by clight and 10^-9
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
+    if(fluka_debug) then
+       write(lout,*) 'fluka_brho0 = ', fluka_brho0
+       flush(lout)
+    end if
 
     ! inform Fluka about the new magnetic rigidity
-!    n = ntsendbrhono(fluka_cid, fluka_brho0)
+    ! This step cannot be skipped!!!
+    ! The fluka server is waiting for this message, so that BRHONO can be set.
+    n = ntsendbrhono(fluka_cid, fluka_brho0)
     if (n .lt. 0) then
       fluka_set_synch_part = -1
       return
@@ -700,6 +749,8 @@ contains
     ! Auxiliary variables
     integer(kind=int32) :: n
 
+    write(lout,'(A)') 'mod_fluka fluka_init_max_uid'
+    flush(lout)
     fluka_init_max_uid = 0
 
     MaximumPartID = npart
@@ -758,7 +809,7 @@ subroutine fluka_close
        if(fluka_con.eq.0) then
          if( .not. fluka_connected ) then
 !              temporarily connect to fluka, to properly terminate the run
-           fluka_con = fluka_connect()
+           fluka_con = fluka_connect(3600)
            if(fluka_con.lt.0) then
 !                no hope to properly close the run
              write(lerr,'(A)') 'FLUKA> ERROR Unable to connect to fluka while closing the simulation:'
