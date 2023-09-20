@@ -4,19 +4,7 @@
 # ######################################### #
 
 import numpy as np
-
-from ...impacts import make_ion_from_properties
-
-def drift_4d(x, y, xp, yp, length):
-    x += xp * length
-    y += yp * length
-    return
-
-def drift_zeta(zeta, rvv, xp, yp, length):
-    rv0v = 1./rvv
-    dzeta = 1 - rv0v * (1 + (xp**2 + yp**2)/2 )
-    zeta += length * dzeta
-    return zeta
+import xpart.pdg as pdg
 
 def drift_6d(particles, length):
     npart = particles._num_active_particles
@@ -36,58 +24,45 @@ def track(collimator, particles):  # TODO: write impacts
         if not isinstance(collimator, FlukaCollimator):
             raise ValueError("Collimator is not a FlukaCollimator!\nCannot use fluka to track.")
 
+        if not collimator.active or not collimator._tracking:
+            # Drift full length
+            # TODO: when in C, drifting should call routine from drift element
+            #       such that can be exact etc
+            drift_6d(particles, collimator.length)
+            return
+
+        # Check the server and the particles size
         from .engine import FlukaEngine
         engine = FlukaEngine.instance
         if not engine._flukaio_connected:
             raise ValueError(f"Fluka server not yet running!\n"
                             + "Please do this first, by calling xcoll.FlukaEngine.start_server(fluka_input_file.inp).")
+        if not engine._particle_ref_set:
+            raise ValueError(f"Fluka reference particle not set!\n"
+                            + "Please do this first, by calling xcoll.FlukaEngine.set_particle_ref().")
+
         npart = particles._num_active_particles
-        if npart > FlukaEngine.instance.n_alloc:
-            raise ValueError(f"Tracking {npart} particles but only {FlukaEngine.instance.n_alloc} allocated!")
+        if npart > engine.n_alloc:
+            raise ValueError(f"Tracking {npart} particles but only {engine.n_alloc} allocated!")
         if npart == 0:
             return
 
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
-        if not collimator.active or not collimator._tracking:
-            # Drift full length
-            drift_6d(particles, collimator.length)
-        else:
-            # FLUKA uses inactive front and back, so pass full length
-            track_ini(particles)
-            track_core(collimator, particles)
-            particles.reorganize()
-        return
+#         try:
+#             from .pyflukaf import pyfluka_init_max_uid
+#         except ImportError as error:
+#             engine._warn_pyfluka(error)
+#             return
+#         pyfluka_init_max_uid(npart)
 
+        particle_ref = engine.particle_ref
+        if abs(particles.mass0 - particle_ref.mass0) > 1e-3:
+            raise ValueError("Error in reference mass of `particles`: not in sync with reference particle!")
+        if abs(particles.q0 - particle_ref.q0) > 1e-3:
+            raise ValueError("Error in reference charge of `particles`: not in sync with reference particle!")
 
-def track_ini(part):
-    try:
-        from .pyflukaf import pyfluka_set_synch_part, pyfluka_init_max_uid
-    except ImportError as error:
-        from .engine import FlukaEngine
-        engine = FlukaEngine.instance
-        engine._warn_pyfluka(error)
-        return
-
-    # Set the new particles starting id. 
-    pyfluka_init_max_uid(part._num_active_particles)
-    print(f"track.py Set max uid to {part._num_active_particles}.", flush=True)
-
-    # Set the reference particle.
-    print(f"track.py part.at_turn[0]={part.at_turn[0]}\n", flush=True)
-    print(f"track.py part.energy0[0]={part.energy0[0]}\n", flush=True)
-    print(f"track.py part.p0c[0]={part.p0c[0]}\n", flush=True)
-    print(f"track.py part.mass0={part.mass0}\n", flush=True)
-    print(f"track.py part.q0={part.q0}\n", flush=True)
-    part_e0 = part.energy0[0] / 1.e6    # from [eV] to [MeV]
-    part_pc0 = part.p0c[0]    / 1.e6    # from [eV] to [MeV/c]
-    part_mass0 = part.mass0   / 1.e6    # from [eV] to [MeV/c2]
-    part_q0 = part.q0
-    # TODO: hard-coded Z/A
-    part_a0 = 1
-    part_z0 = 1
-    pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
-    print(f"engine.py Set sync part.", flush=True)
+        # FLUKA uses inactive front and back, so pass full length
+        track_core(collimator, particles)
+        particles.reorganize()
 
 
 def track_core(collimator, part):
@@ -115,19 +90,19 @@ def track_core(collimator, part):
     data['yp_part']     = np.concatenate((part.py[:npart] * part.rpp[:npart] * 1000., np.zeros(max_part-npart, dtype=float)))
     data['zeta_part']   = np.concatenate((part.zeta[:npart].copy() * 1000.,           np.zeros(max_part-npart, dtype=float)))
     data['e_part']      = np.concatenate((part.energy[:npart].copy() / 1.e6,          np.zeros(max_part-npart, dtype=float)))
-    mass   = part.mass0*part.charge_ratio[:npart]/part.chi[:npart] 
-    charge = part.q0*part.charge_ratio[:npart]
-    A, Z, pdgid = make_ion_from_properties(charge, mass)
+    mass       = part.mass0*part.charge_ratio[:npart]/part.chi[:npart]
+    charge     = part.q0*part.charge_ratio[:npart]
+    pdg_id     = part.pdg_id[:npart].copy()
+    _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     data['m_part']      = np.concatenate((mass / 1.e6,                               np.zeros(max_part-npart, dtype=float)))
     data['q_part']      = np.concatenate((charge.astype(np.int32),                   np.zeros(max_part-npart, dtype=np.int32)))
     data['A_part']      = np.concatenate((A.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
     data['Z_part']      = np.concatenate((Z.astype(np.int32),                        np.zeros(max_part-npart, dtype=np.int32)))
-    data['pdgid_part']  = np.concatenate((pdgid,                                     np.zeros(max_part-npart, dtype=np.int32)))
-    # TODO: hard-coded spin
-    # NB: With SixTrack, the spin sent for protons was 0!! Not used by FLUKA?
-    data['spin_x_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
-    data['spin_y_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
-    data['spin_z_part'] = np.concatenate((np.ones(npart)*0.5,                        np.zeros(max_part-npart, dtype=float)))
+    data['pdgid_part']  = np.concatenate((pdg_id.astype(np.int32),                   np.zeros(max_part-npart, dtype=np.int32)))
+    # Hard-coded spin (not used)
+    data['spin_x_part'] = np.concatenate((np.zeros(npart),                           np.zeros(max_part-npart, dtype=float)))
+    data['spin_y_part'] = np.concatenate((np.zeros(npart),                           np.zeros(max_part-npart, dtype=float)))
+    data['spin_z_part'] = np.concatenate((np.zeros(npart),                           np.zeros(max_part-npart, dtype=float)))
     # Particles indexing start from 1 with FLUKA IO (start from 0 with xpart)
     data['partID']      = np.concatenate((part.particle_id[:npart].copy().astype(np.int32)+1,
                                                                                      np.zeros(max_part-npart, dtype=np.int32)))

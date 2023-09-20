@@ -8,7 +8,7 @@ import xpart as xp
 import xtrack as xt
 
 from .base_collimator import BaseCollimator, InvalidCollimator
-from ..scattering_routines.fluka import track #, FlukaEngine
+from ..scattering_routines.fluka import track, FlukaEngine
 from ..general import _pkg_root
 
 
@@ -27,7 +27,7 @@ class FlukaCollimator(BaseCollimator):
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict]
     _internal_record_class = BaseCollimator._internal_record_class
 
-    _depends_on = [BaseCollimator] #, FlukaEngine
+    _depends_on = [BaseCollimator, FlukaEngine]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
