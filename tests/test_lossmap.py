@@ -5,10 +5,14 @@ import xtrack as xt
 import xcoll as xc
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
+from xobjects.test_helpers import for_all_test_contexts
 
 path = Path(__file__).parent / 'data'
 
 # https://github.com/xsuite/xtrack/blob/18b1ac33d6a9d87a156e87bfb71cb2c8011085f6/tests/test_radiation.py#LL138C5-L138C29
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
 @retry()
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
                             [1, 'H', 25000, 0.2, True],
@@ -16,11 +20,12 @@ path = Path(__file__).parent / 'data'
                             [1, 'V', 35000, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals):
+def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
-    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', line=line, beam=beam, ignore_crystals=ignore_crystals)
+    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', line=line, beam=beam,
+                                                  ignore_crystals=ignore_crystals, _context=test_context)
 
     coll_manager.install_everest_collimators()
     coll_manager.build_tracker()

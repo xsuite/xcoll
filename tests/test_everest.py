@@ -3,6 +3,8 @@ from pathlib import Path
 import numpy as np
 import xpart as xp
 import xcoll as xc
+from xobjects.test_helpers import for_all_test_contexts
+
 
 materials_b1 = {
   'BE':   'tcl.4r1.b1',
@@ -83,56 +85,88 @@ crystals_b2 = [
 
 path = Path(__file__).parent / 'data_test_everest'
 
-def test_primaries():
-    _track_collimator('tcp.c6l7.b1')
-    _track_collimator('tcp.c6r7.b2')
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_primaries(test_context):
+    _track_collimator('tcp.c6l7.b1', _context=test_context)
+    _track_collimator('tcp.c6r7.b2', _context=test_context)
 
-def test_materials_b1():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_materials_b1(test_context):
     for key, name in materials_b1.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_materials_b2():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_materials_b2(test_context):
     for key, name in materials_b2.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_angles_b1():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_angles_b1(test_context):
     for key, name in angles_b1.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_angles_b2():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_angles_b2(test_context):
     for key, name in angles_b2.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_lengths_b1():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_lengths_b1(test_context):
     for key, name in lengths_b1.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_lengths_b2():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_lengths_b2(test_context):
     for key, name in lengths_b2.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_offsets_b1():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_offsets_b1(test_context):
     for key, name in offsets_b1.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_offsets_b2():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_offsets_b2(test_context):
     for key, name in offsets_b2.items():
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
-def test_crystals():
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+def test_crystals(test_context):
     for name in crystals_b1 + crystals_b2:
-        _track_collimator(name)
+        _track_collimator(name, _context=test_context)
 
 
-def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, atolz=1e-11, atold=2e-8):
+def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, atolz=1e-11, atold=2e-8, _context=None):
+    if _context is None:
+        _context = xo.ContextCpu()
     with open(Path(path, 'initial.json'), 'r') as fid:
-        part = xp.Particles.from_dict(json.load(fid))
+        part = xp.Particles.from_dict(json.load(fid), _context=_context)
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
         colldict = json.load(fid)
     if colldict['__class__'] == 'EverestCollimator':
-        coll = xc.EverestCollimator.from_dict(colldict)
+        coll = xc.EverestCollimator.from_dict(colldict, _context=_context)
     elif colldict['__class__'] == 'EverestCrystal':
-        coll = xc.EverestCrystal.from_dict(colldict)
+        coll = xc.EverestCrystal.from_dict(colldict, _context=_context)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:

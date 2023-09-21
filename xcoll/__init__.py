@@ -6,4 +6,4 @@ from .scattering_routines.geant4 import Geant4Engine
 from .manager import CollimatorManager
 from .colldb import CollimatorDatabase, load_SixTrack_colldb
 
-__version__ = '0.2.3'
+__version__ = '0.2.5'
