@@ -165,7 +165,7 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     real(kind=8),        intent(in)    :: length
     real(kind=8),        intent(in)    :: part_p0c
     real(kind=8),        intent(in)    :: part_e0
-    integer,             intent(in)    :: alive_part           ! napx
+    integer,             intent(inout) :: alive_part           ! napx
     integer,             intent(in)    :: max_part             ! npart
     real(kind=8),        intent(inout) :: x_part(max_part)     ! [mm]    xv1
     real(kind=8),        intent(inout) :: xp_part(max_part)    ! [1e-3]  yv1

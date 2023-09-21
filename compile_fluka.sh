@@ -52,5 +52,5 @@ if [ -f ${path}/pyflukaf.*.so ]
 then
     echo "Created pyFLUKA shared library in "$( ls ${path}/pyflukaf.*.so )
 else
-    echo "Failed pyFLUKA compilation! No shared library found in"${path}" !"
+    echo "Failed pyFLUKA compilation! No shared library found in "${path}" !"
 fi

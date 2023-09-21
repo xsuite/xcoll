@@ -30,7 +30,8 @@ class FlukaEngine(xo.HybridClass):
         'network_port':    xo.Int64,
         'n_alloc':         xo.Int64,
         'timeout_sec':     xo.Int32,
-        'particle_ref':    xp.Particles
+        'particle_ref':    xp.Particles,
+        'max_particle_id': xo.Int64
     }
 
     _extra_c_sources = [
@@ -64,11 +65,12 @@ class FlukaEngine(xo.HybridClass):
             self._gfortran_installed = False
             self._flukaio_connected = False
             self._warning_given = False
-            self._particle_ref_set = False
+            self._tracking_init = False
             kwargs.setdefault('network_port', 0)
-            kwargs.setdefault('n_alloc', 500000)
+            kwargs.setdefault('n_alloc', 5000)
             kwargs.setdefault('timeout_sec', 36000) # 10 hours
             kwargs.setdefault('particle_ref', xp.Particles())
+            kwargs.setdefault('max_particle_id', 0)
 
             # Get paths to executables
             if fluka is None:
@@ -161,10 +163,16 @@ class FlukaEngine(xo.HybridClass):
             raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
 
         # Start with cleaning files
-        files_to_delete = [network_file, fluka_log, server_log]
+        files_to_delete = [this._cwd / f for f in [network_file, fluka_log, server_log]]
+        files_to_delete  = list(this._cwd.glob(f'ran{input_file.stem}*'))
+        files_to_delete += list(this._cwd.glob(f'{input_file.stem}_*'))
+        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
+        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
+        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
+        files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
+        files_to_delete += [this._cwd / 'fluka_isotope.log']
         for f in files_to_delete:
             if f is not None:
-                f = this._cwd / f
                 if f.exists():
                     f.unlink()
 
@@ -282,6 +290,8 @@ class FlukaEngine(xo.HybridClass):
         if part._capacity > 1:
             raise ValueError("`particle_ref` has to be a single particle!")
         pdg_id = part.pdg_id[0]
+        if pdg_id is None or pdg_id == 0:
+            raise ValueError("Need to set pdg_id of reference particle!")
         mass = part.mass0
         if pdg_id in masses:
             mass_fluka = masses[pdg_id][-1]
@@ -303,14 +313,9 @@ class FlukaEngine(xo.HybridClass):
                 + f"input it in the code.")
 
 
-    @classmethod
-    def set_particle_ref(cls, particle_ref=None, line=None, *args, **kwargs):
-        cls(*args, **kwargs)
-        this = cls.instance
-        try:
-            from .pyflukaf import pyfluka_set_synch_part
-        except ImportError as error:
-            this._warn_pyfluka(error)
+    def set_particle_ref(self, particle_ref=None, line=None):
+        if self.has_particle_ref or self.max_particle_id!=0:
+            print("Reference particle already set!")
             return
 
         if particle_ref is None:
@@ -326,25 +331,38 @@ class FlukaEngine(xo.HybridClass):
                 and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
                     print("Warning: Found different reference particle in line! Overwritten.")
                 line.particle_ref = particle_ref
+        self._compare_fluka_mass(particle_ref)
+        self.particle_ref = particle_ref
 
-        try:
-            from .pyflukaf import pyfluka_init_max_uid
-        except ImportError as error:
-            engine._warn_pyfluka(error)
-            return
-        pyfluka_init_max_uid(500)
 
-        this._compare_fluka_mass(particle_ref)
-        this.particle_ref = particle_ref
+    @property
+    def has_particle_ref(self):
+        initial = xp.Particles().to_dict()
+        current = self.particle_ref.to_dict()
+        return not xt.line._dicts_equal(initial, current)
 
-        _, A0, Z0, name = pdg.get_properties_from_pdg_id(particle_ref.pdg_id[0])
-        # FLUKA expects units of MeV
-        E0 = particle_ref.energy0[0] / 1.e6
-        p0c = particle_ref.p0c[0] / 1.e6
-        m0 = particle_ref.mass0 / 1.e6
-        q0 = particle_ref.q0
-        pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
-        print(f"Set reference particle to {name} with mass {m0}eV.")
-        this._particle_ref_set = True
+
+    def init_tracking(self, max_particle_id):
+        if self.max_particle_id == 0:
+            particle_ref = self.particle_ref
+            _, A0, Z0, name = pdg.get_properties_from_pdg_id(particle_ref.pdg_id[0])
+            # FLUKA expects units of MeV
+            E0 = particle_ref.energy0[0] / 1.e6
+            p0c = particle_ref.p0c[0] / 1.e6
+            m0 = particle_ref.mass0 / 1.e6
+            q0 = particle_ref.q0
+            try:
+                from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
+            except ImportError as error:
+                self._warn_pyfluka(error)
+                return
+            pyfluka_init_max_uid(max_particle_id)
+            pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
+            print(f"Set max_particle_id to {max_particle_id}, "
+                + f"and reference particle to {name} with mass {m0}eV and energy {E0}eV.")
+            self.max_particle_id = max_particle_id
+        else:
+            print("FLUKA tracking already initialised, cannot change the "
+                + "parameters without restarting the server.")
 
 

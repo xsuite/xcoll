@@ -21,10 +21,8 @@ xc.FlukaEngine.start_server("lhc_run3_30cm.inp")
 coll = xc.FlukaCollimator(collimator_id=31, length=1.48200)
 
 # Set a reference particle
-pdg_id = xp.pdg.get_pdg_id_from_name('proton')
-mass0 = xp.PROTON_MASS_EV
-particle_ref = xp.Particles(pdg_id=pdg_id, mass0=mass0, q0=1., p0c=7e12)
-xc.FlukaEngine.set_particle_ref(particle_ref)
+particle_ref = xp.Particles.build_reference_particle(pdg_id='proton', p0c=7e12)
+xc.FlukaEngine().set_particle_ref(particle_ref)
 
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
