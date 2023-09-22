@@ -286,7 +286,7 @@ class FlukaEngine(xo.HybridClass):
             return False
 
 
-    def _compare_fluka_mass(self, part, keep_energy_constant=False):
+    def _compare_fluka_mass(self, part, keep_p0c_constant=True):
         if part._capacity > 1:
             raise ValueError("`particle_ref` has to be a single particle!")
         pdg_id = part.pdg_id[0]
@@ -296,11 +296,12 @@ class FlukaEngine(xo.HybridClass):
         if pdg_id in masses:
             mass_fluka = masses[pdg_id][-1]
             if abs(mass-mass_fluka) > 1.:
-                old_p0c = part.p0c[0]
-                part.mass0 = mass_fluka
-                if keep_energy_constant:
-                    part.update_p0c(np.ones(len(part.x)) *
-                        (old_p0c*2 + mass**2 - mass_fluka**2)**0.5)
+                old_energy0 = part.energy0[0]
+                part.mass0  = mass_fluka
+                if keep_p0c_constant:
+                    part._update_refs(p0c=part.p0c[0])
+                else:
+                    part._update_refs(energy0=old_energy0)
                 print(f"Warning: given mass of {mass}eV for "
                     + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from FLUKA "
                     + f"mass of {mass_fluka}eV. Overwritten by the latter.")
