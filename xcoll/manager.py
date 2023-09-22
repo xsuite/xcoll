@@ -301,6 +301,24 @@ class CollimatorManager:
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
 
+    def install_fluka_collimators(self, names=None, *, verbose=False):
+        if names is None:
+            names = self.collimator_names
+        df = self.colldb._colldb.loc[names]
+        # Do the installations
+        def install_func(thiscoll, name):
+            return EverestCollimator(
+                    inactive_front=thiscoll['inactive_front'],
+                    inactive_back=thiscoll['inactive_back'],
+                    active_length=thiscoll['active_length'],
+                    angle=[thiscoll['angle_L'],thiscoll['angle_R']],
+                    material=SixTrack_to_xcoll[thiscoll['material']][0],
+                    active=False,
+                    _tracking=False,
+                    _buffer=self._buffer
+                   )
+        self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
+
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
         # and that tracker is not yet built
