@@ -549,6 +549,7 @@ class CollimatorDatabase:
             # Some of the gaps are list (e.g. two different values for both gaps): loop over gaps as dict
             if any(hasattr(gap, '__iter__') for gap in gaps):
                 gaps = dict(zip(self.name, gaps))
+                # TODO: this is not assigned in the end??
             # All gaps are single values: use pandas-style assignment
             else:
                 # mask those that have an active side for the gap under consideration
@@ -841,11 +842,11 @@ class CollimatorDatabase:
                 alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
                 betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
                 bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
-                align_angle_x = np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
-                align_angle_y = np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
+                align_angle_x = -np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
+                align_angle_y = -np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
                 align_angle = np.array([x if abs(ang) < 1e-6 else y
                                         for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
-                df.loc[cry_mask, 'align_angle'] = -align_angle*df_cry['gap_L']
+                df.loc[cry_mask, 'align_angle'] = align_angle*df_cry['gap_L']
 
 
     # ---------------------------------------
