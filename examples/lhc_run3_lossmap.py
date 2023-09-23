@@ -1,6 +1,9 @@
 import json
 import numpy as np
 from pathlib import Path
+import time
+start_time = time.time()
+import sys, os, contextlib
 
 import xobjects as xo
 import xtrack as xt
@@ -22,12 +25,16 @@ path_out = Path.cwd()
 
 
 # Load from json
-line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+with open(os.devnull, 'w') as fid:
+    with contextlib.redirect_stdout(fid):
+        line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Aperture model check
 print('\nAperture model check on imported model:')
-df_imported = line.check_aperture()
+with open(os.devnull, 'w') as fid:
+    with contextlib.redirect_stdout(fid):
+        df_imported = line.check_aperture()
 assert not np.any(df_imported.has_aperture_problem)
 
 
@@ -44,10 +51,12 @@ else:
 
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
-df_with_coll = line.check_aperture()
+with open(os.devnull, 'w') as fid:
+    with contextlib.redirect_stdout(fid):
+        df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
-    
+
 # Build the tracker
 coll_manager.build_tracker()
 
@@ -55,12 +64,6 @@ coll_manager.build_tracker()
 # Set the collimator openings based on the colldb,
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
-
-
-# Aperture model check
-print('\nAperture model check after introducing collimators:')
-df_with_coll = line.check_aperture()
-assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Generate initial pencil distribution on horizontal collimator
@@ -90,6 +93,6 @@ _ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'
 # Save a summary of the collimator losses to a text file
 summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
 print(summary)
-
+print(f"Total calculation time {time.time()-start_time}s")
 
 exit()
