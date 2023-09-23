@@ -3,10 +3,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, \
+                           FlukaCollimator, _all_collimator_types
 from .colldb import CollimatorDatabase
 from .tables import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
+from .scattering_routines.fluka import FlukaEngine
 
 import xobjects as xo
 import xpart as xp
@@ -243,23 +245,6 @@ class CollimatorManager:
         self._install_collimators(names, install_func=install_func, verbose=verbose)
 
 
-    def add_crystals(self, crystals):
-        df = pd.DataFrame(crystals).transpose()
-        df['stage'] = 'PRIMARY'
-        df['parking'] = 0.025
-        for prop in ['s_center', 'align_to', 's_align_front', 's_align_back', 'sigmax', 'sigmay',
-                     'jaw_LU', 'jaw_RU', 'jaw_LD', 'jaw_RD', 'collimator_type']:
-            df[prop] = None
-        for prop in ['inactive_front', 'inactive_back']:
-            df[prop] = 0.0
-        df.rename(columns={'length': 'active_length', 'gap': 'gap_L'}, inplace=True)
-        df['gap_R'] = df['gap_L']
-        df.loc[df['side']=='left', 'gap_R'] = None
-        df.loc[df['side']=='right', 'gap_L'] = None
-        df['active'] = True
-        self.colldb._colldb = pd.concat([self.colldb._colldb, df])
-
-
     def install_everest_collimators(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
@@ -301,23 +286,49 @@ class CollimatorManager:
             self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
 
 
-    def install_fluka_collimators(self, names=None, *, verbose=False):
+    def install_fluka_collimators(self, names=None, *, verbose=False, fluka_input_file=None, remove_missing=True):
+        # Check server
+        if not FlukaEngine.is_running():
+            if fluka_input_file is None:
+                raise ValueError("No running FLUKA server found! Please start the server "
+                               + "with `xcoll.FlukaEngine.start_server(fluka_input_file)`, "
+                               + "or use `fluka_input_file=filename` as an optional "
+                               + "argument to the installation of the collimators.")
+            FlukaEngine.start_server(fluka_input_file)
+
+        # Select only collimators that
         if names is None:
             names = self.collimator_names
+        new_names = []
+        for name in names:
+            if name in FlukaEngine().collimators:
+                new_names.append(name)
+            else:
+                print(f"Collimator {name} not known by the FLUKA server. Not installed.")
+        names = new_names
         df = self.colldb._colldb.loc[names]
+        if remove_missing:
+            self.colldb._colldb = df
+
         # Do the installations
         def install_func(thiscoll, name):
-            return EverestCollimator(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
-                    angle=[thiscoll['angle_L'],thiscoll['angle_R']],
-                    material=SixTrack_to_xcoll[thiscoll['material']][0],
+            fluka_id        = FlukaEngine().collimators[name]['fluka_id']
+            inactive_length = FlukaEngine().collimators[name]['inactive_length']
+            active_length   = thiscoll['active_length']
+            if 'length' in FlukaEngine().collimators[name]:
+                length = FlukaEngine().collimators[name]['length']
+                if abs(length - active_length - 2*inactive_length) > 1e-9:
+                    raise ValueError(f"Lengths do not match for collimator {name}!")
+            return FlukaCollimator(
+                    inactive_front=inactive_length,
+                    inactive_back=inactive_length,
+                    active_length=active_length,
+                    fluka_id=fluka_id,
                     active=False,
                     _tracking=False,
                     _buffer=self._buffer
                    )
-        self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
+        self._install_collimators(df.index.values, install_func=install_func, verbose=verbose)
 
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
@@ -375,7 +386,7 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
+            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}")
             # Update the position and type in the CollimatorDatabase
             df.loc[name,'s_center'] = positions[name]
             df.loc[name,'collimator_type'] = collimator_class.__name__
@@ -581,6 +592,9 @@ class CollimatorManager:
             raise Exception("Please build tracker before generating pencil distribution!")
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
+        if FlukaEngine()._flukaio_connected and not FlukaEngine().has_particle_ref():
+            raise ValueError("Need to set reference particle for FLUKA first! Do this by "
+                           + "calling `xcoll.FlukaEngine().set_particle_ref(particle_ref)`.")
 
         # TODO: check collimator in colldb and installed!
 
@@ -667,18 +681,22 @@ class CollimatorManager:
 
         # Build the particles
         if plane == 'x':
+            part_4d = {'x':      pencil,          'px':      p_pencil,
+                       'y_norm': transverse_norm, 'py_norm': p_transverse_norm}
+        else:
+            part_4d = {'x_norm': transverse_norm, 'px_norm': p_transverse_norm,
+                       'y':      pencil,          'py':      p_pencil}
+        if FlukaEngine()._flukaio_connected:
             part = xp.build_particles(
-                    x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
-                    zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=self.line, at_element=collimator, match_at_s=match_at_s
+                    **part_4d, zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    line=self.line, at_element=collimator, match_at_s=match_at_s,
+                    particle_ref=FlukaEngine().particle_ref
             )
         else:
             part = xp.build_particles(
-                    x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
-                    zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    **part_4d, zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s
             )
-
         part._init_random_number_generator()
 
         return part

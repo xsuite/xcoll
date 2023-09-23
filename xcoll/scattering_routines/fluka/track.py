@@ -132,7 +132,7 @@ def track_core(collimator, part):
 
     # send to fluka
     track_fluka(turn=part.at_turn[0]+1,    # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
-                fluka_id=collimator.collimator_id,
+                fluka_id=collimator.fluka_id,
                 length=collimator.length,
                 part_p0c=part.p0c[0],
                 part_e0=part.energy0[0],

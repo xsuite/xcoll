@@ -14,8 +14,8 @@ from ..general import _pkg_root
 
 class FlukaCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'collimator_id':    xo.Int64,
-        '_tracking':        xo.Int8
+        'fluka_id':  xo.Int64,
+        '_tracking': xo.Int8
     }
 
     isthick = True
@@ -32,13 +32,6 @@ class FlukaCollimator(BaseCollimator):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
     ]
-
-    _per_particle_kernels = {
-        '_EverestCollimator_set_material': xo.Kernel(
-                c_name='EverestCollimator_set_material',
-                args=[]
-            )
-        }
 
 
     def __init__(self, **kwargs):

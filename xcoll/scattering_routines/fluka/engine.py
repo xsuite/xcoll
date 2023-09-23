@@ -46,7 +46,7 @@ class FlukaEngine(xo.HybridClass):
         return cls.instance
 
     def __del__(self, *args, **kwargs):
-        self.stop_server()
+        self.stop_server(warn=False)
 
     def __init__(self, fluka=None, flukaserver=None, verbose=True, testing=False, **kwargs):
         if(self._initialised):
@@ -66,6 +66,8 @@ class FlukaEngine(xo.HybridClass):
             self._flukaio_connected = False
             self._warning_given = False
             self._tracking_init = False
+            self._insertion = {}
+            self._collimators = {}
             kwargs.setdefault('network_port', 0)
             kwargs.setdefault('n_alloc', 5000)
             kwargs.setdefault('timeout_sec', 36000) # 10 hours
@@ -82,8 +84,6 @@ class FlukaEngine(xo.HybridClass):
                 raise ValueError("Cannot specify fluka executable when `testing=True`!")
             else:
                 self._fluka = Path(fluka).resolve()
-            if not self._fluka.exists():
-                raise ValueError(f"Could not find fluka executable {self._fluka}!")
             if flukaserver is None:
                 if testing:
                     self._flukaserver = "NEED_TO_MAKE_MOCKUP"
@@ -93,16 +93,6 @@ class FlukaEngine(xo.HybridClass):
                 raise ValueError("Cannot specify flukaserver executable when `testing=True`!")
             else:
                 self._flukaserver = Path(flukaserver).resolve()
-            if not self._flukaserver.exists():
-                raise ValueError(f"Could not find flukaserver executable {self._flukaserver}!")
-
-            self.test_gfortran()
-            try:
-                from .pyflukaf import pyfluka_init
-                pyfluka_init(n_alloc=kwargs['n_alloc'])
-            except ImportError as error:
-                self._warn_pyfluka(error)
-
         super().__init__(**kwargs)
 
 
@@ -118,40 +108,49 @@ class FlukaEngine(xo.HybridClass):
     def test_gfortran(cls, *args, **kwargs):
         cls(*args, **kwargs)
         this = cls.instance
-        try:
-            cmd = subprocess.run(["gfortran", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except FileNotFoundError:
-            this._gfortran_installed = False
-            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher for fluka.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
+        if not this._gfortran_installed:
+            try:
+                cmd = subprocess.run(["gfortran", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except FileNotFoundError:
                 this._gfortran_installed = False
-                raise RuntimeError(f"Need gfortran 9 or higher for fluka, but found gfortran {version}!")
-            this._gfortran_installed = True
-            if this._verbose:
-                cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}", flush=True)
-                else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            this._gfortran_installed = False
-            raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
+                raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher for fluka.")
+            if cmd.returncode == 0:
+                version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                if int(version.split('.')[0]) < 9:
+                    this._gfortran_installed = False
+                    raise RuntimeError(f"Need gfortran 9 or higher for fluka, but found gfortran {version}!")
+                this._gfortran_installed = True
+                if this._verbose:
+                    cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if cmd2.returncode == 0:
+                        file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
+                        print(f"Found gfortran {version} in {file}", flush=True)
+                    else:
+                        stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
+                        raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
+            else:
+                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                this._gfortran_installed = False
+                raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
 
 
     @classmethod
-    def start_server(cls, input_file, *args, **kwargs):
+    def start_server(cls, input_file, fluka_ids=None, *args, **kwargs):
         cls(*args, **kwargs)
         this = cls.instance
         if this.is_running():
             print("Server already running.", flush=True)
             return
-        if not this._gfortran_installed:
-            return
+        if not this._fluka.exists():
+            raise ValueError(f"Could not find fluka executable {this._fluka}!")
+        if not this._flukaserver.exists():
+            raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
+        this.test_gfortran()
+        try:
+            from .pyflukaf import pyfluka_init
+            pyfluka_init(n_alloc=this.n_alloc)
+        except ImportError as error:
+            this._warn_pyfluka(error)
 
         # Check files
         input_file = Path(input_file).resolve()
@@ -217,9 +216,17 @@ class FlukaEngine(xo.HybridClass):
             this._warn_pyfluka(error)
         print(f"done.", flush=True)
 
+        # Store collimator info
+        if fluka_ids is None:
+            this._read_fort3(path=input_file.parent)
+        else:
+            this._collimators = {coll: {'fluka_id': i} for coll,i in fluka_ids.items()}
+        this._read_insertion(path=input_file.parent)
+        # TODO: check for consistency (no repeating ids etc)
+
 
     @classmethod
-    def stop_server(cls, *args, **kwargs):
+    def stop_server(cls, warn=True, *args, **kwargs):
         cls(*args, **kwargs)
         this = cls.instance
         # Stop flukaio connection
@@ -230,7 +237,8 @@ class FlukaEngine(xo.HybridClass):
                 pyfluka_close()
                 this._flukaio_connected = False
             except ImportError as error:
-                this._warn_pyfluka(error)
+                if warn:
+                    this._warn_pyfluka(error)
             print(f"done.", flush=True)
         # If the Popen process is still running, terminate it
         if this._server_process is not None:
@@ -284,6 +292,42 @@ class FlukaEngine(xo.HybridClass):
             print("Warning: Found other instances of rfluka but not the current one!", flush=True)
             this.stop_server()
             return False
+
+
+    @property
+    def collimators(self):
+        return self._collimators
+
+
+    def _read_insertion(self, path):
+        if self.collimators == {}:
+            raise ValueError("No FLUKA collimator id's defined yet! Do this first.")
+        with open(path / 'insertion.txt', 'r') as fid:
+            for line in fid.readlines():
+                fluka_id = int(line.split()[0])
+                name = [name for name, data in self._collimators.items() if data['fluka_id']==fluka_id][0]
+                if name not in self._collimators:
+                    raise ValueError(f"Unknown FLUKA collimator id {fluka_id}!")
+                self._collimators[name]['inactive_length'] = float(line.split()[-1])
+                self._collimators[name]['INROT'] = line.split()[1:-1]
+
+
+    def _read_fort3(self, path):
+        fort3 = path / 'fort.3'
+        if not fort3.exists():
+            raise ValueError("No fort.3 found, cannot deduce FLUKA collimator ids!")
+        with fort3.open('r') as fid:
+            lines = fid.readlines()
+        idx_start = [i for i, line in enumerate(lines) if line.strip().startswith('FLUKA')][0] + 1
+        idx_end = [i for i, line in enumerate(lines[idx_start:]) if line.strip().startswith('NEXT')][0] + idx_start
+        self._collimators = {}
+        for line in lines[idx_start:idx_end]:
+            line = [l.strip() for l in line.split()]
+            self._collimators[line[0]] = {
+                'fluka_id': int(line[2]),
+                'length': float(line[3]),
+                'exit_marker': line[1]
+            }
 
 
     def _compare_fluka_mass(self, part, keep_p0c_constant=True):
