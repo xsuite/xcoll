@@ -76,7 +76,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         // Furthermore, we removed the adaptation of the scatter length, because
         // 1) it was implemented wrong (passed unnoticed due to small effect)
         // 2) we should not use the adapted scatter length, as we rotate the S-X frame, so
-        //    we anyway have to drift the full length!    
+        //    we anyway have to drift the full length!
         coll->amorphous_layer = EverestCrystalData_get_thick(el);
         coll->xdim            = EverestCrystalData_get_xdim(el);
         coll->ydim            = EverestCrystalData_get_ydim(el);
@@ -140,6 +140,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
 
+    double t_c = 0;
+
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestCrystal_init(el, part0, active);
@@ -164,6 +166,11 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 EverestData everest = EverestCrystal_init_data(part0, coll);
                 scatter_cry(everest, part, active_length);
+
+                // Temporary workaround to store the critical angle for use later
+                double energy0 = LocalParticle_get_energy0(part)/1.e9;
+                calculate_critical_angle(everest, part, energy0);
+                t_c = everest->t_c;
                 free(everest);
 
                 // Return from collimator frame
@@ -180,6 +187,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     //end_per_particle_block
 
     free(coll);
+    EverestCrystalData_set__critical_angle(el, t_c);
 }
 
 

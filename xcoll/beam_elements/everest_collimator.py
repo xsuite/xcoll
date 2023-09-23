@@ -15,11 +15,11 @@ from ..general import _pkg_root
 
 
 
-# TODO: 
+# TODO:
 #      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
 #      but as if 'iscollective = False' for normal tracking as it is natively in C...
 #      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
-#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify 
+#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
 #      get_backtrack_element. We want it nicer..
 
 # TODO: _per_particle_kernels should be a normal kernel (such that we don't need to pass a dummy Particles() )
@@ -90,6 +90,7 @@ class EverestCrystal(BaseCollimator):
         'align_angle':        xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
+        '_critical_angle':    xo.Float64,
         'xdim':               xo.Float64,
         'ydim':               xo.Float64,
         'thick':              xo.Float64,
@@ -156,6 +157,10 @@ class EverestCrystal(BaseCollimator):
             if bending_angle:
                 self._bending_radius = self.active_length / np.sin(bending_angle)
             self._EverestCrystal_set_material(xp.Particles())
+
+    @property
+    def critical_angle(self):
+        return self._critical_angle if abs(self._critical_angle) > 1.e-10 else None
 
     @property
     def bending_radius(self):
