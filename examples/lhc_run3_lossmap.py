@@ -1,9 +1,12 @@
 import json
 import numpy as np
 from pathlib import Path
+
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 
+context = xo.ContextCpu(omp_num_threads='auto')
 
 # On a modern CPU, we get ~5000 particle*turns/s
 # So this script should take around half an hour
@@ -29,7 +32,7 @@ assert not np.any(df_imported.has_aperture_problem)
 
 
 # Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam)
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam, _context=context)
 
 
 # Install collimators into line
