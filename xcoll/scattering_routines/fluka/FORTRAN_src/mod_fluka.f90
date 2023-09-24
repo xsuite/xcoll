@@ -463,10 +463,10 @@ contains
         flsy = spiny(j)
         flsz = spinz(j)
 
-        write(lout,*) " "
-        write(lout,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-        write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-        flush(lout)
+!        write(lout,*) " "
+!        write(lout,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+!        write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+!        flush(lout)
 
         ! Send particle
         n = ntsendp(fluka_cid, &
@@ -615,9 +615,9 @@ contains
 
             call CalculateAZ(flpdgid, flaa, flzz)
 
-            write(lout,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-            write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-            flush(lout)
+!            write(lout,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+!            write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+!            flush(lout)
 
             partID(fluka_nrecv)    = flid
             parentID(fluka_nrecv)    = flgen
