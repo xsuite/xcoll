@@ -319,6 +319,7 @@ class CollimatorManager:
         def install_func(thiscoll, name):
             fluka_id        = FlukaEngine().collimators[name]['fluka_id']
             inactive_length = FlukaEngine().collimators[name]['inactive_length']
+            jaw             = FlukaEngine().collimators[name]['jaw']
             active_length   = thiscoll['active_length']
             if 'length' in FlukaEngine().collimators[name]:
                 length = FlukaEngine().collimators[name]['length']
@@ -329,6 +330,8 @@ class CollimatorManager:
                     inactive_back=inactive_length,
                     active_length=active_length,
                     fluka_id=fluka_id,
+                    jaw_L=jaw,
+                    jaw_R=-jaw,
                     active=False,
                     _tracking=False,
                     _buffer=self._buffer
@@ -505,9 +508,10 @@ class CollimatorManager:
         colldb.gap = gaps
 
         # Get the optics (to compute the opening)
-        self._compute_optics(recompute=recompute_optics)
-        if not self.colldb._optics_is_ready:
-            raise Exception("Something is wrong: not all optics needed for the jaw openings are calculated!")
+        print("TODO: TEMPORARILY NO OPTICS")
+#         self._compute_optics(recompute=recompute_optics)
+#         if not self.colldb._optics_is_ready:
+#             raise Exception("Something is wrong: not all optics needed for the jaw openings are calculated!")
 
         # Configure collimators
         line = self.line
@@ -516,12 +520,17 @@ class CollimatorManager:
             if full_open and name not in gaps.keys():
                 line[name].active = False
             # Apply settings to element
+            elif isinstance(line[name], FlukaCollimator):
+                # lots TODO here
+                line[name].angle  = colldb.angle[name]
+                line[name].side   = colldb.side[name]
+                line[name].active = colldb.active[name]
             elif isinstance(line[name], BaseCollimator):
                 line[name].ref_x  = colldb.x[name]
                 line[name].ref_y  = colldb.y[name]
                 line[name].angle  = colldb.angle[name]
-                line[name].jaw_L = colldb._colldb.jaw_LU[name]
-                line[name].jaw_R = colldb._colldb.jaw_RU[name]
+                line[name].jaw_L  = colldb._colldb.jaw_LU[name]
+                line[name].jaw_R  = colldb._colldb.jaw_RU[name]
                 # TODO
                 line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
@@ -546,10 +555,8 @@ class CollimatorManager:
     def openings_set(self):
         # TODO: need to delete jaw positions if some parameters (that would influence it) are changed
         return not np.any(
-                    [x is None for x in self.colldb._colldb.jaw_LU]
-                    + [ x is None for x in self.colldb._colldb.jaw_RU]
-                    + [ x is None for x in self.colldb._colldb.jaw_LD]
-                    + [ x is None for x in self.colldb._colldb.jaw_RD]
+                    [self.line[coll].jaw_L is None for coll in self.collimator_names]
+                    + [self.line[coll].jaw_R is None for coll in self.collimator_names]
                 )
 
 
@@ -597,7 +604,7 @@ class CollimatorManager:
             raise Exception("Please build tracker before generating pencil distribution!")
         if transverse_impact_parameter != 0.:
             raise NotImplementedError
-        if FlukaEngine()._flukaio_connected and not FlukaEngine().has_particle_ref():
+        if FlukaEngine()._flukaio_connected and not FlukaEngine().has_particle_ref:
             raise ValueError("Need to set reference particle for FLUKA first! Do this by "
                            + "calling `xcoll.FlukaEngine().set_particle_ref(particle_ref)`.")
 
@@ -621,16 +628,20 @@ class CollimatorManager:
         nemitt_y   = self.colldb.emittance[1]
 
         # Is it converging or diverging?
-        is_converging = self.colldb._optics.loc[self.s_active_front[collimator], 'alf' + plane ] > 0
-        print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
-        if is_converging:
-            # pencil at front of jaw
-            match_at_s = self.s_active_front[collimator]
-            sigma      = self.colldb._beam_size_front[collimator]
-        else:
-            # pencil at back of jaw
-            match_at_s = self.s_active_back[collimator]
-            sigma      = self.colldb._beam_size_back[collimator]
+#         is_converging = self.colldb._optics.loc[self.s_active_front[collimator], 'alf' + plane ] > 0
+#         print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
+#         if is_converging:
+#             # pencil at front of jaw
+#             match_at_s = self.s_active_front[collimator]
+#             sigma      = self.colldb._beam_size_front[collimator]
+#         else:
+#             # pencil at back of jaw
+#             match_at_s = self.s_active_back[collimator]
+#             sigma      = self.colldb._beam_size_back[collimator]
+
+        print("TODO: TEMPORARY HACK TO OVERWRITE PARAMETERS")
+        match_at_s = self.s_active_front[collimator]
+        sigma = 260.e-6
 
         dr_sigmas = pencil_spread/sigma
 
@@ -874,7 +885,7 @@ class CollimatorManager:
 
         if file is not None:
             with open(Path(file), 'w') as fid:
-                json.dump(self._lossmap, fid, indent=True)
+                json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
     
         return self._lossmap
 

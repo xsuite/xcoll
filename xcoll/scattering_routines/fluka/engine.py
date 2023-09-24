@@ -222,6 +222,7 @@ class FlukaEngine(xo.HybridClass):
         else:
             this._collimators = {coll: {'fluka_id': i} for coll,i in fluka_ids.items()}
         this._read_insertion(path=input_file.parent)
+        this._read_gaps(input_file)
         # TODO: check for consistency (no repeating ids etc)
 
 
@@ -328,6 +329,15 @@ class FlukaEngine(xo.HybridClass):
                 'length': float(line[3]),
                 'exit_marker': line[1]
             }
+
+
+    def _read_gaps(self, input_file):
+        with input_file.open('r') as fid:
+            lines = fid.readlines()
+        for coll in self._collimators:
+            idx = [i for i, line in enumerate(lines) if coll.upper() in line][0]
+            hgap = float([line for line in lines[idx:] if line.startswith('* hGap')][0].split()[3])*1.e-3
+            self._collimators[coll]['jaw'] = hgap
 
 
     def _compare_fluka_mass(self, part, keep_p0c_constant=True):

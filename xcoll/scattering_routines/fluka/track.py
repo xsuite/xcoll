@@ -72,8 +72,19 @@ def track(collimator, particles):  # TODO: write impacts
     if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
         raise ValueError("Some particles are missing the pdg_id!")
 
-    # FLUKA uses inactive front and back, so pass full length
+    # FLUKA collimators are centered; need to shift
+    dx = 0
+    dy = 0
+    if abs(np.mod(collimator.angle-90,180)-90) < 1e-6:
+        dx = collimator.ref_x
+    elif abs(np.mod(collimator.angle,180)-90) < 1e-6:
+        dy = collimator.ref_y
+    # TODO: Let's forget about the closed orbit for the skew collimators for now...
+    particles.x -= dx
+    particles.y -= dy
     track_core(collimator, particles)
+    particles.x += dx
+    particles.y += dy
 
 
 def _expand(arr, dtype=float):
@@ -131,9 +142,9 @@ def track_core(collimator, part):
     turn_in  = part.at_turn[0]
 
     # send to fluka
-    track_fluka(turn=part.at_turn[0]+1,    # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
+    track_fluka(turn=part.at_turn[0]+1,       # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
                 fluka_id=collimator.fluka_id,
-                length=collimator.length,
+                length=collimator.length,     # FLUKA uses inactive front and back, so pass full length
                 part_p0c=part.p0c[0],
                 part_e0=part.energy0[0],
                 alive_part=npart,
