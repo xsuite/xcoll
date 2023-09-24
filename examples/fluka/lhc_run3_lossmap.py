@@ -12,7 +12,7 @@ beam          = '1'
 plane         = 'H'
 
 num_turns     = 200
-num_particles = 50
+num_particles = 5000
 engine        = 'fluka'
 
 path_in  = xc._pkg_root.parent / 'examples'
@@ -103,26 +103,37 @@ particle_ref = xp.Particles.build_reference_particle(pdg_id='proton', p0c=6.8e12
 xc.FlukaEngine().set_particle_ref(particle_ref)
 
 
+coll_manager.set_openings()
+# Assign optics manually
+tw = line.twiss()
+for coll in coll_manager.collimator_names:
+    idx = line.element_names.index(coll)
+    line[coll].ref_x = tw.x[idx]
+    line[coll].ref_y = tw.y[idx]
+
+
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam=='1' else 'r'}7.b{beam}"
-# part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=num_particles)
-x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
-y_norm  = np.random.normal(scale=0.01, size=num_particles)
-py_norm = np.random.normal(scale=0.01, size=num_particles)
-part_init = line.build_particles(
-            x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=coll_manager.colldb.emittance[0], nemitt_y=coll_manager.colldb.emittance[1],
-            at_element=tcp, match_at_s=coll_manager.s_active_front[tcp],
-            _buffer=coll_manager._part_buffer
-)
+part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=num_particles)
+# x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
+# y_norm  = np.random.normal(scale=0.01, size=num_particles)
+# py_norm = np.random.normal(scale=0.01, size=num_particles)
+# part = line.build_particles(
+#             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
+#             nemitt_x=coll_manager.colldb.emittance[0], nemitt_y=coll_manager.colldb.emittance[1],
+#             at_element=tcp, match_at_s=coll_manager.s_active_front[tcp],
+#             _context=coll_manager._buffer.context
+# )
 
 
 # Optimise the line
-line.optimize_for_tracking()
-idx = line.element_names.index(tcp)
-part.at_element = idx
-part.start_tracking_at_element = idx
+# line.optimize_for_tracking()
+# idx = line.element_names.index(tcp)
+# part.at_element = idx
+# part.start_tracking_at_element = idx
 
+print(part.at_element)
+print(f"{np.mean(part.x)} +- {np.std(part.x)}")
 
 # Track
 coll_manager.enable_scattering()
