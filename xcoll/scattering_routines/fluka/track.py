@@ -245,6 +245,7 @@ def track_core(collimator, part):
     if not np.any(mask_new):
         part.reorganize()
     else:
+        rpp = part.rpp[:npart][mask_new]
         new_particles = xp.Particles(_context=part._buffer.context,
                 p0c = part.p0c[0],
                 mass0 = part.mass0,
