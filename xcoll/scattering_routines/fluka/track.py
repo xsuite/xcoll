@@ -261,8 +261,8 @@ def track_core(collimator, part):
                 charge_ratio = data['q'][:npart][mask_new] / part.q0,
                 at_element = ele_in,
                 at_turn = turn_in,
-#                 particle_id = pid[mask_new],  # do not use the FLUKA pid as it will keep on increasing more
-                parent_particle_id = ppid[mask_new],
+#                 particle_id = new_pid[mask_new],  # do not use the FLUKA pid as it will keep on increasing more
+                parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new])
         part.add_particles(new_particles)
 
