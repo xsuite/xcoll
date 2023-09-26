@@ -9,17 +9,18 @@
 import numpy as np
 import xpart as xp
 import xcoll as xc
+import time
 
 
 # Start rfluka and flukaserver and make the connection, based on
 # the input files in this folder (lhc_run3_30cm.inp and insertion.txt)
 # The value in insertion.txt is the value to be used for inactive_front/back each
-xc.FlukaEngine.start_server("lhc_ion2018_FT_correct.inp")
+xc.FlukaEngine.start_server("lhc_ion2018_FT_correct.inp", fluka_ids={'tcp.c6l7.b1': 28})
 
 
 # Create a FlukaCollimator beam element (ID 28 is the TCP.C6L7.B1 as
 # defined by the input files)
-coll = xc.FlukaCollimator(collimator_id=28, length=1.48200)
+coll = xc.FlukaCollimator(fluka_id=28, length=1.48200)
 
 
 # Set a reference particle
@@ -38,7 +39,9 @@ part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_r
 
 
 # Do the tracking.
+start = time.time()
 coll.track(part)
+print(f"Tracking {num_part} particles took {round(time.time()-start,1)}s")
 
 
 # Stop the FLUKA server

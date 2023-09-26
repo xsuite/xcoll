@@ -4,8 +4,6 @@ module mod_fluka
   use numerical_constants
   use mod_alloc
 
-  use, intrinsic :: ISO_FORTRAN_ENV, only : int8, int16, int32, int64
-
   ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
   ! last modified: 18-01-2016
   ! fortran 90 module for coupling SixTrack to FLUKA
@@ -45,8 +43,8 @@ module mod_fluka
 
   ! HION variables that are only used for FLUKA
   ! ien0,ien1: ion energy entering/leaving the collimator
-  real(kind=fPrec),    public :: ien0, ien1
-  integer(kind=int32), public :: nnuc0,nnuc1
+  real(kind=8),    public :: ien0, ien1
+  integer(kind=4), public :: nnuc0,nnuc1
 
   ! FlukaIO Connection parameters
   character(len = 255), public  :: fluka_host
@@ -65,7 +63,7 @@ module mod_fluka
            ntsendbrhono
   external ntrtimeout, ntwtimeout
 
-  integer(kind=int32) :: ntconnect,   &
+  integer(kind=4) :: ntconnect,   &
                          ntsendp,     &
                          ntsendeob,   &
                          ntsendeoc,   &
@@ -75,10 +73,10 @@ module mod_fluka
                          ntsendnpart, &
                          ntsendbrhono,&
                          ntend
-  integer(kind=int32) :: ntrtimeout, ntwtimeout
+  integer(kind=4) :: ntrtimeout, ntwtimeout
 
   ! FlukaIO Message types
-  integer(kind=int8), parameter :: FLUKA_PART = 1, &
+  integer(kind=1), parameter :: FLUKA_PART = 1, &
                                    FLUKA_EOB  = 2, &
                                    FLUKA_EOC  = 3, &
                                    FLUKA_CONF = 4, &
@@ -87,7 +85,7 @@ module mod_fluka
                                    FLUKA_NPART= 7, &
                                    FLUKA_BRHO = 8
   ! connection ID
-  integer(kind=int32) :: fluka_cid
+  integer(kind=4) :: fluka_cid
 
   ! FLUKA input block
   logical, public :: fluka_enable    = .false.                     ! enable coupling
@@ -99,9 +97,9 @@ module mod_fluka
 
   ! fluka insertions
   logical, public :: fluka_inside = .false.                        ! Are we in a fluka insertion?
-  integer(kind=int32), public, allocatable :: fluka_type(:)        ! type of insertion (one per SINGLE ELEMENT)
-  integer(kind=int32), public, allocatable :: fluka_geo_index(:)   ! index of insertion (one per SINGLE ELEMENT)
-  real(kind=fPrec), public, allocatable :: fluka_synch_length(:)   ! length of insertion [m] (one per SINGLE ELEMENT)
+  integer(kind=4), public, allocatable :: fluka_type(:)        ! type of insertion (one per SINGLE ELEMENT)
+  integer(kind=4), public, allocatable :: fluka_geo_index(:)   ! index of insertion (one per SINGLE ELEMENT)
+  real(kind=8), public, allocatable :: fluka_synch_length(:)   ! length of insertion [m] (one per SINGLE ELEMENT)
   ! current fluka insertion:
   integer :: fluka_i=-1              ! lattice entry (FLUKA_ELEMENT/FLUKA_EXIT)
   integer :: fluka_ix=-1             ! single element entry (FLUKA_ELEMENT/FLUKA_EXIT)
@@ -109,27 +107,27 @@ module mod_fluka
   integer :: fluka_last_sent_mess=-1 ! last sent message
   integer :: fluka_last_rcvd_mess=-1 ! last received message
   ! recognised insertion types
-  integer(kind=int32), parameter, public :: FLUKA_NONE    = 0, & ! no insertion
+  integer(kind=4), parameter, public :: FLUKA_NONE    = 0, & ! no insertion
                                             FLUKA_ELEMENT = 1, & ! insertion covers only the present SINGLE ELEMENT
                                             FLUKA_ENTRY   = 2, & ! SINGLE ELEMENT marking the start of the insertion
                                             FLUKA_EXIT    = 3    ! SINGLE ELEMENT marking the end   of the insertion
   ! ancillary tracking values
-  integer(kind=int32), public :: fluka_max_npart                          ! Maximum number of particles (array size)
+  integer(kind=4), public :: fluka_max_npart                          ! Maximum number of particles (array size)
   integer,          public, allocatable    :: pids(:)         ! Particle ID moved from hisixtrack, to be harmonised
 
   ! Useful values
   integer :: fluka_nsent     ! Temporary count of sent particles
   integer :: fluka_nrecv     ! Temporary count of received particles
-  real(kind=fPrec), public :: fluka_clight ! [m/s]
+  real(kind=8), public :: fluka_clight ! [m/s]
 
   ! Reference particle
-  real(kind=fPrec), public :: fluka_e0     ! [GeV]
-  real(kind=fPrec), public :: fluka_pc0    ! [GeV/c]
-  real(kind=fPrec), public :: fluka_mass0  ! [GeV/c2]
-  real(kind=fPrec), public :: fluka_brho0  ! [Tm]
-  integer(kind=int32),          public :: fluka_chrg0  ! []
-  integer(kind=int32),          public :: fluka_a0     ! nucelon number (hisix)
-  integer(kind=int32),          public :: fluka_z0     ! nuclear charge
+  real(kind=8), public :: fluka_e0     ! [GeV]
+  real(kind=8), public :: fluka_pc0    ! [GeV/c]
+  real(kind=8), public :: fluka_mass0  ! [GeV/c2]
+  real(kind=8), public :: fluka_brho0  ! [Tm]
+  integer(kind=4),          public :: fluka_chrg0  ! []
+  integer(kind=4),          public :: fluka_a0     ! nucelon number (hisix)
+  integer(kind=4),          public :: fluka_z0     ! nuclear charge
 
   save
 
@@ -145,7 +143,7 @@ contains
 
     ! interface variables
     integer :: npart, nele
-    real(kind=fPrec) :: clight
+    real(kind=8) :: clight
 
     ! temporary variables
     integer :: j
@@ -250,7 +248,7 @@ contains
   integer function fluka_connect(timeout_sec)
     implicit none
 
-    integer(kind=int32) :: timeout_sec
+    integer(kind=4) :: timeout_sec
     integer :: rtimeout
     integer :: wtimeout
 
@@ -273,16 +271,17 @@ contains
     implicit none
 
     ! Finish connection
-    integer(kind=int32) :: n
+    integer(kind=4) :: n
 
     ! Fluka I/O parameters
-    integer(kind=int32)         :: flid, flgen
-    real(kind=fPrec)  :: flwgt, flx, fly, flz, flxp, flyp, flzp, flpc, flm, flt
-    integer(kind=int32)         :: flaa, flzz, flq
-    integer(kind=int8)          :: mtype
+    integer(kind=4)         :: flid, flgen
+    real(kind=8)  :: flwgt, flx, fly, flz, flxp, flyp, flzp, flpc, flm, flt
+    integer(kind=4)         :: flaa, flzz
+    integer(kind=2)         :: flq
+    integer(kind=1)          :: mtype
 
-    integer(kind=int32)         :: flpdgid
-    real(kind=fPrec)            :: flsx, flsy, flsz
+    integer(kind=4)         :: flpdgid
+    real(kind=8)            :: flsx, flsy, flsz
 
     write(lout,'(A)') 'FLUKA> call to fluka_end'
     write(fluka_log_unit,'(A)') "# FlukaIO: sending End of Computation signal"
@@ -323,29 +322,30 @@ contains
     implicit none
 
     ! Parameters
-    integer(kind=int32) :: turn, ipt
+    integer(kind=4) :: turn
+    integer(kind=2) :: ipt
     integer           :: npart
     integer           :: max_part
-    real(kind=fPrec)  :: el
+    real(kind=8)  :: el
 
-    real(kind=fPrec) :: xv1(max_part)
-    real(kind=fPrec) :: yv1(max_part)
-    real(kind=fPrec) :: xv2(max_part)
-    real(kind=fPrec) :: yv2(max_part)
-    real(kind=fPrec) :: s(max_part)
-    real(kind=fPrec) :: etot(max_part)
+    real(kind=8) :: xv1(max_part)
+    real(kind=8) :: yv1(max_part)
+    real(kind=8) :: xv2(max_part)
+    real(kind=8) :: yv2(max_part)
+    real(kind=8) :: s(max_part)
+    real(kind=8) :: etot(max_part)
 
-    real(kind=fPrec) :: mass(max_part)
-    integer(kind=int32) :: aa(max_part)
-    integer(kind=int32) :: zz(max_part)
-    integer(kind=int32) :: qq(max_part)
-    integer(kind=int32) :: pdg_id(max_part)
-    integer(kind=int32) :: partID(max_part)
-    integer(kind=int32) :: parentID(max_part)
-    real(kind=fPrec) :: partWeight(max_part)
-    real(kind=fPrec) :: spinx(max_part)
-    real(kind=fPrec) :: spiny(max_part)
-    real(kind=fPrec) :: spinz(max_part)
+    real(kind=8) :: mass(max_part)
+    integer(kind=4) :: aa(max_part)
+    integer(kind=4) :: zz(max_part)
+    integer(kind=2) :: qq(max_part)
+    integer(kind=4) :: pdg_id(max_part)
+    integer(kind=4) :: partID(max_part)
+    integer(kind=4) :: parentID(max_part)
+    real(kind=8) :: partWeight(max_part)
+    real(kind=8) :: spinx(max_part)
+    real(kind=8) :: spiny(max_part)
+    real(kind=8) :: spinz(max_part)
 
     fluka_send_receive = fluka_send(turn, ipt, el, npart, max_part, &
          xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
@@ -370,42 +370,44 @@ contains
     implicit none
 
     ! Interface variables
-    integer(kind=int32) :: turn, ipt
+    integer(kind=4) :: turn
+    integer(kind=2) :: ipt
     integer           :: npart
     integer           :: max_part
-    real(kind=fPrec)  :: el
+    real(kind=8)  :: el
 
-    real(kind=fPrec) :: xv1(max_part)
-    real(kind=fPrec) :: yv1(max_part)
-    real(kind=fPrec) :: xv2(max_part)
-    real(kind=fPrec) :: yv2(max_part)
-    real(kind=fPrec) :: s(max_part)
-    real(kind=fPrec) :: etot(max_part)
+    real(kind=8) :: xv1(max_part)
+    real(kind=8) :: yv1(max_part)
+    real(kind=8) :: xv2(max_part)
+    real(kind=8) :: yv2(max_part)
+    real(kind=8) :: s(max_part)
+    real(kind=8) :: etot(max_part)
 
-    real(kind=fPrec) :: mass(max_part)
-    integer(kind=int32) :: aa(max_part)
-    integer(kind=int32) :: zz(max_part)
-    integer(kind=int32) :: qq(max_part)
-    integer(kind=int32) :: pdg_id(max_part)
-    integer(kind=int32) :: partID(max_part)
-    integer(kind=int32) :: parentID(max_part)
-    real(kind=fPrec) :: partWeight(max_part)
-    real(kind=fPrec) :: spinx(max_part)
-    real(kind=fPrec) :: spiny(max_part)
-    real(kind=fPrec) :: spinz(max_part)
+    real(kind=8) :: mass(max_part)
+    integer(kind=4) :: aa(max_part)
+    integer(kind=4) :: zz(max_part)
+    integer(kind=2) :: qq(max_part)
+    integer(kind=4) :: pdg_id(max_part)
+    integer(kind=4) :: partID(max_part)
+    integer(kind=4) :: parentID(max_part)
+    real(kind=8) :: partWeight(max_part)
+    real(kind=8) :: spinx(max_part)
+    real(kind=8) :: spiny(max_part)
+    real(kind=8) :: spinz(max_part)
 
     ! Fluka I/O parameters
-    integer(kind=int32) :: flid, flgen
-    real(kind=fPrec)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
-    integer(kind=int32) :: flaa, flzz, flq
-    integer(kind=int8)  :: mtype
+    integer(kind=4) :: flid, flgen
+    real(kind=8)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
+    integer(kind=4) :: flaa, flzz
+    integer(kind=2) :: flq
+    integer(kind=1)  :: mtype
 
-    integer(kind=int32) :: flpdgid
-    real(kind=fPrec)    :: flsx, flsy, flsz
+    integer(kind=4) :: flpdgid
+    real(kind=8)    :: flsx, flsy, flsz
 
     ! Auxiliary variables
     integer :: j
-    integer(kind=int32) :: n
+    integer(kind=4) :: n
 
     flush(fluka_log_unit)
 
@@ -468,7 +470,7 @@ contains
 !        write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
 !        flush(lout)
 
-        ! Send particle
+        ! Send particle         TODO: it seems flet should be pc!!
         n = ntsendp(fluka_cid, &
             flid, flgen, flwgt, &
             flx, fly, flz, &
@@ -517,41 +519,43 @@ contains
     implicit none
 
     ! Interface variables
-    integer(kind=int32) :: turn, ipt
+    integer(kind=4) :: turn
+    integer(kind=2) :: ipt
     integer           :: napx
     integer           :: max_part
-    real(kind=fPrec)  :: el
+    real(kind=8)  :: el
 
-    real(kind=fPrec) :: xv1(max_part)
-    real(kind=fPrec) :: yv1(max_part)
-    real(kind=fPrec) :: xv2(max_part)
-    real(kind=fPrec) :: yv2(max_part)
-    real(kind=fPrec) :: s(max_part)
-    real(kind=fPrec) :: etot(max_part)
+    real(kind=8) :: xv1(max_part)
+    real(kind=8) :: yv1(max_part)
+    real(kind=8) :: xv2(max_part)
+    real(kind=8) :: yv2(max_part)
+    real(kind=8) :: s(max_part)
+    real(kind=8) :: etot(max_part)
 
-    real(kind=fPrec) :: mass(max_part)
-    integer(kind=int32) :: aa(max_part)
-    integer(kind=int32) :: zz(max_part)
-    integer(kind=int32) :: qq(max_part)
-    integer(kind=int32) :: pdg_id(max_part)
-    integer(kind=int32) :: partID(max_part)
-    integer(kind=int32) :: parentID(max_part)
-    real(kind=fPrec) :: partWeight(max_part)
-    real(kind=fPrec) :: spinx(max_part)
-    real(kind=fPrec) :: spiny(max_part)
-    real(kind=fPrec) :: spinz(max_part)
+    real(kind=8) :: mass(max_part)
+    integer(kind=4) :: aa(max_part)
+    integer(kind=4) :: zz(max_part)
+    integer(kind=2) :: qq(max_part)
+    integer(kind=4) :: pdg_id(max_part)
+    integer(kind=4) :: partID(max_part)
+    integer(kind=4) :: parentID(max_part)
+    real(kind=8) :: partWeight(max_part)
+    real(kind=8) :: spinx(max_part)
+    real(kind=8) :: spiny(max_part)
+    real(kind=8) :: spinz(max_part)
 
     ! Fluka I/O parameters
-    integer(kind=int32) :: flid, flgen
-    real(kind=fPrec)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
-    integer(kind=int32) :: flaa, flzz, flq
-    integer(kind=int8)  :: mtype
+    integer(kind=4) :: flid, flgen
+    real(kind=8)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
+    integer(kind=4) :: flaa, flzz
+    integer(kind=2) :: flq
+    integer(kind=1)  :: mtype
 
-    integer(kind=int32)         :: flpdgid
-    real(kind=fPrec)            :: flsx, flsy, flsz
+    integer(kind=4)         :: flpdgid
+    real(kind=8)            :: flsx, flsy, flsz
 
     ! Auxiliary variables
-    integer(kind=int32) :: n, j
+    integer(kind=4) :: n, j
 
     fluka_receive = 0
     fluka_last_sent_mess = -1
@@ -677,11 +681,11 @@ contains
     implicit none
 
     ! interface variables
-    real(kind=fPrec) :: e0, pc0, mass0
-    integer(kind=int32) :: a0, z0, q0
+    real(kind=8) :: e0, pc0, mass0
+    integer(kind=4) :: a0, z0, q0
 
     ! Auxiliary variables
-    integer(kind=int32) :: n
+    integer(kind=4) :: n
 
     if(fluka_debug) then
        write(lout,'(A)') 'fluka_set_synch_part'
@@ -744,10 +748,10 @@ contains
     implicit none
 
     ! interface variables
-    integer(kind=int32) :: npart
+    integer(kind=4) :: npart
 
     ! Auxiliary variables
-    integer(kind=int32) :: n
+    integer(kind=4) :: n
 
     write(lout,'(A)') 'mod_fluka fluka_init_max_uid'
     flush(lout)
@@ -848,7 +852,7 @@ subroutine fluka_parseInputLine(inLine, iLine, iErr)
 
   character(len=:), allocatable   :: lnSplit(:)
   character(len=mNameLen) entrElem, exitElem
-  real(kind=fPrec) tmplen
+  real(kind=8) tmplen
   integer nSplit, i, entrIdx, exitIdx, ii
   logical spErr
 

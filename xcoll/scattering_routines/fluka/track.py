@@ -6,6 +6,7 @@
 import numpy as np
 import xpart as xp
 import xpart.pdg as pdg
+import xobjects as xo
 
 
 def drift_6d(particles, length):
@@ -122,7 +123,7 @@ def track_core(collimator, part):
     data['zeta']   = _expand(part.zeta[:npart].copy() * 1000.)
     data['e']      = _expand(part.energy[:npart].copy() / 1.e6)
     data['m']      = _expand(mass / 1.e6)
-    data['q']      = _expand(charge.astype(np.int32), dtype=np.int32)
+    data['q']      = _expand(charge.astype(np.int16), dtype=np.int16)
     data['A']      = _expand(A.astype(np.int32), dtype=np.int32)
     data['Z']      = _expand(Z.astype(np.int32), dtype=np.int32)
     data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32)
@@ -142,7 +143,7 @@ def track_core(collimator, part):
     turn_in  = part.at_turn[0]
 
     # send to fluka
-    track_fluka(turn=part.at_turn[0]+1,       # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
+    track_fluka(turn=turn_in+1,       # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
                 fluka_id=collimator.fluka_id,
                 length=collimator.length,     # FLUKA uses inactive front and back, so pass full length
                 part_p0c=part.p0c[0],
@@ -245,6 +246,11 @@ def track_core(collimator, part):
     if not np.any(mask_new):
         part.reorganize()
     else:
+        num_free = part._capacity - part._num_lost_particles - part._num_active_particles
+        num_needed = np.sum(mask_new)
+        if num_free < num_needed:
+            extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
+            part = xp.Particle.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
         rpp = part.rpp[:npart][mask_new]
         new_particles = xp.Particles(_context=part._buffer.context,
                 p0c = part.p0c[0],
@@ -261,12 +267,12 @@ def track_core(collimator, part):
                 charge_ratio = data['q'][:npart][mask_new] / part.q0,
                 at_element = ele_in,
                 at_turn = turn_in,
+                pdg_id = data['pdg_id'][:npart][mask_new],
 #                 particle_id = new_pid[mask_new],  # do not use the FLUKA pid as it will keep on increasing more
                 parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new])
         part.add_particles(new_particles)
-
-
+        engine.max_particle_id = part.particle_id.max()
 
 
 

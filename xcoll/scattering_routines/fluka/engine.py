@@ -216,7 +216,7 @@ class FlukaEngine(xo.HybridClass):
             this._warn_pyfluka(error)
         print(f"done.", flush=True)
 
-        # Store collimator info
+        # Store collimator info    TODO: need to get rid of fort.3 dependence etc
         if fluka_ids is None:
             this._read_fort3(path=input_file.parent)
         else:
@@ -306,9 +306,10 @@ class FlukaEngine(xo.HybridClass):
         with open(path / 'insertion.txt', 'r') as fid:
             for line in fid.readlines():
                 fluka_id = int(line.split()[0])
-                name = [name for name, data in self._collimators.items() if data['fluka_id']==fluka_id][0]
-                if name not in self._collimators:
-                    raise ValueError(f"Unknown FLUKA collimator id {fluka_id}!")
+                name = [name for name, data in self._collimators.items() if data['fluka_id']==fluka_id]
+                if len(name)==0:
+                    continue
+                name = name[0]
                 self._collimators[name]['inactive_length'] = float(line.split()[-1])
                 self._collimators[name]['INROT'] = line.split()[1:-1]
 
@@ -414,10 +415,7 @@ class FlukaEngine(xo.HybridClass):
             pyfluka_init_max_uid(max_particle_id)
             pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
             print(f"Set max_particle_id to {max_particle_id}, "
-                + f"and reference particle to {name} with mass {m0}eV and energy {E0}eV.")
+                + f"and reference particle to {name} with mass {m0}MeV and energy {E0}MeV.")
             self.max_particle_id = max_particle_id
-        else:
-            print("FLUKA tracking already initialised, cannot change the "
-                + "parameters without restarting the server.")
 
 

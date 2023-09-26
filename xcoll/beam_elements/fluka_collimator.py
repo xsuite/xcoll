@@ -14,7 +14,7 @@ from ..general import _pkg_root
 
 class FlukaCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'fluka_id':  xo.Int64,
+        'fluka_id':  xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
         '_tracking': xo.Int8
     }
 

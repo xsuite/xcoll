@@ -18,12 +18,11 @@ subroutine pyfluka_connect(timeout_sec)
     use crcoall
     use mod_fluka
     !, only : fluka_connect, fluka_connected
-    use, intrinsic :: ISO_FORTRAN_ENV, only : int32
 
     implicit none
 
     integer fluka_con
-    integer(kind=int32), intent(in) :: timeout_sec
+    integer(kind=4), intent(in) :: timeout_sec
 
     ! start connection to FLUKA and initialise max ID
     if(fluka_enable) then
@@ -103,7 +102,7 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
     integer fluka_con
 
     real(kind=8),        intent(in) :: part_e0, part_pc0, part_mass0
-    integer(kind=int32), intent(in) :: part_a0, part_z0, part_q0
+    integer(kind=4), intent(in) :: part_a0, part_z0, part_q0
 
     ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
     ! last modified: 18-01-2016
@@ -160,8 +159,8 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
 
     implicit none
 
-    integer(kind=int32), intent(in)    :: turn
-    integer(kind=int32), intent(in)    :: fluka_id
+    integer(kind=4), intent(in)    :: turn
+    integer(kind=2), intent(in)    :: fluka_id
     real(kind=8),        intent(in)    :: length
     real(kind=8),        intent(in)    :: part_p0c
     real(kind=8),        intent(in)    :: part_e0
@@ -174,12 +173,12 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     real(kind=8),        intent(inout) :: zeta_part(max_part)  ! [mm]    sigmv
     real(kind=8),        intent(inout) :: e_part(max_part)     ! [MeV]   ejv   (ejfv is momentum, dpsv is delta, oidpsv is 1/(1+d))
     real(kind=8),        intent(inout) :: m_part(max_part)     ! [MeV]   nucm
-    integer(kind=int32), intent(inout) :: q_part(max_part)     !         nqq     Charge
-    integer(kind=int32), intent(inout) :: A_part(max_part)     !         naa     Ion atomic mass
-    integer(kind=int32), intent(inout) :: Z_part(max_part)     !         nzz     Ion atomic number
-    integer(kind=int32), intent(inout) :: pdgid_part(max_part) !         pdgid   Particle PDGid
-    integer(kind=int32), intent(inout) :: part_id(max_part)
-    integer(kind=int32), intent(inout) :: parent_id(max_part)
+    integer(kind=2), intent(inout) :: q_part(max_part)     !         nqq     Charge
+    integer(kind=4), intent(inout) :: A_part(max_part)     !         naa     Ion atomic mass
+    integer(kind=4), intent(inout) :: Z_part(max_part)     !         nzz     Ion atomic number
+    integer(kind=4), intent(inout) :: pdgid_part(max_part) !         pdgid   Particle PDGid
+    integer(kind=4), intent(inout) :: part_id(max_part)
+    integer(kind=4), intent(inout) :: parent_id(max_part)
     real(kind=8),        intent(inout) :: part_weight(max_part)
     real(kind=8),        intent(inout) :: spin_x_part(max_part)  ! spin_x  ! x component of the particle spin
     real(kind=8),        intent(inout) :: spin_y_part(max_part)  ! spin_y  ! y component of the particle spin

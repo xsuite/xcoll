@@ -706,7 +706,7 @@ class CollimatorManager:
             part = xp.build_particles(
                     **part_4d, zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     line=self.line, at_element=collimator, match_at_s=match_at_s,
-                    particle_ref=FlukaEngine().particle_ref,
+                    particle_ref=FlukaEngine().particle_ref, _capacity=FlukaEngine().n_alloc,
                     _context=self._buffer.context
             )
         else:
