@@ -145,7 +145,7 @@ end subroutine
 
 
 subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, max_part, x_part, xp_part, y_part, yp_part, &
-                       zeta_part, e_part, m_part, q_part, A_part, Z_part, pdgid_part, part_id, parent_id, &
+                       zeta_part, e_part, m_part, q_part, A_part, Z_part, pdg_id_part, part_id, parent_id, &
                        part_weight, spin_x_part, spin_y_part, spin_z_part)
 
     use floatPrecision
@@ -176,7 +176,7 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     integer(kind=2), intent(inout) :: q_part(max_part)     !         nqq     Charge
     integer(kind=4), intent(inout) :: A_part(max_part)     !         naa     Ion atomic mass
     integer(kind=4), intent(inout) :: Z_part(max_part)     !         nzz     Ion atomic number
-    integer(kind=4), intent(inout) :: pdgid_part(max_part) !         pdgid   Particle PDGid
+    integer(kind=4), intent(inout) :: pdg_id_part(max_part) !         pdgid   Particle PDGid
     integer(kind=4), intent(inout) :: part_id(max_part)
     integer(kind=4), intent(inout) :: parent_id(max_part)
     real(kind=8),        intent(inout) :: part_weight(max_part)
@@ -192,7 +192,7 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     fluka_e0 = part_e0
 
     ret = fluka_send_receive(turn, fluka_id, length, alive_part, max_part, x_part, y_part, xp_part, yp_part, &
-                           zeta_part, e_part, A_part, Z_part, m_part, q_part, pdgid_part, &
+                           zeta_part, e_part, A_part, Z_part, m_part, q_part, pdg_id_part, &
                            part_id, parent_id, part_weight, spin_x_part, spin_y_part, spin_z_part )
     napx = alive_part
 

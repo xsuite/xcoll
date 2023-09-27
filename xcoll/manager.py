@@ -330,6 +330,7 @@ class CollimatorManager:
                     inactive_back=inactive_length,
                     active_length=active_length,
                     fluka_id=fluka_id,
+                    accumulated_energy=0,
                     jaw_L=jaw,
                     jaw_R=-jaw,
                     active=False,
@@ -337,6 +338,7 @@ class CollimatorManager:
                     _buffer=self._buffer
                    )
         self._install_collimators(df.index.values, install_func=install_func, verbose=verbose)
+
 
     def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
         # Check that collimator marker exists in Line and CollimatorDatabase,
@@ -749,7 +751,10 @@ class CollimatorManager:
     def enable_scattering(self):
         # Prepare collimators for tracking
         for coll in self.collimator_names:
-            self.line[coll]._tracking = True
+            el = self.line[coll]
+            el._tracking = True
+            if isinstance(el, FlukaCollimator):
+                el.accumulated_energy = 0
 
     def disable_scattering(self):
         # Prepare collimators for tracking
@@ -790,13 +795,17 @@ class CollimatorManager:
             coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
             coll_weights = weights[coll_mask]
             nabs         = [coll_weights[coll_losses==nn].sum() for nn in self.collimator_names]
+            acc_energy   = [self.line[nn].accumulated_energy
+                            if isinstance(self.line[nn], FlukaCollimator) else 0.
+                            for nn in self.collimator_names]
 
             self._summary = pd.DataFrame({
-                        "collname": self.collimator_names,
-                        "nabs":     nabs,
-                        "length":   coll_lengths,
-                        "s":        coll_pos,
-                        "type":     coll_types
+                        'collname': self.collimator_names,
+                        'nabs':     nabs,  # TODO: we want nhit as well
+                        'dE':       acc_energy,
+                        'length':   coll_lengths,
+                        's':        coll_pos,
+                        'type':     coll_types
                       })
 
         if file is not None:
@@ -867,7 +876,8 @@ class CollimatorManager:
                     's':      coll_summary['s'],
                     'name':   coll_summary['collname'],
                     'length': coll_summary['length'],
-                    'n':      coll_summary['nabs']
+                    'n':      coll_summary['nabs'],
+                    'dE':     coll_summary['dE']
                 }
                 ,
                 'aperture': {
