@@ -228,37 +228,40 @@ def track_core(collimator, part):
     # Update existing particles  (these missed the collimator or only underwent elastic interactions)
     # ===============================================================================================
     mask_new = new_pid <= max_id
-    idx_old  = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_pid[mask_new]])  # list of indices
 
-    # Sanity check
-    assert np.all(part.particle_id[idx_old] == new_pid[mask_new])
-    assert np.all(part.parent_particle_id[idx_old] == new_ppid[mask_new])
-    assert np.all(part.state[idx_old] > 0)
+    if np.any(mask_new):
+        idx_old  = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_pid[mask_new]])  # list of indices
 
-    # Update energy   TODO: in principle FLUKA uses pc, not energy!!
-    E_diff = np.zeros(len(part.x))
-    E_diff[idx_old] = data['e'][:npart][mask_new]*1.e6 - part.energy[idx_old]
-    part.add_to_energy(E_diff) # TODO: need to correct for weight
-    collimator.accumulated_energy -= E_diff.sum()
-    rpp = part.rpp[idx_old]    # This is now already updated by the new energy
+        # Sanity check
+        assert np.all(part.particle_id[idx_old] == new_pid[mask_new])
+        assert np.all(part.parent_particle_id[idx_old] == new_ppid[mask_new])
+        assert np.all(part.state[idx_old] > 0)
 
-    # Update other fields
-    part.x[idx_old]            = data['x'][:npart][mask_new] / 1000.
-    part.px[idx_old]           = data['xp'][:npart][mask_new] / rpp / 1000.
-    part.y[idx_old]            = data['y'][:npart][mask_new] / 1000.
-    part.py[idx_old]           = data['yp'][:npart][mask_new] / rpp / 1000.
-    part.zeta[idx_old]         = data['zeta'][:npart][mask_new] / 1000.
-    part.charge_ratio[idx_old] = data['q'][:npart][mask_new] / part.q0
-    part.chi[idx_old]          = data['q'][:npart][mask_new] / (data['m'][:npart][mask_new]*1.e6) \
-                                           * part.mass0 / part.q0 
-    part.pdg_id[idx_old]       = data['pdg_id'][:npart][mask_new]
-    part.weight[idx_old]       = data['weight'][:npart][mask_new]
-    part.s[idx_old]            = s_in + collimator.length
+        # Update energy   TODO: in principle FLUKA uses pc, not energy!!
+        E_diff = np.zeros(len(part.x))
+        E_diff[idx_old] = data['e'][:npart][mask_new]*1.e6 - part.energy[idx_old]
+        part.add_to_energy(E_diff) # TODO: need to correct for weight
+        collimator.accumulated_energy -= E_diff.sum()
+        rpp = part.rpp[idx_old]    # This is now already updated by the new energy
+
+        # Update other fields
+        part.x[idx_old]            = data['x'][:npart][mask_new] / 1000.
+        part.px[idx_old]           = data['xp'][:npart][mask_new] / rpp / 1000.
+        part.y[idx_old]            = data['y'][:npart][mask_new] / 1000.
+        part.py[idx_old]           = data['yp'][:npart][mask_new] / rpp / 1000.
+        part.zeta[idx_old]         = data['zeta'][:npart][mask_new] / 1000.
+        part.charge_ratio[idx_old] = data['q'][:npart][mask_new] / part.q0
+        part.chi[idx_old]          = data['q'][:npart][mask_new] / (data['m'][:npart][mask_new]*1.e6) \
+                                               * part.mass0 / part.q0
+        part.pdg_id[idx_old]       = data['pdg_id'][:npart][mask_new]
+        part.weight[idx_old]       = data['weight'][:npart][mask_new]
+        part.s[idx_old]            = s_in + collimator.length
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
     part.state[alive_at_entry] = -335  # XC_LOST_ON_FLUKA
-    part.state[idx_old]        = 1     # These actually survived
+    if np.any(mask_new):
+        part.state[idx_old]        = 1     # These actually survived
     collimator.accumulated_energy += part.energy[alive_at_entry & (part.state==-335)].sum() # TODO: need to correct for weight
 
 #     # Correct state for parent particles that disappeared because of multiple children
