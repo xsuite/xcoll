@@ -11,7 +11,7 @@
 #define  XC_LOST_ON_FLUKA           -335
 #define  XC_LOST_ON_GEANT4          -336
 #define  XC_LOST_ON_ABSORBER        -340
-#define  XC_PARENT_TO_MULTIPLE      -380  // not "dead"  -> not in lossmap! except its energy loss
+#define  XC_PARENT_ON_FLUKA         -385  // not "dead"  -> not in lossmap! except its energy loss
 
 #define  XC_ERR_INVALID_TRACK       -390
 #define  XC_ERR_NOT_IMPLEMENTED     -391

@@ -178,35 +178,44 @@ def track_core(collimator, part):
     new_pid  = data['pid'][:npart] - 1   # return to python 0-index
     new_ppid = data['ppid'][:npart] - 1  # return to python 0-index
 
-    # FLUKA returns particles that have undergone a nuclear interaction as new particles: need to correct
-    # ===================================================================================================
-    new_pdg_id = data['pdg_id'][:npart]
+    # IMPORTANT: we assume that a parent can never continue existing after an interaction. TODO: is this correct?
 
-    # We select only particles that have a different pid than their parent, while ensuring the
-    # parent existed as a particle in the input sent to FLUKA (this is to avoid selecting cases
-    # where the input particle already had a different parent from a previous interaction)
-    existed  = [ppid in part.particle_id[alive_at_entry] for ppid in new_ppid]  # TODO: this is slow
-    diff_ids = new_pid != new_ppid
+#     # FLUKA does not use a parent ID, but a primary ID (hence not the direct parent but the first impact)
+#     # ===================================================================================================
+#     # Select particles whose ppid was not sent as input to the collimator
+#     # (the parent is from a previous interaction)
+#     to_correct = [ppid not in part.particle_id[alive_at_entry] for ppid in new_ppid]
+#     assert np.all([ppid in part.parent_particle_id[alive_at_entry] for ppid in new_ppid[to_correct]])
 
-    # count the number of children per parent
-    _, inv, count_pp = np.unique(new_ppid, return_inverse=True, return_counts=True)
-    only_one_child   = count_pp[inv] == 1
+#     # FLUKA returns particles that have undergone a nuclear interaction as new particles: need to correct
+#     # ===================================================================================================
+#     new_pdg_id = data['pdg_id'][:npart]
 
-    # Select only those where the particle type did not change
-    # TODO: sloooooooow
-    old_pdg_id = []
-    for ppid in new_ppid:
-        pdg_id = part.pdg_id[alive_at_entry][part.particle_id[alive_at_entry]==ppid]
-        if len(pdg_id) > 0:
-            old_pdg_id += list(pdg_id[:1])
-        else:
-            old_pdg_id += [0]
-    old_pdg_id = np.array(old_pdg_id)
-    pdg_id_same = new_pdg_id == old_pdg_id
+#     # We select only particles that have a different pid than their parent, while ensuring the
+#     # parent existed as a particle in the input sent to FLUKA (this is to avoid selecting cases
+#     # where the input particle already had a different parent from a previous interaction)
+#     existed  = [ppid in part.particle_id[alive_at_entry] for ppid in new_ppid]  # TODO: this is slow
+#     diff_ids = new_pid != new_ppid
 
-    # re-assign the original particle ids if the conditions are met
-    nucl_int = existed & diff_ids & only_one_child & pdg_id_same
-    new_pid[nucl_int] = new_ppid[nucl_int]
+#     # count the number of children per parent
+#     _, inv, count_pp = np.unique(new_ppid, return_inverse=True, return_counts=True)
+#     only_one_child   = count_pp[inv] == 1
+
+#     # Select only those where the particle type did not change
+#     # TODO: sloooooooow
+#     old_pdg_id = []
+#     for ppid in new_ppid:
+#         pdg_id = part.pdg_id[alive_at_entry][part.particle_id[alive_at_entry]==ppid]
+#         if len(pdg_id) > 0:
+#             old_pdg_id += list(pdg_id[:1])
+#         else:
+#             old_pdg_id += [0]
+#     old_pdg_id = np.array(old_pdg_id)
+#     pdg_id_same = new_pdg_id == old_pdg_id
+
+#     # re-assign the original particle ids if the conditions are met
+#     nucl_int = existed & diff_ids & only_one_child & pdg_id_same
+#     new_pid[nucl_int] = new_ppid[nucl_int]
 
 
     # TODO: Impact Table
@@ -216,8 +225,8 @@ def track_core(collimator, part):
     # Hit (nucl): above mask + children
 
 
-    # Update existing particles
-    # =========================
+    # Update existing particles  (these missed the collimator or only underwent elastic interactions)
+    # ===============================================================================================
     mask_new = new_pid <= max_id
     idx_old  = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_pid[mask_new]])  # list of indices
 
@@ -227,12 +236,6 @@ def track_core(collimator, part):
     assert np.all(part.state[idx_old] > 0)
 
     # Update energy   TODO: in principle FLUKA uses pc, not energy!!
-#     E_old  = part.energy
-#     E_new  = dict(zip(new_pid, data['e']*1.e6))
-#     E_diff = np.array([
-#             E_new[pid] - E if pid in new_pid[mask_new] else 0.  # This is the dE of surviving particles
-#             for pid, E in zip(part.particle_id, part.energy)
-#     ])
     E_diff = np.zeros(len(part.x))
     E_diff[idx_old] = data['e'][:npart][mask_new]*1.e6 - part.energy[idx_old]
     part.add_to_energy(E_diff) # TODO: need to correct for weight
@@ -258,15 +261,15 @@ def track_core(collimator, part):
     part.state[idx_old]        = 1     # These actually survived
     collimator.accumulated_energy += part.energy[alive_at_entry & (part.state==-335)].sum() # TODO: need to correct for weight
 
-    # Correct state for parent particles that disappeared because of multiple children
-    mask = [pid not in new_pid and pid in new_ppid for pid in part.particle_id]
-    part.state[alive_at_entry & mask]   = -380  # XC_PARENT_TO_MULTIPLE
+#     # Correct state for parent particles that disappeared because of multiple children
+#     mask = [pid not in new_pid and pid in new_ppid for pid in part.particle_id]
+#     part.state[alive_at_entry & mask] = -385  # XC_PARENT_ON_FLUKA
 
-    # Sanity check
-    was_alive = [ppid in part.particle_id[alive_at_entry] for ppid in new_ppid]
-    _, inv, count_pp = np.unique(new_ppid, return_inverse=True, return_counts=True)
-    more_than_one_child = count_pp[inv] > 1
-    assert set(part.particle_id[alive_at_entry & mask]) == set(new_ppid[was_alive & more_than_one_child])
+#     # Sanity check
+#     was_alive = [ppid in part.particle_id[alive_at_entry] for ppid in new_ppid]
+#     _, inv, count_pp = np.unique(new_ppid, return_inverse=True, return_counts=True)
+#     more_than_one_child = count_pp[inv] > 1
+#     assert set(part.particle_id[alive_at_entry & mask]) == set(new_ppid[was_alive & more_than_one_child])
 
 
     # Add new particles
@@ -274,21 +277,28 @@ def track_core(collimator, part):
     mask_new = new_pid > max_id
 
     if not np.any(mask_new):
-        # Sanity check
-        assert -380 not in part.state[alive_at_entry]
+#         # Sanity check
+#         assert -385 not in part.state[alive_at_entry]
         part.reorganize()
 
     else:
-        # Sanity check
-        assert np.all([ppid in part.particle_id[alive_at_entry] for ppid in new_ppid[mask_new]])
-        assert np.all([part.state[part.particle_id==ppid][0] == -380 for ppid in new_ppid[mask_new]])
+#         # Sanity check
+#         print(new_ppid[mask_new])
+#         print(new_pid[mask_new])
+#         for pid, ppid in zip(new_pid[mask_new], new_ppid[mask_new]):
+#             if ppid not in part.particle_id[alive_at_entry]:
+#                 mask = part.particle_id == ppid
+#                 print(f"Oeps: {ppid}->{pid} not found. State {part.state[mask]}.")
+#         assert np.all([ppid in part.particle_id[alive_at_entry] for ppid in new_ppid[mask_new]])
+#         assert np.all([part.state[part.particle_id==ppid][0] == -385 for ppid in new_ppid[mask_new]])
 
         # Check that there is enough room in the particles object
         num_free = part._capacity - part._num_lost_particles - part._num_active_particles
         num_needed = np.sum(mask_new)
         if num_free < num_needed:
             extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
-            part = xp.Particle.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
+            # TODO: this does not work!!
+            part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
 
         # Create new particles
         # TODO: FLUKA uses pc; then calculate delta from p
@@ -320,13 +330,14 @@ def track_core(collimator, part):
                 weight = data['weight'][:npart][mask_new],
                 start_tracking_at_element = start)
 
-        # Correct energy transfer: parent does not have energy of children anymore
-        idx_old = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_particles.parent_particle_id])
-        E_diff = np.zeros(len(part.x))
-        E_diff[idx_old] = -new_particles.energy
-        part.add_to_energy(E_diff)
+# TODO: energy of parents is wrong !
+#         # Correct energy transfer: parent does not have energy of children anymore
+#         idx_old = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_particles.parent_particle_id])
+#         E_diff = np.zeros(len(part.x))
+#         np.add.at(E_diff, idx_old, -new_particles.energy)
+#         part.add_to_energy(E_diff)
         # This energy was added too much to the accumulation (by the -335 state), so subtract (E_diff < 0)
-        collimator.accumulated_energy += E_diff.sum() # TODO: need to correct for weight
+        collimator.accumulated_energy -= new_particles.energy.sum() # TODO: need to correct for weight
 
         # Add new particles
         new_particles._init_random_number_generator()
