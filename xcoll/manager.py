@@ -359,12 +359,17 @@ class CollimatorManager:
             # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info
             if f'{name}_mken' in line.element_names\
             and f'{name}_mkex'in line.element_names:
-                aper_before = {nn: line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
-                aper_after  = {nn: line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
+                # TODO what with transformations? How to shift them in s if different?
+                aper_before = {nn.replace('mken', 'upstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
+                aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
             else:
-                # TODO what with transformations? How to shift them in s from centre to start?
-                aper_before = {f'{nn}_mken': line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_aper')}
-                aper_after  = {f'{nn}_mkex': line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_aper')}
+                # TODO what with transformations? How to shift them in s from centre to start/end?
+                aper_before = {nn.replace('_aper', 'upstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
+                aper_after  = {nn.replace('_aper', 'downstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
 
             # Remove stuff at location of collimator
             l = thiscoll['active_length']
