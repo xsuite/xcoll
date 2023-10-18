@@ -316,17 +316,8 @@ class CollimatorManager:
         if self.tracker_ready:
             raise Exception("Tracker already built!\nPlease install collimators before building tracker!")
 
-        # Get collimator centers
-        positions = dict(zip(names,line.get_s_position(names)))
-
         # Loop over collimators to install
         for name in names:
- 
-            # Get the settings from the CollimatorDatabase
-            thiscoll = df.loc[name]
-            # Create the collimator element
-            newcoll = install_func(thiscoll, name)
-            collimator_class = newcoll.__class__
 
             # Get the settings from the CollimatorDatabase
             thiscoll = df.loc[name]
@@ -357,33 +348,63 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
+            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}.")
+
             # Update the position and type in the CollimatorDatabase
-            df.loc[name,'s_center'] = positions[name]
+            ss = line.get_s_position()
+            idx = line.element_names.index(name)
+            df.loc[name,'s_center'] = ss[idx]
             df.loc[name,'collimator_type'] = collimator_class.__name__
+
+            # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info
+            if f'{name}_mken' in line.element_names\
+            and f'{name}_mkex'in line.element_names:
+                aper_before = {nn: line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
+                aper_after  = {nn: line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
+            else:
+                # TODO what with transformations? How to shift them in s from centre to start?
+                aper_before = {f'{nn}_mken': line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_aper')}
+                aper_after  = {f'{nn}_mkex': line[nn].copy() for nn in line.element_names if nn.startswith(f'{name}_aper')}
+
+            # Remove stuff at location of collimator
+            l = thiscoll['active_length']
+            to_remove = []
+            i = idx - 1
+            # We remove everything between the beginning and end of the collimator except drifts
+            while ss[i] >= ss[idx] - l/2:
+                el = line[i]
+                if el.__class__.__name__ == 'Drift':
+                    i -= 1
+                    continue
+                nn = line.element_names[i]
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element with length {el.length} at location inside collimator!")
+                to_remove.append(nn)
+                i -= 1
+            i = idx + 1
+            while ss[i] <= ss[idx] + l/2:
+                el = line[i]
+                if el.__class__.__name__ == 'Drift':
+                    i += 1
+                    continue
+                nn = line.element_names[i]
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element with length {el.length} at location inside collimator!")
+                to_remove.append(nn)
+                i += 1
+            for nn in to_remove:
+                line.element_names.remove(nn)
+                line.element_dict.pop(nn)
+
             # Do the installation
             s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
-            has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
-            if len(has_apertures) > 0:
-                if len(has_apertures) > 1:
-                    # Choose the aperture closest to the element
-                    has_apertures = [aa for aa in has_apertures
-                                     if line.element_names.index(aa) < line.element_names.index(name)]
-                    has_apertures.sort(key=lambda nn: line.element_names.index(nn))
-                coll_aper = line[has_apertures[-1]]
-                assert coll_aper.__class__.__name__.startswith('Limit')
-                if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with tilt not implemented!")
-                if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with offset not implemented!")
-            else:
-                coll_aper = None
-
             line.insert_element(element=newcoll, name=name, at_s=s_install)
 
-            if coll_aper is not None:
-                line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
-                line.insert_element(element=coll_aper, name=name+'_aper_back',
+            # Install apertures
+            for aper in aper_before.keys():
+                line.insert_element(element=aper_before[aper], name=aper, index=name)
+            for aper in list(aper_after.keys())[::-1]:
+                line.insert_element(element=aper_after[aper], name=aper,
                                     index=line.element_names.index(name)+1)
 
 
