@@ -344,7 +344,9 @@ class CollimatorManager:
             df.loc[name,'s_center'] = ss[idx]
             df.loc[name,'collimator_type'] = collimator_class.__name__
 
-            # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info
+            # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info  ->  need full collimator info from MADX
+            aper_before = {}
+            aper_after = {}
             if f'{name}_mken' in line.element_names\
             and f'{name}_mkex'in line.element_names:
                 # TODO what with transformations? How to shift them in s if different?
@@ -352,11 +354,12 @@ class CollimatorManager:
                                for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
                 aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
-            else:
+            if len(aper_before) == 0:
                 # TODO what with transformations? How to shift them in s from centre to start/end?
-                aper_before = {nn.replace('_aper', 'upstream_aper'): line[nn].copy()
+                aper_before = {nn.replace('_aper', '_upstream_aper'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_aper')}
-                aper_after  = {nn.replace('_aper', 'downstream_aper'): line[nn].copy()
+            if len(aper_after) == 0:
+                aper_after  = {nn.replace('_aper', '_downstream_aper'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_aper')}
 
             # Remove stuff at location of collimator
@@ -386,6 +389,7 @@ class CollimatorManager:
                 to_remove.append(nn)
                 i += 1
             for nn in to_remove:
+                # TODO: need to update Compounds
                 line.element_names.remove(nn)
                 line.element_dict.pop(nn)
 
@@ -395,8 +399,10 @@ class CollimatorManager:
 
             # Install apertures
             for aper in aper_before.keys():
+                # TODO: need to update Compounds
                 line.insert_element(element=aper_before[aper], name=aper, index=name)
             for aper in list(aper_after.keys())[::-1]:
+                # TODO: need to update Compounds
                 line.insert_element(element=aper_after[aper], name=aper,
                                     index=line.element_names.index(name)+1)
 
