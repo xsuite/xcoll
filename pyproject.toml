@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.2.6"
+version = "0.2.7"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
