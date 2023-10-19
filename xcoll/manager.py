@@ -348,7 +348,7 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}.")
+            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}")
 
             # Update the position and type in the CollimatorDatabase
             ss = line.get_s_position()
@@ -357,6 +357,8 @@ class CollimatorManager:
             df.loc[name,'collimator_type'] = collimator_class.__name__
 
             # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info
+            aper_before = {}
+            aper_after = {}
             if f'{name}_mken' in line.element_names\
             and f'{name}_mkex'in line.element_names:
                 # TODO what with transformations? How to shift them in s if different?
@@ -364,11 +366,12 @@ class CollimatorManager:
                                for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
                 aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
-            else:
+            if len(aper_before) == 0:
                 # TODO what with transformations? How to shift them in s from centre to start/end?
-                aper_before = {nn.replace('_aper', 'upstream_aper'): line[nn].copy()
+                aper_before = {nn.replace('_aper', '_upstream_aper'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_aper')}
-                aper_after  = {nn.replace('_aper', 'downstream_aper'): line[nn].copy()
+            if len(aper_after) == 0:
+                aper_after  = {nn.replace('_aper', '_downstream_aper'): line[nn].copy()
                                for nn in line.element_names if nn.startswith(f'{name}_aper')}
 
             # Remove stuff at location of collimator
@@ -405,6 +408,8 @@ class CollimatorManager:
             s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
             line.insert_element(element=newcoll, name=name, at_s=s_install)
 
+            print(aper_before.keys())
+            print(aper_after.keys())
             # Install apertures
             for aper in aper_before.keys():
                 line.insert_element(element=aper_before[aper], name=aper, index=name)
