@@ -107,8 +107,8 @@ with open(output_file, 'r') as fid:
 newline = xt.Line.from_dict(loaded_dct)
 # Temporary hack, as xt._lines_equal fails with compounds:
 # apertures are a set, not a list, and between to_dict and from_dict the order is not kept
-line.compound_container = None
-newline.compound_container = None
+line.compound_container = xt.compounds.CompoundContainer()
+newline.compound_container = xt.compounds.CompoundContainer()
 assert xt._lines_equal(line, newline)
 print("All done.")
     
