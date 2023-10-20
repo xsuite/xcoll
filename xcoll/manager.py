@@ -839,7 +839,7 @@ class CollimatorManager:
                 }
                 ,
                 'aperture': {
-                    's':    aper_s,
+                    's':    [s for s in aper_s],
                     'name': aper_names,
                     'n':    aper_nabs
                 }
