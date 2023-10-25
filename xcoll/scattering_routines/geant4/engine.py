@@ -1,7 +1,10 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import numpy as np
 import xobjects as xo
-
-from .interaction import Geant4Interaction
 
 _geant4_warning_given = False
 
@@ -66,19 +69,15 @@ class Geant4Engine(xo.HybridClass):
     def connected(self):
         return self.g4link is not None
 
-
     def register_collimator(self, collimator):
         # Register the collimators by reference
         self.registered_collimators[collimator.collimator_id] = collimator
-        interaction_process = Geant4Interaction(element_id=collimator.collimator_id)
-
-        return interaction_process
 
     def deregister_collimator(self, collimator):
         if collimator.collimator_id in self.registered_collimators:
             del self.registered_collimators[collimator.collimator_id]
 
-    def enable_scattering(self):
+    def assert_geometry(self):
         if not self._geometry_constructed:
             self._construct_geometry()
         else:
@@ -86,10 +85,12 @@ class Geant4Engine(xo.HybridClass):
                 if not collimator.active:
                     continue
                 parameters_for_geometry = self._extract_parameters(collimator)
-                if not self._built_collimators[collimator_id] == parameters_for_geometry:
+                if collimator_id not in self._built_collimators \
+                or self._built_collimators[collimator_id] != parameters_for_geometry:
                     # TODO: flush and re-start the BDSIM instance in this case (hard, as not re-entry safe)
-                    raise Exception('Collimator settings changed after the Geant4 geometry '
-                                  + 'has been build. This is not currently supported.')
+                    raise Exception("Collimator settings changed after the Geant4 geometry "
+                                 + f"has been build for collimator with id {collimator_id}. "
+                                 +  "This is not currently supported.")
 
     def _extract_parameters(self, collimator):
         try:
@@ -138,7 +139,9 @@ class Geant4Engine(xo.HybridClass):
 
     def add_collimator(self, element_id, material, length, jaw_L, jaw_R, tilt_L, tilt_R,
                        angle, centre_x, centre_y, side, active):
-        
+        if not self.connected:
+            raise ValueError("Geant4Engine not linked to BDSIM! Cannot add collimator.")
+
         halfgap = (jaw_L - jaw_R) / 2
         offs = (jaw_L + jaw_R) / 2
         
