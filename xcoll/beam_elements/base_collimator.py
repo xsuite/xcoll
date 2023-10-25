@@ -172,7 +172,7 @@ class BaseCollimator(xt.BeamElement):
 
     @property
     def jaw(self):
-        _get_LR(self, 'jaw', neg=True)
+        return _get_LR(self, 'jaw', neg=True)
 
     @jaw.setter
     def jaw(self, val):

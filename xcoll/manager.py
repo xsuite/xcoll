@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import json
 from pathlib import Path
 import numpy as np
@@ -86,7 +91,7 @@ class CollimatorManager:
             raise ValueError("The variable 'line' needs to be an xtrack Line object!")
         else:
             self.line = line
-        self.line._needs_rng = True
+        self.line._needs_rng = True  # TODO not needed if only BlackAbsorbers
         if beam is not None and beam > 1:
             self._line_is_reversed = True
         else:
@@ -362,17 +367,8 @@ class CollimatorManager:
         if self.tracker_ready:
             raise Exception("Tracker already built!\nPlease install collimators before building tracker!")
 
-        # Get collimator centers
-        positions = dict(zip(names,line.get_s_position(names)))
-
         # Loop over collimators to install
         for name in names:
- 
-            # Get the settings from the CollimatorDatabase
-            thiscoll = df.loc[name]
-            # Create the collimator element
-            newcoll = install_func(thiscoll, name)
-            collimator_class = newcoll.__class__
 
             # Get the settings from the CollimatorDatabase
             thiscoll = df.loc[name]
@@ -403,33 +399,74 @@ class CollimatorManager:
                                  + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
                                  + "Please check the name, or correct the element.")
 
-            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}.")
+            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}")
+
             # Update the position and type in the CollimatorDatabase
-            df.loc[name,'s_center'] = positions[name]
+            ss = line.get_s_position()
+            idx = line.element_names.index(name)
+            df.loc[name,'s_center'] = ss[idx]
             df.loc[name,'collimator_type'] = collimator_class.__name__
+
+            # Find apertures       TODO same with cryotanks for FLUKA   TODO: use compound info  ->  need full collimator info from MADX
+            aper_before = {}
+            aper_after = {}
+            if f'{name}_mken' in line.element_names\
+            and f'{name}_mkex'in line.element_names:
+                # TODO what with transformations? How to shift them in s if different?
+                aper_before = {nn.replace('mken', 'upstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
+                aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
+            if len(aper_before) == 0:
+                # TODO what with transformations? How to shift them in s from centre to start/end?
+                aper_before = {nn.replace('_aper', '_upstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
+            if len(aper_after) == 0:
+                aper_after  = {nn.replace('_aper', '_downstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
+
+            # Remove stuff at location of collimator
+            l = thiscoll['active_length']
+            to_remove = []
+            i = idx - 1
+            # We remove everything between the beginning and end of the collimator except drifts
+            while ss[i] >= ss[idx] - l/2:
+                el = line[i]
+                if el.__class__.__name__ == 'Drift':
+                    i -= 1
+                    continue
+                nn = line.element_names[i]
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element with length {el.length} at location inside collimator!")
+                to_remove.append(nn)
+                i -= 1
+            i = idx + 1
+            while ss[i] <= ss[idx] + l/2:
+                el = line[i]
+                if el.__class__.__name__ == 'Drift':
+                    i += 1
+                    continue
+                nn = line.element_names[i]
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element with length {el.length} at location inside collimator!")
+                to_remove.append(nn)
+                i += 1
+            for nn in to_remove:
+                # TODO: need to update Compounds
+                line.element_names.remove(nn)
+                line.element_dict.pop(nn)
+
             # Do the installation
             s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
-            has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
-            if len(has_apertures) > 0:
-                if len(has_apertures) > 1:
-                    # Choose the aperture closest to the element
-                    has_apertures = [aa for aa in has_apertures
-                                     if line.element_names.index(aa) < line.element_names.index(name)]
-                    has_apertures.sort(key=lambda nn: line.element_names.index(nn))
-                coll_aper = line[has_apertures[-1]]
-                assert coll_aper.__class__.__name__.startswith('Limit')
-                if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with tilt not implemented!")
-                if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with offset not implemented!")
-            else:
-                coll_aper = None
-
             line.insert_element(element=newcoll, name=name, at_s=s_install)
 
-            if coll_aper is not None:
-                line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
-                line.insert_element(element=coll_aper, name=name+'_aper_back',
+            # Install apertures
+            for aper in aper_before.keys():
+                # TODO: need to update Compounds
+                line.insert_element(element=aper_before[aper], name=aper, index=name)
+            for aper in list(aper_after.keys())[::-1]:
+                # TODO: need to update Compounds
+                line.insert_element(element=aper_after[aper], name=aper,
                                     index=line.element_names.index(name)+1)
 
 
@@ -701,14 +738,16 @@ class CollimatorManager:
                     _capacity=capacity,
                     x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=self.line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s,
+                    _context=self._buffer.context
             )
         else:
             part = xp.build_particles(
                     _capacity=capacity,
                     x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                     zeta=zeta, delta=delta, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                    line=self.line, at_element=collimator, match_at_s=match_at_s
+                    line=self.line, at_element=collimator, match_at_s=match_at_s,
+                    _context=self._buffer.context
             )
 
         part._init_random_number_generator()
@@ -754,117 +793,27 @@ class CollimatorManager:
 
     @property
     def scattering_enabled(self):
-        all_enabled  = np.all([self.line[coll]._tracking for coll in self.collimator_names])
-        some_enabled = np.any([self.line[coll]._tracking for coll in self.collimator_names])
+        all_enabled  = np.all([self.line[coll]._tracking if hasattr(self.line[coll], '_tracking')
+                               else True for coll in self.collimator_names])
+        some_enabled = np.any([self.line[coll]._tracking if hasattr(self.line[coll], '_tracking')
+                               else True  for coll in self.collimator_names])
         if some_enabled and not all_enabled:
             raise ValueError("Some collimators are enabled for tracking but not all! "
                            + "This should not happen.")
         return all_enabled
 
 
-    @property
-    def current_sweep_value(self):
-        if not 'rf_sweep' in self.line.element_names:
-            return 0
-        else:
-            cavities = self.line.get_elements_of_type(xt.Cavity)[1]
-            freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])[0]
-            dzeta = self.line['rf_sweep'].dzeta
-            return round(freq * dzeta/(self.machine_length-dzeta),6)
-
-    def rf_sweep(self, sweep=0, num_turns=0, particles=None, verbose=True, *args, **kwargs):
-
-        # Get base frequency of cavities
-        cavities = self.line.get_elements_of_type(xt.Cavity)[1]
-        freq = np.unique([round(self.line[cav].frequency, 9) for cav in cavities])
-        if len(freq) > 1:
-            raise NotImplementedError(f"Cannot sweep multiple cavities with different frequencies!")
-        freq = freq[0]
-
-        # Install Zeta shift element if not yet present
-        if not 'rf_sweep' in self.line.element_names:
-            s_cav = min([self.line.get_s_position(cav) for cav in cavities])
-            if self.line.tracker is not None:
-                self.line.unfreeze()
-                line_was_built = True
-            else:
-                line_was_built = False
-            self.line.insert_element(element=xt.ZetaShift(dzeta=0), name='rf_sweep', at_s=s_cav)
-            if line_was_built:
-                self.line.build_tracker()
-
-        # Was there a previous sweep?
-        # If yes, we do not overwrite it but continue from there
-        existing_sweep = self.current_sweep_value
-
-        # Some info
-        scattering_enabled = False
-        if self.line.tracker is not None:
-            if self.scattering_enabled:
-                scattering_enabled = True
-                self.disable_scattering()
-            tw = self.line.twiss()
-            V = np.array([self.line[cav].voltage for cav in cavities]).sum()
-            beta0 = self.line.particle_ref.beta0
-            q = self.line.particle_ref.q0
-            h = freq * tw.T_rev0
-            eta = tw.slip_factor
-            E = self.line.particle_ref.energy0
-            phi = np.array([self.line[cav].lag for cav in cavities])[0]*np.pi/180
-            bucket_height = np.sqrt(abs(q*V*beta0**2 / (np.pi*h*eta*E) * (2*np.cos(phi) +(2*phi-np.pi)*np.sin(phi))))[0]
-            delta_shift = -sweep / freq / tw.slip_factor
-            bucket_shift = delta_shift / bucket_height / 2
-            if verbose:
-                print(f"This sweep will move the center of the bucket with \u0394\u03B4 = "
-                    + f"{delta_shift} ({bucket_shift} buckets).")
-
-        # Just set the new RF frequency, no tracking
-        if num_turns == 0:
-            sweep += existing_sweep
-            if verbose:
-                print(f"The current frequency is {freq + existing_sweep}Hz, moving to {freq + sweep}Hz."
-                     + "No tracking performed.")
-            self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
-
-        # Sweep and track
-        else:
-            if self.line.tracker is None:
-                raise ValueError("Need to build tracker first!")
-            if particles is None:
-                raise ValueError("Need particles to track!")
-            rf_shift_per_turn = sweep / num_turns
-            if verbose:
-                print(f"The current frequency is {freq + existing_sweep}Hz, sweeping {rf_shift_per_turn}Hz "
-                    + f"per turn until {freq + existing_sweep + sweep} (for {num_turns} turns).")
-            if num_turns < 3*bucket_shift/tw.qs:
-                print(f"Warning: This is a very fast sweep, moving ~{round(bucket_shift,2)} buckets in "
-                    + f"~{round(num_turns*tw.qs,2)} synchrotron oscillations (on average). If the "
-                    + f"bucket moves faster than a particle can follow, that particle will move out of "
-                    + f"the bucket and remain uncaptured.")
-            if scattering_enabled:
-                self.enable_scattering()
-            if 'time' in kwargs and ['time']:
-                self.line.tracker.time_last_track = 0
-            for i in range(num_turns):
-                sweep = existing_sweep + i*rf_shift_per_turn
-                self.line['rf_sweep'].dzeta = self.machine_length * sweep / (freq + sweep)
-                if 'time' in kwargs and ['time']:
-                    prev_time = self.line.time_last_track
-                self.line.track(particles, num_turns=1, *args, **kwargs)
-                if 'time' in kwargs and ['time']:
-                    self.line.tracker.time_last_track += prev_time
-                if not np.any(particles.state == 1):
-                    if verbose:
-                        print(f"All particles lost at turn {i}, stopped sweep at {i*rf_shift_per_turn}Hz.")
-                    break
-
-
-    def summary(self, part, show_zeros=False, file=None):
+    def summary(self, part, weights=None, show_zeros=False, file=None, recompute=False):
 
         # We cache the result
         if (self._summary is None or self._part is None
             or not xt.line._dicts_equal(part.to_dict(), self._part)
+            or recompute
            ):
+            if weights is None:
+                weights = np.ones(len(part.x))
+            else:
+                part.sort(interleave_lost_particles=True)
             self._part   = part.to_dict()
             coll_mask    = (part.state<=-333) & (part.state>=-340)
             coll_losses  = np.array([self.line.element_names[i] for i in part.at_element[coll_mask]])
@@ -874,7 +823,8 @@ class CollimatorManager:
             if self._line_is_reversed:
                 coll_pos = [self.machine_length - s for s in coll_pos ]
             coll_types   = [self.line[nn].__class__.__name__  for nn in self.collimator_names]
-            nabs         = [np.count_nonzero(coll_losses==nn) for nn in self.collimator_names]
+            coll_weights = weights[coll_mask]
+            nabs         = [coll_weights[coll_losses==nn].sum() for nn in self.collimator_names]
 
             self._summary = pd.DataFrame({
                         "collname": self.collimator_names,
@@ -894,7 +844,19 @@ class CollimatorManager:
             return self._summary[self._summary.nabs > 0]
 
 
-    def lossmap(self, part, interpolation=0.1, file=None, recompute=False):
+    def create_weights_from_initial_state(part, function):
+        if len(function) == 4:
+            return function[0](part.x)*function[1](part.px)*\
+                   function[2](part.y)*function[3](part.py)
+        elif len(function) == 6:
+            return function[0](part.x)*function[1](part.px)*\
+                   function[2](part.y)*function[3](part.py)*\
+                   function[4](part.zeta)*function[5](part.delta)
+        else:
+            raise NotImplementedError
+
+
+    def lossmap(self, part, interpolation=0.1, file=None, recompute=False, weights=None):
 
         # We cache the result
         if (self._lossmap is None or self._part is None
@@ -932,8 +894,8 @@ class CollimatorManager:
                             )
                     loss_loc_refinement.refine_loss_location(part)
 
-            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part)
-            coll_summary = self.summary(part, show_zeros=False).to_dict('list')
+            aper_s, aper_names, aper_nabs = self._get_aperture_losses(part, weights)
+            coll_summary = self.summary(part, weights, recompute=recompute, show_zeros=False).to_dict('list')
 
             self._lossmap = {
                 'collimator': {
@@ -963,17 +925,28 @@ class CollimatorManager:
         return self._lossmap
 
 
-    def _get_aperture_losses(self, part):
+    def _get_aperture_losses(self, part, weights=None):
+        if weights is None:
+            weights = np.ones(len(part.x))
+        else:
+            part.sort(interleave_lost_particles=True)
+
+        # Get s position per particle (lost on aperture)
         aper_mask = part.state==0
         aper_s = list(part.s[aper_mask])
         if len(aper_s) == 0:
             return [], [], []
-        aper_names = [self.line.element_names[i] for i in part.at_element[aper_mask]]
         if self._line_is_reversed:
             aper_s = [ self.machine_length - s for s in aper_s ]
-        result = np.unique(list(zip(aper_names, aper_s)), return_counts=True, axis=0)
-        aper_names = list(result[0].transpose()[0])
-        aper_s = [float(s) for s in result[0].transpose()[1]]
-        aper_nabs = [int(n) for n in result[1]]
-        return aper_s, aper_names, aper_nabs
+
+        # Store names of aperture markers
+        aper_names   = [self.line.element_names[i] for i in part.at_element[aper_mask]]
+        name_dict    = dict(zip(aper_s, aper_names)) # TODO: not floating-point-safe and slow
+
+        # Create output arrays
+        aper_pos     = np.unique(aper_s)
+        aper_weights = weights[aper_mask]
+        aper_nabs    = [aper_weights[aper_s==ss].sum() for ss in aper_pos] # TODO: this might be slow
+        aper_names   = [name_dict[ss] for ss in aper_pos]
+        return aper_pos, aper_names, aper_nabs
 
