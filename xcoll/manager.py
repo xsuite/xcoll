@@ -839,7 +839,7 @@ class CollimatorManager:
                 }
                 ,
                 'aperture': {
-                    's':    [s for s in aper_s],
+                    's':    aper_s,
                     'name': aper_names,
                     'n':    aper_nabs
                 }
@@ -853,7 +853,7 @@ class CollimatorManager:
 
         if file is not None:
             with open(Path(file), 'w') as fid:
-                json.dump(self._lossmap, fid, indent=True)
+                json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
     
         return self._lossmap
 
