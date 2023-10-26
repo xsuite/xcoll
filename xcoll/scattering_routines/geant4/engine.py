@@ -1,7 +1,10 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import numpy as np
 import xobjects as xo
-
-from .interaction import Geant4Interaction
 
 _geant4_warning_given = False
 
@@ -50,7 +53,7 @@ class Geant4Engine(xo.HybridClass):
                 global _geant4_warning_given
                 if not _geant4_warning_given:
                     print("Warning: Failed to import collimasim. " \
-                          + "Geant4Collimators will be installed but are not trackable.")
+                        + "Geant4Collimators will be installed but are not trackable.")
                     _geant4_warning_given = True
                     self.g4link = None
             else:
@@ -66,19 +69,15 @@ class Geant4Engine(xo.HybridClass):
     def connected(self):
         return self.g4link is not None
 
-
     def register_collimator(self, collimator):
         # Register the collimators by reference
         self.registered_collimators[collimator.collimator_id] = collimator
-        interaction_process = Geant4Interaction(element_id=collimator.collimator_id)
-
-        return interaction_process
 
     def deregister_collimator(self, collimator):
         if collimator.collimator_id in self.registered_collimators:
             del self.registered_collimators[collimator.collimator_id]
 
-    def enable_scattering(self):
+    def assert_geometry(self):
         if not self._geometry_constructed:
             self._construct_geometry()
         else:
@@ -86,10 +85,12 @@ class Geant4Engine(xo.HybridClass):
                 if not collimator.active:
                     continue
                 parameters_for_geometry = self._extract_parameters(collimator)
-                if not self._built_collimators[collimator_id] == parameters_for_geometry:
+                if collimator_id not in self._built_collimators \
+                or self._built_collimators[collimator_id] != parameters_for_geometry:
                     # TODO: flush and re-start the BDSIM instance in this case (hard, as not re-entry safe)
-                    raise Exception('Collimator settings changed after the Geant4 geometry'
-                                    'has been build. This is not currently supported.')
+                    raise Exception("Collimator settings changed after the Geant4 geometry "
+                                 + f"has been build for collimator with id {collimator_id}. "
+                                 +  "This is not currently supported.")
 
     def _extract_parameters(self, collimator):
         try:
@@ -97,8 +98,8 @@ class Geant4Engine(xo.HybridClass):
         except TypeError:
             angle = float(collimator.angle)
         else:
-            raise Exception('The Geant4 scattering engine does not'
-                            'support unequal jaw rotation angles')
+            raise Exception('The Geant4 scattering engine does not '
+                          + 'support unequal jaw rotation angles')
 
         material_rename_map = {
             'c': 'AC150GPH',
@@ -114,8 +115,8 @@ class Geant4Engine(xo.HybridClass):
         parameters_for_geometry = (collimator.collimator_id, 
                                     bdsim_material, 
                                     collimator.length, 
-                                    collimator.jaw_LU, collimator.jaw_LD, 
-                                    collimator.jaw_RU, collimator.jaw_RD,
+                                    collimator.jaw_L, collimator.jaw_R,
+                                    collimator.tilt_L, collimator.tilt_R,
                                     angle, 
                                     collimator.reference_center[0], 
                                     collimator.reference_center[1],
@@ -136,24 +137,19 @@ class Geant4Engine(xo.HybridClass):
         self._geometry_constructed = True
 
 
-    def add_collimator(self, element_id, material, length, jaw_LU, jaw_LD, jaw_RU, jaw_RD, 
+    def add_collimator(self, element_id, material, length, jaw_L, jaw_R, tilt_L, tilt_R,
                        angle, centre_x, centre_y, side, active):
-        
-        centre_l = jaw_LU + (jaw_LD - jaw_LU) / 2
-        centre_r = jaw_RU + (jaw_RD - jaw_RU) / 2
+        if not self.connected:
+            raise ValueError("Geant4Engine not linked to BDSIM! Cannot add collimator.")
 
-        halfgap = (centre_l - centre_r) / 2
-        offs = (centre_l + centre_r) / 2
-
-        tilt_l = np.arctan((jaw_LD - jaw_LU) / length)
-        tilt_r = np.arctan((jaw_RD - jaw_RU) / length)
-
+        halfgap = (jaw_L - jaw_R) / 2
+        offs = (jaw_L + jaw_R) / 2
         
         self.g4link.addCollimator(element_id, material, length, 
                                   apertureLeft=halfgap + offs, 
                                   apertureRight=halfgap + offs,
                                   rotation=np.deg2rad(angle), 
                                   xOffset=centre_x, yOffset=centre_y,
-                                  jawTiltLeft=tilt_l, jawTiltRight=tilt_r, 
+                                  jawTiltLeft=tilt_L, jawTiltRight=tilt_R, 
                                   side=side)
         

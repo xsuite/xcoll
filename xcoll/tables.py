@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xobjects as xo
 import xtrack as xt
 
