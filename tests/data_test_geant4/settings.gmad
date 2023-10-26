@@ -1,0 +1,3 @@
+beam, particle="electrons", momentum=45.6*GeV;
+option, physicsList = "g4FTFP_BERT";
+option, collimatorsAreInfiniteAbsorbers=1;
