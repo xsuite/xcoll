@@ -5,6 +5,7 @@
 
 import numpy as np
 import xobjects as xo
+import xpart as xp
 
 
 def track(collimator_id, particles):
