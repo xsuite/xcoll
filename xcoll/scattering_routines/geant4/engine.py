@@ -141,13 +141,10 @@ class Geant4Engine(xo.HybridClass):
                        angle, centre_x, centre_y, side, active):
         if not self.connected:
             raise ValueError("Geant4Engine not linked to BDSIM! Cannot add collimator.")
-
-        halfgap = (jaw_L - jaw_R) / 2
-        offs = (jaw_L + jaw_R) / 2
         
         self.g4link.addCollimator(element_id, material, length, 
-                                  apertureLeft=halfgap + offs, 
-                                  apertureRight=halfgap + offs,
+                                  apertureLeft=jaw_L, 
+                                  apertureRight=-jaw_R,
                                   rotation=np.deg2rad(angle), 
                                   xOffset=centre_x, yOffset=centre_y,
                                   jawTiltLeft=tilt_L, jawTiltRight=tilt_R, 
