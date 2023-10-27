@@ -162,6 +162,12 @@ everest_crystal_dict_fields['material'] = [
 everest_crystal_user_fields = everest_user_fields
 everest_crystal_user_fields_read_only = everest_user_fields_read_only
 
+# Geant4 collimator
+geant4_fields = {**base_fields,
+    '_id':              'g4coll_1',
+    'material':         'cu',
+    '_tracking':         False
+}
 
 
 # Tests
@@ -288,7 +294,53 @@ def test_everest(test_context):
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
 
-            
+
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
+)
+def test_geant4(test_context):
+    # Test instantiation
+    elem = xc.Geant4Collimator(length=1, material='cu', 
+                               collimator_id='g4coll_1', _context=test_context)
+
+    # Test existence of fields
+    assert np.all([key in dir(elem) for key in everest_fields])
+    assert np.all([key in elem.to_dict() for key in everest_dict_fields])
+
+    # Test reading fields
+    for field in list(everest_fields.keys()) + list(everest_dict_fields.keys()) \
+               + list(everest_user_fields.keys()) + everest_user_fields_read_only:
+        print(f"Reading field {field}: {getattr(elem, field)}")
+
+    # Test writing xofields
+    for field, val in everest_fields.items():
+        print(f"Writing field {field}")
+        setattr(elem, field, val)
+        setval = getattr(elem, field)
+        if hasattr(val, 'to_dict'):
+            assert _dicts_equal(val.to_dict(), setval.to_dict())
+        else:
+            assert np.allclose(val, setval, atol=1e-12, rtol=0)
+
+    # Test writing the to_dict and user-friendly fields (can be multiple options per field)
+    for field, vals in {**everest_dict_fields, **everest_user_fields}.items():
+        print(f"Writing field {field}...")
+        for val in vals:
+            print(val['val'])
+            setattr(elem, field, val['val'])
+            for basefield, expected in val['expected'].items():
+                setval = getattr(elem, basefield)
+                if hasattr(expected, 'to_dict'):
+                    assert _dicts_equal(expected.to_dict(), setval.to_dict())
+                else:
+                    assert np.allclose(expected, setval, atol=1e-12, rtol=0)
+
+    # Writing to a read-only field should fail
+    for field in everest_user_fields_read_only:
+        with pytest.raises(Exception) as e_info:
+            setattr(elem, field, 0.3)
+
+
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
