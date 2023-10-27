@@ -67,6 +67,3 @@ class Geant4Collimator(BaseCollimator):
             track(self.collimator_id, part)
         else:
             self.equivalent_drift.track(part)
-
-    # NEED TO HAVE UPDATE RULES!!! WHEN BeamElement.jaw_F_L etc are updated, this needs to be communicated to Geant4...
-    # jaws are currently not set
