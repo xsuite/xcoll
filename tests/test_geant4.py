@@ -1,17 +1,26 @@
 import json
 from pathlib import Path
 import numpy as np
+import pytest
 
 import xobjects as xo
 import xpart as xp
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
+# try the import here and skip tests if missing
+# also need the import here in case of pytest --forked
+try:
+    import collimasim as cs
+except ImportError:
+    cs = None
+
 path = Path.cwd() / 'data_test_geant4'
 
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
+@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
 def test_multiple_tracking(test_context):
     xc.Geant4Engine(random_generator_seed=1993, 
                     reference_pdg_id=2212, 
