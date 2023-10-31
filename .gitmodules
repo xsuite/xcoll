@@ -1,0 +1,3 @@
+[submodule "xcoll/scattering_routines/geant4/collimasim"]
+	path = xcoll/scattering_routines/geant4/collimasim
+	url = https://gitlab.cern.ch/anabramo/collimasim.git
