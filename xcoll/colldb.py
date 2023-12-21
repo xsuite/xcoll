@@ -206,7 +206,7 @@ class CollimatorDatabase:
                     elif sline[0].lower() == 'onesided':
                         side[sline[1]] = int(sline[2])
                     elif sline[0].lower() == 'settings':
-                        # TODO CRYSTAL
+                        # TODO CRYSTAL now Chiara tries
                         pass # Acknowledge and ignore this line
                     else:
                         print(f"Unknown setting {line}")
