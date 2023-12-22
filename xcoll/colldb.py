@@ -193,20 +193,35 @@ class CollimatorDatabase:
             family_settings = {}
             family_types = {}
             side = {}
+            bend = {}
+            xdim = {}
+            ydim = {}
+            miscut = {}
+            thick = {}
+            crystal = {}
 
             for l_no, line in enumerate(infile):
                 if line.startswith('#'):
                     continue # Comment
-
                 sline = line.split()
-                if len(sline) > 0 and len(sline) < 6:
+                if len(sline) > 0 and (len(sline) < 6 or sline[0].lower() == "crystal" or sline[0].lower() == "target"):
                     if sline[0].lower() == 'nsig_fam':
                         family_settings[sline[1]] = float(sline[2])
                         family_types[sline[1]] = sline[3]
                     elif sline[0].lower() == 'onesided':
                         side[sline[1]] = int(sline[2])
+                    # TODO CRYSTAL -> now Chiara tries
+                    elif sline[0].lower() == "crystal":
+                        bend[sline[1]] = float(sline[2])
+                        xdim[sline[1]] = float(sline[3])
+                        ydim[sline[1]] = float(sline[4])
+                        thick[sline[1]] = float(sline[5])
+                        miscut[sline[1]] = float(sline[7])
+                        crystal[sline[1]] = float(sline[8])
+                    elif sline[0].lower() == "target":
+                        xdim[sline[1]] = float(sline[2])
+                        ydim[sline[1]] = float(sline[3])
                     elif sline[0].lower() == 'settings':
-                        # TODO CRYSTAL now Chiara tries
                         pass # Acknowledge and ignore this line
                     else:
                         print(f"Unknown setting {line}")
@@ -217,20 +232,32 @@ class CollimatorDatabase:
 
         df = pd.read_csv(io.StringIO(coll_data_string), delim_whitespace=True,
                         index_col=False, names=names)
-
+        #print('\n family_types: ', family_types)
+        #print('\n family_settings: ', family_settings, '\n')
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
         sides = df['name'].apply(lambda s: side.get(s, 0))
+        crystals = df['name'].apply(lambda s: crystal.get(s, 0))
+        #df['family'] = df['gap']
         df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
         df['parking'] = 0.025
+        df['bend'] = df['name'].apply(lambda s: bend.get(s, 0))
+        df['xdim'] = df['name'].apply(lambda s: xdim.get(s, 0))
+        df['ydim'] = df['name'].apply(lambda s: ydim.get(s, 0))
+        df['miscut'] = df['name'].apply(lambda s: miscut.get(s, 0))
+        df['thick'] = df['name'].apply(lambda s: thick.get(s, 0))
         df = df.set_index('name')
         df['side'] = sides.values
         df['side'] = [ 'both'  if s==0 else s for s in df['side'] ]
         df['side'] = [ 'left'  if s==1 else s for s in df['side'] ]
         df['side'] = [ 'right' if s==2 else s for s in df['side'] ]
+        df['crystal'] = crystals.values
+        df['crystal'] = [ 'strip' if s==1 else s for s in df['crystal']]
+        df['crystal'] = [ 'quasi-mosaic' if s==2 else s for s in df['crystal']]
+
         return cls.from_dict(df.transpose().to_dict(), **kwargs)
 
-
+ 
     def __init__(self, **kwargs):
         # Get all arguments
         for var in self._init_vars:
@@ -304,7 +331,10 @@ class CollimatorDatabase:
 
             # Save list of crystals
             if 'crystal' in settings:
-                crystals += [thiscoll]
+                if settings['crystal'] != 0.0:
+                    crystals += [thiscoll]
+                else: 
+                    settings['crystal'] = None
 
         # Remove crystals from colldb
         if ignore_crystals:
