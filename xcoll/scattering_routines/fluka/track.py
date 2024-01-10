@@ -131,7 +131,13 @@ def track_core(collimator, part):
     data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32)
     # FLUKA is 1-indexed
     data['pid']    = _expand(part.particle_id[alive_at_entry].copy().astype(np.int32) + 1, dtype=np.int32)
-    data['ppid']   = _expand(part.parent_particle_id[alive_at_entry].copy().astype(np.int32) + 1, dtype=np.int32)
+    # FLUKA does not use a parent ID, but a primary ID (hence not the direct parent but the first impact)
+    # Ater one passage, there is no difference between parent ID and primary ID, but when a child gets
+    # children in a second passage, we cannot trace them to the correct parent (only to the correct grand-
+    # parent). To accomodate this, we do not send the parent ID to FLUKA but store it manually here. Then
+    # in FLUKA everything looks like a first passage, and we can restore the correct info later.
+    data['ppid']   = data['pid'].copy()
+    ppid = dict(zip(part.particle_id[alive_at_entry], part.parent_particle_id[alive_at_entry]))
     data['weight'] = _expand(part.weight[alive_at_entry].copy())
     # Hard-coded spin (not used)
     data['spin_x'] = _expand(np.zeros(npart))
@@ -177,6 +183,10 @@ def track_core(collimator, part):
 
     new_pid  = data['pid'][:npart] - 1   # return to python 0-index
     new_ppid = data['ppid'][:npart] - 1  # return to python 0-index
+    # Restore the parent IDs: if ppid != pid an interaction occured and nothing needs to be done
+    # (the parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
+    mask_to_restore = new_pid == new_ppid
+    
 
     # IMPORTANT: we assume that a parent can never continue existing after an interaction. TODO: is this correct?
 

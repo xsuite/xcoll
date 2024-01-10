@@ -24,7 +24,7 @@ coll = xc.FlukaCollimator(fluka_id=31, length=1.48200)
 
 
 # Set a reference particle
-particle_ref = xp.Particles.build_reference_particle(pdg_id='proton', p0c=7e12)
+particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=7e12)
 xc.FlukaEngine().set_particle_ref(particle_ref)
 
 
