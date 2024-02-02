@@ -20,7 +20,7 @@ path_out = Path.cwd()
 
 
 # Start FLUKA server
-xc.FlukaEngine.start_server("lhc_run3_30cm.inp")
+xc.FlukaEngine.start_server("lhc_run3_30cm.inp", n_alloc=2*num_particles)
 
 
 # Load from json
@@ -93,7 +93,7 @@ print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
-    
+
 # Build the tracker
 coll_manager.build_tracker()
 
