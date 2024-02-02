@@ -99,7 +99,7 @@ coll_manager.build_tracker()
 
 
 # Set FLUKA reference particle
-particle_ref = xp.Particles.build_reference_particle(pdg_id='proton', p0c=6.8e12)
+particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine().set_particle_ref(particle_ref)
 
 
