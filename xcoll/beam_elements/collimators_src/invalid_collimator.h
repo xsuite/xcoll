@@ -9,6 +9,7 @@
 
 /*gpufun*/
 void InvalidCollimator_track_local_particle(InvalidCollimatorData el, LocalParticle* part0) {
+    UNUSED(el);
     kill_all_particles(part0, XC_ERR_INVALID_TRACK); // xcoll lost state error
 }
 

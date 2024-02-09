@@ -6,6 +6,11 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
+
+#ifndef UNUSED
+#define UNUSED(expr) (void)(expr)
+#endif
+
 /*gpufun*/
 void Drift_single_particle_4d(LocalParticle* part, double length){
     double zeta = LocalParticle_get_zeta(part);

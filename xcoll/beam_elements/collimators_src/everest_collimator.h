@@ -10,6 +10,7 @@
 
 /*gpufun*/
 void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* part0){
+    UNUSED(part0);
     MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
