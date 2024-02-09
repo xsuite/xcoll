@@ -4,6 +4,8 @@ from pathlib import Path
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
+import xobjects as xo
+import matplotlib.pyplot as plt
 
 context = xo.ContextCpu(omp_num_threads='auto')
 
@@ -54,9 +56,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 coll_manager.build_tracker(_context=context)
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Set the collimator openings based on the__init__.py
 
 
 # Optimise the line
