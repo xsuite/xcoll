@@ -86,7 +86,8 @@ print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 line_is_reversed = True if beam == 2 else False
 ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
-_ = ThisLM.lossmap(file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
+_ = ThisLM.lossmap()
+ThisLM.dump(file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
 summary = ThisLM.summary(file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))

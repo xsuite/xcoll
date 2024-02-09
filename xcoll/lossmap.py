@@ -27,10 +27,9 @@ class LossMap:
 
     # TODO: Check if _all_collimator_types is valid
    
-    def lossmap(self, file = None, interpolation = 0.1, weights = None):
+    def lossmap(self, interpolation = 0.1, weights = None):
         """ 
             Does the loss location refinement and interpolation. 
-            Writes the data to file if given one. 
         """
         # loss location refinement
         if interpolation is not None: 
