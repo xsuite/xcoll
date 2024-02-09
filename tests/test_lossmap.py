@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 import xtrack as xt
 import xcoll as xc
+from xcoll.lossmap import LossMap
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
@@ -38,14 +39,18 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     line.track(part, num_turns=2)
     coll_manager.disable_scattering()
 
+    line_is_reversed = True if beam == 2 else False
     with flaky_assertions():
-        summ = coll_manager.summary(part, show_zeros=False)
+
+        ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
+        
+        summ = ThisLM.summary(show_zeros=False)
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
         assert len(summ[summ.type=='EverestCollimator']) == 10
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
-        lm = coll_manager.lossmap(part, interpolation=interpolation)
+        lm = ThisLM.lossmap(interpolation=interpolation)
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation', 'reversed']
         assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
         assert len(lm['collimator']['s']) == len(summ)
@@ -64,7 +69,6 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
         assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
         assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
-        line_is_reversed = True if beam==2 else False
         assert lm['reversed'] == line_is_reversed
 
 
