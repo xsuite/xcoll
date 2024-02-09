@@ -13,7 +13,7 @@ import xobjects as xo
 
 from .beam_elements import _all_collimator_types
 
-
+# TODO: should we add a check to make sure line_is_reversed is a boolean/correct value?
 
 class LossMap:
 
@@ -90,12 +90,6 @@ class LossMap:
                 ,
                 'reversed': self._line_is_reversed
             }
-
-        # write to file
-        if file is not None:
-            with open(Path(file), 'w') as fid:
-                json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
-    
         return self._lossmap
 
 
@@ -170,3 +164,13 @@ class LossMap:
         aper_names   = [name_dict[ss] for ss in aper_pos]
 
         return aper_pos, aper_names, aper_nabs
+
+    def dump(self, file=None):
+        """
+            Dumps the lossmap to a file.
+        """
+        if file is not None:
+            with open(Path(file), 'w') as fid:
+                json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
+        else:
+            raise ValueError("No file given to dump the lossmap to.")
