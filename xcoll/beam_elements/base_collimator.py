@@ -9,7 +9,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..collimator_settings import _get_LR, _set_LR, _get_LRUD, _set_LRUD
-from ..tables import CollimatorImpacts
+from ..impacts import CollimatorImpacts
 from ..general import _pkg_root
 
 
@@ -64,7 +64,7 @@ class BaseCollimator(xt.BeamElement):
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
-    
+
     _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'ref_x', 'ref_y',
                          'sin_yL', 'cos_yL', 'tan_yL', 'sin_yR', 'cos_yR', 'tan_yR',
                          'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
@@ -73,10 +73,11 @@ class BaseCollimator(xt.BeamElement):
     _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers','checks.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
 
-    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
+    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, xt.RandomRutherford] # TODO: is Rutherford needed here?
 
 
     def __init__(self, **kwargs):
