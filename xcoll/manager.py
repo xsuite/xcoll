@@ -518,7 +518,7 @@ class CollimatorManager:
                         line[name].material = SixTrack_to_xcoll[colldb.material[name]][1]
                 if isinstance(line[name], EverestCrystal):
                     line[name].align_angle    = colldb._colldb.align_angle[name]
-                    line[name].bend = colldb._colldb.bend[name]
+                    line[name].bending_radius = colldb._colldb.bending_radius[name]
                     line[name].xdim           = colldb._colldb.xdim[name]
                     line[name].ydim           = colldb._colldb.ydim[name]
                     line[name].thick          = colldb._colldb.thick[name]

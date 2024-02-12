@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
+import numpy as np
+
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
@@ -13,11 +15,11 @@ from ..general import _pkg_root
 
 
 
-# TODO: 
+# TODO:
 #      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
 #      but as if 'iscollective = False' for normal tracking as it is natively in C...
 #      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
-#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify 
+#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
 #      get_backtrack_element. We want it nicer..
 
 # TODO: _per_particle_kernels should be a normal kernel (such that we don't need to pass a dummy Particles() )
@@ -79,31 +81,33 @@ class EverestCollimator(BaseCollimator):
         self._EverestCollimator_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        # TODO: this should be an InvalidCollimator
-        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 
 class EverestCrystal(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'align_angle':    xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
-        'bend':           xo.Float64,
-        'xdim':           xo.Float64,
-        'ydim':           xo.Float64,
-        'thick':          xo.Float64,
-        'miscut':         xo.Float64,
-        '_orient':        xo.Int8,
-        '_material':      CrystalMaterial,
-        'rutherford_rng': xt.RandomRutherford,
-        '_tracking':      xo.Int8
+        'align_angle':        xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
+        '_bending_radius':    xo.Float64,
+        '_bending_angle':     xo.Float64,
+        '_critical_angle':    xo.Float64,
+        'xdim':               xo.Float64,
+        'ydim':               xo.Float64,
+        'thick':              xo.Float64,
+        'miscut':             xo.Float64,
+        '_orient':            xo.Int8,
+        '_material':          CrystalMaterial,
+        'rutherford_rng':     xt.RandomRutherford,
+        '_tracking':          xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material']
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material', '_bending_radius',
+                              '_bending_angle']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bending_radius', 'bending_angle']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, EverestEngine]
@@ -129,7 +133,16 @@ class EverestCrystal(BaseCollimator):
                 or kwargs['material']['__class__'] != "CrystalMaterial":
                     raise ValueError("Invalid material!")
             kwargs['_material'] = kwargs.pop('material')
-            kwargs.setdefault('bend', 0)
+            bending_radius = False
+            bending_angle  = False
+            if 'bending_radius' in kwargs:
+                if 'bending_angle' in kwargs:
+                    raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
+                bending_radius = kwargs['bending_radius']
+            elif 'bending_angle' in kwargs:
+                bending_angle = kwargs['bending_angle']
+            kwargs['_bending_radius'] = kwargs.pop('bending_radius',0)
+            kwargs['_bending_angle'] = kwargs.pop('bending_angle', 0)
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)
             kwargs.setdefault('thick', 0)
@@ -139,7 +152,33 @@ class EverestCrystal(BaseCollimator):
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
+            if bending_radius:
+                self._bending_angle = np.arcsin(self.active_length/bending_radius)
+            if bending_angle:
+                self._bending_radius = self.active_length / np.sin(bending_angle)
             self._EverestCrystal_set_material(xp.Particles())
+
+    @property
+    def critical_angle(self):
+        return self._critical_angle if abs(self._critical_angle) > 1.e-10 else None
+
+    @property
+    def bending_radius(self):
+        return self._bending_radius
+
+    @bending_radius.setter
+    def bending_radius(self, bending_radius):
+        self._bending_radius = bending_radius
+        self._bending_angle = np.arcsin(self.active_length/bending_radius)
+
+    @property
+    def bending_angle(self):
+        return self._bending_angle
+
+    @bending_angle.setter
+    def bending_angle(self, bending_angle):
+        self._bending_angle = bending_angle
+        self._bending_radius = self.active_length / np.sin(bending_angle)
 
     @property
     def lattice(self):
@@ -166,9 +205,9 @@ class EverestCrystal(BaseCollimator):
         self._material = material
         self._EverestCrystal_set_material(xp.Particles())
 
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        # TODO: this should be an InvalidCollimator
-        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 def _lattice_setter(lattice):
