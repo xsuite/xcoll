@@ -749,7 +749,7 @@ class CollimatorManager:
             else:
                 part.sort(interleave_lost_particles=True)
             self._part   = part.to_dict()
-            coll_mask    = (part.state<=-333) & (part.state>=-340)
+            coll_mask    = (part.state<=-330) & (part.state>=-340)
             coll_losses  = np.array([self.line.element_names[i] for i in part.at_element[coll_mask]])
             coll_loss_single = np.unique(coll_losses)
             coll_lengths = [self.line[nn].active_length for nn in self.collimator_names] 
