@@ -121,23 +121,28 @@ nemitt_y = [ey]
 line.track(part)
 
 ex, ey = calculate_nemitt_monitor(mon_air_1_s)[0]
-nemitt_x = [*nemitt_x, ex]
-nemitt_y = [*nemitt_y, ey]
+nemitt_x.append(ex)
+nemitt_y.append(ey)
 ex, ey = calculate_nemitt_monitor(mon_air_1_e)[0]
-nemitt_x = [*nemitt_x, ex]
-nemitt_y = [*nemitt_y, ey]
+nemitt_x.append(ex)
+nemitt_y.append(ey)
 ex, ey = calculate_nemitt_monitor(mon_air_2_s)[0]
-nemitt_x = [*nemitt_x, ex]
-nemitt_y = [*nemitt_y, ey]
+nemitt_x.append(ex)
+nemitt_y.append(ey)
 ex, ey = calculate_nemitt_monitor(mon_air_2_e)[0]
-nemitt_x = [*nemitt_x, ex]
-nemitt_y = [*nemitt_y, ey]
+nemitt_x.append(ex)
+nemitt_y.append(ey)
 ex, ey = calculate_nemitt(part)
-nemitt_x = [*nemitt_x, ex]
-nemitt_y = [*nemitt_y, ey]
+nemitt_x.append(ex)
+nemitt_y.append(ey)
 
 
 # Plot the result
 # ===============
-_ = plt.plot(nemitt_x)
-_ = plt.plot(nemitt_y)
+_, ax = plt.subplots(figsize=(6,4))
+s = [0, 20, 30, 50, 60, 100]
+ax.plot(s, 1.e6*np.array(nemitt_x), label='H')
+ax.plot(s, 1.e6*np.array(nemitt_y), label='V')
+ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
+ax.set_xlabel("s [m]")
+ax.legend()
