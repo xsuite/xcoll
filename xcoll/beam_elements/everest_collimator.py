@@ -9,7 +9,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .base_collimator import BaseCollimator, InvalidCollimator
+from .base_collimator import BaseBlock, BaseCollimator, InvalidXcoll
 from ..scattering_routines.everest import GeneralMaterial, Material, CrystalMaterial, EverestEngine
 from ..general import _pkg_root
 
@@ -23,6 +23,78 @@ from ..general import _pkg_root
 #      get_backtrack_element. We want it nicer..
 
 # TODO: _per_particle_kernels should be a normal kernel (such that we don't need to pass a dummy Particles() )
+
+class EverestBlock(BaseBlock):
+    _xofields = { **BaseBlock._xofields,
+        '_material':        Material,
+        'rutherford_rng':   xt.RandomRutherford,
+        '_tracking':        xo.Int8,
+        '_only_mcs':        xo.Int8
+    }
+
+    isthick = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
+    _skip_in_to_dict       = ['_material']
+    _store_in_to_dict      = ['material']
+    _internal_record_class = BaseBlock._internal_record_class
+
+    _depends_on = [BaseBlock, EverestEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','everest_block.h')
+    ]
+
+    _per_particle_kernels = {
+        '_EverestBlock_set_material': xo.Kernel(
+                c_name='EverestBlock_set_material',
+                args=[]
+            )
+        }
+
+
+    def __init__(self, **kwargs):
+        if '_xobject' not in kwargs:
+            mat = kwargs.pop('material', None)
+            if mat is None:
+                raise ValueError("Need to provide a material to the block!")
+            if not isinstance(mat, Material):
+                if not isinstance(mat, dict) \
+                or mat['__class__'] != "Material":
+                    raise ValueError("Invalid material!")
+            kwargs['_material'] = mat
+            # TODO: this should be better
+            if np.allclose(mat.Z, 0.) or np.allclose(mat.A, 0.) \
+            or np.allclose(mat.density, 0.) \
+            or np.allclose(mat.excitation_energy, 0.) \
+            or np.allclose(mat.nuclear_radius, 0.) \
+            or np.allclose(mat.nuclear_elastic_slope, 0.):
+                kwargs['_only_mcs'] = True
+            else:
+                kwargs['_only_mcs'] = False
+            kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
+            kwargs.setdefault('_tracking', True)
+        super().__init__(**kwargs)
+        if '_xobject' not in kwargs:
+            self._EverestBlock_set_material(xp.Particles())
+
+    @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, material):
+        if not isinstance(material, Material):
+            if not isinstance('material', dict) or material['__class__'] != "Material":
+                raise ValueError("Invalid material!")
+        self._material = material
+        self._EverestBlock_set_material(xp.Particles())
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return InvalidXcoll(length=-self.length, _context=_context,
+                                 _buffer=_buffer, _offset=_offset)
+
 
 class EverestCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
@@ -81,7 +153,8 @@ class EverestCollimator(BaseCollimator):
         self._EverestCollimator_set_material(xp.Particles())
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        return InvalidXcoll(length=-self.length, _context=_context,
+                                 _buffer=_buffer, _offset=_offset)
 
 
 
@@ -207,7 +280,8 @@ class EverestCrystal(BaseCollimator):
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidCollimator(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        return InvalidXcoll(length=-self.length, _context=_context,
+                                 _buffer=_buffer, _offset=_offset)
 
 
 def _lattice_setter(lattice):
@@ -218,3 +292,4 @@ def _lattice_setter(lattice):
     else:
         raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                         + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
+

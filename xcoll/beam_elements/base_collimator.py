@@ -13,7 +13,7 @@ from ..impacts import CollimatorImpacts
 from ..general import _pkg_root
 
 
-class InvalidCollimator(xt.BeamElement):
+class InvalidXcoll(xt.BeamElement):
     _xofields = {
         'length': xo.Float64
     }
@@ -23,11 +23,14 @@ class InvalidCollimator(xt.BeamElement):
     skip_in_loss_location_refinement = True
     allow_backtrack = True
 
-    # InvalidCollimator catches unallowed cases, like backtracking through a collimator
+    # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
         _pkg_root.joinpath('headers','particle_states.h'),
+        _pkg_root.joinpath('headers','checks.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','invalid_collimator.h')
     ]
+
+    _depends_on = [xt.RandomRutherford]  # Needed for checks
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -36,6 +39,28 @@ class InvalidCollimator(xt.BeamElement):
         return self.__class__(length=-self.length,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+
+class BaseBlock(xt.BeamElement):
+    _xofields = {
+        'length': xo.Float64
+    }
+
+    isthick = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','base_block.h')
+    ]
+    _depends_on = [InvalidXcoll]
+    _internal_record_class = CollimatorImpacts
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return InvalidXcoll(length=-self.length,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class BaseCollimator(xt.BeamElement):
@@ -70,14 +95,12 @@ class BaseCollimator(xt.BeamElement):
                          'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
     _store_in_to_dict = ['angle', 'tilt', 'jaw', 'reference_center', 'side']
     # Extra fields (only in Python): angle_L, angle_R, tilt_L, tilt_R, jaw_LU, jaw_LD, jaw_RU, jaw_RD
-    _internal_record_class = CollimatorImpacts
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers','checks.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
     ]
-
-    _depends_on = [InvalidCollimator, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, xt.RandomRutherford] # TODO: is Rutherford needed here?
+    _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
+    _internal_record_class = CollimatorImpacts
 
 
     def __init__(self, **kwargs):
