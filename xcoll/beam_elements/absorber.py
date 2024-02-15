@@ -5,7 +5,7 @@
 
 import xtrack as xt
 import xobjects as xo
-from .base_collimator import BaseCollimator, InvalidXcoll
+from .base import BaseCollimator, InvalidXcoll
 from ..general import _pkg_root
 
 

@@ -9,7 +9,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .base_collimator import BaseBlock, BaseCollimator, InvalidXcoll
+from .base import BaseBlock, BaseCollimator, InvalidXcoll
 from ..scattering_routines.everest import GeneralMaterial, Material, CrystalMaterial, EverestEngine
 from ..general import _pkg_root
 
