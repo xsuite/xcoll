@@ -68,7 +68,7 @@ class LossMap:
                 loss_loc_refinement.refine_loss_location(self._part)
         aper_s, aper_names, aper_nabs = self._get_aperture_losses(weights)
         coll_summary = self.summary(weights, show_zeros=False).to_dict('list')
-
+       
         self._lossmap = {
                 'collimator': {
                     's':      coll_summary['s'],

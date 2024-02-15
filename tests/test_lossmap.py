@@ -43,14 +43,14 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     with flaky_assertions():
 
         ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
-        
+        lm = ThisLM.lossmap(interpolation=interpolation)
         summ = ThisLM.summary(show_zeros=False)
+
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
         assert len(summ[summ.type=='EverestCollimator']) == 10
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
-
-        lm = ThisLM.lossmap(interpolation=interpolation)
+        
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation', 'reversed']
         assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
         assert len(lm['collimator']['s']) == len(summ)
