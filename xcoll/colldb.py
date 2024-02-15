@@ -23,7 +23,7 @@ def _initialise_None(collimator):
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
-    fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+    fields.update({'crystal': None, 'bending_radius': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
     for f, val in fields.items():
         if f not in collimator.keys():
             collimator[f] = val
@@ -1000,11 +1000,11 @@ class CollimatorDatabase:
                 alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
                 betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
                 bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
-                align_angle_x = np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
-                align_angle_y = np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
+                align_angle_x = -np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
+                align_angle_y = -np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
                 align_angle = np.array([x if abs(ang) < 1e-6 else y
                                         for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
-                df.loc[cry_mask, 'align_angle'] = -align_angle*df_cry['gap_L']
+                df.loc[cry_mask, 'align_angle'] = align_angle*df_cry['gap_L']
 
 
     # ---------------------------------------

@@ -265,7 +265,7 @@
     "tcpcv.a6l7.b1": {
       "family": "CRY7",
       "angle":  90,
-      "bend": 85.10,
+      "bending_radius": 85.10,
       "xdim": 5.0e-3,
       "ydim": 30.0e-3
     },
@@ -285,7 +285,7 @@
     "tcpch.a4l7.b1": {
       "family": "CRY7",
       "angle":   0,
-      "bend": 61.54,
+      "bending_radius": 61.54,
       "xdim": 2.0e-3,
       "ydim": 50.0e-3
     },
