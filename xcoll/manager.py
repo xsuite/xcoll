@@ -538,41 +538,6 @@ class CollimatorManager:
                     + [ x is None for x in self.colldb._colldb.jaw_RD]
                 )
 
-
-    def _generate_4D_pencil_one_jaw(self, num_particles, collimator, plane, side, impact_parameter,
-                                    dr_sigmas, transverse_spread_sigma, match_at_s):
-
-        line = self.line
-
-        if plane == 'x':
-            co_pencil     = line[collimator].ref_x
-            co_transverse = line[collimator].ref_y
-        else:
-            co_pencil     = line[collimator].ref_y
-            co_transverse = line[collimator].ref_x
-
-        nemitt_x   = self.colldb.emittance[0]
-        nemitt_y   = self.colldb.emittance[1]
-
-        if side == '+':
-            absolute_cut = line[collimator].jaw_LU + co_pencil + impact_parameter
-        elif side == '-':
-            absolute_cut = line[collimator].jaw_RU + co_pencil - impact_parameter
-
-        # Collimator plane: generate pencil distribution
-        pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(num_particles,
-                        plane=plane, absolute_cut=absolute_cut, dr_sigmas=dr_sigmas,
-                        side=side, line=line, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                        at_element=collimator, match_at_s=match_at_s
-        )
-
-        # Other plane: generate gaussian distribution in normalized coordinates
-        transverse_norm   = np.random.normal(loc=co_transverse, scale=transverse_spread_sigma, size=num_particles)
-        p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
-
-        return [pencil, p_pencil, transverse_norm, p_transverse_norm]
-
-
     def enable_scattering(self):
         # Prepare collimators for tracking
         for coll in self.collimator_names:
