@@ -332,22 +332,19 @@ class CollimatorManager:
             elif name not in self.collimator_names:
                 raise Exception(f"Warning: Collimator {name} not found in CollimatorDatabase!...")
         if self.tracker_ready:
-            raise Exception("Tracker already built!\nPlease install collimators before building tracker!")
-
-        # Get collimator centers
-        positions = dict(zip(names,line.get_s_position(names)))
+            raise Exception("Tracker already built!\nPlease install collimators before building "
+                          + "tracker!")
 
         # Loop over collimators to install
         for name in names:
- 
-            # Get the settings from the CollimatorDatabase
-            thiscoll = df.loc[name]
-            # Create the collimator element
-            newcoll = install_func(thiscoll, name)
-            collimator_class = newcoll.__class__
+
+            # Get s positions
+            # This cannot go outside the loop as the indices will change!
+            ss = line.get_s_position()
 
             # Get the settings from the CollimatorDatabase
             thiscoll = df.loc[name]
+            idx = line.element_names.index(name)
             # Create the collimator element
             newcoll = install_func(thiscoll, name)
             collimator_class = newcoll.__class__
@@ -356,15 +353,16 @@ class CollimatorManager:
             # TODO: automatically replace collimator type and print warning
             if isinstance(line[name], tuple(_all_collimator_types - {collimator_class})):
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
-                                 + f" but it is already installed as {type(line[name]).__name__}!\n"
-                                 + "Please reconstruct the line.")
+                               + f" but it is already installed as {type(line[name]).__name__}!\n"
+                               + f"Please reconstruct the line.")
 
             # Check that collimator is not installed previously
             elif isinstance(line[name], collimator_class):
                 if df.loc[name,'collimator_type'] != collimator_class.__name__:
-                    raise Exception(f"Something is wrong: Collimator {name} already installed in line "
-                                    + f"as {collimator_class.__name__} element, but registered in CollimatorDatabase "
-                                    + f"as {df.loc[name, 'collimator_type']}. Please reconstruct the line.")
+                    raise Exception(f"Something is wrong: Collimator {name} already installed in "
+                                  + f"line as {collimator_class.__name__} element, but registered "
+                                  + f"in CollimatorDatabase as {df.loc[name, 'collimator_type']}. "
+                                  + f"Please reconstruct the line.")
                 if verbose: print(f"Collimator {name} already installed. Skipping...")
                 continue
 
@@ -372,37 +370,98 @@ class CollimatorManager:
             #       How to do this with importing a line for MAD-X or SixTrack...?
             elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
-                                 + f" but the line element to replace is not an xtrack.Marker (or xtrack.Drift)!\n"
-                                 + "Please check the name, or correct the element.")
+                               + f" but the line element to replace is not an xtrack.Marker "
+                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
+                               + f"element.")
 
-            if verbose: print(f"Installing {name:16} as {collimator_class.__name__}")
+            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}")
             # Update the position and type in the CollimatorDatabase
-            df.loc[name,'s_center'] = positions[name]
+            df.loc[name,'s_center'] = ss[idx]
             df.loc[name,'collimator_type'] = collimator_class.__name__
-            # Do the installation
-            s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 - thiscoll['inactive_front']
-            has_apertures = np.unique([nn for nn in line.element_names if name + '_aper' in nn])
-            if len(has_apertures) > 0:
-                if len(has_apertures) > 1:
-                    # Choose the aperture closest to the element
-                    has_apertures = [aa for aa in has_apertures
-                                     if line.element_names.index(aa) < line.element_names.index(name)]
-                    has_apertures.sort(key=lambda nn: line.element_names.index(nn))
-                coll_aper = line[has_apertures[-1]]
-                assert coll_aper.__class__.__name__.startswith('Limit')
-                if np.any([name + '_aper_tilt_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with tilt not implemented!")
-                if np.any([name + '_aper_offset_' in nn for nn in line.element_names]):
-                    raise NotImplementedError("Collimator apertures with offset not implemented!")
-            else:
-                coll_aper = None
 
+            # Find apertures and store them
+            # TODO: same with cryotanks for FLUKA
+            # TODO: use compound info  ->  need full collimator info from MADX
+            # TODO: this is all very hacky....
+            aper_before = {}
+            aper_after = {}
+            if f'{name}_mken' in line.element_names\
+            and f'{name}_mkex'in line.element_names:
+                # TODO what with transformations? How to shift them in s if different?
+                aper_before = {nn.replace('mken', 'upstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
+                aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
+            if len(aper_before) == 0:
+                # TODO what with transformations? How to shift them in s from centre to start/end?
+                aper_before = {nn.replace('_aper', '_upstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
+            if len(aper_after) == 0:
+                aper_after  = {nn.replace('_aper', '_downstream_aper'): line[nn].copy()
+                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
+            if len(aper_before) == 0 or len(aper_after) == 0:
+                print(f"Warning: No aperture found for collimator {name}!")
+
+            # Remove stuff at location of collimator
+            l = thiscoll['active_length']
+            to_remove = []
+            i = idx - 1
+            # We remove everything between the beginning and end of the collimator except drifts
+            while ss[i] >= ss[idx] - l/2:
+                el = line[i]
+                nn = line.element_names[i]
+                if el.__class__.__name__ == 'Drift':
+                    i -= 1
+                    continue
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element {nn} with length "
+                                   + f"{el.length} at location inside collimator!")
+                # I don't like this class selection...
+                if not el.__class__.__name__ in ['Marker', 'SRotation', \
+                                       'YRotation', 'XRotation', 'XYShift'] \
+                and not el.__class__.__name__.startswith('Limit'):
+                    print(f"Warning: Removed active element {nn} "
+                        + f"at location inside collimator!")
+                to_remove.append(nn)
+                i -= 1
+            i = idx + 1
+            while ss[i] <= ss[idx] + l/2:
+                el = line[i]
+                nn = line.element_names[i]
+                if el.__class__.__name__ == 'Drift':
+                    i += 1
+                    continue
+                if hasattr(el, 'length') and el.length > 0:
+                    raise ValueError(f"Found active element {nn} with length "
+                                   + f"{el.length} at location inside collimator!")
+                # I don't like this class selection...
+                if not el.__class__.__name__ in ['Marker', 'SRotation', \
+                                       'YRotation', 'XRotation', 'XYShift'] \
+                and not el.__class__.__name__.startswith('Limit'):
+                    print(f"Warning: Removed active element {line.element_names[i]} "
+                        + f"at location inside collimator!")
+                to_remove.append(nn)
+                i += 1
+            for nn in to_remove:
+                # TODO: need to update Compounds
+                line.element_names.remove(nn)
+                line.element_dict.pop(nn)
+
+            # Do the installation
+            s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 \
+                            - thiscoll['inactive_front']
             line.insert_element(element=newcoll, name=name, at_s=s_install)
 
-            if coll_aper is not None:
-                line.insert_element(element=coll_aper, name=name+'_aper_front', index=name)
-                line.insert_element(element=coll_aper, name=name+'_aper_back',
+            # Reinstall apertures
+            for aper, el in aper_before.items():
+                # TODO: need to update Compounds
+                line.insert_element(element=el, name=aper, index=name)
+            for aper, el in reversed(aper_after.items()):
+                # Reversed because of index+1
+                # TODO: need to update Compounds
+                line.insert_element(element=el, name=aper,
                                     index=line.element_names.index(name)+1)
+
         self._set_record_impacts()
 
 
