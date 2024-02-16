@@ -18,19 +18,20 @@ def generate_pencil_on_collimator(line, collimator_name, num_particles, *, side=
     """
     Generate a pencil beam on a collimator. 
     """
-    #if not .openings_set:
-    #    raise ValueError("Need to set collimator openings before generating pencil distribution!")
+    # TODO: horrible solution for collimation_manager.openings_set, fix this
+    
     if line.tracker is None:
         raise Exception("Please build tracker before generating pencil distribution!")
     if transverse_impact_parameter != 0.:
         raise NotImplementedError
-
-    if isinstance(collimator_name, str):
-        collimator = line[collimator_name]
-    else:
+    if not isinstance(collimator_name, str):
         raise ValueError("Need to provide a string!")
+    else:
+        collimator = line[collimator_name]
     if not isinstance(collimator, tuple(_all_collimator_types)):
         raise ValueError("Need to provide a valid collimator!")
+    if collimator.active == 0:
+        raise Exception("Need to set collimator openings before generating pencil distribution!")
     
     if collimator.side == 'left':
         side = '+'
@@ -46,7 +47,7 @@ def generate_pencil_on_collimator(line, collimator_name, num_particles, *, side=
     else:
         raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
     
-    nemitt_x = emittance[0] # TODO: CHECK THIS
+    nemitt_x = emittance[0] 
     nemitt_y = emittance[1]
 
     # Is it converging or diverging?
