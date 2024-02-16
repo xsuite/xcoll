@@ -18,7 +18,7 @@ def generate_pencil_on_collimator(line, collimator_name, num_particles, *, side=
     """
     Generate a pencil beam on a collimator. 
     """
-    # TODO: horrible solution for collimation_manager.openings_set, fix this
+    # TODO: horrible solution for collimation_manager.openings_set, fix this later
     
     if line.tracker is None:
         raise Exception("Please build tracker before generating pencil distribution!")
