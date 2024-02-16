@@ -81,8 +81,8 @@ case ${answer:0:1} in
     ;;
 esac
 
-# Update version in temporary branch
-poetry version $bump
+# Update version in a temporary branch
+poetry version $bump || (echo "Poetry version failed! Aborting..."; exit 1)
 new_ver=$( poetry version | awk '{print $2;}' )
 if [[ "$new_ver" != "$expected_ver" ]]
 then
@@ -93,15 +93,15 @@ sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"         xcoll/general.py
 sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/" tests/test_version.py
 git reset
 git add pyproject.toml xcoll/general.py tests/test_version.py
-git commit --no-verify -m "Updated version number to v"${new_ver}"."
+git commit --no-verify -m "Updated version number to v"${new_ver}"." || (echo "Git commit version failed! Aborting..."; exit 1)
 git push
 
 # Make and accept pull request
-gh pr create --base main --title "Release "${new_ver} --fill
+gh pr create --base main --title "Release "${new_ver} --fill || (echo "gh pr create failed! Aborting..."; exit 1)
 git switch main
 git pull
 PR=$( gh pr list --head $branch | tail -1 | awk '{print $1;}' )
-gh pr merge ${PR} --merge --admin --delete-branch
+gh pr merge ${PR} --merge --admin --delete-branch || (echo "gh pr merge failed! Aborting..."; exit 1)
 git pull
 
 # Make a tag
