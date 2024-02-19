@@ -13,6 +13,11 @@ import xobjects as xo
 # that to Aluminium, the name of the latter will be clipped to 'Alumini' (7 chars)
 
 
+# CLASS INHERITANCE DOES NOT WORK WITH DYNAMIC XOFIELDS
+# Because then the memory offsets between parent and child might no longer be the same,
+# as xobjects enforces a strict order: static fields first, and then dynamic fields.
+# See struct.py, in __new__ of MetaStruct
+
 class GeneralMaterial(xo.HybridClass):
     _xofields = {
         'Z':                        xo.Float64,     # zatom
@@ -22,7 +27,7 @@ class GeneralMaterial(xo.HybridClass):
         'nuclear_radius':           xo.Float64,     # emr
         'nuclear_elastic_slope':    xo.Float64,     # bnref (g cm-2)
                 # slope from https://journals.aps.org/prd/pdf/10.1103/PhysRevD.21.3010
-        'cross_section':            xo.Float64[:],  # csref [barn]
+        'cross_section':            xo.Float64[6],  # csref [barn]
                 # Index 0:Total, 1:absorption, 2:nuclear elastic, 3:pp or pn elastic
                 #       4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
         'hcut':                     xo.Float64,
@@ -30,12 +35,13 @@ class GeneralMaterial(xo.HybridClass):
     }
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('hcut', 0.02)
-        kwargs.setdefault('name', "NO NAME")
-        kwargs['name'] = kwargs['name'].ljust(55)  # Pre-allocate 64 byte using whitespace
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('hcut', 0.02)
+            kwargs.setdefault('cross_section', [0., 0., 0., 0., 0., 0.])
+            kwargs.setdefault('name', "NO NAME")
+            kwargs['name'] = kwargs['name'].ljust(55)  # Pre-allocate 64 byte using whitespace
         super().__init__(**kwargs)
         self.name = self.name.strip()
-
 
 
 class Material(GeneralMaterial):
@@ -54,8 +60,8 @@ class CrystalMaterial(GeneralMaterial):
     _xofields = { **GeneralMaterial._xofields,
         'crystal_radiation_length': xo.Float64,     # dlri
         'crystal_nuclear_length':   xo.Float64,     # dlyi
-        'crystal_plane_distance':   xo.Float64,     # ai
-        'crystal_potential':        xo.Float64,     # eUm
+        'crystal_plane_distance':   xo.Float64,     # ai  [mm]
+        'crystal_potential':        xo.Float64,     # eum  [eV]
         'nuclear_collision_length': xo.Float64      # collnt [m]
     }
 
@@ -76,8 +82,8 @@ class CrystalMaterial(GeneralMaterial):
 
 
 # BE
-Berylium = Material(
-        name = 'Berylium',
+Beryllium = Material(
+        name = 'Beryllium',
         Z = 4.00,
         A = 9.01,
         density = 1.848,
@@ -290,7 +296,7 @@ Inermet = Material(
 
 
 SixTrack_to_xcoll = {
-    "be":   [Berylium],
+    "be":   [Beryllium],
     "al":   [Aluminium],
     "cu":   [Copper],
     "w":    [Tungsten, TungstenCrystal],

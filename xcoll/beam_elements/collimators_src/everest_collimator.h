@@ -3,10 +3,11 @@
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
-#ifndef XCOLL_EVEREST_H
-#define XCOLL_EVEREST_H
+#ifndef XCOLL_EVEREST_COLL_H
+#define XCOLL_EVEREST_COLL_H
 #include <math.h>
 #include <stdio.h>
+
 
 /*gpufun*/
 void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* part0){
@@ -14,6 +15,66 @@ void EverestCollimator_set_material(EverestCollimatorData el, LocalParticle* par
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 }
+
+
+// TODO: it would be great if we could set EverestData as an xofield, because then we could
+// run this function at creation of the collimator instead of every turn
+// Hmmmm this should be called whenever we change an xofield
+/*gpufun*/
+EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part0, int8_t active){
+    EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
+    if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
+        // Random generator and material
+        coll->rng = EverestCollimatorData_getp_rutherford_rng(el);
+        MaterialData material = EverestCollimatorData_getp__material(el);
+        coll->exenergy = MaterialData_get_excitation_energy(material)*1.0e3; // MeV
+        coll->rho      = MaterialData_get_density(material);
+        coll->anuc     = MaterialData_get_A(material);
+        coll->zatom    = MaterialData_get_Z(material);
+        coll->bnref    = MaterialData_get_nuclear_elastic_slope(material);
+        coll->radl     = MaterialData_get_radiation_length(material);
+        coll->csref[0] = MaterialData_get_cross_section(material, 0);
+        coll->csref[1] = MaterialData_get_cross_section(material, 1);
+        coll->csref[5] = MaterialData_get_cross_section(material, 5);
+
+        // Impact table
+        coll->record = EverestCollimatorData_getp_internal_record(el, part0);
+        coll->record_index = NULL;
+        if (coll->record){
+            coll->record_index = CollimatorImpactsData_getp__index(coll->record);
+        }
+
+        // Geometry
+        // TODO: this should in principle not be in this struct
+        coll->aperture = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
+        coll->offset   = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
+        coll->tilt_L   = asin(EverestCollimatorData_get_sin_yL(el));
+        coll->tilt_R   = asin(EverestCollimatorData_get_sin_yR(el));
+        coll->side     = EverestCollimatorData_get__side(el);
+    }
+
+    return coll;
+}
+
+
+/*gpufun*/
+EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData coll){
+    EverestData everest = (EverestData) malloc(sizeof(EverestData_));
+    everest->coll = coll;
+    everest->rescale_scattering = 1;
+#ifndef XCOLL_REFINE_ENERGY
+    // Preinitialise scattering parameters
+    double charge_ratio = LocalParticle_get_charge_ratio(part);
+    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    energy = LocalParticle_get_energy0(part) / 1e9;
+    calculate_scattering(everest, energy);
+    calculate_ionisation_properties(everest, energy);
+#endif
+    return everest;
+}
+
 
 /*gpufun*/
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
@@ -23,56 +84,48 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const active_length  = EverestCollimatorData_get_active_length(el);
     double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
 
-    MaterialData material = EverestCollimatorData_getp__material(el);
-    RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
-
-    // Collimator properties
-    double const length     = EverestCollimatorData_get_active_length(el);
+    // Collimator geometry
     double const co_x       = EverestCollimatorData_get_ref_x(el);
     double const co_y       = EverestCollimatorData_get_ref_y(el);
-    // TODO: use xtrack C-code for rotation element
     // TODO: we are ignoring the angle of the right jaw
     double const sin_zL     = EverestCollimatorData_get_sin_zL(el);
     double const cos_zL     = EverestCollimatorData_get_cos_zL(el);
     double const sin_zR     = EverestCollimatorData_get_sin_zR(el);
     double const cos_zR     = EverestCollimatorData_get_cos_zR(el);
     if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
+        printf("Jaws with different angles not yet implemented!");
+        fflush(stdout);
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
-    double const c_aperture = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
-    double const c_offset   = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
-    double const c_tilt0    = asin(EverestCollimatorData_get_sin_yL(el));
-    double const c_tilt1    = asin(EverestCollimatorData_get_sin_yR(el));
-    int    const side       = EverestCollimatorData_get__side(el);
+
+    // Initialise collimator data
+    // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
+    EverestCollData coll = EverestCollimator_init(el, part0, active);
 
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
-            Drift_single_particle(part, inactive_front+active_length+inactive_back);
+            Drift_single_particle(part, inactive_front + active_length + inactive_back);
 
         } else {
             // Check collimator initialisation
-            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
-            int8_t rng_is_set  = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
-            int8_t ruth_is_set = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
+            int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
-            if (is_tracking && rng_is_set && ruth_is_set) {
+            if (is_valid) {
                 // Drift inactive front
                 Drift_single_particle(part, inactive_front);
 
-                // Scattering parameters
-                double const energy0 = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
-                struct ScatteringParameters scat = calculate_scattering(energy0, material);
+                // Move to collimator frame
+                XYShift_single_particle(part, co_x, co_y);
+                SRotation_single_particle(part, sin_zL, cos_zL);
 
-                // Move to closed orbit
-                LocalParticle_add_to_x(part, -co_x);
-                LocalParticle_add_to_y(part, -co_y);
-                
-                scatter(part, length, material, rng, scat, cos_zL, sin_zL, c_aperture, c_offset, c_tilt0, c_tilt1, side);
+                EverestData everest = EverestCollimator_init_data(part, coll);
+                scatter(everest, part, active_length);
+                free(everest);
 
-                // Return from closed orbit
-                LocalParticle_add_to_x(part, co_x);
-                LocalParticle_add_to_y(part, co_y);
+                // Return from collimator frame
+                SRotation_single_particle(part, -sin_zL, cos_zL);
+                XYShift_single_particle(part, -co_x, -co_y);
 
                 // Drift inactive back (only surviving particles)
                 if (LocalParticle_get_state(part) > 0){
@@ -81,7 +134,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             }
         }
     //end_per_particle_block
+
+    free(coll);
 }
 
 
-#endif /* XCOLL_EVEREST_H */
+#endif /* XCOLL_EVEREST_COLL_H */

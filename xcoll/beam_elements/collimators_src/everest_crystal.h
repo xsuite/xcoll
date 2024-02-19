@@ -50,7 +50,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
     };
     int    const side       = EverestCrystalData_get__side(el);
-    double const bend       = EverestCrystalData_get_bend(el);
+    double const bend       = EverestCrystalData_get__bending_radius(el);
     // TODO: cry_tilt should be given by jaw positions...?
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;
     double const bend_ang   = length/bend;    // temporary value
@@ -60,7 +60,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
     }
     double const cry_rcurv  = bend;
-    double const cry_bend   = length/cry_rcurv; //final value (with corrected length) 
+    double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
     double const cry_alayer = EverestCrystalData_get_thick(el);
     double const cry_xmax   = EverestCrystalData_get_xdim(el);
     double const cry_ymax   = EverestCrystalData_get_ydim(el);

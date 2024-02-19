@@ -5,7 +5,7 @@
 
 import xtrack as xt
 import xobjects as xo
-from .base_collimator import BaseCollimator, InvalidCollimator
+from .base import BaseCollimator, InvalidXcoll
 from ..general import _pkg_root
 
 
@@ -34,5 +34,5 @@ class BlackAbsorber(BaseCollimator):
         super().__init__(**kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return xt.Drift(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
+        return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 

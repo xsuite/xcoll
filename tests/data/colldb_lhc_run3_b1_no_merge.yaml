@@ -9,7 +9,7 @@ families:
   TCP7:    { gap: 5,     stage: Primary,    material: C,     length: 0.6,               parking: 0.025 }
   TCSG7:   { gap: 6.5,   stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
   TCLA7:   { gap: 10,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
-  CRY7:    { gap: null,  stage: special,    material: Si,    length: 0.004, parking: 0.025, side: left,  crystal: strip }
+  CRY7:    { gap: null,  stage: special,    material: Si,    length: 0.004,             parking: 0.025, side: left,  crystal: strip }
   # Injection protection
   TCLI:    { Gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90, parking: 0.025 }
   TDI:     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90, parking: 0.025 }
@@ -65,11 +65,11 @@ Collimators:
   tcp.c6l7.b1:        { family: TCP7,   angle:   0,    material: MoGR  }
   tcp.b6l7.b1:        { family: TCP7,   angle: 127.5   }
   tcsg.a6l7.b1:       { family: TCSG7,  angle: 141.1   }
-  tcpcv.a6l7.b1:      { family: CRY7,   angle:  90,    bend: 85.10,  xdim: 5.0e-3,  ydim: 30.0e-3  }
+  tcpcv.a6l7.b1:      { family: CRY7,   angle:  90,    bending_radius: 85.10,  xdim: 5.0e-3,  ydim: 30.0e-3  }
   tcsg.b5l7.b1:       { family: TCSG7,  angle: 143.5   }
   tcsg.a5l7.b1:       { family: TCSG7,  angle:  40.7   }
   tcsg.d4l7.b1:       { family: TCSG7,  angle:  90,    material: MoGR  }
-  tcpch.a4l7.b1:      { family: CRY7,   angle:   0,    bend: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
+  tcpch.a4l7.b1:      { family: CRY7,   angle:   0,    bending_radius: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
   tcsg.b4l7.b1:       { family: TCSG7,  angle:   0,    active: false   }
   tcspm.b4l7.b1:      { family: TCSG7,  angle:   0,    Material: MoGR  }
   TCSG.a4l7.b1:       { family: TCSG7,  angle: 134.6   }
