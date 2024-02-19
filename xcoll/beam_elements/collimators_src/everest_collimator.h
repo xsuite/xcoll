@@ -93,8 +93,8 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     double const sin_zR     = EverestCollimatorData_get_sin_zR(el);
     double const cos_zR     = EverestCollimatorData_get_cos_zR(el);
     if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
-        printf("Jaws with different angles not yet implemented!");
-        fflush(stdout);
+        printf("Jaws with different angles not yet implemented!");  //only_for_context cpu_serial
+        fflush(stdout);                                             //only_for_context cpu_serial
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
 
