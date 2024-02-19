@@ -913,7 +913,7 @@ class CollimatorManager:
 
         if file is not None:
             with open(Path(file), 'w') as fid:
-                json.dump(self._lossmap, fid, indent=True)
+                json.dump(self._lossmap, fid, cls=xo.JEncoder, indent=True)
     
         return self._lossmap
 
