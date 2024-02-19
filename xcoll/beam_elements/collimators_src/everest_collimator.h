@@ -36,6 +36,7 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         coll->csref[0] = MaterialData_get_cross_section(material, 0);
         coll->csref[1] = MaterialData_get_cross_section(material, 1);
         coll->csref[5] = MaterialData_get_cross_section(material, 5);
+        coll->only_mcs = MaterialData_get__only_mcs(material);
 
         // Impact table
         coll->record = EverestCollimatorData_getp_internal_record(el, part0);

@@ -28,8 +28,7 @@ class EverestBlock(BaseBlock):
     _xofields = { **BaseBlock._xofields,
         '_material':        Material,
         'rutherford_rng':   xt.RandomRutherford,
-        '_tracking':        xo.Int8,
-        '_only_mcs':        xo.Int8
+        '_tracking':        xo.Int8
     }
 
     isthick = True
@@ -64,15 +63,6 @@ class EverestBlock(BaseBlock):
                 or mat['__class__'] != "Material":
                     raise ValueError("Invalid material!")
             kwargs['_material'] = mat
-            # TODO: this should be better
-            if np.allclose(mat.Z, 0.) or np.allclose(mat.A, 0.) \
-            or np.allclose(mat.density, 0.) \
-            or np.allclose(mat.excitation_energy, 0.) \
-            or np.allclose(mat.nuclear_radius, 0.) \
-            or np.allclose(mat.nuclear_elastic_slope, 0.):
-                kwargs['_only_mcs'] = True
-            else:
-                kwargs['_only_mcs'] = False
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)

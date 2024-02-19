@@ -32,6 +32,7 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
         coll->csref[0] = MaterialData_get_cross_section(material, 0);
         coll->csref[1] = MaterialData_get_cross_section(material, 1);
         coll->csref[5] = MaterialData_get_cross_section(material, 5);
+        coll->only_mcs = MaterialData_get__only_mcs(material);
 
         // Impact table
         coll->record = EverestBlockData_getp_internal_record(el, part0);
@@ -46,20 +47,18 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
 
 
 /*gpufun*/
-EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll, int8_t only_mcs){
+EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY
-    if (!only_mcs){
-        // Preinitialise scattering parameters
-        double charge_ratio = LocalParticle_get_charge_ratio(part);
-        double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
-        double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-                         ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
-        calculate_scattering(everest, energy);
-        calculate_ionisation_properties(everest, energy);
-    }
+    // Preinitialise scattering parameters
+    double charge_ratio = LocalParticle_get_charge_ratio(part);
+    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
+    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    calculate_scattering(everest, energy);
+    calculate_ionisation_properties(everest, energy);
 #endif
     return everest;
 }
@@ -68,7 +67,6 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll, in
 void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0) {
     int8_t active = EverestBlockData_get__tracking(el);
     double const length   = EverestBlockData_get_length(el);
-    int8_t const only_mcs = EverestBlockData_get__only_mcs(el);
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
@@ -84,7 +82,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
             int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
             if (is_valid) {
-                EverestData everest     = EverestBlock_init_data(part, coll, only_mcs);
+                EverestData everest     = EverestBlock_init_data(part, coll);
                 double const e0         = LocalParticle_get_energy0(part) / 1.e9;        // Reference energy in GeV
                 double const p0         = LocalParticle_get_p0c(part) / 1e9;            // Reference momentum in GeV
                 double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
@@ -95,7 +93,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double const px_in   = LocalParticle_get_px(part);
                 double const py_in   = LocalParticle_get_py(part);
 
-                double* result = jaw(everest, part, energy, length, only_mcs, 0);
+                double* result = jaw(everest, part, energy, length, 0);
                 energy = result[0];
                 if (result[1] == 1){ is_abs = 1; }
                 double s_out = result[2];

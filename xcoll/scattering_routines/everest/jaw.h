@@ -90,7 +90,7 @@ int ichoix(EverestData restrict everest, LocalParticle* part) {
 
 
 /*gpufun*/
-double* jaw(EverestData restrict everest, LocalParticle* part, double p, double zlm, int only_mcs, int edge_check) {
+double* jaw(EverestData restrict everest, LocalParticle* part, double p, double zlm, int edge_check) {
 
     double* result = (double*)malloc(3 * sizeof(double));
 
@@ -108,7 +108,7 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
     double z  = LocalParticle_get_y(part);
     double zp = LocalParticle_get_py(part)*rpp_in;
 
-    if (only_mcs) {
+    if (everest->coll->only_mcs) {
         double* res = mcs(everest, part, zlm, p, x, xp, z, zp, edge_check);
         s = res[0];
         x = res[1];
