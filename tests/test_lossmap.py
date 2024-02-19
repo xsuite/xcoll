@@ -48,6 +48,9 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
 
         ThisLM.to_json("lossmap.json")
         assert Path("lossmap.json").exists()
+        with Path("lossmap.json").open('r') as fid:
+            dct = json.load(fid)
+            assert xt.line._dicts_equal(dct, ThisLM.lossmap)
         Path("lossmap.json").unlink()
         ThisLM.save_summary("coll_summary.txt")
         assert Path("coll_summary.txt").exists()
