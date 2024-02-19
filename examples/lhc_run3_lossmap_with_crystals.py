@@ -115,37 +115,40 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-# _ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
+line_is_reversed = True if beam == 2 else False
+ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
+_ = ThisLM.lossmap()
+ThisLM.dump(file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part, file=Path(path_out, f'cry_{round(tilt*1e6)}urad_summary_B{beam}{plane}.out'))
+summary = ThisLM.summary(file=Path(path_out,f'coll_summary_B{beam+plane}.out'))
 nabs = summary.loc[summary.collname==tcpc, 'nabs'].values[0]
 print(summary)
 
 
 # Impacts
 # =======
-imp = coll_manager.impacts.to_pandas()
-outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_impacts_B{beam}{plane}.json')
-imp.to_json(outfile)
+#imp = coll_manager.impacts.to_pandas()
+#outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_impacts_B{beam}{plane}.json')
+#imp.to_json(outfile)
 
 # Only keep the first impact
-imp.drop_duplicates(subset=['parent_id'], inplace=True)
-assert np.unique(imp.interaction_type) == ['Enter Jaw']
+#imp.drop_duplicates(subset=['parent_id'], inplace=True)
+#assert np.unique(imp.interaction_type) == ['Enter Jaw']
 
 # Only keep those first impacts that are on the crystal
-first_impacts = imp[imp.collimator==tcpc].parent_id
-num_first_impacts = len(first_impacts)
-assert num_first_impacts==len(np.unique(first_impacts))
+#first_impacts = imp[imp.collimator==tcpc].parent_id
+#num_first_impacts = len(first_impacts)
+#assert num_first_impacts==len(np.unique(first_impacts))
 
-ineff = nabs/num_first_impacts
-outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_ineff_B{beam}{plane}.json')
-with outfile.open('w') as fid:
-    json.dump({'first_impacts': num_first_impacts, 'nabs': nabs, 'ineff': ineff}, fid)
+#ineff = nabs/num_first_impacts
+#outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_ineff_B{beam}{plane}.json')
+#with outfile.open('w') as fid:
+#    json.dump({'first_impacts': num_first_impacts, 'nabs': nabs, 'ineff': ineff}, fid)
 
-print(f"Out of {num_first_impacts} particles hitting the crystal {tcpc} (angle {round(tilt*1e6)}urad) first, {round(nabs)} are absorbed in the crystal (for an inefficiency of {ineff:5}.")
-print(f"Critical angle is {round(line[tcpc].critical_angle*1.e6, 1)}urad.")
-print(f"Total calculation time {time.time()-start_time}s")
+#print(f"Out of {num_first_impacts} particles hitting the crystal {tcpc} (angle {round(tilt*1e6)}urad) first, {round(nabs)} are absorbed in the crystal (for an inefficiency of {ineff:5}.")
+#print(f"Critical angle is {round(line[tcpc].critical_angle*1.e6, 1)}urad.")
+#print(f"Total calculation time {time.time()-start_time}s")
 
 exit()

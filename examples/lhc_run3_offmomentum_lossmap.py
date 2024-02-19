@@ -4,6 +4,8 @@ from pathlib import Path
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
+import xobjects as xo
+import matplotlib.pyplot as plt
 
 context = xo.ContextCpu(omp_num_threads='auto')
 
@@ -54,9 +56,7 @@ assert not np.any(df_with_coll.has_aperture_problem)
 coll_manager.build_tracker(_context=context)
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Set the collimator openings based on the__init__.py
 
 
 # Optimise the line
@@ -83,11 +83,14 @@ print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
+line_is_reversed = True if beam == 2 else False
+ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
+_ = ThisLM.lossmap()
+ThisLM.dump(file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
+summary = ThisLM.summary(file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
 print(summary)
 
 
