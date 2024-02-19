@@ -1,29 +1,23 @@
-import json
 import numpy as np
 from pathlib import Path
 import time
 start_time = time.time()
 import sys, os, contextlib
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-if len(sys.argv) < 4:
-    raise ValueError("Need three arguments: beam, plane, and tilt.")
-beam  = int(sys.argv[1])
-plane = str(sys.argv[2])
-tilt  = int(sys.argv[3])*1.e-6
 
+context = xo.ContextCpu(omp_num_threads='auto')
 
 # On a modern CPU, we get ~5000 particle*turns/s
-# So this script should take a bit less than 40 minutes
-# beam          =  1
-# plane         = 'H'
-# tilt          = 0         # rad !!
-
+# So this script should take around half an hour
+beam          = 2
+plane         = 'H'
 num_turns     = 200
-num_particles = 5000
+num_particles = 50000
 engine        = 'everest'
 
 path_in  = xc._pkg_root.parent / 'examples'
@@ -34,14 +28,6 @@ path_out = Path.cwd()
 with open(os.devnull, 'w') as fid:
     with contextlib.redirect_stdout(fid):
         line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
-
-
-# Aperture model check
-print('\nAperture model check on imported model:')
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        df_imported = line.check_aperture()
-assert not np.any(df_imported.has_aperture_problem)
 
 
 # Initialise collmanager
@@ -100,7 +86,6 @@ part.start_tracking_at_element = idx
 
 
 # Apply settings
-line[tcpc].tilt_L        = tilt
 line[tcpc].bending_angle = 40.e-6
 line[tcpc].xdim          = 0.002
 line[tcpc].ydim          = 0.05
@@ -115,20 +100,19 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-
 line_is_reversed = True if beam == 2 else False
-ThisLM = LossMap(line, line_is_reversed = line_is_reversed, part = part)
-_ = ThisLM.lossmap()
-ThisLM.dump(file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
+ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
+ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-summary = ThisLM.summary(file=Path(path_out,f'coll_summary_B{beam+plane}.out'))
-nabs = summary.loc[summary.collname==tcpc, 'nabs'].values[0]
-print(summary)
+ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
+print(ThisLM.summary)
+
 
 
 # Impacts
 # =======
+#nabs = summary.loc[summary.collname==tcpc, 'nabs'].values[0]
 #imp = coll_manager.impacts.to_pandas()
 #outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_impacts_B{beam}{plane}.json')
 #imp.to_json(outfile)
@@ -149,6 +133,7 @@ print(summary)
 
 #print(f"Out of {num_first_impacts} particles hitting the crystal {tcpc} (angle {round(tilt*1e6)}urad) first, {round(nabs)} are absorbed in the crystal (for an inefficiency of {ineff:5}.")
 #print(f"Critical angle is {round(line[tcpc].critical_angle*1.e6, 1)}urad.")
-#print(f"Total calculation time {time.time()-start_time}s")
+
+print(f"Total calculation time {time.time()-start_time}s")
 
 exit()

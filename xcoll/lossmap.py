@@ -2,6 +2,7 @@
 # This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,62 +14,35 @@ import xobjects as xo
 
 from .beam_elements import _all_collimator_types
 
-# TODO: should we add a check to make sure line_is_reversed is a boolean/correct value?
 
 class LossMap:
 
-    def __init__(self, line, line_is_reversed, part):
+    def __init__(self, line, part, *, line_is_reversed, interpolation=0.1,
+                 weights=None, weight_function=None):
+
         self._line = line
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length()
-        self._lossmap = None                            
-        self._summary = None
         self._part = part
+        self._interpolation = interpolation
+        if weights is None:
+            if weight_function is None:
+                self._weights = np.ones(len(part.x))
+            else:
+                self._weights = _create_weights_from_initial_state(part, weight_function)
+        else:
+            if weight_function is not None:
+                raise ValueError("Use either 'weights' or 'weight_function', not both!")
+            self._weights = part.sort(interleave_lost_particles=True)
 
-    # TODO: Check if _all_collimator_types is valid
-   
-    def lossmap(self, interpolation = 0.1, weights = None):
-        """ 
-            Does the loss location refinement and interpolation. 
-        """
         # loss location refinement
-        if interpolation is not None: 
-            new_state = self._part.state                   
-            new_elem  = self._part.at_element               
+        if interpolation is not None:
+            self._interpolate()
 
-            for idx, elem in enumerate(self._part.at_element):
-                if (self._part.state[idx] == 0 and elem > 0 
-                    and self._line.element_names[elem - 1] in 
-                    self._line.get_elements_of_type(_all_collimator_types)[1]):
+        self._make_coll_summary()
+        coll_summary = self._summary[self._summary.nabs > 0].to_dict('list')
+        aper_s, aper_names, aper_nabs = self._get_aperture_losses()
 
-                    print(f"Found at {self._line.element_names[elem]}, should be {self._line.element_names[elem-1]}")
-                    new_elem[idx] = elem - 1
-                    what_type = self._line.element_names[elem-1].__class__.__name__
-                    if what_type   == 'EverestCollimator':
-                        new_state[idx] = -333
-                    elif what_type == 'EverestCrystal':   
-                        new_state[idx] = -334
-                    elif what_type == 'BlackAbsorber':  
-                        new_state[idx] = -340
-                    else:
-                        raise ValueError(f"Unknown collimator type {what_type}")
-                    
-            self._part.state      = new_state
-            self._part.at_element = new_elem
-
-            # interpolation 
-            aper_s = list(self._part.s[self._part.state==0])
-            if len(aper_s) > 0:
-                print("Performing the aperture losses refinement.")
-                loss_loc_refinement = xt.LossLocationRefinement(self._line, 
-                                                                n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
-                                                                r_max = 0.5,   # Maximum transverse aperture [m]
-                                                                dr = 50e-6,    # Transverse loss refinement accuracy [m]
-                                                                ds = interpolation) # Longitudinal loss refinement accuracy [m]
-                loss_loc_refinement.refine_loss_location(self._part)
-        aper_s, aper_names, aper_nabs = self._get_aperture_losses(weights)
-        coll_summary = self.summary(weights, show_zeros=False).to_dict('list')
-       
         self._lossmap = {
                 'collimator': {
                     's':      coll_summary['s'],
@@ -89,60 +63,118 @@ class LossMap:
                 ,
                 'reversed': self._line_is_reversed
             }
+
+
+    def to_json(self, file):
+        with open(Path(file), 'w') as fid:
+            json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
+
+    def save_summary(self, file):
+        with open(Path(file), 'w') as fid:
+            fid.write(self._summary.__repr__())
+
+
+    @property
+    def lossmap(self):
         return self._lossmap
 
+    @property
+    def summary(self):
+        return self._summary
 
-    def summary(self, weights = None, show_zeros = True, file = None):
-        """
-            Returns the summary of the losses in the machine.
-            Writes the data to .txt file if given one. 
-        """
-        collimator_names = self._line.get_elements_of_type(_all_collimator_types)[1] 
+    @property
+    def line(self):
+        return self._line
 
-        if weights is None:
-            weights = np.ones(len(self._part.x))
-        else:
-            self._part.sort(interleave_lost_particles = True)
-        
-        coll_mask     = (self._part.state <= -333) & (self._part.state >= -340)
-        coll_losses   = np.array([self._line.element_names[i] for i in self._part.at_element[coll_mask]])
+    @property
+    def line_is_reversed(self):
+        return self._line_is_reversed
+
+    @property
+    def machine_length(self):
+        return self._machine_length
+
+    @property
+    def part(self):
+        return self._part
+
+    @property
+    def interpolation(self):
+        return self._interpolation
+
+    @property
+    def weights(self):
+        return self._weights
+
+
+    def _interpolate(self):
+        new_state = self._part.state
+        new_elem  = self._part.at_element
+
+        for idx, elem in enumerate(self._part.at_element):
+            if (self._part.state[idx] == 0 and elem > 0
+                and self._line.element_names[elem - 1] in
+                self._line.get_elements_of_type(_all_collimator_types)[1]):
+
+                print(f"Found at {self._line.element_names[elem]}, "
+                    + f"should be {self._line.element_names[elem-1]}")
+                new_elem[idx] = elem - 1
+                what_type = self._line.element_names[elem-1].__class__.__name__
+                if what_type == 'EverestCollimator':
+                    new_state[idx] = -331
+                elif what_type == 'EverestCrystal':
+                    new_state[idx] = -332
+                elif what_type == 'FlukaCollimator':
+                    new_state[idx] = -334   # TODO: what if crystal?
+                elif what_type == 'Geant4Collimator':
+                    new_state[idx] = -337   # TODO: what if crystal?
+                elif what_type == 'BlackAbsorber':
+                    new_state[idx] = -340
+                else:
+                    raise ValueError(f"Unknown collimator type {what_type}")
+        self._part.state      = new_state
+        self._part.at_element = new_elem
+
+        # do the interpolation
+        aper_s = list(self._part.s[self._part.state==0])
+        if len(aper_s) > 0:
+            print("Performing the aperture losses refinement.")
+            loss_loc_refinement = xt.LossLocationRefinement(
+                self._line,
+                n_theta = 360,            # Angular resolution
+                r_max = 0.5,              # Maximum transverse aperture [m]
+                dr = 50e-6,               # Transverse accuracy [m]
+                ds = self.interpolation   # Longitudinal accuracy [m]
+            )
+            loss_loc_refinement.refine_loss_location(self._part)
+
+
+    def _make_coll_summary(self):
+        collimator_names = self._line.get_elements_of_type(_all_collimator_types)[1]
+        coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
+        coll_losses   = np.array([self._line.element_names[i]
+                                  for i in self._part.at_element[coll_mask]])
         coll_lengths  = [self._line[j].active_length for j in collimator_names] 
-        coll_pos      = [(self._line.get_s_position(i) + self._line[i].active_length/2) for i in collimator_names]
-        
+        coll_pos      = [(self._line.get_s_position(i) + self._line[i].active_length/2)
+                         for i in collimator_names]
+
         if self._line is reversed:
             coll_pos  = [self._machine_length - s for s in coll_pos]
-        
+
         coll_types    = [self._line[i].__class__.__name__ for i in collimator_names]  
-        coll_weights  = weights[coll_mask]
+        coll_weights  = self._weights[coll_mask]
         nabs          = [coll_weights[coll_losses == j].sum() for j in collimator_names]
 
         self._summary = pd.DataFrame({
             'collname': collimator_names, 
-            'nabs':   nabs,                   # of particles lost on collimators
+            'nabs':     nabs,    # of particles lost on collimators
             'length':   coll_lengths,
             's':        coll_pos,    
             'type':     coll_types
         })
 
-        if file is not None:
-            with open(Path(file), 'w') as fid:
-                fid.write(self._summary.__repr__())
-        
-        if show_zeros:
-            return self._summary
-        else:
-            return self._summary[self._summary.nabs > 0]
 
-
-    def _get_aperture_losses(self, weights = None):
-        """
-            Returns the aperture losses.
-        """
-        if weights is None:
-            weights  = np.ones(len(self._part.x))
-        else:
-            self._part.sort(interleave_lost_particles=True)
-
+    def _get_aperture_losses(self):
         # Get s position per particle (lost on aperture)
         aper_mask    = self._part.state == 0
         aper_s       = list(self._part.s[aper_mask])
@@ -158,18 +190,21 @@ class LossMap:
 
         # Create output arrays
         aper_pos     = np.unique(aper_s)
-        aper_weights = weights[aper_mask]
+        aper_weights = self._weights[aper_mask]
         aper_nabs    = [aper_weights[aper_s == j].sum() for j in aper_pos] 
         aper_names   = [name_dict[ss] for ss in aper_pos]
 
         return aper_pos, aper_names, aper_nabs
 
-    def dump(self, file=None):
-        """
-            Dumps the lossmap to a file.
-        """
-        if file is not None:
-            with open(Path(file), 'w') as fid:
-                json.dump(self._lossmap, fid, indent=True, cls=xo.JEncoder)
-        else:
-            raise ValueError("No file given to dump the lossmap to.")
+
+def _create_weights_from_initial_state(part, function):
+    if len(function) == 4:
+        return function[0](part.x)*function[1](part.px)*\
+               function[2](part.y)*function[3](part.py)
+    elif len(function) == 6:
+        return function[0](part.x)*function[1](part.px)*\
+               function[2](part.y)*function[3](part.py)*\
+               function[4](part.zeta)*function[5](part.delta)
+    else:
+        raise NotImplementedError
+
