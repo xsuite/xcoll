@@ -14,7 +14,6 @@ from ..scattering_routines.everest import GeneralMaterial, Material, CrystalMate
 from ..general import _pkg_root
 
 
-
 # TODO:
 #      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
 #      but as if 'iscollective = False' for normal tracking as it is natively in C...
@@ -68,8 +67,12 @@ class EverestBlock(BaseBlock):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
+            try:   # TODO: small workaround until PR
+                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
                                  particles_class=xp.Particles,
+                                 only_if_needed=True)
+            except TypeError:
+                self.compile_kernels(particles_class=xp.Particles,
                                  only_if_needed=True)
             self._context.kernels.EverestBlock_set_material(el=self)
 
@@ -136,8 +139,12 @@ class EverestCollimator(BaseCollimator):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
+            try:   # TODO: small workaround until PR
+                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
                                  particles_class=xp.Particles,
+                                 only_if_needed=True)
+            except TypeError:
+                self.compile_kernels(particles_class=xp.Particles,
                                  only_if_needed=True)
             self._context.kernels.EverestCollimator_set_material(el=self)
 
@@ -233,8 +240,12 @@ class EverestCrystal(BaseCollimator):
                 self._bending_angle = np.arcsin(self.active_length/bending_radius)
             if bending_angle:
                 self._bending_radius = self.active_length / np.sin(bending_angle)
-            self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
+            try:   # TODO: small workaround until PR
+                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
                                  particles_class=xp.Particles,
+                                 only_if_needed=True)
+            except TypeError:
+                self.compile_kernels(particles_class=xp.Particles,
                                  only_if_needed=True)
             self._context.kernels.EverestCrystal_set_material(el=self)
 
