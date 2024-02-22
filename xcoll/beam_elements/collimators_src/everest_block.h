@@ -10,11 +10,12 @@
 
 
 /*gpufun*/
-void EverestBlock_set_material(EverestBlockData el, LocalParticle* part0){
+void EverestBlock_set_material(EverestBlockData el){
     MaterialData material = EverestBlockData_getp__material(el);
     RandomRutherfordData rng = EverestBlockData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
 }
+
 
 /*gpufun*/
 EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int8_t active){
@@ -62,6 +63,7 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
 #endif
     return everest;
 }
+
 
 /*gpufun*/
 void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0) {

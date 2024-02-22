@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
+# This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
@@ -20,6 +20,7 @@ class InvalidXcoll(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
     allow_backtrack = True
 
@@ -47,6 +48,7 @@ class BaseBlock(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
     _extra_c_sources = [
@@ -88,6 +90,7 @@ class BaseCollimator(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'ref_x', 'ref_y',
