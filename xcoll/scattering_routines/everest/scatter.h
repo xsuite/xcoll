@@ -89,7 +89,7 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
         if (zlm > 0.) {
             is_hit = 1;
 
-            double* jaw_result = jaw(everest, part, energy, zlm, 0, 1);
+            double* jaw_result = jaw(everest, part, energy, zlm, 1);
 
             energy = jaw_result[0];
             if (jaw_result[1] == 1){
@@ -99,7 +99,7 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
             free(jaw_result);
 
             if (is_abs != 1) {
-            // Do the rest drift, if particle left collimator early
+               // Do the rest drift, if particle left collimator early
                 Drift_single_particle_4d(part, zlm-s_out);
             }
         }

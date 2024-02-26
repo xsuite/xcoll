@@ -9,9 +9,8 @@
 #include <stdio.h>
 
 
-
 /*gpufun*/
-void EverestCrystal_set_material(EverestCrystalData el, LocalParticle* part0){
+void EverestCrystal_set_material(EverestCrystalData el){
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);

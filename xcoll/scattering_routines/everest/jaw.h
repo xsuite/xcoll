@@ -90,7 +90,7 @@ int ichoix(EverestData restrict everest, LocalParticle* part) {
 
 
 /*gpufun*/
-double* jaw(EverestData restrict everest, LocalParticle* part, double p, double zlm, int only_mcs, int edge_check) {
+double* jaw(EverestData restrict everest, LocalParticle* part, double p, double zlm, int edge_check) {
 
     double* result = (double*)malloc(3 * sizeof(double));
 
@@ -108,7 +108,7 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
     double z  = LocalParticle_get_y(part);
     double zp = LocalParticle_get_py(part)*rpp_in;
 
-    if (only_mcs) {
+    if (everest->coll->only_mcs) {
         double* res = mcs(everest, part, zlm, p, x, xp, z, zp, edge_check);
         s = res[0];
         x = res[1];
@@ -174,7 +174,7 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
             int inter = ichoix(everest, part);
             nabs = inter;
             if (inter == 1) {
-                s = (zlm-rlen)+zlm1;
+                s = zlm - rlen + zlm1;
                 m_dpodx = calcionloss(everest, part, rlen);
                 p = p-m_dpodx*s;
                 break;
@@ -208,14 +208,14 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
             xp = xp + tx;
             zp = zp + tz;
 
-            // Treat single-diffractive scattering.
+            // Treat single-diffractive scattering.    TODO: this does nothing??
             if(inter == 4) {
                 // added update for s
-                s    = (zlm-rlen)+zlm1;
+                s = zlm - rlen + zlm1;
             }
 
             // Calculate the remaining interaction length and close the iteration loop.
-            rlen = rlen-zlm1;
+            rlen = rlen - zlm1;
         }
     }
 
@@ -223,6 +223,7 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
     LocalParticle_set_px(part, xp/rpp_in);
     LocalParticle_set_y(part, z);
     LocalParticle_set_py(part, zp/rpp_in);
+    LocalParticle_add_to_s(part, s);  // TODO: is this correct with tilt etc?
 
     result[0] = p;
     result[1] = nabs;

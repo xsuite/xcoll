@@ -1,6 +1,6 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
-# Copyright (c) CERN, 2023.                 #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import xobjects as xo
@@ -31,7 +31,8 @@ class GeneralMaterial(xo.HybridClass):
                 # Index 0:Total, 1:absorption, 2:nuclear elastic, 3:pp or pn elastic
                 #       4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
         'hcut':                     xo.Float64,
-        'name':                     xo.String
+        'name':                     xo.String,
+        '_only_mcs':                xo.Int8
     }
 
     def __init__(self, **kwargs):
@@ -40,6 +41,15 @@ class GeneralMaterial(xo.HybridClass):
             kwargs.setdefault('cross_section', [0., 0., 0., 0., 0., 0.])
             kwargs.setdefault('name', "NO NAME")
             kwargs['name'] = kwargs['name'].ljust(55)  # Pre-allocate 64 byte using whitespace
+            # TODO: this should be better
+            if kwargs.get('Z', None) is None or kwargs.get('A', None) is None \
+            or kwargs.get('density', None) is None \
+            or kwargs.get('excitation_energy', None) is None \
+            or kwargs.get('nuclear_radius', None) is None \
+            or kwargs.get('nuclear_elastic_slope', None) is None:
+                kwargs['_only_mcs'] = True
+            else:
+                kwargs['_only_mcs'] = False
         super().__init__(**kwargs)
         self.name = self.name.strip()
 
