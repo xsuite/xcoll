@@ -320,6 +320,20 @@ class BaseCollimator(xt.BeamElement):
         point_y += getattr(self, 'jaw_' + pos) * sinz
         return lambda t: (point_x - t*sinz, point_y + t*cosz)
 
+    @property
+    def active_length(self):
+        raise ValueError("`active_length`is deprecated. Please use `length`.")
+
+    @property
+    def inactive_front(self):
+        raise ValueError("`inactive_front`is deprecated. Collimators now only "
+                       + "contain their active length (implemented as `length`).")
+
+    @property
+    def inactive_back(self):
+        raise ValueError("`inactive_back`is deprecated. Collimators now only "
+                       + "contain their active length (implemented as `length`).")
+
 
 def _side_setter(val):
     if isinstance(val, str):
