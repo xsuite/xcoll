@@ -80,9 +80,7 @@ EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData col
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
     int8_t active = EverestCollimatorData_get_active(el);
     active       *= EverestCollimatorData_get__tracking(el);
-    double const inactive_front = EverestCollimatorData_get_inactive_front(el);
-    double const active_length  = EverestCollimatorData_get_active_length(el);
-    double const inactive_back  = EverestCollimatorData_get_inactive_back(el);
+    double const length  = EverestCollimatorData_get_length(el);
 
     // Collimator geometry
     double const co_x       = EverestCollimatorData_get_ref_x(el);
@@ -105,32 +103,24 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
-            Drift_single_particle(part, inactive_front + active_length + inactive_back);
+            Drift_single_particle(part, length);
 
         } else {
             // Check collimator initialisation
             int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
             if (is_valid) {
-                // Drift inactive front
-                Drift_single_particle(part, inactive_front);
-
                 // Move to collimator frame
                 XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
 
                 EverestData everest = EverestCollimator_init_data(part, coll);
-                scatter(everest, part, active_length);
+                scatter(everest, part, length);
                 free(everest);
 
                 // Return from collimator frame
                 SRotation_single_particle(part, -sin_zL, cos_zL);
                 XYShift_single_particle(part, -co_x, -co_y);
-
-                // Drift inactive back (only surviving particles)
-                if (LocalParticle_get_state(part) > 0){
-                    Drift_single_particle(part, inactive_back);
-                }
             }
         }
     //end_per_particle_block

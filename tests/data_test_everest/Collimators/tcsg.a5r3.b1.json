@@ -1,6 +1,6 @@
 {
  "__class__": "EverestCollimator",
- "active_length": 1,
+ "length": 1,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 170.7,

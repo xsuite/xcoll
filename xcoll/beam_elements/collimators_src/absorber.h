@@ -13,18 +13,17 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     // Collimator active and length
     int8_t is_active = BlackAbsorberData_get_active(el);
     is_active       *= BlackAbsorberData_get__tracking(el);
-    double const inactive_front = BlackAbsorberData_get_inactive_front(el);
-    double const inactive_back = BlackAbsorberData_get_inactive_back(el);
-    double const active_length = BlackAbsorberData_get_active_length(el);
+    double const length = BlackAbsorberData_get_length(el);
+
     // Collimator jaws
     double const jaw_L  = BlackAbsorberData_get_jaw_L(el);
     double const jaw_R  = BlackAbsorberData_get_jaw_R(el);
     double const sin_yL = BlackAbsorberData_get_sin_yL(el);
     double const sin_yR = BlackAbsorberData_get_sin_yR(el);
-    double const jaw_LU = jaw_L - sin_yL*active_length/2.;
-    double const jaw_LD = jaw_L + sin_yL*active_length/2.;
-    double const jaw_RU = jaw_R - sin_yR*active_length/2.;
-    double const jaw_RD = jaw_R + sin_yR*active_length/2.;
+    double const jaw_LU = jaw_L - sin_yL*length/2.;
+    double const jaw_LD = jaw_L + sin_yL*length/2.;
+    double const jaw_RU = jaw_R - sin_yR*length/2.;
+    double const jaw_RD = jaw_R + sin_yR*length/2.;
     // TODO: need shortening of active length!
     // Collimator reference frame
     double const sin_zL = BlackAbsorberData_get_sin_zL(el);
@@ -56,15 +55,12 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         if (!is_active){
 
             // If collimator not active, replace with drift
-            Drift_single_particle(part, inactive_front+active_length+inactive_back);
+            Drift_single_particle(part, length);
 
         } else {
 
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
             if (is_tracking) {
-           
-            // Drift inactive length before jaw
-            Drift_single_particle(part, inactive_front);
 
             // Store transversal coordinates for potential backtracking later
             double x_F = LocalParticle_get_x(part);
@@ -77,19 +73,14 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             if (is_alive){
 
                 // Drift the jaw length
-                Drift_single_particle(part, active_length);
+                Drift_single_particle(part, length);
 
                 // Check if hit on the collimator jaw at the back
                 is_alive = is_within_aperture(part, jaw_LD, jaw_RD);
 
                 // TODO: is there a performance difference with nesting the ifs or not?
                 // Continue if the particle didn't hit the collimator
-                if (is_alive){
-
-                    // Drift inactive length after jaw
-                    Drift_single_particle(part, inactive_back);
-
-                } else {
+                if (!is_alive){
 
                     // Backtrack to the particle position of impact
                     // This should only be done if the particle did NOT hit the front jaw
@@ -98,14 +89,14 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     double length;
 
                     if (x_B > 0){        // Left jaw
-                        length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * active_length;
+                        length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * length;
                     } else if (x_B < 0){ // Right jaw
-                        length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * active_length;
+                        length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * length;
                     // TODO: check this
 //                     } else if (y_B > 0){ // Upper jaw
-//                         length = (y_B - jaw_U) / (y_B - y_F) * active_length;
+//                         length = (y_B - jaw_U) / (y_B - y_F) * length;
 //                     } else if (y_B < 0){ // Lower jaw
-//                         length = (y_B - jaw_D) / (y_B - y_F) * active_length;
+//                         length = (y_B - jaw_D) / (y_B - y_F) * length;
                     } else {
                         length = 0;
                     }

@@ -57,8 +57,8 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
 
     # Is it converging or diverging?
     tw = line.twiss()    # TODO: can we do this smarter by caching?
-    s_active_front = line.get_s_position(collimator) + coll.inactive_front
-    s_active_back  = s_active_front + coll.active_length
+    s_front = line.get_s_position(collimator)
+    s_back  = s_front + coll.length
     is_converging  = tw[f'alf{plane}', collimator] > 0
     print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
 
@@ -66,11 +66,11 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
     beam_sizes = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{plane}']
     if is_converging:
         # pencil at front of jaw
-        match_at_s = s_active_front
+        match_at_s = s_front
         sigma = beam_sizes[0]
     else:
         # pencil at back of jaw
-        match_at_s = s_active_back
+        match_at_s = s_back
         sigma = beam_sizes[1]
     dr_sigmas = pencil_spread/sigma
 

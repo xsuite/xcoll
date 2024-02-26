@@ -226,9 +226,9 @@ class EverestCrystal(BaseCollimator):
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
             if bending_radius:
-                self._bending_angle = np.arcsin(self.active_length/bending_radius)
+                self._bending_angle = np.arcsin(self.length/bending_radius)
             if bending_angle:
-                self._bending_radius = self.active_length / np.sin(bending_angle)
+                self._bending_radius = self.length / np.sin(bending_angle)
             self._EverestCrystal_set_material(xp.Particles())
 
     @property
@@ -242,7 +242,7 @@ class EverestCrystal(BaseCollimator):
     @bending_radius.setter
     def bending_radius(self, bending_radius):
         self._bending_radius = bending_radius
-        self._bending_angle = np.arcsin(self.active_length/bending_radius)
+        self._bending_angle = np.arcsin(self.length/bending_radius)
 
     @property
     def bending_angle(self):
@@ -251,7 +251,7 @@ class EverestCrystal(BaseCollimator):
     @bending_angle.setter
     def bending_angle(self, bending_angle):
         self._bending_angle = bending_angle
-        self._bending_radius = self.active_length / np.sin(bending_angle)
+        self._bending_radius = self.length / np.sin(bending_angle)
 
     @property
     def lattice(self):

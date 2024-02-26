@@ -154,8 +154,8 @@ class LossMap:
         coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
         coll_losses   = np.array([self._line.element_names[i]
                                   for i in self._part.at_element[coll_mask]])
-        coll_lengths  = [self._line[j].active_length for j in collimator_names] 
-        coll_pos      = [(self._line.get_s_position(i) + self._line[i].active_length/2)
+        coll_lengths  = [self._line[j].length for j in collimator_names] 
+        coll_pos      = [(self._line.get_s_position(i) + self._line[i].length/2)
                          for i in collimator_names]
 
         if self._line is reversed:
