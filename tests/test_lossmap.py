@@ -34,7 +34,8 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     coll_manager.set_openings()
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=npart)
+    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=npart,
+                                            nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
     coll_manager.enable_scattering()
     line.track(part, num_turns=2)

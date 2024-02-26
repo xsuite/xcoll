@@ -60,7 +60,8 @@ coll_manager.set_openings()
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = coll_manager.generate_pencil_on_collimator(tcp, num_particles=num_particles)
+part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles,
+                                        nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
 
 # Optimise the line

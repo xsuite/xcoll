@@ -66,7 +66,8 @@ coll_manager.set_openings()
 
 
 # # Generate initial pencil distribution on crystal
-# part = coll_manager.generate_pencil_on_collimator(tcpc, num_particles=num_particles)
+# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles,
+#                                         nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
