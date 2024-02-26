@@ -2,6 +2,7 @@
 # This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
+
 import numpy as np
 
 import xtrack as xt
@@ -9,6 +10,7 @@ import xobjects as xo
 import xpart as xp
 
 from .beam_elements import _all_collimator_types
+
 
 def generate_pencil_on_collimator(line, collimator, num_particles, *,
                                   nemitt_x, nemitt_y,  side='+-', impact_parameter=0,
@@ -57,7 +59,7 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
     tw = line.twiss()    # TODO: can we do this smarter by caching?
     s_active_front = line.get_s_position(collimator) + coll.inactive_front
     s_active_back  = s_active_front + coll.active_length
-    is_converging  = tw[f'alf{plane}', coll] > 0
+    is_converging  = tw[f'alf{plane}', collimator] > 0
     print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
 
     beam_sizes = tw.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
@@ -201,3 +203,4 @@ def _generate_4D_pencil_one_jaw(line, collimator, num_particles, nemitt_x, nemit
         p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
 
         return [pencil, p_pencil, transverse_norm, p_transverse_norm]
+
