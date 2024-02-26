@@ -50,13 +50,14 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // TODO: cry_tilt should be given by jaw positions...?
     double const cry_tilt   = EverestCrystalData_get_align_angle(el) + c_tilt0;
     double const bend_ang   = length/bend;    // temporary value
+    double corrected_length;
     if (cry_tilt >= -bend_ang) {
-        length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
+        corrected_length = bend*(sin(bend_ang + cry_tilt) - sin(cry_tilt));
     } else {
-        length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
+        corrected_length = bend*(sin(bend_ang - cry_tilt) + sin(cry_tilt));
     }
     double const cry_rcurv  = bend;
-    double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
+    double const cry_bend   = corrected_length/cry_rcurv; //final value (with corrected length)
     double const cry_alayer = EverestCrystalData_get_thick(el);
     double const cry_xmax   = EverestCrystalData_get_xdim(el);
     double const cry_ymax   = EverestCrystalData_get_ydim(el);
@@ -89,7 +90,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_add_to_x(part, -co_x);
                 LocalParticle_add_to_y(part, -co_y);
 
-                scatter_cry(part, length, material, rng, cos_zL, sin_zL, c_aperture, c_offset,
+                scatter_cry(part, corrected_length, material, rng, cos_zL, sin_zL, c_aperture, c_offset,
                             side, cry_tilt, cry_rcurv, cry_bend, cry_alayer, cry_xmax, cry_ymax, cry_orient, 
                             cry_miscut, record, record_index);
 

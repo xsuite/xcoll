@@ -86,21 +86,21 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                     // This should only be done if the particle did NOT hit the front jaw
                     double x_B = LocalParticle_get_x(part);
 //                     double y_B = LocalParticle_get_y(part);
-                    double length;
+                    double backtrack_length;
 
                     if (x_B > 0){        // Left jaw
-                        length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * length;
+                        backtrack_length = (jaw_LD - x_B) / (jaw_LD - jaw_LU - x_B + x_F) * length;
                     } else if (x_B < 0){ // Right jaw
-                        length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * length;
+                        backtrack_length = (jaw_RD - x_B) / (jaw_RD - jaw_RU - x_B + x_F) * length;
                     // TODO: check this
 //                     } else if (y_B > 0){ // Upper jaw
 //                         length = (y_B - jaw_U) / (y_B - y_F) * length;
 //                     } else if (y_B < 0){ // Lower jaw
 //                         length = (y_B - jaw_D) / (y_B - y_F) * length;
                     } else {
-                        length = 0;
+                        backtrack_length = 0;
                     }
-                    Drift_single_particle(part, -length);
+                    Drift_single_particle(part, -backtrack_length);
 
                 }
             }
