@@ -69,11 +69,9 @@ class EverestBlock(BaseBlock):
         if '_xobject' not in kwargs:
             try:   # TODO: small workaround until PR
                 self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
+                                     only_if_needed=True)
             except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
+                self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestBlock_set_material(el=self)
 
 
@@ -88,7 +86,7 @@ class EverestBlock(BaseBlock):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
+            self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestBlock_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -141,11 +139,9 @@ class EverestCollimator(BaseCollimator):
         if '_xobject' not in kwargs:
             try:   # TODO: small workaround until PR
                 self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
+                                     only_if_needed=True)
             except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
+                self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestCollimator_set_material(el=self)
 
     @property
@@ -159,7 +155,7 @@ class EverestCollimator(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
+            self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestCollimator_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -242,11 +238,9 @@ class EverestCrystal(BaseCollimator):
                 self._bending_radius = self.active_length / np.sin(bending_angle)
             try:   # TODO: small workaround until PR
                 self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
+                                     only_if_needed=True)
             except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
+                self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestCrystal_set_material(el=self)
 
 
@@ -296,7 +290,7 @@ class EverestCrystal(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
+            self.compile_kernels(only_if_needed=True)
             self._context.kernels.EverestCrystal_set_material(el=self)
 
 
@@ -313,18 +307,3 @@ def _lattice_setter(lattice):
     else:
         raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                         + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
-
-
-# TODO: We want this in the HybridClass to get Kernels attached automatically,
-#       like the PerParticlePyMethod in BeamElement
-# def _exec_kernel(el, kernel_name, **kwargs):
-# #     context = el._context
-# #     desired_classes  = tuple(a.atype for a in el._kernels[kernel_name].args)
-# #     if (kernel_name, desired_classes) not in context.kernels:
-# #         el.compile_kernels(particles_class=xp.Particles)
-# #     kern = context.kernels[(kernel_name, desired_classes)]
-# #     return kern(el=el._xobject, **kwargs)
-#     el.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
-#     return getattr(el._context.kernels, kernel_name)(el=el, **kwargs)
-
-
