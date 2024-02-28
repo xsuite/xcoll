@@ -88,236 +88,256 @@ class CrystalMaterial(GeneralMaterial):
         return cls(**thisdict)
 
 
-
-
+_materials_context = xo.ContextCpu()
 
 # BE
 Beryllium = Material(
-        name = 'Beryllium',
-        Z = 4.00,
-        A = 9.01,
-        density = 1.848,
-        excitation_energy = 63.7e-9,
-        radiation_length = 0.353,
-        nuclear_radius = 0.22,
-        nuclear_elastic_slope = 74.7,
-        cross_section = [0.271, 0.192, 0, 0, 0, 0.0035e-2]
+    name='Beryllium',
+    Z=4.00,
+    A=9.01,
+    density=1.848,
+    excitation_energy=63.7e-9,
+    radiation_length=0.353,
+    nuclear_radius=0.22,
+    nuclear_elastic_slope=74.7,
+    cross_section=[0.271, 0.192, 0, 0, 0, 0.0035e-2],
+    _context=_materials_context,
 )
 
 # AL
 Aluminium = Material(
-        name = 'Aluminium',
-        Z = 13.00,
-        A = 26.98,
-        density = 2.70,
-        excitation_energy = 166.0e-9,
-        radiation_length = 0.089,
-        nuclear_radius = 0.302,
-        nuclear_elastic_slope = 120.3,
-        cross_section = [0.643, 0.418, 0, 0, 0, 0.0340e-2]
+    name='Aluminium',
+    Z=13.00,
+    A=26.98,
+    density=2.70,
+    excitation_energy=166.0e-9,
+    radiation_length=0.089,
+    nuclear_radius=0.302,
+    nuclear_elastic_slope=120.3,
+    cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2],
+    _context=_materials_context,
 )
 
 # CU
 Copper = Material(
-        name = 'Copper',
-        Z = 29.00,
-        A = 63.55,
-        density = 8.96,
-        excitation_energy = 322.0e-9,
-        hcut = 0.01,
-        nuclear_radius = 0.366,
-        radiation_length = 0.0143,
-        nuclear_elastic_slope = 217.8,
-        cross_section = [1.253, 0.769, 0, 0, 0, 0.1530e-2]
+    name='Copper',
+    Z=29.00,
+    A=63.55,
+    density=8.96,
+    excitation_energy=322.0e-9,
+    hcut=0.01,
+    nuclear_radius=0.366,
+    radiation_length=0.0143,
+    nuclear_elastic_slope=217.8,
+    cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2],
+    _context=_materials_context,
 )
 
 # W
 Tungsten = Material(
-        name = 'Tungsten',
-        Z = 74.00,
-        A = 183.85,
-        density = 19.30,
-        excitation_energy = 727.0e-9,
-        hcut = 0.01,
-        nuclear_radius = 0.520, 
-        radiation_length = 0.0035,
-        nuclear_elastic_slope = 440.3,
-        cross_section = [2.765, 1.591, 0, 0, 0, 0.7680e-2]
+    name='Tungsten',
+    Z=74.00,
+    A=183.85,
+    density=19.30,
+    excitation_energy=727.0e-9,
+    hcut=0.01,
+    nuclear_radius=0.520,
+    radiation_length=0.0035,
+    nuclear_elastic_slope=440.3,
+    cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2],
+    _context=_materials_context,
 )
-TungstenCrystal = CrystalMaterial.from_material( Tungsten,
-        crystal_radiation_length = 0.0035,
-        crystal_nuclear_length = 0.096,
-        crystal_plane_distance = 0.56e-7,
-        crystal_potential = 21.0,
-        nuclear_collision_length = 0
+TungstenCrystal = CrystalMaterial.from_material(
+    Tungsten,
+    crystal_radiation_length=0.0035,
+    crystal_nuclear_length=0.096,
+    crystal_plane_distance=0.56e-7,
+    crystal_potential=21.0,
+    nuclear_collision_length=0,
+    _context=_materials_context,
 )
 
 # PB
 Lead = Material(
-        name = 'Lead',
-        Z = 82.00,
-        A = 207.19,
-        density = 11.35,
-        excitation_energy = 823.0e-9,
-        hcut = 0.01,
-        nuclear_radius = 0.542,
-        radiation_length = 0.0056,
-        nuclear_elastic_slope = 455.3,
-        cross_section = [3.016, 1.724, 0, 0, 0, 0.9070e-2]
+    name='Lead',
+    Z=82.00,
+    A=207.19,
+    density=11.35,
+    excitation_energy=823.0e-9,
+    hcut=0.01,
+    nuclear_radius=0.542,
+    radiation_length=0.0056,
+    nuclear_elastic_slope=455.3,
+    cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2],
+    _context=_materials_context,
 )
 
 # C
 Carbon = Material(
-        name = 'Carbon',
-        Z = 6.00,
-        A = 12.01,
-        density = 1.67,
-        excitation_energy = 78.0e-9,
-        radiation_length = 0.2557,
-        nuclear_radius = 0.25,
-        nuclear_elastic_slope = 70.0,
-        cross_section = [0.337, 0.232, 0, 0, 0, 0.0076e-2]
+    name='Carbon',
+    Z=6.00,
+    A=12.01,
+    density=1.67,
+    excitation_energy=78.0e-9,
+    radiation_length=0.2557,
+    nuclear_radius=0.25,
+    nuclear_elastic_slope=70.0,
+    cross_section=[0.337, 0.232, 0, 0, 0, 0.0076e-2],
+    _context=_materials_context,
 )
-CarbonCrystal = CrystalMaterial.from_material( Carbon,
-        crystal_radiation_length = 0.188,
-        crystal_nuclear_length = 0.400,
-        crystal_plane_distance = 0.63e-7,
-        crystal_potential = 21.0,
-        nuclear_collision_length = 0
+CarbonCrystal = CrystalMaterial.from_material(
+    Carbon,
+    crystal_radiation_length=0.188,
+    crystal_nuclear_length=0.400,
+    crystal_plane_distance=0.63e-7,
+    crystal_potential=21.0,
+    nuclear_collision_length=0,
+    _context=_materials_context,
 )
 
 # C2
 Carbon2 = Material(
-        name = 'Carbon2',
-        Z = 6.00,
-        A = 12.01,
-        density = 4.52,
-        excitation_energy = 78.0e-9,
-        radiation_length = 0.094,
-        nuclear_radius = 0.25,
-        nuclear_elastic_slope = 70.0,
-        cross_section = [0.337, 0.232, 0, 0, 0, 0.0076e-2]
+    name='Carbon2',
+    Z=6.00,
+    A=12.01,
+    density=4.52,
+    excitation_energy=78.0e-9,
+    radiation_length=0.094,
+    nuclear_radius=0.25,
+    nuclear_elastic_slope=70.0,
+    cross_section=[0.337, 0.232, 0, 0, 0, 0.0076e-2],
+    _context=_materials_context,
 )
 
 # Si
 Silicon = Material(
-        name = 'Silicon',
-        Z = 14.00,
-        A = 28.08,
-        density = 2.33,
-        excitation_energy = 173.0e-9,
-        radiation_length = 1,
-        nuclear_radius = 0.441,
-        nuclear_elastic_slope = 120.14,
-        cross_section = [0.664, 0.430, 0, 0, 0, 0.0390e-2]
+    name='Silicon',
+    Z=14.00,
+    A=28.08,
+    density=2.33,
+    excitation_energy=173.0e-9,
+    radiation_length=1,
+    nuclear_radius=0.441,
+    nuclear_elastic_slope=120.14,
+    cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2],
+    _context=_materials_context,
 )
-SiliconCrystal = CrystalMaterial.from_material( Silicon,
-        crystal_radiation_length = 0.0937,
-        crystal_nuclear_length = 0.4652,
-        crystal_plane_distance = 0.96e-7,
-        crystal_potential = 21.34,
-        nuclear_collision_length = 0.3016
+SiliconCrystal = CrystalMaterial.from_material(
+    Silicon,
+    crystal_radiation_length=0.0937,
+    crystal_nuclear_length=0.4652,
+    crystal_plane_distance=0.96e-7,
+    crystal_potential=21.34,
+    nuclear_collision_length=0.3016,
+    _context=_materials_context,
 )
 
 # Ge
 Germanium = Material(
-        name = 'Germanium',
-        Z = 32.00,
-        A = 72.63,
-        density = 5.323,
-        excitation_energy = 350.0e-9,
-        radiation_length = 1,
-        nuclear_radius = 0.605,
-        nuclear_elastic_slope = 226.35,
-        cross_section = [1.388, 0.844, 0, 0, 0, 0.1860e-2]
+    name='Germanium',
+    Z=32.00,
+    A=72.63,
+    density=5.323,
+    excitation_energy=350.0e-9,
+    radiation_length=1,
+    nuclear_radius=0.605,
+    nuclear_elastic_slope=226.35,
+    cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2],
+    _context=_materials_context,
 )
-GermaniumCrystal = CrystalMaterial.from_material( Germanium,
-        crystal_radiation_length = 0.02302,
-        crystal_nuclear_length = 0.2686,
-        crystal_plane_distance = 1.0e-7,
-        crystal_potential = 40.0,
-        nuclear_collision_length = 0.1632
+GermaniumCrystal = CrystalMaterial.from_material(
+    Germanium,
+    crystal_radiation_length=0.02302,
+    crystal_nuclear_length=0.2686,
+    crystal_plane_distance=1.0e-7,
+    crystal_potential=40.0,
+    nuclear_collision_length=0.1632,
+    _context=_materials_context,
 )
 
 # MoGR
 MolybdenumGraphite = Material(
-        name = 'MolybdenumGraphite',
-        Z = 6.65,
-        A = 13.53,
-        density = 2.500,
-        excitation_energy = 87.1e-9,
-        radiation_length = 0.1193,
-        nuclear_radius = 0.25,
-        nuclear_elastic_slope = 76.7,
-        cross_section = [0.362, 0.247, 0, 0, 0, 0.0094e-2]
+    name='MolybdenumGraphite',
+    Z=6.65,
+    A=13.53,
+    density=2.500,
+    excitation_energy=87.1e-9,
+    radiation_length=0.1193,
+    nuclear_radius=0.25,
+    nuclear_elastic_slope=76.7,
+    cross_section=[0.362, 0.247, 0, 0, 0, 0.0094e-2],
+    _context=_materials_context,
 )
 
 # CuCD
 CopperDiamond = Material(
-        name = 'CopperDiamond',
-        Z = 11.90,
-        A = 25.24,
-        density = 5.40,
-        excitation_energy = 152.9e-9,
-        radiation_length = 0.0316,
-        nuclear_radius = 0.308,
-        nuclear_elastic_slope = 115.0,
-        cross_section = [0.572, 0.370, 0, 0, 0, 0.0279e-2]
+    name='CopperDiamond',
+    Z=11.90,
+    A=25.24,
+    density=5.40,
+    excitation_energy=152.9e-9,
+    radiation_length=0.0316,
+    nuclear_radius=0.308,
+    nuclear_elastic_slope=115.0,
+    cross_section=[0.572, 0.370, 0, 0, 0, 0.0279e-2],
+    _context=_materials_context,
 )
 
 # Mo
 Molybdenum = Material(
-        name = 'Molybdenum',
-        Z = 42.00,
-        A = 95.96,
-        density = 10.22,
-        excitation_energy = 424.0e-9,
-        radiation_length = 0.0096,
-        nuclear_radius = 0.481,
-        nuclear_elastic_slope = 273.9,
-        cross_section = [1.713, 1.023, 0, 0, 0, 0.2650e-2]
+    name='Molybdenum',
+    Z=42.00,
+    A=95.96,
+    density=10.22,
+    excitation_energy=424.0e-9,
+    radiation_length=0.0096,
+    nuclear_radius=0.481,
+    nuclear_elastic_slope=273.9,
+    cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2],
+    _context=_materials_context,
 )
 
 # Glid
 Glidcop = Material(
-        name = 'Glidcop',
-        Z = 28.80,
-        A = 63.15,
-        density = 8.93,
-        excitation_energy = 320.8e-9,
-        radiation_length = 0.0144,
-        nuclear_radius = 0.418,
-        nuclear_elastic_slope = 208.7,
-        cross_section = [1.246, 0.765, 0, 0, 0, 0.1390e-2]
+    name='Glidcop',
+    Z=28.80,
+    A=63.15,
+    density=8.93,
+    excitation_energy=320.8e-9,
+    radiation_length=0.0144,
+    nuclear_radius=0.418,
+    nuclear_elastic_slope=208.7,
+    cross_section=[1.246, 0.765, 0, 0, 0, 0.1390e-2],
+    _context=_materials_context,
 )
 
 # Iner
 Inermet = Material(
-        name = 'Inermet',
-        Z = 67.70,
-        A = 166.70,
-        density = 18.00,
-        excitation_energy = 682.2e-9,
-        radiation_length = 0.00385,
-        nuclear_radius = 0.578,
-        nuclear_elastic_slope = 392.1,
-        cross_section = [2.548, 1.473, 0, 0, 0, 0.5740e-2]
+    name='Inermet',
+    Z=67.70,
+    A=166.70,
+    density=18.00,
+    excitation_energy=682.2e-9,
+    radiation_length=0.00385,
+    nuclear_radius=0.578,
+    nuclear_elastic_slope=392.1,
+    cross_section=[2.548, 1.473, 0, 0, 0, 0.5740e-2],
+    _context=_materials_context,
 )
 
-
 SixTrack_to_xcoll = {
-    "be":   [Beryllium],
-    "al":   [Aluminium],
-    "cu":   [Copper],
-    "w":    [Tungsten, TungstenCrystal],
-    "pb":   [Lead],
-    "c":    [Carbon, CarbonCrystal],
-    "c2":   [Carbon2],
-    "si":   [Silicon, SiliconCrystal],
-    "ge":   [Germanium, GermaniumCrystal],
+    "be": [Beryllium],
+    "al": [Aluminium],
+    "cu": [Copper],
+    "w": [Tungsten, TungstenCrystal],
+    "pb": [Lead],
+    "c": [Carbon, CarbonCrystal],
+    "c2": [Carbon2],
+    "si": [Silicon, SiliconCrystal],
+    "ge": [Germanium, GermaniumCrystal],
     "mogr": [MolybdenumGraphite],
     "cucd": [CopperDiamond],
-    "mo":   [Molybdenum],
+    "mo": [Molybdenum],
     "glid": [Glidcop],
     "iner": [Inermet]
 }
