@@ -1,4 +1,6 @@
 from pathlib import Path
+import time
+start_time = time.time()
 import matplotlib.pyplot as plt
 
 import xtrack as xt
@@ -31,4 +33,6 @@ rf_sweep.track(sweep=sweep, num_turns=num_turns, particles=part, time=True, turn
 
 plt.figure(figsize=(12,8))
 plt.plot(monitor.zeta.T,monitor.delta.T)
+
+print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
