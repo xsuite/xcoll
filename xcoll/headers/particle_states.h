@@ -6,10 +6,15 @@
 #ifndef XCOLL_STATES_H
 #define XCOLL_STATES_H
 
-#define  XC_LOST_ON_EVEREST         -333
-#define  XC_LOST_ON_EVEREST_CRYSTAL -334
-#define  XC_LOST_ON_FLUKA           -335
-#define  XC_LOST_ON_GEANT4          -336
+#define  XC_LOST_ON_EVEREST_BLOCK   -330
+#define  XC_LOST_ON_EVEREST_COLL    -331
+#define  XC_LOST_ON_EVEREST_CRYSTAL -332
+#define  XC_LOST_ON_FLUKA_BLOCK     -333
+#define  XC_LOST_ON_FLUKA           -334
+#define  XC_LOST_ON_FLUKA_CRYSTAL   -335
+#define  XC_LOST_ON_GEANT4_BLOCK    -336
+#define  XC_LOST_ON_GEANT4          -337
+#define  XC_LOST_ON_GEANT4_CRYSTAL  -338
 #define  XC_LOST_ON_ABSORBER        -340
 #define  XC_PARENT_ON_FLUKA         -385  // not "dead"  -> not in lossmap! except its energy loss
 

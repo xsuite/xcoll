@@ -137,6 +137,7 @@ def track_core(collimator, part):
     # parent). To accomodate this, we do not send the parent ID to FLUKA but store it manually here. Then
     # in FLUKA everything looks like a first passage, and we can restore the correct info later.
     data['ppid']   = data['pid'].copy()
+    # data['ppid']   = _expand(part.parent_particle_id[alive_at_entry].copy().astype(np.int32) + 1, dtype=np.int32)
     ppid = dict(zip(part.particle_id[alive_at_entry], part.parent_particle_id[alive_at_entry]))
     data['weight'] = _expand(part.weight[alive_at_entry].copy())
     # Hard-coded spin (not used)

@@ -1,6 +1,7 @@
 import numpy as np
+from pathlib import Path
+import sys, os, contextlib
 import matplotlib.pyplot as plt
-import json
 
 import xobjects as xo
 import xtrack as xt
@@ -16,44 +17,41 @@ import xcoll as xc
 context = xo.ContextCpu()         # For CPU
 # context = xo.ContextCupy()      # For CUDA GPUs
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
-buffer = context.new_buffer()
 
+beam = 1
+path_in  = xc._pkg_root.parent / 'examples'
 
 
 # Load from json
-with open('machines/lhc_run3_b1.json', 'r') as fid:
-    loaded_dct = json.load(fid)
-line = xt.Line.from_dict(loaded_dct)
+with open(os.devnull, 'w') as fid:
+    with contextlib.redirect_stdout(fid):
+        line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
-# Aperture model check
-print('\nAperture model check on imported model:')
-df_imported = line.check_aperture()
-assert not np.any(df_imported.has_aperture_problem)
 
-# Initialise collmanager,on the specified buffer
-coll_manager = xc.CollimatorManager(
-    line=line,
-    colldb=xc.load_SixTrack_colldb('colldb/lhc_run3_b1.dat', emit=3.5e-6),
-    _buffer=buffer
-    )
+# Initialise collmanager
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
+                                              line=line, beam=beam, _context=context)
 
-# Install collimators in line as black absorbers
+
+# Install collimators into line
 coll_manager.install_everest_collimators(verbose=True)
 
-# Build the tracker
-tracker = coll_manager.build_tracker()
 
-# Align the collimators
-coll_manager.align_collimators_to('front')
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+with open(os.devnull, 'w') as fid:
+    with contextlib.redirect_stdout(fid):
+        df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
+
+
+# Build the tracker
+coll_manager.build_tracker()
+
 
 # Set the collimator openings based on the colldb,
 # or manually override with the option gaps={collname: gap}
 coll_manager.set_openings()
-
-# Aperture model check
-print('\nAperture model check after introducing collimators:')
-df_with_coll = line.check_aperture()
-assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # --------------------------------------------------------
@@ -70,25 +68,25 @@ n_sigmas = 10
 n_part = 50000
 x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
-part = xp.build_particles(tracker=tracker, x_norm=x_norm, y_norm=y_norm,
-                          scale_with_transverse_norm_emitt=(3.5e-6, 3.5e-6),
-                          at_element='tcp.d6l7.b1',
-                          match_at_s=coll_manager.s_match['tcp.d6l7.b1']
-                         )
+part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
+                            nemitt_x=3.5e-6, nemitt_y=3.5e-6,
+                            at_element='tcp.d6l7.b1',
+                            match_at_s=coll_manager.s_active_front['tcp.d6l7.b1']
+                           )
 
 # Track
 print("Tracking first test.. ")
-tracker.track(part, num_turns=1)
+coll_manager.enable_scattering()
+line.track(part, num_turns=1)
+coll_manager.disable_scattering()
 
-# The survival flags are sorted as surviving particles first,
-# hence we need to 'unsort' them using their IDs
-surv = part.state.copy()
-surv[part.particle_id] = part.state
+# Sort the particles by their ID
+part.sort(interleave_lost_particles=True)
 
 # Plot the surviving particles as green
 plt.figure(1,figsize=(12,12))
 plt.plot(x_norm, y_norm, '.', color='red')
-plt.plot(x_norm[surv>0], y_norm[surv>0], '.', color='green')
+plt.plot(x_norm[part.state>0], y_norm[part.state>0], '.', color='green')
 plt.axis('equal')
 plt.axis([n_sigmas, -n_sigmas, -n_sigmas, n_sigmas])
 plt.show()
@@ -110,25 +108,25 @@ coll_manager.colldb.angle = {'tcp.c6l7.b1': 15}
 coll_manager.set_openings({'tcp.c6l7.b1': [4,7]}, full_open=True)
 
 # Create initial particles
-part = xp.build_particles(tracker=tracker, x_norm=x_norm, y_norm=y_norm,
-                          scale_with_transverse_norm_emitt=(3.5e-6, 3.5e-6),
-                          at_element='tcp.c6l7.b1',
-                          match_at_s=coll_manager.s_start_active['tcp.c6l7.b1']
-                         )
+part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
+                            nemitt_x=3.5e-6, nemitt_y=3.5e-6,
+                            at_element='tcp.c6l7.b1',
+                            match_at_s=coll_manager.s_active_front['tcp.c6l7.b1']
+                           )
 
 # Track
 print("Tracking second test.. ")
-tracker.track(part, num_turns=1)
+coll_manager.enable_scattering()
+line.track(part, num_turns=1)
+coll_manager.disable_scattering()
 
-# The survival flags are sorted as surviving particles first,
-# hence we need to 'unsort' them using their IDs
-surv = part.state.copy()
-surv[part.particle_id] = part.state
+# Sort the particles by their ID
+part.sort(interleave_lost_particles=True)
 
 # Plot the surviving particles as green
 plt.figure(1,figsize=(12,12))
 plt.plot(x_norm, y_norm, '.', color='red', alpha=0.4)
-plt.plot(x_norm[surv>0], y_norm[surv>0], '.', color='green')
+plt.plot(x_norm[part.state>0], y_norm[part.state>0], '.', color='green')
 plt.axis('equal')
 plt.axis([n_sigmas, -n_sigmas, -n_sigmas, n_sigmas])
 plt.show()

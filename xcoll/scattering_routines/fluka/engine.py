@@ -16,7 +16,7 @@ import xtrack as xt
 from .reference_masses import source, masses
 
 
-default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.3.x86-Linux-gfor9',
+default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.4',
                           'bin', 'rfluka').resolve()
 default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
                                 'fluka', 'flukaserver').resolve()
@@ -325,6 +325,8 @@ class FlukaEngine(xo.HybridClass):
         self._collimators = {}
         for line in lines[idx_start:idx_end]:
             line = [l.strip() for l in line.split()]
+            if line[0].startswith('/') or line[0].startswith('!'):
+                continue
             self._collimators[line[0]] = {
                 'fluka_id': int(line[2]),
                 'length': float(line[3]),
@@ -333,11 +335,16 @@ class FlukaEngine(xo.HybridClass):
 
 
     def _read_gaps(self, input_file):
+        # TODO: very hacky
         with input_file.open('r') as fid:
             lines = fid.readlines()
         for coll in self._collimators:
-            idx = [i for i, line in enumerate(lines) if coll.upper() in line][0]
-            hgap = float([line for line in lines[idx:] if line.startswith('* hGap')][0].split()[3])*1.e-3
+            try:
+                idx = [i for i, line in enumerate(lines) if coll.upper() in line][0]
+                hgap = float([line for line in lines[idx:] if line.startswith('* hGap')][0].split()[3])*1.e-3
+            except:
+                print(f"Warning: {coll} not found. Aperture set to 0!")
+                hgap = 0.0
             self._collimators[coll]['jaw'] = hgap
 
 

@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
-#ifndef XCOLL_BASE_H
-#define XCOLL_BASE_H
+#ifndef XCOLL_BASE_COLL_H
+#define XCOLL_BASE_COLL_H
 
 /*gpufun*/
 void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* part0) {
@@ -12,4 +12,4 @@ void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* p
     kill_all_particles(part0, XC_ERR_INVALID_TRACK);
 }
 
-#endif /* XCOLL_BASE_H */
+#endif /* XCOLL_BASE_COLL_H */
