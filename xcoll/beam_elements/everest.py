@@ -32,6 +32,7 @@ class EverestBlock(BaseBlock):
 
     isthick = True
     needs_rng = True
+    allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -98,6 +99,7 @@ class EverestCollimator(BaseCollimator):
 
     isthick = True
     needs_rng = True
+    allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -172,6 +174,7 @@ class EverestCrystal(BaseCollimator):
 
     isthick = True
     needs_rng = True
+    allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
