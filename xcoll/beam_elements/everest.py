@@ -21,7 +21,6 @@ from ..general import _pkg_root
 #      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
 #      get_backtrack_element. We want it nicer..
 
-# TODO: _per_particle_kernels should be a normal kernel (such that we don't need to pass a dummy Particles() )
 
 class EverestBlock(BaseBlock):
     _xofields = { **BaseBlock._xofields,
@@ -31,6 +30,7 @@ class EverestBlock(BaseBlock):
     }
 
     isthick = True
+    needs_rng = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -67,14 +67,7 @@ class EverestBlock(BaseBlock):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            try:   # TODO: small workaround until PR
-                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
-            except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
-            self._context.kernels.EverestBlock_set_material(el=self)
+            self.EverestBlock_set_material(el=self)
 
 
     @property
@@ -88,8 +81,7 @@ class EverestBlock(BaseBlock):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
-            self._context.kernels.EverestBlock_set_material(el=self)
+            self.EverestBlock_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
@@ -104,6 +96,7 @@ class EverestCollimator(BaseCollimator):
     }
 
     isthick = True
+    needs_rng = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -139,14 +132,7 @@ class EverestCollimator(BaseCollimator):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            try:   # TODO: small workaround until PR
-                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
-            except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
-            self._context.kernels.EverestCollimator_set_material(el=self)
+            self.EverestCollimator_set_material(el=self)
 
     @property
     def material(self):
@@ -159,8 +145,7 @@ class EverestCollimator(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
-            self._context.kernels.EverestCollimator_set_material(el=self)
+            self.EverestCollimator_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
@@ -185,6 +170,7 @@ class EverestCrystal(BaseCollimator):
     }
 
     isthick = True
+    needs_rng = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -241,14 +227,7 @@ class EverestCrystal(BaseCollimator):
                 self._bending_angle = np.arcsin(self.length/bending_radius)
             if bending_angle:
                 self._bending_radius = self.length / np.sin(bending_angle)
-            try:   # TODO: small workaround until PR
-                self.compile_kernels(use_prebuilt_kernels=use_prebuilt_kernels,
-                                 particles_class=xp.Particles,
-                                 only_if_needed=True)
-            except TypeError:
-                self.compile_kernels(particles_class=xp.Particles,
-                                 only_if_needed=True)
-            self._context.kernels.EverestCrystal_set_material(el=self)
+            self.EverestCrystal_set_material(el=self)
 
 
     @property
@@ -299,8 +278,7 @@ class EverestCrystal(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
-            self._context.kernels.EverestCrystal_set_material(el=self)
+            self.EverestCrystal_set_material(el=self)
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -316,18 +294,4 @@ def _lattice_setter(lattice):
     else:
         raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                         + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
-
-
-# TODO: We want this in the HybridClass to get Kernels attached automatically,
-#       like the PerParticlePyMethod in BeamElement
-# def _exec_kernel(el, kernel_name, **kwargs):
-# #     context = el._context
-# #     desired_classes  = tuple(a.atype for a in el._kernels[kernel_name].args)
-# #     if (kernel_name, desired_classes) not in context.kernels:
-# #         el.compile_kernels(particles_class=xp.Particles)
-# #     kern = context.kernels[(kernel_name, desired_classes)]
-# #     return kern(el=el._xobject, **kwargs)
-#     el.compile_kernels(particles_class=xp.Particles, only_if_needed=True)
-#     return getattr(el._context.kernels, kernel_name)(el=el, **kwargs)
-
 
