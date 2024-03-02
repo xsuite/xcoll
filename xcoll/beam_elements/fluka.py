@@ -1,13 +1,13 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
-# Copyright (c) CERN, 2023.                 #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .base_collimator import BaseCollimator, InvalidCollimator
+from .base import BaseCollimator, InvalidXcoll
 from ..scattering_routines.fluka import track, FlukaEngine
 from ..general import _pkg_root
 

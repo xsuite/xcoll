@@ -20,7 +20,7 @@ class InvalidXcoll(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
-#     allow_track = False   # Need to wait for xtrack release to implement
+    # allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
     allow_backtrack = True
 

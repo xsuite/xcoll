@@ -40,14 +40,14 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
 
     with flaky_assertions():
         summ = coll_manager.summary(part, show_zeros=False)
-        assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
+        assert list(summ.columns) == ['collname', 'nabs', 'dE', 'length', 's', 'type']
         assert len(summ[summ.type=='EverestCollimator']) == 10
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
         lm = coll_manager.lossmap(part, interpolation=interpolation)
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation', 'reversed']
-        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
+        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n', 'dE']
         assert len(lm['collimator']['s']) == len(summ)
         assert len(lm['collimator']['name']) == len(summ)
         assert len(lm['collimator']['length']) == len(summ)

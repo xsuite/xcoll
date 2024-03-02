@@ -8,7 +8,7 @@
 
 /*gpufun*/
 void BaseCollimator_track_local_particle(BaseCollimatorData el, LocalParticle* part0) {
-    UNUSED(el);
+    // UNUSED(el);
     kill_all_particles(part0, XC_ERR_INVALID_TRACK);
 }
 

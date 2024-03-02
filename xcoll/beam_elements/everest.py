@@ -68,7 +68,9 @@ class EverestBlock(BaseBlock):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self.EverestBlock_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestBlock_set_material(el=self)
 
 
     @property
@@ -82,7 +84,9 @@ class EverestBlock(BaseBlock):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.EverestBlock_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestBlock_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
@@ -133,7 +137,9 @@ class EverestCollimator(BaseCollimator):
             use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
         if '_xobject' not in kwargs:
-            self.EverestCollimator_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestCollimator_set_material(el=self)
 
     @property
     def material(self):
@@ -146,7 +152,9 @@ class EverestCollimator(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.EverestCollimator_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestCollimator_set_material(el=self)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
@@ -227,7 +235,9 @@ class EverestCrystal(BaseCollimator):
                 self._bending_angle = np.arcsin(self.active_length/bending_radius)
             if bending_angle:
                 self._bending_radius = self.active_length / np.sin(bending_angle)
-            self.EverestCrystal_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestCrystal_set_material(el=self)
 
 
     @property
@@ -276,7 +286,9 @@ class EverestCrystal(BaseCollimator):
                 raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
-            self.EverestCrystal_set_material(el=self)
+            # TODO: temporarily until release v0.3.4
+            self.compile_kernels(only_if_needed=True)
+            self._context.kernels.EverestCrystal_set_material(el=self)
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
