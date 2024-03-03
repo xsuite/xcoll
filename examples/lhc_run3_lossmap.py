@@ -1,4 +1,8 @@
-import json
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import numpy as np
 from pathlib import Path
 import time

@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from .base import BaseBlock, BaseCollimator
 from .absorber import BlackAbsorber
 from .everest import EverestBlock, EverestCollimator, EverestCrystal

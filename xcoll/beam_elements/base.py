@@ -20,15 +20,14 @@ class InvalidXcoll(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
-    # allow_track = False   # Need to wait for xtrack release to implement
+    allow_track = False
     skip_in_loss_location_refinement = True
     allow_backtrack = True
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
         _pkg_root.joinpath('headers','particle_states.h'),
-        _pkg_root.joinpath('headers','checks.h'),
-        _pkg_root.joinpath('beam_elements','collimators_src','invalid_collimator.h')
+        _pkg_root.joinpath('headers','checks.h')
     ]
 
     _depends_on = [xt.RandomRutherford]  # Needed for checks
@@ -47,18 +46,19 @@ class BaseBlock(xt.BeamElement):
     }
 
     isthick = True
+    allow_track = False
     behaves_like_drift = True
-#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','base_block.h')
-    ]
     _depends_on = [InvalidXcoll]
     _internal_record_class = CollimatorImpacts
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    # This is an abstract class and cannot be instantiated
+    def __new__(cls, *args, **kwargs):
+        if cls == BaseBlock:
+            raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
+        instance = super().__new__(cls)
+        return instance
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length,
@@ -89,8 +89,8 @@ class BaseCollimator(xt.BeamElement):
     }
 
     isthick = True
+    allow_track = False
     behaves_like_drift = True
-#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'ref_x', 'ref_y',
@@ -99,18 +99,17 @@ class BaseCollimator(xt.BeamElement):
     _store_in_to_dict = ['angle', 'tilt', 'jaw', 'reference_center', 'side']
     # Extra fields (only in Python): angle_L, angle_R, tilt_L, tilt_R, jaw_LU, jaw_LD, jaw_RU, jaw_RD
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','base_collimator.h')
-    ]
     _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
     _internal_record_class = CollimatorImpacts
 
+    # This is an abstract class and cannot be instantiated
+    def __new__(cls, *args, **kwargs):
+        if cls == BaseCollimator:
+            raise Exception("Abstract class `BaseCollimator` cannot be instantiated!")
+        instance = super().__new__(cls)
+        return instance
 
     def __init__(self, **kwargs):
-        # TODO: quick hack to avoid instantiation; did not manage to get it to work correclty with ABC
-        if self.__class__.__name__ == 'BaseCollimator':
-            raise Exception("Abstract class 'BaseCollimator' cannot be instantiated!")
-
         if '_xobject' not in kwargs:
             # Set jaw
             if 'jaw' in kwargs:
