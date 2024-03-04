@@ -184,10 +184,8 @@ class CollimatorDatabase:
                    beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
 
 
-    # TODO: load crystals with SixTrack loader
-    # TODO: load families with SixTrack loader
     @classmethod
-    def from_SixTrack(cls, file, **kwargs):
+    def from_SixTrack(cls, file, ignore_crystals=True, **kwargs):
         # only import regex here
         import re
         with open(file, 'r') as infile:
@@ -195,20 +193,27 @@ class CollimatorDatabase:
             family_settings = {}
             family_types = {}
             side = {}
-
+            variables = {'bend': {}, 'xdim': {}, 'ydim': {}, 'miscut': {}, 'thick': {}, 'crystal': {}}
+            
             for l_no, line in enumerate(infile):
                 if line.startswith('#'):
                     continue # Comment
-
                 sline = line.split()
-                if len(sline) > 0 and len(sline) < 6:
+                if len(sline) > 0 and (len(sline) < 6 or sline[0].lower() == "crystal" or sline[0].lower() == "target"):
                     if sline[0].lower() == 'nsig_fam':
                         family_settings[sline[1]] = float(sline[2])
                         family_types[sline[1]] = sline[3]
                     elif sline[0].lower() == 'onesided':
                         side[sline[1]] = int(sline[2])
+                    # crystals 
+                    elif sline[0].lower() == "crystal":
+                        for i, key in enumerate(variables):
+                            idx = i+2 if i < 4 else i+3
+                            variables[key][sline[1]] = float(sline[idx])
+                    elif sline[0].lower() == "target":
+                        variables['xdim'][sline[1]] = float(sline[2])
+                        variables['ydim'][sline[1]] = float(sline[3])
                     elif sline[0].lower() == 'settings':
-                        # TODO CRYSTAL
                         pass # Acknowledge and ignore this line
                     else:
                         print(f"Unknown setting {line}")
@@ -223,20 +228,26 @@ class CollimatorDatabase:
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
         sides = df['name'].apply(lambda s: side.get(s, 0))
+        crystals = df['name'].apply(lambda s: variables['crystal'].get(s, 0))
         df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing # TODO this breaks code if a key has upper case, e.g. gap_L
         df['parking'] = 0.025
+        df['bend'] = df['name'].apply(lambda s: variables['bend'].get(s, None))
+        for key in ['xdim', 'ydim', 'miscut', 'thick']:
+            df[key] = df['name'].apply(lambda s: variables[key].get(s, 0))
         df = df.set_index('name')
         df['side'] = sides.values
         df['side'] = [ 'both'  if s==0 else s for s in df['side'] ]
         df['side'] = [ 'left'  if s==1 else s for s in df['side'] ]
         df['side'] = [ 'right' if s==2 else s for s in df['side'] ]
-        return cls.from_dict({'collimators': df.transpose().to_dict(), 'families': famdct}, **kwargs)
+        df['crystal'] = crystals.values
+        df['crystal'] = [ 'strip' if s==1 else s for s in df['crystal']]
+        df['crystal'] = [ 'quasi-mosaic' if s==2 else s for s in df['crystal']]
 
-    # -------------------------------
-    # ------ Dump to disk -----------
-    # -------------------------------
-    
+        return cls.from_dict({'collimators': df.transpose().to_dict(), 'families': famdct}, \
+                             ignore_crystals=ignore_crystals, **kwargs)
+
+
     def write_to_yaml(self, out, lhc_style=True):
         """
         Writes a colldb in memory to disk in the yaml format.
@@ -386,7 +397,7 @@ class CollimatorDatabase:
                 _print_colls(b2_colls, self, 'b2', file)
             if len(bx_colls) > 0:
                 _print_colls(bx_colls, self, 'bx', file)
-                print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')    
+                print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')
 
 
     def __init__(self, **kwargs):
@@ -462,7 +473,10 @@ class CollimatorDatabase:
 
             # Save list of crystals
             if 'crystal' in settings:
-                crystals += [thiscoll]
+                if settings['crystal'] != 0.0:
+                    crystals += [thiscoll]
+                else: 
+                    settings['crystal'] = None
 
         # Remove crystals from colldb
         if ignore_crystals:
