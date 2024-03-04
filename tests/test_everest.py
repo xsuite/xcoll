@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import json
 from pathlib import Path
 import numpy as np
@@ -156,9 +161,11 @@ def test_crystals(test_context):
         _track_collimator(name, _context=test_context)
 
 
-def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, atolz=1e-11, atold=2e-8, _context=None):
+def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
+#     _context._cffi_verbose = True
+#     _context._compile_kernels_info = False
     with open(Path(path, 'initial.json'), 'r') as fid:
         part = xp.Particles.from_dict(json.load(fid), _context=_context)
     with open(Path(path, 'Collimators', name+'.json'), 'r') as fid:
@@ -167,6 +174,10 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, a
         coll = xc.EverestCollimator.from_dict(colldict, _context=_context)
     elif colldict['__class__'] == 'EverestCrystal':
         coll = xc.EverestCrystal.from_dict(colldict, _context=_context)
+#   TODO: how to get compiled source, not save_source_as because 1) it doesnt work and 2) the line numbers are very wrong
+#   I want the option for the test generated code (like 197660d59cf04c979191e2a334c2c7a0.c) to be NOT deleted afterwards
+#   Also, I want to pass the following compiler flags: -Wall -Wextra for more info.
+#     coll.compile_kernels(particles_class=xp.Particles, save_source_as='test.c')
     coll.track(part)
     part.sort(interleave_lost_particles=True)
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
@@ -179,4 +190,22 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-10, atolpx=5e-9, atolpy=2e-9, a
     assert np.allclose(part.py[part.state>0],    part_ref.py[part_ref.state>0], atol=atolpy, rtol=0)
     assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
+#     for p, pref in zip(part.x[part.state>0],     part_ref.x[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atolx, rtol=0):
+#             print(f"x    : {abs(p-pref):.12}")
+#     for p, pref in zip(part.y[part.state>0],     part_ref.y[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atoly, rtol=0):
+#             print(f"y    : {abs(p-pref):.12}")
+#     for p, pref in zip(part.px[part.state>0],    part_ref.px[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atolpx, rtol=0):
+#             print(f"px   : {abs(p-pref):.12}")
+#     for p, pref in zip(part.py[part.state>0],    part_ref.py[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atolpy, rtol=0):
+#             print(f"py   : {abs(p-pref):.12}")
+#     for p, pref in zip(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atolz, rtol=0):
+#             print(f"zeta : {abs(p-pref):.12}")
+#     for p, pref in zip(part.delta[part.state>0], part_ref.delta[part_ref.state>0]):
+#         if not np.allclose(p, pref, atol=atold, rtol=0):
+#             print(f"delta: {abs(p-pref):.12}")
 

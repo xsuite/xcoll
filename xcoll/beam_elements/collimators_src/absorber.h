@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2024.                 #
+// ######################################### #
+
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
 
@@ -44,6 +49,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     }
 
     //start_per_particle_block (part0->part)
+    
+        double s_collimator = LocalParticle_get_s(part);
 
         // Go to collimator reference system (centered around orbit)
         XYShift_single_particle(part, dx, dy);
@@ -114,64 +121,18 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             }
         }
 
-        // Move back from collimator reference system
-        SRotation_single_particle(part, -sin_zL, cos_zL);
-        XYShift_single_particle(part, -dx, -dy);
-
         // Update dead particles
         if (!is_alive){
 
             LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
 
             // Record impact data
-            if (record){
-                // Get a slot in the record (this is thread safe)
-                int64_t i_slot = RecordIndex_get_slot(record_index);
-                // The returned slot id is negative if record is NULL or if record is full
-
-                if (i_slot>=0){
-                    double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
-                    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-                                     ) * mass_ratio * LocalParticle_get_p0c(part);
-
-                    CollimatorImpactsData_set_at_element(record, i_slot, LocalParticle_get_at_element(part));
-                    CollimatorImpactsData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(part));
-                    CollimatorImpactsData_set_s(record, i_slot, LocalParticle_get_s(part));
-                    CollimatorImpactsData_set_interaction_type(record, i_slot, -1);
-
-                    CollimatorImpactsData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(part));
-                    CollimatorImpactsData_set_parent_x(record, i_slot, LocalParticle_get_x(part));
-                    CollimatorImpactsData_set_parent_px(record, i_slot, LocalParticle_get_px(part));
-                    CollimatorImpactsData_set_parent_y(record, i_slot, LocalParticle_get_y(part));
-                    CollimatorImpactsData_set_parent_py(record, i_slot, LocalParticle_get_py(part));
-                    CollimatorImpactsData_set_parent_zeta(record, i_slot, LocalParticle_get_zeta(part));
-                    CollimatorImpactsData_set_parent_delta(record, i_slot, LocalParticle_get_delta(part));
-                    CollimatorImpactsData_set_parent_energy(record, i_slot, energy);
-                    // TODO: particle info
-                    CollimatorImpactsData_set_parent_mass(record, i_slot, -1);
-                    CollimatorImpactsData_set_parent_charge(record, i_slot, 1);
-                    CollimatorImpactsData_set_parent_z(record, i_slot, -1);
-                    CollimatorImpactsData_set_parent_a(record, i_slot, -1);
-                    CollimatorImpactsData_set_parent_pdgid(record, i_slot, -1);
-
-                    CollimatorImpactsData_set_child_id(record, i_slot, -1);
-                    // We need to fill in child data, or the arrays will not have the same length
-                    // (when secondaries are be made elsewhere in other collimators)
-                    CollimatorImpactsData_set_child_x(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_px(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_y(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_py(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_zeta(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_delta(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_energy(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_mass(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_charge(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_z(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_a(record, i_slot, -1);
-                    CollimatorImpactsData_set_child_pdgid(record, i_slot, -1);
-                }
-            }
+            CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED);
         }
+
+        // Move back from collimator reference system
+        SRotation_single_particle(part, -sin_zL, cos_zL);
+        XYShift_single_particle(part, -dx, -dy);
 
     //end_per_particle_block
 

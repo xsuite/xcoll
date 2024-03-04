@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import json
 from pathlib import Path
 import xcoll as xc
@@ -64,7 +69,6 @@ def test_loading_SixTrack():
     assert df1_only_active.equals(df2_only_active)
 
 
-
 def test_loading_SixTrack_crystals():
     import numpy as np
     colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1, ignore_crystals=False)
@@ -82,3 +86,22 @@ def test_loading_SixTrack_crystals():
     df2_only_active.sort_index(axis=0, inplace=True)
     df1_only_active.sort_index(axis=0, inplace=True)
     assert df1_only_active.equals(df2_only_active)
+
+
+def test_dumping():
+    colldb_1 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1)
+    colldb_2 = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=2)
+    colldb_1.write_to_yaml('out1')
+    colldb_2.write_to_yaml('out2')
+    colldb_3 = xc.CollimatorDatabase.from_yaml('out1.yaml', beam=1)
+    colldb_4 = xc.CollimatorDatabase.from_yaml('out2.yaml', beam=2)
+    df1 = colldb_1._colldb.reindex(sorted(colldb_1._colldb.columns), axis=1)
+    df2 = colldb_2._colldb.reindex(sorted(colldb_2._colldb.columns), axis=1)
+    df3 = colldb_3._colldb.reindex(sorted(colldb_3._colldb.columns), axis=1)
+    df4 = colldb_4._colldb.reindex(sorted(colldb_4._colldb.columns), axis=1)
+    assert df1.equals(df3)
+    assert df2.equals(df4)
+    (Path.cwd() / 'out1.yaml').unlink()
+    (Path.cwd() / 'out2.yaml').unlink()
+
+    

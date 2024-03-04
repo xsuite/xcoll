@@ -13,7 +13,7 @@ import pandas as pd
 
 def load_SixTrack_colldb(filename, *, emit):
     print("Warning: Using 'xcoll.load_SixTrack_colldb()' is deprecated! "
-        + "Use 'xcoll.CollimatorDatabase.from_Sixtrack()' instead.")
+        + "Use 'xcoll.CollimatorDatabase.from_SixTrack()' instead.")
     return CollimatorDatabase.from_SixTrack(file=filename, nemitt_x=emit, nemitt_y=emit)
 
 
@@ -23,7 +23,7 @@ def _initialise_None(collimator):
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
-    fields.update({'crystal': None, 'bend': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+    fields.update({'crystal': None, 'bending_radius': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
     for f, val in fields.items():
         if f not in collimator.keys():
             collimator[f] = val
@@ -47,7 +47,7 @@ def _get_coll_dct_by_beam(coll, beam):
             beam = f'b{beam}'
         beam = beam.lower()
     beam_in_db = list(coll.keys())
-
+    
     if beam_in_db == ['b1','b2']:
         if beam is None:
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
@@ -184,10 +184,10 @@ class CollimatorDatabase:
                    beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
 
 
-    # TODO: load crystals with SixTrack loader
-    # TODO: load families with SixTrack loader
     @classmethod
     def from_SixTrack(cls, file, ignore_crystals=True, **kwargs):
+        # only import regex here
+        import re
         with open(file, 'r') as infile:
             coll_data_string = ''
             family_settings = {}
@@ -220,16 +220,17 @@ class CollimatorDatabase:
                 else:
                     coll_data_string += line
 
+        famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
         names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
 
-        df = pd.read_csv(io.StringIO(coll_data_string), delim_whitespace=True,
-                        index_col=False, names=names)
-    
+        df = pd.read_csv(io.StringIO(coll_data_string), sep='\s+', index_col=False, names=names)
+        df['family'] = df['gap'].copy()
+        df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
         sides = df['name'].apply(lambda s: side.get(s, 0))
         crystals = df['name'].apply(lambda s: variables['crystal'].get(s, 0))
         df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
-        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
+        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing # TODO this breaks code if a key has upper case, e.g. gap_L
         df['parking'] = 0.025
         df['bend'] = df['name'].apply(lambda s: variables['bend'].get(s, None))
         for key in ['xdim', 'ydim', 'miscut', 'thick']:
@@ -242,10 +243,163 @@ class CollimatorDatabase:
         df['crystal'] = crystals.values
         df['crystal'] = [ 'strip' if s==1 else s for s in df['crystal']]
         df['crystal'] = [ 'quasi-mosaic' if s==2 else s for s in df['crystal']]
-        
-        return cls.from_dict(df.transpose().to_dict(), ignore_crystals = ignore_crystals, **kwargs)
 
- 
+        return cls.from_dict({'collimators': df.transpose().to_dict(), 'families': famdct}, \
+                             ignore_crystals=ignore_crystals, **kwargs)
+
+
+    def write_to_yaml(self, out, lhc_style=True):
+        """
+        Writes a colldb in memory to disk in the yaml format.
+
+        > colldb_object.write_to_yaml(<path+name>, lhc_style=Bool)
+
+        if lhc_style == True, it will add comments assuming that the collimators are named
+        as in the lhc.
+
+        The function can dump b1, b2 and a general bx, however multi-beam functionality is not yet
+        added to the collmanager. TODO
+
+        If any of the dumped keys contains capital letters (e.g. gap_L), it will not be possible
+        to load it back into xcoll, since all keys are set to lowercase when importing TODO
+        """
+        # Dumps collimator database to a YAML file with optional LHC style formatting
+        import re
+
+        # Local helper functions
+        def _format_dict_entry(key, value, spacing='', mapping=False, key_width=15):
+            # Formats a dictionary entry into a string for YAML output
+            formatted_values = ',    '.join(f"{k}: {v}" for k, v in value.items())
+            formatted_values = re.sub(r'none', 'null', formatted_values, flags=re.IGNORECASE)
+            # Ensure key has a fixed width for alignment
+            if mapping:
+                formatted_key = f'{key}'.ljust(key_width)
+            else:
+                formatted_key = f'{key}:'.ljust(key_width)
+            #formatted_values = formatted_values.ljust(key_width)
+            return f"{spacing}{formatted_key} {{ {formatted_values} }}\n"
+        
+        def _print_values(keys, dct, file, spacing='', mapping=False):
+            # Writes formatted dictionary entries to a file
+            for key in keys:
+                file.write(_format_dict_entry(key, dct[key], spacing=spacing, mapping=mapping))
+        
+        def _print_colls(colls, dcts, beam, file):
+            # Filters and formats collimator data, then writes to a file
+            coll_items_to_print = ['<<','gap','angle','material','active','length','side']
+            file.write(f'  {beam}:\n')
+            for coll in colls:
+                coll_dict = dcts._colldb.transpose().to_dict()[coll]
+                fam = coll_dict['family']
+                fam_keys = []
+                if fam is not None:
+                    fam_keys = dcts._family_dict[fam].keys()
+                    coll_dict = {**{'<<': '*'+fam}, **coll_dict}
+                temp_items_to_print = []
+                if coll_dict['crystal']:
+                    temp_items_to_print = ['bend','xdim','ydim','miscut','crystal']
+                if coll_dict['angle_L'] == coll_dict['angle_R']:
+                    coll_dict.update({'angle': coll_dict['angle_L']})
+                else:
+                    temp_items_to_print = temp_items_to_print + ['angle_L','angle_R']
+                if coll_dict['gap_L'] == coll_dict['gap_R']:
+                    coll_dict.update({'gap': coll_dict['gap_L']})
+                elif coll_dict['gap_L'] is None and coll_dict['gap_R'] is not None:
+                    coll_dict.update({'gap': coll_dict['gap_R']})
+                elif coll_dict['gap_L'] is not None and coll_dict['gap_R'] is None:
+                    coll_dict.update({'gap': coll_dict['gap_L']})
+                else:
+                    temp_items_to_print = temp_items_to_print + ['gap_L','gap_R']
+                value = {}
+                overwritten_keys = coll_dict['overwritten_keys']
+                for key, val in coll_dict.items():
+                    if (key in coll_items_to_print+temp_items_to_print) and (key not in (set(fam_keys)-set(overwritten_keys))) and (val != 'both'):
+                        value.update({key: val})
+                file.write(_format_dict_entry(coll, value, spacing='    '))
+            file.write('\n')   
+                                
+
+        LHC_families = ['tcp3', 'tcsg3', 'tcsm3', 'tcla3', 'tcp7', 'tcsg7', 'tcsm7', 'tcla7', 'tcli', 'tdi', 'tcdq', 'tcstcdq', 'tcth1', 'tcth2', 'tcth5', 'tcth8', 'tctv1', 'tctv2', 'tctv5', 'tctv8', 'tclp', 'tcxrp', 'tcryo', 'tcl4', 'tcl5', 'tcl6', 'tct15', 'tct2', 'tct8', 'tcsp', 'tcld']
+        with open(f'{out}.yaml', 'w') as file:
+            if '_family_dict' in self.__dict__.keys():
+                file.write('families:\n')
+                if lhc_style:
+                    printed_families = []
+                    fams_in_dict = self._family_dict.keys()
+
+                    # Momentum cleaning
+                    file.write('  # Momentum cleaning\n')
+                    sel_fam = [fam for fam in LHC_families if re.match('.*3', fam) and (fam in fams_in_dict)]
+                    printed_families += sel_fam
+                    _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
+
+                    # Betatron cleaning
+                    file.write('  # Betatron cleaning\n')
+                    sel_fam = [fam for fam in LHC_families if re.match('.*7', fam) and (fam in fams_in_dict)]
+                    printed_families += sel_fam
+                    _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
+
+                    # Injection protection
+                    file.write('  # Injection protection\n')
+                    sel_fam = [fam for fam in LHC_families if (fam in ['tcli', 'tdi']) and (fam in fams_in_dict)]
+                    printed_families += sel_fam
+                    _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
+
+                    # Dump protection
+                    file.write('  # Dump protection\n')
+                    sel_fam = [fam for fam in LHC_families if (fam in ['tcdq', 'tcsp', 'tcstcdq']) and (fam in fams_in_dict)]
+                    printed_families += sel_fam
+                    _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
+
+                    # Physics background / debris
+                    file.write('  # Physics background / debris\n')
+                    sel_fam = [fam for fam in LHC_families if ((re.match('tc[lt][0-9dp].*', fam)) or (fam in ['tcryo', 'tcxrp'])) and (fam in fams_in_dict)]
+                    printed_families += sel_fam
+                    _print_values(sel_fam, self._family_dict, file, spacing='  - &', mapping=True)
+
+                    # Other families
+                    if set(printed_families) != set(fams_in_dict):
+                        file.write('  # Other families\n')
+                        _print_values(set(fams_in_dict) - set(printed_families), self._family_dict, file, spacing='  - &', mapping=True)
+                else:
+                    file.write('  # Families\n')
+                    _print_values(self._family_dict.keys(), self._family_dict, file, spacing='  - &', mapping=True)
+
+            # Emittance section
+            ex = self.emittance[0]
+            ey = self.emittance[1]
+            file.write(f'\nemittance:\n  x: {ex}\n  y: {ey}\n')
+
+            # Collimators section
+            file.write('\ncollimators:\n')
+            b1_colls, b2_colls, bx_colls = [], [], []
+            for coll in self._colldb.index:
+                if coll == 'tclia.4r2' or coll == 'tclia.4l8':
+                    b1_colls.append(coll)
+                    b2_colls.append(coll)
+                elif coll[-2:] == 'b1':
+                    b1_colls.append(coll)
+                elif coll[-2:] == 'b2':
+                    b2_colls.append(coll)
+                else:
+                    bx_colls.append(coll)
+            
+            # Handle special cases for collimators
+            if (('tclia.4r2' in b1_colls) or ('tclia.4l8' in b1_colls)) and (len(b1_colls) <= 2):
+                b1_colls = []
+            if (('tclia.4r2' in b2_colls) or ('tclia.4l8' in b2_colls)) and (len(b2_colls) <= 2):
+                b2_colls = []
+
+            # Print collimators for each beam
+            if len(b1_colls) > 0:
+                _print_colls(b1_colls, self, 'b1', file)
+            if len(b2_colls) > 0:
+                _print_colls(b2_colls, self, 'b2', file)
+            if len(bx_colls) > 0:
+                _print_colls(bx_colls, self, 'bx', file)
+                print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')
+
+
     def __init__(self, **kwargs):
         # Get all arguments
         for var in self._init_vars:
@@ -859,11 +1013,11 @@ class CollimatorDatabase:
                 alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
                 betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
                 bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
-                align_angle_x = np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
-                align_angle_y = np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
+                align_angle_x = -np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
+                align_angle_y = -np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
                 align_angle = np.array([x if abs(ang) < 1e-6 else y
                                         for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
-                df.loc[cry_mask, 'align_angle'] = -align_angle*df_cry['gap_L']
+                df.loc[cry_mask, 'align_angle'] = align_angle*df_cry['gap_L']
 
 
     # ---------------------------------------

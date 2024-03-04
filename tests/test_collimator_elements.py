@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xcoll as xc
 import xtrack as xt
 from xtrack.line import _dicts_equal
@@ -11,7 +16,7 @@ import pytest
 # ======================
 #
 # This testing script might look a bit unorthodox, as we try to capture all cases
-# where read/write fields of the collimators.
+# where we read/write fields of the collimators.
 #
 # The dictonary 'base_fields contains all xofields of BaseCollimator, with some
 # values to set each field to (which will then be verified if correctly written).
@@ -122,6 +127,7 @@ absorber_dict_fields = base_dict_fields
 absorber_user_fields = base_user_fields
 absorber_user_fields_read_only = base_user_fields_read_only
 
+
 # EverestCollimator
 
 everest_fields = {**base_fields,
@@ -140,7 +146,8 @@ everest_user_fields_read_only = base_user_fields_read_only
 
 everest_crystal_fields = {**everest_fields,
     'align_angle':       3.7e-5,
-    'bend':              61.54,
+    '_bending_radius':   61.54,
+    '_bending_angle':    50.e-6,
     'xdim':              2.0e-3,
     'ydim':              50.0e-3,
     'thick':             1e-6,
@@ -150,12 +157,16 @@ everest_crystal_fields = {**everest_fields,
 everest_crystal_fields['_material'] = xc.materials.TungstenCrystal  # needs to be a CrystalMaterial, else it will fail
 everest_crystal_dict_fields = {**everest_dict_fields,
     'lattice': [
-        {'val': 'strip',        'expected': {'_orient': 1}},
-        {'val': '110',          'expected': {'_orient': 1}},
-        {'val': 110,            'expected': {'_orient': 1}},
-        {'val': 'quasi-mosaic', 'expected': {'_orient': 2}},
-        {'val': '111',          'expected': {'_orient': 2}},
-        {'val': 111,            'expected': {'_orient': 2}}]
+        {'val': 'strip',             'expected': {'_orient': 1}},
+        {'val': '110',               'expected': {'_orient': 1}},
+        {'val': 110,                 'expected': {'_orient': 1}},
+        {'val': 'quasi-mosaic',      'expected': {'_orient': 2}},
+        {'val': '111',               'expected': {'_orient': 2}},
+        {'val': 111,                 'expected': {'_orient': 2}}],
+    'bending_radius': [
+        {'val': 61.54,               'expected': {'_bending_radius': 61.54, '_bending_angle': 0.02112604331283213}}],
+    'bending_angle': [
+        {'val': 0.02112604331283213, 'expected': {'_bending_radius': 61.54, '_bending_angle': 0.02112604331283213}}]
 }
 everest_crystal_dict_fields['material'] = [
     {'val': xc.materials.TungstenCrystal, 'expected': {'_material': xc.materials.TungstenCrystal}}]
@@ -247,6 +258,28 @@ def test_black_absorber_length_instantiation(test_context):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
+def test_everest_block(test_context):
+    # Test instantiation
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
+    assert np.isclose(elem.length, 1.3)
+    assert elem._tracking == True
+    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
+    assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
+    assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
+    assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
+    assert np.isclose(elem.rutherford_rng.B, 53.50625)
+    assert elem.rutherford_rng.Newton_iterations == 7
+    elem.material = xc.materials.Tungsten
+    assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
+    assert np.isclose(elem.rutherford_rng.upper_val, 0.01)
+    assert np.isclose(elem.rutherford_rng.A, 0.0018637950841805943)
+    assert np.isclose(elem.rutherford_rng.B, 231.48944000000003)
+    assert elem.rutherford_rng.Newton_iterations == 7
+
+
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
@@ -333,4 +366,5 @@ def test_everest_crystal(test_context):
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
 
+# TODO:
 # def test_jaw_func():
