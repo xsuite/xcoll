@@ -13,6 +13,7 @@ import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 
+
 context = xo.ContextCpu(omp_num_threads='auto')
 
 # On a modern CPU, we get ~5000 particle*turns/s
