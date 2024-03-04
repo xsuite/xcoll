@@ -10,6 +10,7 @@ NSIG_FAM TCLA3                20.0 TERTIARY
 NSIG_FAM TCP7                  5.0 PRIMARY
 NSIG_FAM TCSG7                 6.5 SECONDARY
 NSIG_FAM TCLA7                10.0 TERTIARY
+NSIG_FAM CRY7                999.0 SPECIAL 
 # Injection protection
 NSIG_FAM TCLI                999.0 TERTIARY
 NSIG_FAM TDI                 999.0 TERTIARY
@@ -84,6 +85,8 @@ tctph.4l8.b1                                                 TCT8 Iner      1.00
 tctpv.4l8.b1                                                 TCT8 Iner      1.000     90.0         0.
 tctph.4l1.b1                                                TCT15 Iner      1.000      0.0         0.
 tctpv.4l1.b1                                                TCT15 Iner      1.000     90.0         0.
+tcpcv.a6l7.b1                                                CRY7 Si        0.004     90.0         0.
+tcpch.a4l7.b1                                                CRY7 Si        0.004      0.0         0.
 #
 # Old collimators still present in the machine but not in normal use:
 tcsg.b4l7.b1                                                999.0 C         1.000      0.0         0.
@@ -99,3 +102,8 @@ SETTINGS
 ONESIDED tcdqa.a4r6.b1                                    1
 ONESIDED tcdqa.c4r6.b1                                    1
 ONESIDED tcdqa.b4r6.b1                                    1
+ONESIDED tcpcv.a6l7.b1                                    1
+ONESIDED tcpch.a4l7.b1                                    1
+#
+CRYSTAL tcpcv.a6l7.b1 85.10 5.0e-3 30.0e-3 0.0 0.0 0.0 1
+CRYSTAL tcpch.a4l7.b1 61.54 2.0e-3 50.0e-3 0.0 0.0 0.0 1
