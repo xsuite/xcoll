@@ -338,29 +338,33 @@ class CollimatorManager:
                 new_names.append(name)
             else:
                 print(f"Collimator {name} not known by the FLUKA server. Not installed.")
+                self.collimator_names.remove(name)
         names = new_names
         df = self.colldb._colldb.loc[names]
         if remove_missing:
             self.colldb._colldb = df
+        for name in names:
+            inactive_length = FlukaEngine().collimators[name]['inactive_length']
+            df.loc[name, 'inactive_front'] = inactive_length
+            df.loc[name, 'inactive_back']  = inactive_length
+            df.loc[name, 'jaw_L']          = FlukaEngine().collimators[name]['jaw']
+            df.loc[name, 'jaw_R']          = FlukaEngine().collimators[name]['jaw']
+            if 'length' in FlukaEngine().collimators[name]:
+                length = FlukaEngine().collimators[name]['length']
+                active_length = df.loc[name, 'active_length']
+                if abs(length - active_length - 2*inactive_length) > 1e-9:
+                    raise ValueError(f"Lengths in FlukaEngine and CollDB do not match for collimator {name}!")
 
         # Do the installations
         def install_func(thiscoll, name):
             fluka_id        = FlukaEngine().collimators[name]['fluka_id']
             inactive_length = FlukaEngine().collimators[name]['inactive_length']
-            jaw             = FlukaEngine().collimators[name]['jaw']
-            active_length   = thiscoll['active_length']
-            if 'length' in FlukaEngine().collimators[name]:
-                length = FlukaEngine().collimators[name]['length']
-                if abs(length - active_length - 2*inactive_length) > 1e-9:
-                    raise ValueError(f"Lengths do not match for collimator {name}!")
             return FlukaCollimator(
-                    inactive_front=inactive_length,
-                    inactive_back=inactive_length,
-                    active_length=active_length,
+                    active_length=thiscoll['active_length'] + thiscoll['inactive_front'] + thiscoll['inactive_back'],
                     fluka_id=fluka_id,
                     accumulated_energy=0,
-                    jaw_L=jaw,
-                    jaw_R=-jaw,
+                    jaw_L=thiscoll['jaw_LU'],
+                    jaw_R=thiscoll['jaw_RU'],
                     active=False,
                     _tracking=False,
                     _buffer=self._buffer
@@ -455,7 +459,7 @@ class CollimatorManager:
                 print(f"Warning: No aperture found for collimator {name}!")
 
             # Remove stuff at location of collimator
-            l = thiscoll['active_length']
+            l = newcoll.active_length
             to_remove = []
             i = idx - 1
             # We remove everything between the beginning and end of the collimator except drifts
@@ -561,7 +565,7 @@ class CollimatorManager:
         if recompute or not self.colldb._optics_is_ready:
             # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
 #             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
-            pos = list({ *self.s_active_front, *self.s_active_back })
+            pos = list({ *self.s_front, *self.s_back })
             tw = line.twiss(at_s=pos)
 #             tw = tracker.twiss()
             self.colldb._optics = pd.concat([
@@ -647,11 +651,12 @@ class CollimatorManager:
     @property
     def openings_set(self):
         # TODO: need to delete jaw positions if some parameters (that would influence it) are changed
-        return not np.any(
-                    [x is None for x in self.colldb._colldb.jaw_LU]
-                    + [ x is None for x in self.colldb._colldb.jaw_RU]
-                    + [ x is None for x in self.colldb._colldb.jaw_LD]
-                    + [ x is None for x in self.colldb._colldb.jaw_RD]
+        # TODO: hacky way by comparing it is smaller than one
+        return np.all(
+                    [self.line[coll].jaw_LU <  1 for coll in self.collimator_names]
+                  + [self.line[coll].jaw_RU > -1 for coll in self.collimator_names]
+                  + [self.line[coll].jaw_LD <  1 for coll in self.collimator_names]
+                  + [self.line[coll].jaw_RD > -1 for coll in self.collimator_names]
                 )
 
 

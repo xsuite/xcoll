@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
+# This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
@@ -187,6 +187,7 @@ def track_core(collimator, part):
     # Restore the parent IDs: if ppid != pid an interaction occured and nothing needs to be done
     # (the parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
     mask_to_restore = new_pid == new_ppid
+    new_ppid[mask_to_restore] = ppid[mask_to_restore]
     
 
     # IMPORTANT: we assume that a parent can never continue existing after an interaction. TODO: is this correct?

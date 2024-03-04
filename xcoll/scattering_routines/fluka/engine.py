@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import numpy as np
@@ -21,7 +21,7 @@ default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling
 default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
                                 'fluka', 'flukaserver').resolve()
 network_file = "network.nfo"
-fluka_log  = "server_output.log"
+fluka_log  = "fluka.log"
 server_log = "server_output.log"
 
 
@@ -52,8 +52,8 @@ class FlukaEngine(xo.HybridClass):
         if(self._initialised):
             return
         self._initialised = True
-        if '_xobject' not in kwargs:
 
+        if '_xobject' not in kwargs:
             # Initialise python fields
             self._verbose = verbose
             self._cwd = None
@@ -198,7 +198,7 @@ class FlukaEngine(xo.HybridClass):
         i = 0
         while True:
             time.sleep(2)
-            i += 1
+            i += 2
             if i%30 == 0:
                 print("Network port not yet established. Waiting 30s.", flush=True)
             with this._network_nfo.open('r') as fid:
