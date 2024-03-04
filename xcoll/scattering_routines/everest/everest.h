@@ -43,6 +43,7 @@ typedef struct EverestCollData_ {
     double ai;
     double eum;
     double collnt;
+    int8_t only_mcs;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;
 

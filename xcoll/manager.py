@@ -241,32 +241,22 @@ class CollimatorManager:
 
     @property
     def s_front(self):
-        return self.colldb.s_center - self.colldb.active_length/2 - self.colldb.inactive_front
-
-    @property
-    def s_active_front(self):
-        return self.colldb.s_center - self.colldb.active_length/2
+        return self.colldb.s_center - self.colldb.length/2
 
     @property
     def s_center(self):
         return self.colldb.s_center
 
     @property
-    def s_active_back(self):
-        return self.colldb.s_center + self.colldb.active_length/2
-
-    @property
     def s_back(self):
-        return self.colldb.s_center + self.colldb.active_length/2 + self.colldb.inactive_back
+        return self.colldb.s_center + self.colldb.length/2
 
     def install_black_absorbers(self, names=None, *, verbose=False):
         if names is None:
             names = self.collimator_names
         def install_func(thiscoll, name):
             return BlackAbsorber(
-                    inactive_front=thiscoll['inactive_front'],
-                    inactive_back=thiscoll['inactive_back'],
-                    active_length=thiscoll['active_length'],
+                    length=thiscoll['length'],
                     angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                     active=False,
                     _tracking=False,
@@ -292,9 +282,7 @@ class CollimatorManager:
                 if not isinstance(material, CrystalMaterial):
                     raise ValueError(f"The material {material.name} is not a Crystalmaterial!")
                 return EverestCrystal(
-                        inactive_front=thiscoll['inactive_front'],
-                        inactive_back=thiscoll['inactive_back'],
-                        active_length=thiscoll['active_length'],
+                        length=thiscoll['length'],
                         angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=material,
                         active=False,
@@ -305,9 +293,7 @@ class CollimatorManager:
         if len(df_coll) > 0:
             def install_func(thiscoll, name):
                 return EverestCollimator(
-                        inactive_front=thiscoll['inactive_front'],
-                        inactive_back=thiscoll['inactive_back'],
-                        active_length=thiscoll['active_length'],
+                        length=thiscoll['length'],
                         angle=[thiscoll['angle_L'],thiscoll['angle_R']],
                         material=SixTrack_to_xcoll[thiscoll['material']][0],
                         active=False,
@@ -403,7 +389,7 @@ class CollimatorManager:
                 print(f"Warning: No aperture found for collimator {name}!")
 
             # Remove stuff at location of collimator
-            l = thiscoll['active_length']
+            l = thiscoll['length']
             to_remove = []
             i = idx - 1
             # We remove everything between the beginning and end of the collimator except drifts
@@ -448,8 +434,7 @@ class CollimatorManager:
                 line.element_dict.pop(nn)
 
             # Do the installation
-            s_install = df.loc[name,'s_center'] - thiscoll['active_length']/2 \
-                            - thiscoll['inactive_front']
+            s_install = df.loc[name,'s_center'] - thiscoll['length']/2
             line.insert_element(element=newcoll, name=name, at_s=s_install)
 
             # Reinstall apertures
@@ -509,7 +494,7 @@ class CollimatorManager:
         if recompute or not self.colldb._optics_is_ready:
             # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
 #             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
-            pos = list({ *self.s_active_front, *self.s_active_back })
+            pos = list({ *self.s_front, *self.s_back })
             tw = line.twiss(at_s=pos)
 #             tw = tracker.twiss()
             self.colldb._optics = pd.concat([

@@ -1,7 +1,6 @@
 import numpy as np
 import time
 start_time = time.time()
-# import sys, os, contextlib
 import matplotlib.pyplot as plt
 
 import xpart as xp
@@ -86,7 +85,6 @@ y_norm, py_norm = xp.generate_2D_gaussian(num_part)
 part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                             W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
-part._init_random_number_generator()
 
 # re-enable scattering
 line["Air 1"]._tracking = True

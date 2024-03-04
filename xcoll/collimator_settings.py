@@ -31,9 +31,7 @@ import pandas as pd
 
 # if physical_opening is used, other variables like tilt, opening, offset, .. are ignored
 _element_properties  = {
-                        'active_length':    0,
-                        'inactive_front':   0,
-                        'inactive_back':    0,
+                        'length':           0,
                         'jaw':              None,
                         'reference_center': None,
                         'angle':            0,
@@ -214,10 +212,10 @@ class CollimatorSettings:
                         scale = 1
                     else:
                         scale = 0.5
-                    ts_LU = -np.tan(self.tilt_L)*self.active_length*scale
-                    ts_RU = -np.tan(self.tilt_R)*self.active_length*scale
-                    ts_LD = np.tan(self.tilt_L)*self.active_length*(1-scale)
-                    ts_RD = np.tan(self.tilt_R)*self.active_length*(1-scale)
+                    ts_LU = -np.tan(self.tilt_L)*self.length*scale
+                    ts_RU = -np.tan(self.tilt_R)*self.length*scale
+                    ts_LD = np.tan(self.tilt_L)*self.length*(1-scale)
+                    ts_RD = np.tan(self.tilt_R)*self.length*(1-scale)
 
                     if self.side in ['left', 'both']:
                         jaw_LU = self.gap_L*sigma_U[0]  + self.offset + ts_LU

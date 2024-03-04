@@ -40,25 +40,23 @@ import pytest
 # BaseCollimator
 
 base_fields = {
-    'inactive_front':    0.7,
-    'active_length':     1.3,
-    'inactive_back':     0.2,
-    'jaw_L':             0.01544,
-    'jaw_R':             -0.0152,
-    'ref_x':             4.78e-5,
-    'ref_y':             -3.2e-5,
-    'sin_zL':            np.sin(137.8*np.pi/180),
-    'cos_zL':            np.cos(137.8*np.pi/180),
-    'sin_zR':            np.sin(42.5*np.pi/180),
-    'cos_zR':            np.cos(42.5*np.pi/180),
-    'sin_yL':            np.sin(2.78*np.pi/180),
-    'cos_yL':            np.cos(2.78*np.pi/180),
-    'tan_yL':            np.tan(2.78*np.pi/180),
-    'sin_yR':            np.sin(3.5*np.pi/180),
-    'cos_yR':            np.cos(3.5*np.pi/180),
-    'tan_yR':            np.tan(3.5*np.pi/180),
-    '_side':             2,
-    'active':            0
+    'length': 1.3,
+    'jaw_L':  0.01544,
+    'jaw_R':  -0.0152,
+    'ref_x':  4.78e-5,
+    'ref_y':  -3.2e-5,
+    'sin_zL': np.sin(137.8*np.pi/180),
+    'cos_zL': np.cos(137.8*np.pi/180),
+    'sin_zR': np.sin(42.5*np.pi/180),
+    'cos_zR': np.cos(42.5*np.pi/180),
+    'sin_yL': np.sin(2.78*np.pi/180),
+    'cos_yL': np.cos(2.78*np.pi/180),
+    'tan_yL': np.tan(2.78*np.pi/180),
+    'sin_yR': np.sin(3.5*np.pi/180),
+    'cos_yR': np.cos(3.5*np.pi/180),
+    'tan_yR': np.tan(3.5*np.pi/180),
+    '_side':  2,
+    'active': 0
 }
 base_dict_fields = {
     'jaw': [
@@ -103,7 +101,7 @@ base_user_fields = {
                 'sin_yL': np.sin(0.5*np.pi/180), 'cos_yL': np.cos(0.5*np.pi/180), 'tan_yL': np.tan(0.5*np.pi/180)}}],
     'tilt_R':  [{'val':  0.7*np.pi/180, 'expected': {
                 'sin_yR': np.sin(0.7*np.pi/180), 'cos_yR': np.cos(0.7*np.pi/180), 'tan_yR': np.tan(0.7*np.pi/180)}}],
-    # Assuming jaw is previously set to [0.015, -0.014] and tilt to [0.5,0.7] and active_length to 1.3
+    # Assuming jaw is previously set to [0.015, -0.014] and tilt to [0.5,0.7] and length to 1.3
     # In other words, the current setting is: jaw_LU = 0.009327751926056942
     #                                         jaw_LD = 0.020672248073943057
     #                                         jaw_RU = -0.02194105054291066
@@ -117,7 +115,7 @@ base_user_fields = {
     'jaw_RD':  [{'val':  -0.019, 'expected': {'jaw_R':  -0.017,               'sin_yR': -0.003076923076923077,
                                               'cos_yR': 0.9999952662609852,   'tan_yR': -0.0030769376423428405}}]
 }
-base_user_fields_read_only = ['length']
+base_user_fields_read_only = []
 
 
 # BlackAbsorber
@@ -218,41 +216,6 @@ def test_black_absorber(test_context):
     for field in absorber_user_fields_read_only:
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
-
-            
-@for_all_test_contexts
-def test_black_absorber_length_instantiation(test_context):
-    # Test instantiation with different ways of specifying the length
-    elem = xc.BlackAbsorber(length=1.1, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0, rtol=0)
-    assert np.allclose(elem.inactive_back, 0, rtol=0)
-    assert np.allclose(elem.active_length, 1.1, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, active_length=0.5, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0.3, rtol=0)
-    assert np.allclose(elem.inactive_back, 0.3, rtol=0)
-    assert np.allclose(elem.active_length, 0.5, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, active_length=0.5, inactive_front=0.4, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0.4, rtol=0)
-    assert np.allclose(elem.inactive_back, 0.2, rtol=0)
-    assert np.allclose(elem.active_length, 0.5, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, active_length=0.5, inactive_back=0.4, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0.2, rtol=0)
-    assert np.allclose(elem.inactive_back, 0.4, rtol=0)
-    assert np.allclose(elem.active_length, 0.5, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, inactive_front=0.4, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0.4, rtol=0)
-    assert np.allclose(elem.inactive_back, 0., rtol=0)
-    assert np.allclose(elem.active_length, 0.7, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, inactive_back=0.4, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0., rtol=0)
-    assert np.allclose(elem.inactive_back, 0.4, rtol=0)
-    assert np.allclose(elem.active_length, 0.7, rtol=0)
-    elem = xc.BlackAbsorber(length=1.1, inactive_front=0.4, inactive_back=0.3, _context=test_context)
-    assert np.allclose(elem.inactive_front, 0.4, rtol=0)
-    assert np.allclose(elem.inactive_back, 0.3, rtol=0)
-    assert np.allclose(elem.active_length, 0.4, rtol=0)
-    with pytest.raises(Exception) as e_info:
-        elem = xc.BlackAbsorber(length=1.1, active_length=0.5, inactive_front=0.4, inactive_back=0.2, _context=test_context)
 
 
 @for_all_test_contexts(

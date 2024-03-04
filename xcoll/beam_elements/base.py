@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
+# This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
@@ -20,6 +20,7 @@ class InvalidXcoll(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
     allow_backtrack = True
 
@@ -47,6 +48,7 @@ class BaseBlock(xt.BeamElement):
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
     _extra_c_sources = [
@@ -65,29 +67,28 @@ class BaseBlock(xt.BeamElement):
 
 class BaseCollimator(xt.BeamElement):
     _xofields = {
-        'inactive_front': xo.Float64,  # Drift before jaws
-        'active_length':  xo.Float64,  # Length of jaws
-        'inactive_back':  xo.Float64,  # Drift after jaws
-        'jaw_L':          xo.Float64,  # left jaw (distance to ref)
-        'jaw_R':          xo.Float64,  # right jaw
-        'ref_x':          xo.Float64,  # center of collimator reference frame
-        'ref_y':          xo.Float64,
-        'sin_zL':         xo.Float64,  # angle of left jaw
-        'cos_zL':         xo.Float64,
-        'sin_zR':         xo.Float64,  # angle of right jaw
-        'cos_zR':         xo.Float64,
-        'sin_yL':         xo.Float64,  # tilt of left jaw (around jaw midpoint)
-        'cos_yL':         xo.Float64,
-        'tan_yL':         xo.Float64,
-        'sin_yR':         xo.Float64,  # tilt of right jaw (around jaw midpoint)
-        'cos_yR':         xo.Float64,
-        'tan_yR':         xo.Float64,
-        '_side':          xo.Int8,     # is it a onesided collimator?
-        'active':         xo.Int8
+        'length': xo.Float64,  # Length of jaws
+        'jaw_L':  xo.Float64,  # left jaw (distance to ref)
+        'jaw_R':  xo.Float64,  # right jaw
+        'ref_x':  xo.Float64,  # center of collimator reference frame
+        'ref_y':  xo.Float64,
+        'sin_zL': xo.Float64,  # angle of left jaw
+        'cos_zL': xo.Float64,
+        'sin_zR': xo.Float64,  # angle of right jaw
+        'cos_zR': xo.Float64,
+        'sin_yL': xo.Float64,  # tilt of left jaw (around jaw midpoint)
+        'cos_yL': xo.Float64,
+        'tan_yL': xo.Float64,
+        'sin_yR': xo.Float64,  # tilt of right jaw (around jaw midpoint)
+        'cos_yR': xo.Float64,
+        'tan_yR': xo.Float64,
+        '_side':  xo.Int8,     # is it a onesided collimator?
+        'active': xo.Int8
     }
 
     isthick = True
     behaves_like_drift = True
+#     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'ref_x', 'ref_y',
@@ -163,32 +164,6 @@ class BaseCollimator(xt.BeamElement):
                 kwargs['cos_yR'] = np.cos(anglerad_R)
                 kwargs['tan_yR'] = np.cos(anglerad_R)
 
-            # Set lengths
-            if 'length' in kwargs.keys():
-                if 'active_length' in kwargs.keys():
-                    if 'inactive_front' in kwargs.keys():
-                        if 'inactive_back' in kwargs.keys():
-                            raise ValueError("Too many length variables used at initialisation!")
-                        kwargs['inactive_back'] = kwargs.pop('length') - kwargs['inactive_front'] - kwargs['active_length']
-                    elif 'inactive_back' in kwargs.keys():
-                        if 'inactive_front' in kwargs.keys():
-                            raise ValueError("Too many length variables used at initialisation!")
-                        kwargs['inactive_front'] = kwargs.pop('length') - kwargs['inactive_back'] - kwargs['active_length']
-                    else:
-                        kwargs['inactive_front'] = (kwargs['length']- kwargs['active_length'])/2
-                        kwargs['inactive_back'] = (kwargs.pop('length') - kwargs['active_length'])/2
-                elif 'inactive_front' in kwargs.keys():
-                    if 'inactive_back' in kwargs.keys():
-                        kwargs['active_length'] = kwargs.pop('length') - kwargs['inactive_back'] - kwargs['inactive_front']
-                    else:
-                        kwargs['active_length'] = kwargs.pop('length') - kwargs['inactive_front']
-                elif 'inactive_back' in kwargs.keys():
-                    kwargs['active_length'] = kwargs.pop('length') - kwargs['inactive_back']
-                else:
-                    kwargs['active_length'] = kwargs.pop('length')
-            kwargs.setdefault('inactive_front', 0)
-            kwargs.setdefault('inactive_back', 0)
-            kwargs.setdefault('active_length', 0)
             kwargs.setdefault('active', True)
 
         super().__init__(**kwargs)
@@ -204,49 +179,49 @@ class BaseCollimator(xt.BeamElement):
 
     @property
     def jaw_LU(self):
-        return self.jaw_L - self.sin_yL*self.active_length/2
+        return self.jaw_L - self.sin_yL*self.length/2
 
     @jaw_LU.setter   # This assumes you keep jaw_LD fixed, hence both jaw_L and the tilt change
     def jaw_LU(self, jaw_LU):
         jaw_LD = self.jaw_LD
         self.jaw_L  = (jaw_LU+jaw_LD)/2
-        self.sin_yL = (jaw_LD-jaw_LU)/self.active_length
+        self.sin_yL = (jaw_LD-jaw_LU)/self.length
         self.cos_yL = np.sqrt(1-self.sin_yL**2)
         self.tan_yL = self.sin_yL / self.cos_yL
 
     @property
     def jaw_LD(self):
-        return self.jaw_L + self.sin_yL*self.active_length/2
+        return self.jaw_L + self.sin_yL*self.length/2
 
     @jaw_LD.setter   # This assumes you keep jaw_LU fixed, hence both jaw_L and the tilt change
     def jaw_LD(self, jaw_LD):
         jaw_LU = self.jaw_LU
         self.jaw_L  = (jaw_LU+jaw_LD)/2
-        self.sin_yL = (jaw_LD-jaw_LU)/self.active_length
+        self.sin_yL = (jaw_LD-jaw_LU)/self.length
         self.cos_yL = np.sqrt(1-self.sin_yL**2)
         self.tan_yL = self.sin_yL / self.cos_yL
 
     @property
     def jaw_RU(self):
-        return self.jaw_R - self.sin_yR*self.active_length/2
+        return self.jaw_R - self.sin_yR*self.length/2
 
     @jaw_RU.setter   # This assumes you keep jaw_RD fixed, hence both jaw_R and the tilt change
     def jaw_RU(self, jaw_RU):
         jaw_RD = self.jaw_RD
         self.jaw_R  = (jaw_RU+jaw_RD)/2
-        self.sin_yR = (jaw_RD-jaw_RU)/self.active_length
+        self.sin_yR = (jaw_RD-jaw_RU)/self.length
         self.cos_yR = np.sqrt(1-self.sin_yR**2)
         self.tan_yR = self.sin_yR / self.cos_yR
 
     @property
     def jaw_RD(self):
-        return self.jaw_R + self.sin_yR*self.active_length/2
+        return self.jaw_R + self.sin_yR*self.length/2
 
     @jaw_RD.setter   # This assumes you keep jaw_RU fixed, hence both jaw_R and the tilt change
     def jaw_RD(self, jaw_RD):
         jaw_RU = self.jaw_RU
         self.jaw_R  = (jaw_RU+jaw_RD)/2
-        self.sin_yR = (jaw_RD-jaw_RU)/self.active_length
+        self.sin_yR = (jaw_RD-jaw_RU)/self.length
         self.cos_yR = np.sqrt(1-self.sin_yR**2)
         self.tan_yR = self.sin_yR / self.cos_yR
 
@@ -285,15 +260,6 @@ class BaseCollimator(xt.BeamElement):
     @reference_center.setter
     def reference_center(self, ref):
         _set_LR(self, 'ref', ref, name_L='_x', name_R='_y')
-
-    @property
-    def length(self):
-        return (self.inactive_front + self.active_length + self.inactive_back)
-
-    @length.setter
-    def length(self, val):
-        raise ValueError("The parameter 'length' can only be set at initialisation. " 
-                       + "Use 'active_length', 'inactive_front', and/or 'inactive_back'.")
 
     @property
     def side(self):
@@ -356,6 +322,20 @@ class BaseCollimator(xt.BeamElement):
         point_x += getattr(self, 'jaw_' + pos) * cosz
         point_y += getattr(self, 'jaw_' + pos) * sinz
         return lambda t: (point_x - t*sinz, point_y + t*cosz)
+
+    @property
+    def active_length(self):
+        raise ValueError("`active_length`is deprecated. Please use `length`.")
+
+    @property
+    def inactive_front(self):
+        raise ValueError("`inactive_front`is deprecated. Collimators now only "
+                       + "contain their active length (implemented as `length`).")
+
+    @property
+    def inactive_back(self):
+        raise ValueError("`inactive_back`is deprecated. Collimators now only "
+                       + "contain their active length (implemented as `length`).")
 
 
 def _side_setter(val):

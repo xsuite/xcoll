@@ -145,10 +145,10 @@ double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, doub
             xp = res[1];
             free(res);
             if (x <= 0) {
-                s = (rlen0-rlen)+ s;
+                s = rlen0 - rlen + s;
                 break; // go to 20
             }
-            if ((s + dh) >= rlen) {
+            if (s + dh >= rlen) {
                 s = rlen0;
                 break; // go to 20
             }
@@ -157,11 +157,11 @@ double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, doub
         }
 
     } else {
-        s = rlen0;
-        double* res = scamcs(part, x, xp, s);
+        double* res = scamcs(part, x, xp, rlen0);
         x  = res[0];
         xp = res[1];
         free(res);
+        s = rlen0;
     }
 
     double* res = scamcs(part, z, zp, s);
