@@ -50,7 +50,7 @@ def test_create_initial_distribution(beam, npart,longitudinal, longitudinal_beta
     with flaky_assertions():
         # Diverging beam --------------------------------------------------------------------------
         coll_div = line[tcp_div]
-        drift = xt.Drift(length=coll_div.active_length)
+        drift = xt.Drift(length=coll_div.length)
         drift.track(part_div)
         mask_div_L = part_div.y > 0
         mask_div_R = part_div.y < 0
@@ -65,7 +65,7 @@ def test_create_initial_distribution(beam, npart,longitudinal, longitudinal_beta
 
         # delta w/ Chi-Square test or Kolmogorov-Smirnov test
         if longitudinal == 'matched_dispersion':
-            count,_ = np.histogram(part_div.delta, bins=60)
+            count,_ = np.histogram(part_div.delta, bins=50)
             expected_counts = np.full_like(count, np.mean(count))
             _, p = stats.chisquare(count, expected_counts)
             assert p > 0.05
@@ -106,7 +106,7 @@ def test_create_initial_distribution(beam, npart,longitudinal, longitudinal_beta
 
         # delta w/ Chi-Square test or Kolmogorov-Smirnov test
         if longitudinal == 'matched_dispersion':
-            count,_ = np.histogram(part_conv.delta, bins=60)
+            count,_ = np.histogram(part_conv.delta, bins=50)
             expected_counts = np.full_like(count, np.mean(count))
             _, p = stats.chisquare(count, expected_counts)
             assert p > 0.05
