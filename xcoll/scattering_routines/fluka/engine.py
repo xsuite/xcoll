@@ -14,15 +14,13 @@ import xpart.pdg as pdg
 import xtrack as xt
 
 from .reference_masses import source, masses
+from .paths import fluka as default_fluka_path
+from .paths import flukaserver as default_flukaserver_path
 
 
-default_fluka_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka4-3.4',
-                          'bin', 'rfluka').resolve()
-default_flukaserver_path = Path('/', 'eos', 'project-f', 'flukafiles', 'fluka-coupling', 'fluka_coupling',
-                                'fluka', 'flukaserver').resolve()
 network_file = "network.nfo"
 fluka_log  = "fluka.log"
-server_log = "server_output.log"
+server_log = "rfluka.log"
 
 
 class FlukaEngine(xo.HybridClass):
