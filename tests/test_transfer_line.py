@@ -6,7 +6,6 @@
 import numpy as np
 import time
 start_time = time.time()
-import matplotlib.pyplot as plt
 
 import xpart as xp
 import xtrack as xt
