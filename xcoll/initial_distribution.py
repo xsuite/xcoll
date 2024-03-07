@@ -14,14 +14,12 @@ from .beam_elements import _all_collimator_types
 
 def generate_pencil_on_collimator(line, collimator, num_particles, *,
                                   nemitt_x, nemitt_y,  side='+-', impact_parameter=0,
-                                  pencil_spread=1e-6, sigma_z=7.61e-2,
-                                  transverse_impact_parameter=0.,
-                                  transverse_spread_sigma=0.01, longitudinal=None,
-                                  longitudinal_betatron_cut=None):
+                                  pencil_spread=1e-6, sigma_z=7.61e-2, tw=None,
+                                  longitudinal=None, longitudinal_betatron_cut=None):
     """
     Generate a pencil beam on a collimator.
     """
-    # TODO: should get emittances from collimator somehow, as they should be the same
+    # TODO: should get emittances from the collimator somehow, as they should be the same
     #       as the ones used to set the openings
 
     if line is None:
@@ -29,8 +27,6 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
 
     if line.tracker is None:
         raise Exception("Please build tracker before generating pencil distribution!")
-    if transverse_impact_parameter != 0.:
-        raise NotImplementedError
 
     coll = line[collimator]
 
@@ -41,6 +37,8 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
     if coll.active == 0:
         raise Exception("Need to set collimator openings before generating pencil distribution!")
 
+    num_particles = int(num_particles)
+
     if coll.side == 'left':
         side = '+'
     if coll.side == 'right':
@@ -50,28 +48,33 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
     angle = coll.angle
     if abs(np.mod(angle-90,180)-90) < 1e-6:
         plane = 'x'
+        transv_plane = 'y'
     elif abs(np.mod(angle,180)-90) < 1e-6:
         plane = 'y'
+        transv_plane = 'x'
     else:
         raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
 
+    if tw is None:
+        tw = line.twiss()    # TODO: can we do this smarter by caching?
+
     # Is it converging or diverging?
-    tw = line.twiss()    # TODO: can we do this smarter by caching?
     s_front = line.get_s_position(collimator)
     s_back  = s_front + coll.length
     is_converging  = tw[f'alf{plane}', collimator] > 0
     print(f"Collimator {collimator} is {'con' if is_converging else 'di'}verging.")
 
     beam_sizes = tw.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-    beam_sizes = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{plane}']
     if is_converging:
         # pencil at front of jaw
         match_at_s = s_front
-        sigma = beam_sizes[0]
+        sigma = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{plane}'][0]
+        sigma_transv = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{transv_plane}'][0]
     else:
         # pencil at back of jaw
         match_at_s = s_back
-        sigma = beam_sizes[1]
+        sigma = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{plane}'][1]
+        sigma_transv = beam_sizes.rows[collimator:f'{collimator}%%1'][f'sigma_{transv_plane}'][1]
     dr_sigmas = pencil_spread/sigma
 
     # Generate 4D coordinates
@@ -80,16 +83,13 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
         num_plus = int(num_particles/2)
         num_min  = int(num_particles - num_plus)
         coords_plus = _generate_4D_pencil_one_jaw(line, collimator, num_plus, nemitt_x, nemitt_y,
-                                                  plane, '+', impact_parameter, dr_sigmas,
-                                                  transverse_spread_sigma, match_at_s)
+                                                  plane, '+', impact_parameter, dr_sigmas, match_at_s)
         coords_min  = _generate_4D_pencil_one_jaw(line, collimator, num_min, nemitt_x, nemitt_y,
-                                                  plane, '-', impact_parameter, dr_sigmas,
-                                                  transverse_spread_sigma, match_at_s)
+                                                  plane, '-', impact_parameter, dr_sigmas, match_at_s)
         coords      = [ [*c_plus, *c_min] for c_plus, c_min in zip(coords_plus, coords_min)]
     else:
         coords      = _generate_4D_pencil_one_jaw(line, collimator, num_particles, nemitt_x, nemitt_y,
-                                                  plane, side, impact_parameter, dr_sigmas,
-                                                  transverse_spread_sigma, match_at_s)
+                                                  plane, side, impact_parameter, dr_sigmas, match_at_s)
     pencil            = coords[0]
     p_pencil          = coords[1]
     transverse_norm   = coords[2]
@@ -175,32 +175,29 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, collimator, num_particles, nemitt_x, nemitt_y, plane, side,
-                                impact_parameter, dr_sigmas, transverse_spread_sigma, match_at_s):
-        coll = line[collimator]
-        if plane == 'x':
-            co_pencil     = coll.ref_x
-            co_transverse = coll.ref_y
-        else:
-            co_pencil     = coll.ref_y
-            co_transverse = coll.ref_x
+                                impact_parameter, dr_sigmas, match_at_s):
+    coll = line[collimator]
+    if plane == 'x':
+        co_pencil   = coll.ref_x
+    else:
+        co_pencil   = coll.ref_y
 
-        if side == '+':
-            absolute_cut = coll.jaw_LU + co_pencil + impact_parameter
-        elif side == '-':
-            absolute_cut = coll.jaw_RU + co_pencil - impact_parameter
+    if side == '+':
+        absolute_cut = coll.jaw_LU + co_pencil + impact_parameter
+    elif side == '-':
+        absolute_cut = coll.jaw_RU + co_pencil - impact_parameter
 
-        # Collimator plane: generate pencil distribution
-        pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
-                            num_particles, plane=plane, absolute_cut=absolute_cut,
-                            dr_sigmas=dr_sigmas, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                            at_element=collimator, side=side, line=line,
-                            match_at_s=match_at_s
-                           )
+    # Collimator plane: generate pencil distribution
+    pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
+                        num_particles, plane=plane, absolute_cut=absolute_cut,
+                        dr_sigmas=dr_sigmas, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                        at_element=collimator, side=side, line=line,
+                        match_at_s=match_at_s
+                       )
 
-        # Other plane: generate gaussian distribution in normalized coordinates
-        transverse_norm   = np.random.normal(loc=co_transverse, scale=transverse_spread_sigma,
-                                             size=num_particles)
-        p_transverse_norm = np.random.normal(scale=transverse_spread_sigma, size=num_particles)
+    # Other plane: generate gaussian distribution in normalized coordinates
+    transverse_norm   = np.random.normal(size=num_particles)
+    p_transverse_norm = np.random.normal(size=num_particles)
 
-        return [pencil, p_pencil, transverse_norm, p_transverse_norm]
+    return [pencil, p_pencil, transverse_norm, p_transverse_norm]
 

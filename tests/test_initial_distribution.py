@@ -1,28 +1,38 @@
-import json
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import numpy as np
 from pathlib import Path
+import pytest
+from scipy import stats
+
 import xtrack as xt
 import xcoll as xc
-import pytest
-import math
-from scipy import stats
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
+
 path = Path(__file__).parent / 'data'
+
+
+# TODO:  we are not checking the angles of the pencil!
 
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
 @retry()
-@pytest.mark.parametrize("beam, npart, longitudinal, longitudinal_betatron_cut", [
-                        [2, 40000, None, None],
-                        [1, 40000, 'bucket', None],
-                        [1, 40000, 'matched_dispersion', 5]]
-                        , ids=["B1", "B1_bucket", "B2_matched"])
-
-def test_create_initial_distribution(beam, npart,longitudinal, longitudinal_betatron_cut, test_context):
-    
+@pytest.mark.parametrize("beam, npart, impact_parameter, pencil_spread, "
+                       + "longitudinal, longitudinal_betatron_cut", [
+                        [1, 1e4, 0, 1e-6, None, None],
+                        [2, 2.3e6, 1.3e-7, 2.3e-6, None, None],
+                        [1, 1e6, 0, 0.9e-6, 'bucket', None],
+                        [2, 1e6, 2.8e-8, 3.4e-6, 'matched_dispersion', 5]]
+                        , ids=["B1_default", "B2_diff_spread", "B1_bucket", "B2_matched"])
+def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
+                                     longitudinal, longitudinal_betatron_cut,
+                                     test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                                   line=line, beam=beam,_context=test_context)
@@ -36,98 +46,106 @@ def test_create_initial_distribution(beam, npart,longitudinal, longitudinal_beta
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = xc.generate_pencil_on_collimator(line,tcp_conv, num_particles=npart,
+    part_conv = xc.generate_pencil_on_collimator(line,tcp_conv, num_particles=npart, tw=tw,
                                                 nemitt_x=3.5e-6, nemitt_y=3.5e-6, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
-    part_div = xc.generate_pencil_on_collimator(line,tcp_div, num_particles=npart,
+                                                longitudinal_betatron_cut=longitudinal_betatron_cut,
+                                                impact_parameter=impact_parameter, pencil_spread=pencil_spread)
+    part_div = xc.generate_pencil_on_collimator(line,tcp_div, num_particles=npart, tw=tw,
                                                 nemitt_x=3.5e-6, nemitt_y=3.5e-6, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
+                                                longitudinal_betatron_cut=longitudinal_betatron_cut,
+                                                impact_parameter=impact_parameter, pencil_spread=pencil_spread)
 
     # Normalize coordinates
     part_norm_conv = tw.get_normalized_coordinates(part_conv, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
     part_norm_div = tw.get_normalized_coordinates(part_div, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
     with flaky_assertions():
-        # Diverging beam --------------------------------------------------------------------------
+
+        # Horizontal collimator (converging beam) ------------------------------------------
+        coll_conv = line[tcp_conv]
+        mask_conv_L = part_conv.x > 0
+        mask_conv_R = part_conv.x < 0
+
+        # Pencil: left jaw
+        pos_jawL_conv = coll_conv.ref_x + coll_conv.jaw_L
+        pos_partL_conv = part_conv.x[mask_conv_L].min()
+        pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
+        assert np.isclose(pencil_spread_convL, pencil_spread, atol=1e-9)
+        assert pos_partL_conv - impact_parameter - pos_jawL_conv < 1e-9
+        assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
+
+        # Pencil: right jaw
+        pos_jawR_conv = coll_conv.ref_x + coll_conv.jaw_R
+        pos_partR_conv = part_conv.x[mask_conv_R].max()
+        pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
+        assert np.isclose(pencil_spread_convR, pencil_spread, atol=1e-9)
+        assert pos_jawR_conv - pos_partR_conv - impact_parameter < 1e-9
+        assert pos_jawR_conv - pos_partR_conv - impact_parameter > 0
+
+        # Transverse: mean
+        transverse_spread_sigma = 1
+        atol = 5*transverse_spread_sigma/np.sqrt(npart)
+        assert np.isclose(np.mean(part_norm_conv.y_norm),  0, atol=atol)
+        assert np.isclose(np.mean(part_norm_conv.py_norm), 0, atol=atol)
+
+        # Transverse: std
+        atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
+        assert np.isclose(np.std(part_norm_conv.y_norm), transverse_spread_sigma, atol=atol)
+        assert np.isclose(np.std(part_norm_conv.py_norm),transverse_spread_sigma, atol=atol)
+
+        # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
+        if longitudinal == 'matched_dispersion':
+            count,_ = np.histogram(part_conv.delta, bins=50)
+            expected_counts = np.full_like(count, np.mean(count))
+            _, p = stats.chisquare(count, expected_counts)
+            assert p > 0.05
+        elif longitudinal == 'bucket':
+            count,_ = np.histogram(part_conv.delta, bins=50)
+            _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
+            assert p > 0.05
+
+        # Vertical collimator (diverging beam) ---------------------------------------------
         coll_div = line[tcp_div]
         drift = xt.Drift(length=coll_div.length)
         drift.track(part_div)
         mask_div_L = part_div.y > 0
         mask_div_R = part_div.y < 0
 
-        # mean
-        assert math.isclose(np.mean(part_norm_div.x_norm),0.0,abs_tol=2e-4)
-        assert math.isclose(np.mean(part_norm_div.px_norm),0.0,abs_tol=2e-4)
-
-        # std 
-        assert math.isclose(np.std(part_norm_div.x_norm),0.01,abs_tol=1e-4)
-        assert math.isclose(np.std(part_norm_div.px_norm),0.01,abs_tol=1e-4)
-
-        # delta w/ Chi-Square test or Kolmogorov-Smirnov test
-        if longitudinal == 'matched_dispersion':
-            count,_ = np.histogram(part_div.delta, bins=50)
-            expected_counts = np.full_like(count, np.mean(count))
-            _, p = stats.chisquare(count, expected_counts)
-            assert p > 0.05
-        elif longitudinal == 'bucket':
-            count,_ = np.histogram(part_div.delta, bins=50)
-            _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
-            assert p > 0.05
-
-
-        # left jaw 
-        pos_jawL_div = coll_div.ref_y + coll_div.jaw_L 
+        # Pencil: left jaw
+        pos_jawL_div = coll_div.ref_y + coll_div.jaw_L
         pos_partL_div = part_div.y[mask_div_L].min()
-        pencil_spread_divL = part_div.y[mask_div_L].max() - part_div.y[mask_div_L].min()
-   
-        assert math.isclose(pencil_spread_divL, 1e-6, abs_tol=1e-7)
-        assert abs(pos_jawL_div - pos_partL_div) < 1e-9
+        pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
+        assert np.isclose(pencil_spread_divL, pencil_spread, atol=1e-9)
+        assert pos_partL_div - impact_parameter - pos_jawL_div < 1e-9
+        assert pos_partL_div - impact_parameter - pos_jawL_div > 0
 
-        # right jaw
-        pos_jawR_div = coll_div.ref_y + coll_div.jaw_R 
+        # Pencil: right jaw
+        pos_jawR_div = coll_div.ref_y + coll_div.jaw_R
         pos_partR_div = part_div.y[mask_div_R].max()
-        pencil_spread_divR = part_div.y[mask_div_R].max() - part_div.y[mask_div_R].min()
+        pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
+        assert np.isclose(pencil_spread_divR, pencil_spread, atol=1e-9)
+        assert pos_jawR_div - pos_partR_div - impact_parameter < 1e-9
+        assert pos_jawR_div - pos_partR_div - impact_parameter > 0
 
-        assert math.isclose(pencil_spread_divR, 1e-6, abs_tol=1e-7)
-        assert abs(pos_jawR_div - pos_partR_div) < 1e-8
+        # Transverse: mean
+        transverse_spread_sigma = 1
+        atol = 5*transverse_spread_sigma/np.sqrt(npart)
+        assert np.isclose(np.mean(part_norm_div.x_norm),  0, atol=atol)
+        assert np.isclose(np.mean(part_norm_div.px_norm), 0, atol=atol)
 
-        # Converging beam --------------------------------------------------------------------------
-        coll_conv = line[tcp_conv]
-        mask_conv_L = part_conv.x > 0
-        mask_conv_R = part_conv.x < 0
+        # Transverse: std
+        atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
+        assert np.isclose(np.std(part_norm_div.x_norm), transverse_spread_sigma, atol=atol)
+        assert np.isclose(np.std(part_norm_div.px_norm),transverse_spread_sigma, atol=atol)
 
-        # mean
-        assert math.isclose(np.mean(part_norm_conv.y_norm),0.0,abs_tol=2e-4)
-        assert math.isclose(np.mean(part_norm_conv.y_norm),0.0,abs_tol=2e-4)
-
-        # std 
-        assert math.isclose(np.std(part_norm_conv.y_norm),0.01,abs_tol=1e-4)
-        assert math.isclose(np.std(part_norm_conv.py_norm),0.01,abs_tol=1e-4)
-
-        # delta w/ Chi-Square test or Kolmogorov-Smirnov test
+        # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
         if longitudinal == 'matched_dispersion':
-            count,_ = np.histogram(part_conv.delta, bins=50)
+            count,_ = np.histogram(part_div.delta, bins=50)
             expected_counts = np.full_like(count, np.mean(count))
             _, p = stats.chisquare(count, expected_counts)
             assert p > 0.05
         elif longitudinal == 'bucket':
-            count,_ = np.histogram(part_conv.delta, bins=50)
+            count,_ = np.histogram(part_div.delta, bins=50)
             _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
             assert p > 0.05
 
-        # left jaw
-        pos_jawL_conv = coll_conv.ref_x + coll_conv.jaw_L
-        pos_partL_conv = part_conv.x[mask_conv_L].min()
-        pencil_spread_convL = part_conv.x[mask_conv_L].max() - part_conv.x[mask_conv_L].min()
-
-        assert math.isclose(pencil_spread_convL, 1e-6, abs_tol=1e-7)
-        assert abs(pos_jawL_conv - pos_partL_conv) < 1e-9   
-        
-        # right jaw
-        pos_jawR_conv = coll_conv.ref_x + coll_conv.jaw_R 
-        pos_partR_conv = part_conv.x[mask_conv_R].max()
-        pencil_spread_convR = part_conv.x[mask_conv_R].max() - part_conv.x[mask_conv_R].min()
-        
-        assert math.isclose(pencil_spread_convR, 1e-6, abs_tol=1e-7)
-        assert abs(pos_jawR_conv - pos_partR_conv) < 1e-8
-        
