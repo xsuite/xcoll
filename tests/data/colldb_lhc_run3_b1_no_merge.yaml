@@ -16,7 +16,7 @@ families:
   # Dump protection
   TCDQ:    { gap: 7.3,   stage: tertiary,   material: C,     length: 3,      angle: 0,  parking: 0.025, side: left }
   TCSP:    { gap: 7.3,   stage: SECONDARY,  material: C,     Length: 1,      angle: 0,  parking: 0.025 }
-  # Physics background minimalisation
+  # Triplet protection
   TCT15:   { gap: 8.5,   stage: tertiary,   material: Iner,  length: 1,                 parking: 0.020 }
   TCT2:    { gap: 37,    STAGE: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   TCT8:    { gap: 11.5,  stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }

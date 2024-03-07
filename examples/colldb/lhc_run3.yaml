@@ -42,7 +42,7 @@ families:
   # Dump protection
   - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: C,     length: 3,     angle: 0,  side: left }
   - &TCSP    { <<: *ALL,  gap: 7.3,   stage: secondary,  material: C,     length: 1,     angle: 0 }
-  # Physics background minimalisation
+  # Triplet protection
   - &TCT15   { <<: *ALL,  gap: 8.5,   stage: tertiary,   material: Iner,  length: 1,     parking: 0.020 }
   - &TCT2    { <<: *ALL,  gap: 37,    stage: tertiary,   material: Iner,  length: 1,     }
   - &TCT8    { <<: *ALL,  gap: 11.5,  stage: tertiary,   material: Iner,  length: 1,     }
