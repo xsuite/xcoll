@@ -214,9 +214,6 @@ class CollimatorDatabase:
                                 cry[sline[1]][key] = float(sline[idx])
                             else:
                                 cry[sline[1]][key] = int(sline[idx])
-                    elif sline[0].lower() == "target":
-                        variables['xdim'][sline[1]] = float(sline[2])
-                        variables['ydim'][sline[1]] = float(sline[3])
                     elif sline[0].lower() == 'settings':
                         pass # Acknowledge and ignore this line
                     elif len(sline) == 6:
@@ -307,8 +304,8 @@ class CollimatorDatabase:
                     fam_keys = dcts._family_dict[fam].keys()
                     coll_dict = {**{'<<': '*'+fam}, **coll_dict}
                 temp_items_to_print = []
-                if coll_dict['crystal']:
-                    temp_items_to_print = ['bend','xdim','ydim','miscut','crystal']
+                if coll_dict['crystal'] and str(coll_dict['crystal'])!='nan':
+                    temp_items_to_print = ['bending_radius','xdim','ydim','miscut','crystal', 'thick']
                 if coll_dict['angle_L'] == coll_dict['angle_R']:
                     coll_dict.update({'angle': coll_dict['angle_L']})
                 else:
@@ -324,6 +321,8 @@ class CollimatorDatabase:
                 value = {}
                 overwritten_keys = coll_dict['overwritten_keys']
                 for key, val in coll_dict.items():
+                    if key == 'active_length':
+                        key = 'length' 
                     if (key in coll_items_to_print+temp_items_to_print) and (key not in (set(fam_keys)-set(overwritten_keys))) and (val != 'both'):
                         value.update({key: val})
                 file.write(_format_dict_entry(coll, value, spacing='    '))
