@@ -14,7 +14,6 @@ import pandas as pd
 
 
 class CollimatorImpacts(xt.BeamElement):
-
     _xofields = {
         '_index':            xt.RecordIndex,
         'at_element':        xo.Int64[:],
@@ -48,6 +47,8 @@ class CollimatorImpacts(xt.BeamElement):
         'child_a':           xo.Int64[:],
         'child_pdgid':       xo.Int64[:],
     }
+
+    allow_track = False
 
     _extra_c_sources = [
         source,

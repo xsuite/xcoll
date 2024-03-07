@@ -111,7 +111,7 @@ class CollimatorDatabase:
                     raise ValueError("Missing name tag / anchor in "
                                    + "CollimatorDatabase['families']!")
                 # We get the anchor from the rt yaml, and use it as key in the families dict
-                families[full_fam.anchor.value.lower()] = fam
+                families[full_fam.anchor.value.lower()] = {f.lower(): v for f, v in fam.items()}
             dct['families'] = families
 
             # Now we need to loop over each collimator, and verify which family was used
@@ -184,10 +184,8 @@ class CollimatorDatabase:
                    beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
 
 
-    # TODO: load crystals with SixTrack loader
-    # TODO: load families with SixTrack loader
     @classmethod
-    def from_SixTrack(cls, file, **kwargs):
+    def from_SixTrack(cls, file, ignore_crystals=True, **kwargs):
         # only import regex here
         import re
         with open(file, 'r') as infile:
@@ -195,49 +193,72 @@ class CollimatorDatabase:
             family_settings = {}
             family_types = {}
             side = {}
+            cry_fields = ['bending_radius', 'xdim', 'ydim', 'thick', 'miscut', 'crystal']
+            cry = {}
 
             for l_no, line in enumerate(infile):
                 if line.startswith('#'):
                     continue # Comment
-
                 sline = line.split()
-                if len(sline) > 0 and len(sline) < 6:
+                if len(sline) > 0:
                     if sline[0].lower() == 'nsig_fam':
                         family_settings[sline[1]] = float(sline[2])
                         family_types[sline[1]] = sline[3]
                     elif sline[0].lower() == 'onesided':
                         side[sline[1]] = int(sline[2])
+                    elif sline[0].lower() == "crystal":
+                        cry[sline[1]] = {}
+                        for i, key in enumerate(cry_fields):
+                            idx = i+2 if i < 4 else i+3  # we skip "tilt"
+                            if i < 5:
+                                cry[sline[1]][key] = float(sline[idx])
+                            else:
+                                cry[sline[1]][key] = int(sline[idx])
+                    elif sline[0].lower() == "target":
+                        variables['xdim'][sline[1]] = float(sline[2])
+                        variables['ydim'][sline[1]] = float(sline[3])
                     elif sline[0].lower() == 'settings':
-                        # TODO CRYSTAL
                         pass # Acknowledge and ignore this line
+                    elif len(sline) == 6:
+                        # Standard collimator definition
+                        coll_data_string += line
                     else:
                         print(f"Unknown setting {line}")
-                else:
-                    coll_data_string += line
+
+        defaults = {}
+        _initialise_None(defaults)
 
         famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
         names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
 
-        df = pd.read_csv(io.StringIO(coll_data_string), delim_whitespace=True,
-                        index_col=False, names=names)
+        df = pd.read_csv(io.StringIO(coll_data_string), sep='\s+', index_col=False, names=names)
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
-        sides = df['name'].apply(lambda s: side.get(s, 0))
-        df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
-        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing # TODO this breaks code if a key has upper case, e.g. gap_L
-        df['parking'] = 0.025
-        df = df.set_index('name')
-        df['side'] = sides.values
-        df['side'] = [ 'both'  if s==0 else s for s in df['side'] ]
-        df['side'] = [ 'left'  if s==1 else s for s in df['side'] ]
-        df['side'] = [ 'right' if s==2 else s for s in df['side'] ]
-        return cls.from_dict({'collimators': df.transpose().to_dict(), 'families': famdct}, **kwargs)
 
-    # -------------------------------
-    # ------ Dump to disk -----------
-    # -------------------------------
-    
+        df['gap'] = df['gap'].apply(lambda s: float(family_settings.get(s, s)))
+        # TODO this breaks code if a key has upper case, e.g. gap_L
+        df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
+        df['parking'] = 0.025
+        if ignore_crystals:
+            df = df[~df.name.isin(list(cry.keys()))]
+        else:
+            for key in cry_fields:
+                df[key] = [cry[name][key] if name in cry else defaults[key]
+                           for name in df['name']]
+            df['crystal'] = ['strip' if s==1 else s for s in df['crystal']]
+            df['crystal'] = ['quasi-mosaic' if s==2 else s for s in df['crystal']]
+        df['side'] = [side[name] if name in side else defaults['side']
+                      for name in df['name']]
+        df['side'] = ['both'  if s==0 else s for s in df['side']]
+        df['side'] = ['left'  if s==1 else s for s in df['side']]
+        df['side'] = ['right' if s==2 else s for s in df['side']]
+        df = df.set_index('name')
+
+        return cls.from_dict({'collimators': df.transpose().to_dict(), 'families': famdct}, \
+                             ignore_crystals=ignore_crystals, **kwargs)
+
+
     def write_to_yaml(self, out, lhc_style=True):
         """
         Writes a colldb in memory to disk in the yaml format.
@@ -387,7 +408,7 @@ class CollimatorDatabase:
                 _print_colls(b2_colls, self, 'b2', file)
             if len(bx_colls) > 0:
                 _print_colls(bx_colls, self, 'bx', file)
-                print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')    
+                print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')
 
 
     def __init__(self, **kwargs):
@@ -450,7 +471,7 @@ class CollimatorDatabase:
                 # Only do this check if we didn't do a YAML merge earlier (because then it
                 # is already taken care of)
                 if not _yaml_merged:
-                    overwritten_keys = [key for key in settings.keys() if key in fam[thisfam]]
+                    overwritten_keys = [key.lower() for key in settings.keys() if key in fam[thisfam]]
                     if len(overwritten_keys) > 0:
                         settings['overwritten_keys'] = overwritten_keys
 
@@ -463,7 +484,10 @@ class CollimatorDatabase:
 
             # Save list of crystals
             if 'crystal' in settings:
-                crystals += [thiscoll]
+                if settings['crystal'] != 0.0:
+                    crystals += [thiscoll]
+                else: 
+                    settings['crystal'] = None
 
         # Remove crystals from colldb
         if ignore_crystals:

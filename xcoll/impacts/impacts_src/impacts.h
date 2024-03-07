@@ -7,11 +7,6 @@
 #ifndef XCOLL_IMPACTS_H
 #define XCOLL_IMPACTS_H
 
-/*gpufun*/
-void CollimatorImpacts_track_local_particle(CollimatorImpactsData el, LocalParticle* part0) {
-    kill_all_particles(part0, XC_ERR_INVALID_TRACK);
-}
-
 // TODO: do we need to pass RecordIndex?
 // probably can do RecordIndex record_index = CollimatorImpactsData_getp__index(record);  ?
 /*gpufun*/

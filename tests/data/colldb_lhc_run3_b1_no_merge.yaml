@@ -69,7 +69,7 @@ Collimators:
   tcsg.b5l7.b1:       { family: TCSG7,  angle: 143.5   }
   tcsg.a5l7.b1:       { family: TCSG7,  angle:  40.7   }
   tcsg.d4l7.b1:       { family: TCSG7,  angle:  90,    material: MoGR  }
-  tcpch.a4l7.b1:      { family: CRY7,   angle:   0,    bending_radius: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
+  tcpch.a4l7.b1:      { family: CRY7,   angle:   0,    bending_radius: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3,  crystal: quasi-mosaic,   thick: 0.001,  miscut: 22.e-6 }
   tcsg.b4l7.b1:       { family: TCSG7,  angle:   0,    active: false   }
   tcspm.b4l7.b1:      { family: TCSG7,  angle:   0,    Material: MoGR  }
   TCSG.a4l7.b1:       { family: TCSG7,  angle: 134.6   }
