@@ -106,7 +106,7 @@ def test_dumping():
     
 
 
-def test_dumping_Sixtrack():
+def test_dumping_from_Sixtrack():
     colldb_yaml = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1,ignore_crystals=False)
     colldb_dat = xc.CollimatorDatabase.from_SixTrack(path / 'colldb_lhc_run3_b1.dat', nemitt_x=3.5e-6, nemitt_y=3.5e-6, ignore_crystals=False)
     colldb_dat.write_to_yaml('new_colldb_lhc_run3')

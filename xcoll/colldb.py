@@ -228,7 +228,7 @@ class CollimatorDatabase:
         famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
         names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
 
-        df = pd.read_csv(io.StringIO(coll_data_string), sep='\s+', index_col=False, names=names)
+        df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
