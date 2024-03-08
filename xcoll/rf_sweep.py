@@ -81,7 +81,7 @@ class RFSweep:
                     + f"the bucket and remain uncaptured.")
 
 
-    def track(self, sweep=0, num_turns=0, particles=None, verbose=True, *args, **kwargs):
+    def track(self, sweep=0, particles=None, num_turns=0, verbose=True, *args, **kwargs):
 
         # Was there a previous sweep?
         # If yes, we do not overwrite it but continue from there
@@ -104,6 +104,7 @@ class RFSweep:
             rf_shift_per_turn = sweep / num_turns
             if 'time' in kwargs and kwargs['time']:
                 self.line.tracker.time_last_track = 0
+            with_progress = kwargs.pop('with_progress', False)
             for i in range(num_turns):
                 sweep = existing_sweep + i*rf_shift_per_turn
                 self.line['rf_sweep'].dzeta = self.L * sweep / (self.f_RF + sweep)
