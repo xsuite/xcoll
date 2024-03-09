@@ -19,7 +19,7 @@ import xcoll as xc
 context = xo.ContextCpu()
 
 
-# This script takes around 10 minutes on a modern CPU (90s preparation+interpolation, 410s tracking)
+# This script takes around 8 minutes on a modern CPU (80s preparation+interpolation, 400s tracking)
 beam = 1
 plane = 'DPpos'
 
@@ -89,7 +89,7 @@ rf_sweep.info(sweep=sweep, num_turns=num_turns)
 
 # Track during RF sweep:
 coll_manager.enable_scattering()
-rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True)#, with_progress=10)
+rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
 coll_manager.disable_scattering()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 

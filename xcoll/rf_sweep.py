@@ -4,11 +4,11 @@
 # ######################################### #
 
 import numpy as np
-import pandas as pd
 import scipy.constants as sc
+from time import perf_counter
 
 import xtrack as xt
-
+from xtrack.progress_indicator import progress
 
 class RFSweep:
 
@@ -101,21 +101,91 @@ class RFSweep:
                 raise ValueError("Need to build tracker first!")
             if particles is None:
                 raise ValueError("Need particles to track!")
-            rf_shift_per_turn = sweep / num_turns
-            if 'time' in kwargs and kwargs['time']:
-                self.line.tracker.time_last_track = 0
+            time = kwargs.pop('time', False)
             with_progress = kwargs.pop('with_progress', False)
-            for i in range(num_turns):
-                sweep = existing_sweep + i*rf_shift_per_turn
-                self.line['rf_sweep'].dzeta = self.L * sweep / (self.f_RF + sweep)
-#                 for cav in cavities:
-#                     self.line[cav].frequency = freq + sweep
-                if 'time' in kwargs and kwargs['time']:
-                    prev_time = self.line.time_last_track
-                self.line.track(particles, num_turns=1, *args, **kwargs)
-                if 'time' in kwargs and kwargs['time']:
-                    self.line.tracker.time_last_track += prev_time
-                if not np.any(particles.state == 1):
-                    print(f"All particles lost at turn {i}, stopped sweep at "
-                        + f"{existing_sweep + i*rf_shift_per_turn}Hz.")
-                    break
+            rf_shift_per_turn = sweep / num_turns
+
+            # This is taken from xtrack.tracker.Tracker._track
+            if time:
+                t0 = perf_counter()
+            if with_progress:
+                if self.line.tracker.enable_pipeline_hold:
+                    raise ValueError("Progress indicator is not supported with pipeline hold")
+                if num_turns < 2:
+                    raise ValueError('Tracking with progress indicator is only '
+                                    'possible over more than one turn.')
+                if with_progress is True:
+                    batch_size = scaling = 100
+                else:
+                    batch_size = int(with_progress)
+                    scaling = with_progress if batch_size > 1 else None
+                if kwargs.get('turn_by_turn_monitor') is True:
+                    ele_start = kwargs.get('ele_start') or 0
+                    ele_stop = kwargs.get('ele_stop')
+                    if ele_stop is None:
+                        ele_stop = len(self.line)
+                    if ele_start >= ele_stop:
+                        # we need an additional turn and space in the monitor for
+                        # the incomplete turn
+                        num_turns += 1
+                    _, monitor, _, _ = self.line.tracker._get_monitor(particles, True, num_turns)
+                    kwargs['turn_by_turn_monitor'] = monitor
+
+                for ii in progress(
+                        range(0, num_turns, batch_size),
+                        desc='Tracking',
+                        unit_scale=scaling,
+                ):
+                    one_turn_kwargs = kwargs.copy()
+                    is_first_batch = ii == 0
+                    is_last_batch = ii + batch_size >= num_turns
+
+                    if is_first_batch and is_last_batch:
+                        # This is the only batch, we track as normal
+                        pass
+                    elif is_first_batch:
+                        # Not the last batch, so track until the last element
+                        one_turn_kwargs['ele_stop'] = None
+                        one_turn_kwargs['num_turns'] = batch_size
+                    elif is_last_batch:
+                        # Not the first batch, so track from the first element
+                        one_turn_kwargs['ele_start'] = None
+                        remaining_turns = num_turns % batch_size
+                        if remaining_turns == 0:
+                            remaining_turns = batch_size
+                        one_turn_kwargs['num_turns'] = remaining_turns
+                        one_turn_kwargs['_reset_log'] = False
+                    elif not is_first_batch and not is_last_batch:
+                        # A 'middle batch', track from first to last element
+                        one_turn_kwargs['num_turns'] = batch_size
+                        one_turn_kwargs['ele_start'] = None
+                        one_turn_kwargs['ele_stop'] = None
+                        one_turn_kwargs['_reset_log'] = False
+                    self._tracking_func(particles, rf_shift_per_turn, **one_turn_kwargs)
+                    if not np.any(particles.state == 1):
+                        break
+
+            else:
+                self._tracking_func(particles, rf_shift_per_turn, num_turns=num_turns, *args, **kwargs)
+
+            if not np.any(particles.state == 1):
+                print(f"All particles lost at turn {particles.at_turn.max()}, stopped sweep at "
+                    + f"{self.current_sweep_value}Hz.")
+
+            if time:
+                t1 = perf_counter()
+                self.line.tracker._context.synchronize()
+                self.line.tracker.time_last_track = t1 - t0
+            else:
+                self.line.tracker.time_last_track = None
+
+    def _tracking_func(self, particles, rf_shift_per_turn, num_turns=1, *args, **kwargs):
+        existing_sweep = self.current_sweep_value
+        for i in range(num_turns):
+            sweep = existing_sweep + i*rf_shift_per_turn
+            self.line['rf_sweep'].dzeta = self.L * sweep / (self.f_RF + sweep)
+#             for cav in cavities:
+#                 self.line[cav].frequency = freq + sweep
+            self.line.track(particles, num_turns=1, *args, **kwargs)
+            if not np.any(particles.state == 1):
+                break
