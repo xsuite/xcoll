@@ -23,8 +23,11 @@ class EverestEngine(xo.HybridClass):
         _pkg_root.joinpath('scattering_routines','everest','properties.h'),
 #         _pkg_root.joinpath('scattering_routines','everest','scatter_init.h'),
         _pkg_root.joinpath('scattering_routines','everest','multiple_coulomb_scattering.h'),
+        _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),
+        _pkg_root.joinpath('scattering_routines','everest','amorphous.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter.h'),
+        _pkg_root.joinpath('scattering_routines','everest','channeling.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal.h'),
         _pkg_root.joinpath('scattering_routines','everest','scatter_crystal.h')
     ]

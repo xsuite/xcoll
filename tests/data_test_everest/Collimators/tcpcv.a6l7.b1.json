@@ -7,7 +7,7 @@
  "bending_radius": 85.1,
  "xdim": 0.005,
  "ydim": 0.03,
- "thick": 0.0013,
+ "thick": 0,
  "miscut": 0,
  "lattice": "strip",
  "align_angle": 1.897468989084058e-05,

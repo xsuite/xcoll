@@ -47,7 +47,7 @@ def _get_coll_dct_by_beam(coll, beam):
             beam = f'b{beam}'
         beam = beam.lower()
     beam_in_db = list(coll.keys())
-    
+
     if beam_in_db == ['b1','b2']:
         if beam is None:
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
@@ -682,6 +682,7 @@ class CollimatorDatabase:
             # Some of the gaps are list (e.g. two different values for both gaps): loop over gaps as dict
             if any(hasattr(gap, '__iter__') for gap in gaps):
                 gaps = dict(zip(self.name, gaps))
+                # TODO: this is not assigned in the end??
             # All gaps are single values: use pandas-style assignment
             else:
                 # mask those that have an active side for the gap under consideration
