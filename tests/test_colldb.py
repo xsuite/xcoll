@@ -103,5 +103,33 @@ def test_dumping():
     assert df2.equals(df4)
     (Path.cwd() / 'out1.yaml').unlink()
     (Path.cwd() / 'out2.yaml').unlink()
+    
 
+
+def test_dumping_from_Sixtrack():
+    colldb_yaml = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=1,ignore_crystals=False)
+    colldb_dat = xc.CollimatorDatabase.from_SixTrack(path / 'colldb_lhc_run3_b1.dat', nemitt_x=3.5e-6, nemitt_y=3.5e-6, ignore_crystals=False)
+    colldb_dat.write_to_yaml('new_colldb_lhc_run3')
+
+    colldb_yaml_new = xc.CollimatorDatabase.from_yaml('new_colldb_lhc_run3.yaml', beam=1,ignore_crystals=False)
+    df_yaml = colldb_yaml._colldb.reindex(sorted(colldb_yaml._colldb.columns), axis=1)
+    df_dat = colldb_dat._colldb.reindex(sorted(colldb_dat._colldb.columns), axis=1)
+    df_yaml_new = colldb_yaml_new._colldb.reindex(sorted(colldb_yaml_new._colldb.columns), axis=1)
+
+    df_yaml = df_yaml.drop(['family', 'overwritten_keys', 'parking'], axis=1)
+    df_yaml_new = df_yaml_new.drop(['family', 'overwritten_keys', 'parking'], axis=1)
+    df_dat = df_dat.drop(['family', 'overwritten_keys', 'parking'], axis=1)
+
+    df_yaml_new = df_yaml_new.drop(['tcsg.b4l7.b1', 'tcsg.e5r7.b1', 'tcsg.6r7.b1'], axis=0)
+    df_yaml = df_yaml.drop(['tcsg.b4l7.b1', 'tcsg.e5r7.b1', 'tcsg.6r7.b1'], axis=0)
+    df_dat = df_dat.drop(['tcsg.b4l7.b1', 'tcsg.e5r7.b1', 'tcsg.6r7.b1'], axis=0)
+
+    df_yaml_new.sort_index(axis=0, inplace=True)
+    df_dat.sort_index(axis=0, inplace=True)
+    df_yaml.sort_index(axis=0, inplace=True)
+
+    assert df_dat.equals(df_yaml)
+    assert df_yaml_new.equals(df_yaml)
+    assert df_yaml_new.equals(df_dat)
+    (Path.cwd() / 'new_colldb_lhc_run3.yaml').unlink()
     

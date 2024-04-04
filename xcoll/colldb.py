@@ -214,9 +214,6 @@ class CollimatorDatabase:
                                 cry[sline[1]][key] = float(sline[idx])
                             else:
                                 cry[sline[1]][key] = int(sline[idx])
-                    elif sline[0].lower() == "target":
-                        variables['xdim'][sline[1]] = float(sline[2])
-                        variables['ydim'][sline[1]] = float(sline[3])
                     elif sline[0].lower() == 'settings':
                         pass # Acknowledge and ignore this line
                     elif len(sline) == 6:
@@ -231,7 +228,7 @@ class CollimatorDatabase:
         famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
         names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
 
-        df = pd.read_csv(io.StringIO(coll_data_string), sep='\s+', index_col=False, names=names)
+        df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df.insert(5,'stage', df['gap'].apply(lambda s: family_types.get(s, 'UNKNOWN')))
@@ -307,8 +304,8 @@ class CollimatorDatabase:
                     fam_keys = dcts._family_dict[fam].keys()
                     coll_dict = {**{'<<': '*'+fam}, **coll_dict}
                 temp_items_to_print = []
-                if coll_dict['crystal']:
-                    temp_items_to_print = ['bend','xdim','ydim','miscut','crystal']
+                if coll_dict['crystal'] and str(coll_dict['crystal'])!='nan':
+                    temp_items_to_print = ['bending_radius','xdim','ydim','miscut','crystal', 'thick']
                 if coll_dict['angle_L'] == coll_dict['angle_R']:
                     coll_dict.update({'angle': coll_dict['angle_L']})
                 else:
@@ -324,6 +321,8 @@ class CollimatorDatabase:
                 value = {}
                 overwritten_keys = coll_dict['overwritten_keys']
                 for key, val in coll_dict.items():
+                    if key == 'active_length':
+                        key = 'length' 
                     if (key in coll_items_to_print+temp_items_to_print) and (key not in (set(fam_keys)-set(overwritten_keys))) and (val != 'both'):
                         value.update({key: val})
                 file.write(_format_dict_entry(coll, value, spacing='    '))
