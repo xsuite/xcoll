@@ -547,8 +547,6 @@ class CollimatorManager:
                 line[name].active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
-                line[name].ref_x  = colldb.x[name]
-                line[name].ref_y  = colldb.y[name]
                 line[name].angle  = colldb.angle[name]
                 line[name].jaw_L = colldb._colldb.jaw_LU[name]
                 line[name].jaw_R = colldb._colldb.jaw_RU[name]

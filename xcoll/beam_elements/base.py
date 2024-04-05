@@ -70,8 +70,6 @@ class BaseCollimator(xt.BeamElement):
         'length': xo.Float64,  # Length of jaws
         'jaw_L':  xo.Float64,  # left jaw (distance to ref)
         'jaw_R':  xo.Float64,  # right jaw
-        'ref_x':  xo.Float64,  # center of collimator reference frame
-        'ref_y':  xo.Float64,
         'sin_zL': xo.Float64,  # angle of left jaw
         'cos_zL': xo.Float64,
         'sin_zR': xo.Float64,  # angle of right jaw
@@ -91,9 +89,8 @@ class BaseCollimator(xt.BeamElement):
 #     allow_track = False   # Need to wait for xtrack release to implement
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'ref_x', 'ref_y',
-                         'sin_yL', 'cos_yL', 'tan_yL', 'sin_yR', 'cos_yR', 'tan_yR',
-                         'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
+    _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'sin_yL', 'cos_yL', 'tan_yL', 'sin_yR',
+                         'cos_yR', 'tan_yR', 'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
     _store_in_to_dict = ['angle', 'tilt', 'jaw', 'reference_center', 'side']
     # Extra fields (only in Python): angle_L, angle_R, tilt_L, tilt_R, jaw_LU, jaw_LD, jaw_RU, jaw_RD
 
@@ -113,20 +110,11 @@ class BaseCollimator(xt.BeamElement):
             # Set jaw
             if 'jaw' in kwargs:
                 if 'jaw_L' in kwargs or 'jaw_R' in kwargs:
-                    raise ValuError("Cannot use both 'jaw' and 'jaw_L/R'!")
+                    raise ValueError("Cannot use both 'jaw' and 'jaw_L/R'!")
                 _set_LR(kwargs, 'jaw', kwargs.pop('jaw'), neg=True)
             else:
                 kwargs.setdefault('jaw_L', 1)
                 kwargs.setdefault('jaw_R', -1)
-
-            # Set reference_center
-            if 'reference_center' in kwargs:
-                if 'ref_x' in kwargs or 'ref_y' in kwargs:
-                    raise ValuError("Cannot use both 'reference_center' and 'ref_x/y'!")
-                _set_LR(kwargs, 'ref', kwargs.pop('reference_center'), name_L='_x', name_R='_y')
-            else:
-                kwargs.setdefault('ref_x', 0)
-                kwargs.setdefault('ref_y', 0)
 
             # Set side
             kwargs['_side'] = _side_setter(kwargs.pop('side', 'both'))
@@ -134,7 +122,7 @@ class BaseCollimator(xt.BeamElement):
             # Set angle
             if 'angle' in kwargs:
                 if 'angle_L' in kwargs or 'angle_R' in kwargs:
-                    raise ValuError("Cannot use both 'angle' and 'angle_L/R'!")
+                    raise ValueError("Cannot use both 'angle' and 'angle_L/R'!")
                 kwargs['sin_zL'], kwargs['cos_zL'], _, kwargs['sin_zR'], kwargs['cos_zR'], _ \
                             = _angle_setter(kwargs.pop('angle', 0))
             else:
@@ -148,7 +136,7 @@ class BaseCollimator(xt.BeamElement):
             # Set tilt
             if 'tilt' in kwargs:
                 if 'tilt_L' in kwargs or 'tilt_R' in kwargs:
-                    raise ValuError("Cannot use both 'tilt' and 'tilt_L/R'!")
+                    raise ValueError("Cannot use both 'tilt' and 'tilt_L/R'!")
                 kwargs['sin_yL'], kwargs['cos_yL'], kwargs['tan_yL'], \
                 kwargs['sin_yR'], kwargs['cos_yR'], kwargs['tan_yR'] \
                                 = _angle_setter(kwargs.pop('tilt', 0), rad=True)
@@ -254,14 +242,6 @@ class BaseCollimator(xt.BeamElement):
         self.sin_zL, self.cos_zL, _, self.sin_zR, self.cos_zR, _ = _angle_setter(angle)
 
     @property
-    def reference_center(self):
-        return [self.ref_x, self.ref_y]
-
-    @reference_center.setter
-    def reference_center(self, ref):
-        _set_LR(self, 'ref', ref, name_L='_x', name_R='_y')
-
-    @property
     def side(self):
         if self._side == 0:
             return 'both'
@@ -312,10 +292,16 @@ class BaseCollimator(xt.BeamElement):
 
     def jaw_func(self, pos):
         positions = ['LU', 'RU', 'LD', 'RD']
+        if pos[0] == 'L': 
+            other_pos = 'R' 
+        else: 
+            other_pos = 'L'
+        point_x = ((getattr(self, 'jaw_' + pos[0]) * getattr(self, 'cos_z' + pos[0]) 
+                    + getattr(self, 'jaw_' + other_pos) * getattr(self, 'cos_z' + other_pos))/2)
+        point_y = ((getattr(self, 'jaw_' + pos[0]) * getattr(self, 'sin_z' + pos[0]) 
+                    + getattr(self, 'jaw_' + other_pos) * getattr(self, 'sin_z' + other_pos))/2)
         if not pos in positions:
             raise ValueError(f"Parameter {pos} needs to be one of {positions}!")
-        point_x = getattr(self, 'ref_x')
-        point_y = getattr(self, 'ref_y')
         sinz    = getattr(self, 'sin_z' + pos[0])
         cosz    = getattr(self, 'cos_z' + pos[0])
         # Shift to the jaw, whose location is given as the shortest distance:

@@ -178,9 +178,9 @@ def _generate_4D_pencil_one_jaw(line, collimator, num_particles, nemitt_x, nemit
                                 impact_parameter, dr_sigmas, match_at_s):
     coll = line[collimator]
     if plane == 'x':
-        co_pencil   = coll.ref_x
+        co_pencil = (coll.jaw_L*coll.cos_zL + coll.jaw_R*coll.cos_zL)/2
     else:
-        co_pencil   = coll.ref_y
+        co_pencil = (coll.jaw_L*coll.sin_zL + coll.jaw_R*coll.sin_zL)/2
 
     if side == '+':
         absolute_cut = coll.jaw_LU + co_pencil + impact_parameter

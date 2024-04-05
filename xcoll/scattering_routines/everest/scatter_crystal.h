@@ -63,7 +63,7 @@ void scatter_cry(EverestData restrict everest, LocalParticle* part, double lengt
         }
 
         // Shift with opening and offset
-        LocalParticle_add_to_x(part, -aperture/2. - mirror*offset);
+        LocalParticle_add_to_x(part, -aperture/2.);
 
         // particle passing above the jaw are discarded => take new event
         // entering by the face, shorten the length (zlm) and keep track of
@@ -168,7 +168,7 @@ void scatter_cry(EverestData restrict everest, LocalParticle* part, double lengt
         }
 
         // Transform back to particle coordinates with opening and offset
-        LocalParticle_add_to_x(part, aperture/2. + mirror*offset);
+        LocalParticle_add_to_x(part, aperture/2.);
 
         // Now mirror at the horizontal axis for negative X offset
         if (mirror < 0) {
