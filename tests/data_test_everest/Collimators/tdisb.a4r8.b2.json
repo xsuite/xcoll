@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 90,
- "reference_center": [
-  -0.006026890352495657,
-  0.0008125853929569027
- ],
- "jaw": 0.0024089498221466607,
  "material": {
   "__class__": "Material",
   "name": "MolybdenumGraphite",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.1193
- }
+ },
+ "jaw_L": 0.003221535215103563,
+ "jaw_R": -0.0015963644291897582
 }

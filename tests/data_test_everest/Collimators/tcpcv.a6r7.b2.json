@@ -12,11 +12,6 @@
  "miscut": 0,
  "lattice": "strip",
  "align_angle": 1.73203e-05,
- "reference_center": [
-  -5.327066314588912e-08,
-  7.749529585063276e-07
- ],
- "jaw": 0.0018274734390446984,
  "side": "left",
  "material": {
   "__class__": "CrystalMaterial",
@@ -41,5 +36,7 @@
   "crystal_plane_distance": 5.6e-08,
   "crystal_potential": 21.0,
   "nuclear_collision_length": 0.0
- }
+ },
+ "jaw_L": 0.0018282483920032048,
+ "jaw_R": -0.001826698486086192
 }

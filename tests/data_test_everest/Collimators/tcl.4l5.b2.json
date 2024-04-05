@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -0.0013410062237103472,
-  -2.425681770521614e-06
- ],
- "jaw": 0.0013573658679962323,
  "material": {
   "__class__": "Material",
   "name": "CopperDiamond",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.0316
- }
+ },
+ "jaw_L": 1.6359644285885138e-05,
+ "jaw_R": -0.0026983720917065795
 }

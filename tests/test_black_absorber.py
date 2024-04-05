@@ -16,7 +16,7 @@ def test_horizontal_parallel(test_context):
     part.move(_context=xo.ContextCpu())
     part.sort(interleave_lost_particles=True)
     # As the angles are zero, only particles that started in front of the jaw are lost
-    mask_hit = (x >= jaw_L + cox) | (x <= jaw_R + cox)
+    mask_hit = (x >= jaw_L) | (x <= jaw_R)
     lost = np.unique(part.state[mask_hit])
     alive = np.unique(part.state[~mask_hit])
     assert len(lost)==1 and lost[0]==-340
@@ -264,9 +264,9 @@ def _make_absorber(angle=0, tilts=[0,0], rotate_co=False, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
     jaws = [0.03, -0.01]
-    co = [0.0075, -0.089]
+    co = [0.0075, -0.089] # TODO: SIMONE, trenger vi dette? 
     L = 0.873
-    coll = xc.BlackAbsorber(length=L, angle=angle, reference_center=co, jaw=jaws, tilt=tilts, _context=_context)
+    coll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws, tilt=tilts, _context=_context)
     if rotate_co:
         cox = co[0] * np.cos(angle/180.*np.pi) + co[1] * np.sin(angle/180.*np.pi)
         coy = co[0] * np.sin(angle/180.*np.pi) + co[1] * np.cos(angle/180.*np.pi)

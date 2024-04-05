@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  5.504641143149078e-07,
-  0.0020318054079665852
- ],
- "jaw": 0.0013576529428618372,
  "material": {
   "__class__": "Material",
   "name": "Berylium",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.353
- }
+ },
+ "jaw_L": 0.001358203406976152,
+ "jaw_R": -0.0013571024787475223
 }

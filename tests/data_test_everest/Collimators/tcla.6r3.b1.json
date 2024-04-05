@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  4.175575082491161e-07,
-  1.9106283911464852e-07
- ],
- "jaw": 0.0012502332286690558,
  "material": {
   "__class__": "Material",
   "name": "Silicon",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 1
- }
+ },
+ "jaw_L": 0.001250650786177305,
+ "jaw_R": -0.0012498156711608067
 }

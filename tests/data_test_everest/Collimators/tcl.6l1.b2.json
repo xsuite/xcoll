@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  1.4734186585038946e-08,
-  0.00026030688960545264
- ],
- "jaw": 0.0010537125510792604,
  "material": {
   "__class__": "Material",
   "name": "Copper",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.01,
   "radiation_length": 0.0143
- }
+ },
+ "jaw_L": 0.0010537272852658454,
+ "jaw_R": -0.0010536978168926754
 }

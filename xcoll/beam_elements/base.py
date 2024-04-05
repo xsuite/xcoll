@@ -91,7 +91,7 @@ class BaseCollimator(xt.BeamElement):
 
     _skip_in_to_dict  = ['jaw_L', 'jaw_R', 'sin_yL', 'cos_yL', 'tan_yL', 'sin_yR',
                          'cos_yR', 'tan_yR', 'sin_zL', 'cos_zL', 'sin_zR', 'cos_zR', '_side']
-    _store_in_to_dict = ['angle', 'tilt', 'jaw', 'reference_center', 'side']
+    _store_in_to_dict = ['angle', 'tilt', 'jaw', 'side']
     # Extra fields (only in Python): angle_L, angle_R, tilt_L, tilt_R, jaw_LU, jaw_LD, jaw_RU, jaw_RD
 
     _extra_c_sources = [

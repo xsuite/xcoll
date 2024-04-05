@@ -33,8 +33,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
-    double const dx = BlackAbsorberData_get_ref_x(el);
-    double const dy = BlackAbsorberData_get_ref_y(el);
+
     // Impact table
     CollimatorImpactsData record = BlackAbsorberData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
@@ -47,8 +46,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         double s_collimator = LocalParticle_get_s(part);
 
         // Go to collimator reference system (centered around orbit)
-        XYShift_single_particle(part, dx, dy);
         SRotation_single_particle(part, sin_zL, cos_zL);
+        XYShift_single_particle(part, (jaw_R + jaw_L)/2, 0);
 
         int64_t is_alive = 1;
 
@@ -117,8 +116,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         }
 
         // Move back from collimator reference system
+        XYShift_single_particle(part, -(jaw_R + jaw_L)/2, 0);
         SRotation_single_particle(part, -sin_zL, cos_zL);
-        XYShift_single_particle(part, -dx, -dy);
 
     //end_per_particle_block
 
