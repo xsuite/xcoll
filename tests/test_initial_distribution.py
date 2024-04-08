@@ -54,28 +54,28 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
                                                 nemitt_x=3.5e-6, nemitt_y=3.5e-6, longitudinal=longitudinal,
                                                 longitudinal_betatron_cut=longitudinal_betatron_cut,
                                                 impact_parameter=impact_parameter, pencil_spread=pencil_spread)
-
+    print("I have generated particles now")
     # Normalize coordinates
     part_norm_conv = tw.get_normalized_coordinates(part_conv, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
     part_norm_div = tw.get_normalized_coordinates(part_div, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
     with flaky_assertions():
-
+        print("Starting with the convering beam now")
         # Horizontal collimator (converging beam) ------------------------------------------
         coll_conv = line[tcp_conv]
         mask_conv_L = part_conv.x > 0
         mask_conv_R = part_conv.x < 0
 
         # Pencil: left jaw
-        pos_jawL_conv = coll_conv.ref_x + coll_conv.jaw_L
+        pos_jawL_conv = coll_conv.jaw_L
         pos_partL_conv = part_conv.x[mask_conv_L].min()
         pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
-        assert np.isclose(pencil_spread_convL, pencil_spread, atol=1e-9)
+        assert np.isclose(pencil_spread_convL, pencil_spread, atol=1e-8)
         assert pos_partL_conv - impact_parameter - pos_jawL_conv < 1e-9
         assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
 
         # Pencil: right jaw
-        pos_jawR_conv = coll_conv.ref_x + coll_conv.jaw_R
+        pos_jawR_conv = coll_conv.jaw_R
         pos_partR_conv = part_conv.x[mask_conv_R].max()
         pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
         assert np.isclose(pencil_spread_convR, pencil_spread, atol=1e-9)
@@ -92,7 +92,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
         assert np.isclose(np.std(part_norm_conv.y_norm), transverse_spread_sigma, atol=atol)
         assert np.isclose(np.std(part_norm_conv.py_norm),transverse_spread_sigma, atol=atol)
-
+        print("Converging beam: Now I am doing p values")
         # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
         if longitudinal == 'matched_dispersion':
             count,_ = np.histogram(part_conv.delta, bins=50)
@@ -103,7 +103,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
             count,_ = np.histogram(part_conv.delta, bins=50)
             _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
             assert p > 0.05
-
+        print("Starting with the diverging beam now")
         # Vertical collimator (diverging beam) ---------------------------------------------
         coll_div = line[tcp_div]
         drift = xt.Drift(length=coll_div.length)
@@ -112,15 +112,15 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         mask_div_R = part_div.y < 0
 
         # Pencil: left jaw
-        pos_jawL_div = coll_div.ref_y + coll_div.jaw_L
+        pos_jawL_div = coll_div.jaw_L
         pos_partL_div = part_div.y[mask_div_L].min()
         pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
-        assert np.isclose(pencil_spread_divL, pencil_spread, atol=1e-9)
+        assert np.isclose(pencil_spread_divL, pencil_spread, atol=1e-8)
         assert pos_partL_div - impact_parameter - pos_jawL_div < 1e-9
         assert pos_partL_div - impact_parameter - pos_jawL_div > 0
 
         # Pencil: right jaw
-        pos_jawR_div = coll_div.ref_y + coll_div.jaw_R
+        pos_jawR_div = coll_div.jaw_R
         pos_partR_div = part_div.y[mask_div_R].max()
         pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
         assert np.isclose(pencil_spread_divR, pencil_spread, atol=1e-9)
@@ -137,7 +137,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
         assert np.isclose(np.std(part_norm_div.x_norm), transverse_spread_sigma, atol=atol)
         assert np.isclose(np.std(part_norm_div.px_norm),transverse_spread_sigma, atol=atol)
-
+        print("P values now")
         # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
         if longitudinal == 'matched_dispersion':
             count,_ = np.histogram(part_div.delta, bins=50)

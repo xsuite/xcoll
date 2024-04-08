@@ -47,7 +47,6 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
         // Go to collimator reference system (centered around orbit)
         SRotation_single_particle(part, sin_zL, cos_zL);
-        XYShift_single_particle(part, (jaw_R + jaw_L)/2, 0);
 
         int64_t is_alive = 1;
 
@@ -116,7 +115,6 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         }
 
         // Move back from collimator reference system
-        XYShift_single_particle(part, -(jaw_R + jaw_L)/2, 0);
         SRotation_single_particle(part, -sin_zL, cos_zL);
 
     //end_per_particle_block
