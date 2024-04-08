@@ -12,7 +12,8 @@ source = r'''
 
 #define  XC_ENTER_JAW                      -1        // JI   // point (no children)    Set ds > 0 if entering later
 #define  XC_EXIT_JAW                       -2        // JO   // point (no children)
-#define  XC_ABSORBED                        1        // A    // point (no children)    Don't use 0 (is default for unitialised)
+#define  XC_ABSORBED_L                      1        // A    // point (no children)    Don't use 0 (is default for unitialised)
+#define  XC_ABSORBED_R                      2        // A    // point (no children)    Don't use 0 (is default for unitialised)
 #define  XC_MULTIPLE_COULOMB_SCATTERING    13        // MCS  // continuous
 #define  XC_PN_ELASTIC                     14        // PN   // point (no children)
 #define  XC_PP_ELASTIC                     15        // PP   // point (no children)

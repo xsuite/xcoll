@@ -132,6 +132,8 @@ class BaseCollimator(xt.BeamElement):
                 anglerad_R = kwargs.pop('angle_R', 0) / 180. * np.pi
                 kwargs['sin_zR'] = np.sin(anglerad_R)
                 kwargs['cos_zR'] = np.cos(anglerad_R)
+                if abs(anglerad_L - anglerad_R) >= np.pi/2.:
+                    raise ValueError(f"Angles of both jaws differ more than 90 degrees.")
 
             # Set tilt
             if 'tilt' in kwargs:
@@ -151,6 +153,8 @@ class BaseCollimator(xt.BeamElement):
                 kwargs['sin_yR'] = np.sin(anglerad_R)
                 kwargs['cos_yR'] = np.cos(anglerad_R)
                 kwargs['tan_yR'] = np.cos(anglerad_R)
+                if abs(anglerad_L - anglerad_R) >= np.pi/2.:
+                    raise ValueError(f"Tilts of both jaws differ more than 90 degrees.")
 
             kwargs.setdefault('active', True)
 
@@ -219,6 +223,8 @@ class BaseCollimator(xt.BeamElement):
 
     @angle_L.setter
     def angle_L(self, angle_L):
+        if abs(angle_L - self.angle_R) >= 90.:
+            raise ValueError(f"Angles of both jaws differ more than 90 degrees.")
         anglerad_L = angle_L / 180. * np.pi
         self.sin_zL = np.sin(anglerad_L)
         self.cos_zL = np.cos(anglerad_L)
@@ -229,6 +235,8 @@ class BaseCollimator(xt.BeamElement):
 
     @angle_R.setter
     def angle_R(self, angle_R):
+        if abs(self.angle_L - angle_R) >= 90.:
+            raise ValueError(f"Angles of both jaws differ more than 90 degrees.")
         anglerad_R = angle_R / 180. * np.pi
         self.sin_zR = np.sin(anglerad_R)
         self.cos_zR = np.cos(anglerad_R)
@@ -265,6 +273,8 @@ class BaseCollimator(xt.BeamElement):
     def tilt_L(self, tilt_L):
 #         anglerad_L = tilt_L / 180. * np.pi
         anglerad_L = tilt_L
+        if abs(tilt_L - self.tilt_R) >= np.pi/2.:
+            raise ValueError(f"Tilts of both jaws differ more than 90 degrees.")
         self.sin_yL = np.sin(anglerad_L)
         self.cos_yL = np.cos(anglerad_L)
         self.tan_yL = np.tan(anglerad_L)
@@ -278,6 +288,8 @@ class BaseCollimator(xt.BeamElement):
     def tilt_R(self, tilt_R):
 #         anglerad_R = tilt_R / 180. * np.pi
         anglerad_R = tilt_R
+        if abs(self.tilt_L - tilt_R) >= np.pi/2.:
+            raise ValueError(f"Tilts of both jaws differ more than 90 degrees.")
         self.sin_yR = np.sin(anglerad_R)
         self.cos_yR = np.cos(anglerad_R)
         self.tan_yR = np.tan(anglerad_R)
@@ -349,6 +361,8 @@ def _angle_setter(val, rad=False):
         anglerad_R = val[0] * conversion
     else:
         raise ValueError(f"Error in setting angle: must have one or two (L, R) values!")
+    if abs(anglerad_L - anglerad_R) >= np.pi/2.:
+        raise ValueError(f"Angles of both jaws differ more than 90 degrees.")
     return np.sin(anglerad_L), np.cos(anglerad_L), np.tan(anglerad_L), \
            np.sin(anglerad_R), np.cos(anglerad_R), np.tan(anglerad_R)
 
