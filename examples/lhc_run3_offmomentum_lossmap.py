@@ -1,24 +1,30 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import numpy as np
 from pathlib import Path
 import time
-start_time = time.time()
-import sys, os, contextlib
 import matplotlib.pyplot as plt
+start_time = time.time()
 
+import xobjects as xo
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
 import xcoll as xc
 
-context = xo.ContextCpu(omp_num_threads='auto')
+
+# We do the majority of the script on the default context to be able to use prebuilt kernels
+context = xo.ContextCpu()
 
 
-# On a modern CPU, we get ~5000 particle*turns/s
-# This script typically takes around 1 hour
-beam  = 1
+# This script takes around 8 minutes on a modern CPU (80s preparation+interpolation, 400s tracking)
+beam = 1
 plane = 'DPpos'
 
-num_particles  = 5000
+num_particles  = 500
 sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
@@ -29,9 +35,7 @@ path_out = Path.cwd()
 
 
 # Load from json
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json', _context=context)
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Initialise collmanager
@@ -39,22 +43,17 @@ coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.ya
 
 
 # Install collimators into line
-if engine == 'everest':
-    coll_manager.install_everest_collimators(verbose=True)
-else:
-    raise ValueError(f"Unknown scattering engine {engine}!")
+coll_manager.install_everest_collimators(verbose=True)
 
 
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        df_with_coll = line.check_aperture()
+df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker(_context=context)
+coll_manager.build_tracker()
 
 
 # Set the collimator openings based on the colldb,
@@ -72,6 +71,12 @@ part = xp.generate_matched_gaussian_bunch(nemitt_x=coll_manager.colldb.emittance
                                           sigma_z=7.55e-2, num_particles=num_particles, line=line)
 
 
+# Move the line to an OpenMP context to be able to use all cores
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+# Should move iobuffer as well in case of impacts
+
+
 # Print some info of the RF sweep
 rf_sweep = xc.RFSweep(line)
 rf_sweep.info(sweep=sweep, num_turns=num_turns)
@@ -79,9 +84,14 @@ rf_sweep.info(sweep=sweep, num_turns=num_turns)
 
 # Track during RF sweep:
 coll_manager.enable_scattering()
-rf_sweep.track(sweep=sweep, num_turns=num_turns, particles=part, time=True)
+rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
 coll_manager.disable_scattering()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
+
+
+# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu())
 
 
 # Let's visualise how the losses move from IR7 to IR3 during the sweep

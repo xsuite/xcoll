@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from pathlib import Path
 import numpy as np
 import pytest
@@ -30,3 +35,4 @@ def test_rf_sweep(sweep, beam, test_context):
         assert np.all(part.delta > 1.5e-3)
     else:
         assert np.all(part.delta < -1.5e-3)
+

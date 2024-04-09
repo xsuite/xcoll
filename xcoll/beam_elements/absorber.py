@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.  #
+# This file is part of the Xcoll Package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
@@ -19,6 +19,7 @@ class BlackAbsorber(BaseCollimator):
     ]
 
     isthick = True
+    allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 

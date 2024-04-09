@@ -1,5 +1,8 @@
-import json
-from pathlib import Path
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import numpy as np
 
 import xobjects as xo

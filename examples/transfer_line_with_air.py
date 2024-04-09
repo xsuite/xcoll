@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import numpy as np
 import time
 start_time = time.time()
@@ -62,8 +67,8 @@ line.insert_element(element=mon_air_2_e, name="monitor air 2 end", at_s=60)
 line.build_tracker()
 
 # Scattering need to be disabled to be able to twiss
-line["Air 1"]._tracking = False
-line["Air 2"]._tracking = False
+line["Air 1"].disable_scattering()
+line["Air 2"].disable_scattering()
 
 # Matched initial parameters
 betx0 = 154.0835045206266
@@ -87,8 +92,8 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
 
 # re-enable scattering
-line["Air 1"]._tracking = True
-line["Air 2"]._tracking = True
+line["Air 1"].enable_scattering()
+line["Air 2"].enable_scattering()
 
 
 

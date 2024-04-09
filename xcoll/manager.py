@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types, element_classes
 from .colldb import CollimatorDatabase
 from .impacts import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
@@ -585,14 +585,14 @@ class CollimatorManager:
 
     def enable_scattering(self):
         # Prepare collimators for tracking
-        for coll in self.collimator_names:
-            self.line[coll]._tracking = True
+        for el in self.line.get_elements_of_type(element_classes)[0]:
+            el.enable_scattering()
         self._set_record_impacts()
 
     def disable_scattering(self):
         # Prepare collimators for tracking
-        for coll in self.collimator_names:
-            self.line[coll]._tracking = False
+        for el in self.line.get_elements_of_type(element_classes)[0]:
+            el.disable_scattering()
 
     @property
     def scattering_enabled(self):

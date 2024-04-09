@@ -221,6 +221,28 @@ def test_black_absorber(test_context):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
+def test_everest_block(test_context):
+    # Test instantiation
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
+    assert np.isclose(elem.length, 1.3)
+    assert elem._tracking == True
+    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
+    assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
+    assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
+    assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
+    assert np.isclose(elem.rutherford_rng.B, 53.50625)
+    assert elem.rutherford_rng.Newton_iterations == 7
+    elem.material = xc.materials.Tungsten
+    assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
+    assert np.isclose(elem.rutherford_rng.upper_val, 0.01)
+    assert np.isclose(elem.rutherford_rng.A, 0.0018637950841805943)
+    assert np.isclose(elem.rutherford_rng.B, 231.48944000000003)
+    assert elem.rutherford_rng.Newton_iterations == 7
+
+
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
@@ -307,4 +329,5 @@ def test_everest_crystal(test_context):
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
 
+# TODO:
 # def test_jaw_func():

@@ -1,7 +1,8 @@
-import json
-import numpy as np
-from pathlib import Path
-import xtrack as xt
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import xcoll as xc
 
 

@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xcoll Package.   #
+// Copyright (c) CERN, 2024.                 #
+// ######################################### #
+
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
 
