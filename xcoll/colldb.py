@@ -957,14 +957,20 @@ class CollimatorDatabase:
             df = self._colldb
             beam_size_front = self._beam_size_front
             beam_size_back  = self._beam_size_back
-            jaw_LU = df['gap_L']*beam_size_front + self.offset
-            jaw_RU = df['gap_R']*beam_size_front - self.offset
-            jaw_LD = df['gap_L']*beam_size_back  + self.offset
-            jaw_RD = df['gap_R']*beam_size_back  - self.offset
-            df['jaw_LU'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LU,df['parking'])
-            df['jaw_RU'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RU,df['parking'])
-            df['jaw_LD'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LD,df['parking'])
-            df['jaw_RD'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RD,df['parking'])
+            COs  = np.cos(np.float_(df.angle_L.values)*np.pi/180) * self.x
+            COs += np.sin(np.float_(df.angle_L.values)*np.pi/180) * self.y
+            jaw_LU = np.array([park if gap is None else gap*bs  + off + co
+                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_front, self.offset, COs)])
+            jaw_LD = np.array([park if gap is None else gap*bs  + off + co
+                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_back,  self.offset, COs)])
+            jaw_RU = np.array([park if gap is None else -gap*bs + off + co
+                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_front, self.offset, COs)])
+            jaw_RD = np.array([park if gap is None else -gap*bs + off + co
+                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_back,  self.offset, COs)])
+            df['jaw_LU'] = np.minimum(jaw_LU, df['parking'])
+            df['jaw_LD'] = np.minimum(jaw_LD, df['parking'])
+            df['jaw_RU'] = np.maximum(jaw_RU, -df['parking'])
+            df['jaw_RD'] = np.maximum(jaw_RD, -df['parking'])
             # align crystals
             opt = self._optics
             df['align_angle'] = None

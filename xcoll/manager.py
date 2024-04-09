@@ -548,9 +548,9 @@ class CollimatorManager:
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
                 line[name].angle  = colldb.angle[name]
-                line[name].jaw_L = colldb._colldb.jaw_LU[name]
-                line[name].jaw_R = colldb._colldb.jaw_RU[name]
-                # TODO
+                line[name].jaw_L = (colldb._colldb.jaw_LU[name] + colldb._colldb.jaw_LD[name])/2
+                line[name].jaw_R = (colldb._colldb.jaw_RU[name] + colldb._colldb.jaw_RU[name])/2
+                # TODO: tilt
                 line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
