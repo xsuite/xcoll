@@ -101,15 +101,16 @@ def generate_pencil_on_collimator(line, collimator, num_particles, *,
         delta = 0
         zeta  = 0
     elif longitudinal == 'matched_dispersion':
-        if longitudinal_betatron_cut is None:
-            cut = 0
-        else:
-            cut = np.random.uniform(-longitudinal_betatron_cut, longitudinal_betatron_cut,
-                                    num_particles)
-        delta = generate_delta_from_dispersion(line, collimator, plane=plane, position_mm=pencil,
-                                               nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=tw,
-                                               betatron_cut=cut, match_at_front=is_converging)
-        zeta  = 0
+        raise NotImplementedError
+        # if longitudinal_betatron_cut is None:
+        #     cut = 0
+        # else:
+        #     cut = np.random.uniform(-longitudinal_betatron_cut, longitudinal_betatron_cut,
+        #                             num_particles)
+        # delta = generate_delta_from_dispersion(line, collimator, plane=plane, position_mm=pencil,
+        #                                        nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=tw,
+        #                                        betatron_cut=cut, match_at_front=is_converging)
+        # zeta  = 0
     elif longitudinal == 'bucket':
         zeta, delta = xp.generate_longitudinal_coordinates(
                 num_particles=num_particles, distribution='gaussian', sigma_z=sigma_z, line=line
@@ -177,15 +178,11 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 def _generate_4D_pencil_one_jaw(line, collimator, num_particles, nemitt_x, nemitt_y, plane, side,
                                 impact_parameter, dr_sigmas, match_at_s):
     coll = line[collimator]
-    if plane == 'x':
-        co_pencil = (coll.jaw_L*coll.cos_zL + coll.jaw_R*coll.cos_zL)/2
-    else:
-        co_pencil = (coll.jaw_L*coll.sin_zL + coll.jaw_R*coll.sin_zL)/2
 
     if side == '+':
-        absolute_cut = coll.jaw_LU + co_pencil + impact_parameter
+        absolute_cut = coll.jaw_LU + impact_parameter
     elif side == '-':
-        absolute_cut = coll.jaw_RU + co_pencil - impact_parameter
+        absolute_cut = coll.jaw_RU - impact_parameter
 
     # Collimator plane: generate pencil distribution
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
