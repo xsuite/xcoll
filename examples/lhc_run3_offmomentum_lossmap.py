@@ -28,7 +28,6 @@ num_particles  = 500
 sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
-engine         = 'everest'
 
 path_in  = xc._pkg_root.parent / 'examples'
 path_out = Path.cwd()
@@ -39,7 +38,8 @@ line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam, _context=context)
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
+                                              line=line, beam=beam, _context=context)
 
 
 # Install collimators into line
@@ -135,7 +135,7 @@ print(f"This means we use {len(part2.x)} particles (of which {len(part2.x[part2.
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-line_is_reversed = True if beam == 2 else False
+line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
 ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 

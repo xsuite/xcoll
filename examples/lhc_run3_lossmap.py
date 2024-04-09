@@ -56,17 +56,15 @@ coll_manager.build_tracker()
 coll_manager.set_openings()
 
 
+# Optimise the line
+line.optimize_for_tracking()
+
+
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles,
                                         nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
-
-# Optimise the line
-line.optimize_for_tracking()
-idx = line.element_names.index(tcp)
-part.at_element = idx
-part.start_tracking_at_element = idx
 
 # Move the line to an OpenMP context to be able to use all cores
 line.discard_tracker()

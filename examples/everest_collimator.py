@@ -75,8 +75,7 @@ x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6,
-                            at_element='tcp.d6l7.b1',
-                            match_at_s=coll_manager.s_active_front['tcp.d6l7.b1']
+                            at_element='tcp.d6l7.b1'
                            )
 
 # Track
@@ -115,8 +114,7 @@ coll_manager.set_openings({'tcp.c6l7.b1': [4,7]}, full_open=True)
 # Create initial particles
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6,
-                            at_element='tcp.c6l7.b1',
-                            match_at_s=coll_manager.s_active_front['tcp.c6l7.b1']
+                            at_element='tcp.c6l7.b1'
                            )
 
 # Track

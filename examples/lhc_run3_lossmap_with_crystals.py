@@ -63,6 +63,15 @@ coll_manager.colldb.active        = {tcpc: True}
 coll_manager.colldb.gap           = {tcpc: 5}
 coll_manager.set_openings()
 
+# Apply settings
+line[tcpc].bending_angle = 40.e-6
+line[tcpc].xdim          = 0.002
+line[tcpc].ydim          = 0.05
+
+
+# Optimise the line
+line.optimize_for_tracking()
+
 
 # # Generate initial pencil distribution on crystal
 # part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles,
@@ -74,21 +83,9 @@ py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
             nemitt_x=coll_manager.colldb.emittance[0], nemitt_y=coll_manager.colldb.emittance[1],
-            at_element=tcpc, match_at_s=coll_manager.s_active_front[tcpc],
+            at_element=tcpc,
             _buffer=coll_manager._part_buffer
 )
-
-# Optimise the line
-line.optimize_for_tracking()
-idx = line.element_names.index(tcpc)
-part.at_element = idx
-part.start_tracking_at_element = idx
-
-
-# Apply settings
-line[tcpc].bending_angle = 40.e-6
-line[tcpc].xdim          = 0.002
-line[tcpc].ydim          = 0.05
 
 
 # Move the line to an OpenMP context to be able to use all cores
@@ -111,7 +108,7 @@ line.build_tracker(_context=xo.ContextCpu())
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-line_is_reversed = True if beam == 2 else False
+line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
 ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 
