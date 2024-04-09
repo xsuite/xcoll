@@ -121,9 +121,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     active       *= EverestCrystalData_get__tracking(el);
     double length = EverestCrystalData_get_length(el);
 
-    // Collimator geometry
-    double const co_x       = EverestCrystalData_get_ref_x(el);
-    double const co_y       = EverestCrystalData_get_ref_y(el);
     // TODO: use xtrack C-code for rotation element
     // TODO: we are ignoring the angle of the right jaw
     // TODO: is a crystal always one-sided...?
@@ -156,8 +153,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 double const s_coll = LocalParticle_get_s(part);
 
                 // Move to collimator frame
-                XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
+                XYShift_single_particle(part, coll->offset, 0);
 
                 EverestData everest = EverestCrystal_init_data(part0, coll);
                 scatter_cry(everest, part, length);
@@ -169,8 +166,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 free(everest);
 
                 // Return from collimator frame
+                XYShift_single_particle(part, -coll->offset, 0);
                 SRotation_single_particle(part, -sin_zL, cos_zL);
-                XYShift_single_particle(part, -co_x, -co_y);
 
                 // Surviving particles are put at same numerical s, and drifted inactive back
                 if (LocalParticle_get_state(part) > 0){

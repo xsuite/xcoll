@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  9.735155268685712e-07,
-  -7.23624251733931e-08
- ],
- "jaw": 0.0009011833671278183,
  "material": {
   "__class__": "Material",
   "name": "Germanium",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 1
- }
+ },
+ "jaw_L": 0.000902156882654687,
+ "jaw_R": -0.0009002098516009497
 }

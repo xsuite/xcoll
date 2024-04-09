@@ -82,9 +82,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     active       *= EverestCollimatorData_get__tracking(el);
     double const length  = EverestCollimatorData_get_length(el);
 
-    // Collimator geometry
-    double const co_x       = EverestCollimatorData_get_ref_x(el);
-    double const co_y       = EverestCollimatorData_get_ref_y(el);
     // TODO: we are ignoring the angle of the right jaw
     double const sin_zL     = EverestCollimatorData_get_sin_zL(el);
     double const cos_zL     = EverestCollimatorData_get_cos_zL(el);
@@ -111,16 +108,15 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
             if (is_valid) {
                 // Move to collimator frame
-                XYShift_single_particle(part, co_x, co_y);
                 SRotation_single_particle(part, sin_zL, cos_zL);
-
+                XYShift_single_particle(part, coll->offset, 0);
                 EverestData everest = EverestCollimator_init_data(part, coll);
                 scatter(everest, part, length);
                 free(everest);
 
                 // Return from collimator frame
+                XYShift_single_particle(part, -coll->offset, 0);
                 SRotation_single_particle(part, -sin_zL, cos_zL);
-                XYShift_single_particle(part, -co_x, -co_y);
             }
         }
     //end_per_particle_block

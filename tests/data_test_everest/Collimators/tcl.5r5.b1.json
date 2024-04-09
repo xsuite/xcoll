@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  0.00017134611030100274,
-  -1.926551596399643e-06
- ],
- "jaw": 0.001345866426631924,
  "material": {
   "__class__": "Material",
   "name": "Molybdenum",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.0096
- }
+ },
+ "jaw_L": 0.0015172125369329267,
+ "jaw_R": -0.0011745203163309214
 }

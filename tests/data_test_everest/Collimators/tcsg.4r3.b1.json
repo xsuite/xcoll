@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -5.108786298623878e-07,
-  1.0274058651388277e-06
- ],
- "jaw": 0.0011251325856828833,
  "material": {
   "__class__": "Material",
   "name": "Carbon",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.2557
- }
+ },
+ "jaw_L": 0.0011246217070530209,
+ "jaw_R": -0.0011256434643127458
 }

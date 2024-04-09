@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  1.4256006685582399e-06,
-  6.057342908043416e-08
- ],
- "jaw": 0.0006628730033503883,
  "material": {
   "__class__": "Material",
   "name": "Lead",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.01,
   "radiation_length": 0.0056
- }
+ },
+ "jaw_L": 0.0006642986040189466,
+ "jaw_R": -0.0006614474026818301
 }

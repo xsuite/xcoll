@@ -40,10 +40,6 @@ lengths_b1 = {
   0.600: 'tcld.a11r2.b1',
 }
 
-offsets_b1 = {
-  -0.0037:  'tcspm.b4l7.b1',
-  0.000855: 'tcspm.e5r7.b1',
-}
 
 materials_b2 = {
   'BE':   'tcl.4l1.b2',
@@ -73,10 +69,6 @@ lengths_b2 = {
   0.600: 'tcld.a11l2.b2',
 }
 
-offsets_b2 = {
-  0.00297:   'tcsg.4l3.b2',
-  -0.000346: 'tcsg.b5l3.b2',
-}
 
 crystals_b1 = [
   'tcpcv.a6l7.b1',
@@ -146,22 +138,6 @@ def test_lengths_b1():
 # def test_lengths_b2(test_context):
 def test_lengths_b2():
     for key, name in lengths_b2.items():
-        _track_collimator(name, _context=test_context)
-
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_offsets_b1(test_context):
-def test_offsets_b1():
-    for key, name in offsets_b1.items():
-        _track_collimator(name, _context=test_context)
-
-# @for_all_test_contexts(
-#     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-# )
-# def test_offsets_b2(test_context):
-def test_offsets_b2():
-    for key, name in offsets_b2.items():
         _track_collimator(name, _context=test_context)
 
 # @for_all_test_contexts(

@@ -33,7 +33,6 @@ import pandas as pd
 _element_properties  = {
                         'length':           0,
                         'jaw':              None,
-                        'reference_center': None,
                         'angle':            0,
                         'side':             'both',
                         'material':         None,
@@ -147,10 +146,6 @@ class CollimatorSettings:
         _set_LRUD(self, 'jaw', val, neg=True)
         self._jaws_manually_set = True
         self._compute_jaws()
-
-    @property
-    def reference_center(self):
-        return _get_LRUD(self, 'ref', name_LU='_xU', name_RU='_yU', name_LD='_xD', name_RD='_yD')
 
     @property
     def beam_size(self):

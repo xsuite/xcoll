@@ -43,8 +43,6 @@ base_fields = {
     'length': 1.3,
     'jaw_L':  0.01544,
     'jaw_R':  -0.0152,
-    'ref_x':  4.78e-5,
-    'ref_y':  -3.2e-5,
     'sin_zL': np.sin(137.8*np.pi/180),
     'cos_zL': np.cos(137.8*np.pi/180),
     'sin_zR': np.sin(42.5*np.pi/180),
@@ -80,9 +78,6 @@ base_dict_fields = {
         {'val':  [5.2e-2, 3.7e-2], 'expected': {'sin_yL': np.sin(5.2e-2), 'cos_yL': np.cos(5.2e-2),
                                                 'sin_yR': np.sin(3.7e-2), 'cos_yR': np.cos(3.7e-2),
                                                 'tan_yL': np.tan(5.2e-2), 'tan_yR': np.tan(3.7e-2)}}],
-    'reference_center': [
-        {'val':  0,                  'expected': {'ref_x': 0,       'ref_y': 0}},
-        {'val':  [4.78e-5, -3.2e-5], 'expected': {'ref_x': 4.78e-5, 'ref_y': -3.2e-5}}],
     'side': [
         {'val':  'left',  'expected': {'_side': 1}},
         {'val':  'both',  'expected': {'_side': 0}},

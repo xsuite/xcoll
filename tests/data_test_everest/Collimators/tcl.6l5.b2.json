@@ -4,11 +4,6 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -5.9151286556083724e-08,
-  -1.0338012862886383e-06
- ],
- "jaw": 0.000948214398429912,
  "material": {
   "__class__": "Material",
   "name": "Glidcop",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.0144
- }
+ },
+ "jaw_L": 0.0009481552471433559,
+ "jaw_R": -0.000948273549716468
 }

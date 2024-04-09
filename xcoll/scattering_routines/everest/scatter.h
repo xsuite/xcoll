@@ -15,7 +15,6 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
 
     // geometry values
     double aperture = everest->coll->aperture;
-    double offset   = everest->coll->offset;
     double tilt_L   = everest->coll->tilt_L;
     double tilt_R   = everest->coll->tilt_R;
     double side     = everest->coll->side;
@@ -54,7 +53,7 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
         }
 
         // Shift with opening and offset
-        LocalParticle_add_to_x(part, -aperture/2. - mirror*offset);
+        LocalParticle_add_to_x(part, -aperture/2.);
 
         // Include collimator tilt
         double rot_shift = YRotation_single_particle_rotate_only(part, 0., tiltangle);
@@ -110,7 +109,7 @@ void scatter(EverestData restrict everest, LocalParticle* part, double length){
         Drift_single_particle_4d(part, length-rot_shift);
 
         // Transform back to particle coordinates with opening and offset
-        LocalParticle_add_to_x(part, aperture/2. + mirror*offset);
+        LocalParticle_add_to_x(part, aperture/2.);
 
         // Now mirror at the horizontal axis for negative X offset
         if (mirror < 0) {
