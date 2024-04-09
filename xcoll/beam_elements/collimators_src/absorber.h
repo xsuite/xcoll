@@ -94,14 +94,14 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 if (is_dead == 1){
                     // Died on left upstream jaw
                     LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                    CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED_L);
+                    CollimatorImpactsData_log(record, record_index, part, XC_ENTER_JAW_L);
                     // Rotate back from left jaw
                     SRotation_single_particle(part, -sin_zL, cos_zL);
 
                 } else if (is_dead == -1){
                     // Died on right upstream jaw
                     LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                    CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED_R);
+                    CollimatorImpactsData_log(record, record_index, part, XC_ENTER_JAW_R);
                     // Rotate back from right jaw
                     SRotation_single_particle(part, -sin_zR, cos_zR);
 
@@ -119,7 +119,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                         backtrack_length = (jaw_LD - x_D) / (jaw_LD - jaw_LU - x_D + x_U) * length;
                         Drift_single_particle(part, -backtrack_length);
                         LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                        CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED_L);
+                        CollimatorImpactsData_log(record, record_index, part, XC_ENTER_JAW_L);
                         // Rotate back from left jaw
                         SRotation_single_particle(part, -sin_zL, cos_zL);
 
@@ -128,7 +128,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                         backtrack_length = (jaw_RD - x_D) / (jaw_RD - jaw_RU - x_D + x_U) * length;
                         Drift_single_particle(part, -backtrack_length);
                         LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                        CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED_R);
+                        CollimatorImpactsData_log(record, record_index, part, XC_ENTER_JAW_R);
                         // Rotate back from right jaw
                         SRotation_single_particle(part, -sin_zR, cos_zR);
 

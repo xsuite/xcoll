@@ -10,10 +10,11 @@ source = r'''
 
 #define  XC_UNITIALISED                     0        // NAN  // Do not use
 
-#define  XC_ENTER_JAW                      -1        // JI   // point (no children)    Set ds > 0 if entering later
-#define  XC_EXIT_JAW                       -2        // JO   // point (no children)
-#define  XC_ABSORBED_L                      1        // A    // point (no children)    Don't use 0 (is default for unitialised)
-#define  XC_ABSORBED_R                      2        // A    // point (no children)    Don't use 0 (is default for unitialised)
+#define  XC_ENTER_JAW_L                    -1        // JI   // point (no children)    Set ds > 0 if entering later
+#define  XC_ENTER_JAW_R                    -2        // JI   // point (no children)    Set ds > 0 if entering later
+#define  XC_EXIT_JAW                       -3        // JO   // point (no children)
+#define  XC_ENTER_JAW                      -4        // JI   // point (no children)    Set ds > 0 if entering later    still here for compatibility
+#define  XC_ABSORBED                        1        // A    // point (no children)    Don't use 0 (is default for unitialised)
 #define  XC_MULTIPLE_COULOMB_SCATTERING    13        // MCS  // continuous
 #define  XC_PN_ELASTIC                     14        // PN   // point (no children)
 #define  XC_PP_ELASTIC                     15        // PP   // point (no children)
