@@ -16,10 +16,10 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const length = BlackAbsorberData_get_length(el);
 
     // Impact table
+    CollimatorImpactsData record = BlackAbsorberData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
     int8_t record_touches = 0;
     int8_t record_interactions = 0;
-    CollimatorImpactsData record = BlackAbsorberData_getp_internal_record(el, part0);
     if (record){
         record_index = CollimatorImpactsData_getp__index(record);
         record_touches = BlackAbsorberData_get_record_touches(el);
@@ -40,17 +40,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 // Check if hit on jaws
                 int8_t is_hit = hit_jaws_check_and_transform(part, (BaseCollimatorData) el, record, record_index, record_touches);
 
-                if (is_hit == 1){
-                    // Died on left jaw
+                if (is_hit != 0){
                     LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
                     if (record_interactions) {
-                        CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED);  // In coll jaw reference frame
-                    }
-
-                } else if (is_hit == -1){
-                    // Died on right jaw
-                    LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                    if (record_interactions){
                         CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED);  // In coll jaw reference frame
                     }
                 }
