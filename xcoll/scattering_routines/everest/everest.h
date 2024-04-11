@@ -9,14 +9,11 @@
 
 typedef struct EverestCollData_ {
     // Collimator properties
-    double aperture;   // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double offset;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double tilt_L;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double tilt_R;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double side;       // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     RandomRutherfordData restrict rng;
     CollimatorImpactsData record;
     RecordIndex record_index;
+    int8_t record_touches;
+    int8_t record_interactions;
     // Crystal properties
     double bend_r;
     double bend_ang;

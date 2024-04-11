@@ -40,17 +40,13 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         // Impact table
         coll->record = EverestCollimatorData_getp_internal_record(el, part0);
         coll->record_index = NULL;
+        coll->record_touches = 0;
+        coll->record_interactions = 0;
         if (coll->record){
             coll->record_index = CollimatorImpactsData_getp__index(coll->record);
+            coll->record_touches = EverestCollimatorData_get_record_touches(el);
+            coll->record_interactions = EverestCollimatorData_get_record_interactions(el);
         }
-
-        // Geometry
-        // TODO: this should in principle not be in this struct
-        coll->aperture = EverestCollimatorData_get_jaw_L(el) - EverestCollimatorData_get_jaw_R(el);
-        coll->offset   = ( EverestCollimatorData_get_jaw_L(el) + EverestCollimatorData_get_jaw_R(el) ) /2;
-        coll->tilt_L   = asin(EverestCollimatorData_get_sin_yL(el));
-        coll->tilt_R   = asin(EverestCollimatorData_get_sin_yR(el));
-        coll->side     = EverestCollimatorData_get__side(el);
     }
 
     return coll;
@@ -80,22 +76,18 @@ EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData col
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
     int8_t active = EverestCollimatorData_get_active(el);
     active       *= EverestCollimatorData_get__tracking(el);
-    double const length  = EverestCollimatorData_get_length(el);
-
-    // TODO: we are ignoring the angle of the right jaw
-    double const sin_zL     = EverestCollimatorData_get_sin_zL(el);
-    double const cos_zL     = EverestCollimatorData_get_cos_zL(el);
-    double const sin_zR     = EverestCollimatorData_get_sin_zR(el);
-    double const cos_zR     = EverestCollimatorData_get_cos_zR(el);
-    if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
-        printf("Jaws with different angles not yet implemented!");  //only_for_context cpu_serial
-        fflush(stdout);                                             //only_for_context cpu_serial
-        kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
-    };
+    double const length = EverestCollimatorData_get_length(el);
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestCollimator_init(el, part0, active);
+
+    double tilt_L = asin(EverestCollimatorData_get__sin_yL(el));
+    double tilt_R = asin(EverestCollimatorData_get__sin_yR(el));
+    double const jaw_LU = EverestCollimatorData_get__jaw_LU(el);
+    double const jaw_LD = EverestCollimatorData_get__jaw_LD(el);
+    double const jaw_RU = EverestCollimatorData_get__jaw_RU(el);
+    double const jaw_RD = EverestCollimatorData_get__jaw_RD(el);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -107,16 +99,130 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
             if (is_valid) {
-                // Move to collimator frame
-                SRotation_single_particle(part, sin_zL, cos_zL);
-                XYShift_single_particle(part, coll->offset, 0);
-                EverestData everest = EverestCollimator_init_data(part, coll);
-                scatter(everest, part, length);
-                free(everest);
+                // Save the end position of the particle
+                double s_coll = LocalParticle_get_s(part);
 
-                // Return from collimator frame
-                XYShift_single_particle(part, -coll->offset, 0);
-                SRotation_single_particle(part, -sin_zL, cos_zL);
+                // Store initial coordinates for updating later
+                double const rpp_in  = LocalParticle_get_rpp(part);
+                double const rvv_in  = LocalParticle_get_rvv(part);
+                double const e0      = LocalParticle_get_energy0(part) / 1e9; // Reference energy in GeV
+                double const beta0   = LocalParticle_get_beta0(part);
+                double const ptau_in = LocalParticle_get_ptau(part);
+                double const x_in    = LocalParticle_get_x(part);
+                double const px_in   = LocalParticle_get_px(part);
+                double const y_in    = LocalParticle_get_y(part);
+                double const py_in   = LocalParticle_get_py(part);
+                double p0 = LocalParticle_get_p0c(part) / 1e9;
+                // TODO: missing correction due to m/m0 (but also wrong in xpart...)
+                double energy = p0*ptau_in + e0; // energy, not momentum, in GeV
+                int is_abs = 0;
+
+                // Check if hit on jaws
+                int8_t is_hit = hit_jaws_check_and_transform(part, (BaseCollimatorData) el, coll->record, coll->record_index, coll->record_touches);
+
+                // Hit one of the jaws, so scatter
+                double s_part = LocalParticle_get_s(part) - s_coll;
+                double remaining_length = length - s_part;
+
+                printf("Particle s_part %10.10f \n", s_part);
+                fflush(stdout);
+
+                if (is_hit!=0 && abs(s_part) > 1.e-10){
+                    // UNZETA
+                    double px  = LocalParticle_get_px(part);
+                    double py  = LocalParticle_get_py(part);
+                    double rvv = LocalParticle_get_rvv(part);
+                    double rpp = LocalParticle_get_rpp(part);
+                    // First we drift half the length with the old angles:
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, -s_part));
+                }
+                
+                if (is_hit == 1){
+                    // left jaw
+                    XYShift_single_particle(part, jaw_LU, 0);
+                     // Include collimator tilt
+                    double rot_shift = YRotation_single_particle_rotate_only(part, s_part, tilt_L);
+                    if (abs(s_part) < 1.e-10){
+                        Drift_single_particle_4d(part, -rot_shift);
+                    }
+                } else if (is_hit == -1){
+                    // Right jaw
+                    XYShift_single_particle(part, jaw_RU, 0);
+                    LocalParticle_scale_x(part, -1);
+                    LocalParticle_scale_px(part, -1);
+                     // Include collimator tilt
+                    double rot_shift = YRotation_single_particle_rotate_only(part, s_part, -tilt_R);
+                    if (abs(s_part) < 1.e-10){
+                        Drift_single_particle_4d(part, -rot_shift);
+                    }
+                }
+
+                if (is_hit != 0) {
+                    // Scatter
+                    EverestData everest = EverestCollimator_init_data(part, coll);
+                    double* jaw_result = jaw(everest, part, energy, remaining_length, 1);
+                    free(everest);
+                    energy = jaw_result[0];
+                    if (jaw_result[1] == 1){
+                        is_abs = 1;
+                    }
+                    double s_out = jaw_result[2];
+                    free(jaw_result);
+        
+                    if (is_abs != 1) {
+                       // Do the rest drift, if particle left collimator early
+                        Drift_single_particle_4d(part, remaining_length-s_out);
+                    }
+                }
+
+
+                if (is_hit == 1){
+                    double rot_shift = YRotation_single_particle_rotate_only(part, length, -tilt_L); // Wrong, should be final s-position (in case particle is absorbed..)
+                    Drift_single_particle_4d(part, length-rot_shift);
+                    XYShift_single_particle(part, -jaw_LU, 0);
+                } else if (is_hit == -1){
+                    double rot_shift = YRotation_single_particle_rotate_only(part, length, tilt_R);
+                    Drift_single_particle_4d(part, length-rot_shift);
+                    LocalParticle_scale_x(part, -1);
+                    LocalParticle_scale_px(part, -1);
+                    XYShift_single_particle(part, -jaw_RU, 0);
+                }
+
+                // Update energy    ---------------------------------------------------
+                // Only particles that hit the jaw and survived need to be updated
+                if (is_hit!=0 && is_abs==0){
+                    double ptau_out = (energy - e0) / (e0 * beta0);
+                    LocalParticle_update_ptau(part, ptau_out);
+                }
+            
+                // Update 4D coordinates    -------------------------------------------
+                // Absorbed particles get their coordinates set to the entrance of collimator
+                if (is_abs>0){
+                    LocalParticle_set_x(part, x_in);
+                    LocalParticle_set_px(part, px_in);
+                    LocalParticle_set_y(part, y_in);
+                    LocalParticle_set_py(part, py_in);
+                }
+
+                // Hit and survived particles need correcting:
+                if (is_hit>0 && is_abs==0){
+                    double px  = LocalParticle_get_px(part);
+                    double py  = LocalParticle_get_py(part);
+                    double rvv = LocalParticle_get_rvv(part);
+                    double rpp = LocalParticle_get_rpp(part);
+                    // First we drift half the length with the old angles:
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
+                    // then half the length with the new angles:
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+                }
+            
+                // Update state    ----------------------------------------------------
+                if (is_abs > 0){
+                    LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+                }
+
+                // Transform back to the lab frame
+                hit_jaws_transform_back(is_hit, part, (BaseCollimatorData) el);
             }
         }
     //end_per_particle_block
