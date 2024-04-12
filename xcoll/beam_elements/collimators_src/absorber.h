@@ -6,6 +6,7 @@
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
 
+
 /*gpufun*/
 CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalParticle* part0, int8_t active){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
@@ -78,7 +79,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             }
         }
     //end_per_particle_block
-
+    free(cg);
 }
 
 #endif /* XCOLL_COLL_GEOM_H */

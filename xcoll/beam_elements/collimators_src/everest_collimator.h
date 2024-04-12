@@ -16,6 +16,40 @@ void EverestCollimator_set_material(EverestCollimatorData el){
 }
 
 
+/*gpufun*/
+CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, LocalParticle* part0, int8_t active){
+    CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
+    if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
+        // Collimator jaws (with tilts)
+        cg->jaw_LU = EverestCollimatorData_get__jaw_LU(el);
+        cg->jaw_LD = EverestCollimatorData_get__jaw_LD(el);
+        cg->jaw_RU = EverestCollimatorData_get__jaw_RU(el);
+        cg->jaw_RD = EverestCollimatorData_get__jaw_RD(el);
+        // TODO: need shortening of active length!
+        cg->length = EverestCollimatorData_get_length(el);
+        cg->side   = EverestCollimatorData_get__side(el);
+        // Get angles of jaws
+        cg->sin_zL = EverestCollimatorData_get__sin_zL(el);
+        cg->cos_zL = EverestCollimatorData_get__cos_zL(el);
+        cg->sin_zR = EverestCollimatorData_get__sin_zR(el);
+        cg->cos_zR = EverestCollimatorData_get__cos_zR(el);
+        cg->sin_zDiff = EverestCollimatorData_get__sin_zDiff(el);
+        cg->cos_zDiff = EverestCollimatorData_get__cos_zDiff(el);
+        cg->jaws_parallel = EverestCollimatorData_get__jaws_parallel(el);
+        // Impact table:  need it here to record touches
+        cg->record = EverestCollimatorData_getp_internal_record(el, part0);
+        cg->record_index = NULL;
+        cg->record_touches = 0;
+        if (cg->record){
+            cg->record_index = CollimatorImpactsData_getp__index(cg->record);
+            cg->record_touches = EverestCollimatorData_get_record_touches(el);
+        }
+    }
+
+    return cg;
+}
+
+
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 // Hmmmm this should be called whenever we change an xofield
@@ -36,15 +70,12 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         coll->csref[1] = MaterialData_get_cross_section(material, 1);
         coll->csref[5] = MaterialData_get_cross_section(material, 5);
         coll->only_mcs = MaterialData_get__only_mcs(material);
-
-        // Impact table
+        // Impact table:  need it here to record interactions
         coll->record = EverestCollimatorData_getp_internal_record(el, part0);
         coll->record_index = NULL;
-        coll->record_touches = 0;
         coll->record_interactions = 0;
         if (coll->record){
             coll->record_index = CollimatorImpactsData_getp__index(coll->record);
-            coll->record_touches = EverestCollimatorData_get_record_touches(el);
             coll->record_interactions = EverestCollimatorData_get_record_interactions(el);
         }
     }
@@ -80,14 +111,17 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
-    EverestCollData coll = EverestCollimator_init(el, part0, active);
+    EverestCollData coll  = EverestCollimator_init(el, part0, active);
+    CollimatorGeometry cg = EverestCollimator_init_geometry(el, part0, active);
 
     double tilt_L = asin(EverestCollimatorData_get__sin_yL(el));
     double tilt_R = asin(EverestCollimatorData_get__sin_yR(el));
-    double const jaw_LU = EverestCollimatorData_get__jaw_LU(el);
-    double const jaw_LD = EverestCollimatorData_get__jaw_LD(el);
-    double const jaw_RU = EverestCollimatorData_get__jaw_RU(el);
-    double const jaw_RD = EverestCollimatorData_get__jaw_RD(el);
+    double jaw_LU = EverestCollimatorData_get__jaw_LU(el);
+    double jaw_RU = EverestCollimatorData_get__jaw_RU(el);
+    double jaw_LD = EverestCollimatorData_get__jaw_LD(el);
+    double jaw_RD = EverestCollimatorData_get__jaw_RD(el);
+    double jaw_L = (jaw_LU + jaw_LD)/2;
+    double jaw_R = (jaw_RU + jaw_RD)/2;
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -118,14 +152,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 int is_abs = 0;
 
                 // Check if hit on jaws
-                int8_t is_hit = hit_jaws_check_and_transform(part, (BaseCollimatorData) el, coll->record, coll->record_index, coll->record_touches);
+                int8_t is_hit = hit_jaws_check_and_transform(part, cg);
 
                 // Hit one of the jaws, so scatter
                 double s_part = LocalParticle_get_s(part) - s_coll;
                 double remaining_length = length - s_part;
-
-                printf("Particle s_part %10.10f \n", s_part);
-                fflush(stdout);
 
                 if (is_hit!=0 && abs(s_part) > 1.e-10){
                     // UNZETA
@@ -139,7 +170,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 
                 if (is_hit == 1){
                     // left jaw
-                    XYShift_single_particle(part, jaw_LU, 0);
+                    XYShift_single_particle(part, jaw_L, 0);
                      // Include collimator tilt
                     double rot_shift = YRotation_single_particle_rotate_only(part, s_part, tilt_L);
                     if (abs(s_part) < 1.e-10){
@@ -147,7 +178,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     }
                 } else if (is_hit == -1){
                     // Right jaw
-                    XYShift_single_particle(part, jaw_RU, 0);
+                    XYShift_single_particle(part, jaw_R, 0);
                     LocalParticle_scale_x(part, -1);
                     LocalParticle_scale_px(part, -1);
                      // Include collimator tilt
@@ -222,11 +253,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 }
 
                 // Transform back to the lab frame
-                hit_jaws_transform_back(is_hit, part, (BaseCollimatorData) el);
+                hit_jaws_transform_back(is_hit, part, cg);
             }
         }
     //end_per_particle_block
-
+    free(cg);
     free(coll);
 }
 
