@@ -116,6 +116,8 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
     double tilt_L = asin(EverestCollimatorData_get__sin_yL(el));
     double tilt_R = asin(EverestCollimatorData_get__sin_yR(el));
+    double sin_zL = asin(EverestCollimatorData_get__sin_zL(el));
+    double cos_zL = asin(EverestCollimatorData_get__cos_zL(el));
     double jaw_LU = EverestCollimatorData_get__jaw_LU(el);
     double jaw_RU = EverestCollimatorData_get__jaw_RU(el);
     double jaw_LD = EverestCollimatorData_get__jaw_LD(el);
@@ -143,9 +145,12 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 double const beta0   = LocalParticle_get_beta0(part);
                 double const ptau_in = LocalParticle_get_ptau(part);
                 double const x_in    = LocalParticle_get_x(part);
-                double const px_in   = LocalParticle_get_px(part);
+                double const px      = LocalParticle_get_px(part);
                 double const y_in    = LocalParticle_get_y(part);
-                double const py_in   = LocalParticle_get_py(part);
+                double const py      = LocalParticle_get_py(part);
+                double const zeta_in = LocalParticle_get_zeta(part);
+                double const px_in   =  cos_zL * px + sin_zL * py;
+                double const py_in   = -sin_zL * px + cos_zL * py;
                 double p0 = LocalParticle_get_p0c(part) / 1e9;
                 // TODO: missing correction due to m/m0 (but also wrong in xpart...)
                 double energy = p0*ptau_in + e0; // energy, not momentum, in GeV
@@ -158,22 +163,12 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 double s_part = LocalParticle_get_s(part) - s_coll;
                 double remaining_length = length - s_part;
 
-                if (is_hit!=0 && abs(s_part) > 1.e-10){
-                    // UNZETA
-                    double px  = LocalParticle_get_px(part);
-                    double py  = LocalParticle_get_py(part);
-                    double rvv = LocalParticle_get_rvv(part);
-                    double rpp = LocalParticle_get_rpp(part);
-                    // First we drift half the length with the old angles:
-                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, -s_part));
-                }
-                
                 if (is_hit == 1){
                     // left jaw
                     XYShift_single_particle(part, jaw_L, 0);
                      // Include collimator tilt
                     double rot_shift = YRotation_single_particle_rotate_only(part, s_part, tilt_L);
-                    if (abs(s_part) < 1.e-10){
+                    if (fabs(s_part) < 1.e-10){
                         Drift_single_particle_4d(part, -rot_shift);
                     }
                 } else if (is_hit == -1){
@@ -183,7 +178,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     LocalParticle_scale_px(part, -1);
                      // Include collimator tilt
                     double rot_shift = YRotation_single_particle_rotate_only(part, s_part, -tilt_R);
-                    if (abs(s_part) < 1.e-10){
+                    if (fabs(s_part) < 1.e-10){
                         Drift_single_particle_4d(part, -rot_shift);
                     }
                 }
@@ -235,8 +230,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     LocalParticle_set_py(part, py_in);
                 }
 
+                LocalParticle_set_zeta(part, zeta_in);
                 // Hit and survived particles need correcting:
-                if (is_hit>0 && is_abs==0){
+                if (is_hit!=0 && is_abs==0){
                     double px  = LocalParticle_get_px(part);
                     double py  = LocalParticle_get_py(part);
                     double rvv = LocalParticle_get_rvv(part);
