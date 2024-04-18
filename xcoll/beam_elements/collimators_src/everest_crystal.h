@@ -48,27 +48,29 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
 
         // Geometry
         // TODO: this should in principle not be in this struct
-        // coll->aperture = EverestCrystalData_get_jaw_L(el) - EverestCrystalData_get_jaw_R(el);
-        // coll->offset   = ( EverestCrystalData_get_jaw_L(el) + EverestCrystalData_get_jaw_R(el) ) /2;
-        // coll->tilt_L   = asin(EverestCrystalData_get_sin_yL(el));
-        // coll->tilt_R   = asin(EverestCrystalData_get_sin_yR(el));
-        // if (fabs(coll->tilt_R) > 1.e-10){
-        //     printf("Crystals have to be left-sided for now, so tilt_R should not be set!");
-        //     fflush(stdout);
-        //     kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
-        // };
-        // coll->side     = EverestCrystalData_get__side(el);  // TODO: so far only left-sided crystals
-        // if (coll->side != 1){
-        //     printf("Crystals have to be left-sided for now!");
-        //     fflush(stdout);
-        //     kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
-        // };
+        double jaw_L = (EverestCrystalData_get__jaw_LU(el) + EverestCrystalData_get__jaw_LD(el))/2.;
+        double jaw_R = (EverestCrystalData_get__jaw_RU(el) + EverestCrystalData_get__jaw_RD(el))/2.;
+        coll->aperture = jaw_L - jaw_R;
+        coll->offset   = (jaw_L + jaw_R) /2;
+        coll->tilt_L   = asin(EverestCrystalData_get__sin_yL(el));
+        coll->tilt_R   = asin(EverestCrystalData_get__sin_yR(el));
+        if (fabs(coll->tilt_R) > 1.e-10){
+            printf("Crystals have to be left-sided for now, so tilt_R should not be set!");
+            fflush(stdout);
+            kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+        };
+        coll->side     = EverestCrystalData_get__side(el);  // TODO: so far only left-sided crystals
+        if (coll->side != 1){
+            printf("Crystals have to be left-sided for now!");
+            fflush(stdout);
+            kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
+        };
         // TODO: this should stay here
         double R         = EverestCrystalData_get__bending_radius(el);
         coll->bend_r     = R;
         double t_R       = EverestCrystalData_get__bending_angle(el);
         coll->bend_ang   = t_R;
-        // coll->tilt       = EverestCrystalData_get_align_angle(el) + coll->tilt_L;   // TODO: only left-sided crystals
+        coll->tilt       = EverestCrystalData_get_align_angle(el) + coll->tilt_L;   // TODO: only left-sided crystals
         // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
         // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5
         // Difference is so small that this was never caught.
@@ -154,7 +156,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 // Move to collimator frame
                 SRotation_single_particle(part, sin_zL, cos_zL);
-                // XYShift_single_particle(part, coll->offset, 0);
+                XYShift_single_particle(part, coll->offset, 0);
 
                 EverestData everest = EverestCrystal_init_data(part0, coll);
                 scatter_cry(everest, part, length);
@@ -166,7 +168,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 free(everest);
 
                 // Return from collimator frame
-                // XYShift_single_particle(part, -coll->offset, 0);
+                XYShift_single_particle(part, -coll->offset, 0);
                 SRotation_single_particle(part, -sin_zL, cos_zL);
 
                 // Surviving particles are put at same numerical s, and drifted inactive back

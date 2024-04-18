@@ -18,10 +18,10 @@
 void scatter_cry(EverestData restrict everest, LocalParticle* part, double length){
 
     // geometry values
-    double aperture = 0.; // everest->coll->aperture;
-    double offset   = 0.; // everest->coll->offset;
-    double side     = 0.; // everest->coll->side;
-    double cry_tilt = 0.; // everest->coll->tilt;
+    double aperture = everest->coll->aperture;
+    double offset   = everest->coll->offset;
+    double side     = everest->coll->side;
+    double cry_tilt = everest->coll->tilt;
     double bend_r   = everest->coll->bend_r;
     double bend_ang = everest->coll->bend_ang;
     double xdim     = everest->coll->xdim;
