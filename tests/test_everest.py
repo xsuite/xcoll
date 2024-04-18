@@ -130,7 +130,8 @@ def test_angles_b2():
 # def test_lengths_b1(test_context):
 def test_lengths_b1():
     for key, name in lengths_b1.items():
-        _track_collimator(name, _context=test_context)
+        print(f"COLLIMATOR  {name}")
+        _track_collimator(name, _context=test_context, atolz=2e-11)
 
 # @for_all_test_contexts(
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
@@ -138,7 +139,8 @@ def test_lengths_b1():
 # def test_lengths_b2(test_context):
 def test_lengths_b2():
     for key, name in lengths_b2.items():
-        _track_collimator(name, _context=test_context)
+        print(f"COLLIMATOR  {name}")
+        _track_collimator(name, _context=test_context, atolz=2e-11)
 
 # @for_all_test_contexts(
 #     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU

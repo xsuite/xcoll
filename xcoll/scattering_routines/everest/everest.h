@@ -14,9 +14,14 @@ typedef struct EverestCollData_ {
     RecordIndex record_index;
     int8_t record_interactions;
     // Crystal properties
+    double aperture;
+    double offset;
+    double tilt_L;
+    double tilt_R;
+    double tilt;
+    double side;
     double bend_r;
     double bend_ang;
-    double tilt;
     double amorphous_layer;
     double xdim;
     double ydim;
