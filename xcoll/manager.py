@@ -585,6 +585,7 @@ class CollimatorManager:
         # Prepare collimators for tracking
         for el in self.line.get_elements_of_type(element_classes)[0]:
             el.enable_scattering()
+        self.line.tracker.io_buffer = self._io_buffer
         self._set_record_impacts()
 
     def disable_scattering(self):
