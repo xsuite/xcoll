@@ -5,13 +5,13 @@
 
 import warnings
 
-import xtrack as xt
+from xsuite_kernels.kernel_definitions import kernel_definitions
+from xsuite_kernels.prebuild_kernels import regenerate_kernels
 
 
 def test_init():
-    from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
     xcoll_kernels = [name for name, ker in kernel_definitions if 'xcoll' in name]
     if len(xcoll_kernels) > 0:
-        xt.prebuild_kernels.regenerate_kernels(kernels=xcoll_kernels)
+        regenerate_kernels(kernels=xcoll_kernels)
     else:
         warnings.warn('No Xcoll kernels found!')
