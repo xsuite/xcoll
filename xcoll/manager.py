@@ -321,6 +321,9 @@ class CollimatorManager:
             raise Exception("Tracker already built!\nPlease install collimators before building "
                           + "tracker!")
 
+        tt = line.get_table()
+        ss = tt.s
+
         # Loop over collimators to install
         for name in names:
 
@@ -491,21 +494,15 @@ class CollimatorManager:
             raise Exception("Please build tracker before computing the optics for the openings!")
         line = self.line
 
-        if recompute or not self.colldb._optics_is_ready:
-            # TODO: does this fail on Everest? Can the twiss be calculated at the center of the collimator for everest?
-#             pos = { *self.s_active_front, *self.s_center, *self.s_active_back }
-            pos = list({ *self.s_front, *self.s_back })
-            tw = line.twiss(at_s=pos)
-#             tw = tracker.twiss()
-            self.colldb._optics = pd.concat([
-                                    self.colldb._optics,
-                                    pd.DataFrame({
-                                            opt: tw[opt] for opt in self.colldb._optics.columns
-#                                     opt: [ np.array(tw[opt])[abs(tw['s']-thispos) < 1e-12][0] for thispos in pos ]
-#                                         for opt in self.colldb._optics.columns
-                                    }, index=pos)
-                                ])
-            self.colldb.gamma_rel = line.particle_ref._xobject.gamma0[0]
+        optics_is_ready = np.all([line[coll].optics is not None for coll in self.collimator_names])
+        if recompute or not optics_is_ready:
+            tw = line.twiss().rows
+            nemitt_x = self.colldb.emittance[0]
+            nemitt_y = self.colldb.emittance[1]
+            beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
+            for coll in self.collimator_names: # TODO: Can we do this faster?
+                print(coll)
+                line[coll].assign_optics(coll, nemitt_x, nemitt_y, tw, beta_gamma_rel)
 
 
     # The variable 'gaps' is meant to specify temporary settings that will overrule the CollimatorDatabase.
@@ -527,30 +524,27 @@ class CollimatorManager:
         if not self.aligned:
             self.align_collimators_to('front')
 
-        gaps_OLD = colldb.gap
+        # Get the optics (to compute the opening)
+        self._compute_optics(recompute=recompute_optics)
+
         names = self.collimator_names
         # Override gap if sending to parking
         if to_parking:
             gaps = { **{ name: None for name in names }, **gaps }
-        colldb.gap = gaps
-
-        # Get the optics (to compute the opening)
-        self._compute_optics(recompute=recompute_optics)
-        if not self.colldb._optics_is_ready:
-            raise Exception("Something is wrong: not all optics needed for the jaw openings are calculated!")
+        these_gaps = colldb.gap.to_dict()
+        these_gaps.update(gaps)
 
         # Configure collimators
         line = self.line
         for name in names:
-            # Override openings if opening fully
+            # Override openings if opening fully, except for manually specified collimators
             if full_open and name not in gaps.keys():
                 line[name].active = False
             # Apply settings to element
             elif isinstance(line[name], BaseCollimator):
-                line[name].angle  = colldb.angle[name]
-                line[name].jaw_L = (colldb._colldb.jaw_LU[name] + colldb._colldb.jaw_LD[name])/2
-                line[name].jaw_R = (colldb._colldb.jaw_RU[name] + colldb._colldb.jaw_RU[name])/2
-                # TODO: tilt
+                line[name].angle = colldb.angle[name]
+                line[name].gap   = these_gaps[name]
+                # TODO: tilt in colldb
                 line[name].side   = colldb.side[name]
                 line[name].active = colldb.active[name]
                 if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
@@ -559,7 +553,6 @@ class CollimatorManager:
                     else:
                         line[name].material = SixTrack_to_xcoll[colldb.material[name]][1]
                 if isinstance(line[name], EverestCrystal):
-                    line[name].align_angle    = colldb._colldb.align_angle[name]
                     line[name].bending_radius = colldb._colldb.bending_radius[name]
                     line[name].xdim           = colldb._colldb.xdim[name]
                     line[name].ydim           = colldb._colldb.ydim[name]
@@ -568,17 +561,6 @@ class CollimatorManager:
                     line[name].lattice        = colldb._colldb.crystal[name]
             else:
                 raise ValueError(f"Missing implementation for element type of collimator {name}!")
-        colldb.gap = gaps_OLD
-
-    @property
-    def openings_set(self):
-        # TODO: need to delete jaw positions if some parameters (that would influence it) are changed
-        return not np.any(
-                    [x is None for x in self.colldb._colldb.jaw_LU]
-                    + [ x is None for x in self.colldb._colldb.jaw_RU]
-                    + [ x is None for x in self.colldb._colldb.jaw_LD]
-                    + [ x is None for x in self.colldb._colldb.jaw_RD]
-                )
 
 
     def enable_scattering(self):

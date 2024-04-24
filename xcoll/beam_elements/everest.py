@@ -54,21 +54,16 @@ class EverestBlock(BaseBlock):
 
 
     def __init__(self, **kwargs):
+        to_assign = {}
+        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
-            mat = kwargs.pop('material', None)
-            if mat is None:
-                raise ValueError("Need to provide a material to the block!")
-            if not isinstance(mat, Material):
-                if not isinstance(mat, dict) \
-                or mat['__class__'] != "Material":
-                    raise ValueError("Invalid material!")
-            kwargs['_material'] = mat
+            to_assign['material'] = kwargs.pop('material', None)
+            kwargs['_material'] = Material()
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
-            use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            self.EverestBlock_set_material(el=self)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
 
     @property
@@ -77,9 +72,12 @@ class EverestBlock(BaseBlock):
 
     @material.setter
     def material(self, material):
+        if material is None:
+            material = Material()
+        if isinstance(material, dict):
+            material = Material.from_dict(material)
         if not isinstance(material, Material):
-            if not isinstance('material', dict) or material['__class__'] != "Material":
-                raise ValueError("Invalid material!")
+            raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -121,20 +119,16 @@ class EverestCollimator(BaseCollimator):
 
 
     def __init__(self, **kwargs):
+        to_assign = {}
+        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
-            if kwargs.get('material') is None:
-                raise ValueError("Need to provide a material to the collimator!")
-            if not isinstance(kwargs['material'], Material):
-                if not isinstance(kwargs['material'], dict) \
-                or kwargs['material']['__class__'] != "Material":
-                    raise ValueError("Invalid material!")
-            kwargs['_material'] = kwargs.pop('material')
+            to_assign['material'] = kwargs.pop('material', None)
+            kwargs['_material'] = Material()
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
-            use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            self.EverestCollimator_set_material(el=self)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
     @property
     def material(self):
@@ -142,9 +136,12 @@ class EverestCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
+        if material is None:
+            material = Material()
+        if isinstance(material, dict):
+            material = Material.from_dict(material)
         if not isinstance(material, Material):
-            if not isinstance('material', dict) or material['__class__'] != "Material":
-                raise ValueError("Invalid material!")
+            raise ValueError("Invalid material!")
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -197,41 +194,44 @@ class EverestCrystal(BaseCollimator):
 
 
     def __init__(self, **kwargs):
+        to_assign = {}
+        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
-            if kwargs.get('material') is None:
-                raise ValueError("Need to provide a material to the collimator!")
-            if not isinstance(kwargs['material'], CrystalMaterial):
-                if not isinstance(kwargs['material'], dict) \
-                or kwargs['material']['__class__'] != "CrystalMaterial":
-                    raise ValueError("Invalid material!")
-            kwargs['_material'] = kwargs.pop('material')
-            bending_radius = False
-            bending_angle  = False
+            to_assign['material'] = kwargs.pop('material', None)
+            kwargs['_material'] = CrystalMaterial()
             if 'bending_radius' in kwargs:
                 if 'bending_angle' in kwargs:
                     raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
-                bending_radius = kwargs['bending_radius']
+                to_assign['bending_radius'] = kwargs.pop('bending_radius')
             elif 'bending_angle' in kwargs:
-                bending_angle = kwargs['bending_angle']
-            kwargs['_bending_radius'] = kwargs.pop('bending_radius', 0) # TODO: should be infinite by default
-            kwargs['_bending_angle'] = kwargs.pop('bending_angle', 0)
+                to_assign['bending_angle'] = kwargs.pop('bending_angle')
+            to_assign['lattice'] = kwargs.pop('lattice', 'strip')
             kwargs.setdefault('xdim', 0)
             kwargs.setdefault('ydim', 0)
             kwargs.setdefault('thick', 0)
             kwargs.setdefault('miscut', 0)
-            kwargs['_orient'] = _lattice_setter(kwargs.pop('lattice', 'strip'))
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
-            use_prebuilt_kernels = kwargs.pop('use_prebuilt_kernels', True)
         super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            if bending_radius:
-                # TODO: is this the correct relation?
-                self._bending_angle = np.arcsin(self.length/bending_radius)
-            if bending_angle:
-                self._bending_radius = self.length / np.sin(bending_angle)
-            self.EverestCrystal_set_material(el=self)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
+
+    @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, material):
+        if material is None:
+            material = CrystalMaterial()
+        if isinstance(material, dict):
+            material = CrystalMaterial.from_dict(material)
+        if not isinstance(material, CrystalMaterial):
+            raise ValueError("Invalid material!")
+        if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
+            self._material = material
+            self.EverestCrystal_set_material(el=self)
 
     @property
     def critical_angle(self):
@@ -268,33 +268,17 @@ class EverestCrystal(BaseCollimator):
 
     @lattice.setter
     def lattice(self, lattice):
-        self._orient = _lattice_setter(lattice)
-
-    @property
-    def material(self):
-        return self._material
-
-    @material.setter
-    def material(self, material):
-        if not isinstance(material, CrystalMaterial):
-            if not isinstance(material, dict) or material['__class__'] != "CrystalMaterial":
-                raise ValueError("Invalid material!")
-        if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
-            self._material = material
-            self.EverestCrystal_set_material(el=self)
+        if lattice == 'strip' or lattice == '110' or lattice == 110:
+            self._orient = 1
+        elif lattice == 'quasi-mosaic' or lattice == '111' or lattice == 111:
+            self._orient = 2
+        else:
+            raise ValueError(f"Illegal value {lattice} for 'lattice'! "
+                            + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
                                  _buffer=_buffer, _offset=_offset)
 
-
-def _lattice_setter(lattice):
-    if lattice == 'strip' or lattice == '110' or lattice == 110:
-        return 1
-    elif lattice == 'quasi-mosaic' or lattice == '111' or lattice == 111:
-        return 2
-    else:
-        raise ValueError(f"Illegal value {lattice} for 'lattice'! "
-                        + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
 

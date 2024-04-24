@@ -57,7 +57,7 @@ base_fields = {
     '_sin_yR': 0.,
     '_cos_yR': 1.,
     '_tan_yR': 0.,
-    '_side':   -1,
+    '_side':   0,
     'active':  1,
     'record_touches':      0,
     'record_interactions': 0
@@ -103,16 +103,36 @@ base_dict_fields = {
                                                 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01655499451259542,
                                                 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.011745005487404576,
                                                 'jaw_L':  0.0151, 'jaw_R':  -0.01415}}],
+    'gap': [
+        {'val':  5,       'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
+        {'val':  [5],     'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
+        {'val':  [5, -3], 'expected': {'gap': [5, -3], 'gap_L': 5, 'gap_R': -3}}],
     'side': [
-        {'val':  'left',  'expected': {'_side': 1}},
-        {'val':  'both',  'expected': {'_side': 0}},
-        {'val':  'right', 'expected': {'_side': -1}},
-        {'val':  'L',     'expected': {'_side': 1}},
-        {'val':  'R',     'expected': {'_side': -1}},
-        {'val':  '+',     'expected': {'_side': 1}},
-        {'val':  '-',     'expected': {'_side': -1}},
-        {'val':  '+-',    'expected': {'_side': 0}},
-        {'val':  '-+',    'expected': {'_side': 0}}]
+        {'val':  'left',  'expected': {'_side': 1,  'jaw_LU': 0.01172001523251274, 'jaw_RU': None, '_jaw_RU': -3.0024049945125952, 'gap_L': 5,
+                                                    'jaw_LD': 0.018479984767487263,'jaw_RD': None, '_jaw_RD': -2.9975950054874047, 'gap_R': None}},
+        {'val':  'both',  'expected': {'_side': 0,  'jaw_LU': 0.01172001523251274, 'jaw_RU': None, '_jaw_RU': -3.0024049945125952, 'gap_L': 5,
+                                                    'jaw_LD': 0.018479984767487263,'jaw_RD': None, '_jaw_RD': -2.9975950054874047, 'gap_R': None}},
+        {'val':  'right', 'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  'L',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  'R',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  '+',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  '-',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  '+-',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+        {'val':  '-+',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
+                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
+                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}}]
 }
 base_user_fields = {
     'angle_L': [{'val':  40, 'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180)}}],
@@ -121,12 +141,14 @@ base_user_fields = {
                 '_sin_yL': np.sin(0.5*np.pi/180), '_cos_yL': np.cos(0.5*np.pi/180), '_tan_yL': np.tan(0.5*np.pi/180)}}],
     'tilt_R':  [{'val':  0.7*np.pi/180, 'expected': {
                 '_sin_yR': np.sin(0.7*np.pi/180), '_cos_yR': np.cos(0.7*np.pi/180), '_tan_yR': np.tan(0.7*np.pi/180)}}],
-    'jaw_L':   [{'val':  0.013,  'expected': {'jaw_LU': 0.007327751926056942, 'jaw_RU': -0.022091050542910662,
-                                              'jaw_LD': 0.018672248073943055, 'jaw_RD': -0.006208949457089339,
+    'jaw_L':   [{'val':  0.013,  'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': None, '_jaw_RU': -3.0079410505429107,
+                                              'jaw_LD': 0.018672248073943076, 'jaw_RD': None, '_jaw_RD': -2.9920589494570894,
                                               'tilt':  [0.0087266463, 0.0122173048]}}],
-    'jaw_R':   [{'val':  -0.011, 'expected': {'jaw_LU': 0.007327751926056942, 'jaw_RU': -0.01894105054291066,
-                                              'jaw_LD': 0.018672248073943055, 'jaw_RD': -0.0030589494570893404,
+    'jaw_R':   [{'val':  -0.011, 'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': -0.01894105054291073,
+                                              'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994,
                                               'tilt':  [0.0087266463, 0.0122173048]}}],
+    'gap_L':   [{'val':  5,      'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}}],
+    'gap_R':   [{'val':  -3,     'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}}]
 }
 base_user_fields_read_only = []
 
@@ -186,6 +208,21 @@ everest_crystal_user_fields_read_only = everest_user_fields_read_only
 
 
 
+def assert_all_close(expected, setval):
+    if hasattr(expected, 'to_dict'):
+        assert _dicts_equal(expected.to_dict(), setval.to_dict())
+    elif hasattr(expected, '__iter__') and not isinstance(expected, str):
+        for exp, stv in zip(expected, setval):
+            assert_all_close(exp, stv)
+    else:
+        if expected is None:
+            assert setval is None
+        elif isinstance(expected, str):
+            assert setval == expected
+        else:
+            assert np.isclose(expected, setval, atol=1e-12, rtol=0)  
+
+
 # Tests
 # =====
 @for_all_test_contexts
@@ -195,7 +232,11 @@ def test_black_absorber(test_context):
 
     # Test existence of fields
     assert np.all([key in dir(elem) for key in absorber_fields])
+    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
+    elem.gap = 5
     assert np.all([key in elem.to_dict() for key in absorber_dict_fields])
+    elem.jaw = 1
+    elem.gap = None
 
     # Test reading fields
     for field in list(absorber_fields.keys()) + list(absorber_dict_fields.keys()) \
@@ -207,10 +248,7 @@ def test_black_absorber(test_context):
         print(f"Writing field {field}")
         setattr(elem, field, val)
         setval = getattr(elem, field)
-        if hasattr(val, 'to_dict'):
-            assert _dicts_equal(val.to_dict(), setval.to_dict())
-        else:
-            assert np.allclose(val, setval, atol=1e-12, rtol=0)
+        assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
     for field, vals in {**absorber_dict_fields, **absorber_user_fields}.items():
@@ -220,10 +258,7 @@ def test_black_absorber(test_context):
             setattr(elem, field, val['val'])
             for basefield, expected in val['expected'].items():
                 setval = getattr(elem, basefield)
-                if hasattr(expected, 'to_dict'):
-                    assert _dicts_equal(expected.to_dict(), setval.to_dict())
-                else:
-                    assert np.allclose(expected, setval, atol=1e-12, rtol=0)
+                assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in absorber_user_fields_read_only:
@@ -262,7 +297,11 @@ def test_everest(test_context):
 
     # Test existence of fields
     assert np.all([key in dir(elem) for key in everest_fields])
+    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
+    elem.gap = 5
     assert np.all([key in elem.to_dict() for key in everest_dict_fields])
+    elem.jaw = 1
+    elem.gap = None
 
     # Test reading fields
     for field in list(everest_fields.keys()) + list(everest_dict_fields.keys()) \
@@ -274,10 +313,7 @@ def test_everest(test_context):
         print(f"Writing field {field}")
         setattr(elem, field, val)
         setval = getattr(elem, field)
-        if hasattr(val, 'to_dict'):
-            assert _dicts_equal(val.to_dict(), setval.to_dict())
-        else:
-            assert np.allclose(val, setval, atol=1e-12, rtol=0)
+        assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
     for field, vals in {**everest_dict_fields, **everest_user_fields}.items():
@@ -287,10 +323,7 @@ def test_everest(test_context):
             setattr(elem, field, val['val'])
             for basefield, expected in val['expected'].items():
                 setval = getattr(elem, basefield)
-                if hasattr(expected, 'to_dict'):
-                    assert _dicts_equal(expected.to_dict(), setval.to_dict())
-                else:
-                    assert np.allclose(expected, setval, atol=1e-12, rtol=0)
+                assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in everest_user_fields_read_only:
@@ -303,11 +336,15 @@ def test_everest(test_context):
 )
 def test_everest_crystal(test_context):
     # Test instantiation
-    elem = xc.EverestCrystal(length=1, material=xc.materials.SiliconCrystal, _context=test_context)
+    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, _context=test_context)
 
     # Test existence of fields
     assert np.all([key in dir(elem) for key in everest_crystal_fields])
+    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
+    elem.gap = 5
     assert np.all([key in elem.to_dict() for key in everest_crystal_dict_fields])
+    elem.jaw = 1
+    elem.gap = None
 
     # Test reading fields
     for field in list(everest_crystal_fields.keys()) + list(everest_crystal_dict_fields.keys()) \
@@ -319,10 +356,7 @@ def test_everest_crystal(test_context):
         print(f"Writing field {field}")
         setattr(elem, field, val)
         setval = getattr(elem, field)
-        if hasattr(val, 'to_dict'):
-            assert _dicts_equal(val.to_dict(), setval.to_dict())
-        else:
-            assert np.allclose(val, setval, atol=1e-12, rtol=0)
+        assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
     for field, vals in {**everest_crystal_dict_fields, **everest_crystal_user_fields}.items():
@@ -332,10 +366,7 @@ def test_everest_crystal(test_context):
             setattr(elem, field, val['val'])
             for basefield, expected in val['expected'].items():
                 setval = getattr(elem, basefield)
-                if hasattr(expected, 'to_dict'):
-                    assert _dicts_equal(expected.to_dict(), setval.to_dict())
-                else:
-                    assert np.allclose(expected, setval, atol=1e-12, rtol=0)
+                assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in everest_crystal_user_fields_read_only:

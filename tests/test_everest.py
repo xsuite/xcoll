@@ -12,6 +12,9 @@ import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
 
+path = Path(__file__).parent / 'data_test_everest'
+
+
 materials_b1 = {
   'BE':   'tcl.4r1.b1',
   'AL':   'tcl.5r1.b1',
@@ -80,8 +83,6 @@ crystals_b2 = [
   'tcpch.a5r7.b2'
 ]
 
-
-path = Path(__file__).parent / 'data_test_everest'
 
 test_context = xo.ContextCpu()
 # @for_all_test_contexts(

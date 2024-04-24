@@ -35,6 +35,9 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
                                                   _context=test_context)
 
     coll_manager.install_everest_collimators()
+    df_with_coll = line.check_aperture()
+    assert not np.any(df_with_coll.has_aperture_problem)
+
     coll_manager.build_tracker()
     coll_manager.set_openings()
 

@@ -108,18 +108,18 @@ class LossMap:
 
 
     def _interpolate(self):
-        new_state = self._part.state
-        new_elem  = self._part.at_element
+        new_state = self._part.state.copy()
+        new_elem  = self._part.at_element.copy()
 
+        # Correct particles that are at an aperture directly after a collimator
         for idx, elem in enumerate(self._part.at_element):
             if (self._part.state[idx] == 0 and elem > 0
-                and self._line.element_names[elem - 1] in
-                self._line.get_elements_of_type(_all_collimator_types)[1]):
-
+            and self._line.element_names[elem-1] in
+            self._line.get_elements_of_type(_all_collimator_types)[1]):
                 print(f"Found at {self._line.element_names[elem]}, "
                     + f"should be {self._line.element_names[elem-1]}")
                 new_elem[idx] = elem - 1
-                what_type = self._line.element_names[elem-1].__class__.__name__
+                what_type = self._line[elem-1].__class__.__name__
                 if what_type == 'EverestCollimator':
                     new_state[idx] = -331
                 elif what_type == 'EverestCrystal':
