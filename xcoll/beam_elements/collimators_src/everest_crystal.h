@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll Package.   #
-// Copyright (c) CERN, 2023.                 #
+// Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 #ifndef XCOLL_EVEREST_CRYSTAL_H
