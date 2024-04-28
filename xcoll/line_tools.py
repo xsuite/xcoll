@@ -9,7 +9,7 @@ import xtrack as xt
 from .beam_elements import element_classes, collimator_classes
 
 
-def assign_optics_to_collimators(line, nemitt_x, nemitt_y, twiss=None):
+def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
     if not line._has_valid_tracker():
         raise Exception("Please build tracker before setting the openings!")
     names = line.get_elements_of_type(collimator_classes)[1]
@@ -24,6 +24,8 @@ def get_optics_at(names, *, twiss=None, line=None):
         if not line._has_valid_tracker():
             raise Exception("Please pass a line and build tracker before computing the optics for the openings!")
         twiss = line.twiss()
+    if not hasattr(names, '__iter__') and not isinstance(names, str):
+        names = [names]
     coll_entry_mask = twiss.mask[names]
     tw_entry = twiss.rows[coll_entry_mask]
     tw_exit = twiss.rows[coll_entry_mask+1]
@@ -60,11 +62,11 @@ def enable_scattering(line):
         for el in elements:
             if hasattr(el, 'optics') and el.optics is not None:
                 if nemitt_x is None:
-                    nemitt_x = el.optics['nemitt_x']
+                    nemitt_x = el.nemitt_x
                 if nemitt_y is None:
-                    nemitt_y = el.optics['nemitt_y']
-                if not np.isclose(el.optics['nemitt_x'], nemitt_x) \
-                or not np.isclose(el.optics['nemitt_x'], nemitt_x):
+                    nemitt_y = el.nemitt_y
+                if not np.isclose(el.nemitt_x, nemitt_x) \
+                or not np.isclose(el.nemitt_x, nemitt_x):
                     raise ValueError("Not all collimators have the same "
                                    + "emittance. This is not supported.")
             el.enable_scattering()

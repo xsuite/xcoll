@@ -266,6 +266,7 @@ class CollimatorManager:
                                + f" but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
+            el.emittance = self.colldb.emittance
             elements.append(el)
         install_elements(line, self.collimator_names, elements, need_apertures=True)
         self._set_record_impacts()
@@ -309,6 +310,7 @@ class CollimatorManager:
                                + f" but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
+            el.emittance = self.colldb.emittance
             elements.append(el)
         install_elements(line, self.collimator_names, elements, need_apertures=True)
         self._set_record_impacts()
