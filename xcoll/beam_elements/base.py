@@ -11,8 +11,10 @@ import xtrack as xt
 from ..impacts import CollimatorImpacts
 from ..general import _pkg_root
 
+
 OPEN_JAW = 3.
 OPEN_GAP = 999.
+
 
 class InvalidXcoll(xt.BeamElement):
     _xofields = {
@@ -61,6 +63,12 @@ class BaseBlock(xt.BeamElement):
             raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
+
+    def __init__(self, **kwargs):
+        to_assign = {}
+        if '_xobject' not in kwargs:
+            kwargs.pop('use_prebuilt_kernels', None)
+        super().__init__(**kwargs)
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -135,6 +143,7 @@ class BaseCollimator(xt.BeamElement):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
+            kwargs.pop('use_prebuilt_kernels', None)
             # Set side
             to_assign['side'] = kwargs.pop('side', 'both')
 
@@ -505,15 +514,44 @@ class BaseCollimator(xt.BeamElement):
     def optics(self):
         return self._optics
 
-    def assign_optics(self, name, nemitt_x, nemitt_y, twiss_rows, beta_gamma_rel):
+    def assign_optics(self, *, nemitt_x, nemitt_y, beta_gamma_rel, name=None, twiss=None,
+                      twiss_upstream=None, twiss_downstream=None):
+        if twiss is None:
+            if twiss_upstream is None or twiss_downstream is None:
+                raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+            if name is None:
+                if len(twiss_upstream.name) > 1 or len(twiss_downstream.name) > 1:
+                    raise ValueError("Need to provide `name` or twisses that are a single row each.")
+                tw_up   = twiss_upstream
+                tw_down = twiss_downstream
+            else:
+                tw_up   = twiss_upstream.rows[name]
+                tw_down = twiss_downstream.rows[name]
+        elif twiss_downstream is not None or twiss_downstream is not None:
+            raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+        elif name is None:
+            raise ValueError("When using `twiss`, need to provide the name as well.")
+        else:
+            tw_up   = twiss.rows[name]
+            tw_down = twiss.rows[f'{name}%%1']
+        if not np.isclose(tw_up.s[0] + self.length, tw_down.s[0]):
+            raise ValueError(f"Downstream twiss not compatible with length {self.length}m.")
         self._optics = {
-            'upstream': twiss_rows[name],
-            'downstream': twiss_rows[f'{name}%%1'],
+            'upstream': tw_up,
+            'downstream': tw_down,
             'nemitt_x': nemitt_x,
             'nemitt_y': nemitt_y,
             'beta_gamma_rel': beta_gamma_rel
         }
         self._compute_gaps()
+
+    @property
+    def nemitt_x(self):
+        return self.optics['nemitt_x']
+
+    @property
+    def nemitt_y(self):
+        return self.optics['nemitt_y']
     
     @property
     def sigma(self):
@@ -726,6 +764,8 @@ class BaseCollimator(xt.BeamElement):
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
+            if self.optics is None:
+                raise ValueError("Optics not assigned! Cannot enable scattering.")
             self._tracking = True
 
     def disable_scattering(self):

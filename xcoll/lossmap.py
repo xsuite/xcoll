@@ -12,14 +12,13 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from .beam_elements import _all_collimator_types
+from .beam_elements import collimator_classes
 
 
 class LossMap:
 
     def __init__(self, line, part, *, line_is_reversed, interpolation=0.1,
                  weights=None, weight_function=None):
-
         self._line = line
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length()
@@ -115,7 +114,7 @@ class LossMap:
         for idx, elem in enumerate(self._part.at_element):
             if (self._part.state[idx] == 0 and elem > 0
             and self._line.element_names[elem-1] in
-            self._line.get_elements_of_type(_all_collimator_types)[1]):
+            self._line.get_elements_of_type(collimator_classes)[1]):
                 print(f"Found at {self._line.element_names[elem]}, "
                     + f"should be {self._line.element_names[elem-1]}")
                 new_elem[idx] = elem - 1
@@ -150,7 +149,7 @@ class LossMap:
 
 
     def _make_coll_summary(self):
-        collimator_names = self._line.get_elements_of_type(_all_collimator_types)[1]
+        collimator_names = self._line.get_elements_of_type(collimator_classes)[1]
         coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
         coll_losses   = np.array([self._line.element_names[i]
                                   for i in self._part.at_element[coll_mask]])
