@@ -6,6 +6,7 @@
 import numpy as np
 import xtrack as xt
 
+from .beam_elements import element_classes
 
 def install_elements(line, names, elements, *, at_s=None, apertures=None, need_apertures=False, s_tol=1.e-6):
     if line._has_valid_tracker():
@@ -25,6 +26,11 @@ def install_elements(line, names, elements, *, at_s=None, apertures=None, need_a
     if isinstance(apertures, str) or not hasattr(apertures, '__iter__'):
         apertures = [apertures for _ in range(len(names))]
     assert len(apertures) == len(names)
+
+    # Verify elements
+    for el in elements:
+        assert isinstance(el, element_classes)
+        el._tracking = False
 
     # Get positions
     tab = line.get_table()
