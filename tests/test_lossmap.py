@@ -39,7 +39,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     assert not np.any(df_with_coll.has_aperture_problem)
 
     line.build_tracker()
-    xc.assign_optics_to_collimators(line=line, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    xc.assign_optics_to_collimators(line=line)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = xc.generate_pencil_on_collimator(line, tcp, num_particles=npart)

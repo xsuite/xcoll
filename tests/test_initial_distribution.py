@@ -36,22 +36,20 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
                                                   line=line, beam=beam)
     
     coll_manager.install_everest_collimators()
-    coll_manager.build_tracker()
-    coll_manager.set_openings()
+    line.build_tracker()
+    xc.assign_optics_to_collimators(line=line)
 
     tw = line.twiss()
     tcp_conv = f"tcp.c6{'l' if beam == 1 else 'r'}7.b{beam}"
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = xc.generate_pencil_on_collimator(line,tcp_conv, num_particles=npart, tw=tw,
-                                                nemitt_x=3.5e-6, nemitt_y=3.5e-6, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut,
-                                                impact_parameter=impact_parameter, pencil_spread=pencil_spread)
-    part_div = xc.generate_pencil_on_collimator(line,tcp_div, num_particles=npart, tw=tw,
-                                                nemitt_x=3.5e-6, nemitt_y=3.5e-6, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut,
-                                                impact_parameter=impact_parameter, pencil_spread=pencil_spread)
+    part_conv = xc.generate_pencil_on_collimator(line, tcp_conv, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
+                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_div = xc.generate_pencil_on_collimator(line, tcp_div, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
+                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
 
     # Normalize coordinates
     part_norm_conv = tw.get_normalized_coordinates(part_conv, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
