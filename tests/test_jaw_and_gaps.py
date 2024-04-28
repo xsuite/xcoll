@@ -29,4 +29,4 @@ def test_gaps(beam, test_context):
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
     coll.assign_optics(name=name, nemitt_x=3.5e-6, nemitt_y=2.5e-6, twiss=tw, beta_gamma_rel=beta_gamma_rel)
 
-    # compare jaw vs gaps, tilts etc, with align='upstream' and align='downstream'
+    # compare jaw vs gaps, tilts etc, with align='upstream' and align='downstream', with one-sided collimators as well

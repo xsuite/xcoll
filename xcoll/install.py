@@ -131,9 +131,9 @@ def get_aperture_for_element(line, name, s_start, s_end, aperture=None, tab=None
         else:
             aper1 = aperture
             aper2 = aperture
-        if not xt.line._is_aperture(aper1):
+        if not xt.line._is_aperture(aper1, line):
             raise ValueError(f"Not a valid aperture: {aper1}")
-        if not xt.line._is_aperture(aper2):
+        if not xt.line._is_aperture(aper2, line):
             raise ValueError(f"Not a valid aperture: {aper2}")
         return aper1.copy(), aper2.copy()
     else:
