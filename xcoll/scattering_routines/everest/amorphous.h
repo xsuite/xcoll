@@ -15,7 +15,7 @@
 /*gpufun*/
 double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
 
 #ifdef XCOLL_REFINE_ENERGY
@@ -34,20 +34,20 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
     double teta = 0 ; //default value to cover ichoix=1
     int64_t i_slot;
     if (ichoix==1) {
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_ABSORBED);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
 
     } else {
         if (ichoix==2) { //p-n elastic
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_PN_ELASTIC);
+            i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
             teta  = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
 
         } else if (ichoix==3) { //p-p elastic
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_PP_ELASTIC);
+            i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
             teta  = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
 
         } else if (ichoix==4) { //Single diffractive
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+            i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             double bsd = 0.0;
             if (xm2 < 2.) {
@@ -61,7 +61,7 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
             pc = pc*(1 - xm2/everest->ecmsq);
 
         } else { //(ichoix==5)
-            i_slot = CollimatorImpactsData_log(record, record_index, part, XC_RUTHERFORD);
+            i_slot = InteractionRecordData_log(record, record_index, part, XC_RUTHERFORD);
             teta  = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
         }
 
@@ -71,7 +71,7 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
         //Change the angles
         LocalParticle_add_to_xp_yp(part, tx, tz);
 
-        CollimatorImpactsData_log_child(record, i_slot, part, 0);
+        InteractionRecordData_log_child(record, i_slot, part, 0);
     }
 
     return pc;
@@ -81,7 +81,7 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
 /*gpufun*/
 void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int64_t i_slot;
 
@@ -95,7 +95,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
         // TODO: we believe the original 0.45 comes from the 0.9 saturation factor, so we changed it to 0.5
         Ang_avr *= 0.5*((xp - everest->t_I)/everest->t_c + 1);
         Ang_rms  = 0;   // TODO: why does transition to CH not use any spread?
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_CH);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_CH);
 
     } else if (transition == XC_VOLUME_REFLECTION_TRANS_MCS){
         // We are in transition from VR to MCS
@@ -105,16 +105,16 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 //         // TODO: where does 3 come from
 //         Ang_rms *= -3.*(xp_rel-t_P)/(2.*t_c); // TODO: why no random number?
         Ang_rms *= RandomNormal_generate(part);
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_MCS);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_MCS);
 
     } else {
         Ang_rms *= RandomNormal_generate(part);
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_REFLECTION);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION);
     }
 
     double t_VR = Ang_avr + Ang_rms;
     LocalParticle_add_to_xp(part, t_VR);
-    CollimatorImpactsData_log_child(record, i_slot, part, 0);
+    InteractionRecordData_log_child(record, i_slot, part, 0);
 }
 
 
@@ -122,7 +122,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 /*gpufun*/
 double amorphous_transport(EverestData restrict everest, LocalParticle* part, double pc, double length, int8_t transition) {
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int64_t i_slot;
 
@@ -134,14 +134,14 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
 
     if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
         // Transition MCS
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
 //         double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
 //         double t_P = everest->t_P;
 //         double t_c = everest->t_c;
 //         dya *= 1 - (xp_rel-t_P)/(2.*t_c);
     } else {
         // Normal MCS
-        i_slot = CollimatorImpactsData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
+        i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
     }
     kxmcs = dya*RandomNormal_generate(part);
     kymcs = dya*RandomNormal_generate(part);
@@ -157,7 +157,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
 
     // Finally log particle at end of mcs
-    CollimatorImpactsData_log_child(record, i_slot, part, length);
+    InteractionRecordData_log_child(record, i_slot, part, length);
 
     return pc;
 }
@@ -172,7 +172,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
         return pc;
     }
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
 
     calculate_initial_angle(everest, part);
@@ -239,7 +239,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
 
         } else {
             // Volume Capture
-            CollimatorImpactsData_log(record, record_index, part, XC_VOLUME_CAPTURE);
+            InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
             // We call the main Channel function for the leftover
             pc = Channel(everest, part, pc, length - length_VI);
         }
@@ -287,7 +287,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             pc = Amorphous(everest, part, pc, length - length_exit - s4 + exit_point);
         } else {
             // Drift leftover out of the crystal
-            CollimatorImpactsData_log(record, record_index, part, XC_EXIT_JAW);
+            InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
             Drift_single_particle_4d(part, length - length_exit);
         }
     }

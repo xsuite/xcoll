@@ -104,9 +104,9 @@ double interact(EverestData restrict everest, LocalParticle* part, double pc, do
 //         return result;
     }
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
-    CollimatorImpactsData_log(record, record_index, part, XC_ENTER_JAW);
+    InteractionRecordData_log(record, record_index, part, XC_ENTER_JAW);
     calculate_initial_angle(everest, part);
 // printf("Start:  %f  %f  %f\n", xp, everest->t_I, everest->t_c);
 

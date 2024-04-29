@@ -11,6 +11,7 @@ from .line_tools import assign_optics_to_collimators, open_collimators, send_to_
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .manager import CollimatorManager
 from .colldb import CollimatorDatabase, load_SixTrack_colldb
+from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .initial_distribution import *
 from .lossmap import LossMap

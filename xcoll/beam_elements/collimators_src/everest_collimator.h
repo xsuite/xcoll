@@ -41,7 +41,7 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
         cg->record_index = NULL;
         cg->record_touches = 0;
         if (cg->record){
-            cg->record_index = CollimatorImpactsData_getp__index(cg->record);
+            cg->record_index = InteractionRecordData_getp__index(cg->record);
             cg->record_touches = EverestCollimatorData_get_record_touches(el);
         }
     }
@@ -73,10 +73,10 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         // Impact table:  need it here to record interactions
         coll->record = EverestCollimatorData_getp_internal_record(el, part0);
         coll->record_index = NULL;
-        coll->record_interactions = 0;
+        coll->record_scatterings = 0;
         if (coll->record){
-            coll->record_index = CollimatorImpactsData_getp__index(coll->record);
-            coll->record_interactions = EverestCollimatorData_get_record_interactions(el);
+            coll->record_index = InteractionRecordData_getp__index(coll->record);
+            coll->record_scatterings = EverestCollimatorData_get_record_scatterings(el);
         }
     }
 

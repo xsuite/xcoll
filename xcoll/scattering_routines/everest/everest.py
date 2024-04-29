@@ -7,14 +7,14 @@ import xobjects as xo
 import xtrack as xt
 
 from .materials import Material, CrystalMaterial
-from ...impacts import CollimatorImpacts
+from ...interaction_record import InteractionRecord
 from ...general import _pkg_root
 
 
 class EverestEngine(xo.HybridClass):
     _xofields = {}
 
-    _depends_on = [Material, CrystalMaterial, CollimatorImpacts, xt.RandomUniform, xt.RandomExponential,
+    _depends_on = [Material, CrystalMaterial, InteractionRecord, xt.RandomUniform, xt.RandomExponential,
                    xt.RandomNormal, xt.RandomRutherford, xt.Drift]
 
     _extra_c_sources = [

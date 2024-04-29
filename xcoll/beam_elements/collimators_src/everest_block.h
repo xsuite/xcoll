@@ -39,7 +39,7 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
         coll->record = EverestBlockData_getp_internal_record(el, part0);
         coll->record_index = NULL;
         if (coll->record){
-            coll->record_index = CollimatorImpactsData_getp__index(coll->record);
+            coll->record_index = InteractionRecordData_getp__index(coll->record);
         }
     }
 

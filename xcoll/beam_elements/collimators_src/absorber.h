@@ -32,7 +32,7 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
         cg->record_index = NULL;
         cg->record_touches = 0;
         if (cg->record){
-            cg->record_index = CollimatorImpactsData_getp__index(cg->record);
+            cg->record_index = InteractionRecordData_getp__index(cg->record);
             cg->record_touches = BlackAbsorberData_get_record_touches(el);
         }
     }
@@ -51,7 +51,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
     // Get geometry
     CollimatorGeometry cg      = BlackAbsorber_init_geometry(el, part0, active);
-    int8_t record_interactions = BlackAbsorberData_get_record_interactions(el);
+    int8_t record_scatterings = BlackAbsorberData_get_record_scatterings(el);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -69,8 +69,8 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
                 if (is_hit != 0){
                     LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                    if (record_interactions) {
-                        CollimatorImpactsData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
+                    if (record_scatterings) {
+                        InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
                     }
                 }
 

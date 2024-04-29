@@ -26,7 +26,7 @@ typedef struct CollimatorGeometry_ {
     double cos_zDiff;
     int8_t jaws_parallel;
     // Impact table
-    CollimatorImpactsData record;
+    InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_touches;
 } CollimatorGeometry_;
@@ -85,13 +85,13 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
     if (is_hit == 1){
         // Hit on left upstream jaw
         if (cg->record_touches){
-            CollimatorImpactsData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
         }
 
     } else if (is_hit == -1){
         // Hit on right upstream jaw
         if (cg->record_touches){
-            CollimatorImpactsData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
         }
 
     }
@@ -110,7 +110,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
             backtrack_length = (cg->jaw_LD - x_D) / (cg->jaw_LD - cg->jaw_LU - x_D + x_U) * cg->length;
             Drift_single_particle(part, -backtrack_length);
             if (cg->record_touches){
-                CollimatorImpactsData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
             }
 
         } else if (is_hit == -1){
@@ -118,7 +118,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
             backtrack_length = (cg->jaw_RD - x_D) / (cg->jaw_RD - cg->jaw_RU - x_D + x_U) * cg->length;
             Drift_single_particle(part, -backtrack_length);
             if (cg->record_touches){
-                CollimatorImpactsData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
             }
 
         } else {
