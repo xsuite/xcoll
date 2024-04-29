@@ -51,12 +51,11 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 
 # --------------------------------------------------------
@@ -80,9 +79,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking first test.. ")
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)
@@ -108,8 +107,9 @@ plt.show()
 # We only track one turn, because otherwise betatron
 # oscillations would make the cut profile symmetric anyway.
 
-coll_manager.colldb.angle = {'tcp.c6l7.b1': 15}
-coll_manager.set_openings({'tcp.c6l7.b1': [4,7]}, full_open=True)
+line['tcp.c6l7.b1'].angle = 15
+xc.open_collimators(line)
+line['tcp.c6l7.b1'].gap = [4,7]
 
 # Create initial particles
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
@@ -119,9 +119,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking second test.. ")
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)

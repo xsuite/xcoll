@@ -54,14 +54,11 @@ tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.colldb.active        = {tcpc: True}
-coll_manager.colldb.gap           = {tcpc: 5}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 # Apply settings
 line[tcpc].bending_angle = 40.e-6
@@ -95,9 +92,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
