@@ -71,17 +71,15 @@ line.optimize_for_tracking()
 
 
 # # Generate initial pencil distribution on crystal
-# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles,
-#                                         nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=coll_manager.colldb.emittance[0], nemitt_y=coll_manager.colldb.emittance[1],
-            at_element=tcpc,
-            _buffer=coll_manager._part_buffer
+            nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
+            at_element=tcpc
 )
 
 
