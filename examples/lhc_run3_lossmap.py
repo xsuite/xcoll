@@ -48,12 +48,11 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 
 # Optimise the line
@@ -62,8 +61,7 @@ line.optimize_for_tracking()
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles,
-                                        nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles)
 
 
 # Move the line to an OpenMP context to be able to use all cores
@@ -73,9 +71,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

@@ -54,14 +54,11 @@ tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.colldb.active        = {tcpc: True}
-coll_manager.colldb.gap           = {tcpc: 5}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 # Apply settings
 line[tcpc].bending_angle = 40.e-6
@@ -74,17 +71,15 @@ line.optimize_for_tracking()
 
 
 # # Generate initial pencil distribution on crystal
-# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles,
-#                                         nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
 py_norm = np.random.normal(scale=0.01, size=num_particles)
 part = line.build_particles(
             x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
-            nemitt_x=coll_manager.colldb.emittance[0], nemitt_y=coll_manager.colldb.emittance[1],
-            at_element=tcpc,
-            _buffer=coll_manager._part_buffer
+            nemitt_x=line[tcpc].nemitt_x, nemitt_y=line[tcpc].nemitt_y,
+            at_element=tcpc
 )
 
 
@@ -95,9 +90,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

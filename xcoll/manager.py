@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import json
@@ -8,7 +8,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, _all_collimator_types, element_classes
+from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
+from .install import install_elements
 from .colldb import CollimatorDatabase
 from .impacts import CollimatorImpacts
 from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
@@ -239,238 +240,80 @@ class CollimatorManager:
             names.sort(key=lambda nn: db.loc[nn, 's_center'])
         return names
 
-    @property
-    def s_front(self):
-        return self.colldb.s_center - self.colldb.length/2
-
-    @property
-    def s_center(self):
-        return self.colldb.s_center
-
-    @property
-    def s_back(self):
-        return self.colldb.s_center + self.colldb.length/2
-
     def install_black_absorbers(self, names=None, *, verbose=False):
-        if names is None:
-            names = self.collimator_names
-        def install_func(thiscoll, name):
-            return BlackAbsorber(
-                    length=thiscoll['length'],
-                    angle=[thiscoll['angle_L'],thiscoll['angle_R']],
-                    active=False,
-                    _tracking=False,
-                    _buffer=self._buffer
-                   )
-        self._install_collimators(names, install_func=install_func, verbose=verbose)
-
-
-    def install_everest_collimators(self, names=None, *, verbose=False):
-        if names is None:
-            names = self.collimator_names
-        names = list(names) # Dataframe does not like to be indexed with a set
-        df = self.colldb._colldb.loc[names]
-        df_coll = df[[c is None for c in df.crystal]]
-        df_cry  = df[[c is not None for c in df.crystal]]
-        # Do the installations (start with crystals to avoid recompilation)
-        if len(df_cry) > 0:
-            def install_func(thiscoll, name):
-                material = SixTrack_to_xcoll[thiscoll['material']]
-                if len(material) < 2:
-                    raise ValueError(f"Could not find crystal material definition from variable {thiscoll['material']}!")
-                material = material[1]
-                if not isinstance(material, CrystalMaterial):
-                    raise ValueError(f"The material {material.name} is not a Crystalmaterial!")
-                return EverestCrystal(
-                        length=thiscoll['length'],
-                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
-                        material=material,
-                        active=False,
-                        _tracking=False,
-                        _buffer=self._buffer
-                       )
-            self._install_collimators(df_cry.index.values, install_func=install_func, verbose=verbose)
-        if len(df_coll) > 0:
-            def install_func(thiscoll, name):
-                return EverestCollimator(
-                        length=thiscoll['length'],
-                        angle=[thiscoll['angle_L'],thiscoll['angle_R']],
-                        material=SixTrack_to_xcoll[thiscoll['material']][0],
-                        active=False,
-                        _tracking=False,
-                        _buffer=self._buffer
-                       )
-            self._install_collimators(df_coll.index.values, install_func=install_func, verbose=verbose)
-
-
-    def _install_collimators(self, names, *, install_func, verbose, support_legacy_elements=False):
-        # Check that collimator marker exists in Line and CollimatorDatabase,
-        # and that tracker is not yet built
-        # TODO: need check that all collimators have aperture before and after
         line = self.line
-        if not hasattr(names, '__iter__') or isinstance(names, str):
-            names = [names]
-        df = self.colldb._colldb
-        mask = df.index.isin(names)
-        for name in names:
-            if name not in line.element_names:
-                raise Exception(f"Collimator {name} not found in line!")
-            elif name not in self.collimator_names:
-                raise Exception(f"Warning: Collimator {name} not found in CollimatorDatabase!...")
-        if self.tracker_ready:
-            raise Exception("Tracker already built!\nPlease install collimators before building "
-                          + "tracker!")
-
-        tt = line.get_table()
-        ss = tt.s
-
-        # Loop over collimators to install
-        for name in names:
-
-            # Get s positions
-            # This cannot go outside the loop as the indices will change!
-            ss = line.get_s_position()
-
-            # Get the settings from the CollimatorDatabase
-            thiscoll = df.loc[name]
-            idx = line.element_names.index(name)
-            # Create the collimator element
-            newcoll = install_func(thiscoll, name)
-            collimator_class = newcoll.__class__
+        elements = []
+        for name, gap, angle, length, side in zip(
+                    self.collimator_names,
+                    self.colldb.gap,
+                    self.colldb.angle,
+                    self.colldb.length,
+                    self.colldb.side):
+            if verbose: print(f"Installing {name:20} as BlackAbsorber")
+            el = xc.BlackAbsorber(gap=gap, angle=angle, length=length, side=side, _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], tuple(_all_collimator_types - {collimator_class})):
-                raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
-                               + f" but it is already installed as {type(line[name]).__name__}!\n"
+            if isinstance(line[name], tuple(collimator_classes)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
-
-            # Check that collimator is not installed previously
-            elif isinstance(line[name], collimator_class):
-                if df.loc[name,'collimator_type'] != collimator_class.__name__:
-                    raise Exception(f"Something is wrong: Collimator {name} already installed in "
-                                  + f"line as {collimator_class.__name__} element, but registered "
-                                  + f"in CollimatorDatabase as {df.loc[name, 'collimator_type']}. "
-                                  + f"Please reconstruct the line.")
-                if verbose: print(f"Collimator {name} already installed. Skipping...")
-                continue
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
             elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
-                raise ValueError(f"Trying to install {name} as {collimator_class.__name__},"
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
                                + f" but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
-
-            if verbose: print(f"Installing {name:20} as {collimator_class.__name__}")
-            # Update the position and type in the CollimatorDatabase
-            df.loc[name,'s_center'] = ss[idx]
-            df.loc[name,'collimator_type'] = collimator_class.__name__
-
-            # Find apertures and store them
-            # TODO: same with cryotanks for FLUKA
-            # TODO: use compound info  ->  need full collimator info from MADX
-            # TODO: this is all very hacky....
-            aper_before = {}
-            aper_after = {}
-            if f'{name}_mken' in line.element_names\
-            and f'{name}_mkex'in line.element_names:
-                # TODO what with transformations? How to shift them in s if different?
-                aper_before = {nn.replace('mken', 'upstream'): line[nn].copy()
-                               for nn in line.element_names if nn.startswith(f'{name}_mken_aper')}
-                aper_after  = {nn.replace('mkex', 'downstream'): line[nn].copy()
-                               for nn in line.element_names if nn.startswith(f'{name}_mkex_aper')}
-            if len(aper_before) == 0:
-                # TODO what with transformations? How to shift them in s from centre to start/end?
-                aper_before = {nn.replace('_aper', '_upstream_aper'): line[nn].copy()
-                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
-            if len(aper_after) == 0:
-                aper_after  = {nn.replace('_aper', '_downstream_aper'): line[nn].copy()
-                               for nn in line.element_names if nn.startswith(f'{name}_aper')}
-            if len(aper_before) == 0 or len(aper_after) == 0:
-                print(f"Warning: No aperture found for collimator {name}!")
-
-            # Remove stuff at location of collimator
-            l = thiscoll['length']
-            to_remove = []
-            i = idx - 1
-            # We remove everything between the beginning and end of the collimator except drifts
-            while ss[i] >= ss[idx] - l/2:
-                el = line[i]
-                nn = line.element_names[i]
-                if el.__class__.__name__ == 'Drift':
-                    i -= 1
-                    continue
-                if hasattr(el, 'length') and el.length > 0:
-                    raise ValueError(f"Found active element {nn} with length "
-                                   + f"{el.length} at location inside collimator!")
-                # I don't like this class selection...
-                if not el.__class__.__name__ in ['Marker', 'SRotation', \
-                                       'YRotation', 'XRotation', 'XYShift'] \
-                and not el.__class__.__name__.startswith('Limit'):
-                    print(f"Warning: Removed active element {nn} "
-                        + f"at location inside collimator!")
-                to_remove.append(nn)
-                i -= 1
-            i = idx + 1
-            while ss[i] <= ss[idx] + l/2:
-                el = line[i]
-                nn = line.element_names[i]
-                if el.__class__.__name__ == 'Drift':
-                    i += 1
-                    continue
-                if hasattr(el, 'length') and el.length > 0:
-                    raise ValueError(f"Found active element {nn} with length "
-                                   + f"{el.length} at location inside collimator!")
-                # I don't like this class selection...
-                if not el.__class__.__name__ in ['Marker', 'SRotation', \
-                                       'YRotation', 'XRotation', 'XYShift'] \
-                and not el.__class__.__name__.startswith('Limit'):
-                    print(f"Warning: Removed active element {line.element_names[i]} "
-                        + f"at location inside collimator!")
-                to_remove.append(nn)
-                i += 1
-            for nn in to_remove:
-                # TODO: need to update Compounds
-                line.element_names.remove(nn)
-                line.element_dict.pop(nn)
-
-            # Do the installation
-            s_install = df.loc[name,'s_center'] - thiscoll['length']/2
-            line.insert_element(element=newcoll, name=name, at_s=s_install)
-
-            # Reinstall apertures
-            for aper, el in aper_before.items():
-                # TODO: need to update Compounds
-                line.insert_element(element=el, name=aper, index=name)
-            for aper, el in reversed(aper_after.items()):
-                # Reversed because of index+1
-                # TODO: need to update Compounds
-                line.insert_element(element=el, name=aper,
-                                    index=line.element_names.index(name)+1)
-
+            el.emittance = self.colldb.emittance
+            elements.append(el)
+        install_elements(line, self.collimator_names, elements, need_apertures=True)
         self._set_record_impacts()
 
+    def install_everest_collimators(self, *, verbose=False):
+        line = self.line
+        elements = []
+        for name, gap, angle, length, side, material, crystal, bending_radius, xdim, ydim, miscut, thick in zip(
+                    self.collimator_names,
+                    self.colldb.gap,
+                    self.colldb.angle,
+                    self.colldb.length,
+                    self.colldb.side,
+                    self.colldb.material,
+                    self.colldb._colldb.crystal,
+                    self.colldb._colldb.bending_radius,
+                    self.colldb._colldb.xdim,
+                    self.colldb._colldb.ydim,
+                    self.colldb._colldb.miscut,
+                    self.colldb._colldb.thick):
+            mat = SixTrack_to_xcoll[material]
+            if crystal is None:
+                if verbose: print(f"Installing {name:20} as EverestCollimator")
+                el = EverestCollimator(gap=gap, angle=angle, length=length, side=side, material=mat[0], _tracking=False)
+            else:
+                if verbose: print(f"Installing {name:20} as EverestCrystal")
+                el = EverestCrystal(gap=gap, angle=angle, length=length, side=side, material=mat[1], lattice=crystal,
+                                       bending_radius=bending_radius, xdim=xdim, ydim=ydim, miscut=miscut, thick=thick, _tracking=False)
 
-    @property
-    def installed(self):
-        return not any([coll is None for coll in self.colldb.collimator_type])
+            # Check that collimator is not installed as different type
+            # TODO: automatically replace collimator type and print warning
+            if isinstance(line[name], tuple(collimator_classes)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
+                               + f"Please reconstruct the line.")
 
-
-    def align_collimators_to(self, align):
-        if not self.installed:
-            raise ValueError("Some collimators have not yet been installed.\n"
-                             + "Please install all collimators before aligning the collimators.")
-        self.colldb.align_to = align
-
-    @property
-    def aligned(self):
-        return not np.any(
-                    [x is None for x in self.colldb._colldb.s_align_front]
-                    + [ x is None for x in self.colldb._colldb.s_align_back]
-                )
-
+            # TODO: only allow Marker elements, no Drifts!!
+            #       How to do this with importing a line for MAD-X or SixTrack...?
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but the line element to replace is not an xtrack.Marker "
+                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
+                               + f"element.")
+            el.emittance = self.colldb.emittance
+            elements.append(el)
+        install_elements(line, self.collimator_names, elements, need_apertures=True)
+        self._set_record_impacts()
 
     def build_tracker(self, **kwargs):
         kwargs.setdefault('_buffer', self._buffer)
@@ -483,107 +326,5 @@ class CollimatorManager:
             raise ValueError("Cannot build tracker with different context than the CollimatorManager context!")
         self.line.build_tracker(**kwargs)
         self._set_record_impacts()
-
-    @property
-    def tracker_ready(self):
-        return self.line is not None and self.line.tracker is not None
-
-
-    def _compute_optics(self, recompute=False):
-        if not self.tracker_ready:
-            raise Exception("Please build tracker before computing the optics for the openings!")
-        line = self.line
-
-        optics_is_ready = np.all([line[coll].optics is not None for coll in self.collimator_names])
-        if recompute or not optics_is_ready:
-            tw = line.twiss().rows
-            nemitt_x = self.colldb.emittance[0]
-            nemitt_y = self.colldb.emittance[1]
-            beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
-            for coll in self.collimator_names: # TODO: Can we do this faster?
-                print(coll)
-                line[coll].assign_optics(coll, nemitt_x, nemitt_y, tw, beta_gamma_rel)
-
-
-    # The variable 'gaps' is meant to specify temporary settings that will overrule the CollimatorDatabase.
-    # As such, its settings will be applied to the collimator elements in the line, but not
-    # written to the CollimatorDatabase. Hence two successive calls to set_openings will not be combined,
-    # and only the last call will be applied to the line.
-    # The variable 'to_parking' will send all collimators that are not listed in 'gaps' to parking.
-    # Similarily, the variable 'full_open' will set all openings of the collimators that are not
-    # listed in 'gaps' to 1m.
-    def set_openings(self, gaps={}, *, recompute_optics=False, to_parking=False, full_open=False, support_legacy_elements=False):
-        if not self.tracker_ready:
-            raise Exception("Please build tracker before setting the openings!")
-        colldb = self.colldb
-        if not self.installed:
-            raise ValueError("Some collimators have not yet been installed.\n"
-                             + "Please install all collimators before setting the openings.")
-        if to_parking and full_open:
-            raise ValueError("Cannot send collimators to parking and open them fully at the same time!")
-        if not self.aligned:
-            self.align_collimators_to('front')
-
-        # Get the optics (to compute the opening)
-        self._compute_optics(recompute=recompute_optics)
-
-        names = self.collimator_names
-        # Override gap if sending to parking
-        if to_parking:
-            gaps = { **{ name: None for name in names }, **gaps }
-        these_gaps = colldb.gap.to_dict()
-        these_gaps.update(gaps)
-
-        # Configure collimators
-        line = self.line
-        for name in names:
-            # Override openings if opening fully, except for manually specified collimators
-            if full_open and name not in gaps.keys():
-                line[name].active = False
-            # Apply settings to element
-            elif isinstance(line[name], BaseCollimator):
-                line[name].angle = colldb.angle[name]
-                line[name].gap   = these_gaps[name]
-                # TODO: tilt in colldb
-                line[name].side   = colldb.side[name]
-                line[name].active = colldb.active[name]
-                if isinstance(line[name], (EverestCollimator, EverestCrystal)) or support_legacy_elements:
-                    if colldb._colldb.crystal[name] is None:
-                        line[name].material = SixTrack_to_xcoll[colldb.material[name]][0]
-                    else:
-                        line[name].material = SixTrack_to_xcoll[colldb.material[name]][1]
-                if isinstance(line[name], EverestCrystal):
-                    line[name].bending_radius = colldb._colldb.bending_radius[name]
-                    line[name].xdim           = colldb._colldb.xdim[name]
-                    line[name].ydim           = colldb._colldb.ydim[name]
-                    line[name].thick          = colldb._colldb.thick[name]
-                    line[name].miscut         = colldb._colldb.miscut[name]
-                    line[name].lattice        = colldb._colldb.crystal[name]
-            else:
-                raise ValueError(f"Missing implementation for element type of collimator {name}!")
-
-
-    def enable_scattering(self):
-        # Prepare collimators for tracking
-        for el in self.line.get_elements_of_type(element_classes)[0]:
-            el.enable_scattering()
-        self.line.tracker.io_buffer = self._io_buffer
-        self._set_record_impacts()
-
-    def disable_scattering(self):
-        # Prepare collimators for tracking
-        for el in self.line.get_elements_of_type(element_classes)[0]:
-            el.disable_scattering()
-
-    @property
-    def scattering_enabled(self):
-        all_enabled  = np.all([self.line[coll]._tracking if hasattr(self.line[coll], '_tracking')
-                               else True for coll in self.collimator_names])
-        some_enabled = np.any([self.line[coll]._tracking if hasattr(self.line[coll], '_tracking')
-                               else True  for coll in self.collimator_names])
-        if some_enabled and not all_enabled:
-            raise ValueError("Some collimators are enabled for tracking but not all! "
-                           + "This should not happen.")
-        return all_enabled
 
 

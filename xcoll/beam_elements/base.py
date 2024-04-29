@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import numpy as np
@@ -11,8 +11,10 @@ import xtrack as xt
 from ..impacts import CollimatorImpacts
 from ..general import _pkg_root
 
+
 OPEN_JAW = 3.
 OPEN_GAP = 999.
+
 
 class InvalidXcoll(xt.BeamElement):
     _xofields = {
@@ -62,6 +64,11 @@ class BaseBlock(xt.BeamElement):
         instance = super().__new__(cls)
         return instance
 
+    def __init__(self, **kwargs):
+        if '_xobject' not in kwargs:
+            kwargs.pop('use_prebuilt_kernels', None)
+        super().__init__(**kwargs)
+
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
             self._tracking = True
@@ -106,7 +113,9 @@ class BaseCollimator(xt.BeamElement):
         # These are not used in C, but need to be an xofield to get them in the to_dict:
         '_align':         xo.Int8,
         '_gap_L':         xo.Float64,
-        '_gap_R':         xo.Float64
+        '_gap_R':         xo.Float64,
+        '_nemitt_x':      xo.Float64,
+        '_nemitt_y':      xo.Float64
     }
 
     isthick = True
@@ -115,7 +124,7 @@ class BaseCollimator(xt.BeamElement):
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
-    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align']
+    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
     _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
 
@@ -124,6 +133,7 @@ class BaseCollimator(xt.BeamElement):
     ]
 
     _internal_record_class = CollimatorImpacts
+
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -135,6 +145,7 @@ class BaseCollimator(xt.BeamElement):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
+            kwargs.pop('use_prebuilt_kernels', None)
             # Set side
             to_assign['side'] = kwargs.pop('side', 'both')
 
@@ -195,11 +206,12 @@ class BaseCollimator(xt.BeamElement):
                         raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap_L'] = kwargs.pop('gap_L', None)
                 to_assign['gap_R'] = kwargs.pop('gap_R', None)
-            kwargs.setdefault('_gap_L', OPEN_GAP)   # Important that these are initialised
+            kwargs.setdefault('_gap_L', OPEN_GAP)
             kwargs.setdefault('_gap_R', -OPEN_GAP)
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
+            to_assign['emittance'] = kwargs.pop('emittance', 0)
             kwargs.setdefault('active', True)
             kwargs.setdefault('record_touches', False)
             kwargs.setdefault('record_interactions', False)
@@ -252,7 +264,7 @@ class BaseCollimator(xt.BeamElement):
             self._jaws_parallel = False
             self._sin_zDiff = np.sin(np.deg2rad(self.angle_R - angle_L))
             self._cos_zDiff = np.cos(np.deg2rad(self.angle_R - angle_L))
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def angle_R(self):
@@ -270,7 +282,7 @@ class BaseCollimator(xt.BeamElement):
             self._jaws_parallel = False
             self._sin_zDiff = np.sin(np.deg2rad(angle_R - self.angle_L))
             self._cos_zDiff = np.cos(np.deg2rad(angle_R - self.angle_L))
-        self._compute_gaps()
+        self._apply_optics()
 
 
     # Jaw attributes
@@ -332,6 +344,7 @@ class BaseCollimator(xt.BeamElement):
         diff = val - (self._jaw_LU + self._jaw_LD) / 2
         self._jaw_LU += diff
         self._jaw_LD += diff
+        self._update_gaps()
 
     @property
     def jaw_R(self):
@@ -350,6 +363,7 @@ class BaseCollimator(xt.BeamElement):
         diff = val - (self._jaw_RU + self._jaw_RD) / 2
         self._jaw_RU += diff
         self._jaw_RD += diff
+        self._update_gaps()
 
     @property
     def jaw_LU(self):
@@ -365,7 +379,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LU = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_LD(self):
@@ -381,7 +396,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LD = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_RU(self):
@@ -397,7 +413,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RU = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_RD(self):
@@ -413,13 +430,32 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RD = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     def open_jaws(self, keep_tilts=False):
         self.jaw_L = None
         self.jaw_R = None
         if not keep_tilts:
             self.tilt = 0
+
+    def _update_tilts(self):
+        if self.side != 'right':
+            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
+            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+            self._tan_yL = self._sin_yL / self._cos_yL
+        if self.side != 'left':
+            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
+            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+            self._tan_yR = self._sin_yR / self._cos_yR
+
+    def _update_gaps(self):
+        # If we had set a value for the gap manually, this needs to be updated
+        # as well after setting the jaw
+        if not np.isclose(self._gap_L, OPEN_GAP):
+            self._gap_L = self.gap_L
+        if not np.isclose(self._gap_R, -OPEN_GAP):
+            self._gap_R = self.gap_R
 
 
     # Tilt attributes
@@ -487,16 +523,6 @@ class BaseCollimator(xt.BeamElement):
         self._jaw_RD = jaw_R + self._sin_yR * self.length / 2.
         self._jaw_RU = jaw_R - self._sin_yR * self.length / 2.
 
-    def _update_tilt(self):
-        if self.side != 'right':
-            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
-            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-            self._tan_yL = self._sin_yL / self._cos_yL
-        if self.side != 'left':
-            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
-            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-            self._tan_yR = self._sin_yR / self._cos_yR
-
 
     # Optics
     # ======
@@ -505,30 +531,105 @@ class BaseCollimator(xt.BeamElement):
     def optics(self):
         return self._optics
 
-    def assign_optics(self, name, nemitt_x, nemitt_y, twiss_rows, beta_gamma_rel):
+    def optics_ready(self):
+        return self.emittance is not None and self.optics is not None
+
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
+                      twiss_upstream=None, twiss_downstream=None):
+        from xcoll import element_classes
+        if not isinstance(self, element_classes):
+            raise ValueError("Please install collimator before assigning optics.")
+        if nemitt_x is None:
+            if self.nemitt_x is None:
+                raise ValueError("Need to provide `nemitt_x`.")
+        else:
+            self.nemitt_x = nemitt_x
+        if nemitt_y is None:
+            if self.nemitt_y is None:
+                raise ValueError("Need to provide `nemitt_y`.")
+        else:
+            self.nemitt_y = nemitt_y
+        if beta_gamma_rel is None:
+            raise ValueError("Need to provide `beta_gamma_rel`.")
+        if twiss is None:
+            if twiss_upstream is None or twiss_downstream is None:
+                raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+            if name is None:
+                if len(twiss_upstream.name) > 1 or len(twiss_downstream.name) > 1:
+                    raise ValueError("Need to provide `name` or twisses that are a single row each.")
+                tw_up   = twiss_upstream
+                tw_down = twiss_downstream
+            else:
+                tw_up   = twiss_upstream.rows[name]
+                tw_down = twiss_downstream.rows[name]
+        elif twiss_downstream is not None or twiss_downstream is not None:
+            raise ValueError("Use either `twiss` or `twiss_upstream` and `twiss_downstream`.")
+        elif name is None:
+            raise ValueError("When using `twiss`, need to provide the name as well.")
+        else:
+            tw_up   = twiss.rows[name]
+            tw_down = twiss.rows[twiss.mask[[name]]+1]
+        if not np.isclose(tw_up.s[0] + self.length, tw_down.s[0]):
+            raise ValueError(f"Downstream twiss not compatible with length {self.length}m.")
         self._optics = {
-            'upstream': twiss_rows[name],
-            'downstream': twiss_rows[f'{name}%%1'],
-            'nemitt_x': nemitt_x,
-            'nemitt_y': nemitt_y,
+            'upstream': tw_up,
+            'downstream': tw_down,
             'beta_gamma_rel': beta_gamma_rel
         }
-        self._compute_gaps()
-    
+        self._apply_optics()
+
+    @property
+    def nemitt_x(self):
+        if self._nemitt_x == 0:
+            return None
+        return self._nemitt_x
+
+    @nemitt_x.setter
+    def nemitt_x(self, val):
+        self._nemitt_x = val
+
+    @property
+    def nemitt_y(self):
+        if self._nemitt_y == 0:
+            return None
+        return self._nemitt_y
+
+    @nemitt_y.setter
+    def nemitt_y(self, val):
+        self._nemitt_y = val
+
+    @property
+    def emittance(self):
+        if self.nemitt_x is not None and self.nemitt_y is not None:
+            if np.isclose(self.nemitt_x, self.nemitt_y):
+                return self.nemitt_x
+            else:
+                return [self.nemitt_x, self.nemitt_y]
+
+    @emittance.setter
+    def emittance(self, val):
+        if not hasattr(val, '__iter__'):
+            val = [val]
+        if len(val) == 1:
+            val = [val[0], val[0]]
+        assert len(val) == 2
+        self._nemitt_x = val[0]
+        self._nemitt_y = val[1]
+
     @property
     def sigma(self):
-        if self.optics is not None:
+        if self.optics_ready():
             betx = self.optics[self.align]['betx'][0]
             bety = self.optics[self.align]['bety'][0]
-            sigma_x = np.sqrt(betx*self.optics['nemitt_x']/self.optics['beta_gamma_rel'])
-            sigma_y = np.sqrt(bety*self.optics['nemitt_y']/self.optics['beta_gamma_rel'])
+            sigma_x = np.sqrt(betx*self.nemitt_x/self.optics['beta_gamma_rel'])
+            sigma_y = np.sqrt(bety*self.nemitt_y/self.optics['beta_gamma_rel'])
             sigma_L = np.sqrt((sigma_x*self._cos_zL)**2 + (sigma_y*self._sin_zL)**2)
             sigma_R = np.sqrt((sigma_x*self._cos_zR)**2 + (sigma_y*self._sin_zR)**2)
             return [sigma_L, sigma_R], [sigma_x, sigma_y]
 
     @property
     def co(self):
-        if self.optics is not None:
+        if self.optics_ready():
             x = self.optics[self.align]['x'][0]
             y = self.optics[self.align]['y'][0]
             co_L = x*self._cos_zL + y*self._sin_zL
@@ -537,13 +638,13 @@ class BaseCollimator(xt.BeamElement):
     
     @property
     def divergence(self):
-        if self.optics is not None:
+        if self.optics_ready():
             alfx = self.optics[self.align]['alfx'][0]
             alfy = self.optics[self.align]['alfy'][0]
             betx = self.optics[self.align]['betx'][0]
             bety = self.optics[self.align]['bety'][0]
-            divx = -np.sqrt(self.optics['nemitt_x']/self.optics['beta_gamma_rel']/betx)*alfx
-            divy = -np.sqrt(self.optics['nemitt_y']/self.optics['beta_gamma_rel']/bety)*alfy
+            divx = -np.sqrt(self.nemitt_x/self.optics['beta_gamma_rel']/betx)*alfx
+            divy = -np.sqrt(self.nemitt_y/self.optics['beta_gamma_rel']/bety)*alfy
             if self.side != 'right':
                 return divx if abs(self.angle_L) < 1e-6 else divy
             else:
@@ -611,7 +712,7 @@ class BaseCollimator(xt.BeamElement):
     @property
     def gap_L(self):
         if self.side != 'right':
-            if self.optics is not None and self.jaw_L is not None:
+            if self.optics_ready() and self.jaw_L is not None:
                 return round((self.jaw_L - self.co[0][0])/self.sigma[0][0], 6)
             elif np.isclose(self._gap_L, OPEN_GAP):
                 return None
@@ -624,12 +725,12 @@ class BaseCollimator(xt.BeamElement):
             val = OPEN_GAP
             self.jaw_L = None
         self._gap_L = val
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def gap_R(self):
         if self.side != 'left':
-            if self.optics is not None and self.jaw_R is not None:
+            if self.optics_ready() and self.jaw_R is not None:
                 return round((self.jaw_R - self.co[0][1])/self.sigma[0][1], 6)
             elif np.isclose(self._gap_R, -OPEN_GAP):
                 return None
@@ -642,30 +743,30 @@ class BaseCollimator(xt.BeamElement):
             val = -OPEN_GAP
             self.jaw_R = None
         self._gap_R = val
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def gap_LU(self):
-        if self.gap_L is not None and self.optics is not None:
+        if self.gap_L is not None and self.optics_ready():
             return round(self._gap_L - self._sin_yL * self.length / 2. / self.sigma[0][0], 6)
 
     @property
     def gap_LD(self):
-        if self.gap_L is not None and self.optics is not None:
+        if self.gap_L is not None and self.optics_ready():
             return round(self._gap_L + self._sin_yL * self.length / 2. / self.sigma[0][0], 6)
 
     @property
     def gap_RU(self):
-        if self.gap_R is not None and self.optics is not None:
+        if self.gap_R is not None and self.optics_ready():
             return round(self._gap_R - self._sin_yR * self.length / 2. / self.sigma[0][1], 6)
 
     @property
     def gap_RD(self):
-        if self.gap_R is not None and self.optics is not None:
+        if self.gap_R is not None and self.optics_ready():
             return round(self._gap_R + self._sin_yR * self.length / 2. / self.sigma[0][1], 6)
 
-    def _compute_gaps(self):
-        if self.optics is not None:
+    def _apply_optics(self):
+        if self.optics_ready():
             if self.gap_L is not None:
                 self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
             if self.gap_R is not None:
@@ -726,6 +827,8 @@ class BaseCollimator(xt.BeamElement):
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
+            if self.optics is None:
+                raise ValueError("Optics not assigned! Cannot enable scattering.")
             self._tracking = True
 
     def disable_scattering(self):

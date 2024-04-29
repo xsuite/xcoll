@@ -38,16 +38,15 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    coll_manager.build_tracker()
-    coll_manager.set_openings()
+    line.build_tracker()
+    xc.assign_optics_to_collimators(line=line)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=npart,
-                                            nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=npart)
 
-    coll_manager.enable_scattering()
+    xc.enable_scattering(line)
     line.track(part, num_turns=2)
-    coll_manager.disable_scattering()
+    xc.disable_scattering(line)
 
     line_is_reversed = True if beam == 2 else False
     with flaky_assertions():
