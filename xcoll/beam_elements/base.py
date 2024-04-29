@@ -207,13 +207,12 @@ class BaseCollimator(xt.BeamElement):
                         raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap_L'] = kwargs.pop('gap_L', None)
                 to_assign['gap_R'] = kwargs.pop('gap_R', None)
-            kwargs.setdefault('_gap_L', OPEN_GAP)   # Important that these are initialised
+            kwargs.setdefault('_gap_L', OPEN_GAP)
             kwargs.setdefault('_gap_R', -OPEN_GAP)
-            kwargs.setdefault('_nemitt_x', 0)
-            kwargs.setdefault('_nemitt_y', 0)
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
+            to_assign['emittance'] = kwargs.pop('emittance', 0)
             kwargs.setdefault('active', True)
             kwargs.setdefault('record_touches', False)
             kwargs.setdefault('record_interactions', False)
