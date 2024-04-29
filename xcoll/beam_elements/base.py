@@ -264,7 +264,7 @@ class BaseCollimator(xt.BeamElement):
             self._jaws_parallel = False
             self._sin_zDiff = np.sin(np.deg2rad(self.angle_R - angle_L))
             self._cos_zDiff = np.cos(np.deg2rad(self.angle_R - angle_L))
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def angle_R(self):
@@ -282,7 +282,7 @@ class BaseCollimator(xt.BeamElement):
             self._jaws_parallel = False
             self._sin_zDiff = np.sin(np.deg2rad(angle_R - self.angle_L))
             self._cos_zDiff = np.cos(np.deg2rad(angle_R - self.angle_L))
-        self._compute_gaps()
+        self._apply_optics()
 
 
     # Jaw attributes
@@ -344,6 +344,7 @@ class BaseCollimator(xt.BeamElement):
         diff = val - (self._jaw_LU + self._jaw_LD) / 2
         self._jaw_LU += diff
         self._jaw_LD += diff
+        self._update_gaps()
 
     @property
     def jaw_R(self):
@@ -362,6 +363,7 @@ class BaseCollimator(xt.BeamElement):
         diff = val - (self._jaw_RU + self._jaw_RD) / 2
         self._jaw_RU += diff
         self._jaw_RD += diff
+        self._update_gaps()
 
     @property
     def jaw_LU(self):
@@ -377,7 +379,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LU = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_LD(self):
@@ -393,7 +396,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LD = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_RU(self):
@@ -409,7 +413,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RU = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     @property
     def jaw_RD(self):
@@ -425,13 +430,32 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RD = val
-        self._update_tilt()   # Extra, to update tilts which are also in C for efficiency
+        self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
+        self._update_gaps()
 
     def open_jaws(self, keep_tilts=False):
         self.jaw_L = None
         self.jaw_R = None
         if not keep_tilts:
             self.tilt = 0
+
+    def _update_tilts(self):
+        if self.side != 'right':
+            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
+            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+            self._tan_yL = self._sin_yL / self._cos_yL
+        if self.side != 'left':
+            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
+            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+            self._tan_yR = self._sin_yR / self._cos_yR
+
+    def _update_gaps(self):
+        # If we had set a value for the gap manually, this needs to be updated
+        # as well after setting the jaw
+        if not np.isclose(self._gap_L, OPEN_GAP):
+            self._gap_L = self.gap_L
+        if not np.isclose(self._gap_R, -OPEN_GAP):
+            self._gap_R = self.gap_R
 
 
     # Tilt attributes
@@ -499,16 +523,6 @@ class BaseCollimator(xt.BeamElement):
         self._jaw_RD = jaw_R + self._sin_yR * self.length / 2.
         self._jaw_RU = jaw_R - self._sin_yR * self.length / 2.
 
-    def _update_tilt(self):
-        if self.side != 'right':
-            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
-            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-            self._tan_yL = self._sin_yL / self._cos_yL
-        if self.side != 'left':
-            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
-            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-            self._tan_yR = self._sin_yR / self._cos_yR
-
 
     # Optics
     # ======
@@ -562,7 +576,7 @@ class BaseCollimator(xt.BeamElement):
             'downstream': tw_down,
             'beta_gamma_rel': beta_gamma_rel
         }
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def nemitt_x(self):
@@ -711,7 +725,7 @@ class BaseCollimator(xt.BeamElement):
             val = OPEN_GAP
             self.jaw_L = None
         self._gap_L = val
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def gap_R(self):
@@ -729,7 +743,7 @@ class BaseCollimator(xt.BeamElement):
             val = -OPEN_GAP
             self.jaw_R = None
         self._gap_R = val
-        self._compute_gaps()
+        self._apply_optics()
 
     @property
     def gap_LU(self):
@@ -751,7 +765,7 @@ class BaseCollimator(xt.BeamElement):
         if self.gap_R is not None and self.optics_ready():
             return round(self._gap_R + self._sin_yR * self.length / 2. / self.sigma[0][1], 6)
 
-    def _compute_gaps(self):
+    def _apply_optics(self):
         if self.optics_ready():
             if self.gap_L is not None:
                 self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]

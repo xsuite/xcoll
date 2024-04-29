@@ -51,7 +51,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if tw is None:
         tw = line.twiss()    # TODO: can we do this smarter by caching?
 
-    # Is it converging or diverging?
+    # Is it converging or diverging?    # TODO: This might change with a tilt!!!!!!
     s_front = line.get_s_position(name)
     s_back  = s_front + coll.length
     is_converging  = tw[f'alf{plane}', name] > 0
