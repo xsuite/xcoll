@@ -28,25 +28,19 @@ path_in  = xc._pkg_root.parent / 'examples'
 
 
 # Load from json
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 
 
-# Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
-                                              line=line, beam=beam, _context=context)
-
-
-# Install collimators into line
-coll_manager.install_everest_collimators(verbose=True)
+# Install primary collimators
+TCPH = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
+TCPV = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, angle=90, emittance=3.5e-6)
+TCPS = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.Carbon, angle=127.5, emittance=3.5e-6)
+xc.install_elements(line, ['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
 
 
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        df_with_coll = line.check_aperture()
+df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 
@@ -109,7 +103,7 @@ plt.show()
 
 line['tcp.c6l7.b1'].angle = 15
 xc.open_collimators(line)
-line['tcp.c6l7.b1'].gap = [4,7]
+line['tcp.c6l7.b1'].gap = [4, -7]
 
 # Create initial particles
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,

@@ -65,7 +65,6 @@ class BaseBlock(xt.BeamElement):
         return instance
 
     def __init__(self, **kwargs):
-        to_assign = {}
         if '_xobject' not in kwargs:
             kwargs.pop('use_prebuilt_kernels', None)
         super().__init__(**kwargs)
