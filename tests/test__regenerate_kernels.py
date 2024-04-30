@@ -5,8 +5,8 @@
 
 import warnings
 
-from xsuite_kernels.kernel_definitions import kernel_definitions
-from xsuite_kernels.prebuild_kernels import regenerate_kernels
+from xsuite.kernel_definitions import kernel_definitions
+from xsuite.prebuild_kernels import regenerate_kernels
 
 
 def test_init():
