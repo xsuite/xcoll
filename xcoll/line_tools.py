@@ -71,7 +71,7 @@ def enable_scattering(line):
                                    + "emittance. This is not supported.")
             el.enable_scattering()
         # self.line.tracker.io_buffer = self._io_buffer
-        # self._set_record_impacts()
+        # self._set_record_interaction_record()
 
 def disable_scattering(line):
     elements = line.get_elements_of_type(element_classes)[0]

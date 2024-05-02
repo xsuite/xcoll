@@ -60,7 +60,7 @@ base_fields = {
     '_side':   0,
     'active':  1,
     'record_touches':      0,
-    'record_interactions': 0
+    'record_scatterings': 0
 }
 base_dict_fields = {
     'angle': [

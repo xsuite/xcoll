@@ -84,11 +84,11 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
 
     double* result = (double*)malloc(2 * sizeof(double));
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
 
     // First log particle at start of channeling
-    int64_t i_slot = CollimatorImpactsData_log(record, record_index, part, XC_CHANNELING);
+    int64_t i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
 
     // Do channeling.
     // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
@@ -113,7 +113,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     pc = pc - energy_loss*L_chan; //energy loss to ionization [GeV]
 
     // Finally log particle at end of channeling
-    CollimatorImpactsData_log_child(record, i_slot, part, drift_length);
+    InteractionRecordData_log_child(record, i_slot, part, drift_length);
 
     result[0] = drift_length;
     result[1] = pc;
@@ -128,7 +128,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
         return pc;
     }
 
-    CollimatorImpactsData record = everest->coll->record;
+    InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
 
     calculate_initial_angle(everest, part);
@@ -204,7 +204,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             pc               = result_chan[1];
             free(result_chan);
             // Drift leftover outside of crystal
-            CollimatorImpactsData_log(record, record_index, part, XC_EXIT_JAW);
+            InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
             Drift_single_particle_4d(part, length - channeled_length);
 
         } else if (L_dechan < L_nucl) {
@@ -213,7 +213,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             double channeled_length = result_chan[0];
             pc               = result_chan[1];
             free(result_chan);
-            CollimatorImpactsData_log(record, record_index, part, XC_DECHANNELING);
+            InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
             pc = Amorphous(everest, part, pc, length - channeled_length);
 
         } else {

@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..impacts import CollimatorImpacts
+from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
 
 
@@ -45,7 +45,9 @@ class InvalidXcoll(xt.BeamElement):
 
 class BaseBlock(xt.BeamElement):
     _xofields = {
-        'length': xo.Float64
+        'length':             xo.Float64,
+        'record_touches':     xo.Int8,
+        'record_scatterings': xo.Int8
     }
 
     isthick = True
@@ -55,7 +57,7 @@ class BaseBlock(xt.BeamElement):
 
     _depends_on = [InvalidXcoll]
 
-    _internal_record_class = CollimatorImpacts
+    _internal_record_class = InteractionRecord
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -108,8 +110,8 @@ class BaseCollimator(xt.BeamElement):
         # Other
         '_side':          xo.Int8,
         'active':         xo.Int8,
-        'record_touches':      xo.Int8,
-        'record_interactions': xo.Int8,
+        'record_touches':     xo.Int8,
+        'record_scatterings': xo.Int8,
         # These are not used in C, but need to be an xofield to get them in the to_dict:
         '_align':         xo.Int8,
         '_gap_L':         xo.Float64,
@@ -132,7 +134,7 @@ class BaseCollimator(xt.BeamElement):
         _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
     ]
 
-    _internal_record_class = CollimatorImpacts
+    _internal_record_class = InteractionRecord
 
 
     # This is an abstract class and cannot be instantiated
@@ -214,7 +216,7 @@ class BaseCollimator(xt.BeamElement):
             to_assign['emittance'] = kwargs.pop('emittance', 0)
             kwargs.setdefault('active', True)
             kwargs.setdefault('record_touches', False)
-            kwargs.setdefault('record_interactions', False)
+            kwargs.setdefault('record_scatterings', False)
 
         super().__init__(**kwargs)
         # Careful: non-xo fields are not passed correctly between copy's / to_dict. This messes with flags etc..
@@ -871,7 +873,7 @@ class BaseCollimator(xt.BeamElement):
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
         assert isinstance(self.active, bool) or self.active in [0, 1]
         assert isinstance(self.record_touches, bool) or self.record_touches in [0, 1]
-        assert isinstance(self.record_interactions, bool) or self.record_interactions in [0, 1]
+        assert isinstance(self.record_scatterings, bool) or self.record_scatterings in [0, 1]
 
     def jaw_func(self, pos):
         positions = ['LU', 'RU', 'LD', 'RD']

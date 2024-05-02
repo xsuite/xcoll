@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 
@@ -42,6 +42,12 @@ interactions = {
 
 shortcuts = {
     int(line.split()[2]): line.split()[4]
+    for line in source.split('\n')
+    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
+}
+
+is_point = {
+    int(line.split()[2]): line.split()[6].lower() == 'point'
     for line in source.split('\n')
     if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
 }

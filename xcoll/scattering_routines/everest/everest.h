@@ -10,9 +10,9 @@
 typedef struct EverestCollData_ {
     // Collimator properties
     RandomRutherfordData restrict rng;
-    CollimatorImpactsData record;
+    InteractionRecordData record;
     RecordIndex record_index;
-    int8_t record_interactions;
+    int8_t record_scatterings;
     // Crystal properties
     double aperture;
     double offset;
