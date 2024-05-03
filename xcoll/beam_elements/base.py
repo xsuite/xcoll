@@ -454,9 +454,9 @@ class BaseCollimator(xt.BeamElement):
     def _update_gaps(self):
         # If we had set a value for the gap manually, this needs to be updated
         # as well after setting the jaw
-        if not np.isclose(self._gap_L, OPEN_GAP):
+        if self._gap_L_set_manually():
             self._gap_L = self.gap_L
-        if not np.isclose(self._gap_R, -OPEN_GAP):
+         if self._gap_R_set_manually():
             self._gap_R = self.gap_R
 
 
@@ -589,6 +589,7 @@ class BaseCollimator(xt.BeamElement):
     @nemitt_x.setter
     def nemitt_x(self, val):
         self._nemitt_x = val
+        self._apply_optics()
 
     @property
     def nemitt_y(self):
@@ -599,6 +600,7 @@ class BaseCollimator(xt.BeamElement):
     @nemitt_y.setter
     def nemitt_y(self, val):
         self._nemitt_y = val
+        self._apply_optics()
 
     @property
     def emittance(self):
@@ -617,6 +619,7 @@ class BaseCollimator(xt.BeamElement):
         assert len(val) == 2
         self._nemitt_x = val[0]
         self._nemitt_y = val[1]
+        self._apply_optics()
 
     @property
     def sigma(self):
@@ -671,6 +674,7 @@ class BaseCollimator(xt.BeamElement):
         else:
             raise ValueError(f"The attribute `align` can only be 'upstream' or "
                             +f"'downstream', but got {val}.")
+        self._apply_optics()
 
 
     # Gap attributes
@@ -767,11 +771,18 @@ class BaseCollimator(xt.BeamElement):
         if self.gap_R is not None and self.optics_ready():
             return round(self._gap_R + self._sin_yR * self.length / 2. / self.sigma[0][1], 6)
 
+    def _gap_L_set_manually(self):
+        return not np.isclose(self._gap_L, OPEN_GAP)
+
+    def _gap_R_set_manually(self):
+        return not np.isclose(self._gap_R, -OPEN_GAP)
+
     def _apply_optics(self):
         if self.optics_ready():
-            if self.gap_L is not None:
+            # Only if we have set a value for the gap manually, this needs to be updated
+            if self._gap_L_set_manually():
                 self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
-            if self.gap_R is not None:
+            if self._gap_R_set_manually():
                 self.jaw_R = self._gap_R * self.sigma[0][1] + self.co[0][1]
             if hasattr(self, 'align_angle'):
                 if self.gap_L is not None: # Hack to do in this order because crystal is onesided; but side might not be assigned yet
