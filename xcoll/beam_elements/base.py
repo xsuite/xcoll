@@ -456,7 +456,7 @@ class BaseCollimator(xt.BeamElement):
         # as well after setting the jaw
         if self._gap_L_set_manually():
             self._gap_L = self.gap_L
-         if self._gap_R_set_manually():
+        if self._gap_R_set_manually():
             self._gap_R = self.gap_R
 
 
