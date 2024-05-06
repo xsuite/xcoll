@@ -27,6 +27,13 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
         cg->sin_zDiff = BlackAbsorberData_get__sin_zDiff(el);
         cg->cos_zDiff = BlackAbsorberData_get__cos_zDiff(el);
         cg->jaws_parallel = BlackAbsorberData_get__jaws_parallel(el);
+        // Tilts
+        cg->sin_yL = BlackAbsorberData_get__sin_yL(el);
+        cg->cos_yL = BlackAbsorberData_get__cos_yL(el);
+        cg->tan_yL = BlackAbsorberData_get__tan_yL(el);
+        cg->sin_yR = BlackAbsorberData_get__sin_yR(el);
+        cg->cos_yR = BlackAbsorberData_get__cos_yR(el);
+        cg->tan_yR = BlackAbsorberData_get__tan_yR(el);
         // Impact table
         cg->record = BlackAbsorberData_getp_internal_record(el, part0);
         cg->record_index = NULL;
@@ -50,7 +57,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     double const length = BlackAbsorberData_get_length(el);
 
     // Get geometry
-    CollimatorGeometry cg      = BlackAbsorber_init_geometry(el, part0, active);
+    CollimatorGeometry cg     = BlackAbsorber_init_geometry(el, part0, active);
     int8_t record_scatterings = BlackAbsorberData_get_record_scatterings(el);
 
     //start_per_particle_block (part0->part)
@@ -63,7 +70,10 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
 
             if (is_tracking) {
-
+                // Store s-location of start of collimator
+                double s_coll = LocalParticle_get_s(part);
+                LocalParticle_set_s(part, 0);
+                
                 // Check if hit on jaws
                 int8_t is_hit = hit_jaws_check_and_transform(part, cg);
 
@@ -76,6 +86,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
 
                 // Transform back to the lab frame
                 hit_jaws_transform_back(is_hit, part, cg);
+                LocalParticle_add_to_s(part, s_coll);
             }
         }
     //end_per_particle_block

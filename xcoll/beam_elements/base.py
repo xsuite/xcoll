@@ -131,6 +131,8 @@ class BaseCollimator(xt.BeamElement):
     _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('scattering_routines','geometry','polygon.h'),
+        _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
     ]
 
