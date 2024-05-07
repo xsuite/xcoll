@@ -88,39 +88,52 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double s_block = LocalParticle_get_s(part);
                 LocalParticle_set_s(part, 0);
 
-                double const e0         = LocalParticle_get_energy0(part) / 1.e9;        // Reference energy in GeV
-                double const p0         = LocalParticle_get_p0c(part) / 1e9;            // Reference momentum in GeV
+                // Store initial coordinates for updating later
+                double const e0         = LocalParticle_get_energy0(part);
+                double const p0         = LocalParticle_get_p0c(part);
+                double const ptau_in    = LocalParticle_get_ptau(part);
+                double const rvv_in     = LocalParticle_get_rvv(part);
+#ifdef XCOLL_USE_EXACT
+                double const xp_in      = LocalParticle_get_exact_xp(part);
+                double const yp_in      = LocalParticle_get_exact_yp(part);
+#else
+                double const xp_in      = LocalParticle_get_xp(part);
+                double const yp_in      = LocalParticle_get_yp(part);
+#endif
+                double const zeta_in    = LocalParticle_get_zeta(part);
                 double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
-                double energy = (LocalParticle_get_ptau(part)*p0 + e0) * mass_ratio;    // energy in GeV
-                int is_abs = 0;
-                double const rpp_in  = LocalParticle_get_rpp(part);
-                double const rvv_in  = LocalParticle_get_rvv(part);
-                double const px_in   = LocalParticle_get_px(part);
-                double const py_in   = LocalParticle_get_py(part);
+                double energy           = (p0*ptau_in + e0) * mass_ratio;
 
                 EverestData everest = EverestBlock_init_data(part, coll);
                 energy = jaw(everest, part, energy, length, 0);
                 free(everest);
-                if (LocalParticle_get_state(part)>0){
-                    double ptau_out = (energy/mass_ratio - e0) / p0;
-                    LocalParticle_update_ptau(part, ptau_out);
-                }
+
                 LocalParticle_add_to_s(part, s_block);
 
+                LocalParticle_set_zeta(part, zeta_in);
+                // Survived particles need correcting:
                 if (LocalParticle_get_state(part)>0){
-                    double px  = LocalParticle_get_px(part);
-                    double py  = LocalParticle_get_py(part);
+                    // Update energy
+                    double ptau_out = (energy/mass_ratio - e0) / p0;
+                    LocalParticle_update_ptau(part, ptau_out);
+                    // Update zeta
+#ifdef XCOLL_USE_EXACT
+                    double xp  = LocalParticle_get_exact_xp(part);
+                    double yp  = LocalParticle_get_exact_yp(part);
+#else
+                    double xp  = LocalParticle_get_xp(part);
+                    double yp  = LocalParticle_get_yp(part);
+#endif
                     double rvv = LocalParticle_get_rvv(part);
                     double rpp = LocalParticle_get_rpp(part);
                     // First we drift half the length with the old angles:
-                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
                     // then half the length with the new angles:
-                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, xp, yp, length/2) );
                 }
             }
         }
     //end_per_particle_block
-
     free(coll);
 }
 

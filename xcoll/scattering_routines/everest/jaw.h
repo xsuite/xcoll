@@ -11,7 +11,6 @@
 
 /*gpufun*/
 double jaw(EverestData restrict everest, LocalParticle* part, double p, double length, int edge_check) {
-
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return p;
@@ -19,6 +18,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
 
     double rlen = length;
     double s0 = LocalParticle_get_s(part);
+    p /= 1e9;   // Energy (not momentum) in GeV
 
     if (everest->coll->only_mcs) {
         mcs(everest, part, rlen, p, edge_check);
@@ -59,7 +59,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
     double s = LocalParticle_get_s(part) - s0;
     p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
 
-    return p;
+    return p*1e9;  // Back to eV
 }  
   
 

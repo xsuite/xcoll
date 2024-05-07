@@ -57,7 +57,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
     if (cg->side != -1){
         SRotation_single_particle(part, cg->sin_zL, cg->cos_zL);
         part_x = LocalParticle_get_x(part);
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
         part_tan = LocalParticle_get_exact_xp(part);
 #else
         part_tan = LocalParticle_get_xp(part);
@@ -87,7 +87,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
             // We didn't rotate to the left frame earlier, so full rotation to the right frame now
             SRotation_single_particle(part, cg->sin_zR, cg->cos_zR);
             part_x = LocalParticle_get_x(part);
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
             part_tan = LocalParticle_get_exact_xp(part);
 #else
             part_tan = LocalParticle_get_xp(part);
@@ -96,7 +96,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
             // We rotated to the left frame before, so now rotate the difference
             SRotation_single_particle(part, cg->sin_zDiff, cg->cos_zDiff);
             part_x = LocalParticle_get_x(part);
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
             part_tan = LocalParticle_get_exact_xp(part);
 #else
             part_tan = LocalParticle_get_xp(part);
@@ -131,7 +131,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
     // Drift to the impact position or end, and move to jaw frame if relevant
     if (is_hit == 1){
         // Move to the impact position
-        Drift_single_particle(part, s_L);
+#ifdef XCOLL_USE_EXACT
+        Drift_single_particle_exact(part, s_L);
+#else
+        Drift_single_particle_expanded(part, s_L);
+#endif
         // Shift the reference frame to the jaw corner LU
         XYShift_single_particle(part, cg->jaw_LU, 0);
         LocalParticle_add_to_s(part, -cg->length/2*(1 - cg->cos_yL));
@@ -144,7 +148,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
 
     } else if (is_hit == -1){
         // Move to the impact position
-        Drift_single_particle(part, s_R);
+#ifdef XCOLL_USE_EXACT
+        Drift_single_particle_exact(part, s_R);
+#else
+        Drift_single_particle_expanded(part, s_R);
+#endif
         // Shift the reference frame to the jaw corner RU
         XYShift_single_particle(part, cg->jaw_RU, 0);
         LocalParticle_add_to_s(part, -cg->length/2*(1 - cg->cos_yR));
@@ -159,7 +167,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
         }
 
     } else {
-        Drift_single_particle(part, cg->length);
+#ifdef XCOLL_USE_EXACT
+        Drift_single_particle_exact(part, cg->length);
+#else
+        Drift_single_particle_expanded(part, cg->length);
+#endif
     }
 
     return is_hit;
@@ -180,7 +192,11 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
             if (cg->record_touches){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
             }
-            Drift_single_particle(part, cg->length - LocalParticle_get_s(part));
+#ifdef XCOLL_USE_EXACT
+            Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
+#else
+            Drift_single_particle_expanded(part, cg->length - LocalParticle_get_s(part));
+#endif
         }
         SRotation_single_particle(part, -cg->sin_zL, cg->cos_zL);
 
@@ -199,7 +215,11 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
             if (cg->record_touches){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
             }
-            Drift_single_particle(part, cg->length - LocalParticle_get_s(part));
+#ifdef XCOLL_USE_EXACT
+            Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
+#else
+            Drift_single_particle_expanded(part, cg->length - LocalParticle_get_s(part));
+#endif
         }
         SRotation_single_particle(part, -cg->sin_zR, cg->cos_zR);
     }

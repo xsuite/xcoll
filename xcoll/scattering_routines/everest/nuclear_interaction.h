@@ -11,7 +11,6 @@
 
 /*gpufun*/
 double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
-
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
@@ -55,20 +54,24 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
             } else {
                 bsd = (7*everest->bpp)/12.0;
             }
-            teta = sqrt(RandomExponential_generate(part)/bsd)/pc;
-            pc = pc*(1 - xm2/everest->ecmsq);    // TODO: standard K2 scales teta with new pc, crystal K2 ensures it scales with old pc....
-                                                 // which one is correct?
+            double pc_in = pc;
+            pc = pc*(1 - xm2/everest->ecmsq);
+            // Corrected 1/p into 1/sqrt(pp')
+            teta = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
 
         } else { // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
             teta = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
         }
 
+        // TODO: I am not convinced that we can just sample two independent random numbers
+        // I believe it should be tan(tx) = cos(phi) * tan(teta)    and    tan(ty) = sin(phi) * tan(teta)
+        // with phi uniformly sampled between 0 and 2 pi
         double tx = teta*RandomNormal_generate(part);
         double tz = teta*RandomNormal_generate(part);
 
         //Change the angles
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
         LocalParticle_add_to_exact_xp_yp(part, tx, tz);
 #else
         LocalParticle_add_to_xp_yp(part, tx, tz);

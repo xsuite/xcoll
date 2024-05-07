@@ -108,7 +108,6 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 /*gpufun*/
 void mcs(EverestData restrict everest, LocalParticle* part, double length, double p, int edge_check) {
-
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
@@ -128,7 +127,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
 
     double x  = LocalParticle_get_x(part);
     double z  = LocalParticle_get_y(part);
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
     double xp = LocalParticle_get_exact_xp(part);  // This is tangent
     double zp = LocalParticle_get_exact_yp(part);  // This is tangent
 #else
@@ -188,7 +187,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
 
     LocalParticle_set_x(part, x*theta*radl);
     LocalParticle_set_y(part, z*theta*radl);
-#ifdef XTRACK_USE_EXACT_DRIFTS
+#ifdef XCOLL_USE_EXACT
     LocalParticle_set_exact_xp_yp(part, xp*theta, zp*theta);
 #else
     LocalParticle_set_xp_yp(part, xp*theta, zp*theta);
