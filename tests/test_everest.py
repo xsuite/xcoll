@@ -131,7 +131,6 @@ def test_angles_b2():
 # def test_lengths_b1(test_context):
 def test_lengths_b1():
     for key, name in lengths_b1.items():
-        print(f"COLLIMATOR  {name}")
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
 # @for_all_test_contexts(
@@ -140,7 +139,6 @@ def test_lengths_b1():
 # def test_lengths_b2(test_context):
 def test_lengths_b2():
     for key, name in lengths_b2.items():
-        print(f"COLLIMATOR  {name}")
         _track_collimator(name, _context=test_context, atolz=2e-11)
 
 # @for_all_test_contexts(

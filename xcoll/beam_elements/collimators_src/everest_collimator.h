@@ -168,12 +168,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     if (jaw_result[1] == 1){
                         is_abs = 1;
                     }
-                    double s_out = jaw_result[2];
                     free(jaw_result);
-        
+
                     if (is_abs != 1) {
                        // Do the rest drift, if particle left collimator early
-                        Drift_single_particle(part, remaining_length-s_out);
+                        Drift_single_particle(part, remaining_length - LocalParticle_get_s(part));
                     }
                 }
             

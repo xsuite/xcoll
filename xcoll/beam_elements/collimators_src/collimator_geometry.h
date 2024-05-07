@@ -177,6 +177,9 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yL));
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
+            if (cg->record_touches){
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+            }
             Drift_single_particle(part, cg->length - LocalParticle_get_s(part));
         }
         SRotation_single_particle(part, -cg->sin_zL, cg->cos_zL);
@@ -193,6 +196,9 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yR));
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
+            if (cg->record_touches){
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+            }
             Drift_single_particle(part, cg->length - LocalParticle_get_s(part));
         }
         SRotation_single_particle(part, -cg->sin_zR, cg->cos_zR);

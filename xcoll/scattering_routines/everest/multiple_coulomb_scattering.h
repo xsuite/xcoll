@@ -107,7 +107,15 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 
 /*gpufun*/
-double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, double p, double x, double xp, double z, double zp, int edge_check) {
+void mcs(EverestData restrict everest, LocalParticle* part, double length, double p, int edge_check) {
+
+    InteractionRecordData record = everest->coll->record;
+    RecordIndex record_index     = everest->coll->record_index;
+    int8_t sc = everest->coll->record_scatterings;
+
+    // First log particle at start of multiple coulomb scattering
+    int64_t i_slot;
+    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
 
     double const radl = everest->coll->radl;
     double s;
@@ -115,9 +123,18 @@ double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, doub
     double h   = 0.001;
     double dh  = 0.0001;
     double bn0 = 0.4330127019;
-    double rlen0 = zlm1/radl;
+    double rlen0 = length/radl;
     double rlen  = rlen0;
-    double* result = (double*)malloc(5 * sizeof(double));
+
+    double x  = LocalParticle_get_x(part);
+    double z  = LocalParticle_get_y(part);
+#ifdef XTRACK_USE_EXACT_DRIFTS
+    double xp = LocalParticle_get_exact_xp(part);  // This is tangent
+    double zp = LocalParticle_get_exact_yp(part);  // This is tangent
+#else
+    double xp = LocalParticle_get_xp(part);
+    double zp = LocalParticle_get_yp(part);
+#endif
 
     x  = (x/theta)/radl;
     xp = xp/theta;
@@ -169,12 +186,17 @@ double* mcs(EverestData restrict everest, LocalParticle* part, double zlm1, doub
     zp = res[1];
     free(res);
 
-    result[0] = s*radl;
-    result[1] = (x*theta)*radl;
-    result[2] = xp*theta;
-    result[3] = (z*theta)*radl;
-    result[4] = zp*theta;
-    return result;
+    LocalParticle_set_x(part, x*theta*radl);
+    LocalParticle_set_y(part, z*theta*radl);
+#ifdef XTRACK_USE_EXACT_DRIFTS
+    LocalParticle_set_exact_xp_yp(part, xp*theta, zp*theta);
+#else
+    LocalParticle_set_xp_yp(part, xp*theta, zp*theta);
+#endif
+    LocalParticle_add_to_s(part, s*radl);
+
+    // Finally log particle at end of multiple coulomb scattering
+    if (sc) InteractionRecordData_log_child(record, i_slot, part, length);
 }
 
 #endif /* XCOLL_EVEREST_MCS_H */

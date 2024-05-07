@@ -86,9 +86,11 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
+    int8_t sc = everest->coll->record_scatterings;
 
     // First log particle at start of channeling
-    int64_t i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
+    int64_t i_slot;
+    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
 
     // Do channeling.
     // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
@@ -113,7 +115,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     pc = pc - energy_loss*L_chan; //energy loss to ionization [GeV]
 
     // Finally log particle at end of channeling
-    InteractionRecordData_log_child(record, i_slot, part, drift_length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part, drift_length);
 
     result[0] = drift_length;
     result[1] = pc;
@@ -130,6 +132,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
+    int8_t sc = everest->coll->record_scatterings;
 
     calculate_initial_angle(everest, part);
 #ifdef XCOLL_REFINE_ENERGY
@@ -213,7 +216,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             double channeled_length = result_chan[0];
             pc               = result_chan[1];
             free(result_chan);
-            InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
+            if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
             pc = Amorphous(everest, part, pc, length - channeled_length);
 
         } else {
@@ -228,11 +231,16 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             calculate_scattering(everest, pc);
 #endif
             pc = nuclear_interaction(everest, part, pc);
-            everest->rescale_scattering = 1;
+            if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
+                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
+            } else {
+                // We call the main Amorphous function for the leftover
+                everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY
-            calculate_scattering(everest, pc);
+                calculate_scattering(everest, pc);
 #endif
-            pc = Amorphous(everest, part, pc, length - channeled_length);
+                pc = Amorphous(everest, part, pc, length - channeled_length);
+            }
         }
     }
 
