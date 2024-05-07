@@ -162,20 +162,10 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCollimator_init_data(part, coll);
-                    double* jaw_result = jaw(everest, part, energy, remaining_length, 1);
+                    energy = jaw(everest, part, energy, remaining_length, 1);
                     free(everest);
-                    energy = jaw_result[0];
-                    if (jaw_result[1] == 1){
-                        is_abs = 1;
-                    }
-                    free(jaw_result);
-
-                    if (is_abs != 1) {
-                       // Do the rest drift, if particle left collimator early
-                        Drift_single_particle(part, remaining_length - LocalParticle_get_s(part));
-                    }
                 }
-            
+
                 // Update state    ----------------------------------------------------
                 if (is_abs > 0){
                     LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);

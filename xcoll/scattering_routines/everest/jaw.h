@@ -10,23 +10,15 @@
 
 
 /*gpufun*/
-double* jaw(EverestData restrict everest, LocalParticle* part, double p, double length, int edge_check) {
+double jaw(EverestData restrict everest, LocalParticle* part, double p, double length, int edge_check) {
 
-    double* result = (double*)malloc(2 * sizeof(double));
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
-        result[0] = p;
-        result[1] = 0;
-        return result;
+        return p;
     }
 
-    double nabs = 0;
     double rlen = length;
     double s0 = LocalParticle_get_s(part);
-    double m_dpodx = 0.;
-    double t;
-    double tx; 
-    double tz;
 
     if (everest->coll->only_mcs) {
         mcs(everest, part, rlen, p, edge_check);
@@ -63,13 +55,11 @@ double* jaw(EverestData restrict everest, LocalParticle* part, double p, double 
             rlen = rlen - length_step;
         }
     }
-    m_dpodx = calcionloss(everest, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
+    double m_dpodx = calcionloss(everest, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
     double s = LocalParticle_get_s(part) - s0;
     p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
 
-    result[0] = p;
-    result[1] = nabs;
-    return result;
+    return p;
 }  
   
 
