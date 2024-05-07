@@ -84,7 +84,10 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
             int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
             if (is_valid) {
-                EverestData everest     = EverestBlock_init_data(part, coll);
+                // Store s-location of start of block
+                double s_block = LocalParticle_get_s(part);
+                LocalParticle_set_s(part, 0);
+
                 double const e0         = LocalParticle_get_energy0(part) / 1.e9;        // Reference energy in GeV
                 double const p0         = LocalParticle_get_p0c(part) / 1e9;            // Reference momentum in GeV
                 double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
@@ -95,16 +98,16 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double const px_in   = LocalParticle_get_px(part);
                 double const py_in   = LocalParticle_get_py(part);
 
-                double* result = jaw(everest, part, energy, length, 0);
-                energy = result[0];
-                if (result[1] == 1){ is_abs = 1; }
-                double s_out = result[2];
-                free(result);
+                EverestData everest = EverestBlock_init_data(part, coll);
+                energy = jaw(everest, part, energy, length, 0);
                 free(everest);
+                if (LocalParticle_get_state(part)>0){
+                    double ptau_out = (energy/mass_ratio - e0) / p0;
+                    LocalParticle_update_ptau(part, ptau_out);
+                }
+                LocalParticle_add_to_s(part, s_block);
 
-                double ptau_out = (energy/mass_ratio - e0) / p0;
-                LocalParticle_update_ptau(part, ptau_out);
-                if (is_abs==0){
+                if (LocalParticle_get_state(part)>0){
                     double px  = LocalParticle_get_px(part);
                     double py  = LocalParticle_get_py(part);
                     double rvv = LocalParticle_get_rvv(part);
@@ -113,9 +116,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, px_in*rpp_in, py_in*rpp_in, length/2) );
                     // then half the length with the new angles:
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, px*rpp, py*rpp, length/2) );
-                } else {
-                    LocalParticle_set_s(part, s_out);
-                    LocalParticle_set_state(part, XC_LOST_ON_EVEREST_BLOCK);
                 }
             }
         }
