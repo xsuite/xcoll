@@ -132,6 +132,7 @@ class BaseCollimator(xt.BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','geometry','polygon.h'),
+        _pkg_root.joinpath('scattering_routines','geometry','crystal.h'),
         _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
     ]
