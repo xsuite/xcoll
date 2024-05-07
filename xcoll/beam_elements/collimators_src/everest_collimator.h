@@ -166,25 +166,17 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     free(everest);
                 }
 
-                // Update state    ----------------------------------------------------
-                if (is_abs > 0){
-                    LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
-                }
-
                 // Transform back to the lab frame
                 hit_jaws_transform_back(is_hit, part, cg);
                 LocalParticle_add_to_s(part, s_coll);
 
-                // Update energy    ---------------------------------------------------
-                // Only particles that hit the jaw and survived need to be updated
-                if (is_hit!=0 && is_abs==0){
-                    double ptau_out = (energy - e0) / (e0 * beta0);
-                    LocalParticle_update_ptau(part, ptau_out);
-                }
-
                 LocalParticle_set_zeta(part, zeta_in);
                 // Hit and survived particles need correcting:
-                if (is_hit!=0 && is_abs==0){
+                if (is_hit!=0 && LocalParticle_get_state(part)>0){
+                    // Update energy
+                    double ptau_out = (energy - e0) / (e0 * beta0);
+                    LocalParticle_update_ptau(part, ptau_out);
+                    // Update zeta
                     double px  = LocalParticle_get_px(part);
                     double py  = LocalParticle_get_py(part);
                     double rvv = LocalParticle_get_rvv(part);
