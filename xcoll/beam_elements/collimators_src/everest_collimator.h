@@ -84,6 +84,7 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
             coll->record_scatterings = EverestCollimatorData_get_record_scatterings(el);
+            coll->record_touches = EverestCollimatorData_get_record_touches(el);
         }
     }
 
@@ -120,9 +121,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll  = EverestCollimator_init(el, part0, active);
     CollimatorGeometry cg = EverestCollimator_init_geometry(el, part0, active);
-
-    double sin_zL = asin(EverestCollimatorData_get__sin_zL(el));
-    double cos_zL = asin(EverestCollimatorData_get__cos_zL(el));
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -185,7 +183,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     double yp  = LocalParticle_get_yp(part);
 #endif
                     double rvv = LocalParticle_get_rvv(part);
-                    double rpp = LocalParticle_get_rpp(part);
                     // First we drift half the length with the old angles:
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
                     // then half the length with the new angles:

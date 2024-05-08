@@ -106,7 +106,9 @@ double interact(EverestData restrict everest, LocalParticle* part, double pc, do
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
-    InteractionRecordData_log(record, record_index, part, XC_ENTER_JAW);
+    if (everest->coll->record_touches){
+        InteractionRecordData_log(record, record_index, part, XC_ENTER_JAW);
+    }
     calculate_initial_angle(everest, part);
 // printf("Start:  %f  %f  %f\n", xp, everest->t_I, everest->t_c);
 

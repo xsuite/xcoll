@@ -107,7 +107,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 
 /*gpufun*/
-void mcs(EverestData restrict everest, LocalParticle* part, double length, double p, int edge_check) {
+void mcs(EverestData restrict everest, LocalParticle* part, double length, double p, int edge_check){
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;

@@ -6,6 +6,7 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
+#define XCOLL_TRANSITION
 
 typedef struct EverestCollData_ {
     // Collimator properties
@@ -13,9 +14,9 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
+    int8_t record_touches;
     // Crystal properties
     double aperture;
-    double offset;
     double tilt_L;
     double tilt_R;
     double tilt;
@@ -67,6 +68,7 @@ typedef struct EverestData_ {
     double t_c;
     double t_c0;
     double Rc_over_R;
+    double eta;
     double Ang_rms;
     double Ang_avr;
     double Vcapt;

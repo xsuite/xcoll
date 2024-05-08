@@ -44,6 +44,8 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         coll->record_index = NULL;
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
+            coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
+            coll->record_touches = EverestCrystalData_get_record_touches(el);
         }
 
         // Geometry
@@ -51,7 +53,6 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         double jaw_L = (EverestCrystalData_get__jaw_LU(el) + EverestCrystalData_get__jaw_LD(el))/2.;
         double jaw_R = (EverestCrystalData_get__jaw_RU(el) + EverestCrystalData_get__jaw_RD(el))/2.;
         coll->aperture = jaw_L - jaw_R;
-        coll->offset   = (jaw_L + jaw_R) /2;
         coll->tilt_L   = asin(EverestCrystalData_get__sin_yL(el));
         coll->tilt_R   = asin(EverestCrystalData_get__sin_yR(el));
         if (fabs(coll->tilt_R) > 1.e-10){
@@ -135,6 +136,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         fflush(stdout);
         kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
     };
+    double jaw_L = (EverestCrystalData_get__jaw_LU(el) + EverestCrystalData_get__jaw_LD(el))/2.;
+    double jaw_R = (EverestCrystalData_get__jaw_RU(el) + EverestCrystalData_get__jaw_RD(el))/2.;
+    double offset   = (jaw_L + jaw_R) /2;
 
     double t_c = 0;
 
@@ -156,7 +160,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 // Move to collimator frame
                 SRotation_single_particle(part, sin_zL, cos_zL);
-                XYShift_single_particle(part, coll->offset, 0);
+                XYShift_single_particle(part, offset, 0);
 
                 EverestData everest = EverestCrystal_init_data(part0, coll);
                 scatter_cry(everest, part, length);
@@ -168,7 +172,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 free(everest);
 
                 // Return from collimator frame
-                XYShift_single_particle(part, -coll->offset, 0);
+                XYShift_single_particle(part, -offset, 0);
                 SRotation_single_particle(part, -sin_zL, cos_zL);
 
                 // Surviving particles are put at same numerical s, and drifted inactive back

@@ -141,18 +141,11 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
 
     // Do we channel, or are we in the transition between channeling and VR?
     double xp = LocalParticle_get_xp(part);
-    double alpha = (xp - everest->t_I) / everest->t_c;
+    double alpha = fabs(xp - everest->t_I) / everest->t_c;
     double ratio = everest->Rc_over_R;
-    // TODO: There is a mistake in the code (even SixTrack 4): (1. - ratio) should be OUTSIDE
-    // of the square root (see thesis Daniele eq. (5.4) ).
-    // We believe that the saturation factor was added to make the wrong code implementation match
-    // the experiments. Indeed, sqrt(0.9*(1 - pow(alpha,2.))*(1. - ratio)) is pretty close to
-    // sqrt(1 - pow(alpha,2.))*(1. - ratio) for the crystal parameters from the experiment.
-//     Saturation at 95%
-//     double Chann  = sqrt(0.9*(1 - pow(alpha,2.))*(1. - ratio));
-    double Chann = sqrt(1 - pow(alpha,2.))*(1. - ratio);
+    double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->eta);
 
-    if (RandomUniform_generate(part) > Chann) {
+    if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
 #ifdef XCOLL_TRANSITION
         // TRANSITION
         // We feel that this transition is not needed, as it interpolates between two regions
@@ -207,7 +200,9 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             pc               = result_chan[1];
             free(result_chan);
             // Drift leftover outside of crystal
-            InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
+            if (everest->coll->record_touches){
+                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
+            }
             Drift_single_particle_4d(part, length - channeled_length);
 
         } else if (L_dechan < L_nucl) {

@@ -125,7 +125,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                     double yp  = LocalParticle_get_yp(part);
 #endif
                     double rvv = LocalParticle_get_rvv(part);
-                    double rpp = LocalParticle_get_rpp(part);
                     // First we drift half the length with the old angles:
                     LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
                     // then half the length with the new angles:

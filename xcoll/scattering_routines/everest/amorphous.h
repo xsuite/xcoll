@@ -227,7 +227,9 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             pc = Amorphous(everest, part, pc, length - length_exit - s4 + exit_point);
         } else {
             // Drift leftover out of the crystal
-            InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
+            if (everest->coll->record_touches){
+                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
+            }
             Drift_single_particle_4d(part, length - length_exit);
         }
     }

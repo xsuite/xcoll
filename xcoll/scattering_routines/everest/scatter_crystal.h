@@ -19,7 +19,6 @@ void scatter_cry(EverestData restrict everest, LocalParticle* part, double lengt
 
     // geometry values
     double aperture = everest->coll->aperture;
-    double offset   = everest->coll->offset;
     double side     = everest->coll->side;
     double cry_tilt = everest->coll->tilt;
     double bend_r   = everest->coll->bend_r;
@@ -29,7 +28,7 @@ void scatter_cry(EverestData restrict everest, LocalParticle* part, double lengt
     double const cry_cBend  = cos(bend_ang);
     double const cry_sBend  = sin(bend_ang);
     double const cry_cpTilt = cos(cry_tilt);
-    double const cry_spTilt = sin(cry_tilt);
+    // double const cry_spTilt = sin(cry_tilt);
 
     // Store initial coordinates for updating later
     double const rpp_in  = LocalParticle_get_rpp(part);
@@ -131,8 +130,8 @@ void scatter_cry(EverestData restrict everest, LocalParticle* part, double lengt
                     s_P_tmp = s_P_tmp - s_int;
                     x_P_tmp = x_P_tmp - x_int;
                     // Rotation
-                    double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
-                    double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
+                    // double s_P = s_P_tmp*cos(tilt_int) + x_P_tmp*sin(tilt_int);
+                    // double x_P = -s_P_tmp*sin(tilt_int) + x_P_tmp*cos(tilt_int);
 
                     is_hit = 1;
                     energy = interact(everest, part, energy, length-(tilt_int*bend_r));

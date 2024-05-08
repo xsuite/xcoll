@@ -274,6 +274,15 @@ class EverestCrystal(BaseCollimator):
             raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                             + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
 
+    @BaseCollimator.side.setter
+    def side(self, val):
+        temp = self._side
+        BaseCollimator.side.fset(self, val)
+        if self._side == 0:
+            self._side = temp
+            raise ValueError("EverestCrystal cannot be two-sided! Please set `side` "
+                           + "to 'left' or 'right'.")
+
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,

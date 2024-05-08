@@ -204,6 +204,9 @@ everest_crystal_dict_fields = {**everest_dict_fields,
 everest_crystal_dict_fields['material'] = [
     {'val': xc.materials.TungstenCrystal, 'expected': {'_material': xc.materials.TungstenCrystal}}]
 everest_crystal_user_fields = everest_user_fields
+# everest_crystal_user_fields = {kk: vv for kk, vv in everest_user_fields.items() if '_L' not in kk}
+# everest_crystal_user_fields = {kk: [{'val': vv[0]['val'], 'expected': {kkk: vvv for kkk, vvv in vv[0]['expected'].items() if '_L' not in kkk}}]
+#                                for kk, vv in everest_user_fields.items() if '_L' not in kk}
 everest_crystal_user_fields_read_only = everest_user_fields_read_only
 
 
@@ -336,7 +339,7 @@ def test_everest(test_context):
 )
 def test_everest_crystal(test_context):
     # Test instantiation
-    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, _context=test_context)
+    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, side='-', _context=test_context)
 
     # Test existence of fields
     assert np.all([key in dir(elem) for key in everest_crystal_fields])
@@ -359,14 +362,21 @@ def test_everest_crystal(test_context):
         assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
+    side_set = False
     for field, vals in {**everest_crystal_dict_fields, **everest_crystal_user_fields}.items():
         print(f"Writing field {field}...")
         for val in vals:
+            if field == 'side' and (val['val'] == '+-' or val['val'] == '-+' or val['val'] == 'both'):
+                side_set = True
+                continue
             print(val['val'])
+            if side_set and field.endswith('_L'):
+                continue
             setattr(elem, field, val['val'])
             for basefield, expected in val['expected'].items():
-                setval = getattr(elem, basefield)
-                assert_all_close(expected, setval)
+                if not side_set or not field.endswith('_L'):
+                    setval = getattr(elem, basefield)
+                    assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in everest_crystal_user_fields_read_only:
