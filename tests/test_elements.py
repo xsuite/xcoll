@@ -51,6 +51,7 @@ base_fields = {
     '_cos_zR': np.cos(125.3*np.pi/180),
     '_sin_zDiff': np.sin(-12.5*np.pi/180),
     '_cos_zDiff': np.cos(-12.5*np.pi/180),
+    '_jaws_parallel': False,
     '_sin_yL': -0.00022/1.3,
     '_cos_yL': np.sqrt(1. - 0.00022**2/1.3**2),
     '_tan_yL': -0.00022/1.3/np.sqrt(1. - 0.00022**2/1.3**2),
@@ -59,8 +60,13 @@ base_fields = {
     '_tan_yR': 0.,
     '_side':   0,
     'active':  1,
-    'record_touches':      0,
-    'record_scatterings': 0
+    'record_touches':     0,
+    'record_scatterings': 0,
+    '_align':    0,
+    '_gap_L':    3,
+    '_gap_R':    4,
+    '_nemitt_x': 3.5e-6,
+    '_nemitt_y': 2.5e-6
 }
 base_dict_fields = {
     'angle': [
@@ -148,7 +154,19 @@ base_user_fields = {
                                               'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994,
                                               'tilt':  [0.0087266463, 0.0122173048]}}],
     'gap_L':   [{'val':  5,      'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}}],
-    'gap_R':   [{'val':  -3,     'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}}]
+    'gap_R':   [{'val':  -3,     'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}}],
+    'align': [
+        {'val':  'upstream',   'expected': {'_align': 0, 'align': 'upstream'}},
+        {'val':  'downstream', 'expected': {'_align': 1, 'align': 'downstream'}}],
+    'emittance': [
+        {'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
+        {'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
+        {'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
+        {'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6, 'nemitt_y': 2.5e-6}}],
+    'nemitt_x': [
+        {'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6, 'nemitt_y': 2.5e-6}}],
+    'nemitt_y': [
+        {'val':  1.5e-6,           'expected': {'emittance': 1.5e-6, 'nemitt_x': 1.5e-6, 'nemitt_y': 1.5e-6}}]
 }
 base_user_fields_read_only = []
 
@@ -188,6 +206,7 @@ everest_crystal_fields = {**everest_fields,
     '_orient':           2
 }
 everest_crystal_fields['_material'] = xc.materials.TungstenCrystal  # needs to be a CrystalMaterial, else it will fail
+
 everest_crystal_dict_fields = {**everest_dict_fields,
     'lattice': [
         {'val': 'strip',             'expected': {'_orient': 1}},
@@ -204,12 +223,26 @@ everest_crystal_dict_fields = {**everest_dict_fields,
 everest_crystal_dict_fields['material'] = [
     {'val': xc.materials.TungstenCrystal, 'expected': {'_material': xc.materials.TungstenCrystal}}]
 everest_crystal_user_fields = everest_user_fields
-# everest_crystal_user_fields = {kk: vv for kk, vv in everest_user_fields.items() if '_L' not in kk}
-# everest_crystal_user_fields = {kk: [{'val': vv[0]['val'], 'expected': {kkk: vvv for kkk, vvv in vv[0]['expected'].items() if '_L' not in kkk}}]
-#                                for kk, vv in everest_user_fields.items() if '_L' not in kk}
 everest_crystal_user_fields_read_only = everest_user_fields_read_only
 
 
+def remove_one_side_from_dict(dct, remove_side='L'):
+    result = {}
+    for key, val in dct.items():
+        if remove_side not in key and key != 'side':
+            this_list = []
+            for v in val:
+                this_dict = {}
+                for kk, vv in v['expected'].items():
+                    if remove_side not in kk and kk != 'gap' and kk != 'jaw'\
+                    and kk != 'emittance':
+                        if hasattr(vv, '__iter__') and len(vv) == 2:
+                                this_dict[kk] = vv[1] if remove_side=='L' else vv[0]
+                        else:
+                            this_dict[kk] = vv
+                this_list.append({'val': v['val'], 'expected': this_dict})
+            result[key] = this_list
+    return result
 
 def assert_all_close(expected, setval):
     if hasattr(expected, 'to_dict'):
@@ -333,7 +366,7 @@ def test_everest(test_context):
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
 
-            
+
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -362,20 +395,21 @@ def test_everest_crystal(test_context):
         assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    side_set = False
-    for field, vals in {**everest_crystal_dict_fields, **everest_crystal_user_fields}.items():
-        print(f"Writing field {field}...")
-        for val in vals:
-            if field == 'side' and (val['val'] == '+-' or val['val'] == '-+' or val['val'] == 'both'):
-                side_set = True
-                continue
-            print(val['val'])
-            if side_set and field.endswith('_L'):
-                continue
-            setattr(elem, field, val['val'])
-            for basefield, expected in val['expected'].items():
-                if not side_set or not field.endswith('_L'):
+    for side in ['+', '-']:
+        elem.side = side
+        remove = 'R' if side == '+' else 'L'
+        this_dict = remove_one_side_from_dict({**everest_crystal_dict_fields,
+                            **everest_crystal_user_fields}, remove_side=remove)
+        # print(this_dict)
+        for field, vals in this_dict.items():
+            print(f"Writing field {field}...")
+            # print(elem.
+            # print(elem.to_dict())
+            for val in vals:
+                setattr(elem, field, val['val'])
+                for basefield, expected in val['expected'].items():
                     setval = getattr(elem, basefield)
+                    print(f"{basefield=}   {expected=}   {setval=}")
                     assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail

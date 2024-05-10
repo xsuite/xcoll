@@ -216,7 +216,7 @@ class BaseCollimator(xt.BeamElement):
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
-            to_assign['emittance'] = kwargs.pop('emittance', 0)
+            to_assign['emittance'] = kwargs.pop('emittance', None)
             kwargs.setdefault('active', True)
             kwargs.setdefault('record_touches', False)
             kwargs.setdefault('record_scatterings', False)
@@ -504,6 +504,10 @@ class BaseCollimator(xt.BeamElement):
         if self.side == 'right' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_L (right-sided collimator).")
+        if val != 0:
+            print("Warning: Setting a tilt does not preserve the hierarchy, as there "
+                + "will always be one corner that tightens (the tilt is applied at "
+                + "the centre of the jaw).")
         self._sin_yL = np.sin(val)
         self._cos_yL = np.cos(val)
         self._tan_yL = np.tan(val)
@@ -521,6 +525,10 @@ class BaseCollimator(xt.BeamElement):
         if self.side == 'left' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_R (left-sided collimator).")
+        if val != 0:
+            print("Warning: Setting a tilt does not preserve the hierarchy, as there "
+                + "will always be one corner that tightens (the tilt is applied at "
+                + "the centre of the jaw).")
         self._sin_yR = np.sin(val)
         self._cos_yR = np.cos(val)
         self._tan_yR = np.tan(val)
@@ -591,6 +599,10 @@ class BaseCollimator(xt.BeamElement):
 
     @nemitt_x.setter
     def nemitt_x(self, val):
+        if val is None:
+            self._nemitt_x = 0
+        if val <= 0:
+            raise ValueError(f"The field `nemitt_x` should be positive, but got {val}.")
         self._nemitt_x = val
         self._apply_optics()
 
@@ -602,8 +614,13 @@ class BaseCollimator(xt.BeamElement):
 
     @nemitt_y.setter
     def nemitt_y(self, val):
-        self._nemitt_y = val
-        self._apply_optics()
+        if val is None:
+            self._nemitt_y = 0
+        else:
+            if val <= 0:
+                raise ValueError(f"The field `nemitt_y` should be positive, but got {val}.")
+            self._nemitt_y = val
+            self._apply_optics()
 
     @property
     def emittance(self):
@@ -615,14 +632,20 @@ class BaseCollimator(xt.BeamElement):
 
     @emittance.setter
     def emittance(self, val):
-        if not hasattr(val, '__iter__'):
-            val = [val]
-        if len(val) == 1:
-            val = [val[0], val[0]]
-        assert len(val) == 2
-        self._nemitt_x = val[0]
-        self._nemitt_y = val[1]
-        self._apply_optics()
+        if val is None:
+            self._nemitt_x = 0
+            self._nemitt_y = 0
+        else:
+            if not hasattr(val, '__iter__'):
+                val = [val]
+            if len(val) == 1:
+                val = [val[0], val[0]]
+            assert len(val) == 2
+            if val[0] <= 0 or val[1] <= 0:
+                raise ValueError(f"The field `emittance` should be positive, but got {val}.")
+            self._nemitt_x = val[0]
+            self._nemitt_y = val[1]
+            self._apply_optics()
 
     @property
     def sigma(self):
@@ -733,6 +756,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             val = OPEN_GAP
             self.jaw_L = None
+        if val <= 0:
+            raise ValueError(f"The field `gap_L` should be positive, but got {val}.")
         self._gap_L = val
         self._apply_optics()
 
@@ -751,6 +776,8 @@ class BaseCollimator(xt.BeamElement):
         if val is None:
             val = -OPEN_GAP
             self.jaw_R = None
+        if val >= 0:
+            raise ValueError(f"The field `gap_R` should be negative, but got {val}.")
         self._gap_R = val
         self._apply_optics()
 

@@ -10,8 +10,4 @@ from xsuite.prebuild_kernels import regenerate_kernels
 
 
 def test_init():
-    xcoll_kernels = [name for name, ker in kernel_definitions if 'xcoll' in name]
-    if len(xcoll_kernels) > 0:
-        regenerate_kernels(kernels=xcoll_kernels)
-    else:
-        warnings.warn('No Xcoll kernels found!')
+    regenerate_kernels()
