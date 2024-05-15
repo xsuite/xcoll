@@ -223,5 +223,4 @@ CircularSegment create_circular_segment(double R, double centre_s, double centre
 }
 
 
-
 #endif /* XCOLL_GEOM_SEGMENTS_H */
