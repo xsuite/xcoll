@@ -23,29 +23,24 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 }
 
 
+// IMPORTANT:
 // The array and interval are assumed to be sorted!
+// Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
+// This is always true for the arrays created by get_s, as we create them with 2*n_segments slots.
 /*gpufun*/
-double* calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
+void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
     if (arr[0] > interval[1]){
         // No overlap
         *length = 0;
-        return arr;
     }
     if ((*length)%2 == 1){
         // Special case: last interval of array is open until infinity,
         // so we add an extra point at the end to represent infinity.
-        double* new_arr = (double*) malloc((*length + 1)*sizeof(double));
-        for (int8_t i=0; i<*length; i++){
-            new_arr[i] = arr[i];
-        }
-        new_arr[*length] = S_MAX*0.1;
-        free(arr);
-        arr = new_arr;
+        arr[*length] = S_MAX*0.1;
         (*length)++;
     } else if (arr[*length-1] < interval[0]){
         // No overlap
         *length = 0;
-        return arr;
     }
     int8_t i_start = 0;
     // Find the start of overlap
@@ -83,7 +78,6 @@ double* calculate_overlap_array_interval(double* arr, int8_t* length, double* in
             arr[i] = arr[i+i_start];
         }
     }
-    return arr;
 }
 
 
@@ -91,7 +85,7 @@ double* calculate_overlap_array_interval(double* arr, int8_t* length, double* in
 void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double part_tan_x, \
                                double part_y, double part_tan_y, Segment* segments, \
                                int8_t n_segments, double y_min, double y_max){
-    if (fabs(part_tan_y) < 1.e12){
+    if (fabs(part_tan_y) < 1.e-12){
         // Trajectory parallel to s axis
         if (part_y < y_min || part_y > y_max){
             // No crossing
@@ -108,7 +102,7 @@ void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double p
         restrict_s[0] = (y_min - part_y)/part_tan_y;
         restrict_s[1] = (y_max - part_y)/part_tan_y;
         SWAP(restrict_s, 0, 1);   // To make sure these are sorted
-        s = calculate_overlap_array_interval(s, n_hit, restrict_s);
+        calculate_overlap_array_interval(s, n_hit, restrict_s);
         free(restrict_s);
     }
 }

@@ -16,6 +16,9 @@
 // The results are always stored in an array s, and n_hit keeps track of the number of hits.
 
 
+#define XC_MAX_CROSS_PER_SEGMENT 2  // Update if new segment type allows more crossings
+
+
 // Function that calculates the crossing with a given segment
 typedef void (*CrossingFunc)(int8_t*, double*, double, double, void*);
 
@@ -25,7 +28,7 @@ typedef void (*CrossingFunc)(int8_t*, double*, double, double, void*);
 typedef struct Segment_{
     CrossingFunc crossing;
 } Segment_;
-typedef Segment_ *Segment;
+typedef Segment_* Segment;
 
 
 // Line segment
@@ -42,7 +45,7 @@ typedef struct LineSegment_ {
     double point2_s;
     double point2_x;
 } LineSegment_;
-typedef LineSegment_ *LineSegment;
+typedef LineSegment_* LineSegment;
 
 /*gpufun*/
 void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
@@ -101,7 +104,7 @@ typedef struct HalfOpenLineSegment_ {
     // but "point_tan == inf" can (when the jaws have no tilt).
     double point_tan;
 } HalfOpenLineSegment_;
-typedef HalfOpenLineSegment_ *HalfOpenLineSegment;
+typedef HalfOpenLineSegment_* HalfOpenLineSegment;
 
 // A half-open segment implies one of its points lies at +-inf.
 // In practice we just add a polygon point at the wall overflow (at 1km for the x-coordinate).
@@ -165,7 +168,7 @@ typedef struct CircularSegment_ {
     double point1_angle;
     double point2_angle;
 } CircularSegment_;
-typedef CircularSegment_ *CircularSegment;
+typedef CircularSegment_* CircularSegment;
 
 /*gpufun*/
 void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
