@@ -170,6 +170,21 @@ base_user_fields = {
 }
 base_user_fields_read_only = []
 
+base_crystal_fields = {**base_fields,
+    '_bending_radius':  12,
+    '_bending_angle':   0.10854636232780158,
+    'width':            0.05,
+    'height':           0.02
+}
+base_crystal_dict_fields = {**base_dict_fields,
+    'bending_radius': [
+        {'val':  47,        'expected': {'_bending_radius': 47, '_bending_angle': 0.027663102518570612}}],
+    'bending_angle': [
+        {'val':  0.07,      'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07}}]
+}
+base_crystal_user_fields = base_user_fields
+base_crystal_user_fields_read_only = base_user_fields_read_only
+
 
 # BlackAbsorber
 
@@ -177,6 +192,10 @@ absorber_fields = base_fields
 absorber_dict_fields = base_dict_fields
 absorber_user_fields = base_user_fields
 absorber_user_fields_read_only = base_user_fields_read_only
+black_crystal_fields = base_crystal_fields
+black_crystal_dict_fields = base_crystal_dict_fields
+black_crystal_user_fields = base_crystal_user_fields
+black_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
 
 # EverestCollimator
@@ -196,12 +215,6 @@ everest_user_fields_read_only = base_user_fields_read_only
 # EverestCrystal
 
 everest_crystal_fields = {**everest_fields,
-    'align_angle':       3.7e-5,
-    '_bending_radius':   61.54,
-    '_bending_angle':    50.e-6,
-    'xdim':              2.0e-3,
-    'ydim':              50.0e-3,
-    'thick':             1e-6,
     'miscut':            1.2e-6,
     '_orient':           2
 }
@@ -214,11 +227,7 @@ everest_crystal_dict_fields = {**everest_dict_fields,
         {'val': 110,                 'expected': {'_orient': 1}},
         {'val': 'quasi-mosaic',      'expected': {'_orient': 2}},
         {'val': '111',               'expected': {'_orient': 2}},
-        {'val': 111,                 'expected': {'_orient': 2}}],
-    'bending_radius': [
-        {'val': 61.54,               'expected': {'_bending_radius': 61.54, '_bending_angle': 0.02112604331283213}}],
-    'bending_angle': [
-        {'val': 0.02112604331283213, 'expected': {'_bending_radius': 61.54, '_bending_angle': 0.02112604331283213}}]
+        {'val': 111,                 'expected': {'_orient': 2}}]
 }
 everest_crystal_dict_fields['material'] = [
     {'val': xc.materials.TungstenCrystal, 'expected': {'_material': xc.materials.TungstenCrystal}}]
@@ -240,7 +249,15 @@ def remove_one_side_from_dict(dct, remove_side='L'):
                                 this_dict[kk] = vv[1] if remove_side=='L' else vv[0]
                         else:
                             this_dict[kk] = vv
-                this_list.append({'val': v['val'], 'expected': this_dict})
+                this_val = v['val']
+                # Hack to work with adapted jaw/gap for single-sided
+                if (key == 'jaw' or key == 'gap') and remove_side == 'L':
+                    if hasattr(this_val, '__iter__'):
+                        if len(this_val) == 1:
+                            this_val = [-this_val[0]]
+                    else:
+                        this_val = -this_val
+                this_list.append({'val': this_val, 'expected': this_dict})
             result[key] = this_list
     return result
 
@@ -298,6 +315,55 @@ def test_black_absorber(test_context):
 
     # Writing to a read-only field should fail
     for field in absorber_user_fields_read_only:
+        with pytest.raises(Exception) as e_info:
+            setattr(elem, field, 0.3)
+
+
+@for_all_test_contexts
+def test_black_crystal(test_context):
+    # Test instantiation
+    elem = xc.BlackCrystal(length=1, jaw=0.99, side='-', _context=test_context)
+
+    # Test existence of fields
+    assert np.all([key in dir(elem) for key in black_crystal_fields])
+    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
+    elem.gap = -5
+    assert np.all([key in elem.to_dict() for key in black_crystal_dict_fields])
+    elem.jaw = 1
+    elem.gap = None
+
+    # Test reading fields
+    for field in list(black_crystal_fields.keys()) + list(black_crystal_dict_fields.keys()) \
+               + list(black_crystal_user_fields.keys()) + black_crystal_user_fields_read_only:
+        print(f"Reading field {field}: {getattr(elem, field)}")
+
+    # Test writing xofields
+    for field, val in black_crystal_fields.items():
+        print(f"Writing field {field}")
+        setattr(elem, field, val)
+        setval = getattr(elem, field)
+        assert_all_close(val, setval)
+
+    # Test writing the to_dict and user-friendly fields (can be multiple options per field)
+    for side in ['+', '-']:
+        elem.side = side
+        remove = 'R' if side == '+' else 'L'
+        this_dict = remove_one_side_from_dict({**black_crystal_dict_fields,
+                            **black_crystal_user_fields}, remove_side=remove)
+        # print(this_dict)
+        for field, vals in this_dict.items():
+            print(f"Writing field {field}...")
+            # print(elem.
+            # print(elem.to_dict())
+            for val in vals:
+                setattr(elem, field, val['val'])
+                for basefield, expected in val['expected'].items():
+                    setval = getattr(elem, basefield)
+                    print(f"{basefield=}   {expected=}   {setval=}")
+                    assert_all_close(expected, setval)
+
+    # Writing to a read-only field should fail
+    for field in black_crystal_user_fields_read_only:
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
 
@@ -377,7 +443,7 @@ def test_everest_crystal(test_context):
     # Test existence of fields
     assert np.all([key in dir(elem) for key in everest_crystal_fields])
     elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = 5
+    elem.gap = -5
     assert np.all([key in elem.to_dict() for key in everest_crystal_dict_fields])
     elem.jaw = 1
     elem.gap = None

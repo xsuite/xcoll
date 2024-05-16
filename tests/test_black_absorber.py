@@ -4,9 +4,11 @@
 # ######################################### #
 
 import numpy as np
+import pytest
 
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -295,7 +297,6 @@ def _make_absorber(angle=0, tilts=[0,0], _context=None):
     coll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws, tilt=tilts, _context=_context)
     return coll.jaw_LU, coll.jaw_RU, coll.jaw_LD, coll.jaw_RD, L, coll
 
-
 def _generate_particles(four_dim=False, angle=0, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
@@ -318,3 +319,82 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     xp_rot = part_init.px * part_init.rpp * np.cos(np.deg2rad(angle)) + part_init.py * part_init.rpp * np.sin(np.deg2rad(angle))
     yp_rot = part_init.px * part_init.rpp * np.sin(np.deg2rad(angle)) + part_init.py * part_init.rpp * np.cos(np.deg2rad(angle))
     return part, x_rot, y_rot, xp_rot, yp_rot
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize("side, sign_R", [
+                        ['+', 1], ['-', 1], ['+', -1], ['-', -1]]
+                        , ids=["L R>0", "R R>0", "L R<0", "R R<0"])
+def test_black_crystal(side, sign_R, test_context):
+    n_part = int(2.e5)
+    ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
+    x = np.random.uniform(-1, 1, n_part)
+    px = np.random.uniform(-1, 1, n_part)
+    y = np.random.uniform(-1, 1, n_part)
+    py = np.random.uniform(-1, 1, n_part)
+    part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref)
+    dri = xt.Drift(length=1) # To send the surviving particles further out
+
+    for R in [0.87, 3.3, 17]:
+        R = sign_R*R
+        for tilt in [-89, -65, -42, -22, -8, 0, 11, 27, 48, 72, 89]:
+            print(f"{R=}{tilt=}")
+            length = 0.87
+            sign = 1 if side == '+' else -1
+            jaw = sign*0.13
+            width = 0.2
+            height = 0.5
+            coll = xc.BlackCrystal(length=length, bending_radius=R, jaw=jaw, width=width, height=height, side=side, tilt=np.deg2rad(tilt))
+            part = part_init.copy()
+            coll.track(part)
+            dri.track(part)
+
+            Rpos = R - (sign_R-1)/2*width # full radius when positive
+            Rneg = R - (sign_R+1)/2*width # shorter radius when positive (full radius when negative)
+
+            # Four corners:
+            x_TU = jaw + (1+sign)/2*width
+            s_TD = Rneg*length/R
+            x_TD = x_TU + Rneg*(1 - np.sqrt(1 - length**2/R**2))
+            x_BU = jaw - (1-sign)/2*width
+            s_BD = Rpos*length/R
+            x_BD = x_BU + Rpos*(1 - np.sqrt(1 - length**2/R**2))
+            Rs   = 0
+            Rx   = x_BU + R if sign_R == 1 else x_TU + R
+
+            mask_alive = part.state > 0
+            assert np.allclose(part.s[mask_alive], length+1)
+
+            # Rotate particles to tilted frame
+            part_s =  (part.s - length/2) * np.cos(np.deg2rad(tilt)) + (part.x - x_BU) * np.sin(np.deg2rad(tilt)) + length/2
+            part_x = -(part.s - length/2) * np.sin(np.deg2rad(tilt)) + (part.x - x_BU)  * np.cos(np.deg2rad(tilt)) + x_BU
+
+            mask_not_end = part.s < length+1
+            mask_height = (part.y < height/2) & (part.y > -height/2)
+            mask_front = np.isclose(part_s, 0) & mask_height
+            assert np.all(part.state[mask_front] < 1)
+            assert np.all(part_x[mask_front] <= x_TU)
+            assert np.all(part_x[mask_front] >= x_BU)
+            mask_upper_curve = np.isclose((part_x - Rx)**2 + (part_s - Rs)**2, Rneg**2) & mask_not_end & mask_height
+            assert np.all(part.state[mask_upper_curve] < 1)
+            mask_back = np.isclose(part_x, (x_TD - x_BD)/(s_TD - s_BD) * (part_s - s_BD) + x_BD) & mask_not_end & mask_height
+            assert np.all(part.state[mask_back] < 1)
+            mask_lower_curve = np.isclose((part_x - Rx)**2 + (part_s - Rs)**2, Rpos**2) & mask_not_end & mask_height
+            assert np.all(part.state[mask_lower_curve] < 1)
+            mask_top_face = np.isclose(part.y, height/2) & mask_not_end
+            assert np.all(part.state[mask_top_face] < 1)
+            mask_bottom_face = np.isclose(part.y, -height/2) & mask_not_end
+            assert np.all(part.state[mask_bottom_face] < 1)
+            assert np.all(mask_alive == ~mask_front & ~mask_upper_curve & ~mask_back & ~mask_lower_curve & ~mask_top_face & ~mask_bottom_face)
+
+            # _, ax = plt.subplots(3, 2, figsize=(10, 5))
+            # ax[0][0].scatter(part.s[~mask_alive], part.x[~mask_alive], s=0.1)
+            # # ax[0][0].set_aspect('equal')
+            # ax[0][1].scatter(part.s[mask_front], part.x[mask_front], s=0.1)
+            # ax[0][1].scatter(part.s[mask_upper_curve], part.x[mask_upper_curve], s=0.1)
+            # ax[0][1].scatter(part.s[mask_back], part.x[mask_back], s=0.1)
+            # ax[0][1].scatter(part.s[mask_lower_curve], part.x[mask_lower_curve], s=0.1)
+            # ax[1][0].scatter(part.s[mask_front], part.x[mask_front], s=0.1)
+            # ax[1][1].scatter(part.s[mask_upper_curve], part.x[mask_upper_curve], s=0.1)
+            # ax[2][0].scatter(part.s[mask_back], part.x[mask_back], s=0.1)
+            # ax[2][1].scatter(part.s[mask_lower_curve], part.x[mask_lower_curve], s=0.1)
