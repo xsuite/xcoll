@@ -77,7 +77,7 @@ def test_install_single_existing_marker(beam, test_context):
     assert not isinstance(line[name], xc.EverestCrystal)
     pos_centre = line.get_s_position(name) + line[name].length/2
     coll = xc.EverestCrystal(length=0.004, angle=90, lattice='strip', bending_radius=85.10,
-                             xdim=5.0e-3, ydim=30.0e-3, side='left',
+                             width=5.0e-3, height=30.0e-3, side='left',
                              material=xc.materials.SiliconCrystal)
     xc.install_elements(line, name, coll, need_apertures=True)
     assert np.isclose(line[name].length, 0.004)

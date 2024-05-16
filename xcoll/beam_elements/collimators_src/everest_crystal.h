@@ -17,39 +17,39 @@ void EverestCrystal_set_material(EverestCrystalData el){
 
 
 /*gpufun*/
-CrystalGeometry EverstCrystal_init_geometry(EverstCrystalData el, LocalParticle* part0, int8_t active){
+CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticle* part0, int8_t active){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
-        cg->length = EverstCrystalData_get_length(el);
-        cg->side = EverstCrystalData_get__side(el);
-        cg->bending_radius = EverstCrystalData_get__bending_radius(el);
-        cg->bending_angle = EverstCrystalData_get__bending_angle(el);
-        cg->width = EverstCrystalData_get_width(el);
-        cg->height = EverstCrystalData_get_height(el);
+        cg->length = EverestCrystalData_get_length(el);
+        cg->side = EverestCrystalData_get__side(el);
+        cg->bending_radius = EverestCrystalData_get__bending_radius(el);
+        cg->bending_angle = EverestCrystalData_get__bending_angle(el);
+        cg->width = EverestCrystalData_get_width(el);
+        cg->height = EverestCrystalData_get_height(el);
         if (cg->side == 1){
-            cg->jaw_U = EverstCrystalData_get__jaw_LU(el);
-            cg->sin_z = EverstCrystalData_get__sin_zL(el);
-            cg->cos_z = EverstCrystalData_get__cos_zL(el);
-            cg->sin_y = EverstCrystalData_get__sin_yL(el);
-            cg->cos_y = EverstCrystalData_get__cos_yL(el);
+            cg->jaw_U = EverestCrystalData_get__jaw_LU(el);
+            cg->sin_z = EverestCrystalData_get__sin_zL(el);
+            cg->cos_z = EverestCrystalData_get__cos_zL(el);
+            cg->sin_y = EverestCrystalData_get__sin_yL(el);
+            cg->cos_y = EverestCrystalData_get__cos_yL(el);
         }
         double jaw = cg->jaw_U;
         if (cg->side == -1){
-            cg->jaw_U = EverstCrystalData_get__jaw_RU(el);
-            cg->sin_z = EverstCrystalData_get__sin_zR(el);
-            cg->cos_z = EverstCrystalData_get__cos_zR(el);
-            cg->sin_y = EverstCrystalData_get__sin_yR(el);
-            cg->cos_y = EverstCrystalData_get__cos_yR(el);
+            cg->jaw_U = EverestCrystalData_get__jaw_RU(el);
+            cg->sin_z = EverestCrystalData_get__sin_zR(el);
+            cg->cos_z = EverestCrystalData_get__cos_zR(el);
+            cg->sin_y = EverestCrystalData_get__sin_yR(el);
+            cg->cos_y = EverestCrystalData_get__cos_yR(el);
             jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
         }
         cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
         // Impact table
-        cg->record = EverstCrystalData_getp_internal_record(el, part0);
+        cg->record = EverestCrystalData_getp_internal_record(el, part0);
         cg->record_index = NULL;
         cg->record_touches = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = EverstCrystalData_get_record_touches(el);
+            cg->record_touches = EverestCrystalData_get_record_touches(el);
         }
     }
 
