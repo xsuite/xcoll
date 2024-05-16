@@ -31,5 +31,5 @@ int8_t xcoll_check_particle_init(RandomRutherfordData rng, LocalParticle* part) 
     }
     return is_tracking*rng_is_set*ruth_is_set;
 }
-    
+
 #endif /* XCOLL_CHECKS_H */

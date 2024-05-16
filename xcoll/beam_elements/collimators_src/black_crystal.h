@@ -31,7 +31,9 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
             cg->cos_z = BlackCrystalData_get__cos_zR(el);
             cg->sin_y = BlackCrystalData_get__sin_yR(el);
             cg->cos_y = BlackCrystalData_get__cos_yR(el);
-            jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
+            // The function create_crystal expects jaw to be the position of the lower left corner.
+            // Hence, we need to shift the jaw position by the width of the crystal.
+            jaw = cg->jaw_U - cg->width;
         }
         cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
         // Impact table

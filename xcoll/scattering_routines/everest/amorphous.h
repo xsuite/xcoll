@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #define XCOLL_TRANSITION
 
 /*gpufun*/
 void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {

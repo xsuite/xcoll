@@ -80,7 +80,7 @@ double soln3(double a, double b, double dh, double smax) {
 /*gpufun*/
 double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double* result = (double*)malloc(2 * sizeof(double));
-    
+
     // Generate two Gaussian random numbers z1 and z2
     double r2 = 0;
     double v1 = 0;

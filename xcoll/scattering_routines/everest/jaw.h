@@ -60,7 +60,6 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
     p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
 
     return p*1e9;  // Back to eV
-}  
-  
+}
 
 #endif /* XCOLL_EVEREST_JAW_H */

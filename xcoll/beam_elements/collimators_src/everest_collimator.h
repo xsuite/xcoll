@@ -20,14 +20,9 @@ void EverestCollimator_set_material(EverestCollimatorData el){
 CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, LocalParticle* part0, int8_t active){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
-        // Collimator jaws (with tilts)
+        // Jaw corners (with tilts)
         cg->jaw_LU = EverestCollimatorData_get__jaw_LU(el);
-        cg->jaw_LD = EverestCollimatorData_get__jaw_LD(el);
         cg->jaw_RU = EverestCollimatorData_get__jaw_RU(el);
-        cg->jaw_RD = EverestCollimatorData_get__jaw_RD(el);
-        // TODO: need shortening of active length!
-        cg->length = EverestCollimatorData_get_length(el);
-        cg->side   = EverestCollimatorData_get__side(el);
         // Get angles of jaws
         cg->sin_zL = EverestCollimatorData_get__sin_zL(el);
         cg->cos_zL = EverestCollimatorData_get__cos_zL(el);
@@ -39,11 +34,25 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
         // Tilts
         cg->sin_yL = EverestCollimatorData_get__sin_yL(el);
         cg->cos_yL = EverestCollimatorData_get__cos_yL(el);
-        cg->tan_yL = EverestCollimatorData_get__tan_yL(el);
         cg->sin_yR = EverestCollimatorData_get__sin_yR(el);
         cg->cos_yR = EverestCollimatorData_get__cos_yR(el);
-        cg->tan_yR = EverestCollimatorData_get__tan_yR(el);
-        // Impact table:  need it here to record touches
+        // Length and segments
+        cg->length = EverestCollimatorData_get_length(el);
+        cg->side   = EverestCollimatorData_get__side(el);
+        double s_U, s_D, x_D;
+        if (cg->side != -1){
+            s_U = cg->length/2 * (1-cg->cos_yL);
+            s_D = cg->length/2 * (1+cg->cos_yL);
+            x_D = EverestCollimatorData_get__jaw_LD(el);
+            cg->segments_L = create_jaw(s_U, cg->jaw_LU, s_D, x_D, cg->sin_yL/cg->cos_yL, 1);
+        }
+        if (cg->side != 1){
+            s_U = cg->length/2 * (1-cg->cos_yR);
+            s_D = cg->length/2 * (1+cg->cos_yR);
+            x_D = EverestCollimatorData_get__jaw_RD(el);
+            cg->segments_R = create_jaw(s_U, cg->jaw_RU, s_D, x_D, cg->sin_yR/cg->cos_yR, -1);
+        }
+        // Impact table
         cg->record = EverestCollimatorData_getp_internal_record(el, part0);
         cg->record_index = NULL;
         cg->record_touches = 0;
@@ -54,6 +63,19 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
     }
 
     return cg;
+}
+
+/*gpufun*/
+void EverestCollimator_free(CollimatorGeometry cg, int8_t active){
+    if (active){
+        if (cg->side != -1){
+            destroy_jaw(cg->segments_L);
+        }
+        if (cg->side != 1){
+            destroy_jaw(cg->segments_R);
+        }
+    }
+    free(cg);
 }
 
 
@@ -191,7 +213,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
             }
         }
     //end_per_particle_block
-    free(cg);
+    EverestCollimator_free(cg, active);
     free(coll);
 }
 

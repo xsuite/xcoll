@@ -16,6 +16,55 @@ void EverestCrystal_set_material(EverestCrystalData el){
 }
 
 
+/*gpufun*/
+CrystalGeometry EverstCrystal_init_geometry(EverstCrystalData el, LocalParticle* part0, int8_t active){
+    CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
+    if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
+        cg->length = EverstCrystalData_get_length(el);
+        cg->side = EverstCrystalData_get__side(el);
+        cg->bending_radius = EverstCrystalData_get__bending_radius(el);
+        cg->bending_angle = EverstCrystalData_get__bending_angle(el);
+        cg->width = EverstCrystalData_get_width(el);
+        cg->height = EverstCrystalData_get_height(el);
+        if (cg->side == 1){
+            cg->jaw_U = EverstCrystalData_get__jaw_LU(el);
+            cg->sin_z = EverstCrystalData_get__sin_zL(el);
+            cg->cos_z = EverstCrystalData_get__cos_zL(el);
+            cg->sin_y = EverstCrystalData_get__sin_yL(el);
+            cg->cos_y = EverstCrystalData_get__cos_yL(el);
+        }
+        double jaw = cg->jaw_U;
+        if (cg->side == -1){
+            cg->jaw_U = EverstCrystalData_get__jaw_RU(el);
+            cg->sin_z = EverstCrystalData_get__sin_zR(el);
+            cg->cos_z = EverstCrystalData_get__cos_zR(el);
+            cg->sin_y = EverstCrystalData_get__sin_yR(el);
+            cg->cos_y = EverstCrystalData_get__cos_yR(el);
+            jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
+        }
+        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
+        // Impact table
+        cg->record = EverstCrystalData_getp_internal_record(el, part0);
+        cg->record_index = NULL;
+        cg->record_touches = 0;
+        if (cg->record){
+            cg->record_index = InteractionRecordData_getp__index(cg->record);
+            cg->record_touches = EverstCrystalData_get_record_touches(el);
+        }
+    }
+
+    return cg;
+}
+
+/*gpufun*/
+void EverestCrystal_free(CrystalGeometry cg, int8_t active){
+    if (active){
+        destroy_crystal(cg->segments);
+    }
+    free(cg);
+}
+
+
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 /*gpufun*/
@@ -71,7 +120,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         coll->bend_r     = R;
         double t_R       = EverestCrystalData_get__bending_angle(el);
         coll->bend_ang   = t_R;
-        coll->tilt       = EverestCrystalData_get_align_angle(el) + coll->tilt_L;   // TODO: only left-sided crystals
+        coll->tilt       = coll->tilt_L;   // TODO: only left-sided crystals
         // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
         // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5
         // Difference is so small that this was never caught.
@@ -79,9 +128,6 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         // 1) it was implemented wrong (passed unnoticed due to small effect)
         // 2) we should not use the adapted scatter length, as we rotate the S-X frame, so
         //    we anyway have to drift the full length!
-        coll->amorphous_layer = EverestCrystalData_get_thick(el);
-        coll->xdim            = EverestCrystalData_get_xdim(el);
-        coll->ydim            = EverestCrystalData_get_ydim(el);
         coll->orient          = EverestCrystalData_get__orient(el);
         coll->miscut          = EverestCrystalData_get_miscut(el);
         coll->s_P             = -coll->bend_r*sin(coll->miscut);

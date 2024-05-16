@@ -21,5 +21,5 @@
 #define  XC_ERR_NOT_IMPLEMENTED     -391
 #define  XC_ERR_INVALID_XOFIELD     -392
 #define  XC_ERR                     -399
-    
+
 #endif /* XCOLL_STATES_H */

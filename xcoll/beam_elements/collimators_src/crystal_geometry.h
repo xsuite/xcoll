@@ -92,6 +92,8 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry cg){
             // Mirror x
             LocalParticle_scale_x(part, -1);
             LocalParticle_scale_px(part, -1);
+            cg->bending_radius = -cg->bending_radius;
+            cg->bending_angle = -cg->bending_angle;
             if (cg->record_touches){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
             }
@@ -116,6 +118,8 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
             // Mirror back
             LocalParticle_scale_x(part, -1);
             LocalParticle_scale_px(part, -1);
+            cg->bending_radius = -cg->bending_radius;
+            cg->bending_angle = -cg->bending_angle;
         }
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_y));

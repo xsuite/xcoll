@@ -9,8 +9,8 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .base import BaseBlock, BaseCollimator, InvalidXcoll
-from ..scattering_routines.everest import GeneralMaterial, Material, CrystalMaterial, EverestEngine
+from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
+from ..scattering_routines.everest import Material, CrystalMaterial, EverestEngine
 from ..general import _pkg_root
 
 
@@ -55,7 +55,6 @@ class EverestBlock(BaseBlock):
 
     def __init__(self, **kwargs):
         to_assign = {}
-        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
             kwargs['_material'] = Material()
@@ -120,7 +119,6 @@ class EverestCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         to_assign = {}
-        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
             kwargs['_material'] = Material()
@@ -152,17 +150,11 @@ class EverestCollimator(BaseCollimator):
 
 
 
-class EverestCrystal(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
-        'align_angle':        xo.Float64,  #  = - sqrt(eps/beta)*alpha*nsigma
-        '_bending_radius':    xo.Float64,
-        '_bending_angle':     xo.Float64,
-        '_critical_angle':    xo.Float64,
-        'xdim':               xo.Float64,
-        'ydim':               xo.Float64,
-        'thick':              xo.Float64,
+class EverestCrystal(BaseCrystal):
+    _xofields = { **BaseCrystal._xofields,
         'miscut':             xo.Float64,
         '_orient':            xo.Int8,
+        '_critical_angle':    xo.Float64,
         '_material':          CrystalMaterial,
         'rutherford_rng':     xt.RandomRutherford,
         '_tracking':          xo.Int8
@@ -174,12 +166,11 @@ class EverestCrystal(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_orient', '_material', '_bending_radius',
-                              '_bending_angle']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'lattice', 'material', 'bending_radius', 'bending_angle']
-    _internal_record_class = BaseCollimator._internal_record_class
+    _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_orient', '_material']
+    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
+    _internal_record_class = BaseCrystal._internal_record_class
 
-    _depends_on = [BaseCollimator, EverestEngine]
+    _depends_on = [BaseCrystal, EverestEngine]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
@@ -195,20 +186,10 @@ class EverestCrystal(BaseCollimator):
 
     def __init__(self, **kwargs):
         to_assign = {}
-        kwargs.pop('use_prebuilt_kernels', None)    # TODO: temporarily until xtrack PR
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
             kwargs['_material'] = CrystalMaterial()
-            if 'bending_radius' in kwargs:
-                if 'bending_angle' in kwargs:
-                    raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
-                to_assign['bending_radius'] = kwargs.pop('bending_radius')
-            elif 'bending_angle' in kwargs:
-                to_assign['bending_angle'] = kwargs.pop('bending_angle')
             to_assign['lattice'] = kwargs.pop('lattice', 'strip')
-            kwargs.setdefault('xdim', 0)
-            kwargs.setdefault('ydim', 0)
-            kwargs.setdefault('thick', 0)
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
@@ -238,24 +219,6 @@ class EverestCrystal(BaseCollimator):
         return self._critical_angle if abs(self._critical_angle) > 1.e-10 else None
 
     @property
-    def bending_radius(self):
-        return self._bending_radius
-
-    @bending_radius.setter
-    def bending_radius(self, bending_radius):
-        self._bending_radius = bending_radius
-        self._bending_angle = np.arcsin(self.length/bending_radius)
-
-    @property
-    def bending_angle(self):
-        return self._bending_angle
-
-    @bending_angle.setter
-    def bending_angle(self, bending_angle):
-        self._bending_angle = bending_angle
-        self._bending_radius = self.length / np.sin(bending_angle)
-
-    @property
     def lattice(self):
         if self._orient == 1:
             return 'strip'
@@ -273,15 +236,6 @@ class EverestCrystal(BaseCollimator):
         else:
             raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                             + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
-
-    @BaseCollimator.side.setter
-    def side(self, val):
-        temp = self._side
-        BaseCollimator.side.fset(self, val)
-        if self._side == 0:
-            self._side = temp
-            raise ValueError("EverestCrystal cannot be two-sided! Please set `side` "
-                           + "to 'left' or 'right'.")
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
