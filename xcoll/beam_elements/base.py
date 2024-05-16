@@ -10,6 +10,7 @@ import xtrack as xt
 
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
+from ..scattering_routines.geometry import XcollGeometry
 
 
 OPEN_JAW = 3.
@@ -65,11 +66,6 @@ class BaseBlock(xt.BeamElement):
             raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
-
-    def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs.pop('use_prebuilt_kernels', None)
-        super().__init__(**kwargs)
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -128,11 +124,9 @@ class BaseCollimator(xt.BeamElement):
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
-    _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation]
+    _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, XcollGeometry] # TODO: check if those xtrack elements are needed here already
 
     _extra_c_sources = [
-        _pkg_root.joinpath('scattering_routines','geometry','polygon.h'),
-        _pkg_root.joinpath('scattering_routines','geometry','crystal.h'),
         _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
     ]
@@ -150,7 +144,6 @@ class BaseCollimator(xt.BeamElement):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
-            kwargs.pop('use_prebuilt_kernels', None)
             # Set side
             to_assign['side'] = kwargs.pop('side', 'both')
 
@@ -311,7 +304,8 @@ class BaseCollimator(xt.BeamElement):
             if self.side == 'left':
                 self.jaw_L = val
             elif self.side == 'right':
-                self.jaw_R = -val if val is not None else None
+                # self.jaw_R = -val if val is not None else None
+                self.jaw_R = val
             else:
                 self.jaw_L = val
                 self.jaw_R = -val if val is not None else None
@@ -722,7 +716,8 @@ class BaseCollimator(xt.BeamElement):
             if self.side == 'left':
                 self.gap_L = val
             elif self.side == 'right':
-                self.gap_R = -val if val is not None else None
+                # self.gap_R = -val if val is not None else None
+                self.gap_R = val
             else:
                 self.gap_L = val
                 self.gap_R = -val if val is not None else None
@@ -814,11 +809,6 @@ class BaseCollimator(xt.BeamElement):
                 self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
             if self._gap_R_set_manually():
                 self.jaw_R = self._gap_R * self.sigma[0][1] + self.co[0][1]
-            if hasattr(self, 'align_angle'):
-                if self.gap_L is not None: # Hack to do in this order because crystal is onesided; but side might not be assigned yet
-                    self.align_angle = self.divergence * self.gap_L
-                elif self.gap_R is not None:
-                    self.align_angle = self.divergence * self.gap_R
 
 
     # Other attributes
@@ -900,14 +890,16 @@ class BaseCollimator(xt.BeamElement):
             assert np.isclose(self._cos_zDiff, self._cos_zL*self._cos_zR + self._sin_zL*self._sin_zR)
         if self.side == 'both' and abs(self.tilt_L - self.tilt_R) >= 90.:
             raise ValueError("Tilts of both jaws differ more than 90 degrees!")
-        ang = abs(np.arccos(self._cos_yL))
-        ang = np.pi - ang if ang > np.pi/2 else ang
-        assert np.isclose(ang, abs(np.arcsin(self._sin_yL)))
-        assert np.isclose(self._sin_yL/self._cos_yL, self._tan_yL)
-        ang = abs(np.arccos(self._cos_yR))
-        ang = np.pi - ang if ang > np.pi/2 else ang
-        assert np.isclose(ang, abs(np.arcsin(self._sin_yR)))
-        assert np.isclose(self._sin_yR/self._cos_yR, self._tan_yR)
+        if self.side != 'right':
+            ang = abs(np.arccos(self._cos_yL))
+            ang = np.pi - ang if ang > np.pi/2 else ang
+            assert np.isclose(ang, abs(np.arcsin(self._sin_yL)))
+            assert np.isclose(self._sin_yL/self._cos_yL, self._tan_yL)
+        if self.side != 'left':
+            ang = abs(np.arccos(self._cos_yR))
+            ang = np.pi - ang if ang > np.pi/2 else ang
+            assert np.isclose(ang, abs(np.arcsin(self._sin_yR)))
+            assert np.isclose(self._sin_yR/self._cos_yR, self._tan_yR)
 
         # Verify bools
         assert self._side in [-1, 1, 0]
@@ -934,4 +926,93 @@ class BaseCollimator(xt.BeamElement):
         point_x += getattr(self, 'jaw_' + pos) * cosz
         point_y += getattr(self, 'jaw_' + pos) * sinz
         return lambda t: (point_x - t*sinz, point_y + t*cosz)
+
+
+class BaseCrystal(BaseCollimator):
+    _xofields = {**BaseCollimator._xofields,
+        '_bending_radius':    xo.Float64,
+        '_bending_angle':     xo.Float64,
+        'width':              xo.Float64,
+        'height':             xo.Float64
+        # 'thick':              xo.Float64
+    }
+
+    isthick = True
+    allow_track = False
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_bending_radius', '_bending_angle']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'bending_radius', 'bending_angle']
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    _depends_on = [BaseCollimator]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','crystal_geometry.h')
+    ]
+
+    _internal_record_class = BaseCollimator._internal_record_class
+
+
+    # This is an abstract class and cannot be instantiated
+    def __new__(cls, *args, **kwargs):
+        if cls == BaseCrystal:
+            raise Exception("Abstract class `BaseCrystal` cannot be instantiated!")
+        instance = super().__new__(cls)
+        return instance
+
+    def __init__(self, **kwargs):
+        to_assign = {}
+        if '_xobject' not in kwargs:
+            if 'bending_radius' in kwargs:
+                if 'bending_angle' in kwargs:
+                    raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
+                to_assign['bending_radius'] = kwargs.pop('bending_radius')
+            elif 'bending_angle' in kwargs:
+                to_assign['bending_angle'] = kwargs.pop('bending_angle')
+            kwargs.setdefault('width', 0)
+            kwargs.setdefault('height', 0)
+        super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+
+    @property
+    def bending_radius(self):
+        return self._bending_radius
+
+    @bending_radius.setter
+    def bending_radius(self, bending_radius):
+        self._bending_radius = bending_radius
+        self._bending_angle = np.arcsin(self.length/bending_radius)
+
+    @property
+    def bending_angle(self):
+        return self._bending_angle
+
+    @bending_angle.setter
+    def bending_angle(self, bending_angle):
+        self._bending_angle = bending_angle
+        self._bending_radius = self.length / np.sin(bending_angle)
+
+    @BaseCollimator.side.setter
+    def side(self, val):
+        temp = self._side
+        BaseCollimator.side.fset(self, val)
+        if self._side == 0:
+            self._side = temp
+            raise ValueError("BaseCrystal cannot be two-sided! Please set `side` "
+                           + "to 'left' or 'right'.")
+
+    def align_to_beam_divergence(self):
+        if not self.optics_ready():
+            raise ValueError("Optics not assigned! Cannot align to beam divergence.")
+        if self.side == 'left':
+            if self.gap_L is None:
+                raise ValueError("Need to set `gap_L` to align to beam divergence.")
+            self.tilt_L = self.divergence * self.gap_L
+        if self.side == 'right':
+            if self.gap_R is None:
+                raise ValueError("Need to set `gap_R` to align to beam divergence.")
+            self.tilt_R = self.divergence * self.gap_R
 

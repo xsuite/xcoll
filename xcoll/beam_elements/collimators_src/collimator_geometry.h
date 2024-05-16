@@ -11,13 +11,10 @@
 typedef struct CollimatorGeometry_ {
     // Collimator jaws (with tilts)
     double jaw_LU;
-    double jaw_LD;
     double jaw_RU;
-    double jaw_RD;
-    // TODO: need shortening of active length!
     double length;
-    int8_t side  ;
-    // Get angles of jaws
+    int8_t side;
+    // Jaw angles
     double sin_zL;
     double cos_zL;
     double sin_zR;
@@ -28,16 +25,17 @@ typedef struct CollimatorGeometry_ {
     // Tilts
     double sin_yL;
     double cos_yL;
-    double tan_yL;
     double sin_yR;
     double cos_yR;
-    double tan_yR;
+    // Segments
+    Segment* segments_L;
+    Segment* segments_R;
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_touches;
 } CollimatorGeometry_;
-typedef CollimatorGeometry_ *CollimatorGeometry;
+typedef CollimatorGeometry_* CollimatorGeometry;
 
 
 // This function checks if a particle hits a jaw (and which).
@@ -47,8 +45,6 @@ typedef CollimatorGeometry_ *CollimatorGeometry;
 /*gpufun*/
 int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
     double part_x, part_tan;
-    double jaw_s[2];
-    double jaw_x[2];
     int8_t is_hit = 0;
     double s_L = 1.e21;
     double s_R = 1.e21;
@@ -62,12 +58,8 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
 #else
         part_tan = LocalParticle_get_xp(part);
 #endif
-        jaw_x[0] = cg->jaw_LU;
-        jaw_x[1] = cg->jaw_LD;
-        jaw_s[0] = cg->length/2*(1-cg->cos_yL);
-        jaw_s[1] = cg->length/2*(1+cg->cos_yL);
-        s_L = get_s_of_first_crossing_with_open_polygon(part_x, part_tan, jaw_s, jaw_x, 2, cg->tan_yL, 1);
-        if (s_L < 1.e20){
+        s_L = get_s_of_first_crossing(part_x, part_tan, cg->segments_L, 3);
+        if (s_L < S_MAX){
             is_hit = 1;
         } else if (cg->side == 1){
             // If left-sided and no hit, rotate back to lab frame
@@ -86,28 +78,18 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
         if (cg->side == -1){
             // We didn't rotate to the left frame earlier, so full rotation to the right frame now
             SRotation_single_particle(part, cg->sin_zR, cg->cos_zR);
-            part_x = LocalParticle_get_x(part);
-#ifdef XCOLL_USE_EXACT
-            part_tan = LocalParticle_get_exact_xp(part);
-#else
-            part_tan = LocalParticle_get_xp(part);
-#endif
         } else if (!cg->jaws_parallel){
             // We rotated to the left frame before, so now rotate the difference
             SRotation_single_particle(part, cg->sin_zDiff, cg->cos_zDiff);
-            part_x = LocalParticle_get_x(part);
-#ifdef XCOLL_USE_EXACT
-            part_tan = LocalParticle_get_exact_xp(part);
-#else
-            part_tan = LocalParticle_get_xp(part);
-#endif
         }
-        jaw_x[0] = cg->jaw_RU;
-        jaw_x[1] = cg->jaw_RD;
-        jaw_s[0] = cg->length/2*(1-cg->cos_yR);
-        jaw_s[1] = cg->length/2*(1+cg->cos_yR);
-        s_R = get_s_of_first_crossing_with_open_polygon(part_x, part_tan, jaw_s, jaw_x, 2, cg->tan_yR, -1);
-        if (s_R < 1.e20 && s_R < s_L){
+        part_x = LocalParticle_get_x(part);
+#ifdef XCOLL_USE_EXACT
+        part_tan = LocalParticle_get_exact_xp(part);
+#else
+        part_tan = LocalParticle_get_xp(part);
+#endif
+        s_R = get_s_of_first_crossing(part_x, part_tan, cg->segments_R, 3);
+        if (s_R < S_MAX && s_R < s_L){
             is_hit = -1;
         } else if (is_hit == 1){
             if (!cg->jaws_parallel){

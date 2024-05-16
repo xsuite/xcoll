@@ -11,14 +11,9 @@
 CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalParticle* part0, int8_t active){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
-        // Collimator jaws (with tilts)
+        // Jaw corners (with tilts)
         cg->jaw_LU = BlackAbsorberData_get__jaw_LU(el);
-        cg->jaw_LD = BlackAbsorberData_get__jaw_LD(el);
         cg->jaw_RU = BlackAbsorberData_get__jaw_RU(el);
-        cg->jaw_RD = BlackAbsorberData_get__jaw_RD(el);
-        // TODO: need shortening of active length!
-        cg->length = BlackAbsorberData_get_length(el);
-        cg->side   = BlackAbsorberData_get__side(el);
         // Get angles of jaws
         cg->sin_zL = BlackAbsorberData_get__sin_zL(el);
         cg->cos_zL = BlackAbsorberData_get__cos_zL(el);
@@ -30,10 +25,24 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
         // Tilts
         cg->sin_yL = BlackAbsorberData_get__sin_yL(el);
         cg->cos_yL = BlackAbsorberData_get__cos_yL(el);
-        cg->tan_yL = BlackAbsorberData_get__tan_yL(el);
         cg->sin_yR = BlackAbsorberData_get__sin_yR(el);
         cg->cos_yR = BlackAbsorberData_get__cos_yR(el);
-        cg->tan_yR = BlackAbsorberData_get__tan_yR(el);
+        // Length and segments
+        cg->length = BlackAbsorberData_get_length(el);
+        cg->side   = BlackAbsorberData_get__side(el);
+        double s_U, s_D, x_D;
+        if (cg->side != -1){
+            s_U = cg->length/2 * (1-cg->cos_yL);
+            s_D = cg->length/2 * (1+cg->cos_yL);
+            x_D = BlackAbsorberData_get__jaw_LD(el);
+            cg->segments_L = create_jaw(s_U, cg->jaw_LU, s_D, x_D, cg->sin_yL/cg->cos_yL, 1);
+        }
+        if (cg->side != 1){
+            s_U = cg->length/2 * (1-cg->cos_yR);
+            s_D = cg->length/2 * (1+cg->cos_yR);
+            x_D = BlackAbsorberData_get__jaw_RD(el);
+            cg->segments_R = create_jaw(s_U, cg->jaw_RU, s_D, x_D, cg->sin_yR/cg->cos_yR, -1);
+        }
         // Impact table
         cg->record = BlackAbsorberData_getp_internal_record(el, part0);
         cg->record_index = NULL;
@@ -45,6 +54,19 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
     }
 
     return cg;
+}
+
+/*gpufun*/
+void BlackAbsorber_free(CollimatorGeometry cg, int8_t active){
+    if (active){
+        if (cg->side != -1){
+            destroy_jaw(cg->segments_L);
+        }
+        if (cg->side != 1){
+            destroy_jaw(cg->segments_R);
+        }
+    }
+    free(cg);
 }
 
 
@@ -73,7 +95,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 // Store s-location of start of collimator
                 double s_coll = LocalParticle_get_s(part);
                 LocalParticle_set_s(part, 0);
-                
+
                 // Check if hit on jaws
                 int8_t is_hit = hit_jaws_check_and_transform(part, cg);
 
@@ -90,7 +112,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
             }
         }
     //end_per_particle_block
-    free(cg);
+    BlackAbsorber_free(cg, active);
 }
 
 #endif /* XCOLL_COLL_GEOM_H */
