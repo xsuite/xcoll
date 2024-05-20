@@ -216,9 +216,14 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Scatter
                     EverestData everest = EverestCrystal_init_data(part0, coll);
                     calculate_initial_angle(everest, part);
-                    printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part), \
-                                                is_hit, LocalParticle_get_s(part), LocalParticle_get_x(part), xp_in*1.e6, everest->t_I*1.e6, everest->t_c*1.e6);
-                    if (fabs(xp_in - everest->t_I) < everest->t_c) {
+#ifdef XCOLL_USE_EXACT
+                    double const xp = LocalParticle_get_exact_xp(part);
+#else
+                    double const xp = LocalParticle_get_xp(part);
+#endif
+                    // printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part), \
+                    //                             is_hit, LocalParticle_get_s(part), LocalParticle_get_x(part), xp*1.e6, everest->t_I*1.e6, everest->t_c*1.e6);
+                    if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, energy/1.e9, remaining_length)*1.e9;
                     } else {
                         energy = Amorphous(everest, part, energy/1e9, remaining_length)*1.e9;
