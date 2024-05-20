@@ -5,12 +5,12 @@
  "inactive_back": 0,
  "angle": 0,
  "bending_radius": 91,
- "xdim": 0.0056,
- "ydim": 0.045,
+ "width": 0.0056,
+ "height": 0.045,
  "thick": 0,
  "miscut": 0.0001,
  "lattice": "quasi-mosaic",
- "align_angle": 2.84287e-05,
+ "tilt": 2.84287e-05,
  "side": "left",
  "material": {
   "__class__": "CrystalMaterial",
@@ -36,6 +36,5 @@
   "crystal_potential": 21.34,
   "nuclear_collision_length": 0.3016
  },
- "jaw_L": 0.0016242608242147654,
- "jaw_R": -0.001621464379042571
+ "jaw_L": 0.0016242608242147654
 }

@@ -155,7 +155,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
             if (is_valid) {
                 // Store s-location of start of collimator
-                double s_coll = LocalParticle_get_s(part);
+                double const s_coll = LocalParticle_get_s(part);
                 LocalParticle_set_s(part, 0);
 
                 // Store initial coordinates for updating later

@@ -170,27 +170,12 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     active       *= EverestCrystalData_get__tracking(el);
     double length = EverestCrystalData_get_length(el);
 
-    // TODO: use xtrack C-code for rotation element
-    // TODO: we are ignoring the angle of the right jaw
-    // TODO: is a crystal always one-sided...?
-    double const sin_zL     = EverestCrystalData_get__sin_zL(el);
-    double const cos_zL     = EverestCrystalData_get__cos_zL(el);
-    double const sin_zR     = EverestCrystalData_get__sin_zR(el);
-    double const cos_zR     = EverestCrystalData_get__cos_zR(el);
-    if (fabs(sin_zL-sin_zR) > 1.e-10 || fabs(cos_zL-cos_zR) > 1.e-10 ){
-        printf("Jaws with different angles not yet implemented!");
-        fflush(stdout);
-        kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
-    };
-    double jaw_L = (EverestCrystalData_get__jaw_LU(el) + EverestCrystalData_get__jaw_LD(el))/2.;
-    double jaw_R = (EverestCrystalData_get__jaw_RU(el) + EverestCrystalData_get__jaw_RD(el))/2.;
-    double offset   = (jaw_L + jaw_R) /2;
-
-    double t_c = 0;
-
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestCrystal_init(el, part0, active);
+    CrystalGeometry cg   = EverestCrystal_init_geometry(el, part0, active);
+
+    double t_c = 0;
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -203,34 +188,79 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
             if (is_valid) {
                 double const s_coll = LocalParticle_get_s(part);
+                LocalParticle_set_s(part, 0);
 
-                // Move to collimator frame
-                SRotation_single_particle(part, sin_zL, cos_zL);
-                XYShift_single_particle(part, offset, 0);
+                // Store initial coordinates for updating later
+                double const e0         = LocalParticle_get_energy0(part);
+                double const p0         = LocalParticle_get_p0c(part);
+                double const ptau_in    = LocalParticle_get_ptau(part);
+                double const rvv_in     = LocalParticle_get_rvv(part);
+#ifdef XCOLL_USE_EXACT
+                double const xp_in      = LocalParticle_get_exact_xp(part);
+                double const yp_in      = LocalParticle_get_exact_yp(part);
+#else
+                double const xp_in      = LocalParticle_get_xp(part);
+                double const yp_in      = LocalParticle_get_yp(part);
+#endif
+                double const zeta_in    = LocalParticle_get_zeta(part);
+                double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
+                double energy           = (p0*ptau_in + e0) * mass_ratio;
 
-                EverestData everest = EverestCrystal_init_data(part0, coll);
-                scatter_cry(everest, part, length);
+                // Check if hit on jaws
+                int8_t is_hit = hit_crystal_check_and_transform(part, cg);
 
-                // Temporary workaround to store the critical angle for use later
-                double energy0 = LocalParticle_get_energy0(part)/1.e9;
-                calculate_critical_angle(everest, part, energy0);
-                t_c = everest->t_c;
-                free(everest);
+                // printf("Particle %lli hit %i", LocalParticle_get_particle_id(part), is_hit);
+                if (is_hit != 0) {
+                    // Hit one of the jaws, so scatter
+                    double remaining_length = length - LocalParticle_get_s(part);
+                    // Scatter
+                    EverestData everest = EverestCrystal_init_data(part0, coll);
+                    calculate_initial_angle(everest, part);
+                    printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part), \
+                                                is_hit, LocalParticle_get_s(part), LocalParticle_get_x(part), xp_in*1.e6, everest->t_I*1.e6, everest->t_c*1.e6);
+                    if (fabs(xp_in - everest->t_I) < everest->t_c) {
+                        energy = Channel(everest, part, energy/1.e9, remaining_length)*1.e9;
+                    } else {
+                        energy = Amorphous(everest, part, energy/1e9, remaining_length)*1.e9;
+                    }
+                    // Temporary workaround to store the critical angle for use later
+                    calculate_critical_angle(everest, part, e0/1.e9);
+                    t_c = everest->t_c;
+                    free(everest);
+                }
 
-                // Return from collimator frame
-                XYShift_single_particle(part, -offset, 0);
-                SRotation_single_particle(part, -sin_zL, cos_zL);
+                fflush(stdout);
 
-                // Surviving particles are put at same numerical s, and drifted inactive back
-                if (LocalParticle_get_state(part) > 0){
-                    LocalParticle_set_s(part, s_coll + length);
+                // Transform back to the lab frame
+                hit_crystal_transform_back(is_hit, part, cg);
+                LocalParticle_add_to_s(part, s_coll);
+
+                LocalParticle_set_zeta(part, zeta_in);
+                // Hit and survived particles need correcting:
+                if (is_hit!=0 && LocalParticle_get_state(part)>0){
+                    // Update energy
+                    double ptau_out = (energy/mass_ratio - e0) / p0;
+                    LocalParticle_update_ptau(part, ptau_out);
+                    // Update zeta
+#ifdef XCOLL_USE_EXACT
+                    double xp  = LocalParticle_get_exact_xp(part);
+                    double yp  = LocalParticle_get_exact_yp(part);
+#else
+                    double xp  = LocalParticle_get_xp(part);
+                    double yp  = LocalParticle_get_yp(part);
+#endif
+                    double rvv = LocalParticle_get_rvv(part);
+                    // First we drift half the length with the old angles:
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv_in, xp_in, yp_in, length/2) );
+                    // then half the length with the new angles:
+                    LocalParticle_add_to_zeta(part, drift_zeta_single(rvv, xp, yp, length/2) );
                 }
             }
         }
     //end_per_particle_block
-
-    free(coll);
     EverestCrystalData_set__critical_angle(el, t_c);
+    EverestCrystal_free(cg, active);
+    free(coll);
 }
 
 
