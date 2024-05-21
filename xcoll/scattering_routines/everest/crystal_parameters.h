@@ -24,10 +24,9 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part) 
 
 /*gpufun*/
 void calculate_opening_angle(EverestData restrict everest, LocalParticle* part) {
-
-    double t = everest->coll->bend_ang;
-    double xd  = everest->coll->xdim;
-    double R   = everest->coll->bend_r;
+    double t    = everest->coll->bend_ang;
+    double xd   = everest->coll->width;
+    double R    = everest->coll->bend_r;
     double sinp = sin(everest->coll->miscut);
     double cosp = cos(everest->coll->miscut);
 
@@ -80,8 +79,7 @@ void calculate_critical_angle(EverestData restrict everest, LocalParticle* part,
     // Define typical angles/probabilities for orientation 110
     double eum   = everest->coll->eum;
     double ai    = everest->coll->ai;
-    double eta   = 0.9;
-    everest->eta = eta;
+    double eta   = everest->coll->eta;
     double t_c0  = sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals   // pc is actually beta pc
     double Rcrit = pc/(2.e-6*eta*eum)*ai;  // Critical curvature radius [m]          // pc is actually beta pc
 

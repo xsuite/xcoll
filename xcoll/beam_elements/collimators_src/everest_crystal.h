@@ -21,16 +21,16 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
         cg->length = EverestCrystalData_get_length(el);
-        cg->side = EverestCrystalData_get__side(el);
+        cg->side   = EverestCrystalData_get__side(el);
         cg->bending_radius = EverestCrystalData_get__bending_radius(el);
-        cg->bending_angle = EverestCrystalData_get__bending_angle(el);
-        cg->width = EverestCrystalData_get_width(el);
+        cg->bending_angle  = EverestCrystalData_get__bending_angle(el);
+        cg->width  = EverestCrystalData_get_width(el);
         cg->height = EverestCrystalData_get_height(el);
-        cg->jaw_U = EverestCrystalData_get__jaw_U(el);
-        cg->sin_z = EverestCrystalData_get__sin_z(el);
-        cg->cos_z = EverestCrystalData_get__cos_z(el);
-        cg->sin_y = EverestCrystalData_get__sin_y(el);
-        cg->cos_y = EverestCrystalData_get__cos_y(el);
+        cg->jaw_U  = EverestCrystalData_get__jaw_U(el);
+        cg->sin_z  = EverestCrystalData_get__sin_z(el);
+        cg->cos_z  = EverestCrystalData_get__cos_z(el);
+        cg->sin_y  = EverestCrystalData_get__sin_y(el);
+        cg->cos_y  = EverestCrystalData_get__cos_y(el);
         double jaw;
         if (cg->side == 1){
             jaw = cg->jaw_U;
@@ -85,6 +85,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         coll->ai       = CrystalMaterialData_get_crystal_plane_distance(material);
         coll->eum      = CrystalMaterialData_get_crystal_potential(material);
         coll->collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
+        coll->eta      = 0.9;  // Hard-coded channeling saturation factor
 
         // Impact table
         coll->record = EverestCrystalData_getp_internal_record(el, part0);
@@ -95,41 +96,17 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
             coll->record_touches = EverestCrystalData_get_record_touches(el);
         }
 
-        // Geometry
-        // TODO: this should in principle not be in this struct
-        // double jaw_L = (EverestCrystalData_get__jaw_LU(el) + EverestCrystalData_get__jaw_LD(el))/2.;
-        // double jaw_R = (EverestCrystalData_get__jaw_RU(el) + EverestCrystalData_get__jaw_RD(el))/2.;
-        // coll->aperture = jaw_L - jaw_R;
-        // coll->tilt_L   = asin(EverestCrystalData_get__sin_yL(el));
-        // coll->tilt_R   = asin(EverestCrystalData_get__sin_yR(el));
-        // if (fabs(coll->tilt_R) > 1.e-10){
-        //     printf("Crystals have to be left-sided for now, so tilt_R should not be set!");
-        //     fflush(stdout);
-        //     kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
-        // };
-        // coll->side     = EverestCrystalData_get__side(el);  // TODO: so far only left-sided crystals
-        // if (coll->side != 1){
-        //     printf("Crystals have to be left-sided for now!");
-        //     fflush(stdout);
-        //     kill_all_particles(part0, XC_ERR_NOT_IMPLEMENTED);
-        // };
-        // TODO: this should stay here
-        double R         = EverestCrystalData_get__bending_radius(el);
-        coll->bend_r     = R;
-        double t_R       = EverestCrystalData_get__bending_angle(el);
-        coll->bend_ang   = t_R;
-        // coll->tilt       = coll->tilt_L;   // TODO: only left-sided crystals
-        // double const cry_bend   = length/cry_rcurv; //final value (with corrected length)
-        // THIS IS WRONG! Was a mistranslation from SixTrack 4 to SixTrack 5
-        // Difference is so small that this was never caught.
-        // Furthermore, we removed the adaptation of the scatter length, because
-        // 1) it was implemented wrong (passed unnoticed due to small effect)
-        // 2) we should not use the adapted scatter length, as we rotate the S-X frame, so
-        //    we anyway have to drift the full length!
-        coll->orient          = EverestCrystalData_get__orient(el);
-        coll->miscut          = EverestCrystalData_get_miscut(el);
-        coll->s_P             = -coll->bend_r*sin(coll->miscut);
-        coll->x_P             = coll->bend_r*cos(coll->miscut);
+        double R       = EverestCrystalData_get__bending_radius(el);
+        double t_R     = EverestCrystalData_get__bending_angle(el);
+        // TODO: this is superfluous, we can get this from the CrystalGeometry
+        coll->width    = EverestCrystalData_get_width(el);
+        coll->bend_r   = R;
+        coll->bend_ang = t_R;
+        // TODO: should this go into the CrystalGeometry?
+        coll->orient   = EverestCrystalData_get__orient(el);
+        coll->miscut   = EverestCrystalData_get_miscut(el);
+        coll->s_P      = -R*sin(coll->miscut);
+        coll->x_P      = R*cos(coll->miscut);
         double Rb;
         if (coll->miscut >0){
             Rb = R - EverestCrystalData_get_width(el);
@@ -207,7 +184,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 // Check if hit on jaws
                 int8_t is_hit = hit_crystal_check_and_transform(part, cg);
 
-                // printf("Particle %lli hit %i", LocalParticle_get_particle_id(part), is_hit);
                 if (is_hit != 0) {
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
@@ -219,8 +195,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                    // printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part),
-                    //                             is_hit, LocalParticle_get_s(part), LocalParticle_get_x(part), xp*1.e6, everest->t_I*1.e6, everest->t_c*1.e6);
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, energy/1.e9, remaining_length)*1.e9;
                     } else {
@@ -231,8 +205,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     t_c = everest->t_c;
                     free(everest);
                 }
-
-                fflush(stdout);
 
                 // Transform back to the lab frame
                 hit_crystal_transform_back(is_hit, part, cg);

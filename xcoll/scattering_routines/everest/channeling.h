@@ -143,7 +143,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
     double xp = LocalParticle_get_xp(part);
     double alpha = fabs(xp - everest->t_I) / everest->t_c;
     double ratio = everest->Rc_over_R;
-    double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->eta);
+    double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->coll->eta);
 
     if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
 #ifdef XCOLL_TRANSITION
