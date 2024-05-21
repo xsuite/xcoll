@@ -87,14 +87,14 @@ void destroy_open_polygon(Segment* segments, int8_t num_polys){
 // Crystal
 // -------
 
-// The four corners A, B, C, D are such that AB is the front face, BC the curve closest to the beam,
-// CD the back face, and DA the curve furtest from the beam.
+// The four corners A, B, C, D are such that AB is the front face, BC the curve furthest from the beam,
+// CD the back face, and DA the curve closest to the beam.
 /*gpufun*/
 Segment* create_crystal(double R, double width, double length, double jaw_U, double tilt_sin, double tilt_cos){
     Segment* segments= (Segment*) malloc(4*sizeof(Segment));
 
     // First corner is what defines the crystal position
-    double A_s = 0; //length/2*(1 - tilt_cos);
+    double A_s = 0;
     double A_x = jaw_U;
 
     // Manipulate R in function of sign
@@ -137,8 +137,7 @@ Segment* create_crystal(double R, double width, double length, double jaw_U, dou
     segments[2] = (Segment) create_line_segment(C_s, C_x, D_s, D_x);
     segments[3] = (Segment) create_circular_segment(R_short, R_s, R_x, t1, t2);
 
-    // printf("R: (%f, %f)   A: (%f, %f)   B: (%f, %f)   C: (%f, %f)   D: (%f, %f)   t1: %f   t2: %f\n", R_s,R_x,A_s,A_x,B_s,B_x,C_s,C_x,D_s,D_x,t1*180/3.141592653589793,t2*180/3.141592653589793);
-    // fflush(stdout);
+    // printf("R: (%f, %f)   A: (%f, %f)   B: (%f, %f)   C: (%f, %f)   D: (%f, %f)   t1: %f   t2: %f\n", R_s,R_x,A_s,A_x,B_s,B_x,C_s,C_x,D_s,D_x,t1*180/3.141592653589793,t2*180/3.141592653589793); fflush(stdout);
     return segments;
 }
 

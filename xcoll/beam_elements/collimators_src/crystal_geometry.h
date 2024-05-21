@@ -21,7 +21,7 @@ typedef struct CrystalGeometry_ {
     double cos_y;
     // Crystal geometry
     double bending_radius;
-    double bending_angle; // probs not needed
+    double bending_angle;
     double width;
     double height;
     // Segments
@@ -78,9 +78,8 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry cg){
 #else
         Drift_single_particle_expanded(part, s);
 #endif
-        // Shift the reference frame to the jaw corner LU
+        // Shift the reference frame to the upstream jaw corner (for a crystal, this is always at s=0)
         XYShift_single_particle(part, cg->jaw_U, 0);
-        LocalParticle_add_to_s(part, -cg->length/2*(1 - cg->cos_y));
         // Rotate the reference frame to tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_y));
         LocalParticle_set_s(part, new_s);
@@ -126,7 +125,6 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
         LocalParticle_set_s(part, new_s);
         // Shift the reference frame back from jaw corner U
         XYShift_single_particle(part, -cg->jaw_U, 0);
-        LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_y));
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
             if (cg->record_touches){
