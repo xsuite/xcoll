@@ -26,21 +26,24 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         cg->bending_angle = EverestCrystalData_get__bending_angle(el);
         cg->width = EverestCrystalData_get_width(el);
         cg->height = EverestCrystalData_get_height(el);
+        double jaw;
         if (cg->side == 1){
-            cg->jaw_U = EverestCrystalData_get__jaw_LU(el);
+            cg->jaw_U = (EverestCrystalData_get__jaw_LU(el)+EverestCrystalData_get__jaw_LD(el))/2;
             cg->sin_z = EverestCrystalData_get__sin_zL(el);
             cg->cos_z = EverestCrystalData_get__cos_zL(el);
             cg->sin_y = EverestCrystalData_get__sin_yL(el);
             cg->cos_y = EverestCrystalData_get__cos_yL(el);
-        }
-        double jaw = cg->jaw_U;
-        if (cg->side == -1){
-            cg->jaw_U = EverestCrystalData_get__jaw_RU(el);
+            jaw = cg->jaw_U;
+        } else if (cg->side == -1){
+            cg->jaw_U = (EverestCrystalData_get__jaw_RU(el)+EverestCrystalData_get__jaw_RD(el))/2;
             cg->sin_z = EverestCrystalData_get__sin_zR(el);
             cg->cos_z = EverestCrystalData_get__cos_zR(el);
             cg->sin_y = EverestCrystalData_get__sin_yR(el);
             cg->cos_y = EverestCrystalData_get__cos_yR(el);
             jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
+        } else {
+            kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+            return cg;
         }
         cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
         // Impact table
@@ -221,7 +224,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                    // printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part), \
+                    // printf("Particle %lli hit %i:  s=%f, x=%f  xp=%f  t_I=%f  t_c=%f\n", LocalParticle_get_particle_id(part),
                     //                             is_hit, LocalParticle_get_s(part), LocalParticle_get_x(part), xp*1.e6, everest->t_I*1.e6, everest->t_c*1.e6);
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, energy/1.e9, remaining_length)*1.e9;

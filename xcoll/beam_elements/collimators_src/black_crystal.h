@@ -17,14 +17,15 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
         cg->bending_angle = BlackCrystalData_get__bending_angle(el);
         cg->width = BlackCrystalData_get_width(el);
         cg->height = BlackCrystalData_get_height(el);
+        double jaw;
         if (cg->side == 1){
             cg->jaw_U = BlackCrystalData_get__jaw_LU(el);
             cg->sin_z = BlackCrystalData_get__sin_zL(el);
             cg->cos_z = BlackCrystalData_get__cos_zL(el);
             cg->sin_y = BlackCrystalData_get__sin_yL(el);
             cg->cos_y = BlackCrystalData_get__cos_yL(el);
+            jaw = cg->jaw_U;
         }
-        double jaw = cg->jaw_U;
         if (cg->side == -1){
             cg->jaw_U = BlackCrystalData_get__jaw_RU(el);
             cg->sin_z = BlackCrystalData_get__sin_zR(el);

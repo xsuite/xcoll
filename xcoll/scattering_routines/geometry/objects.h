@@ -94,7 +94,7 @@ Segment* create_crystal(double R, double width, double length, double jaw_U, dou
     Segment* segments= (Segment*) malloc(4*sizeof(Segment));
 
     // First corner is what defines the crystal position
-    double A_s = length/2*(1 - tilt_cos);
+    double A_s = 0; //length/2*(1 - tilt_cos);
     double A_x = jaw_U;
 
     // Manipulate R in function of sign

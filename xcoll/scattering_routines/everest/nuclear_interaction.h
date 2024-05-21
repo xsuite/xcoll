@@ -28,7 +28,7 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
     }
 
     //Do the interaction
-    int64_t i_slot;
+    int64_t i_slot = -1;
     if (ichoix==1) {
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);

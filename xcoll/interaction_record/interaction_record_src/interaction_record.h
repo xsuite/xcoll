@@ -70,7 +70,6 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
 
 /*gpufun*/
 void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child, double ds){
-
     if (record && i_slot>=0){
         InteractionRecordData_set_ds(record, i_slot, ds);
 

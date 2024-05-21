@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 #ifdef MAX
 #undef MAX
 #pragma message ("Xcoll geometry: Compiler macro MAX redefined")
@@ -118,22 +121,30 @@ int cmpfunc_double(const void * a, const void * b) {
 }
 
 static inline void sort_array_of_double(double* arr, int64_t length){
-    if (length==2){
-        sort_array_of_2_double(arr);
-    } else if (length==3){
-        sort_array_of_3_double(arr);
-    } else if (length==4){
-        sort_array_of_4_double(arr);
-    } else if (length==5){
-        sort_array_of_5_double(arr);
-    } else if (length==6){
-        sort_array_of_6_double(arr);
-    } else if (length==7){
-        sort_array_of_7_double(arr);
-    } else if  (length==8){
-        sort_array_of_8_double(arr);
-    } else {
-        qsort(arr, length, sizeof(double), cmpfunc_double);
+    switch(length){
+        case 2:
+            sort_array_of_2_double(arr);
+            break;
+        case 3:
+            sort_array_of_3_double(arr);
+            break;
+        case 4:
+            sort_array_of_4_double(arr);
+            break;
+        case 5:
+            sort_array_of_5_double(arr);
+            break;
+        case 6:
+            sort_array_of_6_double(arr);
+            break;
+        case 7:
+            sort_array_of_7_double(arr);
+            break;
+        case 8:
+            sort_array_of_8_double(arr);
+            break;
+        default:
+            qsort(arr, length, sizeof(double), cmpfunc_double);
     }
 }
 
@@ -142,23 +153,32 @@ int cmpfunc_int64(const void * a, const void * b) {
 }
 
 static inline void sort_array_of_int64(int64_t* arr, int64_t length){
-    if (length==2){
-        sort_array_of_2_int64(arr);
-    } else if (length==3){
-        sort_array_of_3_int64(arr);
-    } else if (length==4){
-        sort_array_of_4_int64(arr);
-    } else if (length==5){
-        sort_array_of_5_int64(arr);
-    } else if (length==6){
-        sort_array_of_6_int64(arr);
-    } else if (length==7){
-        sort_array_of_7_int64(arr);
-    } else if  (length==8){
-        sort_array_of_8_int64(arr);
-    } else {
-        qsort(arr, length, sizeof(int64_t), cmpfunc_int64);
+    switch(length){
+        case 2:
+            sort_array_of_2_int64(arr);
+            break;
+        case 3:
+            sort_array_of_3_int64(arr);
+            break;
+        case 4:
+            sort_array_of_4_int64(arr);
+            break;
+        case 5:
+            sort_array_of_5_int64(arr);
+            break;
+        case 6:
+            sort_array_of_6_int64(arr);
+            break;
+        case 7:
+            sort_array_of_7_int64(arr);
+            break;
+        case 8:
+            sort_array_of_8_int64(arr);
+            break;
+        default:
+            qsort(arr, length, sizeof(int64_t), cmpfunc_int64);
     }
 }
 
+#pragma GCC diagnostic pop
 #endif /* XCOLL_GEOM_SORT_H */

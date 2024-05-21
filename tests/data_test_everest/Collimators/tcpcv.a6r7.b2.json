@@ -8,10 +8,9 @@
  "width": 0.0032,
  "height": 0.04,
  "thick": 0,
- "tilt_L": 7e-05,
  "miscut": 0,
  "lattice": "strip",
- "tilt": 1.73203e-05,
+ "tilt": 8.73203e-05,
  "side": "left",
  "material": {
   "__class__": "CrystalMaterial",
