@@ -119,7 +119,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
     // All s are absolute in the collimator frame
     double R = everest->coll->bend_r;
     double t = everest->coll->bend_ang;
-    double d = everest->coll->xdim;
+    double d = everest->coll->width;
     double s  = LocalParticle_get_s(part);
     double x  = LocalParticle_get_x(part);
     double xp = LocalParticle_get_xp(part);
