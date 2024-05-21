@@ -47,6 +47,7 @@ class InvalidXcoll(xt.BeamElement):
 class BaseBlock(xt.BeamElement):
     _xofields = {
         'length':             xo.Float64,
+        'active':             xo.Int8,
         'record_touches':     xo.Int8,
         'record_scatterings': xo.Int8
     }
@@ -80,9 +81,8 @@ class BaseBlock(xt.BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-class BaseCollimator(xt.BeamElement):
-    _xofields = {
-        'length':  xo.Float64,
+class BaseCollimator(BaseBlock):
+    _xofields = {**BaseBlock._xofields,
         # Collimator angle
         '_sin_zL':        xo.Float64,
         '_cos_zL':        xo.Float64,
@@ -105,9 +105,6 @@ class BaseCollimator(xt.BeamElement):
         '_tan_yR':        xo.Float64,
         # Other
         '_side':          xo.Int8,
-        'active':         xo.Int8,
-        'record_touches':     xo.Int8,
-        'record_scatterings': xo.Int8,
         # These are not used in C, but need to be an xofield to get them in the to_dict:
         '_align':         xo.Int8,
         '_gap_L':         xo.Float64,
@@ -116,22 +113,22 @@ class BaseCollimator(xt.BeamElement):
         '_nemitt_y':      xo.Float64
     }
 
-    isthick = True
-    allow_track = False
-    behaves_like_drift = True
-    skip_in_loss_location_refinement = True
+    isthick = BaseBlock.isthick
+    allow_track = BaseBlock.allow_track
+    behaves_like_drift = BaseBlock.behaves_like_drift
+    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
 
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
-    _depends_on = [InvalidXcoll, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, XcollGeometry] # TODO: check if those xtrack elements are needed here already
+    _depends_on = [BaseBlock, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, XcollGeometry] # TODO: check if those xtrack elements are needed here already
 
     _extra_c_sources = [
         _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
         _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
     ]
 
-    _internal_record_class = InteractionRecord
+    _internal_record_class = BaseBlock._internal_record_class
 
 
     # This is an abstract class and cannot be instantiated
@@ -215,7 +212,7 @@ class BaseCollimator(xt.BeamElement):
             kwargs.setdefault('record_scatterings', False)
 
         super().__init__(**kwargs)
-        # Careful: non-xo fields are not passed correctly between copy's / to_dict. This messes with flags etc..
+        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
         if not hasattr(self, '_optics'):
             self._optics = None
@@ -648,19 +645,27 @@ class BaseCollimator(xt.BeamElement):
             bety = self.optics[self.align]['bety'][0]
             sigma_x = np.sqrt(betx*self.nemitt_x/self.optics['beta_gamma_rel'])
             sigma_y = np.sqrt(bety*self.nemitt_y/self.optics['beta_gamma_rel'])
-            sigma_L = np.sqrt((sigma_x*self._cos_zL)**2 + (sigma_y*self._sin_zL)**2)
-            sigma_R = np.sqrt((sigma_x*self._cos_zR)**2 + (sigma_y*self._sin_zR)**2)
-            return [sigma_L, sigma_R], [sigma_x, sigma_y]
+            if hasattr(self, '_cos_zL'):
+                sigma_L = np.sqrt((sigma_x*self._cos_zL)**2 + (sigma_y*self._sin_zL)**2)
+                sigma_R = np.sqrt((sigma_x*self._cos_zR)**2 + (sigma_y*self._sin_zR)**2)
+                return [sigma_L, sigma_R], [sigma_x, sigma_y]
+            else:
+                sigma = np.sqrt((sigma_x*self._cos_z)**2 + (sigma_y*self._sin_z)**2)
+                return sigma, [sigma_x, sigma_y]
 
     @property
     def co(self):
         if self.optics_ready():
             x = self.optics[self.align]['x'][0]
             y = self.optics[self.align]['y'][0]
-            co_L = x*self._cos_zL + y*self._sin_zL
-            co_R = x*self._cos_zR + y*self._sin_zR
-            return [co_L, co_R], [x, y]
-    
+            if hasattr(self, '_cos_zL'):
+                co_L = x*self._cos_zL + y*self._sin_zL
+                co_R = x*self._cos_zR + y*self._sin_zR
+                return [co_L, co_R], [x, y]
+            else:
+                co = x*self._cos_z + y*self._sin_z
+                return co, [x, y]
+
     @property
     def divergence(self):
         if self.optics_ready():
@@ -670,10 +675,13 @@ class BaseCollimator(xt.BeamElement):
             bety = self.optics[self.align]['bety'][0]
             divx = -np.sqrt(self.nemitt_x/self.optics['beta_gamma_rel']/betx)*alfx
             divy = -np.sqrt(self.nemitt_y/self.optics['beta_gamma_rel']/bety)*alfy
-            if self.side != 'right':
-                return divx if abs(self.angle_L) < 1e-6 else divy
+            if hasattr(self, '_cos_zL'):
+                if self.side != 'right':
+                    return divx if abs(self.angle_L) < 1e-6 else divy
+                else:
+                    return divx if abs(self.angle_R) < 1e-6 else divy
             else:
-                return divx if abs(self.angle_R) < 1e-6 else divy
+                return divx if abs(self.angle) < 1e-6 else divy
 
     @property
     def align(self):
@@ -741,7 +749,7 @@ class BaseCollimator(xt.BeamElement):
         if self.side != 'right':
             if self.optics_ready() and self.jaw_L is not None:
                 return round((self.jaw_L - self.co[0][0])/self.sigma[0][0], 6)
-            elif np.isclose(self._gap_L, OPEN_GAP):
+            elif not self._gap_L_set_manually():
                 return None
             else:
                 return self._gap_L
@@ -761,7 +769,7 @@ class BaseCollimator(xt.BeamElement):
         if self.side != 'left':
             if self.optics_ready() and self.jaw_R is not None:
                 return round((self.jaw_R - self.co[0][1])/self.sigma[0][1], 6)
-            elif np.isclose(self._gap_R, -OPEN_GAP):
+            elif not self._gap_R_set_manually():
                 return None
             else:
                 return self._gap_R
@@ -928,8 +936,25 @@ class BaseCollimator(xt.BeamElement):
         return lambda t: (point_x - t*sinz, point_y + t*cosz)
 
 
-class BaseCrystal(BaseCollimator):
-    _xofields = {**BaseCollimator._xofields,
+class BaseCrystal(BaseBlock):
+    _xofields = {**BaseBlock._xofields,
+        # Collimator angle
+        '_sin_z':             xo.Float64,
+        '_cos_z':             xo.Float64,
+        # Jaw corners (this is the x-coordinate in the rotated frame)
+        '_jaw_U':             xo.Float64,
+        # Tilts (not superfluous)
+        '_sin_y':             xo.Float64,
+        '_cos_y':             xo.Float64,
+        '_tan_y':             xo.Float64,
+        # Other
+        '_side':              xo.Int8,
+        # These are not used in C, but need to be an xofield to get them in the to_dict:
+        '_align':             xo.Int8,
+        '_gap':               xo.Float64,
+        '_nemitt_x':          xo.Float64,
+        '_nemitt_y':          xo.Float64,
+        # Crystal specific
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
         'width':              xo.Float64,
@@ -937,14 +962,14 @@ class BaseCrystal(BaseCollimator):
         # 'thick':              xo.Float64
     }
 
-    isthick = True
-    allow_track = False
-    behaves_like_drift = True
-    skip_in_loss_location_refinement = True
+    isthick = BaseBlock.isthick
+    allow_track = BaseBlock.allow_track
+    behaves_like_drift = BaseBlock.behaves_like_drift
+    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_bending_radius', '_bending_angle']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'bending_radius', 'bending_angle']
-    _internal_record_class = BaseCollimator._internal_record_class
+    _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
+    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
+                         'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
 
@@ -952,8 +977,7 @@ class BaseCrystal(BaseCollimator):
         _pkg_root.joinpath('beam_elements','collimators_src','crystal_geometry.h')
     ]
 
-    _internal_record_class = BaseCollimator._internal_record_class
-
+    _internal_record_class = BaseBlock._internal_record_class
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -965,6 +989,54 @@ class BaseCrystal(BaseCollimator):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
+            # Set side
+            to_assign['side'] = kwargs.pop('side', 'both')
+
+            # Set angle
+            to_assign['angle'] = kwargs.pop('angle', 0)
+
+            # Set jaw
+            if 'jaw' in kwargs:
+                for key in ['jaw_U', 'jaw_D', 'gap']:
+                    if key in kwargs:
+                        raise ValueError(f"Cannot use both `jaw` and `{key}`!")
+                to_assign['jaw'] = kwargs.pop('jaw')
+            elif 'jaw_D' in kwargs:
+                for key in ['tilt', 'gap']:
+                    if key in kwargs:
+                        raise ValueError(f"Cannot use both `jaw_D` with `{key}`!")
+                if not 'jaw_U' in kwargs:
+                    raise ValueError("Need to provide `jaw_U` when setting `jaw_D`!")
+                to_assign['jaw_U'] = kwargs.pop('jaw_U')
+                to_assign['jaw_D'] = kwargs.pop('jaw_D')
+            elif 'jaw_U' in kwargs:
+                if 'gap' in kwargs:
+                    raise ValueError(f"Cannot use both `jaw_U` and `gap`!")
+                to_assign['jaw_U'] = kwargs.pop('jaw_U')
+            # TODO: correct sign if right-sided
+            kwargs.setdefault('_jaw_U', OPEN_JAW)
+
+            # Set gap
+            if 'gap' in kwargs:
+                for key in ['jaw', 'jaw_U', 'jaw_D']:
+                    if key in kwargs:
+                        raise ValueError(f"Cannot use both `gap` and `{key}`!")
+                to_assign['gap'] = kwargs.pop('gap')
+            # TODO: correct sign if right-sided
+            kwargs.setdefault('_gap', OPEN_GAP)
+
+            # Set tilt
+            if 'jaw_D' not in kwargs:
+                to_assign['tilt'] = kwargs.pop('tilt', 0)
+
+            # Set others
+            to_assign['align'] = kwargs.pop('align', 'upstream')
+            to_assign['emittance'] = kwargs.pop('emittance', None)
+            kwargs.setdefault('active', True)
+            kwargs.setdefault('record_touches', False)
+            kwargs.setdefault('record_scatterings', False)
+
+            # Set crystal specific
             if 'bending_radius' in kwargs:
                 if 'bending_angle' in kwargs:
                     raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
@@ -973,9 +1045,223 @@ class BaseCrystal(BaseCollimator):
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
             kwargs.setdefault('width', 0)
             kwargs.setdefault('height', 0)
-        super().__init__(**kwargs)
+
+        xt.BeamElement.__init__(self, **kwargs)
+        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
+        # We also have to manually initialise them for xobject generation
+        if not hasattr(self, '_optics'):
+            self._optics = None
         for key, val in to_assign.items():
             setattr(self, key, val)
+        if self.side == 'right':
+            if np.isclose(self._jaw_U, OPEN_JAW):
+                self._jaw_U *= -1
+            if np.isclose(self._gap, OPEN_GAP):
+                self._gap *= -1
+        self._verify_consistency()
+
+
+    # Main crystal angle
+    # ==================
+
+    @property
+    def angle(self):
+        return round(np.rad2deg(np.arctan2(self._sin_z, self._cos_z)), 10)
+
+    @angle.setter
+    def angle(self, val):
+        self._sin_z = np.sin(np.deg2rad(val))
+        self._cos_z = np.cos(np.deg2rad(val))
+        self._apply_optics()
+
+
+    # Jaw attributes
+    # ==============
+
+    @property
+    def jaw(self):
+        return self.jaw_U
+
+    @jaw.setter
+    def jaw(self, val):
+        if val is None:
+            val = self._side*OPEN_JAW
+        self.jaw_U = val
+
+    @property
+    def jaw_U(self):
+        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+            return self._jaw_U
+
+    @jaw_U.setter   # This moves both jaw_LU and jaw_LD in parallel
+    def jaw_U(self, val):
+        if val is None:
+            raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw to None.")
+        self._jaw_U = val
+        self._update_gaps()
+
+    @property
+    def jaw_D(self):
+        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+            length = self.length
+            if self._side*self.bending_radius < 0:
+                # Correction for inner corner point
+                length -= self.width*np.sin(abs(self._bending_angle))
+            shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
+            return self._jaw_U + length*shift
+
+    @jaw_D.setter   # This moves both jaw_LU and jaw_LD in parallel
+    def jaw_D(self, val):
+        if val is None:
+            self.tilt = 0
+        else:
+            shift = (val - self._jaw_U )/self.length * np.cos(self._bending_angle/2)
+            self._sin_y  = shift*np.cos(self._bending_angle/2)
+            self._sin_y -= np.sin(self._bending_angle/2)*np.sqrt(1 - shift**2)
+            self._cos_y  = np.sqrt(1 - self._sin_y**2)
+            self._tan_y = self._sin_y / self._cos_y
+        self._update_gaps()
+
+    def open_jaws(self, keep_tilts=False):
+        self.jaw = None
+        if not keep_tilts:
+            self.tilt = 0
+
+    def _update_gaps(self):
+        # If we had set a value for the gap manually, this needs to be updated
+        # as well after setting the jaw
+        if self._gap_set_manually():
+            self._gap = self.gap
+
+
+    # Tilt attributes
+    # ===============
+
+    # TODO: tilts are in rad! Do we want that? It's a bit inconsistent with angle which is in deg...
+
+    @property
+    def tilt(self):
+        return round(np.arctan2(self._sin_y, self._cos_y), 10)
+
+    @tilt.setter   # This assumes jaw_U remains fixed (hence jaw_D changes)
+    def tilt(self, val):
+        if self.side == 'left':
+            if val < min(0, self.bending_angle/2):
+                print("Warning: Setting a negative tilt does not preserve the hierarchy, as the "
+                    + "crystal tightens towards the beam.")
+        elif self.side == 'right':
+            if val > min(0, -self.bending_angle/2):
+                print("Warning: Setting a positive tilt does not preserve the hierarchy, as the "
+                    + "crystal tightens towards the beam.")
+        self._sin_y = np.sin(val)
+        self._cos_y = np.cos(val)
+        self._tan_y = np.tan(val)
+
+
+    # Optics
+    # ======
+
+    @property
+    def optics(self):
+        return self._optics
+
+    def optics_ready(self):
+        return BaseCollimator.optics_ready(self)
+
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
+                      twiss_upstream=None, twiss_downstream=None):
+        return BaseCollimator.assign_optics(self, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                                            beta_gamma_rel=beta_gamma_rel, name=name, twiss=twiss,
+                                            twiss_upstream=twiss_upstream, twiss_downstream=twiss_downstream)
+
+    @property
+    def nemitt_x(self):
+        return BaseCollimator.nemitt_x.fget(self)
+
+    @nemitt_x.setter
+    def nemitt_x(self, val):
+        BaseCollimator.nemitt_x.fset(self, val)
+
+    @property
+    def nemitt_y(self):
+        return BaseCollimator.nemitt_y.fget(self)
+
+    @nemitt_y.setter
+    def nemitt_y(self, val):
+        BaseCollimator.nemitt_y.fset(self, val)
+
+    @property
+    def emittance(self):
+        return BaseCollimator.emittance.fget(self)
+
+    @emittance.setter
+    def emittance(self, val):
+        BaseCollimator.emittance.fset(self, val)
+
+    @property
+    def sigma(self):
+        return BaseCollimator.sigma.fget(self)
+
+    @property
+    def co(self):
+        return BaseCollimator.co.fget(self)
+
+    @property
+    def divergence(self):
+        return BaseCollimator.divergence.fget(self)
+
+    @property
+    def align(self):
+        return BaseCollimator.align.fget(self)
+
+    @align.setter
+    def align(self, val):
+        if val != 'upstream':
+            raise NotImplementedError("Crystals cannot be aligned to the downstream optics!")
+        BaseCollimator.align.fset(self, val)
+
+    def align_to_beam_divergence(self):
+        if not self.optics_ready():
+            raise ValueError("Optics not assigned! Cannot align to beam divergence.")
+        if self.gap is None:
+            raise ValueError("Need to set `gap` to align to beam divergence.")
+        self.tilt = self.divergence * self.gap
+
+
+    # Gap attributes
+    # ==============
+
+    @property
+    def gap(self):
+        if self.optics_ready() and self.jaw_U is not None:
+            return round((self.jaw_U - self.co[0])/self.sigma[0], 6)
+        elif not self._gap_set_manually():
+            return None
+        else:
+            return self._gap
+
+    @gap.setter
+    def gap(self, val):
+        if val is None:
+            val = self._side*OPEN_GAP
+            self.jaw = None
+        if val <= 0:
+            raise ValueError(f"The field `gap` should be positive, but got {val}.")
+        self._gap = val
+        self._apply_optics()
+
+    def _gap_set_manually(self):
+        return not np.isclose(self._gap, self._side*OPEN_GAP)
+
+    def _apply_optics(self):
+        if self.optics_ready():
+            # Only if we have set a value for the gap manually, this needs to be updated
+            if self._gap_set_manually():
+                self.jaw_U = self._gap * self.sigma[0] + self.co[0]
+
+
+    # Other attributes
+    # ================
 
     @property
     def bending_radius(self):
@@ -983,8 +1269,11 @@ class BaseCrystal(BaseCollimator):
 
     @bending_radius.setter
     def bending_radius(self, bending_radius):
+        bending_angle = np.arcsin(self.length/bending_radius)
+        if abs(bending_angle) > np.pi/2:
+            raise ValueError("Bending angle cannot be larger than 90 degrees!")
         self._bending_radius = bending_radius
-        self._bending_angle = np.arcsin(self.length/bending_radius)
+        self._bending_angle = bending_angle
 
     @property
     def bending_angle(self):
@@ -992,27 +1281,48 @@ class BaseCrystal(BaseCollimator):
 
     @bending_angle.setter
     def bending_angle(self, bending_angle):
+        if abs(bending_angle) > np.pi/2:
+            raise ValueError("Bending angle cannot be larger than 90 degrees!")
         self._bending_angle = bending_angle
         self._bending_radius = self.length / np.sin(bending_angle)
 
-    @BaseCollimator.side.setter
+    @property
+    def side(self):
+        return BaseCollimator.side.fget(self)
+
+    @side.setter
     def side(self, val):
         temp = self._side
         BaseCollimator.side.fset(self, val)
         if self._side == 0:
             self._side = temp
-            raise ValueError("BaseCrystal cannot be two-sided! Please set `side` "
+            raise ValueError("Crystal cannot be two-sided! Please set `side` "
                            + "to 'left' or 'right'.")
 
-    def align_to_beam_divergence(self):
-        if not self.optics_ready():
-            raise ValueError("Optics not assigned! Cannot align to beam divergence.")
-        if self.side == 'left':
-            if self.gap_L is None:
-                raise ValueError("Need to set `gap_L` to align to beam divergence.")
-            self.tilt_L = self.divergence * self.gap_L
-        if self.side == 'right':
-            if self.gap_R is None:
-                raise ValueError("Need to set `gap_R` to align to beam divergence.")
-            self.tilt_R = self.divergence * self.gap_R
+
+    # Methods
+    # =======
+
+    def enable_scattering(self):
+        BaseCollimator.enable_scattering(self)
+
+    def disable_scattering(self):
+        BaseCollimator.disable_scattering(self)
+
+    def _verify_consistency(self):
+        # Verify angles
+        ang = abs(np.arccos(self._cos_z))
+        ang = np.pi - ang if ang > np.pi/2 else ang
+        assert np.isclose(ang, abs(np.arcsin(self._sin_z)))
+        ang = abs(np.arccos(self._cos_y))
+        ang = np.pi - ang if ang > np.pi/2 else ang
+        assert np.isclose(ang, abs(np.arcsin(self._sin_y)))
+        assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
+        # Verify bools
+        assert self._side in [-1, 1, 0]
+        assert isinstance(self.active, bool) or self.active in [0, 1]
+        assert isinstance(self.record_touches, bool) or self.record_touches in [0, 1]
+        assert isinstance(self.record_scatterings, bool) or self.record_scatterings in [0, 1]
+        # Crystal specific
+        assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 
