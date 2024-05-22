@@ -23,7 +23,7 @@ from ..general import _pkg_root
 
 
 class EverestBlock(BaseBlock):
-    _xofields = { **BaseBlock._xofields,
+    _xofields = {**BaseBlock._xofields,
         '_material':        Material,
         'rutherford_rng':   xt.RandomRutherford,
         '_tracking':        xo.Int8
@@ -87,7 +87,7 @@ class EverestBlock(BaseBlock):
 
 
 class EverestCollimator(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
+    _xofields = {**BaseCollimator._xofields,
         '_material':        Material,
         'rutherford_rng':   xt.RandomRutherford,
         '_tracking':        xo.Int8
@@ -151,7 +151,7 @@ class EverestCollimator(BaseCollimator):
 
 
 class EverestCrystal(BaseCrystal):
-    _xofields = { **BaseCrystal._xofields,
+    _xofields = {**BaseCrystal._xofields,
         'miscut':             xo.Float64,
         '_orient':            xo.Int8,
         '_critical_angle':    xo.Float64,

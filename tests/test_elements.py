@@ -170,20 +170,68 @@ base_user_fields = {
 }
 base_user_fields_read_only = []
 
-base_crystal_fields = {**base_fields,
+# BaseCrystal
+
+base_crystal_fields = {
+    'length':  1.3,
+    '_jaw_U': 0.01544,
+    '_sin_z': np.sin(137.8*np.pi/180),
+    '_cos_z': np.cos(137.8*np.pi/180),
+    '_sin_y': -0.00022/1.3,
+    '_cos_y': np.sqrt(1. - 0.00022**2/1.3**2),
+    '_tan_y': -0.00022/1.3/np.sqrt(1. - 0.00022**2/1.3**2),
+    '_side':  1,
+    'active': 1,
+    'record_touches':     0,
+    'record_scatterings': 0,
+    '_align': 0,
+    '_gap':   3,
+    '_nemitt_x': 3.5e-6,
+    '_nemitt_y': 2.5e-6,
     '_bending_radius':  12,
     '_bending_angle':   0.10854636232780158,
     'width':            0.05,
     'height':           0.02
 }
-base_crystal_dict_fields = {**base_dict_fields,
+base_crystal_dict_fields = {
+    'angle': [
+        {'val':  40,      'expected': {'_sin_z': np.sin(40*np.pi/180), '_cos_z': np.cos(40*np.pi/180)}}],
+    'jaw': [
+        {'val':  0.015,   'expected': {'jaw': 0.015, 'jaw_U': 0.015, 'jaw_D': 0.08540449144429954}}],
+    'tilt': [
+        {'val':  5.2e-3,  'expected': {'_sin_y': np.sin(5.2e-3), '_cos_y': np.cos(5.2e-3), '_tan_y': np.tan(5.2e-3),
+                                       'jaw_U': 0.015,  'jaw_D': 0.09238350714959694}}],
+    'gap': [
+        {'val':  5,       'expected': {'gap': 5, '_gap': 5}}],
+    'side': [
+        {'val':  'left',  'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+        {'val':  'right', 'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
+        {'val':  'L',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+        {'val':  'R',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
+        {'val':  '+',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+        {'val':  '-',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}}],
     'bending_radius': [
-        {'val':  47,        'expected': {'_bending_radius': 47, '_bending_angle': 0.027663102518570612}}],
+        {'val':  47,        'expected': {'_bending_radius': 47.0, '_bending_angle': 0.027663102518570612,
+                                         'jaw_U': 0.015,  'jaw_D': 0.039715568642416266}}],
     'bending_angle': [
-        {'val':  0.07,      'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07}}]
+        {'val':  0.07,      'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07,
+                                         'jaw_U': 0.015,  'jaw_D': 0.06713730900985289}}]
 }
-base_crystal_user_fields = base_user_fields
-base_crystal_user_fields_read_only = base_user_fields_read_only
+base_crystal_user_fields = {
+    'jaw_U':   [{'val':  0.013,  'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}}],
+    'align': [
+        {'val':  'upstream',   'expected': {'_align': 0, 'align': 'upstream'}}],
+    'emittance': [
+        {'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
+        {'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
+        {'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
+        {'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6, 'nemitt_y': 2.5e-6}}],
+    'nemitt_x': [
+        {'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6, 'nemitt_y': 2.5e-6}}],
+    'nemitt_y': [
+        {'val':  1.5e-6,           'expected': {'emittance': 1.5e-6, 'nemitt_x': 1.5e-6, 'nemitt_y': 1.5e-6}}]
+}
+base_crystal_user_fields_read_only = []
 
 
 # BlackAbsorber
@@ -214,13 +262,17 @@ everest_user_fields_read_only = base_user_fields_read_only
 
 # EverestCrystal
 
-everest_crystal_fields = {**everest_fields,
+everest_crystal_fields = {**base_crystal_fields,
     'miscut':            1.2e-6,
-    '_orient':           2
+    '_orient':           2,
+    '_critical_angle':   1.3e-6,
+    '_material':         xc.materials.TungstenCrystal,
+    'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
+    '_tracking':         False
 }
-everest_crystal_fields['_material'] = xc.materials.TungstenCrystal  # needs to be a CrystalMaterial, else it will fail
 
-everest_crystal_dict_fields = {**everest_dict_fields,
+everest_crystal_dict_fields = {**base_crystal_dict_fields,
+    'material':          [{'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}}],
     'lattice': [
         {'val': 'strip',             'expected': {'_orient': 1}},
         {'val': '110',               'expected': {'_orient': 1}},
@@ -229,37 +281,9 @@ everest_crystal_dict_fields = {**everest_dict_fields,
         {'val': '111',               'expected': {'_orient': 2}},
         {'val': 111,                 'expected': {'_orient': 2}}]
 }
-everest_crystal_dict_fields['material'] = [
-    {'val': xc.materials.TungstenCrystal, 'expected': {'_material': xc.materials.TungstenCrystal}}]
-everest_crystal_user_fields = everest_user_fields
-everest_crystal_user_fields_read_only = everest_user_fields_read_only
+everest_crystal_user_fields = base_crystal_user_fields
+everest_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
-
-def remove_one_side_from_dict(dct, remove_side='L'):
-    result = {}
-    for key, val in dct.items():
-        if remove_side not in key and key != 'side':
-            this_list = []
-            for v in val:
-                this_dict = {}
-                for kk, vv in v['expected'].items():
-                    if remove_side not in kk and kk != 'gap' and kk != 'jaw'\
-                    and kk != 'emittance':
-                        if hasattr(vv, '__iter__') and len(vv) == 2:
-                                this_dict[kk] = vv[1] if remove_side=='L' else vv[0]
-                        else:
-                            this_dict[kk] = vv
-                this_val = v['val']
-                # Hack to work with adapted jaw/gap for single-sided
-                if (key == 'jaw' or key == 'gap') and remove_side == 'L':
-                    if hasattr(this_val, '__iter__'):
-                        if len(this_val) == 1:
-                            this_val = [-this_val[0]]
-                    else:
-                        this_val = -this_val
-                this_list.append({'val': this_val, 'expected': this_dict})
-            result[key] = this_list
-    return result
 
 def assert_all_close(expected, setval):
     if hasattr(expected, 'to_dict'):
@@ -327,7 +351,7 @@ def test_black_crystal(test_context):
     # Test existence of fields
     assert np.all([key in dir(elem) for key in black_crystal_fields])
     elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = -5
+    elem.gap = 5
     assert np.all([key in elem.to_dict() for key in black_crystal_dict_fields])
     elem.jaw = 1
     elem.gap = None
@@ -345,22 +369,16 @@ def test_black_crystal(test_context):
         assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    for side in ['+', '-']:
-        elem.side = side
-        remove = 'R' if side == '+' else 'L'
-        this_dict = remove_one_side_from_dict({**black_crystal_dict_fields,
-                            **black_crystal_user_fields}, remove_side=remove)
-        # print(this_dict)
-        for field, vals in this_dict.items():
-            print(f"Writing field {field}...")
-            # print(elem.
-            # print(elem.to_dict())
-            for val in vals:
-                setattr(elem, field, val['val'])
-                for basefield, expected in val['expected'].items():
-                    setval = getattr(elem, basefield)
-                    print(f"{basefield=}   {expected=}   {setval=}")
-                    assert_all_close(expected, setval)
+    for field, vals in {**black_crystal_dict_fields, **black_crystal_user_fields}.items():
+        print(f"Writing field {field}...")
+        # print(elem.
+        # print(elem.to_dict())
+        for val in vals:
+            setattr(elem, field, val['val'])
+            for basefield, expected in val['expected'].items():
+                setval = getattr(elem, basefield)
+                print(f"{basefield=}   {expected=}   {setval=}")
+                assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in black_crystal_user_fields_read_only:
@@ -443,7 +461,7 @@ def test_everest_crystal(test_context):
     # Test existence of fields
     assert np.all([key in dir(elem) for key in everest_crystal_fields])
     elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = -5
+    elem.gap = 5
     assert np.all([key in elem.to_dict() for key in everest_crystal_dict_fields])
     elem.jaw = 1
     elem.gap = None
@@ -461,22 +479,17 @@ def test_everest_crystal(test_context):
         assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    for side in ['+', '-']:
-        elem.side = side
-        remove = 'R' if side == '+' else 'L'
-        this_dict = remove_one_side_from_dict({**everest_crystal_dict_fields,
-                            **everest_crystal_user_fields}, remove_side=remove)
-        # print(this_dict)
-        for field, vals in this_dict.items():
-            print(f"Writing field {field}...")
-            # print(elem.
-            # print(elem.to_dict())
-            for val in vals:
-                setattr(elem, field, val['val'])
-                for basefield, expected in val['expected'].items():
-                    setval = getattr(elem, basefield)
-                    print(f"{basefield=}   {expected=}   {setval=}")
-                    assert_all_close(expected, setval)
+    # print(this_dict)
+    for field, vals in {**everest_crystal_dict_fields, **everest_crystal_user_fields}.items():
+        print(f"Writing field {field}...")
+        # print(elem.
+        # print(elem.to_dict())
+        for val in vals:
+            setattr(elem, field, val['val'])
+            for basefield, expected in val['expected'].items():
+                setval = getattr(elem, basefield)
+                print(f"{basefield=}   {expected=}   {setval=}")
+                assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
     for field in everest_crystal_user_fields_read_only:
