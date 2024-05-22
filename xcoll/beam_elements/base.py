@@ -990,7 +990,7 @@ class BaseCrystal(BaseBlock):
         to_assign = {}
         if '_xobject' not in kwargs:
             # Set side
-            to_assign['side'] = kwargs.pop('side', 'both')
+            to_assign['side'] = kwargs.pop('side', 'left')
 
             # Set angle
             to_assign['angle'] = kwargs.pop('angle', 0)
@@ -1037,12 +1037,12 @@ class BaseCrystal(BaseBlock):
             kwargs.setdefault('record_scatterings', False)
 
             # Set crystal specific
-            if 'bending_radius' in kwargs:
-                if 'bending_angle' in kwargs:
+            if 'bending_angle' in kwargs:
+                if 'bending_radius' in kwargs:
                     raise ValueError("Need to choose between 'bending_radius' and 'bending_angle'!")
-                to_assign['bending_radius'] = kwargs.pop('bending_radius')
-            elif 'bending_angle' in kwargs:
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
+            else:
+                to_assign['bending_radius'] = kwargs.pop('bending_radius', 1)
             kwargs.setdefault('width', 0)
             kwargs.setdefault('height', 0)
 
@@ -1240,10 +1240,11 @@ class BaseCrystal(BaseBlock):
         else:
             return self._gap
 
+    # Gap is always positive, irrespective of the side
     @gap.setter
     def gap(self, val):
         if val is None:
-            val = self._side*OPEN_GAP
+            val = OPEN_GAP
             self.jaw = None
         if val <= 0:
             raise ValueError(f"The field `gap` should be positive, but got {val}.")
@@ -1251,7 +1252,7 @@ class BaseCrystal(BaseBlock):
         self._apply_optics()
 
     def _gap_set_manually(self):
-        return not np.isclose(self._gap, self._side*OPEN_GAP)
+        return not np.isclose(self._gap, OPEN_GAP)
 
     def _apply_optics(self):
         if self.optics_ready():
