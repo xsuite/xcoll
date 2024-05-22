@@ -13,6 +13,8 @@ import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
 
+n_part = int(2.e6)
+
 @for_all_test_contexts
 def test_horizontal_parallel(test_context):
     jaw_L, jaw_R, _, _, L, coll = _make_absorber(_context=test_context)
@@ -301,7 +303,6 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
     if _context is None:
         _context = xo.ContextCpu()
     # Make particles
-    n_part = 50000
     x = np.random.uniform(-0.1, 0.1, n_part)
     y = np.random.uniform(-0.1, 0.1, n_part)
     if four_dim:
@@ -326,7 +327,6 @@ def _generate_particles(four_dim=False, angle=0, _context=None):
                         ['+', 1], ['-', 1], ['+', -1], ['-', -1]]
                         , ids=["L R>0", "R R>0", "L R<0", "R R<0"])
 def test_black_crystal(side, sign_R, test_context):
-    n_part = int(2.e5)
     ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
     x = np.random.uniform(-1, 1, n_part)
     px = np.random.uniform(-1, 1, n_part)
@@ -366,8 +366,8 @@ def test_black_crystal(side, sign_R, test_context):
             assert np.allclose(part.s[mask_alive], length+1)
 
             # Rotate particles to tilted frame
-            part_s =  (part.s - length/2) * np.cos(np.deg2rad(tilt)) + (part.x - x_BU) * np.sin(np.deg2rad(tilt)) + length/2
-            part_x = -(part.s - length/2) * np.sin(np.deg2rad(tilt)) + (part.x - x_BU)  * np.cos(np.deg2rad(tilt)) + x_BU
+            part_s =  part.s * np.cos(np.deg2rad(tilt)) + (part.x - x_BU) * np.sin(np.deg2rad(tilt))
+            part_x = -part.s * np.sin(np.deg2rad(tilt)) + (part.x - x_BU)  * np.cos(np.deg2rad(tilt)) + x_BU
 
             mask_not_end = part.s < length+1
             mask_height = (part.y < height/2) & (part.y > -height/2)

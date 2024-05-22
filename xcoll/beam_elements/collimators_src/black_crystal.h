@@ -12,29 +12,24 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
         cg->length = BlackCrystalData_get_length(el);
-        cg->side = BlackCrystalData_get__side(el);
+        cg->side   = BlackCrystalData_get__side(el);
         cg->bending_radius = BlackCrystalData_get__bending_radius(el);
-        cg->bending_angle = BlackCrystalData_get__bending_angle(el);
-        cg->width = BlackCrystalData_get_width(el);
+        cg->bending_angle  = BlackCrystalData_get__bending_angle(el);
+        cg->width  = BlackCrystalData_get_width(el);
         cg->height = BlackCrystalData_get_height(el);
+        cg->jaw_U  = BlackCrystalData_get__jaw_U(el);
+        cg->sin_z  = BlackCrystalData_get__sin_z(el);
+        cg->cos_z  = BlackCrystalData_get__cos_z(el);
+        cg->sin_y  = BlackCrystalData_get__sin_y(el);
+        cg->cos_y  = BlackCrystalData_get__cos_y(el);
         double jaw;
         if (cg->side == 1){
-            cg->jaw_U = BlackCrystalData_get__jaw_LU(el);
-            cg->sin_z = BlackCrystalData_get__sin_zL(el);
-            cg->cos_z = BlackCrystalData_get__cos_zL(el);
-            cg->sin_y = BlackCrystalData_get__sin_yL(el);
-            cg->cos_y = BlackCrystalData_get__cos_yL(el);
             jaw = cg->jaw_U;
-        }
-        if (cg->side == -1){
-            cg->jaw_U = BlackCrystalData_get__jaw_RU(el);
-            cg->sin_z = BlackCrystalData_get__sin_zR(el);
-            cg->cos_z = BlackCrystalData_get__cos_zR(el);
-            cg->sin_y = BlackCrystalData_get__sin_yR(el);
-            cg->cos_y = BlackCrystalData_get__cos_yR(el);
-            // The function create_crystal expects jaw to be the position of the lower left corner.
-            // Hence, we need to shift the jaw position by the width of the crystal.
-            jaw = cg->jaw_U - cg->width;
+        } else if (cg->side == -1){
+            jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
+        } else {
+            kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+            return cg;
         }
         cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
         // Impact table
