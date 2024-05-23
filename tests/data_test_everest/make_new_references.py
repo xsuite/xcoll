@@ -35,7 +35,6 @@ def _make_collimator_ref(name):
 
 
 for coll in collimators:
-    if coll.startswith('tcpc'):
-        _make_collimator_ref(coll)
+    _make_collimator_ref(coll)
 
 
