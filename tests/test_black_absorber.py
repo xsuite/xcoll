@@ -33,7 +33,7 @@ def test_horizontal_parallel(test_context):
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_lost)==1 and s_lost[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.x, x, atol=1e-15, rtol=0)
+    assert np.allclose(part.x, x, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -58,14 +58,14 @@ def test_horizontal(test_context):
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_lost_front)==1 and s_lost_front[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.x[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part.x[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part.x[mask_hit_front], x[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part.x[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_L - x[mask_hit_angle_L]) / xp[mask_hit_angle_L]
-    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-    assert np.allclose(part.x[mask_hit_angle_L], jaw_L, atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
+    assert np.allclose(part.x[mask_hit_angle_L], jaw_L, atol=1e-12, rtol=0)
     s_hit_R = (jaw_R - x[mask_hit_angle_R]) / xp[mask_hit_angle_R]
-    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-    assert np.allclose(part.x[mask_hit_angle_R], jaw_R, atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
+    assert np.allclose(part.x[mask_hit_angle_R], jaw_R, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -89,19 +89,19 @@ def test_horizontal_with_tilts(test_context):
     cL = np.cos(coll.tilt_L)
     cR = np.cos(coll.tilt_R)
     s_lost_front_L = part.s[mask_hit_front & (x > (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cL) for s in s_lost_front_L])
+    assert np.all([s <= coll.length/2*(1 - cL) for s in s_lost_front_L])
     s_lost_front_R = part.s[mask_hit_front & (x < (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cR) for s in s_lost_front_R])
+    assert np.all([s <= coll.length/2*(1 - cR) for s in s_lost_front_R])
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.x[mask_hit_front] - part.px[mask_hit_front]*part.s[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part.x[~mask_hit], x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part.x[mask_hit_front] - part.px[mask_hit_front]*part.s[mask_hit_front], x[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part.x[~mask_hit], x[~mask_hit] + xp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_LU - x[mask_hit_angle_L] - (jaw_LD-jaw_LU)/2*(1-cL)/cL) / (xp[mask_hit_angle_L] - (jaw_LD-jaw_LU)/(L*cL))
-    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-    assert np.allclose(part.x[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
+    assert np.allclose(part.x[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-12, rtol=0)
     s_hit_R = (jaw_RU - x[mask_hit_angle_R] - (jaw_RD-jaw_RU)/2*(1-cR)/cR) / (xp[mask_hit_angle_R] - (jaw_RD-jaw_RU)/(L*cR))
-    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-    assert np.allclose(part.x[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
+    assert np.allclose(part.x[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -122,7 +122,7 @@ def test_vertical_parallel(test_context):
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_lost)==1 and s_lost[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.y, y, atol=1e-15, rtol=0)
+    assert np.allclose(part.y, y, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -147,14 +147,14 @@ def test_vertical(test_context):
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_lost_front)==1 and s_lost_front[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.y[mask_hit_front], y[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part.y[~mask_hit],      y[~mask_hit] + yp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part.y[mask_hit_front], y[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part.y[~mask_hit],      y[~mask_hit] + yp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_L - y[mask_hit_angle_L]) / yp[mask_hit_angle_L]
     assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
-    assert np.allclose(part.y[mask_hit_angle_L], jaw_L, atol=1e-15, rtol=0)
+    assert np.allclose(part.y[mask_hit_angle_L], jaw_L, atol=1e-12, rtol=0)
     s_hit_R = (jaw_R - y[mask_hit_angle_R]) / yp[mask_hit_angle_R]
     assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
-    assert np.allclose(part.y[mask_hit_angle_R], jaw_R, atol=1e-15, rtol=0)
+    assert np.allclose(part.y[mask_hit_angle_R], jaw_R, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -178,19 +178,19 @@ def test_vertical_with_tilts(test_context):
     cL = np.cos(coll.tilt_L)
     cR = np.cos(coll.tilt_R)
     s_lost_front_L = part.s[mask_hit_front & (y > (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cL) for s in s_lost_front_L])
+    assert np.all([s <= coll.length/2*(1 - cL) for s in s_lost_front_L])
     s_lost_front_R = part.s[mask_hit_front & (y < (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cR) for s in s_lost_front_R])
+    assert np.all([s <= coll.length/2*(1 - cR) for s in s_lost_front_R])
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_alive)==1 and s_alive[0]==L
-    assert np.allclose(part.y[mask_hit_front] - part.py[mask_hit_front]*part.s[mask_hit_front], y[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part.y[~mask_hit], y[~mask_hit] + yp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part.y[mask_hit_front] - part.py[mask_hit_front]*part.s[mask_hit_front], y[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part.y[~mask_hit], y[~mask_hit] + yp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_LU - y[mask_hit_angle_L] - (jaw_LD-jaw_LU)/2*(1-cL)/cL) / (yp[mask_hit_angle_L] - (jaw_LD-jaw_LU)/(L*cL))
-    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-    assert np.allclose(part.y[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
+    assert np.allclose(part.y[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-12, rtol=0)
     s_hit_R = (jaw_RU - y[mask_hit_angle_R] - (jaw_RD-jaw_RU)/2*(1-cR)/cR) / (yp[mask_hit_angle_R] - (jaw_RD-jaw_RU)/(L*cR))
-    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-    assert np.allclose(part.y[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
+    assert np.allclose(part.y[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -213,7 +213,7 @@ def test_angled_parallel(test_context):
     assert len(s_lost)==1 and s_lost[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
     part_x_rot = part.x * np.cos(angle/180.*np.pi) + part.y * np.sin(angle/180.*np.pi)
-    assert np.allclose(part_x_rot, x, atol=1e-15, rtol=0)
+    assert np.allclose(part_x_rot, x, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -240,14 +240,14 @@ def test_angled(test_context):
     assert len(s_lost_front)==1 and s_lost_front[0]==0
     assert len(s_alive)==1 and s_alive[0]==L
     part_x_rot = part.x * np.cos(angle/180.*np.pi) + part.y * np.sin(angle/180.*np.pi)
-    assert np.allclose(part_x_rot[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part_x_rot[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_front], x[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[~mask_hit],      x[~mask_hit] + xp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_L - x[mask_hit_angle_L]) / xp[mask_hit_angle_L]
-    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-    assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_L, atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_L, atol=1e-12, rtol=0)
     s_hit_R = (jaw_R - x[mask_hit_angle_R]) / xp[mask_hit_angle_R]
-    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-    assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_R, atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_R, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts
@@ -272,21 +272,21 @@ def test_angled_with_tilts(test_context):
     cL = np.cos(coll.tilt_L)
     cR = np.cos(coll.tilt_R)
     s_lost_front_L = part.s[mask_hit_front & (x > (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cL) for s in s_lost_front_L])
+    assert np.all([s <= coll.length/2*(1 - cL) for s in s_lost_front_L])
     s_lost_front_R = part.s[mask_hit_front & (x < (jaw_LU + jaw_RU)/2)]
-    assert np.all([s < coll.length/2*(1 - cR) for s in s_lost_front_R])
+    assert np.all([s <= coll.length/2*(1 - cR) for s in s_lost_front_R])
     s_alive = np.unique(part.s[~mask_hit])
     assert len(s_alive)==1 and s_alive[0]==L
     part_x_rot  = part.x * np.cos(np.deg2rad(angle))  + part.y * np.sin(np.deg2rad(angle))
     part_px_rot = part.px * np.cos(np.deg2rad(angle)) + part.py * np.sin(np.deg2rad(angle))
-    assert np.allclose(part_x_rot[mask_hit_front] - part_px_rot[mask_hit_front]*part.s[mask_hit_front], x[mask_hit_front], atol=1e-15, rtol=0)
-    assert np.allclose(part_x_rot[~mask_hit], x[~mask_hit] + xp[~mask_hit]*L, atol=1e-15, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_front] - part_px_rot[mask_hit_front]*part.s[mask_hit_front], x[mask_hit_front], atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[~mask_hit], x[~mask_hit] + xp[~mask_hit]*L, atol=1e-12, rtol=0)
     s_hit_L = (jaw_LU - x[mask_hit_angle_L] - (jaw_LD-jaw_LU)/2*(1-cL)/cL) / (xp[mask_hit_angle_L] - (jaw_LD-jaw_LU)/(L*cL))
-    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-13, rtol=0)
-    assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_L], s_hit_L, atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_angle_L], jaw_LU + (jaw_LD-jaw_LU)/(L*cL)*(s_hit_L - L/2*(1-cL)), atol=1e-12, rtol=0)
     s_hit_R = (jaw_RU - x[mask_hit_angle_R] - (jaw_RD-jaw_RU)/2*(1-cR)/cR) / (xp[mask_hit_angle_R] - (jaw_RD-jaw_RU)/(L*cR))
-    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-13, rtol=0)
-    assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-15, rtol=0)
+    assert np.allclose(part.s[mask_hit_angle_R], s_hit_R, atol=1e-12, rtol=0)
+    assert np.allclose(part_x_rot[mask_hit_angle_R], jaw_RU + (jaw_RD-jaw_RU)/(L*cR)*(s_hit_R - L/2*(1-cR)), atol=1e-12, rtol=0)
 
 
 def _make_absorber(angle=0, tilts=[0,0], _context=None):

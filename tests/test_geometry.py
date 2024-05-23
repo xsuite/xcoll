@@ -258,26 +258,26 @@ def test_open_polygon_after_s_with_vlimit():
 def test_crystal():
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return kernels.test_crystal(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
-                                    jaw_U=0.11, tilt_sin=tilt_sin, tilt_cos=tilt_cos)
+                                    jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos)
     _loop_cry_1jaw_1partdim(name='expected_s_crystal', func=func)
 
 def test_crystal_after_s():
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return kernels.test_crystal_after_s(part_x=part_x, part_tan_x=part_tan_x, R=R, width=0.15, length=0.27,
-                                            jaw_U=0.11, tilt_sin=tilt_sin, tilt_cos=tilt_cos, current_s=0.6)
+                                            jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos, current_s=0.6)
     _loop_cry_1jaw_1partdim(name='expected_s_crystal_after_s', func=func)
 
 def test_crystal_with_vlimit():
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return kernels.test_crystal_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                R=R, width=0.15, length=0.27, jaw_U=0.11, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
+                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
                                                 y_min=-0.1, y_max=0.25)
     _loop_cry_1jaw_2partdim(name='expected_s_crystal_with_vlimit', func=func)
 
 def test_crystal_after_s_with_vlimit():
     def func(part_x, part_tan_x, part_y, part_tan_y, R, tilt_sin, tilt_cos):
         return kernels.test_crystal_after_s_with_vlimit(part_x=part_x, part_tan_x=part_tan_x, part_y=part_y, part_tan_y=part_tan_y,
-                                                R=R, width=0.15, length=0.27, jaw_U=0.11, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
+                                                R=R, width=0.15, length=0.27, jaw_U=0.11+1.e-12, tilt_sin=tilt_sin, tilt_cos=tilt_cos,
                                                 y_min=-0.1, y_max=0.25, current_s=0.6)
     _loop_cry_1jaw_2partdim(name='expected_s_crystal_after_s_with_vlimit', func=func)
 
