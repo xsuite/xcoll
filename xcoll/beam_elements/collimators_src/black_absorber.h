@@ -57,7 +57,7 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
 }
 
 /*gpufun*/
-void BlackAbsorber_free(CollimatorGeometry cg, int8_t active){
+void BlackAbsorber_free(CollimatorGeometry restrict cg, int8_t active){
     if (active){
         if (cg->side != -1){
             destroy_jaw(cg->segments_L);

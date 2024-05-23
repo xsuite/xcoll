@@ -6,6 +6,7 @@
 import xtrack as xt
 import xobjects as xo
 from .base import BaseCollimator, BaseCrystal, InvalidXcoll
+from ..scattering_routines.geometry import XcollGeometry
 from ..general import _pkg_root
 
 
@@ -14,16 +15,16 @@ class BlackAbsorber(BaseCollimator):
         '_tracking':        xo.Int8
     }
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','black_absorber.h')
-    ]
-
     isthick = True
     allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _depends_on = [BaseCollimator, xt.Drift, xt.SRotation, xt.XYShift]
+    _depends_on = [BaseCollimator, XcollGeometry]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','black_absorber.h')
+    ]
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
@@ -45,16 +46,16 @@ class BlackCrystal(BaseCrystal):
         '_tracking':        xo.Int8
     }
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','black_crystal.h')
-    ]
-
     isthick = True
     allow_track = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _depends_on = [BaseCrystal, xt.Drift, xt.SRotation, xt.XYShift]
+    _depends_on = [BaseCrystal, XcollGeometry]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','collimators_src','black_crystal.h')
+    ]
 
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
     _store_in_to_dict      = BaseCrystal._store_in_to_dict

@@ -4,7 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
-from xcoll import _pkg_root
+import xtrack as xt
 from xcoll.scattering_routines.geometry import XcollGeometry
 
 
@@ -124,9 +124,10 @@ def mult_kernels(kernel_dct):
         new_kernel_dct[new_name] = xo.Kernel(c_name=new_name, args=new_args, ret=ker.ret)
     return new_kernel_dct
 
-
-class XcollGeometryTest(xo.HybridClass):
+class XcollGeometryTest(xt.BeamElement):
     _xofields = {}
+
+    allow_track = False
 
     _depends_on = [XcollGeometry]
 

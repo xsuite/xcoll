@@ -66,7 +66,7 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
 }
 
 /*gpufun*/
-void EverestCollimator_free(CollimatorGeometry cg, int8_t active){
+void EverestCollimator_free(CollimatorGeometry restrict cg, int8_t active){
     if (active){
         if (cg->side != -1){
             destroy_jaw(cg->segments_L);

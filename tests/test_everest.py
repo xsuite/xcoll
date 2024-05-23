@@ -180,22 +180,23 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, at
     assert np.allclose(part.py[part.state>0],    part_ref.py[part_ref.state>0], atol=atolpy, rtol=0)
     assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
     assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
-#     for p, pref in zip(part.x[part.state>0],     part_ref.x[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atolx, rtol=0):
-#             print(f"x    : {abs(p-pref):.12}")
-#     for p, pref in zip(part.y[part.state>0],     part_ref.y[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atoly, rtol=0):
-#             print(f"y    : {abs(p-pref):.12}")
-#     for p, pref in zip(part.px[part.state>0],    part_ref.px[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atolpx, rtol=0):
-#             print(f"px   : {abs(p-pref):.12}")
-#     for p, pref in zip(part.py[part.state>0],    part_ref.py[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atolpy, rtol=0):
-#             print(f"py   : {abs(p-pref):.12}")
-#     for p, pref in zip(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atolz, rtol=0):
-#             print(f"zeta : {abs(p-pref):.12}")
-#     for p, pref in zip(part.delta[part.state>0], part_ref.delta[part_ref.state>0]):
-#         if not np.allclose(p, pref, atol=atold, rtol=0):
-#             print(f"delta: {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.x[part.state>0],     part_ref.x[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atolx, rtol=0):
+    #         print(f"{pid}   x    : {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.y[part.state>0],     part_ref.y[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atoly, rtol=0):
+    #         print(f"{pid}   y    : {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.px[part.state>0],    part_ref.px[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atolpx, rtol=0):
+    #         print(f"{pid}   px   : {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.py[part.state>0],    part_ref.py[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atolpy, rtol=0):
+    #         print(f"{pid}   py   : {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atolz, rtol=0):
+    #         print(f"{pid}   zeta : {abs(p-pref):.12}")
+    # for p, pref, pid in zip(part.delta[part.state>0], part_ref.delta[part_ref.state>0], part.particle_id[part.state>0]):
+    #     if not np.allclose(p, pref, atol=atold, rtol=0):
+    #         print(f"{pid}   delta: {abs(p-pref):.12}")
+    # assert False
 

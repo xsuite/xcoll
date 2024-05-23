@@ -43,7 +43,7 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
-int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
+int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry restrict cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
@@ -143,7 +143,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
         LocalParticle_set_s(part, new_s);
         // Mirror x
         LocalParticle_scale_x(part, -1);
-        LocalParticle_scale_px(part, -1);
+#ifdef XCOLL_USE_EXACT
+        LocalParticle_scale_exact_xp(part, -1);
+#else
+        LocalParticle_scale_xp(part, -1);
+#endif
         if (cg->record_touches){
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
         }
@@ -161,7 +165,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry cg){
 
 
 /*gpufun*/
-void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry cg){
+void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
     if (is_hit == 1){
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yL));
@@ -185,7 +189,11 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
     } else if (is_hit == -1){
         // Mirror back
         LocalParticle_scale_x(part, -1);
-        LocalParticle_scale_px(part, -1);
+#ifdef XCOLL_USE_EXACT
+        LocalParticle_scale_exact_xp(part, -1);
+#else
+        LocalParticle_scale_xp(part, -1);
+#endif
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yR));
         LocalParticle_set_s(part, new_s);

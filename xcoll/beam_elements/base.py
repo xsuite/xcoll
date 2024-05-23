@@ -121,12 +121,7 @@ class BaseCollimator(BaseBlock):
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
-    _depends_on = [BaseBlock, xt.Drift, xt.XYShift, xt.SRotation, xt.YRotation, XcollGeometry] # TODO: check if those xtrack elements are needed here already
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
-        _pkg_root.joinpath('beam_elements','collimators_src','collimator_geometry.h')
-    ]
+    _depends_on = [BaseBlock]
 
     _internal_record_class = BaseBlock._internal_record_class
 
@@ -972,10 +967,6 @@ class BaseCrystal(BaseBlock):
                          'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','crystal_geometry.h')
-    ]
 
     _internal_record_class = BaseBlock._internal_record_class
 
