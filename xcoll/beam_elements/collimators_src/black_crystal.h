@@ -40,13 +40,18 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
             cg->record_index = InteractionRecordData_getp__index(cg->record);
             cg->record_touches = BlackCrystalData_get_record_touches(el);
         }
+        // Not needed, set to zero
+        cg->miscut_angle = 0;
+        cg->s_P = 0;
+        cg->x_P = 0;
+        cg->t_VImax = 0;
     }
 
     return cg;
 }
 
 /*gpufun*/
-void BlackCrystal_free(CrystalGeometry cg, int8_t active){
+void BlackCrystal_free(CrystalGeometry restrict cg, int8_t active){
     if (active){
         destroy_crystal(cg->segments);
     }

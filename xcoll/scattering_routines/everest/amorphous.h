@@ -96,10 +96,10 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     return pc;
 }
 
-double Channel(EverestData restrict everest, LocalParticle* part, double pc, double length);
+double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
 
 /*gpufun*/
-double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, double length) {
+double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
 
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
@@ -110,16 +110,16 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
 
-    calculate_initial_angle(everest, part);
+    calculate_initial_angle(everest, part, cg);
 
     // -----------------------------------------------
     // Calculate longitudinal position where we go out
     // -----------------------------------------------
     // Assumption: crystal bends away from beam (this does not work when crystal bends towards beam)
     // All s are absolute in the collimator frame
-    double R = everest->coll->bend_r;
-    double t = everest->coll->bend_ang;
-    double d = everest->coll->width;
+    double R = cg->bending_radius;
+    double t = cg->bending_angle;
+    double d = cg->width;
     double s  = LocalParticle_get_s(part);
     double x  = LocalParticle_get_x(part);
     double xp = LocalParticle_get_xp(part);
@@ -170,20 +170,20 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             // Volume Reflection
             volume_reflection(everest, part, 0);
             // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, pc, length - length_VI);
+            pc = Amorphous(everest, part, cg, pc, length - length_VI);
 
         } else {
             // Volume Capture
             if (sc) InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
             // We call the main Channel function for the leftover
-            pc = Channel(everest, part, pc, length - length_VI);
+            pc = Channel(everest, part, cg, pc, length - length_VI);
         }
 
 #ifdef XCOLL_TRANSITION
     } else if (length_VR_trans <= fmin(length_nucl, length_exit)){
         // Transition region between VR and AM for t_P < xp - tI < t_P + 2t_c
 #ifdef XCOLL_REFINE_ENERGY
-        calculate_critical_angle(everest, part, pc);
+        calculate_critical_angle(everest, part, cg, pc);
 #endif
         double xp_rel = xp - everest->t_I;
         double t_P = everest->t_P;
@@ -209,7 +209,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {
             // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, pc, length - length_nucl);
+            pc = Amorphous(everest, part, cg, pc, length - length_nucl);
         }
 
     } else {
@@ -223,7 +223,7 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, double pc, d
             // We drift until re-entry
             Drift_single_particle_4d(part, s4 - exit_point);
             // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, pc, length - length_exit - s4 + exit_point);
+            pc = Amorphous(everest, part, cg, pc, length - length_exit - s4 + exit_point);
         } else {
             // Drift leftover out of the crystal
             if (everest->coll->record_touches){

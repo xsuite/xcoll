@@ -22,8 +22,15 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
         cg->length = EverestCrystalData_get_length(el);
         cg->side   = EverestCrystalData_get__side(el);
-        cg->bending_radius = EverestCrystalData_get__bending_radius(el);
-        cg->bending_angle  = EverestCrystalData_get__bending_angle(el);
+        if (cg->side == 0){
+            kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+            return cg;
+        }
+        double R   = EverestCrystalData_get__bending_radius(el);
+        double t_R = EverestCrystalData_get__bending_angle(el);
+        cg->bending_radius = R;
+        cg->bending_angle  = t_R;
+        cg->miscut_angle   = EverestCrystalData_get_miscut(el);
         cg->width  = EverestCrystalData_get_width(el);
         cg->height = EverestCrystalData_get_height(el);
         cg->jaw_U  = EverestCrystalData_get__jaw_U(el);
@@ -31,16 +38,40 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         cg->cos_z  = EverestCrystalData_get__cos_z(el);
         cg->sin_y  = EverestCrystalData_get__sin_y(el);
         cg->cos_y  = EverestCrystalData_get__cos_y(el);
-        double jaw;
+        // Segments
         if (cg->side == 1){
-            jaw = cg->jaw_U;
+            cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U, \
+                                          cg->sin_y, cg->cos_y);
         } else if (cg->side == -1){
-            jaw = cg->jaw_U - cg->width;   // To ensure that jaw_U is the inner corner
-        } else {
-            kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
-            return cg;
+            // jaw_U is the inner corner (shifted if right-sided crystal)
+            cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
+                                          cg->sin_y, cg->cos_y);
         }
-        cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
+        // Miscut centre
+        cg->s_P = -R*sin(cg->miscut_angle);
+        cg->x_P = R*cos(cg->miscut_angle);
+        // Mirror the crystal geometry
+        if (cg->side == -1){
+            cg->bending_radius = -cg->bending_radius;
+            cg->bending_angle  = -cg->bending_angle;
+            cg->miscut_angle   = -cg->miscut_angle;
+            cg->x_P            = -cg->x_P;
+        }
+        if (R < 0){
+            // If R<0, a left-sided crystal bends towards the beam
+            cg->x_P = cg->x_P + cg->width;
+        }
+        // From here on, crystal geometry parameters can always be treated as left-sided.
+        // Note that the segments are not mirrored, which is fine as get_s_of_first_crossing_with_vlimit
+        // is absolute (not in the jaw reference frame). It is only after a hit is registered, that we
+        // need to transform the particle to the jaw reference frame.
+        double Rb;
+        if (cg->miscut_angle > 0){
+            Rb = R - cg->width;
+        } else {
+            Rb = R;
+        }
+        cg->t_VImax = atan( (Rb*sin(t_R) - cg->s_P) / (R - Rb*cos(t_R) - cg->x_P) );
         // Impact table
         cg->record = EverestCrystalData_getp_internal_record(el, part0);
         cg->record_index = NULL;
@@ -55,7 +86,7 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
 }
 
 /*gpufun*/
-void EverestCrystal_free(CrystalGeometry cg, int8_t active){
+void EverestCrystal_free(CrystalGeometry restrict cg, int8_t active){
     if (active){
         destroy_crystal(cg->segments);
     }
@@ -86,7 +117,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         coll->eum      = CrystalMaterialData_get_crystal_potential(material);
         coll->collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
         coll->eta      = 0.9;  // Hard-coded channeling saturation factor
-
+        coll->orient   = EverestCrystalData_get__orient(el);
         // Impact table
         coll->record = EverestCrystalData_getp_internal_record(el, part0);
         coll->record_index = NULL;
@@ -95,32 +126,13 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
             coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
             coll->record_touches = EverestCrystalData_get_record_touches(el);
         }
-
-        double R       = EverestCrystalData_get__bending_radius(el);
-        double t_R     = EverestCrystalData_get__bending_angle(el);
-        // TODO: this is superfluous, we can get this from the CrystalGeometry
-        coll->width    = EverestCrystalData_get_width(el);
-        coll->bend_r   = R;
-        coll->bend_ang = t_R;
-        // TODO: should this go into the CrystalGeometry?
-        coll->orient   = EverestCrystalData_get__orient(el);
-        coll->miscut   = EverestCrystalData_get_miscut(el);
-        coll->s_P      = -R*sin(coll->miscut);
-        coll->x_P      = R*cos(coll->miscut);
-        double Rb;
-        if (coll->miscut >0){
-            Rb = R - EverestCrystalData_get_width(el);
-        } else {
-            Rb = R;
-        }
-        coll->t_VImax = atan( (Rb*sin(t_R) - coll->s_P) / (R - Rb*cos(t_R) - coll->x_P) );
     }
     return coll;
 }
 
 
 /*gpufun*/
-EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData coll){
+EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restrict coll, CrystalGeometry restrict cg){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
@@ -132,7 +144,7 @@ EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData coll){
                      ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
     calculate_scattering(everest, energy);
     calculate_ionisation_properties(everest, energy);
-    calculate_critical_angle(everest, part, energy);
+    calculate_critical_angle(everest, part, cg, energy);
     calculate_VI_parameters(everest, part, energy);
 #endif
     return everest;
@@ -188,20 +200,20 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
-                    EverestData everest = EverestCrystal_init_data(part0, coll);
-                    calculate_initial_angle(everest, part);
+                    EverestData everest = EverestCrystal_init_data(part0, coll, cg);
+                    calculate_initial_angle(everest, part, cg);
 #ifdef XCOLL_USE_EXACT
                     double const xp = LocalParticle_get_exact_xp(part);
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
                     if (fabs(xp - everest->t_I) < everest->t_c) {
-                        energy = Channel(everest, part, energy/1.e9, remaining_length)*1.e9;
+                        energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     } else {
-                        energy = Amorphous(everest, part, energy/1e9, remaining_length)*1.e9;
+                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     }
                     // Temporary workaround to store the critical angle for use later
-                    calculate_critical_angle(everest, part, e0/1.e9);
+                    calculate_critical_angle(everest, part, cg, e0/1.e9);
                     t_c = everest->t_c;
                     free(everest);
                 }

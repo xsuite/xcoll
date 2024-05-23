@@ -24,6 +24,10 @@ typedef struct CrystalGeometry_ {
     double bending_angle;
     double width;
     double height;
+    double miscut_angle;
+    double s_P;    // Miscut centre
+    double x_P;
+    double t_VImax;
     // Segments
     Segment* segments;
     // Impact table
@@ -39,9 +43,8 @@ typedef CrystalGeometry_* CrystalGeometry;
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
-int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry cg){
+int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry restrict cg){
     double part_x, part_tan_x, part_y, part_tan_y;
-    int8_t is_hit = 0;
     double s = 1.e21;
 
     // Crystal should be single-sided
@@ -63,16 +66,9 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry cg){
     part_tan_y = LocalParticle_get_yp(part);
 #endif
     s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
-    if (s < S_MAX){
-        is_hit = cg->side;
-    } else {
-        // No hit, rotate back to lab frame
-        SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
-    }
 
-    // Drift to the impact position or end, and move to jaw frame if relevant
-    if (is_hit != 0){
-        // Move to the impact position
+    if (s < S_MAX){
+        // Hit: Drift to the impact position, and move to jaw frame if relevant
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, s);
 #else
@@ -87,38 +83,46 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry cg){
             if (cg->record_touches){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
             }
+
         } else {
             // Mirror x
             LocalParticle_scale_x(part, -1);
-            LocalParticle_scale_px(part, -1);
-            cg->bending_radius = -cg->bending_radius;
-            cg->bending_angle = -cg->bending_angle;
+#ifdef XCOLL_USE_EXACT
+            LocalParticle_scale_exact_xp(part, -1);
+#else
+            LocalParticle_scale_xp(part, -1);
+#endif
             if (cg->record_touches){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
             }
         }
+        return cg->side;
 
     } else {
+        // No hit, rotate back to lab frame
+        SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
+        // Drift to end
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, cg->length);
 #else
         Drift_single_particle_expanded(part, cg->length);
 #endif
+        return 0;
     }
-
-    return is_hit;
 }
 
 
 /*gpufun*/
-void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry cg){
+void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
     if (is_hit != 0){
         if (cg->side == -1){
             // Mirror back
             LocalParticle_scale_x(part, -1);
-            LocalParticle_scale_px(part, -1);
-            cg->bending_radius = -cg->bending_radius;
-            cg->bending_angle = -cg->bending_angle;
+#ifdef XCOLL_USE_EXACT
+            LocalParticle_scale_exact_xp(part, -1);
+#else
+            LocalParticle_scale_xp(part, -1);
+#endif
         }
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_y));

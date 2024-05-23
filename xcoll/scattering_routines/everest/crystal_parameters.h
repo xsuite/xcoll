@@ -11,24 +11,25 @@
 
 
 /*gpufun*/
-void calculate_initial_angle(EverestData restrict everest, LocalParticle* part) {
+void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg) {
+    double R = cg->bending_radius;
     double s = LocalParticle_get_s(part);
     double x = LocalParticle_get_x(part);
-    double s_P = everest->coll->s_P;
-    double x_P = everest->coll->x_P;
+    double s_P = cg->s_P;
+    double x_P = cg->x_P;
     double r   = sqrt((s-s_P)*(s-s_P) + (x-x_P)*(x-x_P));
     everest->r = r;
-    everest->t_I = asin( (s-s_P)/r);
+    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channeling planes (not neccecarly the same as xp)
 }
 
 
 /*gpufun*/
-void calculate_opening_angle(EverestData restrict everest, LocalParticle* part) {
-    double t    = everest->coll->bend_ang;
-    double xd   = everest->coll->width;
-    double R    = everest->coll->bend_r;
-    double sinp = sin(everest->coll->miscut);
-    double cosp = cos(everest->coll->miscut);
+void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg) {
+    double t    = cg->bending_angle;
+    double xd   = cg->width;
+    double R    = cg->bending_radius;
+    double sinp = sin(cg->miscut_angle);
+    double cosp = cos(cg->miscut_angle);
 
     // Radius from starting point to miscut centre
     double r = everest->r;
@@ -40,7 +41,7 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part) 
     // We could intersect with the upper (positive miscut) or lower bend (negative miscut) before the exit face
     // Distance between bending centre and miscut centre:
     double d = R*sqrt(2*(1-cosp));
-    if (everest->coll->miscut > 0){
+    if (cg->miscut_angle > 0){
         // Check if intersection with upper bend R-xd is possible
         double Rb = R-xd;
         if (d > fabs(r - Rb)){
@@ -75,7 +76,7 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part) 
 
 
 /*gpufun*/
-void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, double pc) {
+void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc) {
     // Define typical angles/probabilities for orientation 110
     double eum   = everest->coll->eum;
     double ai    = everest->coll->ai;
@@ -84,7 +85,7 @@ void calculate_critical_angle(EverestData restrict everest, LocalParticle* part,
     double Rcrit = pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]          // pc is actually beta pc
 
     // If Rcritical > R => no channeling is possible (Rc_over_R > 1)
-    everest->Rc_over_R = Rcrit / everest->coll->bend_r;
+    everest->Rc_over_R = Rcrit / fabs(cg->bending_radius);
     everest->t_c0 = t_c0;
     everest->t_c  = t_c0*(1 - everest->Rc_over_R); // Critical angle for curved crystal
 

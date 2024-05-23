@@ -15,17 +15,6 @@ typedef struct EverestCollData_ {
     RecordIndex record_index;
     int8_t record_scatterings;
     int8_t record_touches;
-    // Crystal properties
-    int8_t orient;
-    double miscut;
-    double s_P;
-    double x_P;
-    double t_VImax;
-    // Crystal geometry
-    // TODO: this is superfluous, we can get this from the CrystalGeometry
-    double width;
-    double bend_r;
-    double bend_ang;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
@@ -41,6 +30,7 @@ typedef struct EverestCollData_ {
     double eum;
     double collnt;
     double eta;
+    int8_t orient;
     int8_t only_mcs;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;

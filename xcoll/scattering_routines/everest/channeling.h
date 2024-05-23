@@ -18,14 +18,14 @@
 
 
 /*gpufun*/
-double channeling_average_density(EverestData restrict everest, LocalParticle* part, double pc) {
+double channeling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
     double const anuc = everest->coll->anuc;
     double const rho  = everest->coll->rho;
     double const eum  = everest->coll->eum;
 
-    double bend_r = everest->coll->bend_r;
+    double bend_r = cg->bending_radius;
     double ratio  = everest->Rc_over_R;
 
     //Rescale the total and inelastic cross-section accordigly to the average density seen
@@ -123,7 +123,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
 }
 
 
-double Channel(EverestData restrict everest, LocalParticle* part, double pc, double length) {
+double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
 
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
@@ -134,9 +134,9 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
 
-    calculate_initial_angle(everest, part);
+    calculate_initial_angle(everest, part, cg);
 #ifdef XCOLL_REFINE_ENERGY
-    calculate_critical_angle(everest, part, pc);
+    calculate_critical_angle(everest, part, cg, pc);
 #endif
 
     // Do we channel, or are we in the transition between channeling and VR?
@@ -156,11 +156,11 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
 #endif
         volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
 #endif
-        pc = Amorphous(everest, part, pc, length);
+        pc = Amorphous(everest, part, cg, pc, length);
 
     } else {
         // CHANNEL
-        calculate_opening_angle(everest, part);
+        calculate_opening_angle(everest, part, cg);
         double t_I = everest->t_I;
         double t_P = everest->t_P;
         double L_chan = everest->r*t_P;
@@ -181,7 +181,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
         // -----------------------------------------------------
         // Nuclear interaction length is rescaled in this case, because channeling
         double collnt = everest->coll->collnt;
-        double avrrho = channeling_average_density(everest, part, pc);
+        double avrrho = channeling_average_density(everest, cg, part, pc);
         if (avrrho == 0) {
             collnt = 1.e10;  // very large because essentially 1/0
         } else {
@@ -212,7 +212,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
             pc               = result_chan[1];
             free(result_chan);
             if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
-            pc = Amorphous(everest, part, pc, length - channeled_length);
+            pc = Amorphous(everest, part, cg, pc, length - channeled_length);
 
         } else {
             // Channel up to L_nucl, then scatter, then amorphous
@@ -234,7 +234,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, double pc, dou
 #ifndef XCOLL_REFINE_ENERGY
                 calculate_scattering(everest, pc);
 #endif
-                pc = Amorphous(everest, part, pc, length - channeled_length);
+                pc = Amorphous(everest, part, cg, pc, length - channeled_length);
             }
         }
     }
