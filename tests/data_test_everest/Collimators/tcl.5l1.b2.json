@@ -1,14 +1,9 @@
 {
  "__class__": "EverestCollimator",
- "active_length": 1,
+ "length": 1,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -1.229945731207713e-07,
-  0.0011164660262672449
- ],
- "jaw": 0.0013363237631587978,
  "material": {
   "__class__": "Material",
   "name": "Aluminium",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.089
- }
+ },
+ "jaw_L": 0.001336200768585677,
+ "jaw_R": -0.0013364467577319187
 }

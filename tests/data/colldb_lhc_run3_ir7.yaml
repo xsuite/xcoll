@@ -14,7 +14,7 @@ emittance:
 
 collimators:
   b1:
-    tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR  }
+    tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565  }
     tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR  }
     tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
@@ -28,7 +28,7 @@ collimators:
     tcsg.a4r7.b1:       { <<: *TCSG7,  angle:  46.3   }
 
   b2:
-    tcp.d6r7.b2:        { <<: *TCP7,   angle:  90,    material: MoGR  }
+    tcp.d6r7.b2:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565  }
     tcp.c6r7.b2:        { <<: *TCP7,   angle:   0,    material: MoGR  }
     tcp.b6r7.b2:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6r7.b2:       { <<: *TCSG7,  angle: 141.1   }

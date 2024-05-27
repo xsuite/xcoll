@@ -1,14 +1,9 @@
 {
  "__class__": "EverestCollimator",
- "active_length": 0.6,
+ "length": 0.6,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -1.7789737352596368e-07,
-  5.170829052369924e-07
- ],
- "jaw": 0.0012096800496123007,
  "material": {
   "__class__": "Material",
   "name": "MolybdenumGraphite",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.1193
- }
+ },
+ "jaw_L": 0.0012095021522387746,
+ "jaw_R": -0.0012098579469858267
 }

@@ -1,21 +1,16 @@
 {
  "__class__": "EverestCrystal",
- "active_length": 0.004,
+ "length": 0.004,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
  "bending_radius": 91,
- "xdim": 0.0056,
- "ydim": 0.045,
+ "width": 0.0056,
+ "height": 0.045,
  "thick": 0,
  "miscut": 0.0001,
  "lattice": "quasi-mosaic",
- "align_angle": 2.84287e-05,
- "reference_center": [
-  1.3982225860971822e-06,
-  5.403106164147752e-07
- ],
- "jaw": 0.0016228626016286682,
+ "tilt": 2.84287e-05,
  "side": "left",
  "material": {
   "__class__": "CrystalMaterial",
@@ -40,5 +35,6 @@
   "crystal_plane_distance": 9.6e-08,
   "crystal_potential": 21.34,
   "nuclear_collision_length": 0.3016
- }
+ },
+ "jaw": 0.0016242608242147654
 }

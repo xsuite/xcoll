@@ -1,14 +1,9 @@
 {
  "__class__": "EverestCollimator",
- "active_length": 1,
+ "length": 1,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  -0.0001250359643041758,
-  -1.8733677775916828e-06
- ],
- "jaw": 0.001333991015232014,
  "material": {
   "__class__": "Material",
   "name": "Molybdenum",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.02,
   "radiation_length": 0.0096
- }
+ },
+ "jaw_L": 0.0012089550509278382,
+ "jaw_R": -0.00145902697953619
 }

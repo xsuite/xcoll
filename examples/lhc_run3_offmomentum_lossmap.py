@@ -12,6 +12,7 @@ start_time = time.time()
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 import xcoll as xc
 
 
@@ -27,7 +28,6 @@ num_particles  = 500
 sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
-engine         = 'everest'
 
 path_in  = xc._pkg_root.parent / 'examples'
 path_out = Path.cwd()
@@ -37,14 +37,9 @@ path_out = Path.cwd()
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
-# Aperture model check
-print('\nAperture model check on imported model:')
-df_imported = line.check_aperture()
-assert not np.any(df_imported.has_aperture_problem)
-
-
 # Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', line=line, beam=beam, _context=context)
+coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
+                                              line=line, beam=beam, _context=context)
 
 
 # Install collimators into line
@@ -58,12 +53,11 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 
 # Optimise the line
@@ -88,25 +82,15 @@ rf_sweep.info(sweep=sweep, num_turns=num_turns)
 
 
 # Track during RF sweep:
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 
 # Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu())
-
-
-# Save lossmap to json, which can be loaded, combined (for more statistics),
-# and plotted with the 'lossmaps' package
-coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B{beam}{plane}.json'))
-
-
-# Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B{beam}{plane}.out'))
-print(summary)
 
 
 # Let's visualise how the losses move from IR7 to IR3 during the sweep
@@ -150,11 +134,13 @@ print(f"This means we use {len(part2.x)} particles (of which {len(part2.x[part2.
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
-coll_manager.lossmap(part2, file=Path(path_out,f'lossmap_B{beam}{plane}_end.json'))
-
+line_is_reversed = True if f'{beam}' == '2' else False
+ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
+ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 
 # Save a summary of the collimator losses to a text file
-summary = coll_manager.summary(part2, file=Path(path_out,f'coll_summary_B{beam}{plane}_end.out'))
-print(summary)
+ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
+print(ThisLM.summary)
+
 print(f"Total calculation time {time.time()-start_time}s")
 

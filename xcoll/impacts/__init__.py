@@ -1,1 +1,0 @@
-from .impacts import CollimatorImpacts

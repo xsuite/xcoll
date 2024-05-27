@@ -35,7 +35,7 @@ families:
   - &TCP7    { <<: *ALL,  gap: 6,     stage: primary,    material: C,     length: 0.6    }
   - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: C,     length: 1      }
   - &TCLA7   { <<: *ALL,  gap: 8,     stage: tertiary,   material: Iner,  length: 1      }
-  - &CRY7    { <<: *ALL,  gap: null,  stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip, active: false }
+  - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip, active: true}
   # Injection protection
   - &TCLI    { <<: *ALL,  gap: null,  stage: tertiary,   material: C,     length: 1,     angle: 90 }
   - &TDI     { <<: *ALL,  gap: null,  stage: tertiary,   material: CU,    length: 1.565, angle: 90 }

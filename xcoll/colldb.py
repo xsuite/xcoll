@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import io
@@ -22,7 +22,7 @@ def _initialise_None(collimator):
     fields.update({'gap_L': None, 'gap_R': None, 'angle_L': 0, 'angle_R': 0, 'offset': 0, 'parking': 1})
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
-    fields.update({'active_length': 0, 'inactive_front': 0, 'inactive_back': 0, 'sigmax': None, 'sigmay': None})
+    fields.update({'length': 0, 'sigmax': None, 'sigmay': None})
     fields.update({'crystal': None, 'bending_radius': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
     for f, val in fields.items():
         if f not in collimator.keys():
@@ -47,7 +47,7 @@ def _get_coll_dct_by_beam(coll, beam):
             beam = f'b{beam}'
         beam = beam.lower()
     beam_in_db = list(coll.keys())
-    
+
     if beam_in_db == ['b1','b2']:
         if beam is None:
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
@@ -226,7 +226,7 @@ class CollimatorDatabase:
         _initialise_None(defaults)
 
         famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
-        names = ['name', 'gap', 'material', 'active_length', 'angle', 'offset']
+        names = ['name', 'gap', 'material', 'length', 'angle', 'offset']
 
         df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
         df['family'] = df['gap'].copy()
@@ -440,7 +440,7 @@ class CollimatorDatabase:
 #                 'offset':          self.offset,
 #                 'tilt':            self.tilt,
                 'stage':           self.stage,
-                'active_length':   self.active_length,
+                'length':          self.length,
                 'collimator_type': self.collimator_type,
             }, index=self.name)
 
@@ -503,8 +503,6 @@ class CollimatorDatabase:
             # Change all values to lower case
             for key, val in collimator.items():
                 collimator[key] = val.lower() if isinstance(val, str) else val
-            if 'length' in collimator.keys():
-                collimator['active_length'] = collimator.pop('length')
             if 'gap' in collimator.keys():
                 if collimator['gap'] is not None and collimator['gap'] > 900:
                     collimator['gap'] = None
@@ -551,10 +549,7 @@ class CollimatorDatabase:
     #   - tilt
     #   - stage
     #   - side
-    #   - active_length
-    #   - inactive_front
-    #   - inactive_back
-    #   - total_length *
+    #   - length
     #   - collimator_type *
     #   - betx
     #   - bety
@@ -685,33 +680,13 @@ class CollimatorDatabase:
         return self._colldb['collimator_type']
 
     @property
-    def active_length(self):
-        return self._colldb['active_length']
+    def length(self):
+        return self._colldb['length']
 
-    @active_length.setter
-    def active_length(self, length):
-        self._set_property('active_length', length)
+    @length.setter
+    def length(self, length):
+        self._set_property('length', length)
         self.align_to = {}
-
-    @property
-    def inactive_front(self):
-        return self._colldb['inactive_front']
-
-    @inactive_front.setter
-    def inactive_front(self, length):
-        self._set_property('inactive_front', length)
-
-    @property
-    def inactive_back(self):
-        return self._colldb['inactive_back']
-
-    @inactive_back.setter
-    def inactive_back(self, length):
-        self._set_property('inactive_back', length)
-
-    @property
-    def total_length(self):
-        return self._colldb['active_length'] +  self._colldb['inactive_front'] + self._colldb['inactive_back']
 
     @property
     def gap(self):
@@ -731,6 +706,7 @@ class CollimatorDatabase:
             # Some of the gaps are list (e.g. two different values for both gaps): loop over gaps as dict
             if any(hasattr(gap, '__iter__') for gap in gaps):
                 gaps = dict(zip(self.name, gaps))
+                # TODO: this is not assigned in the end??
             # All gaps are single values: use pandas-style assignment
             else:
                 # mask those that have an active side for the gap under consideration
@@ -854,9 +830,9 @@ class CollimatorDatabase:
         self._set_property('align_to', align, single_default_allowed=True, limit_to=['front', 'center', 'back', 'angular'])
         if np.any(self.align_to == 'maximum'):
             raise NotImplementedError
-        s_front = self.s_center - self.active_length/2
+        s_front = self.s_center - self.length/2
         s_center = self.s_center
-        s_back = self.s_center + self.active_length/2
+        s_back = self.s_center + self.length/2
         mask = self.align_to == 'front'
         self._colldb.loc[mask,'s_align_front'] = s_front[mask]
         self._colldb.loc[mask,'s_align_back']  = s_front[mask]
@@ -1005,14 +981,20 @@ class CollimatorDatabase:
             df = self._colldb
             beam_size_front = self._beam_size_front
             beam_size_back  = self._beam_size_back
-            jaw_LU = df['gap_L']*beam_size_front + self.offset
-            jaw_RU = df['gap_R']*beam_size_front - self.offset
-            jaw_LD = df['gap_L']*beam_size_back  + self.offset
-            jaw_RD = df['gap_R']*beam_size_back  - self.offset
-            df['jaw_LU'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LU,df['parking'])
-            df['jaw_RU'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RU,df['parking'])
-            df['jaw_LD'] = df['parking'] if df['gap_L'] is None else np.minimum(jaw_LD,df['parking'])
-            df['jaw_RD'] = -df['parking'] if df['gap_R'] is None else -np.minimum(jaw_RD,df['parking'])
+            COs  = np.cos(np.float_(df.angle_L.values)*np.pi/180) * self.x
+            COs += np.sin(np.float_(df.angle_L.values)*np.pi/180) * self.y
+            jaw_LU = np.array([park if gap is None else gap*bs  + off + co
+                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_front, self.offset, COs)])
+            jaw_LD = np.array([park if gap is None else gap*bs  + off + co
+                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_back,  self.offset, COs)])
+            jaw_RU = np.array([park if gap is None else -gap*bs + off + co
+                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_front, self.offset, COs)])
+            jaw_RD = np.array([park if gap is None else -gap*bs + off + co
+                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_back,  self.offset, COs)])
+            df['jaw_LU'] = np.minimum(jaw_LU, df['parking'])
+            df['jaw_LD'] = np.minimum(jaw_LD, df['parking'])
+            df['jaw_RU'] = np.maximum(jaw_RU, -df['parking'])
+            df['jaw_RD'] = np.maximum(jaw_RD, -df['parking'])
             # align crystals
             opt = self._optics
             df['align_angle'] = None
