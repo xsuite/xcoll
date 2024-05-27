@@ -40,7 +40,7 @@ void destroy_jaw(Segment* segments){
 
 /*gpufun*/
 Segment* create_polygon(double* s_poly, double* x_poly, int8_t num_polys){
-    Segment* segments= (Segment*) malloc(num_polys*sizeof(Segment));
+    Segment* segments= (Segment*) malloc((unsigned int) num_polys*sizeof(Segment));
     for (int8_t i=0; i<num_polys-1; i++){
         segments[i] = (Segment) create_line_segment(s_poly[i], x_poly[i], s_poly[i+1], x_poly[i+1]);
     }
