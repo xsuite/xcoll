@@ -7,7 +7,6 @@
  "bending_radius": 91,
  "width": 0.0056,
  "height": 0.045,
- "thick": 0,
  "miscut": 0.0001,
  "lattice": "quasi-mosaic",
  "tilt": 2.84287e-05,

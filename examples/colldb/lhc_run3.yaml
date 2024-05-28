@@ -10,7 +10,7 @@
 #       active [bool] : Whether or not a collimator is still active in operation. If false, the gap is set to null.
 #                       The difference with just manually setting the gap to 'null' is mainly semantic: these are collimators that are in principle no longer used but still present in the machine.
 #       crystal [strip/quasi-mosaic] : Use when the collimator is a crystal of the specified type.
-#                       It allows for some extra keys: bend [m], xdim [m], ydim [m], miscut [deg], thick [m] (the thickness of the amorphous layer)
+#                       It allows for some extra keys: bend [m], width [m], height [m], miscut [deg]
 # 
 # For ease of use, the collimators can be collected in families using standard YAML syntax.
 # Each family contains the keys for which all members have the same value (though keys can be overwritten again in the individual collimators).
@@ -92,11 +92,11 @@ collimators:
     tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR  }
     tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
-    tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  xdim: 5.0e-3,  ydim: 30.0e-3  }
+    tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  width: 5.0e-3,  height: 30.0e-3  }
     tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.7   }
     tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
-    tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bending_radius: 61.54,  xdim: 2.0e-3,  ydim: 50.0e-3  }
+    tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bending_radius: 61.54,  width: 2.0e-3,  height: 50.0e-3  }
     tcsg.b4l7.b1:       { <<: *TCSG7,  angle:   0,    active: false   }
     tcspm.b4l7.b1:      { <<: *TCSG7,  angle:   0,    material: MoGR  }
     tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.6   }
@@ -132,10 +132,10 @@ collimators:
     tcp.c6r7.b2:        { <<: *TCP7,   angle:   0,    material: MoGR  }
     tcp.b6r7.b2:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6r7.b2:       { <<: *TCSG7,  angle: 141.1   }
-    tcpcv.a6r7.b2:      { <<: *CRY7,   angle:  90,    bend: 74.88,  xdim: 5.0e-3,  ydim: 30.0e-3  }
+    tcpcv.a6r7.b2:      { <<: *CRY7,   angle:  90,    bend: 74.88,  width: 5.0e-3,  height: 30.0e-3  }
     tcsg.b5r7.b2:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5r7.b2:       { <<: *TCSG7,  angle:  40.7   }
-    tcpch.a5r7.b2:      { <<: *CRY7,   angle:   0,    bend: 80.00,  xdim: 2.0e-3,  ydim: 50.0e-3,  miscut: -14.324e-3  }
+    tcpch.a5r7.b2:      { <<: *CRY7,   angle:   0,    bend: 80.00,  width: 2.0e-3,  height: 50.0e-3,  miscut: -14.324e-3  }
     tcsg.d4r7.b2:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
     tcspm.d4r7.b2:      { <<: *TCSG7,  angle:  90,    material: MoGR,  active: false  } # prototype
     tcsg.b4r7.b2:       { <<: *TCSG7,  angle:   0,    active: false   }

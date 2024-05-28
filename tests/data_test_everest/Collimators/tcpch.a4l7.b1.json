@@ -7,7 +7,6 @@
  "bending_radius": 80,
  "width": 0.002,
  "height": 0.05,
- "thick": 0,
  "miscut": 0.0003,
  "lattice": "strip",
  "tilt": 1.3856013282612604e-05,

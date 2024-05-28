@@ -62,8 +62,9 @@ xc.assign_optics_to_collimators(line=line)
 
 # Apply settings
 line[tcpc].bending_angle = 40.e-6
-line[tcpc].xdim          = 0.002
-line[tcpc].ydim          = 0.05
+line[tcpc].width         = 0.002
+line[tcpc].height        = 0.05
+line[tcpc].align_to_beam_divergence()
 
 
 # Optimise the line

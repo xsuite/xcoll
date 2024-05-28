@@ -23,7 +23,7 @@ def _initialise_None(collimator):
     fields.update({'jaw_LU': None, 'jaw_RU': None, 'jaw_LD': None, 'jaw_RD': None, 'family': None, 'overwritten_keys': []})
     fields.update({'side': 'both', 'material': None, 'stage': None, 'collimator_type': None, 'active': True})
     fields.update({'length': 0, 'sigmax': None, 'sigmay': None})
-    fields.update({'crystal': None, 'bending_radius': None, 'xdim': 0, 'ydim': 0, 'miscut': 0, 'thick': 0})
+    fields.update({'crystal': None, 'bending_radius': None, 'width': 0, 'height': 0, 'miscut': 0})
     for f, val in fields.items():
         if f not in collimator.keys():
             collimator[f] = val
@@ -73,7 +73,7 @@ class CollimatorDatabase:
     # -------------------------------
     # ------ Loading functions ------
     # -------------------------------
-    
+
     @classmethod
     def from_yaml(cls, file, **kwargs):
 
@@ -193,7 +193,7 @@ class CollimatorDatabase:
             family_settings = {}
             family_types = {}
             side = {}
-            cry_fields = ['bending_radius', 'xdim', 'ydim', 'thick', 'miscut', 'crystal']
+            cry_fields = ['bending_radius', 'width', 'height', 'thick', 'miscut', 'crystal']
             cry = {}
 
             for l_no, line in enumerate(infile):
@@ -224,6 +224,7 @@ class CollimatorDatabase:
 
         defaults = {}
         _initialise_None(defaults)
+        defaults['thick'] = 0
 
         famdct = {key: {'gap': family_settings[key], 'stage': family_types[key]} for key in family_settings}
         names = ['name', 'gap', 'material', 'length', 'angle', 'offset']
@@ -243,6 +244,9 @@ class CollimatorDatabase:
             for key in cry_fields:
                 df[key] = [cry[name][key] if name in cry else defaults[key]
                            for name in df['name']]
+            if not np.allclose(np.unique(df.thick.values), 0):
+                print("Warning: Keyword 'thick' is currently not supported in xcoll! Ignoring.")
+            df = df.drop('thick', axis=1)
             df['crystal'] = ['strip' if s==1 else s for s in df['crystal']]
             df['crystal'] = ['quasi-mosaic' if s==2 else s for s in df['crystal']]
         df['side'] = [side[name] if name in side else defaults['side']
@@ -286,12 +290,12 @@ class CollimatorDatabase:
                 formatted_key = f'{key}:'.ljust(key_width)
             #formatted_values = formatted_values.ljust(key_width)
             return f"{spacing}{formatted_key} {{ {formatted_values} }}\n"
-        
+
         def _print_values(keys, dct, file, spacing='', mapping=False):
             # Writes formatted dictionary entries to a file
             for key in keys:
                 file.write(_format_dict_entry(key, dct[key], spacing=spacing, mapping=mapping))
-        
+
         def _print_colls(colls, dcts, beam, file):
             # Filters and formats collimator data, then writes to a file
             coll_items_to_print = ['<<','gap','angle','material','active','length','side']
@@ -305,7 +309,7 @@ class CollimatorDatabase:
                     coll_dict = {**{'<<': '*'+fam}, **coll_dict}
                 temp_items_to_print = []
                 if coll_dict['crystal'] and str(coll_dict['crystal'])!='nan':
-                    temp_items_to_print = ['bending_radius','xdim','ydim','miscut','crystal', 'thick']
+                    temp_items_to_print = ['bending_radius','width','height','miscut','crystal']
                 if coll_dict['angle_L'] == coll_dict['angle_R']:
                     coll_dict.update({'angle': coll_dict['angle_L']})
                 else:
@@ -326,8 +330,7 @@ class CollimatorDatabase:
                     if (key in coll_items_to_print+temp_items_to_print) and (key not in (set(fam_keys)-set(overwritten_keys))) and (val != 'both'):
                         value.update({key: val})
                 file.write(_format_dict_entry(coll, value, spacing='    '))
-            file.write('\n')   
-                                
+            file.write('\n')
 
         LHC_families = ['tcp3', 'tcsg3', 'tcsm3', 'tcla3', 'tcp7', 'tcsg7', 'tcsm7', 'tcla7', 'tcli', 'tdi', 'tcdq', 'tcstcdq', 'tcth1', 'tcth2', 'tcth5', 'tcth8', 'tctv1', 'tctv2', 'tctv5', 'tctv8', 'tclp', 'tcxrp', 'tcryo', 'tcl4', 'tcl5', 'tcl6', 'tct15', 'tct2', 'tct8', 'tcsp', 'tcld']
         with open(f'{out}.yaml', 'w') as file:
@@ -393,7 +396,7 @@ class CollimatorDatabase:
                     b2_colls.append(coll)
                 else:
                     bx_colls.append(coll)
-            
+
             # Handle special cases for collimators
             if (('tclia.4r2' in b1_colls) or ('tclia.4l8' in b1_colls)) and (len(b1_colls) <= 2):
                 b1_colls = []
@@ -424,9 +427,6 @@ class CollimatorDatabase:
         self.emittance = [kwargs['nemitt_x'], kwargs['nemitt_y']]
         self._beta_gamma_rel = None
 
-
-    def __getitem__(self, name):
-        return CollimatorSettings(name, self._colldb)
 
     def to_pandas(self):
         return pd.DataFrame({
@@ -525,9 +525,9 @@ class CollimatorDatabase:
         self._colldb = pd.DataFrame(coll).transpose()
 
 
-    @property
-    def name(self):
-        return self._colldb.index.values
+    # @property
+    # def name(self):
+    #     return self._colldb.index.values
 
 
     # TODO: - VALIDATION OF TYPES (e.g. material, stage, align, ..)
@@ -566,98 +566,98 @@ class CollimatorDatabase:
 #         return pd.Series([ L if L == R else [L,R] for L, R in angles.T ], index=self._colldb.index, dtype=object)
         return self._colldb['angle_L']
 
-    @angle.setter
-    def angle(self, angle):
-        self._set_property_LR('angle', angle)
-        self._compute_jaws()
+#     @angle.setter
+#     def angle(self, angle):
+#         self._set_property_LR('angle', angle)
+#         self._compute_jaws()
 
     @property
     def material(self):
         return self._colldb['material']
 
-    @material.setter
-    def material(self, material):
-        self._set_property('material', material)
-
-    @property
-    def offset(self):
-        return self._colldb['offset']
-
-    @offset.setter
-    def offset(self, offset):
-        self._set_property('offset', offset, single_default_allowed=True)
-        self._compute_jaws()
-
-    @property
-    def tilt(self):
-        tilts = np.array([self._colldb.tilt_L.values,self._colldb.tilt_R.values])
-        return pd.Series([ L if L == R else [L,R] for L, R in tilts.T ], index=self._colldb.index, dtype=object)
-
-    @tilt.setter
-    def tilt(self, tilts):
-        self._set_property_LR('tilt', tilts)
-        self._compute_jaws()
-
-    @property
-    def stage(self):
-        return self._colldb['stage']
-
-    @stage.setter
-    def stage(self, stage):
-        self._set_property('stage', stage)
-
-    @property
-    def parking(self):
-        return self._colldb['parking']
-
-    @parking.setter
-    def parking(self, parking):
-        self._set_property('parking', parking, single_default_allowed=True)
-        self._compute_jaws()
-
-    @property
-    def active(self):
-        return self._colldb['active']
-
-    @active.setter
-    def active(self, active):
-        self._set_property('active', active, single_default_allowed=True)
+#     @material.setter
+#     def material(self, material):
+#         self._set_property('material', material)
 
 #     @property
-#     def crystal(self):
-#         return self._colldb['crystal']
+#     def offset(self):
+#         return self._colldb['offset']
+
+#     @offset.setter
+#     def offset(self, offset):
+#         self._set_property('offset', offset, single_default_allowed=True)
+#         self._compute_jaws()
+
+#     @property
+#     def tilt(self):
+#         tilts = np.array([self._colldb.tilt_L.values,self._colldb.tilt_R.values])
+#         return pd.Series([ L if L == R else [L,R] for L, R in tilts.T ], index=self._colldb.index, dtype=object)
+
+#     @tilt.setter
+#     def tilt(self, tilts):
+#         self._set_property_LR('tilt', tilts)
+#         self._compute_jaws()
+
+#     @property
+#     def stage(self):
+#         return self._colldb['stage']
+
+#     @stage.setter
+#     def stage(self, stage):
+#         self._set_property('stage', stage)
+
+#     @property
+#     def parking(self):
+#         return self._colldb['parking']
+
+#     @parking.setter
+#     def parking(self, parking):
+#         self._set_property('parking', parking, single_default_allowed=True)
+#         self._compute_jaws()
+
+#     @property
+#     def active(self):
+#         return self._colldb['active']
+
+#     @active.setter
+#     def active(self, active):
+#         self._set_property('active', active, single_default_allowed=True)
+
+    @property
+    def crystal(self):
+        return self._colldb['crystal']
 
 #     @crystal.setter
 #     def crystal(self, crystal):
 #         self._set_property('crystal', crystal)
 
-#     @property
-#     def bend(self):
-#         return self._colldb['bend']
+    @property
+    def bending_radius(self):
+        return self._colldb['bending_radius']
 
 #     @bend.setter
 #     def bend(self, bend):
 #         self._set_property('bend', bend)
 
-#     @property
-#     def xdim(self):
-#         return self._colldb['xdim']
+    @property
+    def width(self):
+        return self._colldb['width']
 
-#     @xdim.setter
-#     def xdim(self, xdim):
-#         self._set_property('xdim', xdim)
+#     @width.setter
+#     def width(self, width):
+#         self._set_property('width', width)
 
-#     @property
-#     def ydim(self):
-#         return self._colldb['ydim']
+    @property
+    def height(self):
+        return self._colldb['height']
 
-#     @ydim.setter
-#     def ydim(self, ydim):
-#         self._set_property('ydim', ydim)
+#     @height.setter
+#     def height(self, height):
+#         self._set_property('height', height)
 
-#     @property
-#     def miscut(self):
-#         return self._colldb['miscut']
+    @property
+    def miscut(self):
+        return self._colldb['miscut']
 
 #     @miscut.setter
 #     def miscut(self, miscut):
@@ -671,422 +671,422 @@ class CollimatorDatabase:
 #     def thick(self, thick):
 #         self._set_property('thick', thick)
 
-    @property
-    def s_center(self):
-        return self._colldb['s_center']
+    # @property
+    # def s_center(self):
+    #     return self._colldb['s_center']
 
-    @property
-    def collimator_type(self):
-        return self._colldb['collimator_type']
+    # @property
+    # def collimator_type(self):
+    #     return self._colldb['collimator_type']
 
     @property
     def length(self):
         return self._colldb['length']
 
-    @length.setter
-    def length(self, length):
-        self._set_property('length', length)
-        self.align_to = {}
+    # @length.setter
+    # def length(self, length):
+    #     self._set_property('length', length)
+    #     self.align_to = {}
 
     @property
     def gap(self):
         gaps = np.array([self._colldb.gap_L.values,self._colldb.gap_R.values])
         return pd.Series([ L if L == R else [L,R] for L, R in gaps.T ], index=self._colldb.index, dtype=object)
 
-    @gap.setter
-    def gap(self, gaps):
-        df = self._colldb
-        correct_format = False
-        # The variable gaps is a Series or a list
-        if isinstance(gaps, pd.Series) or isinstance(gaps, list) or isinstance(gaps, np.ndarray):
-            correct_format = True
-            if len(gaps) != len(self.name):
-                raise ValueError("The variable 'gaps' has a different length than the number "
-                                + "of collimators in the CollimatorDatabase. Use a dictionary instead.")
-            # Some of the gaps are list (e.g. two different values for both gaps): loop over gaps as dict
-            if any(hasattr(gap, '__iter__') for gap in gaps):
-                gaps = dict(zip(self.name, gaps))
-                # TODO: this is not assigned in the end??
-            # All gaps are single values: use pandas-style assignment
-            else:
-                # mask those that have an active side for the gap under consideration
-                # and have a setting less than 900; the others are set to None
-                mask_L = np.logical_and(df.side.isin(['both','left']), ~(gaps >= 900))
-                mask_R = np.logical_and(df.side.isin(['both','right']), ~(gaps >= 900))
-                df.loc[mask_L, 'gap_L'] = gaps[mask_L]
-                df.loc[~mask_L, 'gap_L'] = None
-                df.loc[mask_R, 'gap_R'] = gaps[mask_R]
-                df.loc[~mask_R, 'gap_R'] = None
+    # @gap.setter
+    # def gap(self, gaps):
+    #     df = self._colldb
+    #     correct_format = False
+    #     # The variable gaps is a Series or a list
+    #     if isinstance(gaps, pd.Series) or isinstance(gaps, list) or isinstance(gaps, np.ndarray):
+    #         correct_format = True
+    #         if len(gaps) != len(self.name):
+    #             raise ValueError("The variable 'gaps' has a different length than the number "
+    #                             + "of collimators in the CollimatorDatabase. Use a dictionary instead.")
+    #         # Some of the gaps are list (e.g. two different values for both gaps): loop over gaps as dict
+    #         if any(hasattr(gap, '__iter__') for gap in gaps):
+    #             gaps = dict(zip(self.name, gaps))
+    #             # TODO: this is not assigned in the end??
+    #         # All gaps are single values: use pandas-style assignment
+    #         else:
+    #             # mask those that have an active side for the gap under consideration
+    #             # and have a setting less than 900; the others are set to None
+    #             mask_L = np.logical_and(df.side.isin(['both','left']), ~(gaps >= 900))
+    #             mask_R = np.logical_and(df.side.isin(['both','right']), ~(gaps >= 900))
+    #             df.loc[mask_L, 'gap_L'] = gaps[mask_L]
+    #             df.loc[~mask_L, 'gap_L'] = None
+    #             df.loc[mask_R, 'gap_R'] = gaps[mask_R]
+    #             df.loc[~mask_R, 'gap_R'] = None
 
-        # The variable gaps is a dictionary
-        if isinstance(gaps, dict):
-            correct_format = True
-            for name, gap in gaps.items():
-                if name not in self.name:
-                    raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
-                side = df.side[name]
-                if hasattr(gap, '__iter__'):
-                    if isinstance(gap, str):
-                        raise ValueError("The gap setting has to be a number!")
-                    elif len(gap) == 2:
-                        gap_L = gap[0]
-                        gap_R = gap[1]
-                        if side != 'both':
-                            if side == 'left' and gap_R is not None:
-                                print(f"Warning: collimator {name} is left-sided but a finite right gap is specified. "
-                                      + "Verify that this is what you want.")
-                            elif side == 'right' and gap_L is not None:
-                                print(f"Warning: collimator {name} is right-sided but a finite left gap is specified. "
-                                      + "Verify that this is what you want.")
-                    elif len(gap) == 1:
-                        gap_L = gap[0] if side in ['both','left'] else None
-                        gap_R = gap[0] if side in ['both','right'] else None
-                    else:
-                        raise ValueError("The gap setting must have one or two values (for the left and the right jaw)!")
-                else:
-                    gap_L = gap if side in ['both','left'] else None
-                    gap_R = gap if side in ['both','right'] else None
-                gap_L = None if (gap_L is not None and gap_L >= 900) else gap_L
-                gap_R = None if (gap_R is not None and gap_R >= 900) else gap_R
-                df.loc[name, 'gap_L'] = gap_L
-                df.loc[name, 'gap_R'] = gap_R
+    #     # The variable gaps is a dictionary
+    #     if isinstance(gaps, dict):
+    #         correct_format = True
+    #         for name, gap in gaps.items():
+    #             if name not in self.name:
+    #                 raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
+    #             side = df.side[name]
+    #             if hasattr(gap, '__iter__'):
+    #                 if isinstance(gap, str):
+    #                     raise ValueError("The gap setting has to be a number!")
+    #                 elif len(gap) == 2:
+    #                     gap_L = gap[0]
+    #                     gap_R = gap[1]
+    #                     if side != 'both':
+    #                         if side == 'left' and gap_R is not None:
+    #                             print(f"Warning: collimator {name} is left-sided but a finite right gap is specified. "
+    #                                   + "Verify that this is what you want.")
+    #                         elif side == 'right' and gap_L is not None:
+    #                             print(f"Warning: collimator {name} is right-sided but a finite left gap is specified. "
+    #                                   + "Verify that this is what you want.")
+    #                 elif len(gap) == 1:
+    #                     gap_L = gap[0] if side in ['both','left'] else None
+    #                     gap_R = gap[0] if side in ['both','right'] else None
+    #                 else:
+    #                     raise ValueError("The gap setting must have one or two values (for the left and the right jaw)!")
+    #             else:
+    #                 gap_L = gap if side in ['both','left'] else None
+    #                 gap_R = gap if side in ['both','right'] else None
+    #             gap_L = None if (gap_L is not None and gap_L >= 900) else gap_L
+    #             gap_R = None if (gap_R is not None and gap_R >= 900) else gap_R
+    #             df.loc[name, 'gap_L'] = gap_L
+    #             df.loc[name, 'gap_R'] = gap_R
 
-        if not correct_format:
-            raise ValueError("Variable 'gaps' needs to be a pandas Series, dict, numpy array, or list!")
+    #     if not correct_format:
+    #         raise ValueError("Variable 'gaps' needs to be a pandas Series, dict, numpy array, or list!")
 
-        df.gap_L = df.gap_L.astype('object', copy=False)
-        df.gap_R = df.gap_R.astype('object', copy=False)
-        self._compute_jaws()
+    #     df.gap_L = df.gap_L.astype('object', copy=False)
+    #     df.gap_R = df.gap_R.astype('object', copy=False)
+    #     self._compute_jaws()
 
-    @property
-    def jaw(self):
-        jaws = list(np.array([
-                        self._colldb.jaw_LU.values,
-                        self._colldb.jaw_RU.values,
-                        self._colldb.jaw_LD.values,
-                        self._colldb.jaw_RD.values
-                    ]).T)
-        # Need special treatment if there are None's
-        def flip(jaw):
-            return None if jaw is None else -jaw
-        for i, jaw in enumerate(jaws):
-            # All 4 jaw points are the same
-            if jaw[0] == flip(jaw[1]) == jaw[2] == flip(jaw[3]):
-                jaws[i] = jaw[0]
-            # Upstream and downstream jaws are the same
-            # (all cases except angular alignment and/or tilt)
-            elif jaw[0] == jaw[2] and jaw[1] == jaw[3]:
-                jaws[i] = [ jaw[0], jaw[1] ]
-            else:
-                jaws[i] = [ [jaw[0],jaw[1]], [jaw[2],jaw[3]] ]
-        return pd.Series(jaws, index=self._colldb.index, dtype=object)
+    # @property
+    # def jaw(self):
+    #     jaws = list(np.array([
+    #                     self._colldb.jaw_LU.values,
+    #                     self._colldb.jaw_RU.values,
+    #                     self._colldb.jaw_LD.values,
+    #                     self._colldb.jaw_RD.values
+    #                 ]).T)
+    #     # Need special treatment if there are None's
+    #     def flip(jaw):
+    #         return None if jaw is None else -jaw
+    #     for i, jaw in enumerate(jaws):
+    #         # All 4 jaw points are the same
+    #         if jaw[0] == flip(jaw[1]) == jaw[2] == flip(jaw[3]):
+    #             jaws[i] = jaw[0]
+    #         # Upstream and downstream jaws are the same
+    #         # (all cases except angular alignment and/or tilt)
+    #         elif jaw[0] == jaw[2] and jaw[1] == jaw[3]:
+    #             jaws[i] = [ jaw[0], jaw[1] ]
+    #         else:
+    #             jaws[i] = [ [jaw[0],jaw[1]], [jaw[2],jaw[3]] ]
+    #     return pd.Series(jaws, index=self._colldb.index, dtype=object)
 
     @property
     def side(self):
         return self._colldb.side
 
-    @side.setter
-    def side(self, sides):
-        self._set_property('side', sides, single_default_allowed=True)
-        self.gap = self.gap
+    # @side.setter
+    # def side(self, sides):
+    #     self._set_property('side', sides, single_default_allowed=True)
+    #     self.gap = self.gap
 
-    @property
-    def gamma_rel(self):
-        return np.sqrt(self._beta_gamma_rel**2+1)
+    # @property
+    # def gamma_rel(self):
+    #     return np.sqrt(self._beta_gamma_rel**2+1)
 
-    @gamma_rel.setter
-    def gamma_rel(self, gamma_rel):
-        self._beta_gamma_rel = np.sqrt(gamma_rel**2-1)
-        self._compute_jaws()
+    # @gamma_rel.setter
+    # def gamma_rel(self, gamma_rel):
+    #     self._beta_gamma_rel = np.sqrt(gamma_rel**2-1)
+    #     self._compute_jaws()
 
-    @property
-    def emittance(self):
-        return [self._emitx, self._emity]
+    # @property
+    # def emittance(self):
+    #     return [self._emitx, self._emity]
 
-    @emittance.setter
-    def emittance(self, emit):
-        if hasattr(emit, '__iter__'):
-            if isinstance(emit, str):
-                raise ValueError(f"The 'emit' setting has to be a number!")
-            elif len(emit) == 2:
-                self._emitx = emit[0]
-                self._emity = emit[1]
-            elif len(emit) == 1:
-                self._emitx = emit[0]
-                self._emity = emit[0]
-            else:
-                raise ValueError(f"The 'emit' setting must have one or two values (for emitx and emity)!")
-        else:
-            self._emitx = emit
-            self._emity = emit
-        self._compute_jaws()
+    # @emittance.setter
+    # def emittance(self, emit):
+    #     if hasattr(emit, '__iter__'):
+    #         if isinstance(emit, str):
+    #             raise ValueError(f"The 'emit' setting has to be a number!")
+    #         elif len(emit) == 2:
+    #             self._emitx = emit[0]
+    #             self._emity = emit[1]
+    #         elif len(emit) == 1:
+    #             self._emitx = emit[0]
+    #             self._emity = emit[0]
+    #         else:
+    #             raise ValueError(f"The 'emit' setting must have one or two values (for emitx and emity)!")
+    #     else:
+    #         self._emitx = emit
+    #         self._emity = emit
+    #     self._compute_jaws()
 
-    @property
-    def align_to(self):
-        return self._colldb.align_to
+    # @property
+    # def align_to(self):
+    #     return self._colldb.align_to
 
-    @align_to.setter
-    def align_to(self, align):
-        self._set_property('align_to', align, single_default_allowed=True, limit_to=['front', 'center', 'back', 'angular'])
-        if np.any(self.align_to == 'maximum'):
-            raise NotImplementedError
-        s_front = self.s_center - self.length/2
-        s_center = self.s_center
-        s_back = self.s_center + self.length/2
-        mask = self.align_to == 'front'
-        self._colldb.loc[mask,'s_align_front'] = s_front[mask]
-        self._colldb.loc[mask,'s_align_back']  = s_front[mask]
-        mask = self.align_to == 'center'
-        self._colldb.loc[mask,'s_align_front'] = s_center[mask]
-        self._colldb.loc[mask,'s_align_back']  = s_center[mask]
-        mask = self.align_to == 'back'
-        self._colldb.loc[mask,'s_align_front'] = s_back[mask]
-        self._colldb.loc[mask,'s_align_back']  = s_back[mask]
-        mask = self.align_to == 'angular'
-        self._colldb.loc[mask,'s_align_front'] = s_front[mask]
-        self._colldb.loc[mask,'s_align_back']  = s_back[mask]
-        self._compute_jaws()
+    # @align_to.setter
+    # def align_to(self, align):
+    #     self._set_property('align_to', align, single_default_allowed=True, limit_to=['front', 'center', 'back', 'angular'])
+    #     if np.any(self.align_to == 'maximum'):
+    #         raise NotImplementedError
+    #     s_front = self.s_center - self.length/2
+    #     s_center = self.s_center
+    #     s_back = self.s_center + self.length/2
+    #     mask = self.align_to == 'front'
+    #     self._colldb.loc[mask,'s_align_front'] = s_front[mask]
+    #     self._colldb.loc[mask,'s_align_back']  = s_front[mask]
+    #     mask = self.align_to == 'center'
+    #     self._colldb.loc[mask,'s_align_front'] = s_center[mask]
+    #     self._colldb.loc[mask,'s_align_back']  = s_center[mask]
+    #     mask = self.align_to == 'back'
+    #     self._colldb.loc[mask,'s_align_front'] = s_back[mask]
+    #     self._colldb.loc[mask,'s_align_back']  = s_back[mask]
+    #     mask = self.align_to == 'angular'
+    #     self._colldb.loc[mask,'s_align_front'] = s_front[mask]
+    #     self._colldb.loc[mask,'s_align_back']  = s_back[mask]
+    #     self._compute_jaws()
 
-    # TODO: when does this need to be unset?
-    @property
-    def _optics_is_ready(self):
-        pos = set(self._colldb.s_align_front.values) | set(self._colldb.s_align_back.values)
-        return np.all([s in self._optics.index for s in pos]) and self._beta_gamma_rel is not None
+    # # TODO: when does this need to be unset?
+    # @property
+    # def _optics_is_ready(self):
+    #     pos = set(self._colldb.s_align_front.values) | set(self._colldb.s_align_back.values)
+    #     return np.all([s in self._optics.index for s in pos]) and self._beta_gamma_rel is not None
 
-    @property
-    def betx(self):
-        vals = np.array([
-            [ self._optics.loc[s,'betx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'betx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def betx(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'betx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'betx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def bety(self):
-        vals = np.array([
-            [ self._optics.loc[s,'bety'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'bety'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def bety(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'bety'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'bety'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def alfx(self):
-        vals = np.array([
-            [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)   
+    # @property
+    # def alfx(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'alfx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)   
 
-    @property
-    def alfy(self):
-        vals = np.array([
-            [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def alfy(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'alfy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
     
-    @property
-    def dx(self):
-        vals = np.array([
-            [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def dx(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'dx'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def dy(self):
-        vals = np.array([
-            [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def dy(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'dy'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
     
-    @property
-    def x(self):
-        vals = np.array([
-            [ self._optics.loc[s,'x'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'x'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def x(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'x'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'x'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def px(self):
-        vals = np.array([
-            [ self._optics.loc[s,'px'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'px'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def px(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'px'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'px'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def y(self):
-        vals = np.array([
-            [ self._optics.loc[s,'y'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'y'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def y(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'y'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'y'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def py(self):
-        vals = np.array([
-            [ self._optics.loc[s,'py'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
-            [ self._optics.loc[s,'py'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
-        ])
-        return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
+    # @property
+    # def py(self):
+    #     vals = np.array([
+    #         [ self._optics.loc[s,'py'] if s in self._optics.index else None for s in self._colldb.s_align_front.values ],
+    #         [ self._optics.loc[s,'py'] if s in self._optics.index else None for s in self._colldb.s_align_back.values ]
+    #     ])
+    #     return pd.Series([ F if F == B else [F,B] for F,B in vals.T ], index=self._colldb.index, dtype=object)
 
-    @property
-    def beam_size(self):
-        if self._optics_is_ready:
-            beam_size = np.array([self._beam_size_front,self._beam_size_back])
-            return pd.Series([ F if F == B else [F,B] for F, B in beam_size.T ], index=self._colldb.index, dtype=object)
-        else:
-            return None
+    # @property
+    # def beam_size(self):
+    #     if self._optics_is_ready:
+    #         beam_size = np.array([self._beam_size_front,self._beam_size_back])
+    #         return pd.Series([ F if F == B else [F,B] for F, B in beam_size.T ], index=self._colldb.index, dtype=object)
+    #     else:
+    #         return None
 
-    @property
-    def _beam_size_front(self):
-        # TODO: curretnly only for angle_L
-        df = self._colldb
-        opt = self._optics
-        betx = opt.loc[df.s_align_front,'betx'].astype(float)
-        bety = opt.loc[df.s_align_front,'bety'].astype(float)
-        sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
-        sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
-        result = np.sqrt(
-                    (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
-                    + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
-                )
-        result.index = self._colldb.index
-        return result
+    # @property
+    # def _beam_size_front(self):
+    #     # TODO: curretnly only for angle_L
+    #     df = self._colldb
+    #     opt = self._optics
+    #     betx = opt.loc[df.s_align_front,'betx'].astype(float)
+    #     bety = opt.loc[df.s_align_front,'bety'].astype(float)
+    #     sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
+    #     sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
+    #     result = np.sqrt(
+    #                 (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
+    #                 + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
+    #             )
+    #     result.index = self._colldb.index
+    #     return result
 
-    @property
-    def _beam_size_back(self):
-        # TODO: curretnly only for angle_L
-        df = self._colldb
-        opt = self._optics
-        betx = opt.loc[df.s_align_back,'betx'].astype(float)
-        bety = opt.loc[df.s_align_back,'bety'].astype(float)
-        sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
-        sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
-        result = np.sqrt(
-                    (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
-                    + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
-                )
-        result.index = self._colldb.index
-        return result
+    # @property
+    # def _beam_size_back(self):
+    #     # TODO: curretnly only for angle_L
+    #     df = self._colldb
+    #     opt = self._optics
+    #     betx = opt.loc[df.s_align_back,'betx'].astype(float)
+    #     bety = opt.loc[df.s_align_back,'bety'].astype(float)
+    #     sigmax = np.sqrt(betx*self._emitx/self._beta_gamma_rel)
+    #     sigmay = np.sqrt(bety*self._emity/self._beta_gamma_rel)
+    #     result = np.sqrt(
+    #                 (sigmax*np.cos(np.float_(df.angle_L.values)*np.pi/180))**2
+    #                 + (sigmay*np.sin(np.float_(df.angle_L.values)*np.pi/180))**2
+    #             )
+    #     result.index = self._colldb.index
+    #     return result
 
-    # parking is defined with respect to closed orbit
-    # TODO: tilt
-    # 'upstr'  =>  'front'  en   'downstr'  =>  'back'
-    def _compute_jaws(self):
-        if self._optics_is_ready:
-            df = self._colldb
-            beam_size_front = self._beam_size_front
-            beam_size_back  = self._beam_size_back
-            COs  = np.cos(np.float_(df.angle_L.values)*np.pi/180) * self.x
-            COs += np.sin(np.float_(df.angle_L.values)*np.pi/180) * self.y
-            jaw_LU = np.array([park if gap is None else gap*bs  + off + co
-                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_front, self.offset, COs)])
-            jaw_LD = np.array([park if gap is None else gap*bs  + off + co
-                               for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_back,  self.offset, COs)])
-            jaw_RU = np.array([park if gap is None else -gap*bs + off + co
-                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_front, self.offset, COs)])
-            jaw_RD = np.array([park if gap is None else -gap*bs + off + co
-                               for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_back,  self.offset, COs)])
-            df['jaw_LU'] = np.minimum(jaw_LU, df['parking'])
-            df['jaw_LD'] = np.minimum(jaw_LD, df['parking'])
-            df['jaw_RU'] = np.maximum(jaw_RU, -df['parking'])
-            df['jaw_RD'] = np.maximum(jaw_RD, -df['parking'])
-            # align crystals
-            opt = self._optics
-            df['align_angle'] = None
-            cry_mask = [c is not None for c in df.crystal]
-            df_cry = df[cry_mask]
-            if len(df_cry) > 0:
-                alfx = opt.loc[df_cry.s_align_front,'alfx'].astype(float).values
-                alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
-                betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
-                bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
-                align_angle_x = -np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
-                align_angle_y = -np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
-                align_angle = np.array([x if abs(ang) < 1e-6 else y
-                                        for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
-                df.loc[cry_mask, 'align_angle'] = align_angle*df_cry['gap_L']
+    # # parking is defined with respect to closed orbit
+    # # TODO: tilt
+    # # 'upstr'  =>  'front'  en   'downstr'  =>  'back'
+    # def _compute_jaws(self):
+    #     if self._optics_is_ready:
+    #         df = self._colldb
+    #         beam_size_front = self._beam_size_front
+    #         beam_size_back  = self._beam_size_back
+    #         COs  = np.cos(np.float_(df.angle_L.values)*np.pi/180) * self.x
+    #         COs += np.sin(np.float_(df.angle_L.values)*np.pi/180) * self.y
+    #         jaw_LU = np.array([park if gap is None else gap*bs  + off + co
+    #                            for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_front, self.offset, COs)])
+    #         jaw_LD = np.array([park if gap is None else gap*bs  + off + co
+    #                            for gap, park, bs, off, co in zip(df['gap_L'], df['parking'], beam_size_back,  self.offset, COs)])
+    #         jaw_RU = np.array([park if gap is None else -gap*bs + off + co
+    #                            for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_front, self.offset, COs)])
+    #         jaw_RD = np.array([park if gap is None else -gap*bs + off + co
+    #                            for gap, park, bs, off, co in zip(df['gap_R'], df['parking'], beam_size_back,  self.offset, COs)])
+    #         df['jaw_LU'] = np.minimum(jaw_LU, df['parking'])
+    #         df['jaw_LD'] = np.minimum(jaw_LD, df['parking'])
+    #         df['jaw_RU'] = np.maximum(jaw_RU, -df['parking'])
+    #         df['jaw_RD'] = np.maximum(jaw_RD, -df['parking'])
+    #         # align crystals
+    #         opt = self._optics
+    #         df['align_angle'] = None
+    #         cry_mask = [c is not None for c in df.crystal]
+    #         df_cry = df[cry_mask]
+    #         if len(df_cry) > 0:
+    #             alfx = opt.loc[df_cry.s_align_front,'alfx'].astype(float).values
+    #             alfy = opt.loc[df_cry.s_align_front,'alfy'].astype(float).values
+    #             betx = opt.loc[df_cry.s_align_front,'betx'].astype(float).values
+    #             bety = opt.loc[df_cry.s_align_front,'bety'].astype(float).values
+    #             align_angle_x = -np.sqrt(self._emitx/self._beta_gamma_rel/betx)*alfx
+    #             align_angle_y = -np.sqrt(self._emity/self._beta_gamma_rel/bety)*alfy
+    #             align_angle = np.array([x if abs(ang) < 1e-6 else y
+    #                                     for x,y,ang in zip(align_angle_x,align_angle_y,df_cry.angle_L.values)])
+    #             df.loc[cry_mask, 'align_angle'] = align_angle*df_cry['gap_L']
 
 
     # ---------------------------------------
     # ------ Property setter functions ------
     # ---------------------------------------
 
-    def _set_property(self, prop, vals, single_default_allowed=False, limit_to=[]):
-        df = self._colldb
-        if not isinstance(limit_to, (list, tuple, set)):
-            limit_to = [limit_to]
-        if isinstance(vals, dict):
-            for name, val in vals.items():
-                if name not in self.name:
-                    raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
-                if limit_to!=[] and val not in limit_to:
-                    raise ValueError(f"Cannot set {prop} to {val}. Choose from {limit_to}!")
-                df.loc[name, prop] = val
-        elif isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
-            if len(vals) != len(self.name):
-                raise ValueError(f"The variable '{prop}' has a different length than the number of "
-                                + "collimators in the CollimatorDatabase. Use a dictionary instead.")
-            if limit_to!=[] and np.any([val not in limit_to for val in vals]):
-                raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
-            df[prop] = vals
-        else:
-            if single_default_allowed:
-                if limit_to!=[] and vals not in limit_to:
-                    raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
-                df[prop] = vals
-            else:
-                raise ValueError(f"Variable '{prop}' needs to be a pandas Series, dict, numpy array, or list!")
+    # def _set_property(self, prop, vals, single_default_allowed=False, limit_to=[]):
+    #     df = self._colldb
+    #     if not isinstance(limit_to, (list, tuple, set)):
+    #         limit_to = [limit_to]
+    #     if isinstance(vals, dict):
+    #         for name, val in vals.items():
+    #             if name not in self.name:
+    #                 raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
+    #             if limit_to!=[] and val not in limit_to:
+    #                 raise ValueError(f"Cannot set {prop} to {val}. Choose from {limit_to}!")
+    #             df.loc[name, prop] = val
+    #     elif isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
+    #         if len(vals) != len(self.name):
+    #             raise ValueError(f"The variable '{prop}' has a different length than the number of "
+    #                             + "collimators in the CollimatorDatabase. Use a dictionary instead.")
+    #         if limit_to!=[] and np.any([val not in limit_to for val in vals]):
+    #             raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
+    #         df[prop] = vals
+    #     else:
+    #         if single_default_allowed:
+    #             if limit_to!=[] and vals not in limit_to:
+    #                 raise ValueError(f"Cannot set {prop} to {vals}. Choose from {limit_to}!")
+    #             df[prop] = vals
+    #         else:
+    #             raise ValueError(f"Variable '{prop}' needs to be a pandas Series, dict, numpy array, or list!")
 
 
-    def _set_property_LR(self, prop, vals):
-        df = self._colldb
-        correct_format = False
-        # The variable vals is a Series or a list
-        if isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
-            correct_format = True
-            if len(vals) != len(self.name):
-                raise ValueError(f"The variable '{prop}' has a different length than the number of "
-                                + "collimators in the CollimatorDatabase. Use a dictionary instead.")
-            # Some of the vals are list (e.g. two different values for both gaps): loop over vals as dict
-            if any(hasattr(val, '__iter__') for val in vals):
-                vals = dict(zip(self.name, vals))
-            # All gaps are single values: use pandas-style assignment
-            else:
-                df[prop + "_L"] = vals
-                df[prop + "_R"] = vals
-        
-        # The variable vals is a dictionary
-        if isinstance(vals, dict):
-            correct_format = True
-            for name, val in vals.items():
-                if name not in self.name:
-                    raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
-                if hasattr(val, '__iter__'):
-                    if isinstance(val, str):
-                        raise ValueError(f"The '{prop}' setting has to be a number!")
-                    elif len(val) == 2:
-                        val_L = val[0]
-                        val_R = val[1]
-                    elif len(val) == 1:
-                        val_L = val[0]
-                        val_R = val[0]
-                    else:
-                        raise ValueError(f"The '{prop}' setting must have one or two values (for the left and the right jaw)!")
-                else:
-                    val_L = val
-                    val_R = val
-                df.loc[name, prop + "_L"] = val_L
-                df.loc[name, prop + "_R"] = val_R
+    # def _set_property_LR(self, prop, vals):
+    #     df = self._colldb
+    #     correct_format = False
+    #     # The variable vals is a Series or a list
+    #     if isinstance(vals, pd.Series) or isinstance(vals, list) or isinstance(vals, np.ndarray):
+    #         correct_format = True
+    #         if len(vals) != len(self.name):
+    #             raise ValueError(f"The variable '{prop}' has a different length than the number of "
+    #                             + "collimators in the CollimatorDatabase. Use a dictionary instead.")
+    #         # Some of the vals are list (e.g. two different values for both gaps): loop over vals as dict
+    #         if any(hasattr(val, '__iter__') for val in vals):
+    #             vals = dict(zip(self.name, vals))
+    #         # All gaps are single values: use pandas-style assignment
+    #         else:
+    #             df[prop + "_L"] = vals
+    #             df[prop + "_R"] = vals
 
-        if not correct_format:
-            raise ValueError("Variable '{prop}' needs to be a pandas Series, dict, numpy array, or list!")
+    #     # The variable vals is a dictionary
+    #     if isinstance(vals, dict):
+    #         correct_format = True
+    #         for name, val in vals.items():
+    #             if name not in self.name:
+    #                 raise ValueError(f"Collimator {name} not found in CollimatorDatabase!")
+    #             if hasattr(val, '__iter__'):
+    #                 if isinstance(val, str):
+    #                     raise ValueError(f"The '{prop}' setting has to be a number!")
+    #                 elif len(val) == 2:
+    #                     val_L = val[0]
+    #                     val_R = val[1]
+    #                 elif len(val) == 1:
+    #                     val_L = val[0]
+    #                     val_R = val[0]
+    #                 else:
+    #                     raise ValueError(f"The '{prop}' setting must have one or two values (for the left and the right jaw)!")
+    #             else:
+    #                 val_L = val
+    #                 val_R = val
+    #             df.loc[name, prop + "_L"] = val_L
+    #             df.loc[name, prop + "_R"] = val_R
 
-        df[prop + "_L"] = df[prop + "_L"].astype('object', copy=False)
-        df[prop + "_R"] = df[prop + "_R"].astype('object', copy=False)
-        # Check if collimator active
-        # Check if gap is list (assymetric jaws)
+    #     if not correct_format:
+    #         raise ValueError("Variable '{prop}' needs to be a pandas Series, dict, numpy array, or list!")
+
+    #     df[prop + "_L"] = df[prop + "_L"].astype('object', copy=False)
+    #     df[prop + "_R"] = df[prop + "_R"].astype('object', copy=False)
+    #     # Check if collimator active
+    #     # Check if gap is list (assymetric jaws)

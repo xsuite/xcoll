@@ -3,19 +3,14 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import json
-from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .beam_elements import BaseCollimator, BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
+from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
 from .install import install_elements
 from .colldb import CollimatorDatabase
-from .interaction_record import InteractionRecord
-from .scattering_routines.everest.materials import SixTrack_to_xcoll, CrystalMaterial
+from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
-import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 
@@ -120,7 +115,7 @@ class CollimatorManager:
                     self.colldb.length,
                     self.colldb.side):
             if verbose: print(f"Installing {name:20} as BlackAbsorber")
-            el = xc.BlackAbsorber(gap=gap, angle=angle, length=length, side=side, _tracking=False)
+            el = BlackAbsorber(gap=gap, angle=angle, length=length, side=side, _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
@@ -131,7 +126,7 @@ class CollimatorManager:
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
                 raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
                                + f" but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
@@ -143,7 +138,7 @@ class CollimatorManager:
     def install_everest_collimators(self, *, verbose=False):
         line = self.line
         elements = []
-        for name, gap, angle, length, side, material, crystal, bending_radius, xdim, ydim, miscut, thick in zip(
+        for name, gap, angle, length, side, material, crystal, bending_radius, width, height, miscut in zip(
                     self.collimator_names,
                     self.colldb.gap,
                     self.colldb.angle,
@@ -152,10 +147,9 @@ class CollimatorManager:
                     self.colldb.material,
                     self.colldb._colldb.crystal,
                     self.colldb._colldb.bending_radius,
-                    self.colldb._colldb.xdim,
-                    self.colldb._colldb.ydim,
-                    self.colldb._colldb.miscut,
-                    self.colldb._colldb.thick):
+                    self.colldb._colldb.width,
+                    self.colldb._colldb.height,
+                    self.colldb._colldb.miscut):
             mat = SixTrack_to_xcoll[material]
             if crystal is None:
                 if verbose: print(f"Installing {name:20} as EverestCollimator")
@@ -163,7 +157,7 @@ class CollimatorManager:
             else:
                 if verbose: print(f"Installing {name:20} as EverestCrystal")
                 el = EverestCrystal(gap=gap, angle=angle, length=length, side=side, material=mat[1], lattice=crystal,
-                                       bending_radius=bending_radius, xdim=xdim, ydim=ydim, miscut=miscut, thick=thick, _tracking=False)
+                                       bending_radius=bending_radius, width=width, height=height, miscut=miscut, _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
@@ -174,7 +168,7 @@ class CollimatorManager:
 
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)) and not support_legacy_elements:
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
                 raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
                                + f" but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
