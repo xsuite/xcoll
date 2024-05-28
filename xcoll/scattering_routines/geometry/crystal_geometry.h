@@ -25,6 +25,8 @@ typedef struct CrystalGeometry_ {
     double width;
     double height;
     double miscut_angle;
+    double s_B;    // Bend centre
+    double x_B;
     double s_P;    // Miscut centre
     double x_P;
     double t_VImax;
