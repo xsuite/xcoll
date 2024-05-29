@@ -32,7 +32,7 @@ line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_r
 
 
 # Create the ADT
-adt = xc.ADT(plane=plane, amplitude=1)
+adt = xc.BlowUp(plane=plane, amplitude=1)
 pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
 pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
 name = f'adtk{plane.lower()}.{pos}.b{beam}'

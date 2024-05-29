@@ -30,7 +30,7 @@ def _calculate_nemitt(part):
 def test_blow_up(beam, plane):
     line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 
-    adt = xc.ADT(plane=plane, amplitude=1)
+    adt = xc.BlowUp(plane=plane, amplitude=1)
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
     name = f'adtk{plane.lower()}.{pos}.b{beam}'

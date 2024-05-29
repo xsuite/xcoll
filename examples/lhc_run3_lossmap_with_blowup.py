@@ -40,10 +40,10 @@ colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', 
 colldb.install_everest_collimators(line=line, verbose=True)
 
 
-# Install ADTs into line
+# Install ADT into line
 # ADT kickers in LHC are named adtk[hv].[abcd]5[lr]4.b1 (with the position 5l4 (B1H or B2V) or 5r4 (B1V or B2H)
 # These are not in the line, but their tank names are: adtk[hv].[abcd]5[lr]4.[abcd].b1  (32 markers)
-adt = xc.ADT(plane=plane, amplitude=1)
+adt = xc.BlowUp(plane=plane, amplitude=1)
 pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
 pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
 name = f'adtk{plane.lower()}.{pos}.b{beam}'

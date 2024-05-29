@@ -12,7 +12,7 @@ from ..general import _pkg_root
 from .base import InvalidXcoll
 
 
-class ADT(InvalidXcoll):
+class BlowUp(InvalidXcoll):
     _xofields = {
         '_plane':       xo.Int8,
         '_amplitude':   xo.Float64,  # This is the one used in C, it is already de-calibrated
@@ -33,19 +33,19 @@ class ADT(InvalidXcoll):
     _depends_on = [InvalidXcoll]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','adt.h')
+        _pkg_root.joinpath('beam_elements','collimators_src','blowup.h')
     ]
 
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
             if 'plane' not in kwargs:
-                raise ValueError("The plane of the ADT must be specified.")
+                raise ValueError("The plane of the BlowUp must be specified.")
             to_assign['plane']       = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
             kwargs['_calibration'] = 1.
             if 'amplitude' not in kwargs:
-                raise ValueError("The amplitude of the ADT must be specified "
+                raise ValueError("The amplitude of the BlowUp must be specified "
                                + "(in terms of calibrated units.")
             to_assign['amplitude']   = kwargs.pop('amplitude')
             kwargs['_active'] = 0
@@ -65,7 +65,7 @@ class ADT(InvalidXcoll):
         elif self._plane == -1:
             return 'V'
         else:
-            raise ValueError("The plane of the ADT is not recognized.")
+            raise ValueError("The plane of the BlowUp is not recognized.")
 
     @plane.setter
     def plane(self, val):
@@ -74,7 +74,7 @@ class ADT(InvalidXcoll):
         elif val.lower() == 'v':
             self._plane = -1
         else:
-            raise ValueError("The plane of the ADT must be either 'H' or 'V'.")
+            raise ValueError("The plane of the BlowUp must be either 'H' or 'V'.")
 
     @property
     def amplitude(self):
@@ -101,7 +101,7 @@ class ADT(InvalidXcoll):
     def calibrate(self, twiss, nemitt_x, nemitt_y, name=None):
         if name is None:
             if self._name is None:
-                raise ValueError("The name of the ADT must be provided.")
+                raise ValueError("The name of the BlowUp must be provided.")
             name = self._name
         beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
         sigma_p = beam_sizes.rows[name][f"sigma_p{'x' if self.plane == 'H' else 'y'}"][0]

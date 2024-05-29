@@ -3,15 +3,15 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_ADT_H
-#define XCOLL_ADT_H
+#ifndef XCOLL_BLOWUP_H
+#define XCOLL_BLOWUP_H
 
 /*gpufun*/
-void ADT_track_local_particle(ADTData el, LocalParticle* part0){
+void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
 
-    int8_t plane     = ADTData_get__plane(el);
-    double amplitude = ADTData_get__amplitude(el);
-    int8_t active    = ADTData_get__active(el);
+    int8_t plane     = BlowUpData_get__plane(el);
+    double amplitude = BlowUpData_get__amplitude(el);
+    int8_t active    = BlowUpData_get__active(el);
 
     //start_per_particle_block (part0->part)
         if (active){
@@ -27,4 +27,4 @@ void ADT_track_local_particle(ADTData el, LocalParticle* part0){
     //end_per_particle_block
 }
 
-#endif /* XCOLL_ADT_H */
+#endif /* XCOLL_BLOWUP_H */
