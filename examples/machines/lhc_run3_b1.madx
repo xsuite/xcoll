@@ -7,7 +7,7 @@
 !#######################
 option,-echo,-warn;
 
-System,"ln -fns /afs/cern.ch/eng/acc-models/lhc/2023 run3seq";
+System,"ln -fns /eos/project-c/collimation-team/machine_configurations/acc-models/lhc/2024 run3seq";
 System,"ln -fns /afs/cern.ch/eng/lhc/optics/runIII run3opt";
 System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools/patch_layout_db run3aper";
 System,"ln -fns /eos/project-c/collimation-team/machine_configurations/LHC_run3/madx_tools extra";
@@ -23,7 +23,7 @@ REAL CONST l.MBXWT = 0;
 
 mylhcbeam=1;
 rematchIR7=0;
-createOutput=0;
+createOutput=1;
 make_thin=1;
 
 
@@ -44,19 +44,34 @@ if (make_thin==1){    ! Thick lattice currently does not have full aperture mode
     call, file="run3seq/aperture/aperture_as-built.b2.madx";
     call, file="run3seq/aperture/aper_tol_as-built.b2.madx";
 };
-call, file="run3opt/RunIII_dev/Proton_2023/opticsfile.43";
+call, file="run3opt/RunIII_dev/Proton_2024/opticsfile.43";
+
+! Phase Knob
+phase_change.b1 = 0;
+phase_change.b2 = 0;
+call, file="run3seq/toolkit/generate-phasechange-knobs.madx;
+
+! Add more aperture markers (moved to after slicing to avoid negative drifts)
+if (mylhcbeam<4){
+  call,   file="run3aper/layout_2024.seq";
+  call,   file="run3aper/layout_2024_corrections.madx";
+} else {
+  call,   file="run3aper/layout_2024_b4_part1.seq";
+  call,   file="run3aper/layout_2024_b4_part2.seq";
+  call,   file="run3aper/layout_2024_corrections_b4.madx";
+};
 
 
 nrj     = 6800.0;
 qx0     = 62.31;
 qy0     = 60.32;
-dqx0    = 3.0;
-dqy0    = 3.0;
-I_MO_B1 = 0;     ! This represents the value of the KOF
-I_MO_B2 = 0;     ! This represents the value of the KOF
+dqx0    = 10.0;
+dqy0    = 10.0;
+I_MO_B1 = 197.01821;     ! This represents the value of the KOF
+I_MO_B2 = 197.01821;     ! This represents the value of the KOF
 on_disp = 1;
 exn     = 3.5e-06;
-numpart = 180000000000.0;   ! NPART=1.15E11
+numpart = 160000000000.0;   ! NPART=1.15E11
 esigma  = 9.526279441628826e-05;
 zsigma  = 0.0761;
 
@@ -87,7 +102,7 @@ value,betxip1b2_pre,betyip1b2_pre,betxip5b2_pre,betyip5b2_pre;
 
 
 ! Crossing scheme
-on_x1    = -160.0;
+on_x1    = 150.0;
 on_x2h   = 0;
 on_x2v   = 200.0;
 on_x5    = 160.0;
@@ -99,16 +114,16 @@ on_sep2v = 0;
 on_sep5  = 0.0;
 on_sep8h = 0.0;
 on_sep8v = 0.0;
-on_a1    = 0;
+on_a1    = 0.0;
 on_a2    = 0.0;
-on_a5    = 0;
+on_a5    = 0.0;
 on_a8    = 0.0;
 on_o1    = 0;
 on_o2    = 0;
-on_o5    = 0;
-on_o8    = 0;
-on_alice     = 1;
-on_lhcb      = 1;
+on_o5    = 0.0;
+on_o8    = 0.0;
+on_alice     = 1.029412;
+on_lhcb      = -1.029412;
 on_sol_atlas = 0;
 on_sol_cms   = 0;
 on_sol_alice = 0;
@@ -175,14 +190,6 @@ if (make_thin==1){
     };
     use,sequence=lhcb2;
     makethin, sequence=lhcb2, makedipedge=false, style=teapot, makeendmarkers=true;
-
-    ! Add more aperture markers (moved to after slicing to avoid negative drifts)
-    if (mylhcbeam<4){
-      call,   file="run3aper/layout_2023.seq";
-    } else {
-      call,   file="run3aper/layout_2023_b4_part1.seq";
-      call,   file="run3aper/layout_2023_b4_part2.seq";
-    };
 };
 
 ! Final flatten after all seqedits to ensure no fatal errors
@@ -254,12 +261,12 @@ on_sol_atlas = on_sol_atlas_aux; on_sol_cms = on_sol_cms_aux; on_sol_alice = on_
 
 
 !! Match tune and chroma
-kqtf=dQx.b1_sq;
-kqtd=dQy.b1_sq;
+kqtf=dQx.b1_sq;  ! initial value (should be 0 in opticsfile)
+kqtd=dQy.b1_sq;  ! initial value (should be 0 in opticsfile)
 dQx.b1_sq:=kqtf;
 dQy.b1_sq:=kqtd;
-ksf=dQpx.b1_sq;
-ksd=dQpy.b1_sq;
+ksf=dQpx.b1_sq;  ! initial value (should be 0 in opticsfile)
+ksd=dQpy.b1_sq;  ! initial value (should be 0 in opticsfile)
 dQpx.b1_sq:=ksf;
 dQpy.b1_sq:=ksd;
 

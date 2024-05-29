@@ -1,14 +1,9 @@
 {
  "__class__": "EverestCollimator",
- "active_length": 1,
+ "length": 1,
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "reference_center": [
-  3.856605966311988e-05,
-  -0.0016417943749942425
- ],
- "jaw": 0.00100982863569859,
  "material": {
   "__class__": "Material",
   "name": "Tungsten",
@@ -28,5 +23,7 @@
   ],
   "hcut": 0.01,
   "radiation_length": 0.0035
- }
+ },
+ "jaw_L": 0.0010483946953617099,
+ "jaw_R": -0.0009712625760354702
 }

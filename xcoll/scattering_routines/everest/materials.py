@@ -18,6 +18,8 @@ import xobjects as xo
 # as xobjects enforces a strict order: static fields first, and then dynamic fields.
 # See struct.py, in __new__ of MetaStruct
 
+# A HybridClass needs something to depend on, otherwise the class is added twice in the cdefs during compilation
+
 class GeneralMaterial(xo.HybridClass):
     _xofields = {
         'Z':                        xo.Float64,     # zatom

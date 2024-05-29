@@ -28,35 +28,28 @@ path_in  = xc._pkg_root.parent / 'examples'
 
 
 # Load from json
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 
 
-# Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
-                                              line=line, beam=beam, _context=context)
-
-
-# Install collimators into line
-coll_manager.install_everest_collimators(verbose=True)
+# Install primary collimators
+TCPH = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
+TCPV = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, angle=90, emittance=3.5e-6)
+TCPS = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.Carbon, angle=127.5, emittance=3.5e-6)
+xc.install_elements(line, ['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
 
 
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
-with open(os.devnull, 'w') as fid:
-    with contextlib.redirect_stdout(fid):
-        df_with_coll = line.check_aperture()
+df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 
 # Build the tracker
-coll_manager.build_tracker()
+line.build_tracker()
 
 
-# Set the collimator openings based on the colldb,
-# or manually override with the option gaps={collname: gap}
-coll_manager.set_openings()
+# Assign the optics to deduce the gap settings
+xc.assign_optics_to_collimators(line=line)
 
 
 # --------------------------------------------------------
@@ -75,15 +68,14 @@ x_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 y_norm = np.random.uniform(-n_sigmas, n_sigmas, n_part)
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6,
-                            at_element='tcp.d6l7.b1',
-                            match_at_s=coll_manager.s_active_front['tcp.d6l7.b1']
+                            at_element='tcp.d6l7.b1'
                            )
 
 # Track
 print("Tracking first test.. ")
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)
@@ -109,21 +101,21 @@ plt.show()
 # We only track one turn, because otherwise betatron
 # oscillations would make the cut profile symmetric anyway.
 
-coll_manager.colldb.angle = {'tcp.c6l7.b1': 15}
-coll_manager.set_openings({'tcp.c6l7.b1': [4,7]}, full_open=True)
+line['tcp.c6l7.b1'].angle = 15
+xc.open_collimators(line)
+line['tcp.c6l7.b1'].gap = [4, -7]
 
 # Create initial particles
 part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6,
-                            at_element='tcp.c6l7.b1',
-                            match_at_s=coll_manager.s_active_front['tcp.c6l7.b1']
+                            at_element='tcp.c6l7.b1'
                            )
 
 # Track
 print("Tracking second test.. ")
-coll_manager.enable_scattering()
+xc.enable_scattering(line)
 line.track(part, num_turns=1)
-coll_manager.disable_scattering()
+xc.disable_scattering(line)
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)

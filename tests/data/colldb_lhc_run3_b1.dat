@@ -16,8 +16,8 @@ NSIG_FAM TCLI                999.0 TERTIARY
 NSIG_FAM TDI                 999.0 TERTIARY
 # Dump protection
 NSIG_FAM TCDQ                  7.3 TERTIARY
-NSIG_FAM TCSTCDQ               7.3 SECONDARY
-# Physics background minimalisation
+NSIG_FAM TCSP                  7.3 SECONDARY
+# Triplet protection
 NSIG_FAM TCT15                 8.5 TERTIARY
 NSIG_FAM TCT2                 37.0 TERTIARY
 NSIG_FAM TCT8                 11.5 TERTIARY
@@ -61,7 +61,7 @@ tcl.6r5.b1                                                   TCL6 Iner      1.00
 tcdqa.a4r6.b1                                                TCDQ C         3.000      0.0         0.
 tcdqa.c4r6.b1                                                TCDQ C         3.000      0.0         0.
 tcdqa.b4r6.b1                                                TCDQ C         3.000      0.0         0.
-tcsp.a4r6.b1                                              TCSTCDQ C         1.000      0.0         0.
+tcsp.a4r6.b1                                                 TCSP C         1.000      0.0         0.
 tcp.d6l7.b1                                                  TCP7 MoGR      0.600     90.0         0.
 tcp.c6l7.b1                                                  TCP7 MoGR      0.600      0.0         0.
 tcp.b6l7.b1                                                  TCP7 C         0.600    127.5         0.

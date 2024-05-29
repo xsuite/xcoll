@@ -1,34 +1,20 @@
 // copyright ############################### #
 // This file is part of the Xcoll Package.   #
-// Copyright (c) CERN, 2023.                 #
+// Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
+#define XCOLL_TRANSITION
 
 typedef struct EverestCollData_ {
     // Collimator properties
-    double aperture;   // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double offset;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double tilt_L;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double tilt_R;     // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
-    double side;       // TODO: This should go out, as it's geometry and that should not be used in Everest scattering
     RandomRutherfordData restrict rng;
-    CollimatorImpactsData record;
+    InteractionRecordData record;
     RecordIndex record_index;
-    // Crystal properties
-    double bend_r;
-    double bend_ang;
-    double tilt;
-    double amorphous_layer;
-    double xdim;
-    double ydim;
-    int8_t orient;
-    double miscut;
-    double s_P;
-    double x_P;
-    double t_VImax;
+    int8_t record_scatterings;
+    int8_t record_touches;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
@@ -43,6 +29,8 @@ typedef struct EverestCollData_ {
     double ai;
     double eum;
     double collnt;
+    double eta;
+    int8_t orient;
     int8_t only_mcs;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;
@@ -62,6 +50,7 @@ typedef struct EverestData_ {
     double prob_tail_c4;
     double energy_loss;
     double energy_loss_tail;
+    // Crystal data
     double rescale_scattering;
     double t_c;
     double t_c0;
@@ -88,17 +77,6 @@ void Drift_single_particle_4d(LocalParticle* part, double length){
     double zeta = LocalParticle_get_zeta(part);
     Drift_single_particle(part, length);
     LocalParticle_set_zeta(part, zeta);
-}
-
-/*gpufun*/
-double YRotation_single_particle_rotate_only(LocalParticle* part, double s, double angle){
-    double x   = LocalParticle_get_x(part);
-    double rpp = LocalParticle_get_rpp(part);
-    double sin_y = sin(angle);
-    double cos_y = cos(angle);
-    LocalParticle_set_x(part, x*cos_y - s*sin_y);
-    LocalParticle_add_to_px(part,-angle/rpp);
-    return x*sin_y + s*cos_y;  // new s
 }
 
 /*gpukern*/

@@ -20,8 +20,8 @@ context = xo.ContextCpu()         # For CPU
 
 
 coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=149e-6,
-                         xdim=0.002, ydim=0.05, side='+', thick=0.0, miscut=0., lattice='strip', jaw_L=0.001, jaw_R=-0.001,
-                         align_angle=0.0, _context=context)
+                         width=0.002, height=0.05, side='+', miscut=0., lattice='strip', jaw=0.001,
+                         _context=context)
 
 num_part = int(10e6)
 x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
