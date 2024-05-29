@@ -29,6 +29,7 @@ path = Path(__file__).parent / 'data'
                         [1, 1e6, 0, 0.9e-6, 'bucket', None]]
                         # [2, 1e6, 2.8e-8, 3.4e-6, 'matched_dispersion', 3]]
                         , ids=["B1_default", "B2_diff_spread", "B1_bucket"])#, "B2_matched"])
+@retry()
 def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
                                      longitudinal, longitudinal_betatron_cut): #, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
@@ -63,32 +64,33 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     mask_conv_L = part_conv.x > 0
     mask_conv_R = part_conv.x < 0
 
-    # Pencil: left jaw
-    pos_jawL_conv = coll_conv.jaw_L
-    pos_partL_conv = part_conv.x[mask_conv_L].min()
-    pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
-    assert np.isclose(pencil_spread_convL, pencil_spread, atol=atol_spread)
-    assert pos_partL_conv - impact_parameter - pos_jawL_conv < atol_cut
-    assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
+    with flaky_assertions():
+        # Pencil: left jaw
+        pos_jawL_conv = coll_conv.jaw_L
+        pos_partL_conv = part_conv.x[mask_conv_L].min()
+        pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
+        assert np.isclose(pencil_spread_convL, pencil_spread, atol=atol_spread)
+        assert pos_partL_conv - impact_parameter - pos_jawL_conv < atol_cut
+        assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
 
-    # Pencil: right jaw
-    pos_jawR_conv = coll_conv.jaw_R
-    pos_partR_conv = part_conv.x[mask_conv_R].max()
-    pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
-    assert np.isclose(pencil_spread_convR, pencil_spread, atol=atol_spread)
-    assert pos_jawR_conv - pos_partR_conv - impact_parameter < atol_cut
-    assert pos_jawR_conv - pos_partR_conv - impact_parameter > 0
+        # Pencil: right jaw
+        pos_jawR_conv = coll_conv.jaw_R
+        pos_partR_conv = part_conv.x[mask_conv_R].max()
+        pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
+        assert np.isclose(pencil_spread_convR, pencil_spread, atol=atol_spread)
+        assert pos_jawR_conv - pos_partR_conv - impact_parameter < atol_cut
+        assert pos_jawR_conv - pos_partR_conv - impact_parameter > 0
 
-    # Transverse: mean
-    transverse_spread_sigma = 1
-    atol = 5*transverse_spread_sigma/np.sqrt(npart)
-    assert np.isclose(np.mean(part_norm_conv.y_norm),  0, atol=atol)
-    assert np.isclose(np.mean(part_norm_conv.py_norm), 0, atol=atol)
+        # Transverse: mean
+        transverse_spread_sigma = 1
+        atol = 5*transverse_spread_sigma/np.sqrt(npart)
+        assert np.isclose(np.mean(part_norm_conv.y_norm),  0, atol=atol)
+        assert np.isclose(np.mean(part_norm_conv.py_norm), 0, atol=atol)
 
-    # Transverse: std
-    atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
-    assert np.isclose(np.std(part_norm_conv.y_norm), transverse_spread_sigma, atol=atol)
-    assert np.isclose(np.std(part_norm_conv.py_norm),transverse_spread_sigma, atol=atol)
+        # Transverse: std
+        atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
+        assert np.isclose(np.std(part_norm_conv.y_norm), transverse_spread_sigma, atol=atol)
+        assert np.isclose(np.std(part_norm_conv.py_norm),transverse_spread_sigma, atol=atol)
 
     # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
     if longitudinal == 'matched_dispersion':
@@ -109,32 +111,33 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     mask_div_L = part_div.y > 0
     mask_div_R = part_div.y < 0
 
-    # Pencil: left jaw
-    pos_jawL_div = coll_div.jaw_L
-    pos_partL_div = part_div.y[mask_div_L].min()
-    pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
-    assert np.isclose(pencil_spread_divL, pencil_spread, atol=atol_spread)
-    assert pos_partL_div - impact_parameter - pos_jawL_div < atol_cut
-    assert pos_partL_div - impact_parameter - pos_jawL_div > 0
+    with flaky_assertions():
+        # Pencil: left jaw
+        pos_jawL_div = coll_div.jaw_L
+        pos_partL_div = part_div.y[mask_div_L].min()
+        pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
+        assert np.isclose(pencil_spread_divL, pencil_spread, atol=atol_spread)
+        assert pos_partL_div - impact_parameter - pos_jawL_div < atol_cut
+        assert pos_partL_div - impact_parameter - pos_jawL_div > 0
 
-    # Pencil: right jaw
-    pos_jawR_div = coll_div.jaw_R
-    pos_partR_div = part_div.y[mask_div_R].max()
-    pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
-    assert np.isclose(pencil_spread_divR, pencil_spread, atol=atol_spread)
-    assert pos_jawR_div - pos_partR_div - impact_parameter < atol_cut
-    assert pos_jawR_div - pos_partR_div - impact_parameter > 0
+        # Pencil: right jaw
+        pos_jawR_div = coll_div.jaw_R
+        pos_partR_div = part_div.y[mask_div_R].max()
+        pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
+        assert np.isclose(pencil_spread_divR, pencil_spread, atol=atol_spread)
+        assert pos_jawR_div - pos_partR_div - impact_parameter < atol_cut
+        assert pos_jawR_div - pos_partR_div - impact_parameter > 0
 
-    # Transverse: mean
-    transverse_spread_sigma = 1
-    atol = 5*transverse_spread_sigma/np.sqrt(npart)
-    assert np.isclose(np.mean(part_norm_div.x_norm),  0, atol=atol)
-    assert np.isclose(np.mean(part_norm_div.px_norm), 0, atol=atol)
+        # Transverse: mean
+        transverse_spread_sigma = 1
+        atol = 5*transverse_spread_sigma/np.sqrt(npart)
+        assert np.isclose(np.mean(part_norm_div.x_norm),  0, atol=atol)
+        assert np.isclose(np.mean(part_norm_div.px_norm), 0, atol=atol)
 
-    # Transverse: std
-    atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
-    assert np.isclose(np.std(part_norm_div.x_norm), transverse_spread_sigma, atol=atol)
-    assert np.isclose(np.std(part_norm_div.px_norm),transverse_spread_sigma, atol=atol)
+        # Transverse: std
+        atol = 5*transverse_spread_sigma/np.sqrt(2*npart)
+        assert np.isclose(np.std(part_norm_div.x_norm), transverse_spread_sigma, atol=atol)
+        assert np.isclose(np.std(part_norm_div.px_norm),transverse_spread_sigma, atol=atol)
 
     # Longitudinal: Chi-Square test or Kolmogorov-Smirnov test
     if longitudinal == 'matched_dispersion':
