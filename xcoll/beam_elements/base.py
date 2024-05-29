@@ -117,6 +117,7 @@ class BaseCollimator(BaseBlock):
     allow_track = BaseBlock.allow_track
     behaves_like_drift = BaseBlock.behaves_like_drift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+    allow_double_sided = True
 
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
@@ -961,6 +962,7 @@ class BaseCrystal(BaseBlock):
     allow_track = BaseBlock.allow_track
     behaves_like_drift = BaseBlock.behaves_like_drift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+    allow_double_sided = False
 
     _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
@@ -1237,6 +1239,8 @@ class BaseCrystal(BaseBlock):
         if val is None:
             val = OPEN_GAP
             self.jaw = None
+        if hasattr(val, '__iter__'):
+            raise ValueError("The attribute `gap` should be a single value, not a list.")
         if val <= 0:
             raise ValueError(f"The field `gap` should be positive, but got {val}.")
         self._gap = val

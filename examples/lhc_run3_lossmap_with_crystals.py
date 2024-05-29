@@ -34,13 +34,13 @@ path_out = Path.cwd()
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
-# Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3_crystals.yaml', line=line,
-                                              beam=beam, ignore_crystals=False, _context=context)
+# Initialise colldb
+colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3_crystals.yaml',
+                                               beam=beam, ignore_crystals=False)
 
 
 # Install collimators into line
-coll_manager.install_everest_collimators(verbose=True)
+colldb.install_everest_collimators(line=line, verbose=True)
 
 
 # Aperture model check
@@ -117,7 +117,7 @@ print(ThisLM.summary)
 # Impacts
 # =======
 #nabs = summary.loc[summary.collname==tcpc, 'nabs'].values[0]
-#imp = coll_manager.impacts.to_pandas()
+#imp = colldb.impacts.to_pandas()
 #outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_impacts_B{beam}{plane}.json')
 #imp.to_json(outfile)
 

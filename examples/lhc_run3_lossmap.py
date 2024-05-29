@@ -32,13 +32,12 @@ path_out = Path.cwd()
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
-# Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
-                                              line=line, beam=beam, _context=context)
+# Initialise colldb
+colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', beam=beam)
 
 
 # Install collimators into line
-coll_manager.install_everest_collimators(verbose=True)
+colldb.install_everest_collimators(line=line, verbose=True)
 
 
 # Aperture model check

@@ -32,10 +32,10 @@ path = Path(__file__).parent / 'data'
 def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
                                      longitudinal, longitudinal_betatron_cut): #, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
-                                                  line=line, beam=beam)
+    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
+                                                   beam=beam)
     
-    coll_manager.install_everest_collimators()
+    colldb.install_everest_collimators(line=line)
     line.build_tracker()
     xc.assign_optics_to_collimators(line=line)
 

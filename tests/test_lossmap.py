@@ -29,12 +29,10 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
-    coll_manager = xc.CollimatorManager.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
-                                                  line=line, beam=beam,
-                                                  ignore_crystals=ignore_crystals,
-                                                  _context=test_context)
+    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
+                                    beam=beam, ignore_crystals=ignore_crystals)
 
-    coll_manager.install_everest_collimators()
+    colldb.install_everest_collimators(line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 

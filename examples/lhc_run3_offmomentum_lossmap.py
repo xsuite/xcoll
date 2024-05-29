@@ -37,13 +37,12 @@ path_out = Path.cwd()
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
-# Initialise collmanager
-coll_manager = xc.CollimatorManager.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml',
-                                              line=line, beam=beam, _context=context)
+# Initialise colldb
+colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', beam=beam)
 
 
 # Install collimators into line
-coll_manager.install_everest_collimators(verbose=True)
+colldb.install_everest_collimators(line=line, verbose=True)
 
 
 # Aperture model check
@@ -65,8 +64,8 @@ line.optimize_for_tracking()
 
 
 # Generate initial matched bunch
-part = xp.generate_matched_gaussian_bunch(nemitt_x=coll_manager.colldb.emittance[0],
-                                          nemitt_y=coll_manager.colldb.emittance[1],
+part = xp.generate_matched_gaussian_bunch(nemitt_x=colldb.nemitt_x,
+                                          nemitt_y=colldb.nemitt_y,
                                           sigma_z=7.55e-2, num_particles=num_particles, line=line)
 
 
