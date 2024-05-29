@@ -16,7 +16,6 @@ def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None)
     tw_upstream, tw_downstream = get_optics_at(names, twiss=twiss, line=line)
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
     for coll in names:
-        print(coll)
         line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_x, twiss_upstream=tw_upstream,
                                  twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 

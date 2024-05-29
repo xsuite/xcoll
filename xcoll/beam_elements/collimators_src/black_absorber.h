@@ -115,4 +115,4 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
     BlackAbsorber_free(cg, active);
 }
 
-#endif /* XCOLL_COLL_GEOM_H */
+#endif /* XCOLL_ABSORBER_H */

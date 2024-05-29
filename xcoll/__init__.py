@@ -5,7 +5,7 @@
 
 from .general import _pkg_root, __version__, citation
 
-from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, element_classes
+from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, element_classes, ADT
 from .install import install_elements
 from .line_tools import assign_optics_to_collimators, open_collimators, send_to_parking, enable_scattering, disable_scattering
 from .scattering_routines.everest import materials, Material, CrystalMaterial

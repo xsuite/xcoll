@@ -10,7 +10,6 @@ import xtrack as xt
 
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
-from ..scattering_routines.geometry import XcollGeometry
 
 
 OPEN_JAW = 3.
