@@ -33,7 +33,7 @@ class BlowUp(InvalidXcoll):
     _depends_on = [InvalidXcoll]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','blowup.h')
+        _pkg_root.joinpath('beam_elements','elements_src','blowup.h')
     ]
 
     def __init__(self, **kwargs):

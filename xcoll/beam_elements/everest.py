@@ -42,7 +42,7 @@ class EverestBlock(BaseBlock):
     _depends_on = [BaseBlock, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','everest_block.h')
+        _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
     ]
 
     _kernels = {
@@ -106,7 +106,7 @@ class EverestCollimator(BaseCollimator):
     _depends_on = [BaseCollimator, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','everest_collimator.h')
+        _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
     ]
 
     _kernels = {
@@ -173,7 +173,7 @@ class EverestCrystal(BaseCrystal):
     _depends_on = [BaseCrystal, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','everest_crystal.h')
+        _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')
     ]
 
     _kernels = {
