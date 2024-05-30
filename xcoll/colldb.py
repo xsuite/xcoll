@@ -511,11 +511,16 @@ class CollimatorDatabase:
     # ====== Installing collimators ======
     # ====================================
 
-    def install_black_absorbers(self, line, names=None, *, verbose=False, need_apertures=True):
+    def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         self.line = line
         elements = []
-        if names is None:
+        if names is None and families is None:
             names = self.collimator_names
+        elif names is None:
+            names = self.get_collimators_from_family(families)
+        elif families is not None:
+            names.append(self.get_collimators_from_family(families))
+        names = list(set(names)) # Remove duplicates
         for name in names:
             if verbose: print(f"Installing {name:20} as BlackAbsorber")
             el = BlackAbsorber(gap=self[name]['gap'], angle=self[name]['angle'],
@@ -540,11 +545,16 @@ class CollimatorDatabase:
             elements.append(el)
         install_elements(line, names, elements, need_apertures=need_apertures)
 
-    def install_everest_collimators(self, line, names=None, *, verbose=False, need_apertures=True):
+    def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         self.line = line
         elements = []
-        if names is None:
+        if names is None and families is None:
             names = self.collimator_names
+        elif names is None:
+            names = self.get_collimators_from_family(families)
+        elif families is not None:
+            names.append(self.get_collimators_from_family(families))
+        names = list(set(names)) # Remove duplicates
         for name in names:
             mat = SixTrack_to_xcoll[self[name]['material']]
             if self[name]['crystal'] is None:
@@ -588,7 +598,24 @@ class CollimatorDatabase:
 
     @property
     def collimator_families(self):
-        return self._family_dict.keys()
+        families = {fam: [] for fam in self._family_dict.keys()}
+        families["no family"] = []
+        for name in self.collimator_names:
+            if 'family' not in self[name] or self[name]['family'].lower() == 'unknown':
+                families["no family"].append(name)
+            else:
+                families[self[name]['family']].append(name)
+        return families
+
+    def get_collimators_from_family(self, family):
+        if not hasattr(family, '__iter__'):
+            family = [family]
+        result = []
+        for fam in family:
+            if fam not in self.collimator_families:
+                raise ValueError(f"Family '{fam}' not found in CollimatorDatabase!")
+            result += self.collimator_families[fam]
+        return result
 
     def __getattr__(self, name):
         if name in self._family_dict:
@@ -605,6 +632,4 @@ class CollimatorDatabase:
             return self._collimator_dict[name]
         else:
             raise ValueError(f"Family nor collimator '{name}' found in CollimatorDatabase!")
-        
-        
 
