@@ -42,37 +42,33 @@ def create_line():
                         xt.Multipole(knl=[0, 1.], ksl=[0,0]),
                         xt.Drift(length=1.),
                         xt.Multipole(knl=[0, -1.], ksl=[0,0])],
-            element_names=['drift_0', 'hor_coll_aper', 'hor_coll', 'drift_1', 
+            element_names=['drift_0', 'hor_coll_aper', 'hor_coll', 'drift_1',
                            'ver_coll_aper', 'ver_coll', 'drift_2', 'q1', 'drift_3', 'q2'])
-    
+
     line.twiss_default['method'] = '4d'
-    
+
     line.particle_ref = xp.Particles(p0c=7e12, q0=1, mass0=xp.PROTON_MASS_EV)
 
     return line
 
 
-def set_physical_gap(coll_manager, opening):
-    
+def set_physical_gap(line, opening):
     # set horizontal collimator opening [m]
-    coll_manager.line.element_dict['hor_coll'].jaw_L = opening
-    coll_manager.line.element_dict['hor_coll'].jaw_R = -opening
+    line.element_dict['hor_coll'].jaw_L = opening
+    line.element_dict['hor_coll'].jaw_R = -opening
 
     # set vertical collimator opening [m]
-    coll_manager.line.element_dict['ver_coll'].jaw_L = opening
-    coll_manager.line.element_dict['ver_coll'].jaw_R = -opening
-
-    return coll_manager
+    line.element_dict['ver_coll'].jaw_L = opening
+    line.element_dict['ver_coll'].jaw_R = -opening
 
 
 def define_collimators():
-
     coll_dict = {'families':{}, 'Collimators': {}}
-    coll_dict['Collimators'] = {'hor_coll' : {'angle': 0, 'length': 0.1, 
+    coll_dict['Collimators'] = {'hor_coll' : {'angle': 0, 'length': 0.1,
                                               'gap': 5, 'material': 'Cu'},
                                 'ver_coll' : {'angle': 90, 'length': 0.1,
                                                'gap': 5, 'material': 'Cu'}}
-    
+
     return coll_dict
 
 
@@ -81,27 +77,25 @@ def install_geant4_collimators(line, opening, part_distribution_width):
     coll_dict = define_collimators()
 
     # Initialize collmanager
-    coll_manager = xc.CollimatorManager.from_dict(file=coll_dict, line=line, 
-                                                  nemitt_x=0, nemitt_y=0)
+    colldb = xc.CollimatorDatabase.from_dict(file=coll_dict, line=line,
+                                             nemitt_x=0, nemitt_y=0)
 
     # Install collimators into line
-    coll_manager.install_geant4_collimators(verbose=False, 
-                                            random_seed=1993, 
-                                            bdsim_config_file=str(path 
-                                                                  / f'settings_protons.gmad'))
+    colldb.install_geant4_collimators(verbose=False, line=line, random_seed=1993,
+                                      bdsim_config_file=str(path / f'settings_protons.gmad'))
 
     # Build the tracker
-    coll_manager.build_tracker()
+    line.build_tracker()
 
     init_distrib = generate_initial_distribution(npart, part_distribution_width)
 
     # Set the collimator openings based on the colldb,
     # or manually override with the option gaps={collname: gap}
-    coll_manager.set_openings()
+    xc.assign_optics_to_collimators(line=line)
 
-    set_physical_gap(coll_manager, opening)   
+    set_physical_gap(line, opening)
 
-    return coll_manager, init_distrib
+    return init_distrib
 
 
 def generate_initial_distribution(npart, part_distribution_width):
@@ -110,25 +104,25 @@ def generate_initial_distribution(npart, part_distribution_width):
     part = xp.Particles(_capacity=3*npart,
                         p0c=7e12, #eV
                         q0=1, mass0=xp.PROTON_MASS_EV,
-                        x=rng.uniform(-part_distribution_width, 
+                        x=rng.uniform(-part_distribution_width,
                                       part_distribution_width, npart),
                         px=np.zeros(npart),
-                        y=rng.uniform(-part_distribution_width, 
+                        y=rng.uniform(-part_distribution_width,
                                       part_distribution_width, npart),
                         py=np.zeros(npart))
 
-    return part                                                                 
+    return part
 
 
 def run_geant4_line(opening, part_distribution_width):
 
     line = create_line()
-    coll_manager, part = install_geant4_collimators(line, opening, part_distribution_width)
+    part = install_geant4_collimators(line, opening, part_distribution_width)
 
     # Track
-    coll_manager.enable_scattering()
+    xc.enable_scattering()
     line.track(part, ele_start=0, ele_stop=7)
-    coll_manager.disable_scattering()
+    xc.disable_scattering()
 
     return part
 

@@ -27,14 +27,14 @@ def test_multiple_tracking(test_context):
                     reference_kinetic_energy=7e12, 
                     relative_energy_cut=0.15, 
                     bdsim_config_file=str(path / f'settings_black_absorber_protons.gmad'))
-        
+
     g4_collimators = _make_geant4_collimators(_context=test_context)
     ba_collimators = _make_black_absorbers(_context=test_context)
 
     part = _generate_particles(_context=test_context)
 
     part_ba = part.copy()
-    
+
     for coll in g4_collimators:
         coll.track(part)
 
@@ -57,9 +57,10 @@ def _make_geant4_collimators(angles=[0,45,90], tilts=[0,0], _context=None):
 
     collimators = []
     for ii, angle in enumerate(angles):
-        g4coll = xc.Geant4Collimator(length=L, angle=angle, reference_center=co, 
-                                     jaw=jaws, tilt=tilts, 
-                                     _context=_context, material='cu', 
+        shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
+        g4coll = xc.Geant4Collimator(length=L, angle=angle, reference_center=co,
+                                     jaw=jaws+shift, tilt=tilts,
+                                     _context=_context, material='cu',
                                      collimator_id=f'g4coll_{ii}')
         collimators.append(g4coll)
 
@@ -74,8 +75,9 @@ def _make_black_absorbers(angles=[0,45,90], tilts=[0,0], _context=None):
 
     collimators = []
     for ii, angle in enumerate(angles):
+        shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
         bacoll = xc.BlackAbsorber(length=L, angle=angle, reference_center=co, 
-                                     jaw=jaws, tilt=tilts, 
+                                     jaw=jaws+shift, tilt=tilts,
                                      _context=_context)
         collimators.append(bacoll)
 
