@@ -6,6 +6,7 @@
 from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
+from .geant4 import Geant4Collimator
 from .blowup import BlowUp
 
 block_classes = tuple(v for v in globals().values()

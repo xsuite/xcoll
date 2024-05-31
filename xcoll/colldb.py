@@ -9,10 +9,13 @@ import numpy as np
 import pandas as pd
 
 import xtrack as xt
+import xpart as xp
 
-from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
+from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, Geant4Collimator, \
+                           collimator_classes, element_classes
 from .install import install_elements
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .scattering_routines.geant4 import Geant4Engine
 
 
 def _initialise_None(dct):
@@ -569,6 +572,76 @@ class CollimatorDatabase:
                                     lattice=self[name]['crystal'], bending_radius=self[name]['bending_radius'],
                                     width=self[name]['width'], height=self[name]['height'],
                                     miscut=self[name]['miscut'], _tracking=False)
+
+            # Check that collimator is not installed as different type
+            # TODO: automatically replace collimator type and print warning
+            if isinstance(line[name], tuple(collimator_classes)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
+                               + f"Please reconstruct the line.")
+
+            # TODO: only allow Marker elements, no Drifts!!
+            #       How to do this with importing a line for MAD-X or SixTrack...?
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but the line element to replace is not an xtrack.Marker "
+                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
+                               + f"element.")
+            el.emittance = [self.nemitt_x, self.nemitt_y]
+            elements.append(el)
+        install_elements(line, names, elements, need_apertures=need_apertures)
+
+    def _initialise_geant4_engine(self, line, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
+        ref_part = line.particle_ref
+
+        kinetic_energy = lambda part: part.energy0 - part.mass0
+        reference_kinetic_energy = kinetic_energy(ref_part)
+
+        _mass_close_tol = 50 # eV
+        if ref_part.q0 == -1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # electron
+            reference_pdg_id = -11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
+            # positron
+            reference_pdg_id = 11
+        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.PROTON_MASS_EV, atol=_mass_close_tol):
+            # proton
+            reference_pdg_id = 2212
+        else:
+            # TODO: implement support for ions
+            raise ValueError(f'Cannot deduce PDG particle id for',
+                             'reference particle {ref_part.to_dict()}.\n'
+                             ' Likely bad input or a disallowed particle type')
+
+        Geant4Engine(random_generator_seed=random_seed,
+                     reference_pdg_id=reference_pdg_id,
+                     reference_kinetic_energy=reference_kinetic_energy,
+                     relative_energy_cut=relative_energy_cut,
+                     bdsim_config_file=bdsim_config_file)
+
+    def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
+                                   bdsim_config_file=None, relative_energy_cut=0.15, random_seed=None):
+        if hasattr(Geant4Engine, 'instance'):
+            print(f"Warning: Geant4Engine already initialised as {Geant4Engine()}.")
+        else:
+            if bdsim_config_file is None:
+                raise NotImplementedError
+            self._initialise_geant4_engine(line, bdsim_config_file, relative_energy_cut, random_seed)
+        self.line = line
+        elements = []
+        if names is None and families is None:
+            names = self.collimator_names
+        elif names is None:
+            names = self.get_collimators_from_family(families)
+        elif families is not None:
+            names.append(self.get_collimators_from_family(families))
+        names = list(set(names)) # Remove duplicates
+        for name in names:
+            if verbose: print(f"Installing {name:20} as Geant4Collimator")
+            el = Geant4Collimator(gap=self[name]['gap'], angle=self[name]['angle'],
+                                  length=self[name]['length'], side=self[name]['side'],
+                                  collimator_id=name, material=self[name]['material'],
+                                  active=False, _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
