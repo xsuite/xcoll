@@ -145,7 +145,7 @@ class InteractionRecord(xt.BeamElement):
             val = []
         record_start = _get_xcoll_elements(self.line, val)
         self.stop(set(self.recording_elements) - set(record_start))
-        elements = [line[name] for name in record_start]
+        elements = [self.line[name] for name in record_start]
         for el in elements:
             if not el.record_touches and not el.record_scatterings:
                 el.record_touches = True
@@ -172,7 +172,7 @@ class InteractionRecord(xt.BeamElement):
 
     def _collimator_id(self, element_name):
         if not hasattr(self, '_coll_ids'):
-            return element_id
+            return element_name
         elif element_name not in self._coll_ids:
             raise ValueError(f"Element {element_name} not found in list of collimators of this record table! "
                            + f"Did the line change without updating the list in the table?")
