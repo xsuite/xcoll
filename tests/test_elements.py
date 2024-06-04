@@ -302,7 +302,9 @@ def assert_all_close(expected, setval):
 
 # Tests
 # =====
-@for_all_test_contexts
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
+)
 def test_black_absorber(test_context):
     # Test instantiation
     elem = xc.BlackAbsorber(length=1, _context=test_context)
@@ -343,7 +345,9 @@ def test_black_absorber(test_context):
             setattr(elem, field, 0.3)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # not on GPU
+)
 def test_black_crystal(test_context):
     # Test instantiation
     elem = xc.BlackCrystal(length=1, jaw=0.99, side='-', _context=test_context)
