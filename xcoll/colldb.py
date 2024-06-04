@@ -608,7 +608,7 @@ class CollimatorDatabase:
         return families
 
     def get_collimators_from_family(self, family):
-        if not hasattr(family, '__iter__'):
+        if not hasattr(family, '__iter__') and not isinstance(family, str):
             family = [family]
         result = []
         for fam in family:

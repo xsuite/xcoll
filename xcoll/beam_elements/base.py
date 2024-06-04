@@ -424,6 +424,22 @@ class BaseCollimator(BaseBlock):
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
         self._update_gaps()
 
+    @property
+    def jaw_s_LU(self):
+        return self.length/2 * (1 - self._cos_yL)
+
+    @property
+    def jaw_s_LD(self):
+        return self.length/2 * (1 + self._cos_yL)
+
+    @property
+    def jaw_s_RU(self):
+        return self.length/2 * (1 - self._cos_yR)
+
+    @property
+    def jaw_s_RD(self):
+        return self.length/2 * (1 + self._cos_yR)
+
     def open_jaws(self, keep_tilts=False):
         self.jaw_L = None
         self.jaw_R = None
