@@ -53,18 +53,22 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         // Miscut centre
         cg->s_P = -R*sin(cg->miscut_angle);
         cg->x_P = R*cos(cg->miscut_angle);
-        // Mirror the crystal geometry
+        if (cg->side == 1 && R < 0){
+            // If R<0, a left-sided crystal bends towards the beam
+            cg->x_P = cg->x_P + cg->width;
+            cg->x_B = cg->x_B + cg->width;
+        } else if (cg->side == -1 && R > 0){
+            // If R>0, a right-sided crystal bends towards the beam
+            cg->x_P = cg->x_P - cg->width;
+            cg->x_B = cg->x_B - cg->width;
+        }
         if (cg->side == -1){
+            // Mirror the crystal geometry
             cg->bending_radius = -cg->bending_radius;
             cg->bending_angle  = -cg->bending_angle;
             cg->miscut_angle   = -cg->miscut_angle;
             cg->x_P            = -cg->x_P;
             cg->x_B            = -cg->x_B;
-        }
-        if (R < 0){
-            // If R<0, a left-sided crystal bends towards the beam
-            cg->x_P = cg->x_P + cg->width;
-            cg->x_B = cg->x_B + cg->width;
         }
         // From here on, crystal geometry parameters can always be treated as left-sided.
         // Note that the segments are not mirrored, which is fine as get_s_of_first_crossing_with_vlimit

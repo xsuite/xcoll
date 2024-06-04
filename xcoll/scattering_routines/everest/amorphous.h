@@ -16,7 +16,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
-    int64_t i_slot;
+    int64_t i_slot = -1;
 
 
     double Ang_avr = everest->Ang_avr;
@@ -58,7 +58,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
-    int64_t i_slot;
+    int64_t i_slot = -1;
 
     // Accumulated effect of mcs on the angles (with initial energy)
     // TODO: pc is energy

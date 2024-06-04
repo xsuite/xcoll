@@ -89,7 +89,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     int8_t sc = everest->coll->record_scatterings;
 
     // First log particle at start of channeling
-    int64_t i_slot;
+    int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
 
     // Do channeling.
