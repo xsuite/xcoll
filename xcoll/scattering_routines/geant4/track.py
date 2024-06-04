@@ -33,9 +33,12 @@ def track(collimator_id, particles):
 
     # Using a list allows to package the required coordinates without copying
     coordinates = [particles.x, particles.y, particles.px, particles.py,
-                   particles.zeta, delta_temp, particles.s,
-                   particles.particle_id, particles.state,
+                   particles.zeta, delta_temp, particles.chi,
+                   particles.charge_ratio, particles.s,
+                   particles.pdg_id,particles.particle_id, particles.state,
                    particles.at_element, particles.at_turn]
+
+
 
     g4link.addParticles(coordinates)
     # The collimators must be defined already in the g4manager
