@@ -41,12 +41,12 @@ cmake $rootpath/geant4-v10.4.3 \
     -DCMAKE_INSTALL_PREFIX=$rootpath/geant4-v10.4.3 \
     -DGEANT4_INSTALL_DATA=ON \
     -DGEANT4_INSTALL_DATADIR=$rootpath/geant4-v10.4.3 \
-    -DUSE_GDML=ON \
-    -DUSE_QT=ON \
-    -DUSE_OPENGL_X11=ON \
-    -DUSE_RAYTRACER_X11=ON \
-    -DUSE_SYSTEM_CLHEP=ON \
-    -DUSE_SYSTEM_EXPAT=ON
+    -DGEANT4_USE_GDML=ON \
+    -DGEANT4_USE_QT=ON \
+    -DGEANT4_USE_OPENGL_X11=ON \
+    -DGEANT4_USE_RAYTRACER_X11=ON \
+    -DGEANT4_USE_SYSTEM_CLHEP=ON \
+    -DGEANT4_USE_SYSTEM_EXPAT=ON
 make -j $(nproc) 
 make install
 cd $rootpath
@@ -60,7 +60,7 @@ sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMa
 mkdir -p bdsim/build
 source $rootpath/geant4-v10.4.3/bin/geant4.sh
 cd bdsim/build
-cmake ../../bdsim \
+cmake $rootpath/bdsim \
     -DCMAKE_INSTALL_PREFIX=$rootpath/bdsim \
     -DUSE_SIXTRACKLINK=ON \
     -DBDSIM_BUILD_STATIC_LIBS=ON \
@@ -84,7 +84,8 @@ then
         exit 1
     fi
     popd
-fi     
+fi
+source $rootpath/bdsim/bin/bdsim.sh     
 ./compile_collimasim.sh
 
 exit 0
