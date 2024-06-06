@@ -157,7 +157,7 @@ class LossMap:
         coll_pos      = [(self._line.get_s_position(i) + self._line[i].length/2)
                          for i in collimator_names]
 
-        if self._line is reversed:
+        if self._line_is_reversed:
             coll_pos  = [self._machine_length - s for s in coll_pos]
 
         coll_types    = [self._line[i].__class__.__name__ for i in collimator_names]  
@@ -168,7 +168,7 @@ class LossMap:
             'collname': collimator_names, 
             'nabs':     nabs,    # of particles lost on collimators
             'length':   coll_lengths,
-            's':        coll_pos,    
+            's':        coll_pos,
             'type':     coll_types
         })
 
