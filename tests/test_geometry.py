@@ -6,7 +6,6 @@
 import sys
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import json
 
 import xobjects as xo
@@ -41,6 +40,7 @@ def _generate_polygon_points(num_poly, tilt_L=0, tilt_R=0):
     return poly_s_L, poly_x_L, poly_s_R, poly_x_R
 
 def _plot_poly(part_x, part_tan, poly_s_L, poly_x_L, poly_s_R=None, poly_x_R=None, is_open=False, s=None):
+    import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, 1, figsize=(8,5.6))
     if is_open:
         ax.plot(poly_s_L, poly_x_L, 'k-')
