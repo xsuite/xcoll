@@ -38,7 +38,7 @@ class FlukaEngine(xo.HybridClass):
     ]
 
     # The engine is a singleton
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super().__new__(cls)
             cls.instance._initialised = False
@@ -47,14 +47,38 @@ class FlukaEngine(xo.HybridClass):
     def __del__(self, *args, **kwargs):
         self.stop_server(warn=False)
 
-    def __init__(self, fluka=None, flukaserver=None, verbose=True, testing=False, **kwargs):
+    def __init__(self, fluka=None, flukaserver=None, verbose=None, testing=False, **kwargs):
+        # Apply init variables
+        if fluka is None:
+            if not hasattr(self, '_fluka'):
+                self._fluka = "NEED_TO_MAKE_MOCKUP"  if testing else default_fluka_path  # TODO
+        elif testing:
+            raise ValueError("Cannot specify fluka executable when `testing=True`!")
+        else:
+            self._fluka = Path(fluka).resolve()
+        if flukaserver is None:
+            if not hasattr(self, '_flukaserver'):
+                self._flukaserver = "NEED_TO_MAKE_MOCKUP" if testing else default_flukaserver_path  # TODO
+        elif testing:
+            raise ValueError("Cannot specify flukaserver executable when `testing=True`!")
+        else:
+            self._flukaserver = Path(flukaserver).resolve()
+        if verbose is None:
+            if not hasattr(self, '_verbose'):
+                self._verbose = True
+        else:
+            self._verbose = verbose
+
+        # Apply kwargs
         if(self._initialised):
+            for kk, vv in kwargs.items():
+                if not hasattr(self, kk):
+                    raise ValueError(f"Invalid attribute {kk} for FlukaEngine!")
+                setattr(self, kk, vv)
             return
-        self._initialised = True
 
         if '_xobject' not in kwargs:
-            # Initialise python fields
-            self._verbose = verbose
+            # Initialise defaults
             self._cwd = None
             self._network_nfo = None
             self._log = None
@@ -64,9 +88,9 @@ class FlukaEngine(xo.HybridClass):
             self._gfortran_installed = False
             self._flukaio_connected = False
             self._warning_given = False
-            self._tracking_init = False
+            self._tracking_initialised = False
             self._insertion = {}
-            self._collimators = {}
+            self._collimator_dict = {}
             kwargs.setdefault('network_port', 0)
             kwargs.setdefault('n_alloc', 5000)
             kwargs.setdefault('timeout_sec', 36000) # 10 hours
@@ -74,26 +98,8 @@ class FlukaEngine(xo.HybridClass):
             kwargs.setdefault('max_particle_id', 0)
             kwargs.setdefault('seed', -1)
 
-            # Get paths to executables
-            if fluka is None:
-                if testing:
-                    self._fluka = "NEED_TO_MAKE_MOCKUP"  # TODO
-                else:
-                    self._fluka = default_fluka_path
-            elif testing:
-                raise ValueError("Cannot specify fluka executable when `testing=True`!")
-            else:
-                self._fluka = Path(fluka).resolve()
-            if flukaserver is None:
-                if testing:
-                    self._flukaserver = "NEED_TO_MAKE_MOCKUP"
-                else:
-                    self._flukaserver = default_flukaserver_path
-            elif testing:
-                raise ValueError("Cannot specify flukaserver executable when `testing=True`!")
-            else:
-                self._flukaserver = Path(flukaserver).resolve()
         super().__init__(**kwargs)
+        self._initialised = True
 
 
     def _warn_pyfluka(self, error):
@@ -105,8 +111,8 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def test_gfortran(cls, *args, **kwargs):
-        cls(*args, **kwargs)
+    def test_gfortran(cls, **kwargs):
+        cls(**kwargs)
         this = cls.instance
         if not this._gfortran_installed:
             try:
@@ -135,12 +141,12 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def start_server(cls, line, input_file=None, *args, cwd=None, **kwargs):
+    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
         from ...beam_elements import FlukaCollimator
 
-        cls(*args, **kwargs)
+        cls(**kwargs)
         this = cls.instance
         if this.is_running():
             print("Server already running.", flush=True)
@@ -156,8 +162,13 @@ class FlukaEngine(xo.HybridClass):
         except ImportError as error:
             this._warn_pyfluka(error)
 
-        # Check files and collimators
+        # Check files
+        if cwd is not None:
+            cwd = Path(cwd)
+            cwd.mkdir(parents=True, exist_ok=True)
         if input_file is None:
+            if line is None:
+                raise ValueError("Need to provide an input file or a line to created it from.")
             input_file = create_fluka_input(line, cwd=cwd)
         input_file = Path(input_file).resolve()
         if not input_file.exists():
@@ -168,41 +179,22 @@ class FlukaEngine(xo.HybridClass):
         insertion_file = this._cwd / "insertion.txt"
         if not insertion_file.exists():
             raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
-        collimator_dict = get_collimators_from_input_file(input_file)
-        verify_insertion_file(insertion_file, collimator_dict)
-        elements, names = line.get_elements_of_type(FlukaCollimator)
-        for name in names:
-            if name not in collimator_dict:
-                raise ValueError(f"FlukaCollimator {name} not found in input file!")
-        this._collimators = collimator_dict
-        for el, name in zip(elements, names):
-            el.fluka_id = collimator_dict[name]['fluka_id']
-            el.length_front = (collimator_dict[name]['length'] - el.length)/2
-            el.length_back = (collimator_dict[name]['length'] - el.length)/2
-            jaw = collimator_dict[name]['jaw']
-            if not hasattr(jaw, '__iter__'):
-                jaw = [jaw, -jaw]
-            if el.jaw_L is not None and not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
-                el.jaw_L = jaw[0]
-                print(f"Warning: Jaw_L of {name} differs from input file! Overwritten.")
-            if el.jaw_R is not None and not np.isclose(el.jaw_R, jaw[0], atol=1e-9):
-                el.jaw_R = jaw[0]
-                print(f"Warning: Jaw_R of {name} differs from input file! Overwritten.")
-            # TODO: tilts!!
+        cls.clean_output_files
 
-        # Start with cleaning files
-        files_to_delete = [this._cwd / f for f in [network_file, fluka_log, server_log]]
-        files_to_delete  = list(this._cwd.glob(f'ran{input_file.stem}*'))
-        files_to_delete += list(this._cwd.glob(f'{input_file.stem}_*'))
-        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
-        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
-        files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
-        files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
-        files_to_delete += [this._cwd / 'fluka_isotope.log']
-        for f in files_to_delete:
-            if f is not None:
-                if f.exists():
-                    f.unlink()
+        # Match collimators
+        collimator_dict = get_collimators_from_input_file(input_file)
+        this._collimator_dict = collimator_dict
+        verify_insertion_file(insertion_file, collimator_dict)
+        if line is None:
+            if elements is None or names is None:
+                raise ValueError("Need to provide either `line` or `elements` and `names`.")
+        else:
+            elements, names = line.get_elements_of_type(FlukaCollimator)
+        this._match_collimators_to_engine(elements, names)
+
+        # Set reference particle
+        if not this._has_particle_ref() and line is not None and line.particle_ref is not None:
+            this.set_particle_ref(line=line)
 
         # Declare network
         this._network_nfo = this._cwd / network_file
@@ -247,8 +239,8 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def stop_server(cls, warn=True, *args, **kwargs):
-        cls(*args, **kwargs)
+    def stop_server(cls, warn=True, **kwargs):
+        cls(**kwargs)
         this = cls.instance
         # Stop flukaio connection
         if this._flukaio_connected:
@@ -276,11 +268,12 @@ class FlukaEngine(xo.HybridClass):
         # Delete network file
         if this._network_nfo is not None and this._network_nfo.exists():
             this._network_nfo.unlink()
+        this._tracking_initialised = False
 
 
     @classmethod
-    def is_running(cls, *args, **kwargs):
-        cls(*args, **kwargs)
+    def is_running(cls, **kwargs):
+        cls(**kwargs)
         this = cls.instance
         # Is the Popen process still running?
         if this._server_process is None or this._server_process.poll() is not None:
@@ -316,10 +309,117 @@ class FlukaEngine(xo.HybridClass):
             return False
 
 
-    @property
-    def collimators(self):
-        return self._collimators
+    @classmethod
+    def clean_output_files(cls, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        if this._cwd is not None:
+            files_to_delete = [this._cwd / f for f in [network_file, fluka_log, server_log]]
+            files_to_delete  = list(this._cwd.glob(f'ran{input_file.stem}*'))
+            files_to_delete += list(this._cwd.glob(f'{input_file.stem}_*'))
+            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
+            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
+            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
+            files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
+            files_to_delete += [this._cwd / 'fluka_isotope.log']
+            for f in files_to_delete:
+                if f is not None:
+                    if f.exists():
+                        f.unlink()
 
+
+    def _match_collimators_to_engine(self, elements, names):
+        if not hasattr(elements, '__iter__') or isinstance(elements, str):
+            elements = [elements]
+        if not hasattr(names, '__iter__') or isinstance(names, str):
+            names = [names]
+        assert len(elements) == len(names)
+        for name in names:
+            if name not in self._collimator_dict:
+                raise ValueError(f"FlukaCollimator {name} not found in input file!")
+        for el, name in zip(elements, names):
+            el.fluka_id = self._collimator_dict[name]['fluka_id']
+            el.length_front = (self._collimator_dict[name]['length'] - el.length)/2
+            el.length_back = (self._collimator_dict[name]['length'] - el.length)/2
+            jaw = self._collimator_dict[name]['jaw']
+            if not hasattr(jaw, '__iter__'):
+                jaw = [jaw, -jaw]
+            if jaw[0] is None and jaw[1] is None:
+                el.jaw = None
+            if jaw[0] is None:
+                if el.side != 'right':
+                    print(f"Warning: {name} is right-sided in the input file, but not "
+                         + "in the line! Overwritten by the former.")
+                    el.side = 'right'
+            elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
+                print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
+                    + f"vs {jaw[0]})! Overwritten.")
+                el.jaw_L = jaw[0]
+            if jaw[1] is None:
+                if el.side != 'left':
+                    print(f"Warning: {name} is left-sided in the input file, but not "
+                         + "in the line! Overwritten by the former.")
+                    el.side = 'left'
+            elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
+                print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
+                    + f"vs {jaw[1]})! Overwritten.")
+                el.jaw_R = jaw[1]
+            el._frozen = True
+            # TODO: tilts!!
+
+
+    @classmethod
+    def init_tracking(cls, max_particle_id, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        if this._tracking_initialised == False:
+            particle_ref = this.particle_ref
+            _, A0, Z0, name = pdg.get_properties_from_pdg_id(particle_ref.pdg_id[0])
+            # FLUKA expects units of MeV
+            E0 = particle_ref.energy0[0] / 1.e6
+            p0c = particle_ref.p0c[0] / 1.e6
+            m0 = particle_ref.mass0 / 1.e6
+            q0 = particle_ref.q0
+            try:
+                from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
+            except ImportError as error:
+                this._warn_pyfluka(error)
+                return
+            pyfluka_init_max_uid(max_particle_id)
+            pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
+            print(f"Set max_particle_id to {max_particle_id}, "
+                + f"and reference particle to {name} with mass {m0}MeV and energy {E0}MeV.")
+            this.max_particle_id = max_particle_id
+            this._tracking_initialised = True
+
+
+    @classmethod
+    def set_particle_ref(cls, particle_ref=None, line=None, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        if this._has_particle_ref():
+            print("Reference particle already set!")
+            return
+        if particle_ref is None:
+            if line is None or line.particle_ref is None:
+                raise ValueError("Line has no reference particle! "
+                               + "Please provide one with `particle_ref`.")
+            particle_ref = line.particle_ref
+        else:
+            if particle_ref._capacity > 1:
+                raise ValueError("`particle_ref` has to be a single particle!")
+            if line is not None:
+                if line.particle_ref is not None \
+                and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
+                    print("Warning: Found different reference particle in line! Overwritten.")
+                line.particle_ref = particle_ref
+        this._compare_fluka_mass(particle_ref)
+        this.particle_ref = particle_ref
+
+    def _has_particle_ref(self):
+        initial = xp.Particles().to_dict()
+        current = self.particle_ref.to_dict()
+        return not xt.line._dicts_equal(initial, current)
 
     def _compare_fluka_mass(self, part, keep_p0c_constant=True):
         if part._capacity > 1:
@@ -337,65 +437,17 @@ class FlukaEngine(xo.HybridClass):
                     part._update_refs(p0c=part.p0c[0])
                 else:
                     part._update_refs(energy0=old_energy0)
+                assert np.isclose(part.energy0[0]**2, part.p0c[0]**2 + part.mass0**2)
+                assert np.isclose(part.mass0, mass_fluka)
                 print(f"Warning: given mass of {mass}eV for "
                     + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from FLUKA "
-                    + f"mass of {mass_fluka}eV. Overwritten by the latter.")
+                    + f"mass of {mass_fluka}eV. Reference particle mass is "
+                    + f"overwritten by the latter.")
         else:
             print(f"Warning: No FLUKA reference mass known for particle "
-                + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the refence mass "
+                + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the reference mass "
                 + f"provided ({mass}eV) differs from the one used internally "
                 + f"by FLUKA, differences in energy might be observed.\nOnce "
                 + f"the FLUKA reference mass is known, contact the devs to "
                 + f"input it in the code.")
-
-
-    def set_particle_ref(self, particle_ref=None, line=None):
-        if self.has_particle_ref or self.max_particle_id!=0:
-            print("Reference particle already set!")
-            return
-
-        if particle_ref is None:
-            if line is None or line.particle_ref is None:
-                raise ValueError("Line has no reference particle! "
-                               + "Please provide one with `particle_ref`.")
-            particle_ref = line.particle_ref
-        else:
-            if particle_ref._capacity > 1:
-                raise ValueError("`particle_ref` has to be a single particle!")
-            if line is not None:
-                if line.particle_ref is not None \
-                and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
-                    print("Warning: Found different reference particle in line! Overwritten.")
-                line.particle_ref = particle_ref
-        self._compare_fluka_mass(particle_ref)
-        self.particle_ref = particle_ref
-
-
-    @property
-    def has_particle_ref(self):
-        initial = xp.Particles().to_dict()
-        current = self.particle_ref.to_dict()
-        return not xt.line._dicts_equal(initial, current)
-
-
-    def init_tracking(self, max_particle_id):
-        if self.max_particle_id == 0:
-            particle_ref = self.particle_ref
-            _, A0, Z0, name = pdg.get_properties_from_pdg_id(particle_ref.pdg_id[0])
-            # FLUKA expects units of MeV
-            E0 = particle_ref.energy0[0] / 1.e6
-            p0c = particle_ref.p0c[0] / 1.e6
-            m0 = particle_ref.mass0 / 1.e6
-            q0 = particle_ref.q0
-            try:
-                from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
-            except ImportError as error:
-                self._warn_pyfluka(error)
-                return
-            pyfluka_init_max_uid(max_particle_id)
-            pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
-            print(f"Set max_particle_id to {max_particle_id}, "
-                + f"and reference particle to {name} with mass {m0}MeV and energy {E0}MeV.")
-            self.max_particle_id = max_particle_id
-
 

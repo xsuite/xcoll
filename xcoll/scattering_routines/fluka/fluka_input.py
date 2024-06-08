@@ -15,7 +15,7 @@ _header_stop  = "*  XCOLL END  **"
 def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
     header = ["*  DO NOT CHANGE THIS HEADER", _header_start, "*  {"]
     for kk, vv in collimator_dict.items():
-        header.append(f'*  "{kk}": {json.dumps(vv)},')
+        header.append(f'*  "{kk}": ' + json.dumps(vv).replace('" jaw"', '\n*          "jaw"') + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("*  }")
     header.append(_header_stop)
