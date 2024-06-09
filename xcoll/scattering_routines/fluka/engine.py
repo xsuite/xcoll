@@ -84,6 +84,7 @@ class FlukaEngine(xo.HybridClass):
             self._log = None
             self._log_fid = None
             self._server_process = None
+            self._input_file = None
             self.server_pid = None
             self._gfortran_installed = False
             self._flukaio_connected = False
@@ -173,13 +174,14 @@ class FlukaEngine(xo.HybridClass):
         input_file = Path(input_file).resolve()
         if not input_file.exists():
             raise ValueError(f"Input file {input_file.as_posix()} not found!")
+        this._input_file = input_file
         if cwd is None:
             cwd = input_file.parent
         this._cwd = cwd
         insertion_file = this._cwd / "insertion.txt"
         if not insertion_file.exists():
             raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
-        cls.clean_output_files
+        cls.clean_output_files()
 
         # Match collimators
         collimator_dict = get_collimators_from_input_file(input_file)
@@ -193,8 +195,18 @@ class FlukaEngine(xo.HybridClass):
         this._match_collimators_to_engine(elements, names)
 
         # Set reference particle
-        if not this._has_particle_ref() and line is not None and line.particle_ref is not None:
-            this.set_particle_ref(line=line)
+        if not this._has_particle_ref():
+            if line is not None:
+                if line.particle_ref is None:
+                    print("The given line has no reference particle. Don't forget to set it later.")
+                else:
+                    if line.particle_ref.pdg_id == 0:
+                        print("The reference particle of the given line has no valid pdg_id, and can "
+                            + "hence not be used. Don't forget to set the reference particle later.")
+                    else:
+                        this.set_particle_ref(line=line)
+            else:
+                print("No line given, so reference particle not yet set. Don't forget to set it later.")
 
         # Declare network
         this._network_nfo = this._cwd / network_file
@@ -221,7 +233,8 @@ class FlukaEngine(xo.HybridClass):
             sleep(2)
             i += 2
             if i%30 == 0:
-                print("Network port not yet established. Waiting 30s.", flush=True)
+                print("Network port not yet established (or missing executable permission on "
+                    + "flukaserver). Waiting 30s.", flush=True)
             with this._network_nfo.open('r') as fid:
                 lines = fid.readlines()
                 if len(lines) > 1:
@@ -310,16 +323,22 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def clean_output_files(cls, **kwargs):
+    def clean_output_files(cls, input_file=None, **kwargs):    # TODO: remove folders?
         cls(**kwargs)
         this = cls.instance
+        if input_file is None:
+            input_file = this._input_file
+        else:
+            input_file = Path(input_file)
         if this._cwd is not None:
             files_to_delete = [this._cwd / f for f in [network_file, fluka_log, server_log]]
-            files_to_delete  = list(this._cwd.glob(f'ran{input_file.stem}*'))
-            files_to_delete += list(this._cwd.glob(f'{input_file.stem}_*'))
-            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
-            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
-            files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
+            if input_file is not None:
+                files_to_delete += list(this._cwd.glob(f'ran{input_file.stem}*'))
+                files_to_delete += list(this._cwd.glob(f'{input_file.stem}*'))
+                files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
+                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
+                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
+                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
             files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
             files_to_delete += [this._cwd / 'fluka_isotope.log']
             for f in files_to_delete:
@@ -404,10 +423,14 @@ class FlukaEngine(xo.HybridClass):
             if line is None or line.particle_ref is None:
                 raise ValueError("Line has no reference particle! "
                                + "Please provide one with `particle_ref`.")
+            if line.particle_ref.pdg_id == 0:
+                raise ValueError("`line.particle_ref` needs to have a valid pdg_id")
             particle_ref = line.particle_ref
         else:
             if particle_ref._capacity > 1:
                 raise ValueError("`particle_ref` has to be a single particle!")
+            if particle_ref.pdg_id == 0:
+                raise ValueError("`particle_ref` needs to have a valid pdg_id")
             if line is not None:
                 if line.particle_ref is not None \
                 and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
