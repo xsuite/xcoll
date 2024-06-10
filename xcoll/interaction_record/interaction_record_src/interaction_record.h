@@ -24,7 +24,6 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
         if (i_slot>=0){
             InteractionRecordData_set_at_element(record, i_slot, LocalParticle_get_at_element(parent));
             InteractionRecordData_set_at_turn(record, i_slot, LocalParticle_get_at_turn(parent));
-            InteractionRecordData_set_ds(record, i_slot, 0);
             InteractionRecordData_set__inter(record, i_slot, interaction);
 
             double charge_ratio = LocalParticle_get_charge_ratio(parent);
@@ -34,6 +33,7 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
             // All fields have to be written, or the arrays will not have the same length
             // TODO: maybe this is not true, as we are setting by slot index? Don't the arrays come pre-initialised?
             InteractionRecordData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(parent));
+            InteractionRecordData_set_parent_s(record,  i_slot, LocalParticle_get_s(parent));
             InteractionRecordData_set_parent_x(record,  i_slot, LocalParticle_get_x(parent));
             InteractionRecordData_set_parent_px(record, i_slot, LocalParticle_get_px(parent));
             InteractionRecordData_set_parent_y(record,  i_slot, LocalParticle_get_y(parent));
@@ -50,6 +50,7 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
 
             // TODO: maybe this is not needed
             InteractionRecordData_set_child_id(record, i_slot, -1);
+            InteractionRecordData_set_child_s(record, i_slot, -1);
             InteractionRecordData_set_child_x(record, i_slot, -1);
             InteractionRecordData_set_child_px(record, i_slot, -1);
             InteractionRecordData_set_child_y(record, i_slot, -1);
@@ -69,15 +70,14 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
 }
 
 /*gpufun*/
-void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child, double ds){
+void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child){
     if (record && i_slot>=0){
-        InteractionRecordData_set_ds(record, i_slot, ds);
-
         double charge_ratio = LocalParticle_get_charge_ratio(child);
         double mass_ratio = charge_ratio / LocalParticle_get_chi(child);
         double energy = ( LocalParticle_get_ptau(child) + 1 / LocalParticle_get_beta0(child)
                          ) * mass_ratio * LocalParticle_get_p0c(child);
         InteractionRecordData_set_child_id(record, i_slot, LocalParticle_get_particle_id(child));
+        InteractionRecordData_set_child_s(record,  i_slot, LocalParticle_get_s(child));
         InteractionRecordData_set_child_x(record,  i_slot, LocalParticle_get_x(child));
         InteractionRecordData_set_child_px(record, i_slot, LocalParticle_get_px(child));
         InteractionRecordData_set_child_y(record,  i_slot, LocalParticle_get_y(child));

@@ -115,7 +115,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     pc = pc - energy_loss*L_chan; //energy loss to ionization [GeV]
 
     // Finally log particle at end of channeling
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, drift_length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
     result[0] = drift_length;
     result[1] = pc;

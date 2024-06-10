@@ -18,9 +18,9 @@ class InteractionRecord(xt.BeamElement):
         '_index':            xt.RecordIndex,
         'at_element':        xo.Int64[:],
         'at_turn':           xo.Int64[:],
-        'ds':                xo.Float64[:],
         '_inter':            xo.Int64[:],
         'parent_id':         xo.Int64[:],
+        'parent_s':          xo.Float64[:],
         'parent_x':          xo.Float64[:],
         'parent_px':         xo.Float64[:],
         'parent_y':          xo.Float64[:],
@@ -34,6 +34,7 @@ class InteractionRecord(xt.BeamElement):
         'parent_a':          xo.Int64[:],
         'parent_pdgid':      xo.Int64[:],
         'child_id':          xo.Int64[:],
+        'child_s':           xo.Float64[:],
         'child_x':           xo.Float64[:],
         'child_px':          xo.Float64[:],
         'child_y':           xo.Float64[:],
@@ -58,11 +59,11 @@ class InteractionRecord(xt.BeamElement):
 
 
     @classmethod
-    def start(cls, line, names=None, *, record_touches=None, record_scatterings=None, capacity=1e6, io_buffer=None):
-        names = _get_xcoll_elements(line, names)
+    def start(cls, *, line=None, elements=None, names=None, record_touches=None,
+              record_scatterings=None, capacity=1e6, io_buffer=None, coll_ids=None):
+        elements, names = _get_xcoll_elements(line, elements, names)
         if len(names) == 0:
             return
-        elements = [line[name] for name in names]
         capacity = int(capacity)
         if io_buffer is None:
             io_buffer = xt.new_io_buffer(capacity=capacity)
@@ -83,20 +84,30 @@ class InteractionRecord(xt.BeamElement):
                                            elements=elements)
         record._line = line
         record._io_buffer = io_buffer
-        record._recording_elements = names
-        record._coll_ids = {name: line.element_names.index(name) for name in names}
-        record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
+        recording_elements = names if len(names) > 0 else elements
+        record._recording_elements = recording_elements
+        if coll_ids is None:
+            if line is None:
+                if len(names) > 0:
+                    record._coll_ids = {name: idx for idx, name in enumerate(names)}
+            else:
+                record._coll_ids = {name: line.element_names.index(name) for name in names}
+        else:
+            assert len(coll_ids) == len(names)
+            record._coll_ids = {name: idx for name, idx in zip(names, coll_ids)}
+        if hasattr(record, '_coll_ids'):
+            record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
         return record
 
-    def stop(self, names=None):
+    def stop(self, *, elements=False, names=False):
         self.assert_class_init()
-        names = _get_xcoll_elements(self.line, names)
-        elements = [self.line[name] for name in names]
-        if self.line.tracker is not None:
+        elements, names = _get_xcoll_elements(self.line, elements, names)
+        if self.line is not None and self.line.tracker is not None:
             self.line.tracker._check_invalidated()
         xt.stop_internal_logging(elements=elements)
         # Removed the stopped collimators from list of logged elements
-        self._recording_elements = list(set(self._recording_elements) - set(names))
+        stopping_elements = names if len(names) > 0 else elements
+        self._recording_elements = list(set(self._recording_elements) - set(stopping_elements))
 
 
     def assert_class_init(self):
@@ -186,11 +197,10 @@ class InteractionRecord(xt.BeamElement):
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
-                'ds':                self.ds[:n_rows],
                 **{
                     f'{p}_{val}': getattr(self, f'{p}_{val}')[:n_rows]
                     for p in ['parent', 'child']
-                    for val in ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
+                    for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
             })
         return df
@@ -227,26 +237,42 @@ class InteractionRecord(xt.BeamElement):
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'parent_id'], sort=False)]
         df_first = self.to_pandas().loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
-        to_drop = ['ds', 'interaction_type',
+        to_drop = ['interaction_type',
                    *[col for col in df_first.columns if col.startswith('child_')]]
         to_rename = {col: col.replace('parent_', '') for col in df_first.columns if col.startswith('parent_')}
         return df_first.drop(columns=to_drop).rename(columns=to_rename)
 
 
-def _get_xcoll_elements(line, names):
+def _get_xcoll_elements(line=None, elements=None, names=None):
     from xcoll import element_classes
-    if names is None or names is True:
-        names = line.get_elements_of_type(element_classes)[1]
-        if len(names) == 0:
-            raise ValueError("No Xcoll elements in line!")
-    if names is False:
-        names = []
-    if not hasattr(names, '__iter__') or isinstance(names, str):
+    if names is not None and names is not False and \
+    (not hasattr(names, '__iter__') or isinstance(names, str)):
         names = [names]
-    for name in names:
-        if name not in line.element_names:
-            raise ValueError(f"Element {name} not found in line!")
-        if not isinstance(line[name], element_classes):
+    if elements is not None and elements is not False and \
+    (not hasattr(elements, '__iter__') or isinstance(elements, str)):
+        elements = [elements]
+    if line is None:
+        if elements is None:
+            raise ValueError("No line nor elements provided!")
+    else:
+        if elements is not None and elements is not False:
+            raise ValueError("Cannot provide both line and elements!")
+        if names is None or names is True:
+            elements, names = line.get_elements_of_type(element_classes)
+            if len(names) == 0:
+                raise ValueError("No Xcoll elements in line!")
+        elif names is False:
+            names = []
+            elements = []
+        else:
+            assert elements is not False
+            for name in names:
+                if name not in line.element_names:
+                    raise ValueError(f"Element {name} not found in line!")
+            elements = [line[name] for name in names]
+    for idx, element in enumerate(elements):
+        if not isinstance(element, element_classes):
+            name = name[idx] if names is not None else element.__class__.__name__
             raise ValueError(f"Element {name} not an Xcoll element!")
-    return names
+    return elements, names
 

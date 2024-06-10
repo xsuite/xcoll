@@ -47,7 +47,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
     double t_VR = Ang_avr + Ang_rms;
     LocalParticle_add_to_xp(part, t_VR);
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, 0);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 }
 
 
@@ -91,7 +91,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
 
     // Finally log particle at end of mcs
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
     return pc;
 }
