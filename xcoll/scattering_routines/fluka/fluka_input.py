@@ -25,12 +25,12 @@ def fluka_builder(line):
     sys.path.append(path_str)
 
     # Check if the file exists
-    file_path = fluka_builder_path / "FLUKA_builder_with_main.py"
+    file_path = fluka_builder_path / "FLUKA_builder.py"
     print("Checking if file exists at:", file_path)
     if file_path.exists():
         print("File found. Attempting import.")
         try:
-            import FLUKA_builder_with_main_ads as fb
+            import FLUKA_builder as fb
             print("Module imported successfully.")
         except ImportError as e:
             print("ImportError:", e)
