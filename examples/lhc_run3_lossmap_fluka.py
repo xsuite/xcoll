@@ -17,7 +17,7 @@ import xcoll as xc
 beam          = 1
 plane         = 'H'
 
-num_turns     = 2
+num_turns     = 10
 num_particles = 5000
 
 path_in  = xc._pkg_root.parent / 'examples'
@@ -29,7 +29,8 @@ line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Initialise colldb
-colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', beam=beam)
+# TODO: standard colldb; only install regular collimators (need release 0.4.1)
+colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3_fluka.yaml', beam=beam)
 
 
 # Install collimators into line
@@ -56,7 +57,7 @@ part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles)
 
 
 # Track!
-xc.FlukaEngine.start_server("lhc_run3_30cm.inp", line=line, n_alloc=2*num_particles)
+xc.FlukaEngine.start_server(line=line, input_file="lhc_run3_30cm.inp", n_alloc=2*num_particles, debug_level=1)
 particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine().set_particle_ref(particle_ref)
 

@@ -22,7 +22,7 @@ def drift_6d(particles, length):
     return
 
 
-def track(collimator, particles):  # TODO: write impacts
+def track(collimator, particles):
     from ...beam_elements import FlukaCollimator
     if not isinstance(collimator, FlukaCollimator):
         raise ValueError("Collimator is not a FlukaCollimator!\nCannot use fluka to track.")
@@ -31,9 +31,6 @@ def track(collimator, particles):  # TODO: write impacts
         raise ValueError("FlukaCollimator is not frozen!\nSomething is wrong.")
 
     if not collimator.active or not collimator._tracking:
-        # Drift full length
-        # TODO: when in C, drifting should call routine from drift element
-        #       such that can be exact etc
         drift_6d(particles, collimator.length)
         return
 
@@ -45,25 +42,25 @@ def track(collimator, particles):  # TODO: write impacts
     from .engine import FlukaEngine
     engine = FlukaEngine().instance
     if not engine._flukaio_connected:
-        raise ValueError(f"Fluka server not yet running!\n"
-                        + "Please do this first, by calling xcoll.FlukaEngine.start_server(fluka_input_file.inp).")
+        raise ValueError(f"Fluka server not yet running!\nPlease do this first, by calling "
+                       + f"xcoll.FlukaEngine.start_server(fluka_input_file.inp).")
 
     if not engine._has_particle_ref:
-        raise ValueError(f"Fluka reference particle not set!\n"
-                        + "Please do this first, by calling xcoll.FlukaEngine.set_particle_ref().")
+        raise ValueError(f"Fluka reference particle not set!\nPlease do this first, by calling "
+                       + f"xcoll.FlukaEngine.set_particle_ref().")
 
     if 1.4*npart > engine.n_alloc:
-        raise ValueError(f"Tracking {npart} particles but only {engine.n_alloc} allocated in FlukaEngine! "
-                       + f"Remember to leave room for secondaries...")
+        raise ValueError(f"Tracking {npart} particles but only {engine.n_alloc} allocated in "
+                       + f"FlukaEngine!\nRemember to leave room for secondaries...")
 
     FlukaEngine.init_tracking(npart)
 
     if particles.particle_id.max() > engine.max_particle_id:
         raise ValueError(f"Some particles have an id that is higher than the highest id known "
-                       + f"to FLUKA ({engine.max_particle_id}). This could happen if this "
+                       + f"to FLUKA ({engine.max_particle_id}).\nThis could happen if this "
                        + f"particles object is larger than the first particles instance "
                        + f"tracked in this session, or if secondary particles are generated "
-                       + f"somewhere else than FLUKA. In that case, call "
+                       + f"somewhere else than FLUKA.\nIn that case, call "
                        + f"xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
                        + f"with a value large enough to accommodate secondaries outside of FLUKA.\n"
                        + f"In any case, please stop and restart the FLUKA server now.")
@@ -219,7 +216,6 @@ def track_core(collimator, part):
         E_diff = np.zeros(len(part.x))
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing]*1.e6
         part.add_to_energy(-E_diff) # TODO: need to correct for weight
-        collimator.accumulated_energy += E_diff.sum()
         rpp = part.rpp[idx_old]    # This is now already updated by the new energy
 
         # Update other fields
@@ -241,39 +237,18 @@ def track_core(collimator, part):
     part.state[alive_at_entry]     = -334  # XC_LOST_ON_FLUKA
     if np.any(mask_existing):
         part.state[idx_old]        = 1     # These actually survived
-    collimator.accumulated_energy += part.energy[alive_at_entry & (part.state==-334)].sum() # TODO: need to correct for weight
 
-#     # Correct state for parent particles that disappeared because of multiple children
-#     mask = [pid not in new_pid and pid in new_ppid for pid in part.particle_id]
-#     part.state[alive_at_entry & mask] = -385  # XC_PARENT_ON_FLUKA
-
-#     # Sanity check
-#     was_alive = [ppid in part.particle_id[alive_at_entry] for ppid in new_ppid]
-#     _, inv, count_pp = np.unique(new_ppid, return_inverse=True, return_counts=True)
-#     more_than_one_child = count_pp[inv] > 1
-#     assert set(part.particle_id[alive_at_entry & mask]) == set(new_ppid[was_alive & more_than_one_child])
-
+    # TODO: Need to correct for energy lost due to elastic interactions; this is currently not deposited in the collimator!!
+    #       No way to keep trace of this (if we want to avoid having an accumulation variable...)?
 
     # Add new particles
     # ================
     mask_new = new_pid > max_id
 
     if not np.any(mask_new):
-#         # Sanity check
-#         assert -385 not in part.state[alive_at_entry]
         part.reorganize()
 
     else:
-#         # Sanity check
-#         print(new_ppid[mask_new])
-#         print(new_pid[mask_new])
-#         for pid, ppid in zip(new_pid[mask_new], new_ppid[mask_new]):
-#             if ppid not in part.particle_id[alive_at_entry]:
-#                 mask = part.particle_id == ppid
-#                 print(f"Oeps: {ppid}->{pid} not found. State {part.state[mask]}.")
-#         assert np.all([ppid in part.particle_id[alive_at_entry] for ppid in new_ppid[mask_new]])
-#         assert np.all([part.state[part.particle_id==ppid][0] == -385 for ppid in new_ppid[mask_new]])
-
         # Check that there is enough room in the particles object
         num_free = part._capacity - part._num_lost_particles - part._num_active_particles
         num_needed = np.sum(mask_new)
@@ -281,6 +256,10 @@ def track_core(collimator, part):
             extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
             # TODO: this does not work!!
             part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
+
+        # Sanity check
+        idx_parents = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_ppid[mask_new]])
+        assert np.all(part.state[idx_parents] == -334)  # XC_LOST_ON_FLUKA
 
         # Create new particles
         # TODO: FLUKA uses pc; then calculate delta from p
@@ -291,7 +270,7 @@ def track_core(collimator, part):
         m0    = part.mass0
         delta = np.sqrt(1./(b0**2) * E**2/(E0**2) * m0**2/(m**2) - 1./(b0**2) + 1.) - 1.
         rpp   = 1. / (1. + delta)
-        new_particles = xp.Particles(_context=part._buffer.context,
+        new_part = xp.Particles(_context=part._buffer.context,
                 p0c = part.p0c[0],
                 mass0 = part.mass0,
                 q0 = part.q0,
@@ -309,25 +288,14 @@ def track_core(collimator, part):
                 pdg_id = data['pdg_id'][:npart][mask_new],
                 parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new],
-                start_tracking_at_element = start)
+                start_tracking_at_element = start)  # TODO: is this needed?
 
-# TODO: energy of parents is wrong !
-#         # Correct energy transfer: parent does not have energy of children anymore
-#         idx_old = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_particles.parent_particle_id])
-#         E_diff = np.zeros(len(part.x))
-#         np.add.at(E_diff, idx_old, -new_particles.energy)
-#         part.add_to_energy(E_diff)
-        # This energy was added too much to the accumulation (by the -334 state), so subtract (E_diff < 0)
-        collimator.accumulated_energy -= new_particles.energy.sum() # TODO: need to correct for weight
+        # Correct energy of parent particles: not everything was lost there     TODO: in principle FLUKA uses pc, not energy!!
+        E_diff = np.bincount(idx_parents, weights=-new_part.energy, minlength=len(part.x))
+        part.add_to_energy(E_diff)   # TODO: need to correct for weight
 
         # Add new particles
-        new_particles._init_random_number_generator()
-        part.add_particles(new_particles)
+        new_part._init_random_number_generator()
+        part.add_particles(new_part)
         engine.max_particle_id = part.particle_id.max()
-
-
-
-
-
-
 

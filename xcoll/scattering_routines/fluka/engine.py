@@ -142,7 +142,7 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None, **kwargs):
+    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None, debug_level=0, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
         from ...beam_elements import FlukaCollimator
@@ -159,7 +159,7 @@ class FlukaEngine(xo.HybridClass):
         this.test_gfortran()
         try:
             from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=this.n_alloc)
+            pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
         except ImportError as error:
             this._warn_pyfluka(error)
 
@@ -169,7 +169,7 @@ class FlukaEngine(xo.HybridClass):
             cwd.mkdir(parents=True, exist_ok=True)
         if input_file is None:
             if line is None:
-                raise ValueError("Need to provide an input file or a line to created it from.")
+                raise ValueError("Need to provide an input file or a line to create it from.")
             input_file = create_fluka_input(line, cwd=cwd)
         input_file = Path(input_file).resolve()
         if not input_file.exists():
@@ -180,7 +180,11 @@ class FlukaEngine(xo.HybridClass):
         this._cwd = cwd
         insertion_file = this._cwd / "insertion.txt"
         if not insertion_file.exists():
-            raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
+            if (input_file.parent / "insertion.txt").exists():
+                import shutil
+                shutil.copy((input_file.parent / "insertion.txt"), insertion_file)
+            else:
+                raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
         cls.clean_output_files()
 
         # Match collimators
@@ -202,7 +206,7 @@ class FlukaEngine(xo.HybridClass):
                 else:
                     if line.particle_ref.pdg_id == 0:
                         print("The reference particle of the given line has no valid pdg_id, and can "
-                            + "hence not be used. Don't forget to set the reference particle later.")
+                            + "hence not be used.\nDon't forget to set the reference particle later.")
                     else:
                         this.set_particle_ref(line=line)
             else:
@@ -241,7 +245,7 @@ class FlukaEngine(xo.HybridClass):
                     this.network_port = int(lines[1].strip())
                     break
         print(f"Started fluka server on network port {this.network_port}. "
-            + f"Connecting (timeout: {this.timeout_sec})...", flush=True, end='')
+            + f"Connecting (timeout: {this.timeout_sec})... ", flush=True, end='')
         try:
             from .pyflukaf import pyfluka_connect
             pyfluka_connect(this.timeout_sec)
@@ -257,7 +261,7 @@ class FlukaEngine(xo.HybridClass):
         this = cls.instance
         # Stop flukaio connection
         if this._flukaio_connected:
-            print(f"Closing fluka server connection...", flush=True, end='')
+            print(f"Closing fluka server connection... ", flush=True, end='')
             try:
                 from .pyflukaf import pyfluka_close
                 pyfluka_close()
@@ -336,9 +340,6 @@ class FlukaEngine(xo.HybridClass):
                 files_to_delete += list(this._cwd.glob(f'ran{input_file.stem}*'))
                 files_to_delete += list(this._cwd.glob(f'{input_file.stem}*'))
                 files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
-                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.err'))
-                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.log'))
-                # files_to_delete += list(this._cwd.glob(f'{input_file.stem}*.out'))
             files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
             files_to_delete += [this._cwd / 'fluka_isotope.log']
             for f in files_to_delete:
@@ -419,6 +420,7 @@ class FlukaEngine(xo.HybridClass):
         if this._has_particle_ref():
             print("Reference particle already set!")
             return
+        overwrite_particle_ref_in_line = False
         if particle_ref is None:
             if line is None or line.particle_ref is None:
                 raise ValueError("Line has no reference particle! "
@@ -434,10 +436,12 @@ class FlukaEngine(xo.HybridClass):
             if line is not None:
                 if line.particle_ref is not None \
                 and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
-                    print("Warning: Found different reference particle in line! Overwritten.")
-                line.particle_ref = particle_ref
+                    overwrite_particle_ref_in_line = True
         this._compare_fluka_mass(particle_ref)
         this.particle_ref = particle_ref
+        if overwrite_particle_ref_in_line:
+            print("Warning: Found different reference particle in line! Overwritten.")
+            line.particle_ref = particle_ref
 
     def _has_particle_ref(self):
         initial = xp.Particles().to_dict()
@@ -464,7 +468,7 @@ class FlukaEngine(xo.HybridClass):
                 assert np.isclose(part.mass0, mass_fluka)
                 print(f"Warning: given mass of {mass}eV for "
                     + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from FLUKA "
-                    + f"mass of {mass_fluka}eV. Reference particle mass is "
+                    + f"mass of {mass_fluka}eV.\nReference particle mass is "
                     + f"overwritten by the latter.")
         else:
             print(f"Warning: No FLUKA reference mass known for particle "

@@ -31,7 +31,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         raise Exception("Need to assign optics to collimators before generating pencil distribution!")
 
     num_particles = int(num_particles)
-    if isinstance(coll, FlukaCollimator):
+    if len(line.get_elements_of_type(FlukaCollimator)[0]) > 0:
         kwargs.setdefault('_capacity', 2*num_particles)
 
     if coll.side == 'left':
