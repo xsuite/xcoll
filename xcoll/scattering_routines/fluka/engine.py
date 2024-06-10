@@ -7,6 +7,7 @@ import numpy as np
 from subprocess import run, PIPE, Popen
 from pathlib import Path
 from time import sleep
+import shutil
 
 import xobjects as xo
 import xpart as xp
@@ -181,7 +182,6 @@ class FlukaEngine(xo.HybridClass):
         insertion_file = this._cwd / "insertion.txt"
         if not insertion_file.exists():
             if (input_file.parent / "insertion.txt").exists():
-                import shutil
                 shutil.copy((input_file.parent / "insertion.txt"), insertion_file)
             else:
                 raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")

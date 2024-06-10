@@ -595,7 +595,7 @@ class CollimatorDatabase:
             if verbose: print(f"Installing {name:20} as FlukaCollimator")
             el = FlukaCollimator(gap=self[name]['gap'], angle=self[name]['angle'],
                                  length=self[name]['length'], side=self[name]['side'],
-                                 _tracking=False)
+                                 material=self[name]['material'], _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning

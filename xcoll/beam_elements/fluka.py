@@ -9,6 +9,7 @@ import xtrack as xt
 
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine
+from ..scattering_routines.everest.materials import SixTrack_to_xcoll
 
 
 class FlukaCollimator(BaseCollimator):
@@ -17,8 +18,9 @@ class FlukaCollimator(BaseCollimator):
         'accumulated_energy':  xo.Float64,
         'length_front':        xo.Float64,
         'length_back':         xo.Float64,
-        '_frozen':              xo.Int8,
-        '_tracking':           xo.Int8
+        '_frozen':             xo.Int8,
+        '_tracking':           xo.Int8,
+        '_material':           xo.String
     }
 
     isthick = True
@@ -27,20 +29,42 @@ class FlukaCollimator(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict]
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict]
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
     def __init__(self, **kwargs):
+        to_assign = {}
         if '_xobject' not in kwargs:
+            to_assign['material'] = kwargs.pop('material', None)
+            kwargs['_material'] = 'NO NAME'.ljust(55)  # Pre-allocate 64 byte using whitespace
             kwargs.setdefault('_frozen', False)
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
 
     def track(self, part):
         track(self, part)
+
+
+    @property
+    def material(self):
+        return self._material.strip()
+
+    @material.setter
+    def material(self, val):
+        if FlukaEngine.is_running():
+            raise ValueError('Engine is running; FlukaCollimator is frozen.')
+        if val is None:
+            self._material = 'NO NAME'.ljust(55)
+            return
+        if not val in SixTrack_to_xcoll:
+            raise ValueError(f'Unknown material: {val}')
+        self._material = val
+
 
     def __setattribute__(self, name, value):
         # if name in ['gap', 'gap_L', 'gap_R', 'jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'tilt', 'tilt_L', 'tilt_R']:
