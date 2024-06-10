@@ -1,13 +1,15 @@
-subroutine pyfluka_init(n_alloc)
+subroutine pyfluka_init(n_alloc, debug_level)
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
 
     implicit none
     integer, intent(in)    :: n_alloc
+    integer, intent(in)    :: debug_level
 
     ! NB: In SixTrack, npart was passed, not n_alloc.
     ! (Needed for e.g. avoiding to re-compile?)
+    fluka_debug_level  = debug_level
     call fluka_mod_init(n_alloc, 500, clight)
     fluka_enable = .true.
 
@@ -28,20 +30,24 @@ subroutine pyfluka_connect(timeout_sec)
     if(fluka_enable) then
        fluka_con = fluka_is_running()
        if(fluka_con == -1) then
-          write(lerr,"(a)") "FLUKA> ERROR Fluka is expected to run but it is NOT actually the case"
-          write(fluka_log_unit,*) "# Fluka is expected to run but it is NOT actually the case"
-          call prror
+          write(lout,"(a)") "FLUKA> ERROR Fluka is expected to run but it is NOT actually the case"
+          flush(lout)
+          call fluka_close
        end if
-       write(lout,"(a)") "FLUKA> Initializing FlukaIO interface ..."
-       write(fluka_log_unit,*) "# Initializing FlukaIO interface ..."
+       if(fluka_debug_level > 0) then
+           write(lout,"(a)") "FLUKA> Initializing FlukaIO interface"
+           flush(lout)
+       end if
        fluka_con = fluka_connect(timeout_sec)
        if(fluka_con == -1) then
-          write(lerr,"(a)") "FLUKA> ERROR Cannot connect to Fluka server"
-          write(fluka_log_unit,*) "# Error connecting to Fluka server"
-          call prror
+          write(lout,"(a)") "FLUKA> ERROR Cannot connect to Fluka server"
+          flush(lout)
+          call fluka_close
        endif
-       write(lout,"(a)") "FLUKA> Successfully connected to Fluka server"
-       write(fluka_log_unit,*) "# Successfully connected to Fluka server"
+       if(fluka_debug_level > 0) then
+          write(lout,"(a)") "FLUKA> Successfully connected to Fluka server"
+          flush(lout)
+       end if
        fluka_connected = .true.
     endif
 
@@ -72,22 +78,25 @@ subroutine pyfluka_init_max_uid(npart)
     ! last modified: 26-08-2014
     ! send npart to fluka
     if(fluka_enable) then
-       write(lout,"(a,i0)") "FLUKA> Sending npart = ",npart
-       write(fluka_log_unit,*) "# Sending npart: ", npart
+       if(fluka_debug_level > 0) then
+           write(lout,"(a,i0)") "FLUKA> Sending npart = ",npart
+           flush(lout)
+       end if
        ! IMPORTANT: The call to fluka_init_max_uid is absolutely needed.
        ! The FLUKA server looks (in order!) for the corresponding message.
        fluka_con = fluka_init_max_uid( npart )
 
        if(fluka_con < 0) then
-          write(lerr,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send npart ",npart," to fluka "
-          write(fluka_log_unit, *) "# failed to send npart to fluka ",npart
-          call prror
+          write(lout,"(a,i0,a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to send npart ",npart," to fluka "
+          flush(lout)
+          call fluka_close
        end if
 
-       write(lout,"(a)") "FLUKA> Sending npart successful"
-       write(fluka_log_unit,*) "# Sending npart successful;"
+       if(fluka_debug_level > 0) then
+           write(lout,"(a)") "FLUKA> Sending npart successful"
+           flush(lout)
+       end if
        flush(lout)
-       flush(fluka_log_unit)
     end if
 
 end subroutine
@@ -110,10 +119,10 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
     !     and synch magnetic rigidity with Fluka (for the time being, consider
     !     only protons);
     if(fluka_enable) then
-       write(lout,"(a)") "FLUKA> Updating the reference particle"
-       write(fluka_log_unit,*) "# Updating ref particle"
-       flush(lout)
-       flush(fluka_log_unit)
+       if(fluka_debug_level > 0) then
+           write(lout,"(a)") "FLUKA> Updating the reference particle"
+           flush(lout)
+       end if
 
        ! Optional: Let's also set the reference particle in mod_common, like was done in SixTrack.
        ! Default values for e0 and e0f are 0!
@@ -130,15 +139,15 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
        fluka_con = fluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z0, part_q0)
 
        if(fluka_con < 0) then
-          write(lerr,"(a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to update the reference particle"
-          write(fluka_log_unit,*) "# failed to update ref particle"
-          call prror
+          write(lout,"(a,i0,a)") "FLUKA> ERROR ", fluka_con, ": Failed to update the reference particle"
+          flush(lout)
+          call fluka_close
        end if
 
-       write(lout,"(a)") "FLUKA> Updating the reference particle successful"
-       write(fluka_log_unit,*) "# Updating ref particle successful;"
-       flush(lout)
-       flush(fluka_log_unit)
+       if(fluka_debug_level > 0) then
+           write(lout,"(a)") "FLUKA> Updating the reference particle successful"
+           flush(lout)
+       end if
     end if
 
 end subroutine
@@ -197,28 +206,11 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
     napx = alive_part
 
     if (ret.lt.0) then
-        write(fluka_log_unit,*) 'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
-        write(fluka_log_unit,*) 'ENDED WITH ERROR.'
+        write(lout,*) 'FLUKA> ERROR ', ret, ' in Fluka communication returned by fluka_send_receive...'
+        write(lout,*) 'ENDED WITH ERROR.'
+        flush(lout)
     end if
 
     return
 end subroutine track_fluka
 
-
-subroutine prror
-  use crcoall
-  use mod_fluka
-
-  implicit none
-
-  ! These should not go to lerr
-  write(lout,"(a)") ""
-  write(lout,"(a)") "    +++++++++++++++++++++++++++++"
-  write(lout,"(a)") "    +      ERROR DETECTED!      +"
-  write(lout,"(a)") "    + RUN TERMINATED ABNORMALLY +"
-  write(lout,"(a)") "    +++++++++++++++++++++++++++++"
-  write(lout,"(a)") ""
-
-  call fluka_close
-
-end subroutine prror

@@ -34,26 +34,31 @@ class LossMap:
                 raise ValueError("Use either 'weights' or 'weight_function', not both!")
             self._weights = part.sort(interleave_lost_particles=True)
 
-        # loss location refinement
+        # Correct particles that are lost in aperture directly after collimator -> should be absorbed
+        self._correct_absorbed()
+
+        # Loss location refinement
         if interpolation is not None:
             self._interpolate()
 
         self._make_coll_summary()
         coll_summary = self._summary[self._summary.nabs > 0].to_dict('list')
-        aper_s, aper_names, aper_nabs = self._get_aperture_losses()
+        aper_s, aper_names, aper_nabs, aper_energy = self._get_aperture_losses()
 
         self._lossmap = {
                 'collimator': {
                     's':      coll_summary['s'],
                     'name':   coll_summary['collname'],
                     'length': coll_summary['length'],
-                    'n':      coll_summary['nabs']
+                    'n':      coll_summary['nabs'],
+                    # 'e':      coll_summary['energy']
                 }
                 ,
                 'aperture': {
                     's':    aper_s,
                     'name': aper_names,
-                    'n':    aper_nabs
+                    'n':    aper_nabs,
+                    # 'e':    aper_energy
                 }
                 ,
                 'machine_length': self._machine_length
@@ -106,35 +111,31 @@ class LossMap:
         return self._weights
 
 
-    def _interpolate(self):
-        new_state = self._part.state.copy()
-        new_elem  = self._part.at_element.copy()
-
+    def _correct_absorbed(self):
         # Correct particles that are at an aperture directly after a collimator
-        for idx, elem in enumerate(self._part.at_element):
-            if (self._part.state[idx] == 0 and elem > 0
+        part = self._part
+        for idx, elem in enumerate(part.at_element):
+            if (part.state[idx] == 0 and elem > 0
             and self._line.element_names[elem-1] in
             self._line.get_elements_of_type(collimator_classes)[1]):
                 print(f"Found at {self._line.element_names[elem]}, "
                     + f"should be {self._line.element_names[elem-1]}")
-                new_elem[idx] = elem - 1
+                part.at_element[idx] = elem - 1
                 what_type = self._line[elem-1].__class__.__name__
                 if what_type == 'EverestCollimator':
-                    new_state[idx] = -331
+                    part.state[idx] = -331
                 elif what_type == 'EverestCrystal':
-                    new_state[idx] = -332
+                    part.state[idx] = -332
                 elif what_type == 'FlukaCollimator':
-                    new_state[idx] = -334   # TODO: what if crystal?
+                    part.state[idx] = -334   # TODO: what if crystal?
                 elif what_type == 'Geant4Collimator':
-                    new_state[idx] = -337   # TODO: what if crystal?
+                    part.state[idx] = -337   # TODO: what if crystal?
                 elif what_type == 'BlackAbsorber':
-                    new_state[idx] = -340
+                    part.state[idx] = -340
                 else:
                     raise ValueError(f"Unknown collimator type {what_type}")
-        self._part.state      = new_state
-        self._part.at_element = new_elem
 
-        # do the interpolation
+    def _interpolate(self):
         aper_s = list(self._part.s[self._part.state==0])
         if len(aper_s) > 0:
             print("Performing the aperture losses refinement.")
@@ -165,10 +166,11 @@ class LossMap:
         nabs          = [coll_weights[coll_losses == j].sum() for j in collimator_names]
 
         self._summary = pd.DataFrame({
-            'collname': collimator_names, 
+            'collname': collimator_names,
             'nabs':     nabs,    # of particles lost on collimators
+            # 'energy':   energy,
             'length':   coll_lengths,
-            's':        coll_pos,    
+            's':        coll_pos,
             'type':     coll_types
         })
 
@@ -193,7 +195,9 @@ class LossMap:
         aper_nabs    = [aper_weights[aper_s == j].sum() for j in aper_pos] 
         aper_names   = [name_dict[ss] for ss in aper_pos]
 
-        return aper_pos, aper_names, aper_nabs
+        aper_energy = 0
+
+        return aper_pos, aper_names, aper_nabs, aper_energy
 
 
 def _create_weights_from_initial_state(part, function):

@@ -25,7 +25,7 @@ def fluka_builder(line):
     sys.path.append(path_str)
 
     # Check if the file exists
-    file_path = fluka_builder_path / "FLUKA_builder_with_main_ads.py"
+    file_path = fluka_builder_path / "FLUKA_builder_with_main.py"
     print("Checking if file exists at:", file_path)
     if file_path.exists():
         print("File found. Attempting import.")
@@ -141,7 +141,7 @@ def fluka_builder(line):
 def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
     header = ["*  DO NOT CHANGE THIS HEADER", _header_start, "*  {"]
     for kk, vv in collimator_dict.items():
-        header.append(f'*  "{kk}": {json.dumps(vv)},')
+        header.append(f'*  "{kk}": ' + json.dumps(vv).replace('" jaw"', '\n*          "jaw"') + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("*  }")
     header.append(_header_stop)
