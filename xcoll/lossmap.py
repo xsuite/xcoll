@@ -181,7 +181,7 @@ class LossMap:
         aper_s       = list(self._part.s[aper_mask])
 
         if len(aper_s) == 0:
-            return [], [], []
+            return [], [], [], []
         if self._line_is_reversed:
             aper_s   = [ self._machine_length - s for s in aper_s ]
 

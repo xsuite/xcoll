@@ -327,21 +327,25 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def clean_output_files(cls, input_file=None, **kwargs):    # TODO: remove folders?
+    def clean_output_files(cls, input_file=None, cwd=None, **kwargs):    # TODO: remove folders?
         cls(**kwargs)
         this = cls.instance
         if input_file is None:
             input_file = this._input_file
+            if cwd is None and this._cwd is not None:
+                cwd = this._cwd
         else:
             input_file = Path(input_file)
-        if this._cwd is not None:
-            files_to_delete = [this._cwd / f for f in [network_file, fluka_log, server_log]]
+            if cwd is None:
+                cwd = input_file.parent
+        if cwd is not None:
+            files_to_delete = [cwd / f for f in [network_file, fluka_log, server_log]]
             if input_file is not None:
-                files_to_delete += list(this._cwd.glob(f'ran{input_file.stem}*'))
-                files_to_delete += list(this._cwd.glob(f'{input_file.stem}*'))
+                files_to_delete += list(cwd.glob(f'ran{input_file.stem}*'))
+                files_to_delete += list(cwd.glob(f'{input_file.stem}*'))
                 files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
-            files_to_delete += [this._cwd / f'fort.{n}' for n in [208, 251]]
-            files_to_delete += [this._cwd / 'fluka_isotope.log']
+            files_to_delete += [cwd / f'fort.{n}' for n in [208, 251]]
+            files_to_delete += [cwd / 'fluka_isotope.log']
             for f in files_to_delete:
                 if f is not None:
                     if f.exists():

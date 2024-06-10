@@ -43,7 +43,8 @@ def track(collimator, particles):
     engine = FlukaEngine().instance
     if not engine._flukaio_connected:
         raise ValueError(f"Fluka server not yet running!\nPlease do this first, by calling "
-                       + f"xcoll.FlukaEngine.start_server(fluka_input_file.inp).")
+                       + f"xcoll.FlukaEngine.start_server(fluka_input_file.inp). "
+                       + f"(id: {id(engine)})")
 
     if not engine._has_particle_ref:
         raise ValueError(f"Fluka reference particle not set!\nPlease do this first, by calling "
