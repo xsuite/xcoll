@@ -56,7 +56,7 @@ part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles)
 
 
 # Track!
-xc.FlukaEngine.start_server("lhc_run3_30cm.inp", line=line, n_alloc=2*num_particles)
+xc.FlukaEngine.start_server(line=line, input_file="lhc_run3_30cm.inp", n_alloc=2*num_particles)
 particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine().set_particle_ref(particle_ref)
 

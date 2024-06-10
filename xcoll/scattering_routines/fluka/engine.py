@@ -142,19 +142,19 @@ class FlukaEngine(xo.HybridClass):
 
         cls(*args, **kwargs)
         this = cls.instance
-        if this.is_running():
-            print("Server already running.", flush=True)
-            return
-        if not this._fluka.exists():
-            raise ValueError(f"Could not find fluka executable {this._fluka}!")
-        if not this._flukaserver.exists():
-            raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
-        this.test_gfortran()
-        try:
-            from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=this.n_alloc)
-        except ImportError as error:
-            this._warn_pyfluka(error)
+        # if this.is_running():
+        #     print("Server already running.", flush=True)
+        #     return
+        # if not this._fluka.exists():
+        #     raise ValueError(f"Could not find fluka executable {this._fluka}!")
+        # if not this._flukaserver.exists():
+        #     raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
+        # this.test_gfortran()
+        # try:
+        #     from .pyflukaf import pyfluka_init
+        #     pyfluka_init(n_alloc=this.n_alloc)
+        # except ImportError as error:
+        #     this._warn_pyfluka(error)
 
         # Check files and collimators
         if input_file is None:
