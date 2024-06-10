@@ -4,7 +4,7 @@
 # ######################################### #
 
 import numpy as np
-import subprocess
+from subprocess import run, PIPE, Popen
 from pathlib import Path
 from time import sleep
 
@@ -117,7 +117,7 @@ class FlukaEngine(xo.HybridClass):
         this = cls.instance
         if not this._gfortran_installed:
             try:
-                cmd = subprocess.run(["gfortran", "-dumpversion"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
             except FileNotFoundError:
                 this._gfortran_installed = False
                 raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher for fluka.")
@@ -128,7 +128,7 @@ class FlukaEngine(xo.HybridClass):
                     raise RuntimeError(f"Need gfortran 9 or higher for fluka, but found gfortran {version}!")
                 this._gfortran_installed = True
                 if this._verbose:
-                    cmd2 = subprocess.run(["which", "gfortran"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    cmd2 = run(["which", "gfortran"], stdout=PIPE, stderr=PIPE)
                     if cmd2.returncode == 0:
                         file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
                         print(f"Found gfortran {version} in {file}", flush=True)
@@ -214,7 +214,7 @@ class FlukaEngine(xo.HybridClass):
 
         # Declare network
         this._network_nfo = this._cwd / network_file
-        cmd = subprocess.run(["hostname"], cwd=this._cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = run(["hostname"], cwd=this._cwd, stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
@@ -226,8 +226,8 @@ class FlukaEngine(xo.HybridClass):
         # Start server
         this._log = this._cwd / server_log
         this._log_fid = this._log.open('w')
-        this._server_process = subprocess.Popen([this._fluka, input_file, '-e', this._flukaserver, '-M', "1"], 
-                                                 cwd=this._cwd, stdout=this._log_fid, stderr=this._log_fid)
+        this._server_process = Popen([this._fluka, input_file, '-e', this._flukaserver, '-M', "1"], 
+                                     cwd=this._cwd, stdout=this._log_fid, stderr=this._log_fid)
         this.server_pid = this._server_process.pid
         sleep(1)
         if not this.is_running():
@@ -297,14 +297,14 @@ class FlukaEngine(xo.HybridClass):
             this.stop_server()
             return False
         # Get username (need a whoami for the next command)
-        cmd = subprocess.run(["whoami"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
         # Get fluka processes for this user
-        cmd = subprocess.run(["ps", "-u", whoami], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = run(["ps", "-u", whoami], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             processes = cmd.stdout.decode('UTF-8').strip().split('\n')
         else:
