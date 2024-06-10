@@ -159,11 +159,14 @@ class FlukaEngine(xo.HybridClass):
         this.test_gfortran()
         try:
             from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=this.n_alloc)
+            pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
         except ImportError as error:
             this._warn_pyfluka(error)
 
-        # Check files and collimators
+        # Check files
+        if cwd is not None:
+            cwd = Path(cwd)
+            cwd.mkdir(parents=True, exist_ok=True)
         if input_file is None:
             if line is None:
                 raise ValueError("Need to provide an input file or a line to create it from.")
@@ -323,9 +326,70 @@ class FlukaEngine(xo.HybridClass):
             return False
 
 
-    @property
-    def collimators(self):
-        return self._collimators
+    @classmethod
+    def clean_output_files(cls, input_file=None, cwd=None, **kwargs):    # TODO: remove folders?
+        cls(**kwargs)
+        this = cls.instance
+        if input_file is None:
+            input_file = this._input_file
+            if cwd is None and this._cwd is not None:
+                cwd = this._cwd
+        else:
+            input_file = Path(input_file)
+            if cwd is None:
+                cwd = input_file.parent
+        if cwd is not None:
+            files_to_delete = [cwd / f for f in [network_file, fluka_log, server_log]]
+            if input_file is not None:
+                files_to_delete += list(cwd.glob(f'ran{input_file.stem}*'))
+                files_to_delete += list(cwd.glob(f'{input_file.stem}*'))
+                files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
+            files_to_delete += [cwd / f'fort.{n}' for n in [208, 251]]
+            files_to_delete += [cwd / 'fluka_isotope.log']
+            for f in files_to_delete:
+                if f is not None:
+                    if f.exists():
+                        f.unlink()
+
+
+    def _match_collimators_to_engine(self, elements, names):
+        if not hasattr(elements, '__iter__') or isinstance(elements, str):
+            elements = [elements]
+        if not hasattr(names, '__iter__') or isinstance(names, str):
+            names = [names]
+        assert len(elements) == len(names)
+        for name in names:
+            if name not in self._collimator_dict:
+                raise ValueError(f"FlukaCollimator {name} not found in input file!")
+        for el, name in zip(elements, names):
+            el.fluka_id = self._collimator_dict[name]['fluka_id']
+            el.length_front = (self._collimator_dict[name]['length'] - el.length)/2
+            el.length_back = (self._collimator_dict[name]['length'] - el.length)/2
+            jaw = self._collimator_dict[name]['jaw']
+            if not hasattr(jaw, '__iter__'):
+                jaw = [jaw, -jaw]
+            if jaw[0] is None and jaw[1] is None:
+                el.jaw = None
+            if jaw[0] is None:
+                if el.side != 'right':
+                    print(f"Warning: {name} is right-sided in the input file, but not "
+                         + "in the line! Overwritten by the former.")
+                    el.side = 'right'
+            elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
+                print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
+                    + f"vs {jaw[0]})! Overwritten.")
+                el.jaw_L = jaw[0]
+            if jaw[1] is None:
+                if el.side != 'left':
+                    print(f"Warning: {name} is left-sided in the input file, but not "
+                         + "in the line! Overwritten by the former.")
+                    el.side = 'left'
+            elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
+                print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
+                    + f"vs {jaw[1]})! Overwritten.")
+                el.jaw_R = jaw[1]
+            el._frozen = True
+            # TODO: tilts!!
 
 
     @classmethod

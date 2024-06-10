@@ -3,13 +3,7 @@
      3          INROT_3              INROT_3             0.241000   
      4          INROT_4              INROT_4             0.241000   
      5          INROT_5              INROT_5             0.241000   
-     6          INROT_6              INROT_6             0.441000   
-     7          INROT_7              INROT_7             0.241000   
-     8          INROT_8              INROT_8             0.241000   
-     9          INROT_9              INROT_9             0.241000   
-     10         INROT_10             INROT_10            0.241000   
-     11         INROT_11             INROT_11            0.241000   
-     12         INROT_12             INROT_12            0.241000   
+     12         INROT_12             INROT_12            0.441000   
      13         INROT_13             INROT_13            0.241000   
      14         INROT_14             INROT_14            0.241000   
      15         INROT_15             INROT_15            0.241000   
@@ -17,27 +11,36 @@
      17         INROT_17             INROT_17            0.241000   
      18         INROT_18             INROT_18            0.241000   
      19         INROT_19             INROT_19            0.241000   
+     20         INROT_20             INROT_20            0.241000   
+     21         INROT_21             INROT_21            0.241000   
+     22         INROT_22             INROT_22            0.241000   
      23         INROT_23             INROT_23            0.241000   
-     24         INROT_24             INROT_24            0.441000   
-     25         INROT_25             INROT_25            0.441000   
-     26         INROT_26             INROT_26            0.441000   
-     27         INROT_27             INROT_27            0.241000   
-     28         INROT_28             INROT_28            0.241000   
+     24         INROT_24             INROT_24            0.241000   
+     25         INROT_25             INROT_25            0.241000   
+     26         INROT_26             INROT_26            0.151000   
+     27         INROT_27             INROT_27            0.151000   
+     28         INROT_28             INROT_28            0.151000   
      29         INROT_29             INROT_29            0.241000   
-     30         INROT_30             INROT_30            0.241000   
-     31         INROT_31             INROT_31            0.241000   
-     32         INROT_32             INROT_32            0.241000   
+     30         INROT_30             INROT_30            0.441000   
+     31         INROT_31             INROT_31            0.441000   
+     32         INROT_32             INROT_32            0.441000   
      33         INROT_33             INROT_33            0.241000   
      34         INROT_34             INROT_34            0.241000   
      35         INROT_35             INROT_35            0.241000   
-     36         INROT_36             INROT_36            0.241000   
-     37         INROT_37             INROT_37            0.241000   
+     36         INROT_36             INROT_36            0.291000   
+     37         INROT_37             INROT_37            0.291000   
      38         INROT_38             INROT_38            0.241000   
      39         INROT_39             INROT_39            0.241000   
      40         INROT_40             INROT_40            0.241000   
      41         INROT_41             INROT_41            0.241000   
-     42         INROT_42             INROT_42            0.241000   
-     43         INROT_43             INROT_43            0.241000   
+     42         INROT_42             INROT_42            0.291000   
+     43         INROT_43             INROT_43            0.291000   
      44         INROT_44             INROT_44            0.241000   
      45         INROT_45             INROT_45            0.241000   
      46         INROT_46             INROT_46            0.241000   
+     47         INROT_47             INROT_47            0.241000   
+     48         INROT_48             INROT_48            0.241000   
+     49         INROT_49             INROT_49            0.241000   
+     50         INROT_50             INROT_50            0.241000   
+     51         INROT_51             INROT_51            0.241000   
+     52         INROT_52             INROT_52            0.241000   
