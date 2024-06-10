@@ -1,0 +1,8 @@
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+* Place in this file all the custom biasing you require
+*
+* --------------------------------
+* Standard Leading particle biasing applies everywhere
+*________+_________+_________+_________+_________+_________+_________+
+*EMF-BIAS      1022.0     10.00     10.00       2.0  @LASTREG          LPBEMF
