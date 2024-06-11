@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import os
 import numpy as np
 from subprocess import run, PIPE, Popen
 from pathlib import Path
@@ -17,6 +18,7 @@ import xtrack as xt
 from .reference_masses import source, masses
 from .paths import fluka as default_fluka_path
 from .paths import flukaserver as default_flukaserver_path
+from ...general import _pkg_root
 
 
 network_file = "network.nfo"
@@ -143,7 +145,8 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None, debug_level=0, **kwargs):
+    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None,
+                     prototypes_file=None, include_files=None, debug_level=0, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
         from ...beam_elements import FlukaCollimator
@@ -158,33 +161,53 @@ class FlukaEngine(xo.HybridClass):
         if not this._flukaserver.exists():
             raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
         this.test_gfortran()
+
+        # Check files
+        if cwd is not None:
+            cwd = Path(cwd).resolve()
+            cwd.mkdir(parents=True, exist_ok=True)
+            this._old_cwd = Path.cwd()
+            os.chdir(cwd)
+        else:
+            cwd = Path.cwd()
+        this._cwd = cwd
+
         try:
             from .pyflukaf import pyfluka_init
             pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
         except ImportError as error:
             this._warn_pyfluka(error)
+            this._stop_server(warn=False)
+            return
 
-        # Check files
-        if cwd is not None:
-            cwd = Path(cwd)
-            cwd.mkdir(parents=True, exist_ok=True)
         if input_file is None:
             if line is None:
                 raise ValueError("Need to provide an input file or a line to create it from.")
-            input_file = create_fluka_input(line, cwd=cwd)
+            if prototypes_file is None:
+                print("Using default prototypes file.")
+                prototypes_file = _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'prototypes.lbp'
+            if include_files is None:
+                print("Using default include files.")
+                include_files = [
+                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_beam.inp',
+                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
+                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
+                ]
+            input_file = create_fluka_input(line, prototypes_file=prototypes_file,
+                                            include_files=include_files)
         input_file = Path(input_file).resolve()
         if not input_file.exists():
             raise ValueError(f"Input file {input_file.as_posix()} not found!")
+        if input_file.parent != Path.cwd():
+            shutil.copy(input_file, Path.cwd())
+            input_file = Path.cwd() / input_file.name
         this._input_file = input_file
-        if cwd is None:
-            cwd = input_file.parent
-        this._cwd = cwd
-        insertion_file = this._cwd / "insertion.txt"
+        insertion_file = input_file.parent / "insertion.txt"
         if not insertion_file.exists():
-            if (input_file.parent / "insertion.txt").exists():
-                shutil.copy((input_file.parent / "insertion.txt"), insertion_file)
-            else:
-                raise ValueError(f"Insertion file {insertion_file.as_posix()} not found!")
+            raise ValueError(f"Insertion file {insertion_file} not found!")
+        if insertion_file.parent != Path.cwd():
+            shutil.copy(insertion_file, Path.cwd())
+            insertion_file = Path.cwd() / insertion_file.name
         cls.clean_output_files()
 
         # Match collimators
@@ -286,6 +309,8 @@ class FlukaEngine(xo.HybridClass):
         if this._network_nfo is not None and this._network_nfo.exists():
             this._network_nfo.unlink()
         this._tracking_initialised = False
+        if hasattr(this, '_old_cwd') and this._old_cwd is not None:
+            os.chdir(this._old_cwd)
 
 
     @classmethod
