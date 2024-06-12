@@ -241,8 +241,9 @@ class FlukaEngine(xo.HybridClass):
             print(f"done.", flush=True)
         # If the Popen process is still running, terminate it
         if this._server_process is not None:
-            if this._server_process.poll() is None:
-                this._server_process.terminate()
+            while this._server_process.poll() is None:
+                time.sleep(1)
+            this._server_process.terminate()
             this._server_process = None
         this.server_pid = None
         # Close the file pointer to the log

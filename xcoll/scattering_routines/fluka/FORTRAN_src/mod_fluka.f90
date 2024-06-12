@@ -465,10 +465,12 @@ contains
         flsy = spiny(j)
         flsz = spinz(j)
 
-        write(fluka_log_unit,*) " "
-        write(fluka_log_unit,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-        write(fluka_log_unit,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-        flush(fluka_log_unit)
+        if(fluka_debug) then
+          write(fluka_log_unit,*) " "
+          write(fluka_log_unit,*) "Send particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+          write(fluka_log_unit,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+          flush(fluka_log_unit)
+        endif
 
         ! Send particle         TODO: it seems flet should be pc!!
         n = ntsendp(fluka_cid, &
@@ -619,9 +621,11 @@ contains
 
             call CalculateAZ(flpdgid, flaa, flzz)
 
-            write(fluka_log_unit,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-            write(fluka_log_unit,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-            flush(fluka_log_unit)
+            if(fluka_debug) then
+              write(fluka_log_unit,*) "Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+              write(fluka_log_unit,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+              flush(fluka_log_unit)
+            end if
 
             partID(fluka_nrecv)    = flid
             parentID(fluka_nrecv)    = flgen
