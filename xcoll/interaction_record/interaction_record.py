@@ -19,34 +19,34 @@ class InteractionRecord(xt.BeamElement):
         'at_element':        xo.Int64[:],
         'at_turn':           xo.Int64[:],
         '_inter':            xo.Int64[:],
-        'parent_id':         xo.Int64[:],
-        'parent_s':          xo.Float64[:],
-        'parent_x':          xo.Float64[:],
-        'parent_px':         xo.Float64[:],
-        'parent_y':          xo.Float64[:],
-        'parent_py':         xo.Float64[:],
-        'parent_zeta':       xo.Float64[:],
-        'parent_delta':      xo.Float64[:],
-        'parent_energy':     xo.Float64[:],
-        'parent_mass':       xo.Float64[:],
-        'parent_charge':     xo.Int64[:],
-        'parent_z':          xo.Int64[:],
-        'parent_a':          xo.Int64[:],
-        'parent_pdgid':      xo.Int64[:],
-        'child_id':          xo.Int64[:],
-        'child_s':           xo.Float64[:],
-        'child_x':           xo.Float64[:],
-        'child_px':          xo.Float64[:],
-        'child_y':           xo.Float64[:],
-        'child_py':          xo.Float64[:],
-        'child_zeta':        xo.Float64[:],
-        'child_delta':       xo.Float64[:],
-        'child_energy':      xo.Float64[:],
-        'child_mass':        xo.Float64[:],
-        'child_charge':      xo.Int64[:],
-        'child_z':           xo.Int64[:],
-        'child_a':           xo.Int64[:],
-        'child_pdgid':       xo.Int64[:],
+        'id_before':         xo.Int64[:],
+        's_before':          xo.Float64[:],
+        'x_before':          xo.Float64[:],
+        'px_before':         xo.Float64[:],
+        'y_before':          xo.Float64[:],
+        'py_before':         xo.Float64[:],
+        'zeta_before':       xo.Float64[:],
+        'delta_before':      xo.Float64[:],
+        'energy_before':     xo.Float64[:],
+        'mass_before':       xo.Float64[:],
+        'charge_before':     xo.Int64[:],
+        'z_before':          xo.Int64[:],
+        'a_before':          xo.Int64[:],
+        'pdgid_before':      xo.Int64[:],
+        'id_after':          xo.Int64[:],
+        's_after':           xo.Float64[:],
+        'x_after':           xo.Float64[:],
+        'px_after':          xo.Float64[:],
+        'y_after':           xo.Float64[:],
+        'py_after':          xo.Float64[:],
+        'zeta_after':        xo.Float64[:],
+        'delta_after':       xo.Float64[:],
+        'energy_after':      xo.Float64[:],
+        'mass_after':        xo.Float64[:],
+        'charge_after':      xo.Int64[:],
+        'z_after':           xo.Int64[:],
+        'a_after':           xo.Int64[:],
+        'pdgid_after':       xo.Int64[:],
     }
 
     allow_track = False
@@ -198,8 +198,8 @@ class InteractionRecord(xt.BeamElement):
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
                 **{
-                    f'{p}_{val}': getattr(self, f'{p}_{val}')[:n_rows]
-                    for p in ['parent', 'child']
+                    f'{p}_{val}': getattr(self, f'{val}_{p}')[:n_rows]
+                    for p in ['before', 'after']
                     for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
             })
@@ -217,29 +217,30 @@ class InteractionRecord(xt.BeamElement):
             mask = mask & (self.at_turn == turn)
             df = pd.DataFrame({
                     'int':  [shortcuts[inter] for inter in self._inter[mask]],
-                    'pid':  self.parent_id[mask]
+                    'pid':  self.id_before[mask]
                 })
             return df.groupby('pid', sort=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
                     'int':   [shortcuts[inter] for inter in self._inter[mask]],
                     'turn':  self.at_turn[mask],
-                    'pid':   self.parent_id[mask]
+                    'pid':   self.id_before[mask]
                 })
             return df.groupby(['pid', 'turn'], sort=False)['int'].apply(list)
 
     def first_touch_per_turn(self):
         n_rows = self._index.num_recorded
-        df = pd.DataFrame({'parent_id': self.parent_id[:n_rows],
+        df = pd.DataFrame({'id_before': self.id_before[:n_rows],
                            'at_turn': self.at_turn[:n_rows],
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
-        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'parent_id'], sort=False)]
+        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'id_before'], sort=False)]
         df_first = self.to_pandas().loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
         to_drop = ['interaction_type',
-                   *[col for col in df_first.columns if col.startswith('child_')]]
-        to_rename = {col: col.replace('parent_', '') for col in df_first.columns if col.startswith('parent_')}
+                   *[col for col in df_first.columns if col.endswith('_after')]]
+        to_rename = {col: col.replace('_before', '') for col in df_first.columns if col.endswith('before')}
+        to_rename['id_before'] = 'pid'
         return df_first.drop(columns=to_drop).rename(columns=to_rename)
 
 
