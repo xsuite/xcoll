@@ -190,7 +190,12 @@ class InteractionRecord(xt.BeamElement):
         else:
             return self._coll_ids[element_name]
 
-    def to_pandas(self):
+    def to_pandas(self, frame=None):
+        if frame is None:
+            frame = 'jaw'
+        frame = frame.lower()
+        if frame not in ['jaw', 'collimator', 'lab']:
+            raise ValueError(f"Invalid frame {frame}. Must be 'jaw', 'collimator', or 'lab'!")
         n_rows = self._index.num_recorded
         coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
         df = pd.DataFrame({
@@ -228,14 +233,14 @@ class InteractionRecord(xt.BeamElement):
                 })
             return df.groupby(['pid', 'turn'], sort=False)['int'].apply(list)
 
-    def first_touch_per_turn(self):
+    def first_touch_per_turn(self, frame=None):
         n_rows = self._index.num_recorded
         df = pd.DataFrame({'id_before': self.id_before[:n_rows],
                            'at_turn': self.at_turn[:n_rows],
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'id_before'], sort=False)]
-        df_first = self.to_pandas().loc[idx_first]
+        df_first = self.to_pandas(frame=frame).loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
         to_drop = ['interaction_type',
                    *[col for col in df_first.columns if col.endswith('_after')]]
