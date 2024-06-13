@@ -162,7 +162,7 @@ def create_fluka_input(line, prototypes_file, include_files, *, filename=None, c
     assert insertion_file.exists()
     # Expand using include files
     print(f"Expanding {input_file} using {include_files}.")
-    cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.as_posix()],
+    cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=Path.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         print("Expanded include files.")

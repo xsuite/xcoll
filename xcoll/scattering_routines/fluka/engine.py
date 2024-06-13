@@ -163,6 +163,8 @@ class FlukaEngine(xo.HybridClass):
         this.test_gfortran()
 
         # Check files
+        if input_file is not None:
+            input_file = Path(input_file).resolve()
         if cwd is not None:
             cwd = Path(cwd).resolve()
             cwd.mkdir(parents=True, exist_ok=True)
@@ -171,14 +173,6 @@ class FlukaEngine(xo.HybridClass):
         else:
             cwd = Path.cwd()
         this._cwd = cwd
-
-        try:
-            from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
-        except ImportError as error:
-            this._warn_pyfluka(error)
-            this._stop_server(warn=False)
-            return
 
         if input_file is None:
             if line is None:
@@ -195,7 +189,6 @@ class FlukaEngine(xo.HybridClass):
                 ]
             input_file = create_fluka_input(line, prototypes_file=prototypes_file,
                                             include_files=include_files)
-        input_file = Path(input_file).resolve()
         if not input_file.exists():
             raise ValueError(f"Input file {input_file.as_posix()} not found!")
         if input_file.parent != Path.cwd():
@@ -209,6 +202,14 @@ class FlukaEngine(xo.HybridClass):
             shutil.copy(insertion_file, Path.cwd())
             insertion_file = Path.cwd() / insertion_file.name
         cls.clean_output_files()
+
+        try:
+            from .pyflukaf import pyfluka_init
+            pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
+        except ImportError as error:
+            this._warn_pyfluka(error)
+            this._stop_server(warn=False)
+            return
 
         # Match collimators
         collimator_dict = get_collimators_from_input_file(input_file)
