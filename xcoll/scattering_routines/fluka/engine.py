@@ -165,6 +165,8 @@ class FlukaEngine(xo.HybridClass):
         # Check files
         if input_file is not None:
             input_file = Path(input_file).resolve()
+        if prototypes_file is not None:
+            prototypes_file = Path(prototypes_file).resolve()
         if cwd is not None:
             cwd = Path(cwd).resolve()
             cwd.mkdir(parents=True, exist_ok=True)
@@ -173,6 +175,10 @@ class FlukaEngine(xo.HybridClass):
         else:
             cwd = Path.cwd()
         this._cwd = cwd
+
+        if prototypes_file.parent != Path.cwd():
+            shutil.copy(prototypes_file, Path.cwd())
+            prototypes_file = Path.cwd() / prototypes_file.name
 
         if input_file is None:
             if line is None:
