@@ -335,7 +335,7 @@ class BaseCollimator(BaseBlock):
         diff = val - (self._jaw_LU + self._jaw_LD) / 2
         self._jaw_LU += diff
         self._jaw_LD += diff
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_R(self):
@@ -354,7 +354,7 @@ class BaseCollimator(BaseBlock):
         diff = val - (self._jaw_RU + self._jaw_RD) / 2
         self._jaw_RU += diff
         self._jaw_RD += diff
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_LU(self):
@@ -371,7 +371,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LU = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_LD(self):
@@ -388,7 +388,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LD = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_RU(self):
@@ -405,7 +405,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RU = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_RD(self):
@@ -422,7 +422,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RD = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_s_LU(self):
@@ -456,12 +456,12 @@ class BaseCollimator(BaseBlock):
             self._cos_yR = np.sqrt(1 - self._sin_yR**2)
             self._tan_yR = self._sin_yR / self._cos_yR
 
-    def _update_gaps(self):
+    def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
         # as well after setting the jaw
-        if self._gap_L_set_manually():
+        if self._gap_L_set_manually() and not only_R:
             self._gap_L = self.gap_L
-        if self._gap_R_set_manually():
+        if self._gap_R_set_manually() and not only_L:
             self._gap_R = self.gap_R
 
 
