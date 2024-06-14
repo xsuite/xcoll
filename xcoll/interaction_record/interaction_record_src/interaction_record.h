@@ -32,37 +32,37 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
                              ) * mass_ratio * LocalParticle_get_p0c(parent);
             // All fields have to be written, or the arrays will not have the same length
             // TODO: maybe this is not true, as we are setting by slot index? Don't the arrays come pre-initialised?
-            InteractionRecordData_set_parent_id(record, i_slot, LocalParticle_get_particle_id(parent));
-            InteractionRecordData_set_parent_s(record,  i_slot, LocalParticle_get_s(parent));
-            InteractionRecordData_set_parent_x(record,  i_slot, LocalParticle_get_x(parent));
-            InteractionRecordData_set_parent_px(record, i_slot, LocalParticle_get_px(parent));
-            InteractionRecordData_set_parent_y(record,  i_slot, LocalParticle_get_y(parent));
-            InteractionRecordData_set_parent_py(record, i_slot, LocalParticle_get_py(parent));
-            InteractionRecordData_set_parent_zeta(record,   i_slot, LocalParticle_get_zeta(parent));
-            InteractionRecordData_set_parent_delta(record,  i_slot, LocalParticle_get_delta(parent));
-            InteractionRecordData_set_parent_energy(record, i_slot, energy);
-            InteractionRecordData_set_parent_mass(record,   i_slot, mass_ratio*LocalParticle_get_mass0(parent));
-            InteractionRecordData_set_parent_charge(record, i_slot, charge_ratio*LocalParticle_get_q0(parent));
+            InteractionRecordData_set_id_before(record, i_slot, LocalParticle_get_particle_id(parent));
+            InteractionRecordData_set_s_before(record,  i_slot, LocalParticle_get_s(parent));
+            InteractionRecordData_set_x_before(record,  i_slot, LocalParticle_get_x(parent));
+            InteractionRecordData_set_px_before(record, i_slot, LocalParticle_get_px(parent));
+            InteractionRecordData_set_y_before(record,  i_slot, LocalParticle_get_y(parent));
+            InteractionRecordData_set_py_before(record, i_slot, LocalParticle_get_py(parent));
+            InteractionRecordData_set_zeta_before(record,   i_slot, LocalParticle_get_zeta(parent));
+            InteractionRecordData_set_delta_before(record,  i_slot, LocalParticle_get_delta(parent));
+            InteractionRecordData_set_energy_before(record, i_slot, energy);
+            InteractionRecordData_set_mass_before(record,   i_slot, mass_ratio*LocalParticle_get_mass0(parent));
+            InteractionRecordData_set_charge_before(record, i_slot, charge_ratio*LocalParticle_get_q0(parent));
             // TODO: particle info
-            InteractionRecordData_set_parent_z(record, i_slot, -1);
-            InteractionRecordData_set_parent_a(record, i_slot, -1);
-            InteractionRecordData_set_parent_pdgid(record, i_slot, -1);
+            InteractionRecordData_set_z_before(record, i_slot, -1);
+            InteractionRecordData_set_a_before(record, i_slot, -1);
+            InteractionRecordData_set_pdgid_before(record, i_slot, -1);
 
             // TODO: maybe this is not needed
-            InteractionRecordData_set_child_id(record, i_slot, -1);
-            InteractionRecordData_set_child_s(record, i_slot, -1);
-            InteractionRecordData_set_child_x(record, i_slot, -1);
-            InteractionRecordData_set_child_px(record, i_slot, -1);
-            InteractionRecordData_set_child_y(record, i_slot, -1);
-            InteractionRecordData_set_child_py(record, i_slot, -1);
-            InteractionRecordData_set_child_zeta(record, i_slot, -1);
-            InteractionRecordData_set_child_delta(record, i_slot, -1);
-            InteractionRecordData_set_child_energy(record, i_slot, -1);
-            InteractionRecordData_set_child_mass(record, i_slot, -1);
-            InteractionRecordData_set_child_charge(record, i_slot, -1);
-            InteractionRecordData_set_child_z(record, i_slot, -1);
-            InteractionRecordData_set_child_a(record, i_slot, -1);
-            InteractionRecordData_set_child_pdgid(record, i_slot, -1);
+            InteractionRecordData_set_id_after(record, i_slot, -1);
+            InteractionRecordData_set_s_after(record, i_slot, -1);
+            InteractionRecordData_set_x_after(record, i_slot, -1);
+            InteractionRecordData_set_px_after(record, i_slot, -1);
+            InteractionRecordData_set_y_after(record, i_slot, -1);
+            InteractionRecordData_set_py_after(record, i_slot, -1);
+            InteractionRecordData_set_zeta_after(record, i_slot, -1);
+            InteractionRecordData_set_delta_after(record, i_slot, -1);
+            InteractionRecordData_set_energy_after(record, i_slot, -1);
+            InteractionRecordData_set_mass_after(record, i_slot, -1);
+            InteractionRecordData_set_charge_after(record, i_slot, -1);
+            InteractionRecordData_set_z_after(record, i_slot, -1);
+            InteractionRecordData_set_a_after(record, i_slot, -1);
+            InteractionRecordData_set_pdgid_after(record, i_slot, -1);
         }
     }
 //     printf("Logging %i in slot %i\n", interaction, i_slot);
@@ -76,21 +76,21 @@ void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slo
         double mass_ratio = charge_ratio / LocalParticle_get_chi(child);
         double energy = ( LocalParticle_get_ptau(child) + 1 / LocalParticle_get_beta0(child)
                          ) * mass_ratio * LocalParticle_get_p0c(child);
-        InteractionRecordData_set_child_id(record, i_slot, LocalParticle_get_particle_id(child));
-        InteractionRecordData_set_child_s(record,  i_slot, LocalParticle_get_s(child));
-        InteractionRecordData_set_child_x(record,  i_slot, LocalParticle_get_x(child));
-        InteractionRecordData_set_child_px(record, i_slot, LocalParticle_get_px(child));
-        InteractionRecordData_set_child_y(record,  i_slot, LocalParticle_get_y(child));
-        InteractionRecordData_set_child_py(record, i_slot, LocalParticle_get_py(child));
-        InteractionRecordData_set_child_zeta(record,  i_slot, LocalParticle_get_zeta(child));
-        InteractionRecordData_set_child_delta(record, i_slot, LocalParticle_get_delta(child));
-        InteractionRecordData_set_child_energy(record, i_slot, energy);
-        InteractionRecordData_set_child_mass(record,   i_slot, mass_ratio*LocalParticle_get_mass0(child));
-        InteractionRecordData_set_child_charge(record, i_slot, charge_ratio*LocalParticle_get_q0(child));
+        InteractionRecordData_set_id_after(record, i_slot, LocalParticle_get_particle_id(child));
+        InteractionRecordData_set_s_after(record,  i_slot, LocalParticle_get_s(child));
+        InteractionRecordData_set_x_after(record,  i_slot, LocalParticle_get_x(child));
+        InteractionRecordData_set_px_after(record, i_slot, LocalParticle_get_px(child));
+        InteractionRecordData_set_y_after(record,  i_slot, LocalParticle_get_y(child));
+        InteractionRecordData_set_py_after(record, i_slot, LocalParticle_get_py(child));
+        InteractionRecordData_set_zeta_after(record,  i_slot, LocalParticle_get_zeta(child));
+        InteractionRecordData_set_delta_after(record, i_slot, LocalParticle_get_delta(child));
+        InteractionRecordData_set_energy_after(record, i_slot, energy);
+        InteractionRecordData_set_mass_after(record,   i_slot, mass_ratio*LocalParticle_get_mass0(child));
+        InteractionRecordData_set_charge_after(record, i_slot, charge_ratio*LocalParticle_get_q0(child));
         // TODO: particle info
-        InteractionRecordData_set_child_z(record, i_slot, -1);
-        InteractionRecordData_set_child_a(record, i_slot, -1);
-        InteractionRecordData_set_child_pdgid(record, i_slot, -1);
+        InteractionRecordData_set_z_after(record, i_slot, -1);
+        InteractionRecordData_set_a_after(record, i_slot, -1);
+        InteractionRecordData_set_pdgid_after(record, i_slot, -1);
 //     printf("Slot %i: length %f\n", i_slot, ds);
     }
 }
