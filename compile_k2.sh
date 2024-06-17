@@ -29,8 +29,7 @@ mv libroundctl.a ../
 cd ..
 
 # compile fortran
-gfortran -fpic -DDOUBLE_MATH -DCRLIBM -c \
- prror.f90 \
+gfortran -fpic -cpp -DDOUBLE_MATH -DCRLIBM -c \
  core_tools.f90 \
  constants.f90 \
  strings.f90 \
@@ -38,6 +37,9 @@ gfortran -fpic -DDOUBLE_MATH -DCRLIBM -c \
  common_modules.f90  \
  string_tools.f90  \
  mod_units.f90  \
+ prror.f90 \
+ mod_meta.f90 \
+ mod_time.f90 \
  bouncy_castle.f90  \
  libcrlibm.a \
  libroundctl.a \
@@ -46,13 +48,13 @@ gfortran -fpic -DDOUBLE_MATH -DCRLIBM -c \
  coll_db.f90 \
  mod_ranlux.f90  \
  mod_funlux.f90  \
- coll_crystal.f90  \
+ coll_crystal.f90 \
  coll_k2.f90 \
- files.f90
+ coll_dist.f90 \
+ collimation.f90
 
 # link fortran
-f2py -m pyk2f -DDOUBLE_MATH -DCRLIBM -c pyk2.f90 \
- prror.o \
+f2py -m pyk2f -c pyk2.f90 \
  core_tools.o \
  constants.o \
  strings.o \
@@ -60,6 +62,9 @@ f2py -m pyk2f -DDOUBLE_MATH -DCRLIBM -c pyk2.f90 \
  common_modules.o  \
  string_tools.o  \
  mod_units.o  \
+ prror.o \
+ mod_meta.o \
+ mod_time.o \
  bouncy_castle.o  \
  libcrlibm.a  \
  libroundctl.a  \
@@ -68,8 +73,9 @@ f2py -m pyk2f -DDOUBLE_MATH -DCRLIBM -c pyk2.f90 \
  coll_db.o \
  mod_ranlux.o  \
  mod_funlux.o  \
- coll_crystal.o  \
- coll_k2.o \ \
- files.o
+ coll_crystal.o \
+ coll_k2.o \
+ coll_dist.o \
+ collimation.o
 
 mv pyk2f.*.so ../

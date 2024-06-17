@@ -75,10 +75,10 @@ module collimation
   real(kind=fPrec), private, save :: sigsecut2 = one
 
   ! Normalised emittances from input
-  real(kind=fPrec), private, save :: emitnx0_dist    = zero
-  real(kind=fPrec), private, save :: emitny0_dist    = zero
-  real(kind=fPrec), private, save :: emitnx0_collgap = zero
-  real(kind=fPrec), private, save :: emitny0_collgap = zero
+  real(kind=fPrec), public, save :: emitnx0_dist    = zero
+  real(kind=fPrec), public, save :: emitny0_dist    = zero
+  real(kind=fPrec), public, save :: emitnx0_collgap = zero
+  real(kind=fPrec), public, save :: emitny0_collgap = zero
 
   ! Geometric emittances
   real(kind=fPrec), private, save :: c_emitx0_dist    = zero

@@ -1,10 +1,6 @@
 subroutine prror
 
   use crcoall
-#ifdef FLUKA
-  use mod_fluka
-#endif
-
   implicit none
 
   ! These should not go to lerr
@@ -14,17 +10,8 @@ subroutine prror
   write(lout,"(a)") "    + RUN TERMINATED ABNORMALLY +"
   write(lout,"(a)") "    +++++++++++++++++++++++++++++"
   write(lout,"(a)") ""
-
-#ifdef FLUKA
-  call fluka_close
-#endif
-
-#ifdef CR
-  call abend("ERROR")
-#else
   call closeUnits
   stop 1
-#endif
 
 end subroutine prror
 
