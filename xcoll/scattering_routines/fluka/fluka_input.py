@@ -157,7 +157,10 @@ def create_fluka_input(line, prototypes_file, include_files, *, filename=None, c
     # Call FLUKA_builder
     input_file, collimator_dict = _fluka_builder(elements, names)
     input_file = Path(input_file).resolve()
-    insertion_file = (input_file.parent / 'insertion.txt').resolve()
+    # insertion_file = (input_file.parent / 'insertion.txt').resolve()
+    insertion_file = list(input_file.parent.glob('*insertion*'))[0]
+    if insertion_file:
+        os.rename(insertion_file, input_file.parent / 'insertion.txt')
     assert input_file.exists()
     assert insertion_file.exists()
     # Expand using include files
