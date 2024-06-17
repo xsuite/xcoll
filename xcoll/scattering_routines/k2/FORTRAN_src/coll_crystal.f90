@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 !
 !  Crystal Collimation Module
@@ -167,7 +165,7 @@ subroutine cry_startElement(icoll, ie, emitX, emitY, o_tilt, o_length)
   mat = cdb_cMaterialID(icoll)
   if(validMat(mat) .eqv. .false.) then
     write(lerr,"(a)") "COLL> ERROR Crystal collimation not supported for material '"//trim(colmats(mat))//"'"
-    !call prror
+    call prror
   end if
 
   if(modulo(cdb_cRotation(icoll),pi) < c1m9) then
@@ -176,7 +174,7 @@ subroutine cry_startElement(icoll, ie, emitX, emitY, o_tilt, o_length)
     cry_tilt0 = -(sqrt(emitY/tbetay(ie))*talphay(ie))*cdb_cNSig(icoll)
   else
     write(lerr,"(a)") "COLL> ERROR Crystal collimator has to be horizontal or vertical"
-    !call prror
+    call prror
   end if
 
   cry_tilt = cdb_cryTilt(icoll) + cry_tilt0
@@ -215,7 +213,7 @@ end subroutine cry_startElement
 ! ================================================================================================ !
 !  Subroutine for checking for interactions with crystal
 ! ================================================================================================ !
-subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
+subroutine cry_doCrystal(ie,iturn,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs, &
   lhit,lhit_turn,part_abs,part_abs_turn,impact,indiv,c_length)
 
   use parpro
@@ -223,6 +221,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
   use mathlib_bouncer
 
   integer,          intent(in)    :: ie
+  integer,          intent(in)    :: iturn
   integer,          intent(in)    :: j
   integer,          intent(in)    :: mat
 
@@ -317,7 +316,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
       isImp        = .true.
       nhit         = nhit + 1
       lhit(j)      = ie
-      lhit_turn(j) = 100
+      lhit_turn(j) = iturn
       impact(j)    = x0
       indiv(j)     = xp0
     end if
@@ -387,7 +386,7 @@ subroutine cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x0,xp0,zlm,s_imp,isImp,nhit,nabs
           isImp        = .true.
           nhit         = nhit + 1
           lhit(j)      = ie
-          lhit_turn(j) = 100
+          lhit_turn(j) = iturn
           impact(j)    = x0
           indiv(j)     = xp0
         end if

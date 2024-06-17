@@ -1,5 +1,3 @@
-
-
 module mod_funlux
 
   use floatPrecision

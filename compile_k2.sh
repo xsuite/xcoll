@@ -29,7 +29,8 @@ mv libroundctl.a ../
 cd ..
 
 # compile fortran
-gfortran -fpic -c \
+gfortran -fpic -DDOUBLE_MATH -DCRLIBM -c \
+ prror.f90 \
  core_tools.f90 \
  constants.f90 \
  strings.f90 \
@@ -50,7 +51,8 @@ gfortran -fpic -c \
  files.f90
 
 # link fortran
-f2py -m pyk2f -c pyk2.f90 \
+f2py -m pyk2f -DDOUBLE_MATH -DCRLIBM -c pyk2.f90 \
+ prror.o \
  core_tools.o \
  constants.o \
  strings.o \

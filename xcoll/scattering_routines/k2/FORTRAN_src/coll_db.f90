@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 !  Collimator Database Module
 !  V.K. Berglyd Olsen, M. D'Andrea, BE-ABP-HSS
@@ -76,9 +74,9 @@ module coll_db
   integer,          allocatable, public, save :: cdb_elemMap(:)     ! Map from single elements to DB
   integer,          allocatable, public, save :: cdb_struMap(:)     ! Map from collimator to structure index
 
-
-
-
+#ifdef CR
+  integer,                       public,  save :: cdb_nColl_cr = -1       ! Number of collimators
+#endif
 
 contains
 
@@ -183,7 +181,7 @@ subroutine cdb_readCollDB
   call f_open(unit=dbUnit,file=cdb_fileName,formatted=.true.,mode="r",err=dbErr,status="old")
   if(dbErr) then
     write(lerr,"(a)") "COLLDB> ERROR Could not open the collimator database file '"//trim(cdb_fileName)//"'"
-    !call prror
+    call prror
   end if
 
 ! ============================================================================ !
@@ -217,12 +215,12 @@ subroutine cdb_readCollDB
     call cdb_readDBSettings
   end if
 
-
-
-
-
-
-
+#ifdef ROOT
+  call cdb_writeDB_ROOT
+#endif
+#ifdef HDF5
+  call cdb_writeDB_HDF5
+#endif
 
 ! ============================================================================ !
 !  Post-Processing DB
@@ -230,7 +228,7 @@ subroutine cdb_readCollDB
 
   if(cdb_nColl < 1) then
     write(lerr,"(a)") "COLLDB> Collimator database file read, but no collimators found."
-    !call prror
+    call prror
   end if
 
   ! Set collimator stage from family stage, if we have any, otherwise default to unknown
@@ -318,7 +316,7 @@ subroutine cdb_readDB_newFormat
   call f_open(unit=dbUnit,file=cdb_fileName,formatted=.true.,mode="r",status="old",err=fErr)
   if(fErr) then
     write(lerr,"(a)") "COLLDB> ERROR Cannot read from '"//trim(cdb_fileName)//"'"
-    !call prror
+    call prror
   end if
 
 10 continue
@@ -327,14 +325,14 @@ subroutine cdb_readDB_newFormat
   read(dbUnit,"(a)",end=20,iostat=ioStat) inLine
   if(ioStat /= 0) then
     write(lerr,"(a)") "COLLDB> ERROR Cannot read from '"//trim(cdb_fileName)//"'"
-    !call prror
+    call prror
   end if
   if(inLine(1:1) == "#") goto 10
 
   call chr_split(inLine, lnSplit, nSplit, cErr)
   if(cErr) then
     write(lerr,"(a,i0)") "COLLDB> ERROR Failed to parse database line ",iLine
-    !call prror
+    call prror
   end if
   if(nSplit == 0) goto 10 ! Skip empty lines
 
@@ -348,7 +346,7 @@ subroutine cdb_readDB_newFormat
     if(nSplit /= 3 .and. nSplit /= 4) then
       write(lerr,"(a,i0,a)") "COLLDB> ERROR Collimator family description on line ",iLine," must be 3 or 4 values."
       write(lerr,"(a)")      "COLLDB>       NSIG_FAM famName sigmaSetting [stage]"
-      !call prror
+      call prror
     end if
     call chr_cast(lnSplit(3), nSig, cErr)
     call cdb_addFamily(trim(lnSplit(2)), nSig, famID, fExists)
@@ -373,7 +371,7 @@ subroutine cdb_readDB_newFormat
         cdb_famStage(famID) = cdb_stgUnknown
       case default
         write(lerr,"(a,i0)") "COLLDB> ERROR Unknown collimator stage '"//trim(lnSplit(4))//"' on line ",iLine
-        !call prror
+        call prror
       end select
     else
       cdb_famStage(famID) = cdb_stgUnknown
@@ -384,7 +382,7 @@ subroutine cdb_readDB_newFormat
   ! If not a family definition, it should be a collimator
   if(nSplit < 6) then
     write(lerr,"(a,i0,a)") "COLLDB> ERROR Collimator description on line ",iLine," has less than 6 values."
-    !call prror
+    call prror
   end if
 
   iColl = iColl + 1
@@ -401,7 +399,7 @@ subroutine cdb_readDB_newFormat
     cdb_cMaterialID(iColl) = matID
   else
     write(lerr,"(a)") "COLLDB> ERROR Material '"//trim(lnSplit(3))//"' not supported. Check your collimator database."
-    !call prror
+    call prror
   end if
 
   call chr_cast(lnSplit(4),cdb_cLength(iColl),  cErr)
@@ -423,7 +421,7 @@ subroutine cdb_readDB_newFormat
     if(famID == -1) then
       write(lerr,"(a,i0,a)") "COLLDB> ERROR Collimator opening '"//trim(adjustl(lnSplit(2)))//"' on line ",iLine,&
         " is not in family database"
-      !call prror
+      call prror
     else
       cdb_cFamily(iColl)   = famID
       cdb_cNSig(iColl)     = cdb_famNSig(famID)
@@ -561,7 +559,7 @@ subroutine cdb_readDB_oldFormat
       cdb_cMaterialID(j) = matID
     else
       write(lerr,"(a)") "COLLDB> ERROR Material '"//trim(cdb_cMaterial(j))//"' not supported. Check your CollDB."
-      !call prror
+      call prror
     end if
 
   end do
@@ -572,7 +570,7 @@ subroutine cdb_readDB_oldFormat
 
 100 continue
   write(lerr,"(2(a,i0))") "COLLDB> ERROR Cannot read DB file line ",iLine,", iostat = ",ioStat
-  !call prror
+  call prror
 
 end subroutine cdb_readDB_oldFormat
 
@@ -748,7 +746,7 @@ subroutine cdb_readDBSettings
   call f_open(unit=dbUnit,file=cdb_fileName,formatted=.true.,mode="r",status="old",err=fErr)
   if(fErr) then
     write(lerr,"(a)") "COLLDB> ERROR Cannot read from '"//trim(cdb_fileName)//"'"
-    !call prror
+    call prror
   end if
 
 10 continue
@@ -759,7 +757,7 @@ subroutine cdb_readDBSettings
 
   if(ioStat /= 0) then
     write(lerr,"(a)") "COLLDB> ERROR Cannot read from '"//trim(cdb_fileName)//"'"
-    !call prror
+    call prror
   end if
   if(inLine(1:1) == "#") goto 10
 
@@ -872,7 +870,7 @@ subroutine cdb_readDBSettings
         if(cdb_cFamily(i) == iFam) then
           if(cdb_cSliced(i) /= 0) then
             write(lerr,"(a)") "COLLDB> ERROR Collimator '"//trim(cdb_cName(i))//"' has already been sliced"
-            !call prror
+            call prror
           end if
           cdb_cJawFit(:,i) = fitID
           call jaw_computeFit(cdb_cName(i), fitID, iParam(1), rParam(1:2), bParam(1:2), cdb_cLength(i), &
@@ -883,7 +881,7 @@ subroutine cdb_readDBSettings
     else
       if(cdb_cSliced(iColl) /= 0) then
         write(lerr,"(a)") "COLLDB> ERROR Collimator '"//trim(cdb_cName(iColl))//"' has already been sliced"
-        !call prror
+        call prror
       end if
       cdb_cJawFit(:,iColl) = fitID
       call jaw_computeFit(cdb_cName(iColl), fitID, iParam(1), rParam(1:2), bParam(1:2), cdb_cLength(iColl), &
@@ -970,11 +968,84 @@ subroutine cdb_readDBSettings
 
 30 continue
   write(lerr,"(a,i0)") "COLLDB> ERROR Collimator DB '"//trim(cdb_fileName)//"' on line ",iLine
-  !call prror
+  call prror
 
 end subroutine cdb_readDBSettings
 
+#ifdef ROOT
+subroutine cdb_writeDB_ROOT
 
+  use parpro
+  use iso_c_binding
+  use root_output
+
+  character(len=mNameLen+1) :: this_name     = C_NULL_CHAR
+  character(len=5)          :: this_material = C_NULL_CHAR
+  integer j
+
+  if((root_flag .eqv. .false.) .or. root_CollimationDB /= 1) return
+
+  do j=1,cdb_nColl
+    this_name     = trim(adjustl(cdb_cName(j)))//C_NULL_CHAR
+    this_material = trim(adjustl(cdb_cMaterial(j)))//C_NULL_CHAR
+    call CollimatorDatabaseRootWrite(j, this_name, len_trim(this_name), this_material, len_trim(this_material), cdb_cNSig(j), &
+      cdb_cLength(j), cdb_cRotation(j), cdb_cOffset(j))
+  end do
+
+end subroutine cdb_writeDB_ROOT
+#endif
+
+#ifdef HDF5
+subroutine cdb_writeDB_HDF5
+
+  use hdf5_output
+  use string_tools
+
+  type(h5_dataField), allocatable :: fldCollDB(:)
+  character(len=:),   allocatable :: colNames(:)
+  character(len=:),   allocatable :: colUnits(:)
+
+  integer :: fmtCollDB, setCollDB, nSplit
+  logical :: spErr
+
+  if(h5_useForCOLL .eqv. .false.) return
+
+  allocate(fldCollDB(8))
+
+  fldCollDB(1) = h5_dataField(name="NAME",     type=h5_typeChar, size=mNameLen)
+  fldCollDB(2) = h5_dataField(name="OPENING",  type=h5_typeReal)
+  fldCollDB(3) = h5_dataField(name="MATERIAL", type=h5_typeChar, size=4)
+  fldCollDB(4) = h5_dataField(name="LENGTH",   type=h5_typeReal)
+  fldCollDB(5) = h5_dataField(name="ANGLE",    type=h5_typeReal)
+  fldCollDB(6) = h5_dataField(name="OFFSET",   type=h5_typeReal)
+  fldCollDB(7) = h5_dataField(name="BETAX",    type=h5_typeReal)
+  fldCollDB(8) = h5_dataField(name="BETAY",    type=h5_typeReal)
+
+  call h5_createFormat("collimation_db", fldCollDB, fmtCollDB)
+  call h5_createDataSet("collimation_db", h5_collID, fmtCollDB, setCollDB, cdb_nColl)
+
+  call chr_split("name opening material length angle offset beta_x beta_y",colNames,nSplit,spErr)
+  call chr_split("text sigma text m rad m m m",colUnits,nSplit,spErr)
+
+  call h5_writeDataSetAttr(setCollDB,"nColl",   cdb_nColl)
+  call h5_writeDataSetAttr(setCollDB,"colNames",colNames)
+  call h5_writeDataSetAttr(setCollDB,"colUnits",colUnits)
+
+  call h5_prepareWrite(setCollDB, cdb_nColl)
+  call h5_writeData(setCollDB, 1, cdb_nColl, cdb_cName(1:cdb_nColl))
+  call h5_writeData(setCollDB, 2, cdb_nColl, cdb_cNSig(1:cdb_nColl))
+  call h5_writeData(setCollDB, 3, cdb_nColl, cdb_cMaterial(1:cdb_nColl))
+  call h5_writeData(setCollDB, 4, cdb_nColl, cdb_cLength(1:cdb_nColl))
+  call h5_writeData(setCollDB, 5, cdb_nColl, cdb_cRotation(1:cdb_nColl))
+  call h5_writeData(setCollDB, 6, cdb_nColl, cdb_cOffset(1:cdb_nColl))
+  call h5_writeData(setCollDB, 7, cdb_nColl, cdb_cBx(1:cdb_nColl))
+  call h5_writeData(setCollDB, 8, cdb_nColl, cdb_cBy(1:cdb_nColl))
+  call h5_finaliseWrite(setCollDB)
+
+  deallocate(fldCollDB)
+
+end subroutine cdb_writeDB_HDF5
+#endif
 
 ! ================================================================================================ !
 !  V.K. Berglyd Olsen, BE-ABP-HSS
@@ -1263,7 +1334,7 @@ subroutine cdb_setMasterJawFit(nSlices, sMin, sMax, rc1, rc2, jawFit, fitScale)
   call jaw_addJawFit("FIT_2", jawFit(2,:), fitID(2), fErr)
   if(fErr) then
     write(lerr,"(a)") "COLLDB> ERROR While setting up jaw fit parameters"
-    !call prror
+    call prror
   end if
 
   do i=1,iu
@@ -1447,5 +1518,47 @@ subroutine cdb_setLHCOnesided(doOneSide)
 
 end subroutine cdb_setLHCOneSided
 
+#ifdef CR
+! save cdb_nColl
+subroutine coll_db_crpoint(fileUnit,lerror)
+  use crcoall
+  implicit none
+
+  integer, intent(in)  :: fileUnit
+  logical, intent(out) :: lerror
+
+  write(fileUnit,err=100) cdb_nColl
+
+  flush(fileunit)
+  return
+
+100 continue
+  lerror = .true.
+  write(lout, "(a,i0,a)") "CR_POINT> ERROR Writing C/R file fort.",fileUnit," in COLL_DB"
+  write(crlog,"(a,i0,a)") "CR_POINT> ERROR Writing C/R file fort.",fileUnit," in COLL_DB"
+  flush(crlog)
+
+end subroutine coll_db_crpoint
+
+subroutine coll_db_crcheck_readdata(fileUnit,readerr)
+  use crcoall
+  implicit none
+
+  integer, intent(in)  :: fileUnit
+  logical, intent(out) :: readerr
+
+  read(fileunit,err=100,end=100) cdb_nColl_cr
+
+  readerr = .false.
+  return
+
+100 continue
+  readerr = .true.
+  write(lout, "(a,i0,a)") "CR_CHECK> ERROR Reading C/R file fort.",fileUnit," in COLL_DB"
+  write(crlog,"(a,i0,a)") "CR_CHECK> ERROR Reading C/R file fort.",fileUnit," in COLL_DB"
+  flush(crlog)
+
+end subroutine coll_db_crcheck_readdata
+#endif
 
 end module coll_db

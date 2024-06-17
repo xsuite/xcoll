@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 !  Collimation Common Variables
 ! ================================================================================================ !
@@ -115,7 +113,87 @@ module coll_common
   integer, save :: coll_cryExitUnit    = -1
   integer, save :: coll_cryInterUnit   = -1
 
+#ifdef HDF5
+  ! Variables to save hdf5 dataset indices
+  integer, save :: coll_hdf5_survival
+  integer, save :: coll_hdf5_allImpacts
+  integer, save :: coll_hdf5_fstImpacts
+  integer, save :: coll_hdf5_allAbsorb
+  integer, save :: coll_hdf5_collScatter
+#endif
 
+#ifdef CR
+  ! For resetting file positions
+  integer, public,  save :: fort208Pos                = -1
+  integer, public,  save :: fort208Pos_CR             =  0
+  integer, public,  save :: coll_survivalFilePos      = -1
+  integer, public,  save :: coll_survivalFilePos_CR   =  0
+  integer, public,  save :: coll_gapsFilePos          = -1
+  integer, public,  save :: coll_gapsFilePos_CR       =  0
+  integer, public,  save :: coll_settingsFilePos      = -1
+  integer, public,  save :: coll_settingsFilePos_CR   =  0
+  integer, public,  save :: coll_positionsFilePos     = -1
+  integer, public,  save :: coll_positionsFilePos_CR  =  0
+  integer, public,  save :: coll_tracksFilePos        = -1
+  integer, public,  save :: coll_tracksFilePos_CR     =  0
+  integer, public,  save :: coll_pencilFilePos        = -1
+  integer, public,  save :: coll_pencilFilePos_CR     =  0
+  integer, public,  save :: coll_cryEntFilePos        = -1
+  integer, public,  save :: coll_cryEntFilePos_CR     =  0
+  integer, public,  save :: coll_cryExitFilePos       = -1
+  integer, public,  save :: coll_cryExitFilePos_CR    =  0
+  integer, public,  save :: coll_cryInterFilePos      = -1
+  integer, public,  save :: coll_cryInterFilePos_CR   =  0
+  integer, public,  save :: coll_ellipseFilePos       = -1
+  integer, public,  save :: coll_ellipseFilePos_CR    =  0
+  integer, public,  save :: coll_allImpactFilePos     = -1
+  integer, public,  save :: coll_allImpactFilePos_CR  =  0
+  integer, public,  save :: coll_allAbsorbFilePos     = -1
+  integer, public,  save :: coll_allAbsorbFilePos_CR  =  0
+  integer, public,  save :: coll_scatterFilePos       = -1
+  integer, public,  save :: coll_scatterFilePos_CR    =  0
+  integer, public,  save :: coll_fstImpactFilePos     = -1
+  integer, public,  save :: coll_fstImpactFilePos_CR  =  0
+  integer, public,  save :: coll_flukImpFilePos       = -1
+  integer, public,  save :: coll_flukImpFilePos_CR    =  0
+  integer, public,  save :: coll_flukImpAllFilePos    = -1
+  integer, public,  save :: coll_flukImpAllFilePos_CR =  0
+  integer, public,  save :: coll_jawProfileFilePos    = -1
+  integer, public,  save :: coll_jawProfileFilePos_CR =  0
+  integer, public,  save :: coll_efficFilePos         = -1
+  integer, public,  save :: coll_efficFilePos_CR      =  0
+  integer, public,  save :: coll_efficDPFilePos       = -1
+  integer, public,  save :: coll_efficDPFilePos_CR    =  0
+  integer, public,  save :: coll_effic2DFilePos       = -1
+  integer, public,  save :: coll_effic2DFilePos_CR    =  0
+  integer, public,  save :: coll_summaryFilePos       = -1
+  integer, public,  save :: coll_summaryFilePos_CR    =  0
+  integer, public,  save :: coll_ampFilePos           = -1
+  integer, public,  save :: coll_ampFilePos_CR        =  0
+  integer, public,  save :: coll_orbitCheckFilePos    = -1
+  integer, public,  save :: coll_orbitCheckFilePos_CR =  0
+  integer, public,  save :: coll_sigmaSetFilePos      = -1
+  integer, public,  save :: coll_sigmaSetFilePos_CR   =  0
+  integer, public,  save :: coll_impactFilePos        = -1
+  integer, public,  save :: coll_impactFilePos_CR     =  0
+  integer, public,  save :: coll_trackoutPos          = -1
+  integer, public,  save :: coll_trackoutPos_CR       =  0
+
+! For the RNG
+  integer, public,  save :: lux_CR  = 0
+  integer, public,  save :: seed_CR = 0
+  integer, public,  save :: k1_CR   = 0
+  integer, public,  save :: k2_CR   = 0
+
+
+  integer,          allocatable, save :: cn_impact_cr(:)
+  integer,          allocatable, save :: cn_absorbed_cr(:)
+  real(kind=fPrec), allocatable, save :: caverage_cr(:)
+  real(kind=fPrec), allocatable, save :: csigma_cr(:)
+  real(kind=fPrec), allocatable, save :: gap_rms_error_cr(:)
+  real(kind=fPrec), allocatable, save :: csum_cr(:)
+  real(kind=fPrec), allocatable, save :: csqsum_cr(:)
+#endif
 
 contains
 
@@ -427,7 +505,7 @@ subroutine collmat_init
 
   if(iMat > nrmat) then
     write(lerr,"(a)") "COLL> ERROR Variable imat > nrmat in collmat_init. Please increase nrmat."
-    !call prror
+    call prror
   end if
 
   ! The following two must always be the last two materials
@@ -458,7 +536,7 @@ subroutine collmat_init
 
   if(iMat > nmat) then
     write(lerr,"(a)") "COLL> ERROR Variable imat > nmat in collmat_init. Please increase nmat."
-    !call prror
+    call prror
   end if
 
 end subroutine collmat_init

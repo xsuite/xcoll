@@ -1,5 +1,3 @@
-
-
 ! ============================================================================ !
 !  Collimation K2 Physics Module
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,7 +63,7 @@ end subroutine k2coll_init
 !  G. ROBERT-DEMOLAIZE, November 1st, 2004
 !  Based on routines by JBJ. Changed by RA 2001
 ! ================================================================================================ !
-subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
+subroutine k2coll_collimate(icoll, iturn, ie, c_length, c_rotation, c_aperture, c_offset, c_tilt,  &
   x_in, xp_in, y_in, yp_in, p_in, s_in, enom, lhit_pos, lhit_turn, part_abs_pos_local,             &
   part_abs_turn_local, impact, indiv, lint, onesided, nhit_stage, j_slices, nabs_type, linside)
 
@@ -81,7 +79,15 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
   use mathlib_bouncer
   use mod_ranlux
 
+#ifdef HDF5
+  use hdf5_output
+#endif
+#ifdef ROOT
+  use root_output
+#endif
+
   integer,          intent(in)    :: icoll        ! Collimator ID
+  integer,          intent(in)    :: iturn        ! Turn number
   integer,          intent(in)    :: ie           ! Structure element index
 
   real(kind=fPrec), intent(in)    :: c_length     ! Collimator length in m
@@ -183,7 +189,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
     zp = yp_in(j)*cRot - sRot*xp_in(j)
 
     ! For one-sided collimators consider only positive X. For negative X jump to the next particle
-    if(onesided .and. x < zero) then
+    if(onesided .and. x < zero .and. (icoll /= ipencil .or. iturn /= 1)) then
       cycle
     end if
 
@@ -218,6 +224,87 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
     ! CRY Only: x_in0 has to be assigned after the change of reference frame
     x_in0 = x
 
+    ! For selected collimator, first turn reset particle distribution to simple pencil beam
+    if(icoll == ipencil .and. iturn == 1 .and. pencil_distr /= 3) then
+      ! TW why did I set this to 0, seems to be needed for getting
+      !    right amplitude => no "tilt" of jaw for the first turn !!!!
+      c_tilt(1) = zero
+      c_tilt(2) = zero
+
+      ! Standard pencil beam as implemented by GRD
+      if(pencil_rmsx == zero .and. pencil_rmsy == zero) then
+        x  = pencil_dx(icoll)
+        xp = zero
+        z  = zero
+        zp = zero
+      end if
+
+      ! Rectangular (pencil-beam) sheet-beam with
+      ! pencil_offset is the rectangulars center
+      ! pencil_rmsx defines spread of impact parameter
+      ! pencil_rmsy defines spread parallel to jaw surface
+      if(pencil_distr == 0 .and. (pencil_rmsx /= zero .or. pencil_rmsy /= zero)) then
+        ! how to assure that all generated particles are on the jaw ?!
+        x  = pencil_dx(icoll) + pencil_rmsx*(coll_rand() - half)
+        xp = zero
+        z  = pencil_rmsy*(coll_rand() - half)
+        zp = zero
+      end if
+
+      ! Gaussian (pencil-beam) sheet-beam with ------- TW
+      ! pencil_offset is the mean  gaussian distribution
+      ! pencil_rmsx defines spread of impact parameter
+      ! pencil_rmsy defines spread parallel to jaw surface
+      if(pencil_distr == 1 .and. (pencil_rmsx /= zero .or. pencil_rmsy /= zero)) then
+        x  = pencil_dx(icoll) + pencil_rmsx*ran_gauss(two)
+        ! all generated particles are on the jaw now
+        x  = sqrt(x**2)
+        xp = zero
+        z  = pencil_rmsy*ran_gauss(two)
+        zp = zero
+      end if
+
+      ! Gaussian (pencil-beam) sheet-beam with ------- TW
+      ! pencil_offset is the mean  gaussian distribution
+      ! pencil_rmsx defines spread of impact parameter
+      !             here pencil_rmsx is not gaussian!!!
+      ! pencil_rmsy defines spread parallel to jaw surface
+      if(pencil_distr == 2 .and. (pencil_rmsx /= zero .or. pencil_rmsy /= zero)) then
+        x  = pencil_dx(icoll) + pencil_rmsx*(coll_rand() - half)
+        ! all generated particles are on the jaw now
+        x  = sqrt(x**2)
+        xp = zero
+        z  = pencil_rmsy*ran_gauss(two)
+        zp = zero
+      end if
+
+      ! Selection of pos./neg. jaw  implemented by GRD ---- TW
+      ! ensure that for onesided only particles on pos. jaw are created
+      if(onesided) then
+        mirror = one
+      else
+        if(coll_rand() < half) then
+          mirror = -one
+        else
+          mirror = one
+        end if
+      end if
+
+      ! TW if c_tilt is set to zero before entering pencil beam
+      !    section the assigning of the tilt will result in assigning zeros
+      if(mirror < zero) then
+        tiltangle = c_tilt(2)
+      else
+        tiltangle = c_tilt(1)
+      end if
+
+      write(coll_pencilUnit,"(f10.8,4(2x,f10.8))") x, xp, z, zp, tiltangle
+      flush(coll_pencilUnit)
+#ifdef CR
+      coll_pencilFilePos = coll_pencilFilePos + 1
+#endif
+    end if ! End pencil dist
+
     ! After finishing the coordinate transformation, or the coordinate manipulations in case of pencil beams,
     ! save the initial coordinates of the impacting particles
     xIn  = x
@@ -239,12 +326,12 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
 
     if(cdb_isCrystal(icoll)) then ! This is a crystal collimator
 
-      call cry_doCrystal(ie,j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
+      call cry_doCrystal(ie,iturn,j,mat,x,xp,z,zp,s,p,x_in0,xp_in0,zlm,sImp,isImp,nhit,nabs,lhit_pos,lhit_turn,&
         part_abs_pos_local,part_abs_turn_local,impact,indiv,c_length)
 
       if(nabs /= 0) then
         part_abs_pos_local(j)  = ie
-        part_abs_turn_local(j) = 100
+        part_abs_turn_local(j) = iturn
         lint(j)                = zlm
       end if
 
@@ -272,7 +359,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
         s = (-one*x)/xp
         if(s <= zero) then
           write(lerr,"(a)") "COLLK2> ERROR S <= zero. This should not happen!"
-          !call prror
+          call prror
         end if
         if(s < length) then
           zlm       = length - s
@@ -314,16 +401,22 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
             y_Dump = z
             ypDump = zp
             s_Dump = sp+real(j_slices-1,fPrec)*c_length
+            write(coll_jawProfileUnit,"(3(1x,i7),5(1x,e17.9),1x,i1)") &
+              icoll,iturn,partID(j),x_Dump,xpDump,y_Dump,ypDump,s_Dump,1
+            flush(coll_jawProfileUnit)
+#ifdef CR
+            coll_jawProfileFilePos = coll_jawProfileFilePos + 1
+#endif
           end if
         end if
 
         s_impact = sp
         nhit = nhit + 1
-        call k2coll_jaw(s,nabs,partID(j))
+        call k2coll_jaw(s,nabs,icoll,iturn,partID(j))
 
         nabs_type(j) = nabs
         lhit_pos(j)  = ie
-        lhit_turn(j) = 100
+        lhit_turn(j) = iturn
 
         isImp = .true.
         sImp  = s_impact+(real(j_slices,fPrec)-one)*c_length
@@ -359,6 +452,25 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
           xp_flk = (xp_flk*cRRot +  ypInt*sRRot)*c1e3
           s_flk  = (sInt+sp)+(real(j_slices,fPrec)-one)*c_length
 
+          if(dowrite_impact) then
+            ! Write out all impacts to all_impacts.dat
+            write(coll_flukImpAllUnit,"(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7))") &
+              icoll,c_rotation,s_flk,x_flk,xp_flk,y_flk,yp_flk,nabs,partID(j),iturn
+            flush(coll_flukImpAllUnit)
+#ifdef CR
+            coll_flukImpAllFilePos = coll_flukImpAllFilePos + 1
+#endif
+            if(nabs == 1 .or. nabs == 4) then
+              ! Standard FLUKA_impacts writeout of inelastic and single diffractive
+              write(coll_flukImpUnit,"(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7))") &
+                icoll,c_rotation,s_flk,x_flk,xp_flk,y_flk,yp_flk,nabs,partID(j),iturn
+              flush(coll_flukImpUnit)
+#ifdef CR
+              coll_flukImpFilePos = coll_flukImpFilePos + 1
+#endif
+            end if
+          end if
+
           ! Finally, the actual coordinate change to 99 mm
           if(nabs == 1) then
             fracab  = fracab + 1
@@ -366,7 +478,7 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
             z       = 99.99e-3_fPrec
             lint(j) = zlm
             part_abs_pos_local(j)  = ie
-            part_abs_turn_local(j) = 100
+            part_abs_turn_local(j) = iturn
           end if
         end if
       end if ! Collimator jaw interaction
@@ -386,7 +498,12 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
             y_Dump = z
             ypDump = zp
             s_Dump = s+sp+real(j_slices-1,fPrec)*c_length
-
+            write(coll_jawProfileUnit,"(3(1x,i7),5(1x,e17.9),1x,i1)") &
+              icoll,iturn,partID(j),x_Dump,xpDump,y_Dump,ypDump,s_Dump,2
+            flush(coll_jawProfileUnit)
+#ifdef CR
+            coll_jawProfileFilePos = coll_jawProfileFilePos + 1
+#endif
           end if
           if(iexact) then
             zpj = sqrt(one-xp**2-zp**2)
@@ -403,6 +520,38 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
       end if
 
     end if ! Collimator isCrystal
+
+    if(dowrite_impact .and. isImp .and. nhit_stage(j) == 0) then
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call h5_prepareWrite(coll_hdf5_fstImpacts, 1)
+        call h5_writeData(coll_hdf5_fstImpacts, 1,  1, partID(j))
+        call h5_writeData(coll_hdf5_fstImpacts, 2,  1, iturn)
+        call h5_writeData(coll_hdf5_fstImpacts, 3,  1, icoll)
+        call h5_writeData(coll_hdf5_fstImpacts, 4,  1, nabs)
+        call h5_writeData(coll_hdf5_fstImpacts, 5,  1, sImp)
+        call h5_writeData(coll_hdf5_fstImpacts, 6,  1, sOut)
+        call h5_writeData(coll_hdf5_fstImpacts, 7,  1, xIn)
+        call h5_writeData(coll_hdf5_fstImpacts, 8,  1, xpIn)
+        call h5_writeData(coll_hdf5_fstImpacts, 9,  1, yIn)
+        call h5_writeData(coll_hdf5_fstImpacts, 10, 1, ypIn)
+        call h5_writeData(coll_hdf5_fstImpacts, 11, 1, xOut)
+        call h5_writeData(coll_hdf5_fstImpacts, 12, 1, xpOut)
+        call h5_writeData(coll_hdf5_fstImpacts, 13, 1, yOut)
+        call h5_writeData(coll_hdf5_fstImpacts, 14, 1, ypOut)
+        call h5_finaliseWrite(coll_hdf5_fstImpacts)
+      else
+#endif
+      write(coll_fstImpactUnit,"(i8,1x,i7,1x,i2,1x,i1,2(1x,f5.3),8(1x,e17.9))") &
+        partID(j),iTurn,iColl,nAbs,sImp,sOut,xIn,xpIn,yIn,ypIn,xOut,xpOut,yOut,ypOut
+      flush(coll_fstImpactUnit)
+#ifdef CR
+      coll_fstImpactFilePos = coll_fstImpactFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
 
     ! Transform back to particle coordinates with opening and offset
     if(x < 99.0e-3_fPrec) then
@@ -436,6 +585,16 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
       nnuc1       = nnuc1 + naa(j)                          ! outcoming nucleons
       ien1        = ien1  + rcp(j) * c1e3                   ! outcoming energy
 
+      if(icoll == ipencil .and. iturn == 1 .and. pencil_distr /= 3) then
+        x00      = mirror * x00
+        x_in(j)  = x00*cRRot + z00*sRRot
+        y_in(j)  = z00*cRRot - x00*sRRot
+        xp_in(j) = xp_in(j) + mirror*xp_pencil0
+        yp_in(j) = yp_in(j) + mirror*yp_pencil0
+        x_in(j)  = x_in(j)  + mirror*x_pencil(icoll)
+        y_in(j)  = y_in(j)  + mirror*y_pencil(icoll)
+      end if
+
       if(cdb_isCrystal(icoll)) then
         p_in(j) = p
         s_in(j) = s_in(j) + s
@@ -452,7 +611,15 @@ subroutine k2coll_collimate(icoll, ie, c_length, c_rotation, c_aperture, c_offse
 
 ! write out energy change over this collimator
   if((ien0-ien1) > one) then
+#ifdef ROOT
+    if(root_flag .and. root_Collimation == 1) then
+      call root_EnergyDeposition(icoll, nnuc0-nnuc1,c1m3*(ien0-ien1))
+    end if
+#endif
     write(unit208,"(2(i6,1x),e24.16)") icoll, (nnuc0-nnuc1), c1m3*(ien0-ien1)
+#ifdef CR
+    fort208Pos = fort208Pos + 1
+#endif
     flush(unit208)
   end if
 
@@ -482,6 +649,7 @@ subroutine k2coll_scatin(plab)
   logical csErr
 
   ecmsq = (two*(pmap*c1m3)) * plab
+#ifndef MERLINSCATTER
   xln15s = log_mb(0.15_fPrec*ecmsq)
   ! Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
   pptot = 0.041084_fPrec-0.0023302_fPrec*log_mb(ecmsq)+0.00031514_fPrec*log_mb(ecmsq)**2
@@ -489,14 +657,15 @@ subroutine k2coll_scatin(plab)
   ppel = (11.7_fPrec-1.59_fPrec*log_mb(ecmsq)+0.134_fPrec*log_mb(ecmsq)**2)/c1e3
   ! Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
   ppsd = (4.3_fPrec+0.3_fPrec*log_mb(ecmsq))/c1e3
+#endif
 
+#ifdef MERLINSCATTER
+  call merlinscatter_setup(plab,rnd_seed)
+  call merlinscatter_setdata(pptot,ppel,ppsd)
+#endif
 
   ! Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
   bpp = 7.156_fPrec + 1.439_fPrec*log_mb(sqrt(ecmsq))
-
-  ! Unmeasured tungsten data, computed with lead data and power laws
-  bnref(4) = bnref(5)*(anuc(4)/anuc(5))**(two/three)
-  emr(4)   = emr(5)  *(anuc(4)/anuc(5))**(one/three)
 
   ! Compute cross-sections (CS) and probabilities + Interaction length
   ! Last two material treated below statement number 100
@@ -552,7 +721,7 @@ subroutine k2coll_scatin(plab)
   call f_open(unit=csUnit,file=cs_fileName,formatted=.true.,mode="w",err=csErr,status="replace")
   if(csErr) then
     write(lerr,"(a)") "COLL> ERROR Could not open the CS debugging file '"//trim(cs_fileName)//"'"
-    !call prror
+    call prror
   end if
 
   write(csUnit,'(a,e24.16)') 'plab:  ', plab
@@ -601,15 +770,20 @@ end subroutine k2coll_scatin
 !!           interaction length, then use input interaction length
 !!           Is that justified???
 !<
-subroutine k2coll_jaw(s, nabs, ipart)
+subroutine k2coll_jaw(s, nabs, icoll, iturn, ipart)
 
   use mod_ranlux
   use coll_common
   use coll_materials
   use mathlib_bouncer
+#ifdef HDF5
+  use hdf5_output
+#endif
 
   real(kind=fPrec), intent(inout) :: s
   integer,          intent(inout) :: nabs
+  integer,          intent(in)    :: icoll
+  integer,          intent(in)    :: iturn
   integer,          intent(in)    :: ipart
 
   real(kind=fPrec) m_dpodx,p,rlen,t,dxp,dzp,p1,zpBef,xpBef,pBef
@@ -623,11 +797,41 @@ subroutine k2coll_jaw(s, nabs, ipart)
   if(mat == nmat) then ! Collimator treated as black absorber
     nabs = 1
     s    = zero
+    if(dowrite_impact) then ! Write coll_scatter.dat for complete scattering histories
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call k2coll_hdf5_writeCollScatter(icoll, iturn, ipart, 1, -one, zero, zero)
+      else
+#endif
+      write(coll_scatterUnit,"(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e14.6))") icoll, iturn, ipart, 1, -one, zero, zero
+      flush(coll_scatterUnit)
+#ifdef CR
+      coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
     return
   else if(mat == nmat-1) then ! Collimator treated as drift
     s = zlm
     x = x+s*xp
     z = z+s*zp
+    if(dowrite_impact) then ! Write coll_scatter.dat for complete scattering histories
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call k2coll_hdf5_writeCollScatter(icoll, iturn, ipart, 0, -one, zero, zero)
+      else
+#endif
+      write(coll_scatterUnit,"(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e14.6))") icoll, iturn, ipart, 0, -one, zero, zero
+      flush(coll_scatterUnit)
+#ifdef CR
+      coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
     return
   end if
 
@@ -651,10 +855,31 @@ subroutine k2coll_jaw(s, nabs, ipart)
     zlm1 = rlen
     call k2coll_mcs(s)
     s = (zlm-rlen)+s
+#ifdef MERLINSCATTER
+    call merlinscatter_calc_ion_loss(p,edens(mat), pleng(mat),exenergy(mat),s,m_dpodx)
+    p = p-m_dpodx
+#else
     call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)  ! DM routine to include tail
     p = p-m_dpodx*s
+#endif
 
     dpop = (p-p0)/p0
+    if(dowrite_impact) then
+      ! write coll_scatter.dat for complete scattering histories
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call k2coll_hdf5_writeCollScatter(icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef)
+      else
+#endif
+      write(coll_scatterUnit,'(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e18.10))') icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef
+      flush(coll_scatterUnit)
+#ifdef CR
+      coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
     return
   end if
 
@@ -669,10 +894,31 @@ subroutine k2coll_jaw(s, nabs, ipart)
   if(x <= zero) then
     s = (zlm-rlen)+s
 
+#ifdef MERLINSCATTER
+    call merlinscatter_calc_ion_loss(p,edens(mat),pleng(mat),exenergy(mat),s,m_dpodx)
+    p = p-m_dpodx
+#else
     call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)
     p = p-m_dpodx*s
+#endif
     dpop = (p-p0)/p0
 
+    if(dowrite_impact) then
+      ! write coll_scatter.dat for complete scattering histories
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call k2coll_hdf5_writeCollScatter(icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef)
+      else
+#endif
+      write(coll_scatterUnit,'(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e18.10))') icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef
+      flush(coll_scatterUnit)
+#ifdef CR
+      coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
     return
   end if
 
@@ -695,11 +941,32 @@ subroutine k2coll_jaw(s, nabs, ipart)
   if(inter == 1) then
     s = (zlm-rlen)+zlm1
 
+#ifdef MERLINSCATTER
+    call merlinscatter_calc_ion_loss(p,edens(mat),pleng(mat),exenergy(mat),s,m_dpodx)
+    p = p-m_dpodx
+#else
     call k2coll_calcIonLoss(mat,p,rlen,m_dpodx)
     p = p-m_dpodx*s
+#endif
 
     dpop = (p-p0)/p0
 
+    if(dowrite_impact) then
+      ! write coll_scatter.dat for complete scattering histories
+#ifdef HDF5
+      if(h5_useForCOLL) then
+        call k2coll_hdf5_writeCollScatter(icoll,iturn,ipart,nabs_tmp,-one,zero,zero)
+      else
+#endif
+      write(coll_scatterUnit,'(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e14.6))') icoll,iturn,ipart,nabs_tmp,-one,zero,zero
+      flush(coll_scatterUnit)
+#ifdef CR
+      coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+      end if
+#endif
+    end if
     return
   end if
 
@@ -736,6 +1003,24 @@ subroutine k2coll_jaw(s, nabs, ipart)
 
     ! Add this code to get the momentum transfer also in the calling routine
     dpop = (p-p0)/p0
+  end if
+
+  if(dowrite_impact) then
+    ! write coll_scatter.dat for complete scattering histories.
+    ! Includes changes in angle from both
+#ifdef HDF5
+    if(h5_useForCOLL) then
+      call k2coll_hdf5_writeCollScatter(icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef)
+    else
+#endif
+    write(coll_scatterUnit,'(1x,i2,2x,i4,2x,i5,2x,i1,3(2x,e18.10))') icoll,iturn,ipart,nabs_tmp,(p-pBef)/pBef,xp-xpBef,zp-zpBef
+    flush(coll_scatterUnit)
+#ifdef CR
+    coll_scatterFilePos = coll_scatterFilePos + 1
+#endif
+#ifdef HDF5
+    end if
+#endif
   end if
 
   ! Calculate the remaining interaction length and close the iteration loop.
@@ -1070,6 +1355,7 @@ real(kind=fPrec) function k2coll_gettran(inter, xmat, p)
   ! Neither if-statements below have an else, so defaulting function return to zero.
   k2coll_gettran = zero
 
+#ifndef MERLINSCATTER
   select case(inter)
   case(2) ! Nuclear Elastic
     k2coll_gettran = (-one*log_mb(coll_rand()))/bn(xmat)
@@ -1090,6 +1376,21 @@ real(kind=fPrec) function k2coll_gettran(inter, xmat, p)
     call funlux(cgen(1,mat), xran, 1)
     k2coll_gettran = xran(1)
   end select
+#else
+  select case(inter)
+  case(2)
+    k2coll_gettran = (-one*log_mb(coll_rand()))/bn(xmat)
+  case(3)
+    call merlinscatter_get_elastic_t(k2coll_gettran)
+  case(4)
+    call merlinscatter_get_sd_xi(xm2)
+    call merlinscatter_get_sd_t(k2coll_gettran)
+    p = p * (one - (xm2/ecmsq))
+  case(5)
+    call funlux(cgen(1,mat), xran, 1)
+    k2coll_gettran = xran(1)
+  end select
+#endif
 
 end function k2coll_gettran
 
@@ -1170,5 +1471,26 @@ real(kind=fPrec) function k2coll_calcPlasmaEnergy(ElectronDensity)
 
 end function k2coll_calcPlasmaEnergy
 
+#ifdef HDF5
+subroutine k2coll_hdf5_writeCollScatter(icoll,iturn,ipart,nabs,dp,dx,dy)
+
+  use hdf5_output
+  use coll_common
+
+  integer,          intent(in) :: icoll,iturn,ipart,nabs
+  real(kind=fPrec), intent(in) :: dp,dx,dy
+
+  call h5_prepareWrite(coll_hdf5_collScatter, 1)
+  call h5_writeData(coll_hdf5_collScatter, 1, 1, ipart)
+  call h5_writeData(coll_hdf5_collScatter, 2, 1, iturn)
+  call h5_writeData(coll_hdf5_collScatter, 3, 1, icoll)
+  call h5_writeData(coll_hdf5_collScatter, 4, 1, nabs)
+  call h5_writeData(coll_hdf5_collScatter, 5, 1, dp)
+  call h5_writeData(coll_hdf5_collScatter, 6, 1, dx)
+  call h5_writeData(coll_hdf5_collScatter, 7, 1, dy)
+  call h5_finaliseWrite(coll_hdf5_collScatter)
+
+end subroutine k2coll_hdf5_writeCollScatter
+#endif
 
 end module coll_k2

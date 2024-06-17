@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 !  SixTrack Array Alloc Module
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -14,9 +12,9 @@ module mod_alloc
 
   implicit none
 
-
-
-
+#ifdef DEBUG
+  integer, public, save :: alloc_log = 1000 ! Logfile Unit
+#endif
 
   ! The total quantity of memory allocated (bits)
   integer(kind=int64) :: allocated_bits = 0
@@ -129,11 +127,11 @@ module mod_alloc
 contains
 
 subroutine alloc_init
-
-
-
+#ifdef DEBUG
+  open(alloc_log,file="mem_alloc.log",form="formatted",status="unknown")
+#else
   return
-
+#endif
 end subroutine alloc_init
 
 subroutine alloc_error(ename, error, requested_bits)
@@ -160,6 +158,27 @@ subroutine print_alloc(ename, type, requested_bits)
   character(len=*), intent(in) :: ename, type
   integer(kind=int64) :: requested_bits
 
+#ifdef DEBUG
+  write(alloc_log,"(a)") "ALLOC> Memory allocation for "//type//" array '"//ename//"'"
+
+  if(real(allocated_bits,real64)/mbyte >= one) then
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Current allocation is:   ",real(allocated_bits,real64)/mbyte," Mb"
+  else if(real(allocated_bits,real64)/kbyte >= one) then
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Current allocation is:   ",real(allocated_bits,real64)/kbyte," kb"
+  else
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Current allocation is:   ",real(allocated_bits,real64)/byte," b"
+  end if
+
+  if(real(requested_bits,real64)/mbyte >= one) then
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Requested allocation is: ",real(requested_bits,real64)/mbyte," Mb"
+  else if(real(requested_bits,real64)/kbyte >= one) then
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Requested allocation is: ",real(requested_bits,real64)/kbyte," kb"
+  else
+    write(alloc_log,"(a,f7.2,a)") "ALLOC>   Requested allocation is: ",real(requested_bits,real64)/byte," b"
+  end if
+
+  flush(alloc_log)
+#endif
 
   alloc_count = alloc_count + 1
   if(allocated_bits > maximum_bits) then
@@ -209,6 +228,9 @@ subroutine alloc1di16(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(int16)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -224,6 +246,9 @@ subroutine alloc1di16(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(int16)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -279,6 +304,9 @@ subroutine alloc2di16(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(int16)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -298,6 +326,9 @@ subroutine alloc2di16(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * storage_size(int16)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -364,6 +395,9 @@ subroutine alloc3di16(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(int16)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -386,6 +420,9 @@ subroutine alloc3di16(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(int16)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -447,6 +484,9 @@ subroutine alloc1di32(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(int32)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -462,6 +502,9 @@ subroutine alloc1di32(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(int32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -517,6 +560,9 @@ subroutine alloc2di32(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(int32)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -536,6 +582,9 @@ subroutine alloc2di32(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * storage_size(int32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -602,6 +651,9 @@ subroutine alloc3di32(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(int32)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -624,6 +676,9 @@ subroutine alloc3di32(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(int32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -685,6 +740,9 @@ subroutine alloc1di64(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(int64)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -700,6 +758,9 @@ subroutine alloc1di64(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(int64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -755,6 +816,9 @@ subroutine alloc2di64(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(int64)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -774,6 +838,9 @@ subroutine alloc2di64(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * storage_size(int64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -840,6 +907,9 @@ subroutine alloc3di64(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(int64)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -862,6 +932,9 @@ subroutine alloc3di64(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(int64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -927,6 +1000,9 @@ subroutine alloc1dr32(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(real32)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -942,6 +1018,9 @@ subroutine alloc1dr32(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(real32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -997,6 +1076,9 @@ subroutine alloc2dr32(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(real32)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -1016,6 +1098,9 @@ subroutine alloc2dr32(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * storage_size(real32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1082,6 +1167,9 @@ subroutine alloc3dr32(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(real32)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -1104,6 +1192,9 @@ subroutine alloc3dr32(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(real32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1180,6 +1271,9 @@ subroutine alloc4dr32(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn1
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1)*(eIdx4-fIdx4+1) * storage_size(real32)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3,fIdx4:eIdx4), stat=error)
@@ -1205,6 +1299,9 @@ subroutine alloc4dr32(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn1
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)*(oIdx4-fIdx4+1)) * storage_size(real32)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1271,6 +1368,9 @@ subroutine alloc1dr64(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(real64)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -1286,6 +1386,9 @@ subroutine alloc1dr64(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(real64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1341,6 +1444,9 @@ subroutine alloc2dr64(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(real64)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -1360,6 +1466,9 @@ subroutine alloc2dr64(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * storage_size(real64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1426,6 +1535,9 @@ subroutine alloc3dr64(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(real64)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -1448,6 +1560,9 @@ subroutine alloc3dr64(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdxI
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(real64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1524,6 +1639,9 @@ subroutine alloc4dr64(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn1
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1)*(eIdx4-fIdx4+1) * storage_size(real64)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3,fIdx4:eIdx4), stat=error)
@@ -1549,6 +1667,9 @@ subroutine alloc4dr64(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn1
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)*(oIdx4-fIdx4+1)) * storage_size(real64)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1615,6 +1736,9 @@ subroutine alloc1dr128(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * storage_size(real128)
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -1630,6 +1754,9 @@ subroutine alloc1dr128(input, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * storage_size(real128)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1685,6 +1812,9 @@ subroutine alloc2dr128(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * storage_size(real128)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -1704,6 +1834,9 @@ subroutine alloc2dr128(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
                (eIdx1-oIdx1)  * (eIdx2-oIdx2)) * storage_size(real128)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1770,6 +1903,9 @@ subroutine alloc3dr128(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdx
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1) * storage_size(real128)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3), stat=error)
@@ -1792,6 +1928,9 @@ subroutine alloc3dr128(input, eIdx1, eIdx2, eIdx3, initial, ename, fIdxIn1, fIdx
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)) * storage_size(real128)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1868,6 +2007,9 @@ subroutine alloc4dr128(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1)*(eIdx3-fIdx3+1)*(eIdx4-fIdx4+1) * storage_size(real128)
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2,fIdx3:eIdx3,fIdx4:eIdx4), stat=error)
@@ -1893,6 +2035,9 @@ subroutine alloc4dr128(input, eIdx1, eIdx2, eIdx3, eIdx4, initial, ename, fIdxIn
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)*(oIdx3-fIdx3+1)*(oIdx4-fIdx4+1)) * storage_size(real128)
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -1964,6 +2109,9 @@ subroutine alloc1dc(input, strlen, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * strlen * CHARACTER_STORAGE_SIZE
 
     allocate(character(strlen) :: input(fIdx:eIdx), stat=error)
@@ -1979,6 +2127,9 @@ subroutine alloc1dc(input, strlen, eIdx, initial, ename, fIdxIn)
     request = (eIdx-oIdx) * strlen * CHARACTER_STORAGE_SIZE
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -2035,6 +2186,9 @@ subroutine alloc2dc(input, strlen, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * strlen * CHARACTER_STORAGE_SIZE
 
     allocate(character(strlen) :: input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -2054,6 +2208,9 @@ subroutine alloc2dc(input, strlen, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn
                (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1)) * strlen * CHARACTER_STORAGE_SIZE
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -2115,6 +2272,9 @@ subroutine alloc1ds(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = eIdx-fIdx+1
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -2130,6 +2290,9 @@ subroutine alloc1ds(input, eIdx, initial, ename, fIdxIn)
     request = eIdx-oIdx
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -2184,6 +2347,9 @@ subroutine alloc1dl(input, eIdx, initial, ename, fIdxIn)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx-fIdx+1) * size_of_logical
 
     allocate(input(fIdx:eIdx), stat=error)
@@ -2199,6 +2365,9 @@ subroutine alloc1dl(input, eIdx, initial, ename, fIdxIn)
     request = eIdx-oIdx
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 
@@ -2254,6 +2423,9 @@ subroutine alloc2dl(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
 
   if(.not. allocated(input)) then
 
+#ifdef DEBUG
+    write(alloc_log,"(a)") "ALLOC> Allocating array '"//ename//"'"
+#endif
     request = (eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) * size_of_logical
 
     allocate(input(fIdx1:eIdx1,fIdx2:eIdx2), stat=error)
@@ -2272,6 +2444,9 @@ subroutine alloc2dl(input, eIdx1, eIdx2, initial, ename, fIdxIn1, fIdxIn2)
     request = ((eIdx1-fIdx1+1)*(eIdx2-fIdx2+1) - (oIdx1-fIdx1+1)*(oIdx2-fIdx2+1))
 
     if(request == 0.0) then
+#ifdef DEBUG
+      write(alloc_log,"(a)") "ALLOC> No additional allocating needed for array '"//ename//"'"
+#endif
       return
     end if
 

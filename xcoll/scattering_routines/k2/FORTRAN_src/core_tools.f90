@@ -1,5 +1,3 @@
-
-
 ! =================================================================================================
 !  STANDARD OUTPUT MODULE
 !  Last modified: 2019-05-08
@@ -18,19 +16,19 @@ end module crcoall
 !  Last modified: 2019-05-08
 ! =================================================================================================
 module floatPrecision
-
-
-
-
-
-
+#ifdef SINGLE_MATH
+  use, intrinsic :: iso_fortran_env, only : real32
+  implicit none
+  integer, parameter :: fPrec = real32
+#endif
+#ifdef DOUBLE_MATH
   use, intrinsic :: iso_fortran_env, only : real64
   implicit none
   integer, parameter :: fPrec = real64
-
-
-
-
-
-
+#endif
+#ifdef QUAD_MATH
+  use, intrinsic :: iso_fortran_env, only : real128
+  implicit none
+  integer, parameter :: fPrec = real128
+#endif
 end module floatPrecision

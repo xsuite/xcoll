@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 !  FILE UNITS MODULE
 ! ===================
@@ -91,7 +89,7 @@ subroutine f_requestUnit(file,unit)
   if(len_trim(file) > mPathName) then
     write(lerr,"(2(a,i0))") "UNITS> ERROR Max length of file path in f_requestUnit is ",mPathName,&
       " characters, got ",len_trim(file)
-    !call prror
+    call prror
   end if
 
   unit = -1
@@ -129,7 +127,7 @@ subroutine f_requestUnit(file,unit)
     units_nextUnit = unit + 1
   else
     write(lerr,"(a,i0)") "UNITS> ERROR Could not find an available file unit within the allowed range."
-    !call prror
+    call prror
   end if
 
 end subroutine f_requestUnit
@@ -193,9 +191,9 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
   integer,          optional, intent(in)  :: recl
 
   character(len=:), allocatable :: fFileName, fStatus, fAction, fPosition, fMode, fAccess
-
-
-
+#ifdef BOINC
+  character(len=mPathName+1) :: tmpBoinc
+#endif
   integer fRecl, fStat, chkUnit
   logical fFio
 
@@ -219,28 +217,28 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
 
   if(len_trim(file) > mPathName) then
     write(lerr,"(2(a,i0))") "UNITS> ERROR Max length of file path in f_open is ",mPathName," characters, got ",len_trim(file)
-    !call prror
+    call prror
   end if
 
   if(unit < units_minUnit .or. unit > units_maxUnit) then
     write(lerr,"(3(a,i0),a)") "UNITS> ERROR Unit ",unit," is out of range ",units_minUnit,":",units_maxUnit," in f_open"
-    !call prror
+    call prror
   end if
 
-
-
-
-
+#ifdef BOINC
+  call boincrf(file,tmpBoinc)
+  fFileName = trim(tmpBoinc)
+#else
   fFileName = trim(file)
-
-
-
-
+#endif
+#ifdef FIO
+  fFio = .true.
+#else
   fFio = .false.
-
-
+#endif
+#ifndef NAGFOR
   fRecl = 0
-
+#endif
 
   if(.not. formatted) fFio = .false.
 
@@ -282,7 +280,7 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
     if(units_uList(unit)%file /= file .and. units_uList(unit)%file /= " ") then
       write(lerr,"(a,i0,a)") "UNITS> ERROR Unit ",unit," has already been assigned to file '"//&
         trim(units_uList(unit)%file)//"' /= '"//trim(file)//"'"
-      !call prror
+      call prror
     end if
   end if
 
@@ -291,7 +289,7 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
     ! We already have that file name in the record
     if(chkUnit /= unit) then
       write(lerr,"(a,i0)") "UNITS> ERROR File '"//trim(file)//"' has already been assigned to unit ",chkUnit
-      !call prror
+      call prror
     end if
   else
     ! The file is opened with a fixed unit, so save the info
@@ -338,7 +336,7 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
       end if
     else
       write(lerr,"(a,i0)") "UNITS> ERROR File '"//trim(file)//"' reported iostat = ",fStat
-      !call prror
+      call prror
     end if
   end if
 
@@ -365,7 +363,7 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
     end if
   else
     write(lerr,"(a)") "UNITS> ERROR Could not open '"//trim(file)//"'"
-    !call prror
+    call prror
   end if
 
 end subroutine f_open
@@ -389,7 +387,7 @@ subroutine f_close(unit, cErr)
 
   if(unit < units_minUnit .or. unit > units_maxUnit) then
     write(lerr,"(3(a,i0),a)") "UNITS> ERROR Unit ",unit," is out of range ",units_minUnit,":",units_maxUnit," in f_close"
-    !call prror
+    call prror
   end if
 
   if(present(cErr)) then
@@ -446,7 +444,7 @@ subroutine f_freeUnit(unit)
 
   if(unit < units_minUnit .or. unit > units_maxUnit) then
     write(lerr,"(3(a,i0),a)") "UNITS> ERROR Unit ",unit," is out of range ",units_minUnit,":",units_maxUnit," in f_close"
-    !call prror
+    call prror
   end if
 
   inquire(unit=unit, opened=isOpen)
@@ -530,14 +528,14 @@ subroutine f_positionFile(fileName, fileUnit, filePos, newPos)
   call f_requestUnit(fileName,fileUnit)
   inquire(unit=fileUnit,opened=isOpen)
   if(isOpen) then
-
-
-
-
-
+#ifdef CR
+    write(crlog,"(a,i0,a)") "UNITS> ERROR Failed while repositioning '"//trim(fileName)//"', "//&
+      "unit ",fileUnit," already in use"
+    flush(crlog)
+#endif
     write(lerr, "(a,i0,a)") "UNITS> ERROR Failed while repositioning '"//trim(fileName)//"', "//&
       "unit ",fileUnit," already in use"
-    !call prror
+    call prror
   end if
 
   if(newPos /= -1) then
@@ -555,37 +553,37 @@ subroutine f_positionFile(fileName, fileUnit, filePos, newPos)
     ! Re-open for appending
     call f_open(unit=fileUnit,file=fileName,formatted=.true.,mode="w+",err=fErr,iostat=iError,status="old")
     if(fErr) goto 10
-
-
-
-
+#ifdef CR
+    write(crlog,"(2(a,i0))") "UNITS> Sucessfully repositioned '"//trim(fileName)//"': "//&
+      "Position: ",filePos,", Position C/R: ",newPos
+#endif
     write(lout, "(2(a,i0))") "UNITS> Sucessfully repositioned '"//trim(fileName)//"': "//&
       "Position: ",filePos,", Position C/R: ",newPos
   else
-
-
-
-
+#ifdef CR
+    write(crlog,"(a,i0)") "UNITS> Did not attempt repositioning '"//trim(fileName)//"' at line ",newPos
+    write(crlog,"(a)")    "UNITS> If anything has been written to the file, it will be correctly truncated"
+#endif
     write(lout, "(a,i0)") "UNITS> Did not attempt repositioning '"//trim(fileName)//"' at line ",newPos
     write(lout, "(a)")    "UNITS> If anything has been written to the file, it will be correctly truncated"
   end if
 
-
-
-
+#ifdef CR
+  flush(crlog)
+#endif
   flush(lout)
 
   return
 
 10 continue
-
-
-
-
-
+#ifdef CR
+  write(crlog,"(a,i0)")    "UNITS> ERROR While reading '"//trim(fileName)//"', iostat = ",iError
+  write(lerr, "(2(a,i0))") "UNITS>       Current position: ",filePos,", requested position: ",newPos
+  flush(crlog)
+#endif
   write(lerr, "(a,i0)")    "UNITS> ERROR While reading '"//trim(fileName)//"', iostat = ",iError
   write(lerr, "(2(a,i0))") "UNITS>       Current position: ",filePos,", requested position: ",newPos
-  !call prror
+  call prror
 
 end subroutine f_positionFile
 

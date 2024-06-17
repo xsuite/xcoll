@@ -1,5 +1,3 @@
-
-
 ! ================================================================================================ !
 ! Shared module for general physical constants
 ! Last modified: 2018-05-25
@@ -12,9 +10,18 @@ module physical_constants
 
   implicit none
 
+#ifdef FLUKA
+  ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
+  ! Last modified: 08-12-2014
+  ! Synch masses of proton and electron to values used by FLUKA
+! real(kind=fPrec), parameter :: pmap  = 0.938272046e3_fPrec            ! PDG 2014, Fluka-2011-dev
+  real(kind=fPrec), parameter :: pmap  = 0.938272310e3_fPrec            ! PDG 20xx, Fluka-2011-pro
+  real(kind=fPrec), parameter :: pmae  = 0.510998928_fPrec              ! PDG 2014, Fluka-2011-dev
+#else
   ! Proton and Electron Mass (MeV)
   real(kind=fPrec), parameter :: pmap  = 938.271998_fPrec               ! Old
   real(kind=fPrec), parameter :: pmae  = 0.510998902_fPrec              ! PDG 2002
+#endif
 
   ! Proton and Electron Mass (MeV) Latest Values
   real(kind=fPrec), parameter :: pmap_18 = 938.272081_fPrec             ! PDG 2018
@@ -63,12 +70,39 @@ module numerical_constants
   ! Small program for checking binary and hex here: https://gist.github.com/vkbo/0e5d0c4b7b1ecb533a0486c79a30f741
   ! Note: Transfer to real128 only works for GNU
 
+#ifdef SINGLE_MATH
+  real(kind=fPrec), parameter :: pi      = real(z'40490fdb',fPrec)
+  real(kind=fPrec), parameter :: pi2     = real(z'3fc90fdb',fPrec) ! 0.5_fPrec*pi
+  real(kind=fPrec), parameter :: twopi   = real(z'40c90fdb',fPrec) ! 2.0_fPrec*pi
+  real(kind=fPrec), parameter :: pisqrt  = real(z'3fe2dfc5',fPrec) ! sqrt(pi)
+  real(kind=fPrec), parameter :: inv_ln2 = real(z'3fb8aa3b',fPrec) ! 1/log(2)
+  real(kind=fPrec), parameter :: rad     = real(z'3c8efa35',fPrec) ! pi/180.0_fPrec
+#endif
+#ifdef DOUBLE_MATH
   real(kind=fPrec), parameter :: pi      = real(z'400921fb54442d18',fPrec)
   real(kind=fPrec), parameter :: pi2     = real(z'3ff921fb54442d18',fPrec)
   real(kind=fPrec), parameter :: twopi   = real(z'401921fb54442d18',fPrec)
   real(kind=fPrec), parameter :: pisqrt  = real(z'3ffc5bf891b4ef6a',fPrec)
   real(kind=fPrec), parameter :: inv_ln2 = real(z'3ff71547652b82fe',fPrec)
   real(kind=fPrec), parameter :: rad     = real(z'3f91df46a2529d39',fPrec)
+#endif
+#ifdef QUAD_MATH
+#ifdef GFORTRAN
+  real(kind=fPrec), parameter :: pi      = real(z'4000921fb54442d18469898cc51701b8',fPrec)
+  real(kind=fPrec), parameter :: pi2     = real(z'3fff921fb54442d18469898cc51701b8',fPrec)
+  real(kind=fPrec), parameter :: twopi   = real(z'4001921fb54442d18469898cc51701b8',fPrec)
+  real(kind=fPrec), parameter :: pisqrt  = real(z'3fffc5bf891b4ef6aa79c3b0520d5db9',fPrec)
+  real(kind=fPrec), parameter :: inv_ln2 = real(z'3fff71547652b82fe1777d0ffda0d23a',fPrec)
+  real(kind=fPrec), parameter :: rad     = real(z'3ff91df46a2529d3915c1d8becdd290b',fPrec)
+#else
+  real(kind=fPrec), parameter :: pi      = 3.141592653589793238462643383279502884197169399375105820974_fPrec
+  real(kind=fPrec), parameter :: pi2     = 0.5_fPrec*pi
+  real(kind=fPrec), parameter :: twopi   = 2.0_fPrec*pi
+  real(kind=fPrec), parameter :: pisqrt  = sqrt(pi)
+  real(kind=fPrec), parameter :: inv_ln2 = 1.442695040888963407359924681001892137426645954152985934135_fPrec
+  real(kind=fPrec), parameter :: rad     = pi/180.0_fPrec
+#endif
+#endif
 
   ! The variable pieni is roughly the smallest normal single precision float value.
   ! However, 1e-38 is actually subnormal in 32 bit (0x006ce3ee). Smallest normal is 1.17549435e-38 (0x00800000)
