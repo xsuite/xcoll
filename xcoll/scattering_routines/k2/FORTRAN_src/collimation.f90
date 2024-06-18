@@ -34,7 +34,7 @@ module collimation
   integer, private, save :: icoll            = 0
   integer, private, save :: ie               = 1
   integer, private, save :: iturn            = 1
-  integer, private, save :: c_ix             = 0
+  integer, public,  save :: c_ix             = 0
 
   ! Distribution
   integer,          private, save :: do_thisdis   = 0
@@ -112,7 +112,7 @@ module collimation
   real(kind=fPrec), allocatable, private, save :: sqsum_ay(:)
 
   ! Arrays allocated to npart
-  integer,          allocatable, private, save :: part_hit_pos(:)   ! Hit flag for last hit
+  integer,          allocatable, public, save :: part_hit_pos(:)   ! Hit flag for last hit
   integer,          allocatable, private, save :: part_hit_turn(:)  ! Hit flag for last hit
   integer,          allocatable, public,  save :: part_abs_pos(:)   ! Absorbed in element
   integer,          allocatable, public,  save :: part_abs_turn(:)  ! Absorbed in turn
