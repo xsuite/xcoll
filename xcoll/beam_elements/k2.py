@@ -11,6 +11,7 @@ import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal, InvalidXcoll
 from ..scattering_routines.k2 import K2Engine, track
+from ..scattering_routines.everest.materials import SixTrack_to_xcoll
 from ..general import _pkg_root
 
 
@@ -38,12 +39,23 @@ class _K2Collimator(BaseCollimator):
         to_assign = {}
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = Material()
-            kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
+            kwargs['_material'] = ''.ljust(4)
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
+
+    @property
+    def material(self):
+	return self._material
+
+    @material.setter
+    def material(self, val):
+        if not isinstance(val, str):
+            raise ValueError("Material should be a string.")
+        if val not in SixTrack_to_xcoll:
+	    raise ValueError(f"Unknown maaterial {val} (should be a SixTrack material code)!")
+        self._material = val.strip()
 
     @property
     def track(self, part):
