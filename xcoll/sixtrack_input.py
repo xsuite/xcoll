@@ -18,6 +18,7 @@ def _get_spaces(str1,str2, total_spaces):
     middle_spaces = total_spaces - length2 - length1
     return middle_spaces
 
+# TODO: get tested
 def create_dat_file(line, path_out, elements=None, names=None):
     with open(f'{path_out}.dat', 'w') as file:
         onesided = []
@@ -51,7 +52,7 @@ def create_dat_file(line, path_out, elements=None, names=None):
         if len(crystal) > 0:
             if len(onesided) == 0:
                 file.write("SETTINGS \n")
-            for name in crystal: # TODO: need thick and testing
+            for name in crystal: # TODO: need testing
                 file.write(f"CRYSTAL {name}" + f" {line[name].bending_radius}"\
                            + f" {line[name].width}" + f" {line[name].height}" \
                            + f" {line[name].miscut}" + f" {line[name]._orient}")

@@ -135,7 +135,11 @@ class K2Engine(xo.HybridClass):
   
     # TODO: Would be nice; but works different from FLUKA 
     def is_running(self):
-        pass
+        if self._initialised:
+            return True
+        else:
+            return False
+
     def __setattribute__(self, name, value):
         # if name in ['gap', 'gap_L', 'gap_R', 'jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 
         # 'jaw_RD', 'tilt', 'tilt_L', 'tilt_R']:
