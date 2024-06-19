@@ -17,7 +17,7 @@ def drift_6d(particles, length):
     dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
     particles.x[:npart] += xp * length
     particles.y[:npart] += yp * length
-    particles.s[:npart] += length
+    # particles.s[:npart] += length
     particles.zeta[:npart] += dzeta*length
     return
 
