@@ -13,7 +13,7 @@ import xpart as xp
 import xtrack as xt
 
 from ...sixtrack_input import create_dat_file
-from ...beam_elements.k2 import _K2Collimator
+
 
 class K2Engine(xo.HybridClass):
     _xofields = {
@@ -69,7 +69,7 @@ class K2Engine(xo.HybridClass):
 
     @classmethod
     def start(cls, *, line=None, seed=None, cwd=None):
-        
+        from ...beam_elements.k2 import _K2Collimator # should this be here..?
         this = cls.instance
         # should we check if not this._k2.exists()? 
         if seed is not None:
@@ -115,7 +115,7 @@ class K2Engine(xo.HybridClass):
                 else: 
                     emittance = np.sqrt(nemitt_x**2 + nemitt_y**2)
 
-        # TODO: make + THICK
+        # TODO: make
         file = create_dat_file(line=line, cwd=cwd, elements=elements, names=names)
         if not file.exists():
             raise ValueError(f"File {file.as_posix()} not found!")
@@ -124,7 +124,6 @@ class K2Engine(xo.HybridClass):
             file = Path.cwd() / file.name
 
         try:
-            # TODO orbit 
             pyk2_init(n_alloc=this.n_alloc, file=file, random_generator_seed=seed, \
                      num_coll=len(elements), betax=tw.betx, betay=tw.bety, alphax=tw.alpx, \
                      alphay=tw.alpy, orbx=tw.x, orby=tw.y, orbxp=tw.xp, orbyp=tw.yp, \
