@@ -335,7 +335,7 @@ class BaseCollimator(BaseBlock):
         diff = val - (self._jaw_LU + self._jaw_LD) / 2
         self._jaw_LU += diff
         self._jaw_LD += diff
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_R(self):
@@ -350,11 +350,11 @@ class BaseCollimator(BaseBlock):
             print("Warning: Ignored value for jaw_R (left-sided collimator).")
         if val is None:
             val = -OPEN_JAW
-            self._gap_R = OPEN_GAP
+            self._gap_R = -OPEN_GAP
         diff = val - (self._jaw_RU + self._jaw_RD) / 2
         self._jaw_RU += diff
         self._jaw_RD += diff
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_LU(self):
@@ -371,7 +371,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LU = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_LD(self):
@@ -388,7 +388,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_L to None.")
         self._jaw_LD = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_L=True)
 
     @property
     def jaw_RU(self):
@@ -405,7 +405,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RU = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_RD(self):
@@ -422,7 +422,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw_R to None.")
         self._jaw_RD = val
         self._update_tilts()   # Extra, to update tilts which are also in C for efficiency
-        self._update_gaps()
+        self._update_gaps(only_R=True)
 
     @property
     def jaw_s_LU(self):
@@ -456,12 +456,12 @@ class BaseCollimator(BaseBlock):
             self._cos_yR = np.sqrt(1 - self._sin_yR**2)
             self._tan_yR = self._sin_yR / self._cos_yR
 
-    def _update_gaps(self):
+    def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
         # as well after setting the jaw
-        if self._gap_L_set_manually():
+        if self._gap_L_set_manually() and not only_R:
             self._gap_L = self.gap_L
-        if self._gap_R_set_manually():
+        if self._gap_R_set_manually() and not only_L:
             self._gap_R = self.gap_R
 
 
@@ -602,8 +602,8 @@ class BaseCollimator(BaseBlock):
     @nemitt_x.setter
     def nemitt_x(self, val):
         if val is None:
-            self._nemitt_x = 0
-        if val <= 0:
+            val = 0
+        elif val <= 0:
             raise ValueError(f"The field `nemitt_x` should be positive, but got {val}.")
         self._nemitt_x = val
         self._apply_optics()
@@ -617,12 +617,11 @@ class BaseCollimator(BaseBlock):
     @nemitt_y.setter
     def nemitt_y(self, val):
         if val is None:
-            self._nemitt_y = 0
-        else:
-            if val <= 0:
-                raise ValueError(f"The field `nemitt_y` should be positive, but got {val}.")
-            self._nemitt_y = val
-            self._apply_optics()
+            val = 0
+        elif val <= 0:
+            raise ValueError(f"The field `nemitt_y` should be positive, but got {val}.")
+        self._nemitt_y = val
+        self._apply_optics()
 
     @property
     def emittance(self):
@@ -660,7 +659,7 @@ class BaseCollimator(BaseBlock):
                 sigma_L = np.sqrt((sigma_x*self._cos_zL)**2 + (sigma_y*self._sin_zL)**2)
                 sigma_R = np.sqrt((sigma_x*self._cos_zR)**2 + (sigma_y*self._sin_zR)**2)
                 return [sigma_L, sigma_R], [sigma_x, sigma_y]
-            else:
+            else:  # crystal
                 sigma = np.sqrt((sigma_x*self._cos_z)**2 + (sigma_y*self._sin_z)**2)
                 return sigma, [sigma_x, sigma_y]
 
@@ -673,7 +672,7 @@ class BaseCollimator(BaseBlock):
                 co_L = x*self._cos_zL + y*self._sin_zL
                 co_R = x*self._cos_zR + y*self._sin_zR
                 return [co_L, co_R], [x, y]
-            else:
+            else:  # crystal
                 co = x*self._cos_z + y*self._sin_z
                 return co, [x, y]
 
@@ -770,10 +769,10 @@ class BaseCollimator(BaseBlock):
         if val is None:
             val = OPEN_GAP
             self.jaw_L = None
-        if val <= 0:
+        elif val <= 0:
             raise ValueError(f"The field `gap_L` should be positive, but got {val}.")
         self._gap_L = val
-        self._apply_optics()
+        self._apply_optics(only_L=True)
 
     @property
     def gap_R(self):
@@ -790,10 +789,10 @@ class BaseCollimator(BaseBlock):
         if val is None:
             val = -OPEN_GAP
             self.jaw_R = None
-        if val >= 0:
+        elif val >= 0:
             raise ValueError(f"The field `gap_R` should be negative, but got {val}.")
         self._gap_R = val
-        self._apply_optics()
+        self._apply_optics(only_R=True)
 
     @property
     def gap_LU(self):
@@ -821,12 +820,12 @@ class BaseCollimator(BaseBlock):
     def _gap_R_set_manually(self):
         return not np.isclose(self._gap_R, -OPEN_GAP)
 
-    def _apply_optics(self):
+    def _apply_optics(self, only_L=False, only_R=False):
         if self.optics_ready():
             # Only if we have set a value for the gap manually, this needs to be updated
-            if self._gap_L_set_manually():
+            if self._gap_L_set_manually() and not only_R:
                 self.jaw_L = self._gap_L * self.sigma[0][0] + self.co[0][0]
-            if self._gap_R_set_manually():
+            if self._gap_R_set_manually() and not only_L:
                 self.jaw_R = self._gap_R * self.sigma[0][1] + self.co[0][1]
 
 
