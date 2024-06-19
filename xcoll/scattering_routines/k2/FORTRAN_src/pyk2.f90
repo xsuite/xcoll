@@ -1,11 +1,13 @@
 subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_coll, &
-                betax, betay, alphax, alphay, orbx, orby, orbxp, orbyp, gamma, emit)
+                     betax, betay, alphax, alphay, orbx, orby, orbxp, orbyp, gamma, emit)
   use floatPrecision
   use numerical_constants
   use parpro
   use mod_alloc
   use mod_common
   use mod_common_main
+  use mod_units
+  use mod_common_track
   use mod_ranlux
   use collimation
   use coll_common
@@ -17,7 +19,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   implicit none
 
   integer, intent(in)          :: n_alloc
-  character(100), intent(in)   :: colldb_input_fname
+  character(64), intent(in)   :: colldb_input_fname
   integer, intent(in)          :: random_generator_seed
   integer, intent(in)          :: num_coll
   real(kind=8), intent(in)     :: betax(num_coll)
@@ -30,6 +32,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   real(kind=8), intent(in)     :: orbyp(num_coll)
   real(kind=8), intent(in)     :: gamma
   real(kind=8), intent(in)     :: emit   ! emittance in um
+  integer j
 
   gammar = 1./gamma
   do j=1,num_coll
@@ -90,8 +93,8 @@ end subroutine
 
 
 subroutine pyk2_run(num_particles, x_particles, xp_particles, &
-                y_particles, yp_particles, p_particles, e_particles, &
-                ix, hit, absorbed)
+                    y_particles, yp_particles, p_particles, e_particles, &
+                    ix, hit, absorbed)
 
   use floatPrecision
   use numerical_constants
@@ -99,6 +102,7 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   use mod_common
   use mod_common_main
   use coll_common
+  use collimation
   use coll_k2
 
   implicit none
@@ -111,13 +115,13 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
   real(kind=8), intent(inout)  :: p_particles(num_particles)
   real(kind=8), intent(inout)  :: e_particles(num_particles)
   integer,      intent(in)     :: ix
-
   integer(kind=4), intent(inout) :: hit(num_particles)
   integer(kind=4), intent(inout) :: absorbed(num_particles)
 
+  real(kind=8) stracki
   integer j
 
-  npart=num_particles
+  npart = num_particles
   c_ix = ix
 
   do j=1,npart
@@ -137,7 +141,8 @@ subroutine pyk2_run(num_particles, x_particles, xp_particles, &
     ejfv(j) = p_particles(j)
   end do
 
-  call coll_doCollimator(0)
+  stracki = 0.
+  call coll_doCollimator(stracki)
 
   do j=1,npart
     x_particles(j)  = xv1(j)

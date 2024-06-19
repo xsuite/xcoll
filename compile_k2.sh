@@ -34,20 +34,21 @@ gfortran -fpic -cpp -DDOUBLE_MATH -DCRLIBM -c \
  constants.f90 \
  strings.f90 \
  mod_alloc.f90 \
- common_modules.f90  \
- string_tools.f90  \
- mod_units.f90  \
+ common_modules.f90 \
+ string_tools.f90 \
+ mod_units.f90 \
+ mod_particles.f90 \
  prror.f90 \
  mod_meta.f90 \
  mod_time.f90 \
- bouncy_castle.f90  \
+ bouncy_castle.f90 \
  libcrlibm.a \
  libroundctl.a \
- coll_jawfit.f90  \
- coll_common.f90  \
+ coll_jawfit.f90 \
+ coll_common.f90 \
  coll_db.f90 \
- mod_ranlux.f90  \
- mod_funlux.f90  \
+ mod_ranlux.f90 \
+ mod_funlux.f90 \
  coll_crystal.f90 \
  coll_k2.f90 \
  coll_dist.f90 \
@@ -59,20 +60,21 @@ f2py -m pyk2f -c pyk2.f90 \
  constants.o \
  strings.o \
  mod_alloc.o \
- common_modules.o  \
- string_tools.o  \
- mod_units.o  \
+ common_modules.o \
+ string_tools.o \
+ mod_units.o \
+ mod_particles.o \
  prror.o \
  mod_meta.o \
  mod_time.o \
- bouncy_castle.o  \
- libcrlibm.a  \
- libroundctl.a  \
- coll_jawfit.o  \
- coll_common.o  \
+ bouncy_castle.o \
+ libcrlibm.a \
+ libroundctl.a \
+ coll_jawfit.o \
+ coll_common.o \
  coll_db.o \
- mod_ranlux.o  \
- mod_funlux.o  \
+ mod_ranlux.o \
+ mod_funlux.o \
  coll_crystal.o \
  coll_k2.o \
  coll_dist.o \
