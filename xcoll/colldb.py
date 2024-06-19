@@ -10,7 +10,8 @@ import pandas as pd
 
 import xtrack as xt
 
-from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
+from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, _K2Collimator, \
+                           collimator_classes, element_classes
 from .install import install_elements
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
@@ -569,6 +570,43 @@ class CollimatorDatabase:
                                     lattice=self[name]['crystal'], bending_radius=self[name]['bending_radius'],
                                     width=self[name]['width'], height=self[name]['height'],
                                     miscut=self[name]['miscut'], _tracking=False)
+
+            # Check that collimator is not installed as different type
+            # TODO: automatically replace collimator type and print warning
+            if isinstance(line[name], tuple(collimator_classes)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
+                               + f"Please reconstruct the line.")
+
+            # TODO: only allow Marker elements, no Drifts!!
+            #       How to do this with importing a line for MAD-X or SixTrack...?
+            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
+                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
+                               + f" but the line element to replace is not an xtrack.Marker "
+                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
+                               + f"element.")
+            el.emittance = [self.nemitt_x, self.nemitt_y]
+            elements.append(el)
+        install_elements(line, names, elements, need_apertures=need_apertures)
+
+    def _install_k2_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+        self.line = line
+        elements = []
+        if names is None and families is None:
+            names = self.collimator_names
+        elif names is None:
+            names = self.get_collimators_from_family(families)
+        elif families is not None:
+            names.append(self.get_collimators_from_family(families))
+        names = list(set(names)) # Remove duplicates
+        for name in names:
+            if self[name]['crystal'] is None:
+                if verbose: print(f"Installing {name:20} as _K2Collimator")
+                el = _K2Collimator(gap=self[name]['gap'], angle=self[name]['angle'],
+                                   length=self[name]['length'], side=self[name]['side'],
+                                   material=self[name]['material'], _tracking=False)
+            else:
+                raise ValueError("Need to implement _K2Crystal")
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
