@@ -12,7 +12,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from create_dat import create_dat_file
+from ...sixtrack_input import create_dat_file
 from ...beam_elements.k2 import _K2Collimator
 
 class K2Engine(xo.HybridClass):
@@ -48,7 +48,7 @@ class K2Engine(xo.HybridClass):
 
     def _warn(self, init=False):
         if init == True and not self.instance._warning_given:
-            print("Warning: Failed to run pyk2_init.\n")
+            print("Warning: Failed to run pyk2_init (did you compile?) \n")
             self._warning_given = True
         if not self.instance._warning_given:
             print("Warning: Failed to import pyK2 (did you compile?).\n"
@@ -88,31 +88,50 @@ class K2Engine(xo.HybridClass):
             os.chdir(cwd)
         else:
             cwd = Path.cwd()
-
         this._cwd = cwd
 
         if line is None:
             raise ValueError("'line' must be given.")
-        file = create_dat_file(line, cwd=None, filename=None) # TODO: make
+        
+        # prepare for init
+        tw = line.twiss()
+        elements, names = line.get_elements_of_type(_K2Collimator)
+        if not hasattr(elements, '__iter__') or isinstance(elements, str):
+            elements = [elements]
+        if not hasattr(names, '__iter__') or isinstance(names,str):
+            names = [names]
+        nemitt_x = None
+        nemitt_y = None
+        for el in elements:
+            if hasattr(el, 'optics') and el.optics is not None:
+                if nemitt_x is None:
+                    nemitt_x = el.nemitt_x
+                if nemitt_y is None:
+                    nemitt_y = el.nemitt_y
+                if not np.isclose(el.nemitt_x, nemitt_x) \
+                or not np.isclose(el.nemitt_x, nemitt_x):
+                    raise ValueError("Not all collimators have the same "
+                                   + "emittance. This is not supported.")
+                else: 
+                    emittance = np.sqrt(nemitt_x**2 + nemitt_y**2)
+
+        # TODO: make + THICK
+        file = create_dat_file(line=line, cwd=cwd, elements=elements, names=names)
         if not file.exists():
             raise ValueError(f"File {file.as_posix()} not found!")
         if file.parent != Path.cwd():
             shutil.copy(file, Path.cwd())
             file = Path.cwd() / file.name
+
         try:
-            # TODO orbit ?? + emittance is from colldb or per collimator not from line
-            tw = line.twiss()
-            elements, names = line.get_elements_of_type(_K2Collimator)
-            if not hasattr(elements, '__iter__') or isinstance(elements, str):
-                elements = [elements]
-
-            pyk2_init(n_alloc=this.n_alloc, file=file, random_generator_seed=seed, num_coll=len(elements), \
-                      betax=tw.betx, betay=tw.bety, alphax=tw.alpx, alphay=tw.alpy, orbx=orbx, \
-                      orby, orbxp, orbyp, gamma=tw.gamma, emit)
-
-        except ImportError as error:
-            this._warn(init=True)
-            return      
+            # TODO orbit 
+            pyk2_init(n_alloc=this.n_alloc, file=file, random_generator_seed=seed, \
+                     num_coll=len(elements), betax=tw.betx, betay=tw.bety, alphax=tw.alpx, \
+                     alphay=tw.alpy, orbx=tw.x, orby=tw.y, orbxp=tw.xp, orbyp=tw.yp, \
+                     gamma=(np.sqrt(tw.gamx**2 + tw.gamy**2)), emit=emittance)
+        except ValueError:
+           this._warn(init=True)
+           return      
   
     # TODO: Would be nice; but works different from FLUKA 
     def is_running(self):

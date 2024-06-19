@@ -14,7 +14,7 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .initial_distribution import *
 from .lossmap import LossMap
-
+# from .sixtrack_input import create_dat_file
 # Deprecated
 from .manager import CollimatorManager
 
