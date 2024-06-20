@@ -14,8 +14,8 @@ import xpart as xp
 import xcoll as xc
 
 beam = 1
-plane = 'H'
-n_turns = 50
+plane = 'V'
+n_turns = 100
 num_particles = 5000
 nemitt_x = 3.5e-6
 nemitt_y = 3.5e-6
@@ -51,7 +51,7 @@ line.optimize_for_tracking()
 
 
 # This will calibrate the ADT such that we gain ~ one emittance per turn.
-# Note that this quickly saturates once the emittance is large.
+# Note that this quickly explodes exponentially once the emittance becomes large.
 if plane == 'H':
     adt.calibrate_by_emittance(nemitt=nemitt_x)
 else:
@@ -84,7 +84,7 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 # Activate the ADT
 adt.activate()
-adt.amplitude = 0.75
+adt.amplitude = 0.25
 
 
 # Track and store emittance and normalised amplitude at every turn

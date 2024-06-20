@@ -105,7 +105,7 @@ class BlowUp(InvalidXcoll):
                                twiss=None, beta_gamma_rel=None):
         # Emittance grows as < emittance * dpx / px>
         # We approximate this as <emittance> * <dpx> / sqrt(<px^2>), and using
-        # <px^2> = gamma * emittance_geom / 2
+        # <px^2> = gamma * emittance_geom
         if name is None:
             if self._name is None:
                 raise ValueError("The name of the BlowUp must be provided.")
@@ -123,8 +123,8 @@ class BlowUp(InvalidXcoll):
                 raise ValueError("Need to provide `twiss` or a line.")
             twiss = line.twiss()
         gamma = twiss.rows[name][f"gam{'x' if self.plane == 'H' else 'y'}"][0]
-        # Small correction of 17.5% (empirical) to account for underestimation due to statistics error
-        self.calibration = np.sqrt(gamma*nemitt/beta_gamma_rel/2) * 1.175
+        # Small correction of 20% (empirical) to account for underestimation due to statistics error
+        self.calibration = np.sqrt(gamma*nemitt/beta_gamma_rel) / 1.2
 
     def activate(self):
         self._active = True
