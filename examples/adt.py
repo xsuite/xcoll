@@ -14,20 +14,23 @@ import xpart as xp
 import xcoll as xc
 
 beam = 1
-plane = 'V'
-n_turns = 500
+plane = 'H'
+n_turns = 50
 num_particles = 5000
+nemitt_x = 3.5e-6
+nemitt_y = 3.5e-6
+
 
 # Helper function to calculate the emittance
 def calculate_nemitt(part):
     cov_x = np.cov(part.x, part.px)
     cov_y = np.cov(part.y, part.py)
-    nemitt_x = part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-    nemitt_y = part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
+    nemitt_x = part.beta0[0]*part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
+    nemitt_y = part.beta0[0]*part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
     return nemitt_x, nemitt_y
 
 
-# Import the Run 3 LHC without apertures
+# Import a Run 3 LHC lattice without apertures
 line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 
 
@@ -47,17 +50,25 @@ line.build_tracker()
 line.optimize_for_tracking()
 
 
+# This will calibrate the ADT such that we gain ~ one emittance per turn.
+# Note that this quickly saturates once the emittance is large.
+if plane == 'H':
+    adt.calibrate_by_emittance(nemitt=nemitt_x)
+else:
+    adt.calibrate_by_emittance(nemitt=nemitt_y)
+
+
 # Generate a matched Gaussian bunch
 part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
-                                nemitt_x=3.5e-6, nemitt_y=3.5e-6, sigma_z=7.55e-2, line=line)
+                                          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
 
 
 # Log the initial emittance and normalised amplitudes
 ex, ey = calculate_nemitt(part)
-nemitt_x = [ex]
-nemitt_y = [ey]
+ex = [ex]
+ey = [ey]
 tw = line.twiss()
-part_norm = tw.get_normalized_coordinates(part, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+part_norm = tw.get_normalized_coordinates(part, nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 x_norm = np.sqrt(part_norm.x_norm**2 + part_norm.px_norm**2)
 x_norm_mean = [np.mean(x_norm)]
 x_norm_std  = [np.std(x_norm)]
@@ -66,24 +77,23 @@ y_norm_mean = [np.mean(y_norm)]
 y_norm_std  = [np.std(y_norm)]
 
 
-# This will calibrate the ADT such that we get an average blow-up of 4-5 sigma over 500 turns
-# TODO: this is not perfect as the calibration is not completely location-independent....
-adt.calibrate(twiss=tw, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
-adt.activate()
-
-
 # Move the tracker to a multi-core context
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 
+# Activate the ADT
+adt.activate()
+adt.amplitude = 0.75
+
+
 # Track and store emittance and normalised amplitude at every turn
 for _ in range(n_turns):
     line.track(part)
-    ex, ey = calculate_nemitt(part)
-    nemitt_x.append(ex)
-    nemitt_y.append(ey)
-    part_norm = tw.get_normalized_coordinates(part, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    this_ex, this_ey = calculate_nemitt(part)
+    ex.append(this_ex)
+    ey.append(this_ey)
+    part_norm = tw.get_normalized_coordinates(part, nemitt_x=nemitt_x, nemitt_y=nemitt_y)
     x_norm = np.sqrt(part_norm.x_norm**2 + part_norm.px_norm**2)
     x_norm_mean.append(np.mean(x_norm))
     x_norm_std.append(np.std(x_norm))
@@ -91,14 +101,15 @@ for _ in range(n_turns):
     y_norm_mean.append(np.mean(y_norm))
     y_norm_std.append(np.std(y_norm))
 
+
 print(f"Total calculation time {time.time()-start_time}s")
 
 
 # Plot the result
 _, ax = plt.subplots(figsize=(6,4))
 s = list(range(n_turns+1))
-ax.plot(s, 1.e6*np.array(nemitt_x), label='H')
-ax.plot(s, 1.e6*np.array(nemitt_y), label='V')
+ax.plot(s, 1.e6*np.array(ex), label='H')
+ax.plot(s, 1.e6*np.array(ey), label='V')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")
 ax.legend()
