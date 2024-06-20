@@ -5,7 +5,7 @@
 
 
 # TODO: test with K2
-def create_dat_file(line, path_out, elements=None, names=None):
+def create_dat_file(line, path, names=None):
 
     # helper functions
     def _get_spaces(str1,str2, total_spaces):
@@ -33,7 +33,7 @@ def create_dat_file(line, path_out, elements=None, names=None):
         matname = line[name].material.name
         return material_map.get(matname, matname)
     
-    with open(f'{path_out}.dat', 'w') as file:
+    with open(f'{path}.dat', 'w') as file:
         onesided = []
         crystal  = []
         for name in names:
@@ -47,7 +47,9 @@ def create_dat_file(line, path_out, elements=None, names=None):
             gap = line[name].gap
             if gap == None:
                 gap = "null"
-            mat = _get_mat_name(line,name)
+            # mat = _get_mat_name(line,name)
+            print(type(line[name]))
+            mat = line[name].material
             length = line[name].length
             angle = line[name].angle
             offset = ( (line[name]._jaw_LU + line[name]._jaw_LD)/2 + 

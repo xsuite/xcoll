@@ -9,8 +9,6 @@ from pathlib import Path
 import shutil
 
 import xobjects as xo
-import xpart as xp
-import xtrack as xt
 
 from ...sixtrack_input import create_dat_file
 
@@ -28,7 +26,6 @@ class K2Engine(xo.HybridClass):
             cls.instance._initialised = False
         return cls.instance
 
-
     def __init__(self, **kwargs):
         if(self._initialised):
             return
@@ -39,8 +36,7 @@ class K2Engine(xo.HybridClass):
         if kwargs['random_generator_seed'] is None:
             kwargs['random_generator_seed'] = np.random.randint(1, 10000000)
         if '_xobject' not in kwargs:
-            # Initialise defaults  
-            self._cwd = None               # TODO: this is needed right
+            self._cwd = None
             self._warning_given = False
             self._collimator_dict = {}
         super().__init__(**kwargs)
@@ -48,13 +44,12 @@ class K2Engine(xo.HybridClass):
 
     def _warn(self, init=False):
         if init == True and not self.instance._warning_given:
-            print("Warning: Failed to run pyk2_init (did you compile?) \n")
+            print("Warning: Failed to run pyk2_init. \n")
             self._warning_given = True
         if not self.instance._warning_given:
             print("Warning: Failed to import pyK2 (did you compile?).\n"
                 + "_K2collimators will be installed but are not trackable.")
             self._warning_given = True
-
 
     @classmethod
     def reset(cls, seed=None):
@@ -69,9 +64,9 @@ class K2Engine(xo.HybridClass):
 
     @classmethod
     def start(cls, *, line=None, seed=None, cwd=None):
-        from ...beam_elements.k2 import _K2Collimator # should this be here..?
+        from ...beam_elements.k2 import _K2Collimator # should this be here?
         this = cls.instance
-        # should we check if not this._k2.exists()? 
+
         if seed is not None:
             cls.instance.random_generator_seed = seed
         try:
@@ -80,7 +75,7 @@ class K2Engine(xo.HybridClass):
             cls.instance._warn()
         else:
             pyk2_init(n_alloc=cls.instance._capacity, random_generator_seed=cls.instance.random_generator_seed)
-        
+
         if cwd is not None:
             cwd = Path(cwd).resolve()
             cwd.mkdir(parents=True, exist_ok=True)
@@ -109,14 +104,13 @@ class K2Engine(xo.HybridClass):
                 if nemitt_y is None:
                     nemitt_y = el.nemitt_y
                 if not np.isclose(el.nemitt_x, nemitt_x) \
-                or not np.isclose(el.nemitt_x, nemitt_x):
+                or not np.isclose(el.nemitt_y, nemitt_y):
                     raise ValueError("Not all collimators have the same "
                                    + "emittance. This is not supported.")
                 else: 
                     emittance = np.sqrt(nemitt_x**2 + nemitt_y**2)
 
-        # TODO: make
-        file = create_dat_file(line=line, cwd=cwd, elements=elements, names=names)
+        file = create_dat_file(line=line, path=cwd, names=names)
         if not file.exists():
             raise ValueError(f"File {file.as_posix()} not found!")
         if file.parent != Path.cwd():
@@ -132,7 +126,6 @@ class K2Engine(xo.HybridClass):
            this._warn(init=True)
            return      
   
-    # TODO: Would be nice; but works different from FLUKA 
     def is_running(self):
         if self._initialised:
             return True
@@ -140,8 +133,6 @@ class K2Engine(xo.HybridClass):
             return False
 
     def __setattribute__(self, name, value):
-        # if name in ['gap', 'gap_L', 'gap_R', 'jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 
-        # 'jaw_RD', 'tilt', 'tilt_L', 'tilt_R']:
         if K2Engine.is_running():
             raise ValueError('Engine is running; K2Collimator is frozen.')
         super().__setattribute__(name, value)
