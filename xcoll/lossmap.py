@@ -12,7 +12,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from .beam_elements import collimator_classes
+from .beam_elements import collimator_classes, crystal_classes
 
 
 class LossMap:
@@ -123,7 +123,7 @@ class LossMap:
                 else:
                     prev_elem = elem - 1
                 if self._line.element_names[prev_elem] in coll_elements:
-                    if verbose
+                    if verbose:
                         print(f"Found at {self._line.element_names[elem]}, "
                             + f"moved to {self._line.element_names[elem-1]}")
                     part.at_element[idx] = elem - 1
