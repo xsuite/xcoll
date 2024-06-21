@@ -10,10 +10,30 @@ path=${1%/}/
 
 cd FORTRAN_src
 
-for f in core_tools constants strings mod_alloc common_modules string_tools mod_units mod_particles mod_meta mod_time bouncy_castle libcrlibm libroundctl coll_jawfit coll_common coll_db mod_ranlux mod_funlux coll_crystal coll_k2 coll_dist collimation
+for f in core_tools constants strings mod_alloc common_modules string_tools mod_units mod_particles mod_meta mod_time bouncy_castle coll_jawfit coll_common coll_db mod_ranlux mod_funlux coll_crystal coll_k2 coll_dist collimation
 do
-    cp ${path}${f}.f90 .
+    file=${path}${f}.f90
+    if [ ! -f $file ]
+    then
+        echo "Error! Source file $file not found."
+        exit 1
+    fi
+    cp $file .
 done
+
+mv crlibm/CMakeLists.txt crlibm_CMakeLists.txt
+for file in ${path}crlibm/*
+do
+    cp $file crlibm/
+done
+mv crlibm_CMakeLists.txt crlibm/CMakeLists.txt
+
+mv roundctl/CMakeLists.txt roundctl_CMakeLists.txt
+for file in ${path}roundctl/*
+do
+    cp $file roundctl/
+done
+mv roundctl_CMakeLists.txt roundctl/CMakeLists.txt
 
 sed -i 's/integer, private, save :: c_ix  /integer, public,  save :: c_ix  /g' collimation.f90
 sed -i 's/real(kind=fPrec), private, save :: emitnx0_dist    = zero/real(kind=fPrec), public, save :: emitnx0_dist    = zero/g' collimation.f90
