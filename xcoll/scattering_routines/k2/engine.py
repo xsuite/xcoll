@@ -4,8 +4,13 @@
 # ######################################### #
 
 import numpy as np
+import os
+from pathlib import Path
+import shutil
 
 import xobjects as xo
+
+from ...sixtrack_input import create_dat_file
 
 
 class K2Engine(xo.HybridClass):
@@ -21,7 +26,6 @@ class K2Engine(xo.HybridClass):
             cls.instance._initialised = False
         return cls.instance
 
-
     def __init__(self, **kwargs):
         if(self._initialised):
             return
@@ -31,16 +35,21 @@ class K2Engine(xo.HybridClass):
         kwargs.setdefault('random_generator_seed', None)  # Allow seed to be set to None to get default:
         if kwargs['random_generator_seed'] is None:
             kwargs['random_generator_seed'] = np.random.randint(1, 10000000)
+        if '_xobject' not in kwargs:
+            self._cwd = None
+            self._warning_given = False
+            self._collimator_dict = {}
         super().__init__(**kwargs)
         K2Engine.reset()
 
-
-    def _warn(self):
-        if not cls.instance._warning_given:
+    def _warn(self, init=False):
+        if init == True and not self.instance._warning_given:
+            print("Warning: Failed to run pyk2_init. \n")
+            self._warning_given = True
+        if not self.instance._warning_given:
             print("Warning: Failed to import pyK2 (did you compile?).\n"
                 + "_K2collimators will be installed but are not trackable.")
             self._warning_given = True
-
 
     @classmethod
     def reset(cls, seed=None):
@@ -52,3 +61,81 @@ class K2Engine(xo.HybridClass):
             cls.instance._warn()
         else:
             pyk2_init(n_alloc=cls.instance._capacity, random_generator_seed=cls.instance.random_generator_seed)
+
+
+    # TODO: optics
+    @classmethod
+    def start(cls, *, line=None, seed=None, cwd=None,nemittx=None, nemitty=None):
+        from ...beam_elements.k2 import _K2Collimator # should this be here?
+        cls()
+        this = cls.instance
+
+        if seed is not None:
+            cls.instance.random_generator_seed = seed
+        try:
+            from .pyk2f import pyk2_init
+        except ImportError:
+            cls.instance._warn()
+        else:
+            pyk2_init(n_alloc=cls.instance._capacity, random_generator_seed=cls.instance.random_generator_seed)
+
+        if cwd is not None:
+            cwd = Path(cwd).resolve()
+            cwd.mkdir(parents=True, exist_ok=True)
+            this._old_cwd = Path.cwd()
+            os.chdir(cwd)
+        else:
+            cwd = Path.cwd()
+        this._cwd = cwd
+
+        if line is None:
+            raise ValueError("'line' must be given.")
+        
+        # prepare for init
+        tw = line.twiss()
+        elements, names = line.get_elements_of_type(_K2Collimator)
+        if not hasattr(elements, '__iter__') or isinstance(elements, str):
+            elements = [elements]
+        if not hasattr(names, '__iter__') or isinstance(names,str):
+            names = [names]
+        nemitt_x = None
+        nemitt_y = None
+        for el in elements:
+            if hasattr(el, 'optics') and el.optics is not None:
+                if nemitt_x is None:
+                    nemitt_x = el.nemitt_x
+                if nemitt_y is None:
+                    nemitt_y = el.nemitt_y
+                if not np.isclose(el.nemitt_x, nemitt_x) \
+                or not np.isclose(el.nemitt_y, nemitt_y):
+                    raise ValueError("Not all collimators have the same "
+                                   + "emittance. This is not supported.")
+                else: 
+                    emittance = np.sqrt(nemitt_x**2 + nemitt_y**2)
+
+        file = create_dat_file(line=line, path=cwd, names=names)
+        if not cwd.exists():
+            raise ValueError(f"File {cwd.as_posix()} not found!")
+        if cwd.parent != Path.cwd():
+            shutil.copy(file.name, str(Path.cwd()))
+            file = Path.cwd() / file.name
+        try:
+            pyk2_init(n_alloc=cls.instance._capacity, file=file, random_generator_seed=seed, \
+                     num_coll=len(elements), betax=tw.betx, betay=tw.bety, alphax=tw.alpx, \
+                     alphay=tw.alpy, orbx=tw.x, orby=tw.y, orbxp=tw.xp, orbyp=tw.yp, \
+                     gamma=(np.sqrt(tw.gamx**2 + tw.gamy**2)), emit=emittance)
+        except ValueError:
+           this._warn(init=True)
+           return      
+  
+    def is_running(self):
+        if self._initialised:
+            return True
+        else:
+            return False
+
+    def __setattribute__(self, name, value):
+        if K2Engine.is_running():
+            raise ValueError('Engine is running; K2Collimator is frozen.')
+        super().__setattribute__(name, value)
+    

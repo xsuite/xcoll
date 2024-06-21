@@ -47,14 +47,14 @@ class _K2Collimator(BaseCollimator):
 
     @property
     def material(self):
-	return self._material
+        return self._material
 
     @material.setter
     def material(self, val):
         if not isinstance(val, str):
             raise ValueError("Material should be a string.")
         if val not in SixTrack_to_xcoll:
-	    raise ValueError(f"Unknown maaterial {val} (should be a SixTrack material code)!")
+            raise ValueError(f"Unknown material {val} (should be a SixTrack material code)!")
         self._material = val.strip()
 
     @property
