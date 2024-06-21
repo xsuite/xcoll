@@ -2747,7 +2747,7 @@ subroutine coll_endTurn
     end do
 #ifndef G4COLLIMATION
     ! Move the lost particles to the end of the arrays
-    call shuffleLostParticles
+    !call shuffleLostParticles
 #endif
   end if
 

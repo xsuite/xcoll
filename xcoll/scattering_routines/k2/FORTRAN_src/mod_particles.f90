@@ -209,7 +209,7 @@ subroutine part_updatePartEnergy(refArray, updateAngle)
     yv2(1:napx)    = (ejf0v(1:napx)/ejfv(1:napx))*yv2(1:napx)
   end if
 
-  if(ithick == 1) call synuthck
+  !if(ithick == 1) call synuthck
 
 end subroutine part_updatePartEnergy
 

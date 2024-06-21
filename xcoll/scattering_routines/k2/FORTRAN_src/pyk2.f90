@@ -14,6 +14,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   use coll_materials ! for collmat_init
   use coll_db        ! for cdb_readCollDB
   use coll_k2        ! for scattering
+  use coll_crystal   ! for crystal scattering
 
 
   implicit none
@@ -92,9 +93,9 @@ end subroutine
 
 
 
-subroutine pyk2_run(num_particles, x_particles, xp_particles, &
-                    y_particles, yp_particles, p_particles, e_particles, &
-                    ix, hit, absorbed)
+subroutine pyk2_track(num_particles, x_particles, xp_particles, &
+                      y_particles, yp_particles, p_particles, e_particles, &
+                      ix, hit, absorbed)
 
   use floatPrecision
   use numerical_constants

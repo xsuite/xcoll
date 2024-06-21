@@ -37,6 +37,7 @@ gfortran -fpic -cpp -DDOUBLE_MATH -DCRLIBM -c \
  common_modules.f90 \
  string_tools.f90 \
  mod_units.f90 \
+ extra.f90 \
  mod_particles.f90 \
  prror.f90 \
  mod_meta.f90 \
@@ -63,6 +64,7 @@ f2py -m pyk2f -c pyk2.f90 \
  common_modules.o \
  string_tools.o \
  mod_units.o \
+ extra.o \
  mod_particles.o \
  prror.o \
  mod_meta.o \
