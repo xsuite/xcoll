@@ -62,9 +62,12 @@ class K2Engine(xo.HybridClass):
         else:
             pyk2_init(n_alloc=cls.instance._capacity, random_generator_seed=cls.instance.random_generator_seed)
 
+
+    # TODO: optics
     @classmethod
-    def start(cls, *, line=None, seed=None, cwd=None):
+    def start(cls, *, line=None, seed=None, cwd=None,nemittx=None, nemitty=None):
         from ...beam_elements.k2 import _K2Collimator # should this be here?
+        cls()
         this = cls.instance
 
         if seed is not None:
@@ -111,14 +114,13 @@ class K2Engine(xo.HybridClass):
                     emittance = np.sqrt(nemitt_x**2 + nemitt_y**2)
 
         file = create_dat_file(line=line, path=cwd, names=names)
-        if not file.exists():
-            raise ValueError(f"File {file.as_posix()} not found!")
-        if file.parent != Path.cwd():
-            shutil.copy(file, Path.cwd())
+        if not cwd.exists():
+            raise ValueError(f"File {cwd.as_posix()} not found!")
+        if cwd.parent != Path.cwd():
+            shutil.copy(file.name, str(Path.cwd()))
             file = Path.cwd() / file.name
-
         try:
-            pyk2_init(n_alloc=this.n_alloc, file=file, random_generator_seed=seed, \
+            pyk2_init(n_alloc=cls.instance._capacity, file=file, random_generator_seed=seed, \
                      num_coll=len(elements), betax=tw.betx, betay=tw.bety, alphax=tw.alpx, \
                      alphay=tw.alpy, orbx=tw.x, orby=tw.y, orbxp=tw.xp, orbyp=tw.yp, \
                      gamma=(np.sqrt(tw.gamx**2 + tw.gamy**2)), emit=emittance)

@@ -9,6 +9,7 @@ from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCol
 from .install import install_elements
 from .line_tools import assign_optics_to_collimators, open_collimators, send_to_parking, enable_scattering, disable_scattering
 from .scattering_routines.everest import materials, Material, CrystalMaterial
+from .scattering_routines.k2 import K2Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep

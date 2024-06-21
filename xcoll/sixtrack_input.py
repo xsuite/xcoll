@@ -7,32 +7,13 @@
 # TODO: test with K2
 def create_dat_file(line, path, names=None):
 
-    # helper functions
+    # helper function
     def _get_spaces(str1,str2, total_spaces):
         length1 = len(str(str1))
         length2 = len(str(str2))
         middle_spaces = total_spaces - length2 - length1
         return middle_spaces
-
-    def _get_mat_name(line, name):
-        material_map = {
-            "Carbon": "C",
-            "Copper": "Cu",
-            "Tungsten": "W",
-            "MolybdenumGraphite": "MoGR",
-            "Inermet": "Iner",
-            "Silicon": "Si",
-            "Beryllium": "Be",
-            "Aluminium": "Al",
-            "Lead": "Pb",
-            "Carbon2": "C2",
-            "Germanium": "Ge",
-            "Molybdenum": "Mo",
-            "Glidcop": "Glid"
-        }
-        matname = line[name].material.name
-        return material_map.get(matname, matname)
-    
+ 
     with open(f'{path}.dat', 'w') as file:
         onesided = []
         crystal  = []
@@ -43,12 +24,9 @@ def create_dat_file(line, path, names=None):
             # if line[name].__class__ == EverestCrystal:
             #     crystal.append(name)
             #     continue
-            
             gap = line[name].gap
             if gap == None:
                 gap = "null"
-            # mat = _get_mat_name(line,name)
-            print(type(line[name]))
             mat = line[name].material
             length = line[name].length
             angle = line[name].angle
@@ -71,6 +49,5 @@ def create_dat_file(line, path, names=None):
                            + f" {line[name].width}" + f" {line[name].height}" \
                            + f" {line[name].miscut}" + f" {line[name]._orient}")
     print("File created.")
-    return file
-
-#  ['bending_radius', 'width', 'height', 'thick', 'miscut', 'crystal'] not 100% right tho    
+    file.close()
+    return file  
