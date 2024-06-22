@@ -65,8 +65,16 @@ class InteractionRecord(xt.BeamElement):
         if len(names) == 0:
             return
         capacity = int(capacity)
-        if io_buffer is None:
-            io_buffer = xt.new_io_buffer(capacity=capacity)
+
+        if not hasattr(line, 'tracker'):
+            if io_buffer is None:
+                io_buffer = xt.new_io_buffer(capacity=capacity)
+        elif io_buffer is not None:
+            raise ValueError("Cannot provide io_buffer when tracker already built!")
+        else:
+            io_buffer = line.tracker.io_buffer
+        if capacity > io_buffer.capacity:
+            io_buffer.grow(capacity - io_buffer.capacity)
         if record_touches is None and record_scatterings is None:
             record_touches = True
             record_scatterings = True
