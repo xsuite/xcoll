@@ -12,7 +12,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from .beam_elements import collimator_classes
+from .beam_elements import collimator_classes, _all_collimator_classes, _K2Collimator
 
 
 class LossMap:
@@ -114,7 +114,7 @@ class LossMap:
     def _correct_absorbed(self, verbose=True):
         # Correct particles that are at an aperture directly after a collimator
         part = self._part
-        coll_classes = list(set(collimator_classes) - set(crystal_classes))
+        coll_classes = list(set(collimator_classes) + (_K2Collimator) - set(crystal_classes))
         coll_elements = self._line.get_elements_of_type(coll_classes)[1]
         for idx, elem in enumerate(part.at_element):
             if part.state[idx] == 0:
@@ -156,7 +156,7 @@ class LossMap:
 
 
     def _make_coll_summary(self):
-        collimator_names = self._line.get_elements_of_type(collimator_classes)[1]
+        collimator_names = self._line.get_elements_of_type(_all_collimator_classes)[1]
         coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
         coll_losses   = np.array([self._line.element_names[i]
                                   for i in self._part.at_element[coll_mask]])

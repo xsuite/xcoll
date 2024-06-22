@@ -5,3 +5,4 @@
 
 from .track import track
 from .engine import K2Engine
+from .sixtrack_input import create_dat_file

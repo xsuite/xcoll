@@ -15,6 +15,7 @@
 #define  XC_LOST_ON_GEANT4_BLOCK    -336
 #define  XC_LOST_ON_GEANT4          -337
 #define  XC_LOST_ON_GEANT4_CRYSTAL  -338
+#define  XC_LOST_ON_K2              -339
 #define  XC_LOST_ON_ABSORBER        -340
 
 #define  XC_ERR_INVALID_TRACK       -390
