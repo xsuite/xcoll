@@ -9,14 +9,15 @@ import numpy as np
 
 def create_dat_file(line, names, file="k2_colldb.dat"):
     from ...beam_elements import _K2Collimator, _K2Crystal
-    file = Path(file).resolve()
+    file = Path(file).expanduser().resolve()
+    if file.exists():
+        file.unlink()
     with file.open('w') as fp:
         onesided = []
         crystal  = []
         for name in names:
             el = line[name]
             if el.__class__ == _K2Crystal:
-                crystal.append(name)
                 orbit = el.co[0]
             elif el.__class__ == _K2Collimator:
                 orbit = el.co[0][0]
@@ -48,6 +49,10 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
                 onesided.append(name)
             else:
                 raise ValueError(f"Right-sided collimator {name} not supported.")
+            if el.__class__ == _K2Crystal:
+                # Have to do this here and not at the start, to avoid having appended the crystal list
+                # but then continuing (e.g. because the gap is None)
+                crystal.append(name)
             fp.write(f"{name:50} {gap:>15} {mat:10} {length:<8} {angle:>5}   {offset}\n")
 
         if len(onesided) > 0:
@@ -61,7 +66,8 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
                 fp.write("SETTINGS \n")
             for name in crystal:
                 el = line[name]
-                fp.write(f"CRYSTAL   {name:19}  {el.bending_radius:5}  {el.width}  "
-                         f"{el.height}  0.0  0.0  {el.miscut} {el._orient}\n")
+                fp.write(f"CRYSTAL   {name:18}  {el.bending_radius:5}  {el.width}  "
+                         f"{el.height}  0.0  {el.tilt}  {el.miscut}  {el._orient}\n")
+
     print(f"Created SixTrack CollDB {file}")
     return file

@@ -20,4 +20,4 @@ element_classes = block_classes + collimator_classes
 
 # These should not go into any of the classes lists
 from .k2 import _K2Collimator, _K2Crystal
-_all_collimator_classes = element_classes + (_K2Collimator, _K2Crystal)
+_all_collimator_classes = collimator_classes + (_K2Collimator, _K2Crystal)
