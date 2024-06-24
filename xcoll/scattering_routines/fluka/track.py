@@ -17,7 +17,7 @@ def drift_6d(particles, length):
     dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
     particles.x[:npart] += xp * length
     particles.y[:npart] += yp * length
-    # particles.s[:npart] += length
+    particles.s[:npart] += length
     particles.zeta[:npart] += dzeta*length
     return
 
@@ -231,7 +231,7 @@ def track_core(collimator, part):
                                                * part.mass0 / part.q0
         part.pdg_id[idx_old]       = data['pdg_id'][:npart][mask_existing]
         part.weight[idx_old]       = data['weight'][:npart][mask_existing]
-        part.s[idx_old]            = s_in + collimator.length
+        part.s[idx_old]            = s_in + collimator.length + collimator.length_front + collimator.length_back
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
