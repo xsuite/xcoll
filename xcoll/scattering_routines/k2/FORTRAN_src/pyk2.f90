@@ -146,7 +146,6 @@ subroutine pyk2_track(num_particles, x_particles, xp_particles, y_particles, &
 
   npart = num_particles
   napx  = npart
-  c_ix  = idx
 
   !do j=1,npart
   !  naa(j) = aa0
@@ -171,6 +170,7 @@ subroutine pyk2_track(num_particles, x_particles, xp_particles, y_particles, &
   end do
 
   stracki = 0.
+  call coll_startElement(idx, idx)
   call coll_doCollimator(stracki)
 
   do j=1,npart

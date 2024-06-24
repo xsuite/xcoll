@@ -33,6 +33,9 @@ class K2Engine:
         self._capacity = np.int32(kwargs.get('_capacity', 50000))
         self.seed = kwargs.get('seed', None)
 
+    def __del__(self, *args, **kwargs):
+        self.stop()
+
     def _warn(self):
         if not self.instance._warning_given:
             print("Warning: Failed to import pyK2 (did you compile?).\n"
@@ -41,7 +44,7 @@ class K2Engine:
 
 
     @classmethod
-    def start(cls, line, *, seed=None, twiss=None, cwd=None, nemitt_x=None, nemitt_y=None):
+    def start(cls, line, *, seed=None, cwd=None, nemitt_x=None, nemitt_y=None):
         from ...beam_elements.k2 import _K2Collimator, _K2Crystal
         from .sixtrack_input import create_dat_file
         cls()
@@ -58,9 +61,11 @@ class K2Engine:
 
         if seed is None:
             if this._seed is None:
-                this._seed = np.int32(abs(np.random.randint(1, int(1.e16))))
+                this._seed = np.int32(np.random.randint(1, int(1.e9)))
         else:
-            this._seed = np.int32(abs(seed))
+            this._seed = np.int32(abs(np.int32(seed)))
+            if this._seed != int(seed):
+                print(f"Warning: overflow for seed {seed}.")
             # Setting a seed here does not count as manually setting it
             this._seed_set_manually = False
         print(f"Using seed {this._seed}.")
@@ -91,11 +96,6 @@ class K2Engine:
                                + "emittance. This is not supported.")
             nemitt_y = nemitt_y[0]
 
-        if twiss is None:
-            twiss = line.twiss()
-        tw = twiss.rows[names]
-        names = tw.name
-
         for i, name in enumerate(names):
             line[name]._k2_id = i + 1  # FORTRAN is 1-indexed
 
@@ -108,11 +108,20 @@ class K2Engine:
         m0       = line.particle_ref.mass0
         beta0    = line.particle_ref.beta0[0]
         gamma0   = line.particle_ref.gamma0[0]
+        alfx     = np.array([el.optics[el.align]['alfx'][0] for el in elements])
+        alfy     = np.array([el.optics[el.align]['alfy'][0] for el in elements])
+        betx     = np.array([el.optics[el.align]['betx'][0] for el in elements])
+        bety     = np.array([el.optics[el.align]['bety'][0] for el in elements])
+        x        = np.array([el.optics[el.align]['x'][0] for el in elements])
+        y        = np.array([el.optics[el.align]['y'][0] for el in elements])
+        px       = np.array([el.optics[el.align]['px'][0] for el in elements])
+        py       = np.array([el.optics[el.align]['py'][0] for el in elements])
 
-        pyk2_init(n_alloc=this._capacity, colldb_input_fname=this._file.name, random_generator_seed=this._seed, \
-                  num_coll=num_coll, alphax=tw.alfx, alphay=tw.alfy, betax=tw.betx, betay=tw.bety, \
-                  orbx=tw.x, orby=tw.y, orbxp=tw.px, orbyp=tw.py, nemitt_x=nemitt_x, nemitt_y=nemitt_y, \
-                  e_ref=e0, p_ref=p0, m_ref=m0, beta_ref=beta0, gamma_ref=gamma0)
+        pyk2_init(n_alloc=this._capacity, colldb_input_fname=this._file.name, \
+                  random_generator_seed=this._seed, num_coll=num_coll, alphax=alfx, \
+                  alphay=alfy, betax=betx, betay=bety, orbx=x, orby=y, orbxp=px, \
+                  orbyp=py, nemitt_x=nemitt_x, nemitt_y=nemitt_y, e_ref=e0, p_ref=p0, \
+                  m_ref=m0, beta_ref=beta0, gamma_ref=gamma0)
 
     @classmethod
     def stop(cls):
@@ -159,6 +168,7 @@ class K2Engine:
             self._seed_set_manually = False
         else:
             self._seed_set_manually = True
-            val = np.int32(abs(val))
+            new_val = np.int32(abs(np.int32(val)))
+            if new_val != int(val):
+                print(f"Warning: overflow for seed {val}. Using {new_val}.")
         self._seed = val
-

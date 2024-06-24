@@ -34,7 +34,7 @@ module collimation
   integer, private, save :: icoll            = 0
   integer, private, save :: ie               = 1
   integer, private, save :: iturn            = 1
-  integer, public,  save :: c_ix             = 0
+  integer, private, save :: c_ix             = 0
 
   ! Distribution
   integer,          private, save :: do_thisdis   = 0

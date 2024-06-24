@@ -12,7 +12,7 @@ def _drift(coll, particles, length):
 
 
 def track(coll, part):
-    if coll.gap is None or not coll._active or not coll._tracking:
+    if coll.gap is None or not coll.active or not coll._tracking:
         _drift(coll, part, coll.length)
         return
 
@@ -80,22 +80,19 @@ def track(coll, part):
                absorbed=absorbed)
 
     # Update particles object
-    part.add_to_energy(e_particles - part.e[:npart])
+    part.add_to_energy(e_particles - part.energy[:npart])
     rpp = part.rpp[:npart]
     part.x[:npart]  = x_particles.copy()
-    part.px[:npart] = xp_particles / rpp
+    part.px[:npart] = xp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
     part.y[:npart]  = y_particles.copy()
-    part.py[:npart] = yp_particles / rpp
+    part.py[:npart] = yp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
 
     # Masks of hit and survived particles
     mask_lost = absorbed > 0
     mask_hit  = hit > 0
     mask_not_hit = ~mask_hit
     mask_survived_hit = mask_hit & (~mask_lost)
-
-    state_out = part.state[:npart].copy()
-    state_out[mask_lost] = -339
-    part.state[:npart]   = state_out
+    part.state[mask_lost] = -339
 
     particles.reorganize()
 
