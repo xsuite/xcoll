@@ -30,6 +30,8 @@ K2Engine.start(line=line, cwd='run_1')
 part_init = xc.generate_pencil_on_collimator(line, 'tcp.d6l7.b1', num_particles, side='+')
 part = part_init.copy()
 
+xc.enable_scattering(line=line)
+
 print(np.unique(part.s))
 line['tcp.d6l7.b1'].track(part)
 print(np.unique(part.s))

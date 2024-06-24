@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import numpy as np
+
 from .engine import K2Engine
 
 
@@ -30,7 +32,7 @@ def track(coll, part):
         raise ValueError("Collimator not registered in K2Engine!")
 
     npart = part._num_active_particles
-    n_alloc = K2Engine().n_alloc
+    n_alloc = K2Engine()._capacity
     if npart > n_alloc:
         raise ValueError(f"Tracking {npart} particles but only {n_alloc} allocated!")
 
