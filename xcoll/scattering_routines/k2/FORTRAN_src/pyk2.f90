@@ -90,6 +90,10 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   !end do
   call coll_init
 
+  do j=1,num_coll
+    cdb_elemMap(j) = j
+  end do
+
 end subroutine
 
 

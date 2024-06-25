@@ -96,7 +96,7 @@ def track(coll, part):
     mask_survived_hit = mask_hit & (~mask_lost)
     part.state[mask_lost] = -339
 
-    particles.reorganize()
+    part.reorganize()
 
     # Drift to the end of the collimator (as K2 returns particles in the middle)
     _drift(coll, part, coll.length/2)
