@@ -27,7 +27,8 @@ xc.assign_optics_to_collimators(line=line)
 
 K2Engine.start(line=line, cwd='run_1')
 
-part_init = xc.generate_pencil_on_collimator(line, 'tcp.d6l7.b1', num_particles, side='+')
+# part_init = xc.generate_pencil_on_collimator(line, 'tcp.d6l7.b1', num_particles, side='+')
+part_init = line.build_particles(x=np.ones(num_particles)*1e-3)
 part = part_init.copy()
 
 xc.enable_scattering(line=line)

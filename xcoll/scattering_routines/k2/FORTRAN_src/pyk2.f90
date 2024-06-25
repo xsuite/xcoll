@@ -41,6 +41,21 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   real(kind=8),    intent(in)  :: gamma_ref
   integer(kind=4) j
 
+  ! Manually set parameters
+  do_coll = .true. ! Allow collimation
+  rnd_seed = random_generator_seed
+  cdb_fileName = colldb_input_fname
+  emitnx0_dist    = nemitt_x * c1e6  ! emittance in um in K2
+  emitny0_dist    = nemitt_y * c1e6
+  emitnx0_collgap = nemitt_x * c1e6
+  emitny0_collgap = nemitt_y * c1e6
+  nucm0 = m_ref / c1e6
+  e0 = e_ref / c1e6
+  e0f = p_ref / c1e6
+  beta0 = beta_ref
+  gamma0 = gamma_ref
+  gammar = 1./gamma0
+
   call f_initUnits
   units_beQuiet = .false. ! Allow mod_units to write to lout now
   call mod_common_expand_arrays(num_coll,1,num_coll,n_alloc,1)
@@ -49,13 +64,6 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   call mod_commond2_expand_arrays(num_coll)
   call collimation_expand_arrays(n_alloc,num_coll)
   call cdb_expand_arrays(num_coll)
-
-  nucm0 = m_ref / c1e6
-  e0 = e_ref / c1e6
-  e0f = p_ref / c1e6
-  beta0 = beta_ref
-  gamma0 = gamma_ref
-  gammar = 1./gamma0
 
   do j=1,num_coll
     ic(j) = j
@@ -80,33 +88,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   !  pairID(1,j) = (j+1)/2    ! The pairID of particle j
   !  pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
   !end do
-
-  emitnx0_dist    = nemitt_x * c1e6  ! emittance in um in K2
-  emitny0_dist    = nemitt_y * c1e6
-  emitnx0_collgap = nemitt_x * c1e6
-  emitny0_collgap = nemitt_y * c1e6
-  call collmat_init
-  cdb_fileName = colldb_input_fname
-  call cdb_readCollDB
-
-  ! Then do any implementation specific initial loading
-  call k2coll_init
-  if(coll_hasCrystal) then
-    call cry_init
-  end if
-
-  ! Open the edep file
-  if(unit208 == -1) then
-    call f_requestUnit(fort208,unit208)
-    call f_open(unit=unit208,file=fort208,formatted=.true.,mode="w",status="replace")
-  end if
-
-  rnd_seed = random_generator_seed
-
-  ! Initialize random number generator
-  !if(rnd_seed == 0) rnd_seed = time_getSysClock()
-  if(rnd_seed <  0) rnd_seed = abs(rnd_seed)
-  call rluxgo(3, rnd_seed, 0, 0)
+  call coll_init
 
 end subroutine
 

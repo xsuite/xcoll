@@ -604,7 +604,7 @@ subroutine coll_init
   ! After this, the number of slices is also stored per collimator, and can be extracted again later
   call cdb_setMasterJawFit(n_slices, smin_slices, smax_slices, recenter1, recenter2, jaw_fit, jaw_ssf)
 
-  call coll_getMinGapID(minGapID)
+!  call coll_getMinGapID(minGapID)
 
   ! if pencil beam is used and on collimator with smallest gap the
   ! distribution should be generated, set ipencil to minGapID

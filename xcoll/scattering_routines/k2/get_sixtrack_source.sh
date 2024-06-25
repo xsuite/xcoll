@@ -35,7 +35,7 @@ do
 done
 mv roundctl_CMakeLists.txt roundctl/CMakeLists.txt
 
-#sed -i 's/integer, private, save :: c_ix  /integer, public,  save :: c_ix  /g' collimation.f90
+sed -i 's/call coll_getMinGapID(minGapID)/!call coll_getMinGapID(minGapID)/g' collimation.f90
 sed -i 's/real(kind=fPrec), private, save :: emitnx0_dist    = zero/real(kind=fPrec), public, save :: emitnx0_dist    = zero/g' collimation.f90
 sed -i 's/real(kind=fPrec), private, save :: emitny0_dist    = zero/real(kind=fPrec), public, save :: emitny0_dist    = zero/g' collimation.f90
 sed -i 's/real(kind=fPrec), private, save :: emitnx0_collgap = zero/real(kind=fPrec), public, save :: emitnx0_collgap = zero/g' collimation.f90

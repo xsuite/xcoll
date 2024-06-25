@@ -18,18 +18,19 @@ cd crlibm
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS=-fPIC
+make CFLAGS='-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'
 mv libcrlibm.a ../
 cd ../roundctl
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS=-fPIC
+make CFLAGS='-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'
 mv libroundctl.a ../
 cd ..
 
 # compile fortran
-gfortran -fpic -cpp -DDOUBLE_MATH -DCRLIBM -c \
+gfortran -m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3 \
+ -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma -c \
  core_tools.f90 \
  constants.f90 \
  strings.f90 \
