@@ -50,8 +50,8 @@ def track(collimator, particles):
         raise ValueError(f"Fluka reference particle not set!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.set_particle_ref().")
 
-    if 1.4*npart > engine.n_alloc:
-        raise ValueError(f"Tracking {npart} particles but only {engine.n_alloc} allocated in "
+    if 1.4*npart > engine._capacity:
+        raise ValueError(f"Tracking {npart} particles but only {engine._capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
 
     FlukaEngine.init_tracking(npart)
@@ -77,33 +77,35 @@ def track(collimator, particles):
 
     drift_6d(particles, -collimator.length_front)
     # FLUKA collimators are centered; need to shift
-    dx = collimator.co[1][0]
-    dy = collimator.co[1][1]
-    particles.x -= dx
-    particles.y -= dy
+    if collimator.co is not None:
+        dx = collimator.co[1][0]
+        dy = collimator.co[1][1]
+        particles.x -= dx
+        particles.y -= dy
     track_core(collimator, particles)
-    particles.x += dx
-    particles.y += dy
+    if collimator.co is not None:
+        particles.x += dx
+        particles.y += dy
     drift_6d(particles, -collimator.length_back)
 
 
 def _expand(arr, dtype=float):
     from .engine import FlukaEngine
-    max_part = FlukaEngine().instance.n_alloc
+    max_part = FlukaEngine.instance._capacity
     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
 
 
 def track_core(collimator, part):
     npart = part._num_active_particles
     from .engine import FlukaEngine
-    engine = FlukaEngine().instance
+    engine = FlukaEngine.instance
     try:
         from .pyflukaf import track_fluka
     except ImportError as error:
         engine._warn_pyfluka(error)
         return
 
-    max_part       = engine.n_alloc
+    max_part       = engine._capacity
     alive_at_entry = part.state > 0
     max_id         = part.particle_id[alive_at_entry].max()
     assert alive_at_entry.sum() == npart

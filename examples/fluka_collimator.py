@@ -12,21 +12,17 @@ import xcoll as xc
 import time
 
 
-# Start rfluka and flukaserver and make the connection, based on
-# the input files in this folder (lhc_run3_30cm.inp and insertion.txt)
-# The value in insertion.txt is the value to be used for inactive_front/back each
-xc.FlukaEngine.start_server("lhc_run3_30cm.inp", fluka_ids={'tcp.c6l7.b1': 31}, n_alloc=21000)
+_capacity = 20000
+
+coll = xc.FlukaCollimator(length=0.753)
+coll.jaw = 0.001
+coll.gap = 1  # STUB, needed to make FLUKAbuilder succeed but so far no clue why
 
 
-# Create a FlukaCollimator beam element (ID 31 is the TCP.C6L7.B1 as
-# defined by the input files; the length is the active_length + the value in insertion.txt)
-coll = xc.FlukaCollimator(fluka_id=31, length=1.48200)
-
-
-# Set a reference particle
-particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=7e12)
-xc.FlukaEngine().set_particle_ref(particle_ref)
-
+# Connect to FLUKA
+xc.FlukaEngine.start(elements=coll, names='tcp.c6l7.b1', debug_level=1, _capacity=_capacity)
+particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
 
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
@@ -35,7 +31,8 @@ x_init   = np.random.normal(loc=1.288e-3, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref, _capacity=20000)
+part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref,
+                          _capacity=_capacity)
 
 
 # Do the tracking
@@ -45,4 +42,4 @@ print(f"Tracking {num_part} particles took {round(time.time()-start,1)}s")
 
 
 # Stop the FLUKA server
-xc.FlukaEngine.stop_server()
+xc.FlukaEngine.stop()

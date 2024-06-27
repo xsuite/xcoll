@@ -4,6 +4,7 @@
 # ######################################### #
 
 import os
+import time
 import numpy as np
 from subprocess import run, PIPE, Popen
 from pathlib import Path
@@ -29,7 +30,7 @@ server_log = "rfluka.log"
 class FlukaEngine(xo.HybridClass):
     _xofields = {
         'network_port':    xo.Int64,
-        'n_alloc':         xo.Int64,
+        '_capacity':         xo.Int64,
         'timeout_sec':     xo.Int32,
         'particle_ref':    xp.Particles,
         'max_particle_id': xo.Int64,
@@ -48,7 +49,7 @@ class FlukaEngine(xo.HybridClass):
         return cls.instance
 
     def __del__(self, *args, **kwargs):
-        self.stop_server(warn=False)
+        self.stop(warn=False)
 
     def __init__(self, fluka=None, flukaserver=None, verbose=None, testing=False, **kwargs):
         # Apply init variables
@@ -96,7 +97,7 @@ class FlukaEngine(xo.HybridClass):
             self._insertion = {}
             self._collimator_dict = {}
             kwargs.setdefault('network_port', 0)
-            kwargs.setdefault('n_alloc', 5000)
+            kwargs.setdefault('_capacity', 5000)
             kwargs.setdefault('timeout_sec', 36000) # 10 hours
             kwargs.setdefault('particle_ref', xp.Particles())
             kwargs.setdefault('max_particle_id', 0)
@@ -145,11 +146,11 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def start_server(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None,
-                     prototypes_file=None, include_files=None, debug_level=0, **kwargs):
+    def start(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None,
+              prototypes_file=None, include_files=None, debug_level=0,
+              reference_particle=None, p0c=None, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
-        from ...beam_elements import FlukaCollimator
 
         cls(**kwargs)
         this = cls.instance
@@ -168,18 +169,16 @@ class FlukaEngine(xo.HybridClass):
         if prototypes_file is not None:
             prototypes_file = Path(prototypes_file).resolve()
         if cwd is not None:
-            cwd = Path(cwd).resolve()
-            cwd.mkdir(parents=True, exist_ok=True)
-            this._old_cwd = Path.cwd()
-            os.chdir(cwd)
+            cwd = Path(cwd).expanduser().resolve()
         else:
-            cwd = Path.cwd()
+            cwd = Path.cwd() / f'fluka_run_{int(time.time())-1710000000}'
         this._cwd = cwd
+        cwd.mkdir(parents=True, exist_ok=True)
+        this._old_cwd = Path.cwd()
+        os.chdir(cwd)
 
 
         if input_file is None:
-            if line is None:
-                raise ValueError("Need to provide an input file or a line to create it from.")
             if prototypes_file is None:
                 print("Using default prototypes file.")
                 prototypes_file = _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'prototypes.lbp'
@@ -193,7 +192,8 @@ class FlukaEngine(xo.HybridClass):
             if prototypes_file.parent != Path.cwd():
                 shutil.copy(prototypes_file, Path.cwd())
                 prototypes_file = Path.cwd() / prototypes_file.name
-            input_file = create_fluka_input(line, prototypes_file=prototypes_file,
+            input_file = create_fluka_input(line=line, elements=elements, names=names,
+                                            prototypes_file=prototypes_file,
                                             include_files=include_files)
         if not input_file.exists():
             raise ValueError(f"Input file {input_file.as_posix()} not found!")
@@ -211,26 +211,33 @@ class FlukaEngine(xo.HybridClass):
 
         try:
             from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=this.n_alloc, debug_level=debug_level)
+            pyfluka_init(n_alloc=this._capacity, debug_level=debug_level)
         except ImportError as error:
             this._warn_pyfluka(error)
-            this._stop_server(warn=False)
+            this._stop(warn=False)
             return
 
         # Match collimators
         collimator_dict = get_collimators_from_input_file(input_file)
         this._collimator_dict = collimator_dict
         verify_insertion_file(insertion_file, collimator_dict)
-        if line is None:
-            if elements is None or names is None:
-                raise ValueError("Need to provide either `line` or `elements` and `names`.")
-        else:
-            elements, names = line.get_elements_of_type(FlukaCollimator)
-        this._match_collimators_to_engine(elements, names)
+        this._match_collimators_to_engine(line=line, elements=elements, names=names)
 
         # Set reference particle
         if not this._has_particle_ref():
-            if line is not None:
+            if reference_particle is not None:
+                if isinstance(reference_particle, xp.Particles):
+                    if reference_particle.pdg_id == 0:
+                        raise ValueError("The given `reference_particle` has no valid pdg_id!")
+                    this.set_particle_ref(particle_ref=reference_particle)
+                elif p0c is not None:
+                    this.set_particle_ref(particle_ref=xp.Particles.reference_from_pdg_id(
+                                          reference_particle, p0c=p0c))
+                else:
+                    raise ValueError("When providing `reference_particle`, it should be an "
+                                     "xp.Particles object or a PDG ID. In the latter case, "
+                                     "provide `p0c` as well.")
+            elif line is not None:
                 if line.particle_ref is None:
                     print("The given line has no reference particle. Don't forget to set it later.")
                 else:
@@ -286,7 +293,7 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def stop_server(cls, warn=True, **kwargs):
+    def stop(cls, warn=True, **kwargs):
         cls(**kwargs)
         this = cls.instance
         # Stop flukaio connection
@@ -326,7 +333,7 @@ class FlukaEngine(xo.HybridClass):
         this = cls.instance
         # Is the Popen process still running?
         if this._server_process is None or this._server_process.poll() is not None:
-            this.stop_server()
+            this.stop()
             return False
         # Get username (need a whoami for the next command)
         cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
@@ -345,7 +352,7 @@ class FlukaEngine(xo.HybridClass):
         processes = [proc for proc in processes if 'rfluka' in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
-            this.stop_server()
+            this.stop()
             return False
         elif len(processes) == 1 and str(this.server_pid) in processes[0] and 'defunct' not in processes[0]:
             return True
@@ -354,7 +361,7 @@ class FlukaEngine(xo.HybridClass):
             return True
         else:
             print("Warning: Found other instances of rfluka but not the current one!", flush=True)
-            this.stop_server()
+            this.stop()
             return False
 
 
@@ -384,7 +391,13 @@ class FlukaEngine(xo.HybridClass):
                         f.unlink()
 
 
-    def _match_collimators_to_engine(self, elements, names):
+    def _match_collimators_to_engine(self, *, line=None, elements=None, names=None):
+        from ...beam_elements import FlukaCollimator
+        if line is None:
+            if elements is None or names is None:
+                raise ValueError("Need to provide either `line` or `elements` and `names`.")
+        else:
+            elements, names = line.get_elements_of_type(FlukaCollimator)
         if not hasattr(elements, '__iter__') or isinstance(elements, str):
             elements = [elements]
         if not hasattr(names, '__iter__') or isinstance(names, str):
