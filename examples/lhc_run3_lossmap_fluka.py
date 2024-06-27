@@ -52,8 +52,7 @@ xc.assign_optics_to_collimators(line=line)
 
 
 # Connect to FLUKA
-xc.FlukaEngine.start_server(line=line, input_file=path_in / "fluka_data" / "lhc_run3_30cm.inp",
-                            n_alloc=2*num_particles, cwd='fluka_temp', debug_level=1)
+xc.FlukaEngine.start(line=line, _capacity=2*num_particles, cwd='run_fluka_temp', debug_level=1)
 particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref, line=line)
 
@@ -68,6 +67,10 @@ xc.enable_scattering(line)  # TODO: this should start the flukaserver if not alr
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 xc.disable_scattering(line)
 print(f"Done tracking in {line.time_last_track:.1f}s.")
+
+
+# Stop the FLUKA connection (and return to the previous directory)
+xc.FlukaEngine.stop()
 
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),

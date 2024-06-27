@@ -42,9 +42,9 @@ def _fluka_builder(elements, names):
 
     collimator_dict = {}
     for ee, name in zip(elements, names):
+        nsig = OPEN_GAP
         if ee.side == 'left':
             if ee.jaw_L is None:
-                nsig = OPEN_GAP
                 half_gap = OPEN_JAW
             else:
                 nsig = ee.gap_L
@@ -54,7 +54,6 @@ def _fluka_builder(elements, names):
             tilt_2 = 0
         elif ee.side == 'right':
             if ee.jaw_R is None:
-                nsig = OPEN_GAP
                 half_gap = OPEN_JAW
             else:
                 nsig = ee.gap_R
@@ -64,11 +63,13 @@ def _fluka_builder(elements, names):
             tilt_2 = ee.tilt_R
         else:
             if ee.jaw_L is None and ee.jaw_R is None:
-                nsig = OPEN_GAP
                 half_gap = OPEN_JAW
                 offset = 0
             else:
-                nsig = ee.gap_L if ee.gap_L is not None else ee.gap_R
+                if ee.gap_L is not None:
+                    nsig = ee.gap_L
+                elif ee.gap_R is not None:
+                    nsig = ee.gap_R
                 half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = ee.tilt_L
@@ -122,8 +123,19 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         fp.write("\n".join(header) + "\n*\n" + data)
 
 
-def create_fluka_input(line, prototypes_file, include_files, *, filename=None, cwd=None):
-    elements, names = line.get_elements_of_type(FlukaCollimator)
+def create_fluka_input(prototypes_file, include_files, *, line=None, elements=None, names=None,
+                       filename=None, cwd=None):
+    if elements is None or names is None:
+        if line is None:
+            raise ValueError("Need to provide either `line` or `elements` and `names`.")
+        elements, names = line.get_elements_of_type(FlukaCollimator)
+    elif line is not None:
+        print("Warning: `line` is provided. `elements` and `names` will be used.")
+    if not hasattr(elements, '__iter__') or isinstance(elements, str):
+        elements = [elements]
+    if not hasattr(names, '__iter__') or isinstance(names, str):
+        names = [names]
+    assert len(elements) == len(names)
     if len(elements) == 0:
         raise ValueError('No FlukaCollimator elements found in line!')
     prototypes_file = Path(prototypes_file).resolve()
@@ -141,16 +153,17 @@ def create_fluka_input(line, prototypes_file, include_files, *, filename=None, c
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in include_files]:
             include_files.append(ff)
+
+    # Change to the directory of the input file
+    if filename is not None:
+        filename = Path(filename).expanduser().resolve().with_suffix('.inp')
+        if cwd is None:
+            cwd = filename.parent
     if cwd is None:
         cwd = Path.cwd()
-    else:
-        cwd = Path(cwd).resolve()
-        cwd.mkdir(parents=True, exist_ok=True)
-    # Change to temp directory
+    cwd.mkdir(parents=True, exist_ok=True)
     prev_cwd = Path.cwd()
-    tempdir = cwd / 'temp_fluka_input'
-    tempdir.mkdir(parents=True, exist_ok=True)
-    os.chdir(tempdir)
+    os.chdir(cwd)
     shutil.copy(prototypes_file, Path.cwd() / 'prototypes.lbp')
     for ff in include_files:
         shutil.copy(ff, Path.cwd() / ff.name)
