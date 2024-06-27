@@ -166,6 +166,8 @@ class FlukaEngine(xo.HybridClass):
         # Check files
         if input_file is not None:
             input_file = Path(input_file).resolve()
+        if prototypes_file is not None:
+            prototypes_file = Path(prototypes_file).resolve()
         if cwd is not None:
             cwd = Path(cwd).expanduser().resolve()
         else:
@@ -174,6 +176,7 @@ class FlukaEngine(xo.HybridClass):
         cwd.mkdir(parents=True, exist_ok=True)
         this._old_cwd = Path.cwd()
         os.chdir(cwd)
+
 
         if input_file is None:
             if prototypes_file is None:
@@ -186,6 +189,9 @@ class FlukaEngine(xo.HybridClass):
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
                 ]
+            if prototypes_file.parent != Path.cwd():
+                shutil.copy(prototypes_file, Path.cwd())
+                prototypes_file = Path.cwd() / prototypes_file.name
             input_file = create_fluka_input(line=line, elements=elements, names=names,
                                             prototypes_file=prototypes_file,
                                             include_files=include_files)
