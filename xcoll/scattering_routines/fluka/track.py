@@ -9,29 +9,20 @@ import xpart.pdg as pdg
 import xobjects as xo
 
 
-def drift_6d(particles, length):
-    npart = particles._num_active_particles
-    rpp = particles.rpp[:npart]
-    xp = particles.px[:npart] * rpp
-    yp = particles.py[:npart] * rpp
-    dzeta = particles.rvv[:npart] - ( 1 + ( xp*xp + yp*yp ) / 2 )
-    particles.x[:npart] += xp * length
-    particles.y[:npart] += yp * length
-    particles.s[:npart] += length
-    particles.zeta[:npart] += dzeta*length
-    return
+def _drift(coll, particles, length):
+    coll._equivalent_drift.length = length
+    coll._equivalent_drift.track(particles)
 
-
-def track(collimator, particles):
+def track(coll, particles):
     from ...beam_elements import FlukaCollimator
-    if not isinstance(collimator, FlukaCollimator):
+    if not isinstance(coll, FlukaCollimator):
         raise ValueError("Collimator is not a FlukaCollimator!\nCannot use fluka to track.")
 
-    if not collimator._frozen:
+    if not coll._frozen:
         raise ValueError("FlukaCollimator is not frozen!\nSomething is wrong.")
 
-    if not collimator.active or not collimator._tracking:
-        drift_6d(particles, collimator.length)
+    if not coll.active or not coll._tracking:
+        _drift(coll, particles, coll.length)
         return
 
     npart = particles._num_active_particles
@@ -75,18 +66,18 @@ def track(collimator, particles):
     if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
         raise ValueError("Some particles are missing the pdg_id!")
 
-    drift_6d(particles, -collimator.length_front)
+    _drift(coll, particles, -coll.length_front)
     # FLUKA collimators are centered; need to shift
-    if collimator.co is not None:
-        dx = collimator.co[1][0]
-        dy = collimator.co[1][1]
+    if coll.co is not None:
+        dx = coll.co[1][0]
+        dy = coll.co[1][1]
         particles.x -= dx
         particles.y -= dy
-    track_core(collimator, particles)
-    if collimator.co is not None:
+    track_core(coll, particles)
+    if coll.co is not None:
         particles.x += dx
         particles.y += dy
-    drift_6d(particles, -collimator.length_back)
+    _drift(coll, particles, -coll.length_back)
 
 
 def _expand(arr, dtype=float):
@@ -95,7 +86,7 @@ def _expand(arr, dtype=float):
     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
 
 
-def track_core(collimator, part):
+def track_core(coll, part):
     npart = part._num_active_particles
     from .engine import FlukaEngine
     engine = FlukaEngine.instance
@@ -155,8 +146,8 @@ def track_core(collimator, part):
 
     # send to fluka
     track_fluka(turn=turn_in+1,                # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
-                fluka_id=collimator.fluka_id,
-                length=collimator.length + collimator.length_front + collimator.length_back,
+                fluka_id=coll.fluka_id,
+                length=coll.length + coll.length_front + coll.length_back,
                 part_p0c=part.p0c[0],
                 part_e0=part.energy0[0],
                 alive_part=npart,
@@ -233,7 +224,7 @@ def track_core(collimator, part):
                                                * part.mass0 / part.q0
         part.pdg_id[idx_old]       = data['pdg_id'][:npart][mask_existing]
         part.weight[idx_old]       = data['weight'][:npart][mask_existing]
-        part.s[idx_old]            = s_in + collimator.length + collimator.length_front + collimator.length_back
+        part.s[idx_old]            = s_in + coll.length + coll.length_front + coll.length_back
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
@@ -277,7 +268,7 @@ def track_core(collimator, part):
                 p0c = part.p0c[0],
                 mass0 = part.mass0,
                 q0 = part.q0,
-                s = s_in + collimator.length,
+                s = s_in + coll.length + coll.length_front + coll.length_back,
                 x = data['x'][:npart][mask_new] / 1000.,
                 px = data['xp'][:npart][mask_new] / rpp / 1000.,
                 y = data['y'][:npart][mask_new] / 1000.,

@@ -147,7 +147,7 @@ class FlukaEngine(xo.HybridClass):
 
     @classmethod
     def start(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None,
-              prototypes_file=None, include_files=None, debug_level=0,
+              prototypes_file=None, include_files=None, debug_level=0, touches=True,
               reference_particle=None, p0c=None, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
@@ -177,7 +177,7 @@ class FlukaEngine(xo.HybridClass):
         this._old_cwd = Path.cwd()
         os.chdir(cwd)
 
-
+        # Create input file
         if input_file is None:
             if prototypes_file is None:
                 print("Using default prototypes file.")
@@ -189,9 +189,6 @@ class FlukaEngine(xo.HybridClass):
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
                 ]
-            if prototypes_file.parent != Path.cwd():
-                shutil.copy(prototypes_file, Path.cwd())
-                prototypes_file = Path.cwd() / prototypes_file.name
             input_file = create_fluka_input(line=line, elements=elements, names=names,
                                             prototypes_file=prototypes_file,
                                             include_files=include_files)
@@ -201,12 +198,32 @@ class FlukaEngine(xo.HybridClass):
             shutil.copy(input_file, Path.cwd())
             input_file = Path.cwd() / input_file.name
         this._input_file = input_file
+
+        # Check insertion file
         insertion_file = input_file.parent / "insertion.txt"
         if not insertion_file.exists():
             raise ValueError(f"Insertion file {insertion_file} not found!")
         if insertion_file.parent != Path.cwd():
             shutil.copy(insertion_file, Path.cwd())
             insertion_file = Path.cwd() / insertion_file.name
+
+        # Match collimators
+        collimator_dict = get_collimators_from_input_file(input_file)
+        this._collimator_dict = collimator_dict
+        verify_insertion_file(insertion_file, collimator_dict)
+        this._match_collimators_to_engine(line=line, elements=elements, names=names)
+
+        # Create touches file
+        if touches is True:
+            touches = Path('relcol.dat').resolve()
+            with touches.open('w') as fid:
+                fid.write(f'{len(this._collimator_dict.keys())}\n')
+                for _, el in this._collimator_dict.items():
+                    fid.write(f'{el["fluka_id"]} ')
+        elif touches is not None or touches is not False:
+            raise NotImplementedError("Only True or False are allowed for `touches` for now.")
+        # relcol.dat: first line is the number of collimators, second line is the IDs (no newline at end)
+
         cls.clean_output_files()
 
         try:
@@ -216,12 +233,6 @@ class FlukaEngine(xo.HybridClass):
             this._warn_pyfluka(error)
             this._stop(warn=False)
             return
-
-        # Match collimators
-        collimator_dict = get_collimators_from_input_file(input_file)
-        this._collimator_dict = collimator_dict
-        verify_insertion_file(insertion_file, collimator_dict)
-        this._match_collimators_to_engine(line=line, elements=elements, names=names)
 
         # Set reference particle
         if not this._has_particle_ref():

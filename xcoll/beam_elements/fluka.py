@@ -45,6 +45,8 @@ class FlukaCollimator(BaseCollimator):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
+        if not hasattr(self, '_equivalent_drift'):
+            self._equivalent_drift = xt.Drift(length=self.length)
 
     def track(self, part):
         track(self, part)
@@ -67,72 +69,6 @@ class FlukaCollimator(BaseCollimator):
 
 
     def __setattribute__(self, name, value):
-        # if name in ['gap', 'gap_L', 'gap_R', 'jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'tilt', 'tilt_L', 'tilt_R']:
         if FlukaEngine.is_running():
             raise ValueError('Engine is running; FlukaCollimator is frozen.')
         super().__setattribute__(name, value)
-
-    # @BaseCollimator.gap.setter
-    # def gap(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support gap changes')
-
-    # @BaseCollimator.gap_L.setter
-    # def gap_L(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support gap changes')
-
-    # @BaseCollimator.gap_R.setter
-    # def gap_R(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support gap changes')
-
-    # @BaseCollimator.jaw.setter
-    # def jaw(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_L.setter
-    # def jaw_L(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_R.setter
-    # def jaw_R(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_LU.setter
-    # def jaw_LU(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_LD.setter
-    # def jaw_LD(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_RU.setter
-    # def jaw_RU(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.jaw_RD.setter
-    # def jaw_RD(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support jaw changes')
-
-    # @BaseCollimator.tilt.setter
-    # def tilt(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support tilt changes')
-
-    # @BaseCollimator.tilt_L.setter
-    # def tilt_L(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support tilt changes')
-
-    # @BaseCollimator.tilt_R.setter
-    # def tilt_R(self, value):
-    #     if FlukaEngine.is_running():
-    #         raise ValueError('Fluka collimators do not support tilt changes')
