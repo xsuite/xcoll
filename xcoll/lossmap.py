@@ -12,7 +12,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from .beam_elements import collimator_classes, _all_collimator_classes, _K2Collimator
+from .beam_elements import _all_collimator_classes, _all_crystal_classes
 
 
 class LossMap:
@@ -114,7 +114,7 @@ class LossMap:
     def _correct_absorbed(self, verbose=True):
         # Correct particles that are at an aperture directly after a collimator
         part = self._part
-        coll_classes = list(set(collimator_classes) + (_K2Collimator) - set(crystal_classes))
+        coll_classes = list(set(_all_collimator_classes) - set(_all_crystal_classes))
         coll_elements = self._line.get_elements_of_type(coll_classes)[1]
         for idx, elem in enumerate(part.at_element):
             if part.state[idx] == 0:

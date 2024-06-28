@@ -258,7 +258,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def angle_R(self):
-        return round(np.rad2deg(np.arctan2(self._sin_zL, self._cos_zL)), 10)
+        return round(np.rad2deg(np.arctan2(self._sin_zR, self._cos_zR)), 10)
 
     @angle_R.setter
     def angle_R(self, angle_R):
