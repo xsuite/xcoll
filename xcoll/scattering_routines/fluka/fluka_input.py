@@ -185,6 +185,13 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     for name,ee in zip(names, elements):
         collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
         collimator_dict[name]['length'] /= 100
+    # Delete prototypes and include files to avoid confusion
+    if prototypes_file.parent != Path.cwd():
+        (Path.cwd() / 'prototypes.lbp').unlink()
+    for ff in include_files:
+        if ff.parent != Path.cwd():
+            (Path.cwd() / ff.name).unlink()
+    # Return to previous directory
     os.chdir(prev_cwd)
     if filename is None:
         filename = input_file.name

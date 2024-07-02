@@ -18,6 +18,8 @@ coll = xc.FlukaCollimator(length=0.753)
 coll.jaw = 0.001
 coll.gap = 1  # STUB, needed to make FLUKAbuilder succeed but so far no clue why
 
+print(coll.to_dict())
+
 
 # Connect to FLUKA
 xc.FlukaEngine.start(elements=coll, names='tcp.c6l7.b1', debug_level=1, _capacity=_capacity)
@@ -27,12 +29,13 @@ xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
 # Create an initial distribution of particles, random in 4D (with the
 # longitudinal coordinates set to zero)
 num_part = int(10000)
-x_init   = np.random.normal(loc=1.288e-3, scale=0.2e-3, size=num_part)
+x_init   = np.random.normal(loc=0, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref,
+part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref,
                           _capacity=_capacity)
+part = part_init.copy()
 
 
 # Do the tracking
@@ -43,3 +46,9 @@ print(f"Tracking {num_part} particles took {round(time.time()-start,1)}s")
 
 # Stop the FLUKA server
 xc.FlukaEngine.stop()
+
+mask = part.state > -9999999
+parents = part.parent_particle_id[mask]
+print(parents)
+part_init.particle_id[parents]
+print(sorted(np.unique((part.x[mask] - part_init.x[parents])/part_init.kin_xprime[parents])))

@@ -33,8 +33,8 @@ def track(coll, particles):
     from .engine import FlukaEngine
     engine = FlukaEngine().instance
     if not engine._flukaio_connected:
-        raise ValueError(f"Fluka server not yet running!\nPlease do this first, by calling "
-                       + f"xcoll.FlukaEngine.start_server(fluka_input_file.inp). "
+        raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
+                       + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "
                        + f"(id: {id(engine)})")
 
     if not engine._has_particle_ref:
@@ -55,7 +55,7 @@ def track(coll, particles):
                        + f"somewhere else than FLUKA.\nIn that case, call "
                        + f"xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
                        + f"with a value large enough to accommodate secondaries outside of FLUKA.\n"
-                       + f"In any case, please stop and restart the FLUKA server now.")
+                       + f"In any case, please stop and restart the FlukaEngine now.")
 
     if abs(particles.mass0 - engine.particle_ref.mass0) > 1e-3:
         raise ValueError("Error in reference mass of `particles`: not in sync with FLUKA reference particle!\n"

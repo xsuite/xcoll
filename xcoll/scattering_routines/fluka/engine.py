@@ -465,10 +465,11 @@ class FlukaEngine(xo.HybridClass):
             except ImportError as error:
                 this._warn_pyfluka(error)
                 return
+            print(f"Setting max_particle_id to {max_particle_id}, "
+                + f"and reference particle to {name} with mass {m0}MeV "
+                + f"and energy {E0}MeV.", flush=True)
             pyfluka_init_max_uid(max_particle_id)
             pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
-            print(f"Set max_particle_id to {max_particle_id}, "
-                + f"and reference particle to {name} with mass {m0}MeV and energy {E0}MeV.")
             this.max_particle_id = max_particle_id
             this._tracking_initialised = True
 
