@@ -49,12 +49,13 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   emitny0_dist    = nemitt_y * c1e6
   emitnx0_collgap = nemitt_x * c1e6
   emitny0_collgap = nemitt_y * c1e6
-  nucm0 = m_ref / c1e6
-  e0 = e_ref / c1e6
-  e0f = p_ref / c1e6
-  beta0 = beta_ref
+  nucm0  = m_ref / c1e6
+  e0     = e_ref / c1e6
+  e0f    = p_ref / c1e6
+  beta0  = beta_ref
   gamma0 = gamma_ref
   gammar = 1./gamma0
+  c_enom = e0
 
   call f_initUnits
   units_beQuiet = .false. ! Allow mod_units to write to lout now
@@ -64,6 +65,10 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   call mod_commond2_expand_arrays(num_coll)
   call collimation_expand_arrays(n_alloc,num_coll)
   call cdb_expand_arrays(num_coll)
+
+  do j=1,num_coll
+    cdb_elemMap(j) = j
+  end do
 
   do j=1,num_coll
     ic(j) = j
@@ -78,7 +83,7 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   end do
 
   !call alloc(naa, n_alloc, aa0, "naa")
-  !call alloc(partID, n_alloc, 0, "partID")
+  call alloc(partID, n_alloc, 0, "partID")
   !call alloc(parentID, n_alloc, 0, "parentID")
   !call alloc(pairID, 2, n_alloc, 0, "pairID")
   !do j=1,n_alloc
@@ -89,10 +94,6 @@ subroutine pyk2_init(n_alloc, colldb_input_fname, random_generator_seed, num_col
   !  pairID(2,j) = 2-mod(j,2) ! Either particle 1 or 2 of the pair
   !end do
   call coll_init
-
-  do j=1,num_coll
-    cdb_elemMap(j) = j
-  end do
 
 end subroutine
 
@@ -153,6 +154,10 @@ subroutine pyk2_track(num_particles, x_particles, xp_particles, y_particles, &
     oidpsv(j) = rpp_particles(j)
     nucm(j)   = nucm0
     mtc(j)    = 1
+    part_hit_pos(j)  = 0.
+    part_abs_pos(j)  = 0.
+    part_hit_turn(j) = 0.
+    part_abs_turn(j) = 0.
   end do
 
   stracki = 0.
