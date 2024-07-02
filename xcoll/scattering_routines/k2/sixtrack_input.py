@@ -43,7 +43,7 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
             angle = el.angle
             # SixTrack offset is wrt. closed orbit
             if el.side == 'both':
-                offset = np.round(abs((el.jaw_L + el.jaw_R))/2 - orbit, 9) + 0 # adding 0 to avoid -0 output
+                offset = np.round((el.jaw_L + el.jaw_R)/2 - orbit, 9) + 0 # adding 0 to avoid -0 output
             elif el.side == 'left':
                 offset = 0.
                 onesided.append(name)
