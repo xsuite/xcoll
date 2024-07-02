@@ -1,10 +1,11 @@
-import json
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import numpy as np
-import pandas as pd
-from pathlib import Path
 import matplotlib.pyplot as plt
-import xobjects as xo
-import xpart as xp
+
 import xtrack as xt
 import xcoll as xc
 from xcoll.scattering_routines.k2 import K2Engine
