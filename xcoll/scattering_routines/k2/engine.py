@@ -44,10 +44,10 @@ class K2Engine:
 
 
     @classmethod
-    def start(cls, line, *, seed=None, cwd=None, nemitt_x=None, nemitt_y=None):
+    def start(cls, line, *, seed=None, cwd=None, nemitt_x=None, nemitt_y=None, **kwargs):
         from ...beam_elements.k2 import _K2Collimator, _K2Crystal
         from .sixtrack_input import create_dat_file
-        cls()
+        cls(**kwargs)
         this = cls.instance
 
         try:
