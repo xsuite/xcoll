@@ -220,7 +220,7 @@ class FlukaEngine(xo.HybridClass):
                 fid.write(f'{len(this._collimator_dict.keys())}\n')
                 for _, el in this._collimator_dict.items():
                     fid.write(f'{el["fluka_id"]} ')
-        elif touches is not None or touches is not False:
+        elif touches is not None and touches is not False:
             raise NotImplementedError("Only True or False are allowed for `touches` for now.")
         # relcol.dat: first line is the number of collimators, second line is the IDs (no newline at end)
 
@@ -231,7 +231,7 @@ class FlukaEngine(xo.HybridClass):
             pyfluka_init(n_alloc=this._capacity, debug_level=debug_level)
         except ImportError as error:
             this._warn_pyfluka(error)
-            this._stop(warn=False)
+            this.stop(warn=False)
             return
 
         # Set reference particle
