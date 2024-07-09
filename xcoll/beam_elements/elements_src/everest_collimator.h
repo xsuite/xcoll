@@ -9,6 +9,21 @@
 #include <stdio.h>
 
 
+/*gpufun*/
+int8_t EverestCollimatorData_get_record_impacts(EverestCollimatorData el){
+    return EverestCollimatorData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCollimatorData_get_record_exits(EverestCollimatorData el){
+    return (EverestCollimatorData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCollimatorData_get_record_scatterings(EverestCollimatorData el){
+    return (EverestCollimatorData_get__record_interactions(el) >> 2) % 2;
+}
+
 void EverestCollimator_set_material(EverestCollimatorData el){
     MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
@@ -55,10 +70,12 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
         // Impact table
         cg->record = EverestCollimatorData_getp_internal_record(el, part0);
         cg->record_index = NULL;
-        cg->record_touches = 0;
+        cg->record_impacts = 0;
+        cg->record_exits = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = EverestCollimatorData_get_record_touches(el);
+            cg->record_impacts = EverestCollimatorData_get_record_impacts(el);
+            cg->record_exits = EverestCollimatorData_get_record_exits(el);
         }
     }
 
@@ -106,7 +123,6 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
             coll->record_scatterings = EverestCollimatorData_get_record_scatterings(el);
-            coll->record_touches = EverestCollimatorData_get_record_touches(el);
         }
     }
 

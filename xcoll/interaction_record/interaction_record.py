@@ -59,7 +59,7 @@ class InteractionRecord(xt.BeamElement):
 
 
     @classmethod
-    def start(cls, *, line=None, elements=None, names=None, record_touches=None,
+    def start(cls, *, line=None, elements=None, names=None, record_impacts=None, record_exits=None,
               record_scatterings=None, capacity=1e6, io_buffer=None, coll_ids=None):
         elements, names = _get_xcoll_elements(line, elements, names)
         if len(names) == 0:
@@ -75,18 +75,23 @@ class InteractionRecord(xt.BeamElement):
             io_buffer = line.tracker.io_buffer
         if capacity > io_buffer.capacity:
             io_buffer.grow(capacity - io_buffer.capacity)
-        if record_touches is None and record_scatterings is None:
-            record_touches = True
+        if record_impacts is None and record_scatterings is None:
+            record_impacts = True
             record_scatterings = True
-        elif record_touches is None:
-            record_touches = not record_scatterings
+        elif record_impacts is None:
+            record_impacts = not record_scatterings
         elif record_scatterings is None:
-            record_scatterings = not record_touches
-        assert record_touches is True or record_touches is False
+            record_scatterings = not record_impacts
+        if record_exits is None:
+            # record_exits is the same as record_impacts unless explicitly set
+            record_exits = record_impacts
+        assert record_impacts is True or record_impacts is False
+        assert record_exits is True or record_exits is False
         assert record_scatterings is True or record_scatterings is False
         for el in elements:
-            if not el.record_touches and not el.record_scatterings:
-                el.record_touches = record_touches
+            if not el.record_impacts and not el.record_exits and not el.record_scatterings:
+                el.record_impacts = record_impacts
+                el.record_exits = record_exits
                 el.record_scatterings = record_scatterings
         record = xt.start_internal_logging(io_buffer=io_buffer, capacity=capacity, \
                                            elements=elements)
@@ -165,9 +170,9 @@ class InteractionRecord(xt.BeamElement):
         record_start = _get_xcoll_elements(self.line, val)
         self.stop(set(self.recording_elements) - set(record_start))
         elements = [self.line[name] for name in record_start]
-        for el in elements:
-            if not el.record_touches and not el.record_scatterings:
-                el.record_touches = True
+        for el in elements:  # TODO: this should be smarter
+            if not el.record_impacts and not el.record_scatterings:
+                el.record_impacts = True
                 el.record_scatterings = True
         xt.start_internal_logging(io_buffer=self.io_buffer, capacity=self.capacity, \
                                   record=self, elements=elements)
