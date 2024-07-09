@@ -590,7 +590,7 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
-        from xcoll import _all_collimator_classes
+        from xcoll.beam_elements import _all_collimator_classes
         if not isinstance(self, _all_collimator_classes):
             raise ValueError("Please install collimator before assigning optics.")
         if nemitt_x is None:
@@ -1005,8 +1005,8 @@ class BaseCrystal(BaseBlock):
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = False
 
-    _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
-    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
                          'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
