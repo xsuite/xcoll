@@ -17,3 +17,6 @@ collimator_classes = tuple(v for v in globals().values()
 crystal_classes = tuple(v for v in globals().values()
                         if isinstance(v, type) and issubclass(v, BaseCrystal) and v != BaseCrystal)
 element_classes = block_classes + collimator_classes
+
+_all_collimator_classes = collimator_classes
+_all_crystal_classes    = crystal_classes

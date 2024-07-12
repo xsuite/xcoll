@@ -9,6 +9,22 @@
 #include <stdio.h>
 
 
+/*gpufun*/
+int8_t EverestCrystalData_get_record_impacts(EverestCrystalData el){
+    return EverestCrystalData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCrystalData_get_record_exits(EverestCrystalData el){
+    return (EverestCrystalData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
+    return (EverestCrystalData_get__record_interactions(el) >> 2) % 2;
+}
+
+
 void EverestCrystal_set_material(EverestCrystalData el){
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
@@ -84,10 +100,12 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         // Impact table
         cg->record = EverestCrystalData_getp_internal_record(el, part0);
         cg->record_index = NULL;
-        cg->record_touches = 0;
+        cg->record_impacts = 0;
+        cg->record_exits = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = EverestCrystalData_get_record_touches(el);
+            cg->record_impacts = EverestCrystalData_get_record_impacts(el);
+            cg->record_exits = EverestCrystalData_get_record_exits(el);
         }
     }
 
@@ -133,7 +151,6 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
             coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
-            coll->record_touches = EverestCrystalData_get_record_touches(el);
         }
     }
     return coll;

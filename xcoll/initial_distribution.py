@@ -9,7 +9,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes
+from .beam_elements import _all_collimator_classes
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -24,7 +24,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
 
     coll = line[name]
 
-    if not isinstance(coll, tuple(collimator_classes)):
+    if not isinstance(coll, tuple(_all_collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
 
     if coll.optics is None:

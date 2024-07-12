@@ -14,7 +14,6 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
-    int8_t record_touches;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;

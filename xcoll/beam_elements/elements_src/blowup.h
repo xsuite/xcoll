@@ -10,16 +10,16 @@
 void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
 
     int8_t plane     = BlowUpData_get__plane(el);
-    double amplitude = BlowUpData_get__amplitude(el);
+    double kick_rms  = BlowUpData_get__kick_rms(el);
     int8_t active    = BlowUpData_get__active(el);
 
     //start_per_particle_block (part0->part)
         if (active){
-            double kick = amplitude * (2.*RandomUniform_generate(part) - 1.);
+            double kick = kick_rms * RandomNormal_generate(part);
             if (plane == 1){
-                LocalParticle_add_to_xp(part, kick);
+                LocalParticle_add_to_px(part, kick);
             } else if (plane == -1){
-                LocalParticle_add_to_yp(part, kick);
+                LocalParticle_add_to_py(part, kick);
             } else {
                 LocalParticle_kill_particle(part, XC_ERR_INVALID_XOFIELD);
             }
