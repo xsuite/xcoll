@@ -68,6 +68,7 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
 /*gpufun*/
 void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0) {
     int8_t active = EverestBlockData_get__tracking(el);
+    active       *= EverestBlockData_get_active(el);
     double const length   = EverestBlockData_get_length(el);
 
     // Initialise collimator data
