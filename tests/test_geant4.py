@@ -58,7 +58,7 @@ def _make_geant4_collimators(angles=[0,45,90], tilts=[0,0], _context=None):
     collimators = []
     for ii, angle in enumerate(angles):
         shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
-        g4coll = xc.Geant4Collimator(length=L, angle=angle, reference_center=co,
+        g4coll = xc.Geant4Collimator(length=L, angle=angle,
                                      jaw=jaws+shift, tilt=tilts,
                                      _context=_context, material='cu',
                                      collimator_id=f'g4coll_{ii}')
@@ -76,7 +76,7 @@ def _make_black_absorbers(angles=[0,45,90], tilts=[0,0], _context=None):
     collimators = []
     for ii, angle in enumerate(angles):
         shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
-        bacoll = xc.BlackAbsorber(length=L, angle=angle, reference_center=co, 
+        bacoll = xc.BlackAbsorber(length=L, angle=angle, 
                                      jaw=jaws+shift, tilt=tilts,
                                      _context=_context)
         collimators.append(bacoll)

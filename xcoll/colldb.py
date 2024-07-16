@@ -641,7 +641,7 @@ class CollimatorDatabase:
             el = Geant4Collimator(gap=self[name]['gap'], angle=self[name]['angle'],
                                   length=self[name]['length'], side=self[name]['side'],
                                   collimator_id=name, material=self[name]['material'],
-                                  active=False, _tracking=False)
+                                  active=True, _tracking=False)
 
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
