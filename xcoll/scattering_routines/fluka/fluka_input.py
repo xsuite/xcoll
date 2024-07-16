@@ -74,6 +74,8 @@ def _fluka_builder(elements, names):
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = ee.tilt_L
             tilt_2 = ee.tilt_R
+        if half_gap != OPEN_JAW and nsig == OPEN_GAP:
+            nsig = 1 # TODO: improve this
 
         collimator_dict[name] = {
             'name': name,
@@ -96,7 +98,7 @@ def _fluka_builder(elements, names):
 
     args_fb = fb.args_fluka_builder()
     args_fb.collimatorList = collimatorList
-    args_fb.geometrical_emittance = 1
+    args_fb.geometrical_emittance = None
     args_fb.prototype_file = 'prototypes.lbp'
     args_fb.output_name = 'fluka_input'
 
