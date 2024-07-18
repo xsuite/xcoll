@@ -88,6 +88,18 @@ fi
 source $rootpath/bdsim/bin/bdsim.sh     
 ./compile_collimasim.sh
 
+echo -e "${LIMEGREEN}Installation complete!${RESET}"
+echo
+echo -e "${CYAN}Do not forget to pip install all the xsuite packages, including xcoll. To use xcoll-geant4, you will need to run the following commands in the terminal where you will be simulating:\n"
+echo -e "eval \"\$($HOME/miniconda3/bin/$envexe shell.bash hook)\""
+echo -e "source $HOME/miniconda3/bin/activate $envname"
+echo -e "source $rootpath/geant4-v10.4.3/bin/geant4.sh"
+echo -e "unset LD_LIBRARY_PATH"
+echo -e "source $rootpath/bdsim/bin/bdsim.sh${RESET}"
+echo
+echo -e "${BOLD}${MAGENTA}HAVE FUN!${RESET}"
+
+
 exit 0
 
 :colors:
