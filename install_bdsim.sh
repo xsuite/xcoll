@@ -21,7 +21,7 @@ rootpath=$(pwd)
 cd $xcollpath
 
 while true; do
-    read -p "$(echo -e ${CYAN}Set up conda or mamba environment? [y/n] ${RESET})" yn
+    read -p "$(echo -e ${CYAN}Set up conda or mamba environment? [y/n] ${RESET})\n${RED}WARNING: this will use $HOME/miniconda3 as dir for your conda setup. If you have it in a different directory, please set up the environment manually before building.${RESET}" yn
     case $yn in
         [Yy]* ) echo -e "${YELLOW}setting up environment...${RESET}"; setupEnvironment ;
                 break ;;
@@ -141,7 +141,7 @@ function setupEnvironment(){
 
     read -p "$(echo -e ${CYAN}Input name of your new environment: ${RESET})" envname
     $envexe create --name $envname python=3.9
-    source $($envexe info --base)/bin/activate $envname
+    source $HOME/miniconda3/bin/activate $envname
     if [ $? -ne 0 ]; then
         echo -e "${RED}Error: Failed to activate environment $envname.${RESET}"
         exit 1
