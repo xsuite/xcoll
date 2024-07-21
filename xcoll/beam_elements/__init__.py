@@ -7,6 +7,7 @@ from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
 from .blowup import BlowUp
+from .monitor import EmittanceMonitor
 
 block_classes = tuple(v for v in globals().values()
                       if isinstance(v, type) and issubclass(v, BaseBlock) and v != BaseBlock)
