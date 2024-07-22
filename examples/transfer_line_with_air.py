@@ -58,6 +58,8 @@ line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 1 end", at_
 line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 2 start", at_s=50)
 line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 2 end", at_s=60)
 line.insert_element(element=xc.EmittanceMonitor(), name="monitor end", at_s=100)
+for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
+    el.set_beta_gamma_rel(line.particle_ref)
 
 
 # Generate an initial distribution of particles
@@ -87,8 +89,6 @@ y_norm, py_norm = xp.generate_2D_gaussian(num_part)
 part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                             W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
-for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-    el.set_beta_gamma_rel(part)
 
 
 xc.enable_scattering(line)
@@ -99,10 +99,10 @@ line.track(part)
 # ===============
 _, ax = plt.subplots(figsize=(6,4))
 s = [0, 20, 30, 50, 60, 100]
-ex = [el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]]
-ey = [el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]]
-ax.plot(s, 1.e6*np.array(ex), label='H')
-ax.plot(s, 1.e6*np.array(ey), label='V')
+ex = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+ey = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+ax.plot(s, 1.e6*ex, label='H')
+ax.plot(s, 1.e6*ey, label='V')
 ax.set_ylabel(r"$\epsilon_N\; [\mu\mathrm{m}]$")
 ax.set_xlabel("s [m]")
 ax.legend()

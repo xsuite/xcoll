@@ -15,19 +15,10 @@ import xcoll as xc
 
 beam = 1
 plane = 'V'
-n_turns = 100
+num_turns = 100
 num_particles = 5000
 nemitt_x = 3.5e-6
-nemitt_y = 3.5e-6
-
-
-# Helper function to calculate the emittance
-def calculate_nemitt(part):
-    cov_x = np.cov(part.x, part.px)
-    cov_y = np.cov(part.y, part.py)
-    nemitt_x = part.beta0[0]*part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-    nemitt_y = part.beta0[0]*part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
-    return nemitt_x, nemitt_y
+nemitt_y = 2.5e-6
 
 
 # Import a Run 3 LHC lattice without apertures
@@ -43,6 +34,12 @@ tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
 adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
 adt.install(line, name=name, at_s=adt_pos, need_apertures=False)
+
+
+# Add an emittance monitor
+mon = xc.EmittanceMonitor(stop_at_turn=num_turns+1)
+mon.set_beta_gamma_rel(line.particle_ref)
+line.insert_element(element=mon, name="monitor", at_s=adt_pos)
 
 
 # Build the tracker and optimise
@@ -63,20 +60,6 @@ part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_int
                                           nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
 
 
-# Log the initial emittance and normalised amplitudes
-ex, ey = calculate_nemitt(part)
-ex = [ex]
-ey = [ey]
-tw = line.twiss()
-part_norm = tw.get_normalized_coordinates(part, nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-x_norm = np.sqrt(part_norm.x_norm**2 + part_norm.px_norm**2)
-x_norm_mean = [np.mean(x_norm)]
-x_norm_std  = [np.std(x_norm)]
-y_norm = np.sqrt(part_norm.y_norm**2 + part_norm.py_norm**2)
-y_norm_mean = [np.mean(y_norm)]
-y_norm_std  = [np.std(y_norm)]
-
-
 # Move the tracker to a multi-core context
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
@@ -87,42 +70,18 @@ adt.activate()
 adt.amplitude = 0.25
 
 
-# Track and store emittance and normalised amplitude at every turn
-for _ in range(n_turns):
-    line.track(part)
-    this_ex, this_ey = calculate_nemitt(part)
-    ex.append(this_ex)
-    ey.append(this_ey)
-    part_norm = tw.get_normalized_coordinates(part, nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-    x_norm = np.sqrt(part_norm.x_norm**2 + part_norm.px_norm**2)
-    x_norm_mean.append(np.mean(x_norm))
-    x_norm_std.append(np.std(x_norm))
-    y_norm = np.sqrt(part_norm.y_norm**2 + part_norm.py_norm**2)
-    y_norm_mean.append(np.mean(y_norm))
-    y_norm_std.append(np.std(y_norm))
-
-
-print(f"Total calculation time {time.time()-start_time}s")
+# Track
+line.track(part, num_turns=num_turns, with_progress=1)
 
 
 # Plot the result
 _, ax = plt.subplots(figsize=(6,4))
-s = list(range(n_turns+1))
-ax.plot(s, 1.e6*np.array(ex), label='H')
-ax.plot(s, 1.e6*np.array(ey), label='V')
+s = list(range(num_turns+1))
+ax.plot(s, 1.e6*mon.nemitt_x, label='H')
+ax.plot(s, 1.e6*mon.nemitt_y, label='V')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")
 ax.legend()
 ax.set_title("Emittance growth by ADT blow-up in the LHC")
-plt.show()
-
-_, ax = plt.subplots(figsize=(6,4))
-ax.fill_between(s, np.array(x_norm_mean) + np.array(x_norm_std), np.array(x_norm_mean) - np.array(x_norm_std), alpha=0.2)
-ax.plot(s, np.array(x_norm_mean), label=r'$<x_N>$')
-ax.fill_between(s, np.array(y_norm_mean) + np.array(y_norm_std), np.array(y_norm_mean) - np.array(y_norm_std), alpha=0.2)
-ax.plot(s, np.array(y_norm_mean), label=r'$<y_N>$')
-ax.set_ylabel(r"normalised amplitude $[\sigma]$")
-ax.set_xlabel("turn")
-ax.legend()
-ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
+print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
