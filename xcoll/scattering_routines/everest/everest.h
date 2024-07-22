@@ -80,6 +80,10 @@ void Drift_single_particle_4d(LocalParticle* part, double length){
 
 /*gpukern*/
 void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
+    if (GeneralMaterialData_get__only_mcs(material)){
+        RandomRutherford_set(ran, 1, 1, 0.0001, 0.01);
+        return;
+    }
     double const zatom    = GeneralMaterialData_get_Z(material);
     double const emr      = GeneralMaterialData_get_nuclear_radius(material);
     double const hcut     = GeneralMaterialData_get_hcut(material);

@@ -69,10 +69,18 @@ class BaseBlock(xt.BeamElement):
         instance = super().__new__(cls)
         return instance
 
+    def __init__(self, **kwargs):
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('active', True)
+        super().__init__(**kwargs)
+
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
-            if hasattr(self, 'optics') and self.optics is None:
-                raise ValueError("Optics not assigned! Cannot enable scattering.")
+            if hasattr(self, 'optics') and self.optics is None and \
+            (hasattr(self, '_gap_L_set_manually') and self._gap_L_set_manually() \
+            or hasattr(self, '_gap_R_set_manually') and self._gap_R_set_manually()):
+                raise ValueError("Gap set but optics not yet assigned! "
+                               + "Cannot enable scattering.")
             self._tracking = True
 
     def disable_scattering(self):
@@ -243,7 +251,6 @@ class BaseCollimator(BaseBlock):
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
             to_assign['emittance'] = kwargs.pop('emittance', None)
-            kwargs.setdefault('active', True)
 
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..

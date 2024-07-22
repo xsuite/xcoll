@@ -10,6 +10,21 @@
 
 
 /*gpufun*/
+int8_t EverestBlockData_get_record_impacts(EverestBlockData el){
+    return EverestBlockData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t EverestBlockData_get_record_exits(EverestBlockData el){
+    return (EverestBlockData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t EverestBlockData_get_record_scatterings(EverestBlockData el){
+    return (EverestBlockData_get__record_interactions(el) >> 2) % 2;
+}
+
+/*gpufun*/
 void EverestBlock_set_material(EverestBlockData el){
     MaterialData material = EverestBlockData_getp__material(el);
     RandomRutherfordData rng = EverestBlockData_getp_rutherford_rng(el);
@@ -38,8 +53,10 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
         // Impact table
         coll->record = EverestBlockData_getp_internal_record(el, part0);
         coll->record_index = NULL;
+        coll->record_scatterings = 0;
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
+            coll->record_scatterings = EverestBlockData_get_record_scatterings(el);
         }
     }
 
@@ -69,7 +86,7 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
 void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0) {
     int8_t active = EverestBlockData_get__tracking(el);
     active       *= EverestBlockData_get_active(el);
-    double const length   = EverestBlockData_get_length(el);
+    double const length = EverestBlockData_get_length(el);
 
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
@@ -108,7 +125,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 EverestData everest = EverestBlock_init_data(part, coll);
                 energy = jaw(everest, part, energy, length, 0);
                 free(everest);
-
                 LocalParticle_add_to_s(part, s_block);
 
                 LocalParticle_set_zeta(part, zeta_in);

@@ -25,7 +25,6 @@ path = Path(__file__).parent / 'data'
                             [2, 'V'],
                             [1, 'V'],
                             [2, 'H']], ids=["B1H", "B2V", "B1V", "B2H"])
-
 def test_impacts_from_line(beam, plane):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     coll_manager = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3.yaml', beam=beam)
@@ -60,7 +59,7 @@ def test_impacts_from_line(beam, plane):
                 np.allclose(df[df.interaction_type == 'Enter Jaw R']['parent_x'], 0.0, atol=1e-12))
     # TODO: way to slow; and also df has the same collimator for all entries anyway (tcp)
     try:
-        assert (np.allclose(df[df.interaction_type == 'Exit Jaw']['parent_x'], 0.0, atol=1e-12))    
+        assert (np.allclose(df[df.interaction_type == 'Exit Jaw']['parent_x'], 0.0, atol=1e-12))
     except AssertionError:
         for i in range(len(df.collimator)):
             assert np.allclose(df[df.interaction_type == 'Exit Jaw']['parent_s']-
