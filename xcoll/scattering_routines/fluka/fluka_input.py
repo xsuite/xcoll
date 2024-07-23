@@ -58,14 +58,12 @@ def _coll_dict(elements, names, dump=False):
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = ee.tilt_L
             tilt_2 = ee.tilt_R
-        if half_gap != OPEN_JAW and nsig == OPEN_GAP:
-            nsig = 1 # TODO: improve this
 
         collimator_dict[name] = {
             'name': name,
             'betx': 1,
             'bety': 1,
-            'material': ee.material,
+            'material': 'stub',
             'length': ee.length,
             'angle': np.deg2rad(ee.angle),
             'sigma_x': 1,
@@ -193,6 +191,8 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
         raise RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}")
     for name,ee in zip(names, elements):
+        if name not in collimator_dict:
+            continue
         collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
         collimator_dict[name]['length'] /= 100
     # Delete prototypes and include files to avoid confusion

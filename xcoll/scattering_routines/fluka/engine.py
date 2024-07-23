@@ -162,18 +162,19 @@ class FlukaEngine(xo.HybridClass):
         if not this._flukaserver.exists():
             raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
         this.test_gfortran()
+        this._starting_server = True
 
         # Check files
         if input_file is not None:
-            input_file = Path(input_file).resolve()
+            input_file = Path(input_file).expanduser().resolve()
         if prototypes_file is not None:
-            prototypes_file = Path(prototypes_file).resolve()
+            prototypes_file = Path(prototypes_file).expanduser().resolve()
         if include_files is not None:
-            include_files = [Path(ff).resolve() for ff in include_files]
+            include_files = [Path(ff).expanduser().resolve() for ff in include_files]
         if cwd is not None:
             cwd = Path(cwd).expanduser().resolve()
         else:
-            cwd = Path.cwd() / f'fluka_run_{int(time.time())-1710000000}'
+            cwd = Path.cwd() / f'fluka_run_{int(time.time())-1720000000}'
         this._cwd = cwd
         cwd.mkdir(parents=True, exist_ok=True)
         this._old_cwd = Path.cwd()
@@ -194,12 +195,14 @@ class FlukaEngine(xo.HybridClass):
             input_file = create_fluka_input(line=line, elements=elements, names=names,
                                             prototypes_file=prototypes_file,
                                             include_files=include_files)
+
         if not input_file.exists():
             raise ValueError(f"Input file {input_file.as_posix()} not found!")
         if input_file.parent != Path.cwd():
             shutil.copy(input_file, Path.cwd())
             input_file = Path.cwd() / input_file.name
         this._input_file = input_file
+
 
         # Check insertion file
         insertion_file = input_file.parent / "insertion.txt"
@@ -280,6 +283,7 @@ class FlukaEngine(xo.HybridClass):
                                      cwd=this._cwd, stdout=this._log_fid, stderr=this._log_fid)
         this.server_pid = this._server_process.pid
         sleep(1)
+        this._starting_server = False
         if not this.is_running():
             raise ValueError(f"Could not start fluka server! See logfile {this._log}.")
         i = 0
@@ -344,6 +348,8 @@ class FlukaEngine(xo.HybridClass):
     def is_running(cls, **kwargs):
         cls(**kwargs)
         this = cls.instance
+        if hasattr(this, '_starting_server') and this._starting_server:
+            return False
         # Is the Popen process still running?
         if this._server_process is None or this._server_process.poll() is not None:
             this.stop()
@@ -416,10 +422,12 @@ class FlukaEngine(xo.HybridClass):
         if not hasattr(names, '__iter__') or isinstance(names, str):
             names = [names]
         assert len(elements) == len(names)
-        for name in names:
-            if name not in self._collimator_dict:
-                raise ValueError(f"FlukaCollimator {name} not found in input file!")
         for el, name in zip(elements, names):
+            if name not in self._collimator_dict:
+                print(f"Warning: FlukaCollimator {name} not in FLUKA input file! "
+                    + f"Maybe it was fully open. Deactivated")
+                el.active = False
+                continue
             el.fluka_id = self._collimator_dict[name]['fluka_id']
             el.length_front = (self._collimator_dict[name]['length'] - el.length)/2
             el.length_back = (self._collimator_dict[name]['length'] - el.length)/2
@@ -446,7 +454,6 @@ class FlukaEngine(xo.HybridClass):
                 print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
                     + f"vs {jaw[1]})! Overwritten.")
                 el.jaw_R = jaw[1]
-            el._frozen = True
             # TODO: tilts!!
 
 

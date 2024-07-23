@@ -18,9 +18,6 @@ def track(coll, particles):
     if not isinstance(coll, FlukaCollimator):
         raise ValueError("Collimator is not a FlukaCollimator!\nCannot use fluka to track.")
 
-    if not coll._frozen:
-        raise ValueError("FlukaCollimator is not frozen!\nSomething is wrong.")
-
     if not coll.active or not coll._tracking:
         _drift(coll, particles, coll.length)
         return

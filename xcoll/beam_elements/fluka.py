@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+from contextlib import contextmanager
+
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from .base import BaseCollimator
@@ -17,7 +18,6 @@ class FlukaCollimator(BaseCollimator):
         'accumulated_energy':  xo.Float64,
         'length_front':        xo.Float64,
         'length_back':         xo.Float64,
-        '_frozen':             xo.Int8,
         '_tracking':           xo.Int8
     }
 
@@ -27,29 +27,43 @@ class FlukaCollimator(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
+    _allowed_fields_when_frozen = ['_tracking']
+
+    def __new__(cls, *args, **kwargs):
+        with cls._in_constructor():
+            self = super().__new__(cls, *args, **kwargs)
+        return self
+
     def __init__(self, **kwargs):
-        to_assign = {}
-        if '_xobject' not in kwargs:
-            to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = 'NO NAME'.ljust(55)  # Pre-allocate 64 byte using whitespace
-            kwargs.setdefault('_frozen', False)
-            kwargs.setdefault('_tracking', True)
-        super().__init__(**kwargs)
-        for key, val in to_assign.items():
-            setattr(self, key, val)
-        if not hasattr(self, '_equivalent_drift'):
-            self._equivalent_drift = xt.Drift(length=self.length)
+        with self.__class__._in_constructor():
+            if '_xobject' not in kwargs:
+                kwargs.setdefault('_tracking', True)
+            super().__init__(**kwargs)
+            if not hasattr(self, '_equivalent_drift'):
+                self._equivalent_drift = xt.Drift(length=self.length)
 
     def track(self, part):
         track(self, part)
 
-    def __setattribute__(self, name, value):
-        if FlukaEngine.is_running():
+    def __setattr__(self, name, value):
+        if name not in self._allowed_fields_when_frozen and FlukaEngine.is_running():
             raise ValueError('Engine is running; FlukaCollimator is frozen.')
-        super().__setattribute__(name, value)
+        super().__setattr__(name, value)
+
+    @classmethod
+    @contextmanager
+    def _in_constructor(cls):
+        original_setattr = cls.__setattr__
+        def new_setattr(self, *args, **kwargs):
+            return super().__setattr__( *args, **kwargs)
+        cls.__setattr__ = new_setattr
+        try:
+            yield
+        finally:
+            cls.__setattr__ = original_setattr
