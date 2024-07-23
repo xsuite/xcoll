@@ -327,19 +327,39 @@ Inermet = Material(
     _context=_materials_context,
 )
 
-SixTrack_to_xcoll = {
-    "be": [Beryllium],
-    "al": [Aluminium],
-    "cu": [Copper],
-    "w": [Tungsten, TungstenCrystal],
-    "pb": [Lead],
-    "c": [Carbon, CarbonCrystal],
-    "c2": [Carbon2],
-    "si": [Silicon, SiliconCrystal],
-    "ge": [Germanium, GermaniumCrystal],
-    "mogr": [MolybdenumGraphite],
-    "cucd": [CopperDiamond],
-    "mo": [Molybdenum],
-    "glid": [Glidcop],
-    "iner": [Inermet]
+
+_SixTrack_to_xcoll = {
+    "BE":   [Beryllium],
+    "AL":   [Aluminium],
+    "CU":   [Copper],
+    "W":    [Tungsten, TungstenCrystal],
+    "PB":   [Lead],
+    "C":    [Carbon, CarbonCrystal],
+    "C2":   [Carbon2],
+    "Si":   [Silicon, SiliconCrystal],
+    "Ge":   [Germanium, GermaniumCrystal],
+    "MoGR": [MolybdenumGraphite],
+    "CuCD": [CopperDiamond],
+    "Mo":   [Molybdenum],
+    "Glid": [Glidcop],
+    "Iner": [Inermet]
 }
+
+def SixTrack_to_xcoll(mat):
+    materials = {kk.lower(): vv for kk, vv in _SixTrack_to_xcoll.items()}
+    return materials[mat.lower()]
+
+def SixTrack_from_xcoll(material):
+    results = [kk for kk, vv in _SixTrack_to_xcoll.items()
+               if material.name == vv[0].name]
+    if len(results) == 0:
+        raise ValueError(f"Material {material.name} not found in SixTrack library!")
+    return kk[0]
+
+def SixTrack_from_xcoll_crystal(material):
+    results = [kk for kk, vv in _SixTrack_to_xcoll.items()
+               if len(vv) > 1 and material.name == vv[1].name]
+    if len(results) == 0:
+        raise ValueError(f"Material {material.name} not found in SixTrack library!")
+    return kk[0]
+
