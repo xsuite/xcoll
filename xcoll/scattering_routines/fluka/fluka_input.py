@@ -22,23 +22,7 @@ _header_stop  = "*  XCOLL END  **"
 
 
 # TODO check that prototype is valid and its sides
-def _fluka_builder(elements, names):
-    # Save system state
-    old_sys_path = sys.path.copy()
-    old_os_env = os.environ.copy()
-
-    os.environ['FEDB_PATH'] = fedb.as_posix()
-    os.environ['LB_PATH'] = linebuilder.as_posix()
-
-    sys.path.append(fluka_builder.as_posix())
-    file_path = fluka_builder / "FLUKA_builder.py"
-    if file_path.exists():
-        try:
-            import FLUKA_builder as fb
-        except ImportError as e:
-            raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
-    else:
-        raise EnvironmentError("FLUKA_builder.py not found at:", file_path)
+def _coll_dict(elements, names, dump=False):
 
     collimator_dict = {}
     for ee, name in zip(elements, names):
@@ -74,6 +58,8 @@ def _fluka_builder(elements, names):
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = ee.tilt_L
             tilt_2 = ee.tilt_R
+        if half_gap != OPEN_JAW and nsig == OPEN_GAP:
+            nsig = 1 # TODO: improve this
 
         collimator_dict[name] = {
             'name': name,
@@ -90,13 +76,37 @@ def _fluka_builder(elements, names):
             'nsig': nsig,
             'half_gap': half_gap
         }
+        if dump:
+            # dump coll_dictionary in json format
+            with open('collimator_dict.json', 'w') as fp:
+                json.dump(collimator_dict, fp, indent=4)
+    return collimator_dict
 
+def _fluka_builder(elements, names):
+    # Save system state
+    old_sys_path = sys.path.copy()
+    old_os_env = os.environ.copy()
+
+    os.environ['FEDB_PATH'] = fedb.as_posix()
+    os.environ['LB_PATH'] = linebuilder.as_posix()
+
+    sys.path.append(fluka_builder.as_posix())
+    file_path = fluka_builder / "FLUKA_builder.py"
+    if file_path.exists():
+        try:
+            import FLUKA_builder as fb
+        except ImportError as e:
+            raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
+    else:
+        raise EnvironmentError("FLUKA_builder.py not found at:", file_path)
+
+    collimator_dict = _coll_dict(elements, names)
     collimatorList = fb.CollimatorList()
     collimatorList.acquireCollxsuite(collimator_dict)
 
     args_fb = fb.args_fluka_builder()
     args_fb.collimatorList = collimatorList
-    args_fb.geometrical_emittance = 1
+    args_fb.geometrical_emittance = None
     args_fb.prototype_file = 'prototypes.lbp'
     args_fb.output_name = 'fluka_input'
 

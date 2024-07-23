@@ -168,6 +168,8 @@ class FlukaEngine(xo.HybridClass):
             input_file = Path(input_file).resolve()
         if prototypes_file is not None:
             prototypes_file = Path(prototypes_file).resolve()
+        if include_files is not None:
+            include_files = [Path(ff).resolve() for ff in include_files]
         if cwd is not None:
             cwd = Path(cwd).expanduser().resolve()
         else:
