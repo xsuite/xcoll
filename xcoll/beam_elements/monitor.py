@@ -139,7 +139,7 @@ class EmittanceMonitor(xt.BeamElement):
     def _calculate_all(self):
         self._cached = True
 
-        # Calculate mean and variance
+        # Calculate mean, variance, and std
         N = self.count
         with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
             for field in [f.name for f in EmittanceMonitorRecord._fields]:
@@ -154,6 +154,8 @@ class EmittanceMonitor(xt.BeamElement):
                     sum2 = getattr(self, field)
                     variance = sum2 / (N - 1) - mean1 * mean2 * N / (N - 1)
                     setattr(self, f'_{x1}_{x2}_var', variance)
+                    if x1 == x2:
+                        setattr(self, f'_{x1}_std', np.sqrt(variance))
 
         # Calculate emittances
         emitt_x = np.sqrt(self.x_x_var * self.px_px_var - self.x_px_var**2)
@@ -170,7 +172,7 @@ class EmittanceMonitor(xt.BeamElement):
             if attr.startswith('_'):
                 raise AttributeError(f"Attribute {attr} not set!")
 
-            if attr.endswith('_mean') or attr.endswith('_var'):
+            if attr.endswith('_mean') or attr.endswith('_var') or attr.endswith('_std'):
                 if not self._cached:
                     self._calculate_all()
                 return getattr(self, f'_{attr}')
