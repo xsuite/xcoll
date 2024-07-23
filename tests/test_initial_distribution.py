@@ -35,7 +35,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                                    beam=beam)
-    
+
     colldb.install_everest_collimators(line=line)
     line.build_tracker()
     xc.assign_optics_to_collimators(line=line)

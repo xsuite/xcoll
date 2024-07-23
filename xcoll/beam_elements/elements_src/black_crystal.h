@@ -8,6 +8,22 @@
 
 
 /*gpufun*/
+int8_t BlackCrystalData_get_record_impacts(BlackCrystalData el){
+    return BlackCrystalData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t BlackCrystalData_get_record_exits(BlackCrystalData el){
+    return (BlackCrystalData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t BlackCrystalData_get_record_scatterings(BlackCrystalData el){
+    return (BlackCrystalData_get__record_interactions(el) >> 2) % 2;
+}
+
+
+/*gpufun*/
 CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* part0, int8_t active){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
@@ -35,10 +51,12 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
         // Impact table
         cg->record = BlackCrystalData_getp_internal_record(el, part0);
         cg->record_index = NULL;
-        cg->record_touches = 0;
+        cg->record_impacts = 0;
+        cg->record_exits = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = BlackCrystalData_get_record_touches(el);
+            cg->record_impacts = BlackCrystalData_get_record_impacts(el);
+            cg->record_exits = BlackCrystalData_get_record_exits(el);
         }
         // Not needed, set to zero
         cg->miscut_angle = 0;

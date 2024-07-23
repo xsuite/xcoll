@@ -72,75 +72,97 @@ def test_gaps(beam, test_context):
     for r, i in enumerate(second_angle):
         check_3_times(coll, newval_angle, np.array(['angle', i]), r)
 
-def change(coll, parameter, val=None, is_third=False):
+def change_and_check(coll, parameter, val=None, is_third=False): # this is ugly
+    check = False
     if is_third == True:
         if parameter == 'gap_L':
             coll.gap_L = 4.8
+            check = np.isclose(coll.gap_L, 4.8, atol=1e-9)
         if parameter == 'gap_R': 
             coll.gap_R = -4.9
+            check = np.isclose(coll.gap_R, -4.9, atol=1e-9)
         if parameter == 'jaw_L':
             coll.jaw_L = 0.0032
+            check = np.isclose(coll.jaw_L, 0.0032, atol=1e-9)
         if parameter == 'jaw_R':
             coll.jaw_R = -0.0014
+            check = np.isclose(coll.jaw_R, -0.0014, atol=1e-9)
         if parameter == 'angle':
             coll.angle = 86
+            check = np.isclose(coll.angle, 86, atol=1e-9)
         if parameter == 'tilt':
             coll.tilt = np.pi/5
+            check = np.isclose(coll.tilt, np.pi/5, atol=1e-9)
     else:
         if parameter == 'gap_L':
             coll.gap_L = val
+            check = np.isclose(coll.gap_L, val, atol=1e-9)
         if parameter == 'gap_R': 
             coll.gap_R = val
+            check = np.isclose(coll.gap_R, val, atol=1e-9)
         if parameter == 'jaw_L':
             coll.jaw_L = val
+            check = np.isclose(coll.jaw_L, val, atol=1e-9)
         if parameter == 'jaw_R':
             coll.jaw_R = val
+            check = np.isclose(coll.jaw_R, val, atol=1e-9)
         if parameter == 'angle':
             coll.angle = val
+            check = np.isclose(coll.angle, val, atol=1e-9)
         if parameter == 'tilt':
             coll.tilt = val
+            check = np.isclose(coll.tilt, val, atol=1e-9)
+    return check
 
 def check_3_times(coll, newval, succession, round):
     """
     newval = np.array([[origin, second],[orgin,second2],...]) 
-    round = starts from 0, and describes where in the 1st we are in the sequence
-    succession = describes the order of the sequence 
+    round = starts from 0, and describes where in we are in the sequence (each 2nd change has 5 possibilities/rounds)
+    succession = describes the order (1st and 2nd) of the sequence (1st, 2nd, 3rd)
+    third = describes what to look at for the 3rd change
     """
     third = np.array(['jaw_L', 'jaw_R', 'gap_L', 'gap_R', 'angle', 'tilt'])
     oldv = np.array([coll.jaw_L, coll.jaw_R, coll.gap_L, coll.gap_R, coll.angle, coll.tilt])                # TODO: it got stuck, so this is a quick fix
     only_R = False
     only_L = False
 
-    # 0th level
-    change(coll, succession[0], newval[0+round][0])
+    # first change =================================================================================
+    check = change_and_check(coll, succession[0], newval[round][0])
+    assert check == True
+
     if succession[0] == 'gap_L' or succession[0] == 'jaw_L':
-        assert np.isclose(coll.gap_L, (coll.jaw_L - coll.co[0][0]) / coll.sigma[0][0], atol=1e-6)
-        assert np.isclose(coll.jaw_L, (coll.gap_L * coll.sigma[0][0]) + coll.co[0][0], atol=1e-6)
+        assert np.isclose(coll.gap_L, (coll.jaw_L - coll.co[0][0]) / coll.sigma[0][0], atol=1e-9)
+        assert np.isclose(coll.jaw_L, (coll.gap_L * coll.sigma[0][0]) + coll.co[0][0], atol=1e-9)
+
     elif succession[0] == 'gap_R' or succession[0] == 'jaw_R':
-        assert np.isclose(coll.gap_R,(coll.jaw_R - coll.co[0][1]) / coll.sigma[0][1], atol=1e-6)
-        assert np.isclose(coll.jaw_R, (coll.gap_R * coll.sigma[0][1]) + coll.co[0][1], atol=1e-6)
-    if not succession[0].startswith('t'):
-        assert coll.tilt == oldv[5]
-    if not succession[0].startswith('a'):
-        assert coll.angle == oldv[4]
-    if succession[0] in third:
-        third = np.delete(third, np.where(third == succession[0]))
+        assert np.isclose(coll.gap_R,(coll.jaw_R - coll.co[0][1]) / coll.sigma[0][1], atol=1e-9)
+        assert np.isclose(coll.jaw_R, (coll.gap_R * coll.sigma[0][1]) + coll.co[0][1], atol=1e-9)
+
+    if not succession[0] == 'tilt':
+        assert np.isclose(coll.tilt, oldv[5], atol=1e-9)
+    if not succession[0] == 'angle':
+        assert np.isclose(coll.angle, oldv[4], atol=1e-9)
+
+    third = np.delete(third, np.where(third == succession[0]))
     oldv[:] = [coll.jaw_L, coll.jaw_R, coll.gap_L, coll.gap_R, coll.angle, coll.tilt]
 
-    # 1st level
-    change(coll, succession[1], newval[0+round][1])
-    if not succession[1].startswith('t'):
-        assert coll.tilt == oldv[5]
-    if not succession[1].startswith('a'):
-        assert coll.angle == oldv[4]
-    if succession[1] in third:
-        third = np.delete(third, np.where(third == succession[1]))
-    if all(x not in ['angle', 'tilt'] for x in succession[:2]):
+    # 2nd change =================================================================================
+    check = change_and_check(coll, succession[1], newval[round][1])
+    assert check == True
+
+    if not succession[1] == 'tilt':                                             # check if tilt/angle not changed
+        assert np.isclose(coll.tilt, oldv[5], atol=1e-9)
+    if not succession[1] == 'angle':
+        assert np.isclose(coll.angle, oldv[4], atol=1e-9)
+
+    third = np.delete(third, np.where(third == succession[1]))
+    if all(x not in ['angle', 'tilt'] for x in succession[:2]):                  # check if we ever had tilt/angle
         if (succession[0].endswith('L') and succession[1].endswith('L')):
             only_L = True
             assert coll.gap_R == None
             assert coll.jaw_R == None
             assert np.isclose(coll.jaw_L, (coll.gap_L * coll.sigma[0][0]) + coll.co[0][0], atol=1e-6)
+
         elif (succession[0].endswith('R') and succession[1].endswith('R')):
             only_R = True
             assert coll.gap_L == None
@@ -157,8 +179,9 @@ def check_3_times(coll, newval, succession, round):
             only_R = True
     oldv = [coll.jaw_L, coll.jaw_R, coll.gap_L, coll.gap_R, coll.angle, coll.tilt]
 
-    # 2nd level
-    change(coll, third[0], is_third=True)
+    # 3rd change =================================================================================
+    check = change_and_check(coll, third[0], is_third=True)
+    assert check == True
     if only_R == False and only_L == False:
         if not any(x in ['jaw_L', 'jaw_R', 'gap_R', 'gap_L'] for x in succession[:2]):
             if (third[0].endswith('L')):
@@ -217,7 +240,8 @@ def check_3_times(coll, newval, succession, round):
     coll.angle = oldv[4]
     coll.tilt = oldv[5]
 
-    change(coll, third[1], is_third=True) # 2 
+    check = change_and_check(coll, third[1], is_third=True) # 2 
+    assert check == True
     if only_R == False and only_L == False:
         if not any(x in ['jaw_L', 'jaw_R', 'gap_R', 'gap_L'] for x in succession[:2]):
             if (third[1].endswith('L')):
@@ -276,7 +300,8 @@ def check_3_times(coll, newval, succession, round):
     coll.angle = oldv[4]
     coll.tilt = oldv[5]
 
-    change(coll, third[2], is_third=True) # 3 
+    check = change_and_check(coll, third[2], is_third=True) # 3 
+    assert check == True
     if only_R == False and only_L == False:
         if not any(x in ['jaw_L', 'jaw_R', 'gap_R', 'gap_L'] for x in succession[:2]):
             if (third[2].endswith('L')):
@@ -335,7 +360,8 @@ def check_3_times(coll, newval, succession, round):
     coll.angle = oldv[4]
     coll.tilt = oldv[5]
 
-    change(coll, third[3], is_third=True) # 3 
+    check = change_and_check(coll, third[3], is_third=True) # 3 
+    assert check == True
     if only_R == False and only_L == False:
         if not any(x in ['jaw_L', 'jaw_R', 'gap_R', 'gap_L'] for x in succession[:2]):
             if (third[3].endswith('L')):

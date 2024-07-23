@@ -62,6 +62,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
         assert Path("coll_summary.txt").exists()
         Path("coll_summary.txt").unlink()
 
+        # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
         assert len(summ[summ.type=='EverestCollimator']) == 10

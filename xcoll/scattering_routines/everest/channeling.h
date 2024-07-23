@@ -89,7 +89,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     int8_t sc = everest->coll->record_scatterings;
 
     // First log particle at start of channeling
-    int64_t i_slot;
+    int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
 
     // Do channeling.
@@ -115,7 +115,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     pc = pc - energy_loss*L_chan; //energy loss to ionization [GeV]
 
     // Finally log particle at end of channeling
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, drift_length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
     result[0] = drift_length;
     result[1] = pc;
@@ -196,14 +196,9 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         if (L_chan <= fmin(L_dechan, L_nucl)){
             // Channel full length
             double* result_chan = channel_transport(everest, part, pc, L_chan, t_I, t_P);
-            double channeled_length = result_chan[0];
+            // double channeled_length = result_chan[0];
             pc               = result_chan[1];
             free(result_chan);
-            // Drift leftover outside of crystal
-            if (everest->coll->record_touches){
-                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
-            }
-            Drift_single_particle_4d(part, length - channeled_length);
 
         } else if (L_dechan < L_nucl) {
             // Channel up to L_dechan, then amorphous
