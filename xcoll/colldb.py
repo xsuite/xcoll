@@ -589,43 +589,17 @@ class CollimatorDatabase:
         elements = [self._elements[name] for name in names]
         install_elements(line, names, elements, need_apertures=need_apertures)
 
-<<<<<<< HEAD
-    def install_fluka_collimators(self, line, names=None, *, verbose=False, need_apertures=True,
+    def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
                                   fluka_input_file=None, remove_missing=True):
-        self.line = line
         # Check server
         if FlukaEngine.is_running():
             print("Warning: FLUKA server is already running. Stopping server to install collimators.")
             FlukaEngine.stop_server(fluka_input_file)
-
-        elements = []
-        if names is None:
-            names = self.collimator_names
+        names = self._get_names_from_line(line, names, families)
         for name in names:
-            if verbose: print(f"Installing {name:20} as FlukaCollimator")
-            el = FlukaCollimator(gap=self[name]['gap'], angle=self[name]['angle'],
-                                 length=self[name]['length'], side=self[name]['side'],
-                                 material=self[name]['material'], _tracking=False)
-
-            # Check that collimator is not installed as different type
-            # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], tuple(collimator_classes)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
-                               + f"Please reconstruct the line.")
-
-            # TODO: only allow Marker elements, no Drifts!!
-            #       How to do this with importing a line for MAD-X or SixTrack...?
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but the line element to replace is not an xtrack.Marker "
-                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
-                               + f"element.")
-            el.emittance = [self.nemitt_x, self.nemitt_y]
-            elements.append(el)
+            self._create_collimator(line, FlukaCollimator, name, verbose=verbose)
+        elements = [self._elements[name] for name in names]
         install_elements(line, names, elements, need_apertures=need_apertures)
-=======
->>>>>>> release/v0.4.1~
 
     # ==================================
     # ====== Accessing attributes ======
@@ -673,9 +647,5 @@ class CollimatorDatabase:
         elif name in self._collimator_dict:
             return self._collimator_dict[name]
         else:
-<<<<<<< HEAD
-            raise ValueError(f"Family nor collimator '{name}' found in CollimatorDatabase!")
-=======
             raise ValueError(f"Family nor collimator `{name}` found in CollimatorDatabase!")
->>>>>>> release/v0.4.1~
 

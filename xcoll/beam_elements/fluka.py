@@ -9,7 +9,6 @@ import xtrack as xt
 
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine
-from ..scattering_routines.everest.materials import SixTrack_to_xcoll
 
 
 class FlukaCollimator(BaseCollimator):
@@ -19,8 +18,7 @@ class FlukaCollimator(BaseCollimator):
         'length_front':        xo.Float64,
         'length_back':         xo.Float64,
         '_frozen':             xo.Int8,
-        '_tracking':           xo.Int8,
-        '_material':           xo.String
+        '_tracking':           xo.Int8
     }
 
     isthick = True
@@ -50,23 +48,6 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         track(self, part)
-
-
-    @property
-    def material(self):
-        return self._material.strip()
-
-    @material.setter
-    def material(self, val):
-        if FlukaEngine.is_running():
-            raise ValueError('Engine is running; FlukaCollimator is frozen.')
-        if val is None:
-            self._material = 'NO NAME'.ljust(55)
-            return
-        if not val in SixTrack_to_xcoll:
-            raise ValueError(f'Unknown material: {val}')
-        self._material = val
-
 
     def __setattribute__(self, name, value):
         if FlukaEngine.is_running():
