@@ -298,6 +298,8 @@ class FlukaEngine(xo.HybridClass):
                 if len(lines) > 1:
                     this.network_port = int(lines[1].strip())
                     break
+                if this._server_process.poll() is not None:
+                    raise RuntimeError("The flukaserver died. Please check the FLUKA output.")
         print(f"Started fluka server on network port {this.network_port}. "
             + f"Connecting (timeout: {this.timeout_sec})... ", flush=True, end='')
         try:
