@@ -39,16 +39,11 @@ class BlowUp(InvalidXcoll):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
-            if 'plane' not in kwargs:
-                raise ValueError("The plane of the BlowUp must be specified.")
-            to_assign['plane']       = kwargs.pop('plane')
+            if 'plane' in kwargs:
+                to_assign['plane']   = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
-            kwargs['_calibration'] = 1.
-            if 'amplitude' not in kwargs:
-                raise ValueError("The amplitude of the BlowUp must be specified "
-                               + "(in terms of calibrated units.")
-            to_assign['amplitude']   = kwargs.pop('amplitude')
-            kwargs['_active'] = 0
+            to_assign['amplitude']   = kwargs.pop('amplitude', 1)
+            kwargs['_calibration']   = 1.
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
