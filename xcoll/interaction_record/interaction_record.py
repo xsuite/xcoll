@@ -66,7 +66,8 @@ class InteractionRecord(xt.BeamElement):
             return
         capacity = int(capacity)
 
-        if not hasattr(line, 'tracker'):
+        if not hasattr(line, 'tracker') or line.tracker is None \
+        or not hasattr(line.tracker, 'io_buffer') or line.tracker.io_buffer is None:
             if io_buffer is None:
                 io_buffer = xt.new_io_buffer(capacity=capacity)
         elif io_buffer is not None:
