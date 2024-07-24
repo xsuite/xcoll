@@ -354,12 +354,12 @@ def SixTrack_from_xcoll(material):
                if material.name == vv[0].name]
     if len(results) == 0:
         raise ValueError(f"Material {material.name} not found in SixTrack library!")
-    return kk[0]
+    return results[0]
 
 def SixTrack_from_xcoll_crystal(material):
     results = [kk for kk, vv in _SixTrack_to_xcoll.items()
                if len(vv) > 1 and material.name == vv[1].name]
     if len(results) == 0:
         raise ValueError(f"Material {material.name} not found in SixTrack library!")
-    return kk[0]
+    return results[0]
 
