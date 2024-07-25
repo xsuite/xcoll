@@ -337,39 +337,39 @@ class EmittanceMonitor(xt.BeamElement):
                                        [block_xy.T, block_y,    block_yz],
                                        [block_xz.T, block_yz.T, block_z]])
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(max(eigenvalues[0], eigenvalues[1]))
-                gemitt_II.append(max(eigenvalues[2], eigenvalues[3]))
-                gemitt_III.append(max(eigenvalues[4], eigenvalues[5]))
+                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
+                gemitt_II.append(mean(eigenvalues[2], eigenvalues[3]))
+                gemitt_III.append(mean(eigenvalues[4], eigenvalues[5]))
             elif self.horizontal and self.vertical :
                 covariance = np.block([[block_x,    block_xy],
                                        [block_xy.T, block_y]])
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(max(eigenvalues[0], eigenvalues[1]))
-                gemitt_II.append(max(eigenvalues[2], eigenvalues[3]))
+                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
+                gemitt_II.append(mean(eigenvalues[2], eigenvalues[3]))
             elif self.horizontal and self.longitudinal :
                 covariance = np.block([[block_x,    block_xz],
                                        [block_xz.T, block_z]])
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(max(eigenvalues[0], eigenvalues[1]))
-                gemitt_III.append(max(eigenvalues[2], eigenvalues[3]))
+                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
+                gemitt_III.append(mean(eigenvalues[2], eigenvalues[3]))
             elif self.vertical and self.longitudinal :
                 covariance = np.block([[block_y,    block_yz],
                                        [block_yz.T, block_z]])
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_II.append(max(eigenvalues[0], eigenvalues[1]))
-                gemitt_III.append(max(eigenvalues[2], eigenvalues[3]))
+                gemitt_II.append(mean(eigenvalues[0], eigenvalues[1]))
+                gemitt_III.append(mean(eigenvalues[2], eigenvalues[3]))
             elif self.horizontal:
                 covariance  = block_x
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(max(eigenvalues[0], eigenvalues[1]))
+                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
             elif self.vertical:
                 covariance  = block_y
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_II.append(max(eigenvalues[0], eigenvalues[1]))
+                gemitt_II.append(mean(eigenvalues[0], eigenvalues[1]))
             elif self.longitudinal:
                 covariance  = block_z
                 eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_III.append(max(eigenvalues[0], eigenvalues[1]))
+                gemitt_III.append(mean(eigenvalues[0], eigenvalues[1]))
             cond_number = np.linalg.cond(covariance)
             if cond_number > 1e10:
                 print(f"Warning: High condition number when calculating "
