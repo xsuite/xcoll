@@ -25,25 +25,12 @@ def test_transfer_line(test_context):
     air = _add_air_regions(line)
     assert xt.line._dicts_equal(line["Air 1"].material.to_dict(), air.to_dict())
     assert xt.line._dicts_equal(line["Air 2"].material.to_dict(), air.to_dict())
-    monitors = _add_monitors(line)
+    _add_monitors(line)
     line.build_tracker(_context=test_context)
     part = _generate_matched_particles(line)
-
-    # Log initial emittance
-    ex, ey = _calculate_nemitt(part)
-    nemitt_x = [ex]
-    nemitt_y = [ey]
-
-    # Track to the end of the line
     line.track(part)
-
-    # Get the emittances of the monitors
-    for mon in monitors:
-        ex, ey = _calculate_nemitt_monitor(mon)[0]
-        nemitt_x.append(ex)
-        nemitt_y.append(ey)
-
-    # Verify results
+    nemitt_x = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+    nemitt_y = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
     assert np.allclose(nemitt_x[0:2],  7.7e-6, atol=1e-7)
     assert np.allclose(nemitt_x[2:2], 10.7e-6, atol=1e-7)
     assert np.allclose(nemitt_x[4:2], 15.7e-6, atol=1e-7)
@@ -85,21 +72,19 @@ def _add_air_regions(line):
 
 
 def _add_monitors(line):
-    mon_air_1_s = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-    mon_air_1_e = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-    mon_air_2_s = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-    mon_air_2_e = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-    line.insert_element(element=mon_air_1_s, name="monitor air 1 start", at_s=20)
-    line.insert_element(element=mon_air_1_e, name="monitor air 1 end", at_s=30)
-    line.insert_element(element=mon_air_2_s, name="monitor air 2 start", at_s=50)
-    line.insert_element(element=mon_air_2_e, name="monitor air 2 end", at_s=60)
-    return [mon_air_1_s, mon_air_1_e, mon_air_2_s, mon_air_2_e]
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor start", at_s=0)
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 1 start", at_s=20)
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 1 end", at_s=30)
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 2 start", at_s=50)
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 2 end", at_s=60)
+    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor end", at_s=100)
+    for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
+        el.set_beta0_gamma0(line.particle_ref)
 
 
 def _generate_matched_particles(line):
     # Scattering need to be disabled to be able to twiss
-    line["Air 1"]._tracking = False
-    line["Air 2"]._tracking = False
+    xc.disable_scattering(line)
     # Matched initial parameters
     betx0 = 154.0835045206266
     bety0 = 5.222566527078791
@@ -119,26 +104,5 @@ def _generate_matched_particles(line):
                                 W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                                 nemitt_x=nemitt_x,nemitt_y=nemitt_y)
     # re-enable scattering
-    line["Air 1"]._tracking = True
-    line["Air 2"]._tracking = True
+    xc.enable_scattering(line)
     return part
-
-
-def _calculate_nemitt(part):
-    cov_x = np.cov(part.x, part.px)
-    cov_y = np.cov(part.y, part.py)
-    nemitt_x = part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-    nemitt_y = part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
-    return nemitt_x, nemitt_y
-
-
-def _calculate_nemitt_monitor(mon):
-    result = []
-    for turn in range(mon.x.shape[1]):
-        cov_x = np.cov([x[turn] for x in mon.x], [px[turn] for px in mon.px])
-        cov_y = np.cov([y[turn] for y in mon.y], [py[turn] for py in mon.py])
-        nemitt_x = mon.gamma0[0][0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-        nemitt_y = mon.gamma0[0][0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
-        result = [*result, [nemitt_x, nemitt_y]]
-    return result
-

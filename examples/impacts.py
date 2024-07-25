@@ -36,10 +36,9 @@ xc.enable_scattering(line)
 line.track(part, num_turns=20, time=True, with_progress=1)
 xc.disable_scattering(line)
 line.discard_tracker()
-xc.InteractionRecord.stop(line)
+impacts.stop()
 
 df = impacts.to_pandas()
-df[(df.interaction_type == 'Enter Jaw L') & (df.parent_s == 0.0)]
 df.to_csv('impacts.csv', index=False)
 
 # ============================================
@@ -59,8 +58,8 @@ impacts_coll = xc.InteractionRecord.start(elements=[coll], names='TPCH')
 coll.track(part)
 part.sort(interleave_lost_particles=True)
 
-df_coll = impacts_coll.to_pandas()
-df_coll[df_coll.interaction_type == 'Enter Jaw L'].to_csv('Enter_Jaw_L.csv', index=False)
+df = impacts_coll.to_pandas()
+df[df.interaction_type == 'Enter Jaw L'].to_csv('Enter_Jaw_L.csv', index=False)
 
 # ============================================
 # With crystal
