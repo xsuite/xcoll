@@ -58,7 +58,7 @@ line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monit
 line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 2 end", at_s=60)
 line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor end", at_s=100)
 for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-    el.set_beta_gamma_rel(line.particle_ref)
+    el.set_beta0_gamma0(line.particle_ref)
 
 
 # Generate an initial distribution of particles

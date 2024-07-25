@@ -39,7 +39,11 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
             double const beta0 = LocalParticle_get_beta0(part);
             double const at_turn = LocalParticle_get_at_turn(part);
 
-            double x, px, y, py, pzeta;
+            double x =0;
+            double px = 0;
+            double y = 0;
+            double py = 0;
+            double pzeta = 0;
 
             // compute sample index
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));

@@ -37,8 +37,8 @@ adt.install(line, name=name, at_s=adt_pos, need_apertures=False)
 
 
 # Add an emittance monitor
-mon = xc.EmittanceMonitor(stop_at_turn=num_turns+1)
-mon.set_beta_gamma_rel(line.particle_ref)
+mon = xc.EmittanceMonitor(stop_at_turn=num_turns, longitudinal=False)
+mon.set_beta0_gamma0(line.particle_ref)
 line.insert_element(element=mon, name="monitor", at_s=adt_pos)
 
 
@@ -73,10 +73,9 @@ adt.amplitude = 0.25
 # Track
 line.track(part, num_turns=num_turns, with_progress=1)
 
-
 # Plot the result
 _, ax = plt.subplots(figsize=(6,4))
-t = list(range(num_turns+1))
+t = list(range(num_turns))
 ax.plot(t, 1.e6*mon.nemitt_x, label='H')
 ax.plot(t, 1.e6*mon.nemitt_y, label='V')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
