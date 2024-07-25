@@ -22,7 +22,9 @@ beam = 2
 plane = 'V'
 
 num_turns     = 1000
-num_particles = 5000
+num_particles = 10000
+nemitt_x = 3.5e-6
+nemitt_y = 3.5e-6
 
 path_in  = xc._pkg_root.parent / 'examples'
 path_out = Path.cwd()
@@ -66,7 +68,13 @@ line.build_tracker()
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
 xc.assign_optics_to_collimators(line=line, twiss=tw)
-adt.calibrate(twiss=tw, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+if plane == 'H':
+    adt.calibrate_by_emittance(nemitt=nemitt_x)
+else:
+    adt.calibrate_by_emittance(nemitt=nemitt_y)
+
+
+adt.amplitude = 0.1
 
 
 # Optimise the line
