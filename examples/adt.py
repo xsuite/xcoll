@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 start_time = time.time()
+import pandas as pd
 
 import xobjects as xo
 import xtrack as xt
@@ -117,7 +118,11 @@ at_ele, counts = np.unique(part.at_element, return_counts=True)
 for el,c in zip(at_ele, counts):
     print(f"{line.element_names[el]} {c}")
 part_norm = twiss.get_normalized_coordinates(mon2, nemitt_x=3.5e-6, nemitt_y=3.6e-6)
-part_norm.to_pandas().to_csv("adt_norm_particles.csv", index=False)
+# part_norm = np.array(
+#     [part_norm.x_norm, part_norm.px_norm,
+#      part_norm.y_norm, part_norm.py_norm,
+#      part_norm.zeta_norm, part_norm.pzeta_norm])
+# np.save('adt_norm.npy', part_norm)
 
 
 # Plot the result
@@ -127,6 +132,8 @@ ax.plot(t, 1.e6*mon.nemitt_x, label='H')
 ax.plot(t, 1.e6*mon.nemitt_y, label='V')
 ax.plot(t, 1.e6*mon.nemitt_I, label='I')
 ax.plot(t, 1.e6*mon.nemitt_II, label='II')
+ax.plot(t, 1.e6*np.mean(part_norm.x_norm**2 + part_norm.px_norm**2, axis=0)/2 * mon.beta0 * mon.gamma0, label='xN')
+ax.plot(t, 1.e6*np.mean(part_norm.y_norm**2 + part_norm.py_norm**2, axis=0)/2 * mon.beta0 * mon.gamma0, label='yN')
 ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")
