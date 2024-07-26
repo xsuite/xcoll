@@ -40,7 +40,12 @@ adt.install(line, name=name, at_s=adt_pos, need_apertures=False)
 # Add an emittance monitor
 mon = xc.EmittanceMonitor(stop_at_turn=total_turns)
 mon.set_beta0_gamma0(line.particle_ref)
-line.insert_element(element=mon, name="monitor", at_s=adt_pos)
+line.insert_element(element=mon, name="emittance monitor", at_s=adt_pos)
+
+
+# Add a particles monitor
+mon2 = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=total_turns, num_particles=num_particles)
+line.insert_element(element=mon2, name="particle monitor", at_s=adt_pos)
 
 
 # Install BlackAbsorbers
@@ -61,7 +66,7 @@ if plane == 'H':
     adt.calibrate_by_emittance(nemitt=nemitt_x)
 else:
     adt.calibrate_by_emittance(nemitt=nemitt_y)
-    twiss = line.twiss()
+twiss = line.twiss()
 xc.assign_optics_to_collimators(line, nemitt_x=3.5e-6, nemitt_y=3.5e-6, twiss=twiss)
 
 
@@ -81,6 +86,7 @@ adt.activate()
 adt.amplitude = 0.025
 print(adt._kick_rms)
 xc.enable_scattering(line)
+
 
 # Track
 line.track(part, num_turns=adt_turns, with_progress=1)
@@ -110,8 +116,11 @@ line.track(part, num_turns=total_turns-adt_turns, with_progress=1)
 at_ele, counts = np.unique(part.at_element, return_counts=True)
 for el,c in zip(at_ele, counts):
     print(f"{line.element_names[el]} {c}")
+part_norm = twiss.get_normalized_coordinates(mon2, nemitt_x=3.5e-6, nemitt_y=3.6e-6)
+part_norm.to_pandas().to_csv("adt_norm_particles.csv", index=False)
 
 
+# Plot the result
 _, ax = plt.subplots(figsize=(6,4))
 t = list(range(total_turns))
 ax.plot(t, 1.e6*mon.nemitt_x, label='H')
