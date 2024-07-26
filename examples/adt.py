@@ -15,10 +15,11 @@ import xcoll as xc
 
 beam = 1
 plane = 'V'
-num_turns = 100
+adt_turns = 1000
+total_turns = 3500
 num_particles = 5000
 nemitt_x = 3.5e-6
-nemitt_y = 2.5e-6
+nemitt_y = 3.5e-6
 
 
 # Import a Run 3 LHC lattice without apertures
@@ -37,9 +38,16 @@ adt.install(line, name=name, at_s=adt_pos, need_apertures=False)
 
 
 # Add an emittance monitor
-mon = xc.EmittanceMonitor(stop_at_turn=num_turns, longitudinal=False)
+mon = xc.EmittanceMonitor(stop_at_turn=total_turns)
 mon.set_beta0_gamma0(line.particle_ref)
 line.insert_element(element=mon, name="monitor", at_s=adt_pos)
+
+
+# Install BlackAbsorbers
+xc.install_elements(line, names=['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], elements=[
+        xc.BlackAbsorber(length=1, gap=5, angle=0),
+        xc.BlackAbsorber(length=1, gap=5, angle=90),
+        xc.BlackAbsorber(length=1, gap=5, angle=135)])
 
 
 # Build the tracker and optimise
@@ -53,11 +61,14 @@ if plane == 'H':
     adt.calibrate_by_emittance(nemitt=nemitt_x)
 else:
     adt.calibrate_by_emittance(nemitt=nemitt_y)
+    twiss = line.twiss()
+xc.assign_optics_to_collimators(line, nemitt_x=3.5e-6, nemitt_y=3.5e-6, twiss=twiss)
 
 
 # Generate a matched Gaussian bunch
 part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
                                           nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
+part._init_random_number_generator(seeds=23*np.ones(num_particles, dtype=np.int64))
 
 
 # Move the tracker to a multi-core context
@@ -67,17 +78,24 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 # Activate the ADT
 adt.activate()
-adt.amplitude = 0.25
-
+adt.amplitude = 0.025
+print(adt._kick_rms)
+xc.enable_scattering(line)
 
 # Track
-line.track(part, num_turns=num_turns, with_progress=1)
+line.track(part, num_turns=adt_turns, with_progress=1)
+at_ele, counts = np.unique(part.at_element, return_counts=True)
+for el,c in zip(at_ele, counts):
+    print(f"{line.element_names[el]} {c}")
+
 
 # Plot the result
 _, ax = plt.subplots(figsize=(6,4))
-t = list(range(num_turns))
+t = list(range(adt_turns))
 ax.plot(t, 1.e6*mon.nemitt_x, label='H')
 ax.plot(t, 1.e6*mon.nemitt_y, label='V')
+ax.plot(t, 1.e6*mon.nemitt_I, label='I')
+ax.plot(t, 1.e6*mon.nemitt_II, label='II')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")
 ax.legend()
@@ -85,13 +103,51 @@ ax.set_title("Emittance growth by ADT blow-up in the LHC")
 print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
 
+
+# Track
+adt.deactivate()
+line.track(part, num_turns=total_turns-adt_turns, with_progress=1)
+at_ele, counts = np.unique(part.at_element, return_counts=True)
+for el,c in zip(at_ele, counts):
+    print(f"{line.element_names[el]} {c}")
+
+
 _, ax = plt.subplots(figsize=(6,4))
-ax.fill_between(t, mon.x_mean + mon.x_std, mon.x_mean - mon.x_std, alpha=0.2)
-ax.plot(t, mon.x_mean, label=r'$<x_N>$')
-ax.fill_between(t, mon.y_mean + mon.y_std, mon.y_mean - mon.y_std, alpha=0.2)
-ax.plot(t, mon.y_mean, label=r'$<y_N>$')
-ax.set_ylabel(r"normalised amplitude $[\sigma]$")
+t = list(range(total_turns))
+ax.plot(t, 1.e6*mon.nemitt_x, label='H')
+ax.plot(t, 1.e6*mon.nemitt_y, label='V')
+ax.plot(t, 1.e6*mon.nemitt_I, label='I')
+ax.plot(t, 1.e6*mon.nemitt_II, label='II')
+ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
+ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
+ax.set_xlabel("turn")
+ax.legend()
+ax.set_title("Emittance growth by ADT blow-up in the LHC")
+print(f"Total calculation time {time.time()-start_time}s")
+plt.savefig("adt_transverse_emittances.png", dpi=300)
+plt.show()
+
+_, ax = plt.subplots(figsize=(6,4))
+ax.fill_between(t, 1e3*mon.x_mean + 1e3*mon.x_std, 1e3*mon.x_mean - 1e3*mon.x_std, alpha=0.4)
+ax.plot(t, 1e3*mon.x_mean, label=r'$<x>$')
+ax.fill_between(t, 1e3*mon.y_mean + 1e3*mon.y_std, 1e3*mon.y_mean - 1e3*mon.y_std, alpha=0.4)
+ax.plot(t, 100*mon.y_mean, label=r'$<y>$')
+ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
+ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("turn")
 ax.legend()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
+plt.savefig("adt_transverse_amplitudes.png", dpi=300)
+plt.show()
+
+_, ax = plt.subplots(figsize=(6,4))
+t = list(range(total_turns))
+ax.plot(t, 1.e2*mon.nemitt_zeta, label='L')
+ax.plot(t, 1.e2*mon.nemitt_III, label='III')
+ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
+ax.set_ylabel(r"$\epsilon\; [\mathrm{cm}]$")
+ax.set_xlabel("turn")
+ax.legend()
+ax.set_title("Longitudinal emittance growth by ADT blow-up in the LHC")
+plt.savefig("adt_longitudinal_emittances.png", dpi=300)
 plt.show()
