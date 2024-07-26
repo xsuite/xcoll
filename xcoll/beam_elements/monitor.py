@@ -265,7 +265,6 @@ class EmittanceMonitor(xt.BeamElement):
     def _calculate(self):
         if self._cached:
             return
-        self._cached = True
 
         # Calculate mean, variance, and std
         N = self.count
@@ -293,6 +292,8 @@ class EmittanceMonitor(xt.BeamElement):
                     setattr(self, f'_{x1}_{x2}_var', variance)
                     if x1 == x2:
                         setattr(self, f'_{x1}_std', np.sqrt(variance))
+        self._cached = True
+        self._cached_modes = False
 
         # Calculate emittances
         gemitt_x = np.sqrt(self.x_x_var * self.px_px_var - self.x_px_var**2)
@@ -307,7 +308,12 @@ class EmittanceMonitor(xt.BeamElement):
         if self._cached_modes:
             return
 
-        S = np.array([[0,1],[-1,0]])
+        S = np.array([[ 0., 1., 0., 0., 0., 0.],
+                      [-1., 0., 0., 0., 0., 0.],
+                      [ 0., 0., 0., 1., 0., 0.],
+                      [ 0., 0.,-1., 0., 0., 0.],
+                      [ 0., 0., 0., 0., 0., 1.],
+                      [ 0., 0., 0., 0.,-1., 0.]])
         gemitt_I   = []
         gemitt_II  = []
         gemitt_III = []
@@ -315,74 +321,61 @@ class EmittanceMonitor(xt.BeamElement):
         N = N[N > 0]
         for i in range(len(N)):
             if self.horizontal:
-                block_x = np.dot(np.array([[self.x_x_var[i],  self.x_px_var[i]],
-                                           [self.x_px_var[i], self.px_px_var[i]]]), S)
+                block_x = np.array([[self.x_x_var[i],  self.x_px_var[i]],
+                                    [self.x_px_var[i], self.px_px_var[i]]])
+            else:
+                block_x = np.zeros((2, 2))
             if self.vertical:
-                block_y = np.dot(np.array([[self.y_y_var[i],  self.y_py_var[i]],
-                                           [self.y_py_var[i], self.py_py_var[i]]]), S)
+                block_y = np.array([[self.y_y_var[i],  self.y_py_var[i]],
+                                    [self.y_py_var[i], self.py_py_var[i]]])
+            else:
+                block_y = np.zeros((2, 2))
             if self.longitudinal:
-                block_z = np.dot(np.array([[self.zeta_zeta_var[i],  self.zeta_pzeta_var[i]],
-                                           [self.zeta_pzeta_var[i], self.pzeta_pzeta_var[i]]]), S)
+                block_z = np.array([[self.zeta_zeta_var[i],  self.zeta_pzeta_var[i]],
+                                    [self.zeta_pzeta_var[i], self.pzeta_pzeta_var[i]]])
+            else:
+                block_z = np.zeros((2, 2))
             if self.horizontal and self.vertical:
-                block_xy = np.dot(np.array([[self.x_y_var[i],  self.x_py_var[i]],
-                                            [self.px_y_var[i], self.px_py_var[i]]]), S)
+                block_xy = np.array([[self.x_y_var[i],  self.x_py_var[i]],
+                                    [self.px_y_var[i], self.px_py_var[i]]])
+            else:
+                block_xy = np.zeros((2, 2))
             if self.horizontal and self.longitudinal:
-                block_xz = np.dot(np.array([[self.x_zeta_var[i], self.x_pzeta_var[i]],
-                                            [self.px_zeta_var[i], self.px_pzeta_var[i]]]), S)
+                block_xz = np.array([[self.x_zeta_var[i], self.x_pzeta_var[i]],
+                                    [self.px_zeta_var[i], self.px_pzeta_var[i]]])
+            else:
+                block_xz = np.zeros((2, 2))
             if self.vertical and self.longitudinal:
-                block_yz = np.dot(np.array([[self.y_zeta_var[i],  self.y_pzeta_var[i]],
-                                            [self.py_zeta_var[i], self.py_pzeta_var[i]]]), S)
-            if self.horizontal and self.vertical and self.longitudinal:
-                covariance = np.block([[block_x,    block_xy,   block_xz],
-                                       [block_xy.T, block_y,    block_yz],
-                                       [block_xz.T, block_yz.T, block_z]])
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
-                gemitt_II.append(mean(eigenvalues[2], eigenvalues[3]))
-                gemitt_III.append(mean(eigenvalues[4], eigenvalues[5]))
-            elif self.horizontal and self.vertical :
-                covariance = np.block([[block_x,    block_xy],
-                                       [block_xy.T, block_y]])
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
-                gemitt_II.append(mean(eigenvalues[2], eigenvalues[3]))
-            elif self.horizontal and self.longitudinal :
-                covariance = np.block([[block_x,    block_xz],
-                                       [block_xz.T, block_z]])
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
-                gemitt_III.append(mean(eigenvalues[2], eigenvalues[3]))
-            elif self.vertical and self.longitudinal :
-                covariance = np.block([[block_y,    block_yz],
-                                       [block_yz.T, block_z]])
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_II.append(mean(eigenvalues[0], eigenvalues[1]))
-                gemitt_III.append(mean(eigenvalues[2], eigenvalues[3]))
-            elif self.horizontal:
-                covariance  = block_x
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_I.append(mean(eigenvalues[0], eigenvalues[1]))
-            elif self.vertical:
-                covariance  = block_y
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_II.append(mean(eigenvalues[0], eigenvalues[1]))
-            elif self.longitudinal:
-                covariance  = block_z
-                eigenvalues = np.abs(np.linalg.eigvals(covariance).imag)
-                gemitt_III.append(mean(eigenvalues[0], eigenvalues[1]))
-            cond_number = np.linalg.cond(covariance)
+                block_yz = np.array([[self.y_zeta_var[i],  self.y_pzeta_var[i]],
+                                    [self.py_zeta_var[i], self.py_pzeta_var[i]]])
+            else:
+                block_yz = np.zeros((2, 2))
+
+            covariance_S = np.dot(np.block([[block_x,    block_xy,   block_xz],
+                                           [block_xy.T, block_y,    block_yz],
+                                           [block_xz.T, block_yz.T, block_z]]),
+                                  S)
+            cond_number = np.linalg.cond(covariance_S)
             if cond_number > 1e10:
                 print(f"Warning: High condition number when calculating "
                     + f"the emittances modes at time step {i}: {cond_number}.\n"
                     + f"One of the coordinates might be close to zero or not "
                     + f"varying enough among the different particles.")
-            rank = np.linalg.matrix_rank(covariance)
-            if rank < len(covariance):
+            rank = np.linalg.matrix_rank(covariance_S)
+            expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
+            if rank < expected_rank:
                 print(f"Warning: Matrix is rank deficient when calculating "
                     + f"the emittances modes at time step {i}: rank {rank} "
-                    + f"instead of expected {len(covariance)}.\n"
+                    + f"instead of expected {len(covariance_S)}.\n"
                     + f"One of the coordinates might be close to zero or not "
                     + f"varying enough among the different particles.")
+
+            from xtrack.linear_normal_form import compute_linear_normal_form
+            _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
+            gemitt_I.append(eigenvalues[0].imag)
+            gemitt_II.append(eigenvalues[1].imag)
+            gemitt_III.append(eigenvalues[2].imag)
+
         setattr(self, '_gemitt_I',   np.array(gemitt_I))
         setattr(self, '_gemitt_II',  np.array(gemitt_II))
         setattr(self, '_gemitt_III', np.array(gemitt_III))
