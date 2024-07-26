@@ -83,6 +83,8 @@ def _get_s_start(line, name, length, tab=None):
         existing_length = line[name].length
     else:
         existing_length = 0
+    if name not in tab.name:
+        raise ValueError(f"Element {name} not found in line. Need to mmanually provide `at_s`.")
     return tab.rows[name].s[0] + existing_length/2. - length/2
 
 
