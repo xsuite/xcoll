@@ -39,9 +39,7 @@ adt.install(line, name=name, at_s=adt_pos, need_apertures=False)
 
 
 # Add an emittance monitor
-mon = xc.EmittanceMonitor(stop_at_turn=total_turns)
-mon.set_beta0_gamma0(line.particle_ref)
-line.insert_element(element=mon, name="emittance monitor", at_s=adt_pos)
+mon = xc.EmittanceMonitor.install(line, name="emittance monitor", at_s=adt_pos, stop_at_turn=total_turns)
 
 
 # Add a particles monitor
@@ -69,6 +67,7 @@ else:
     adt.calibrate_by_emittance(nemitt=nemitt_y)
 twiss = line.twiss()
 xc.assign_optics_to_collimators(line, nemitt_x=3.5e-6, nemitt_y=3.5e-6, twiss=twiss)
+mon.set_closed_orbit(twiss)
 
 
 # Generate a matched Gaussian bunch
@@ -85,7 +84,6 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 # Activate the ADT
 adt.activate()
 adt.amplitude = 0.025
-print(adt._kick_rms)
 xc.enable_scattering(line)
 
 
@@ -95,6 +93,9 @@ at_ele, counts = np.unique(part.at_element, return_counts=True)
 for el,c in zip(at_ele, counts):
     print(f"{line.element_names[el]} {c}")
 
+part_norm = twiss.get_normalized_coordinates(mon2)
+amp_x = np.array([np.mean(x[~np.isnan(x)])/2 for x in (part_norm.x_norm**2 + part_norm.px_norm**2).T])
+amp_y = np.array([np.mean(y[~np.isnan(y)])/2 for y in (part_norm.y_norm**2 + part_norm.py_norm**2).T])
 
 # Plot the result
 _, ax = plt.subplots(figsize=(6,4))
@@ -103,6 +104,8 @@ ax.plot(t, 1.e6*mon.nemitt_x, label='H')
 ax.plot(t, 1.e6*mon.nemitt_y, label='V')
 ax.plot(t, 1.e6*mon.nemitt_I, label='I')
 ax.plot(t, 1.e6*mon.nemitt_II, label='II')
+ax.plot(t, 1.e6 * amp_x[:1000] * mon.beta0 * mon.gamma0, label='xN')
+ax.plot(t, 1.e6 * amp_y[:1000] * mon.beta0 * mon.gamma0, label='yN')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")
 ax.legend()
@@ -110,19 +113,15 @@ ax.set_title("Emittance growth by ADT blow-up in the LHC")
 print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
 
-
 # Track
 adt.deactivate()
 line.track(part, num_turns=total_turns-adt_turns, with_progress=1)
 at_ele, counts = np.unique(part.at_element, return_counts=True)
 for el,c in zip(at_ele, counts):
     print(f"{line.element_names[el]} {c}")
-part_norm = twiss.get_normalized_coordinates(mon2, nemitt_x=3.5e-6, nemitt_y=3.6e-6)
-# part_norm = np.array(
-#     [part_norm.x_norm, part_norm.px_norm,
-#      part_norm.y_norm, part_norm.py_norm,
-#      part_norm.zeta_norm, part_norm.pzeta_norm])
-# np.save('adt_norm.npy', part_norm)
+part_norm = twiss.get_normalized_coordinates(mon2)
+amp_x = np.array([np.mean(x[~np.isnan(x)])/2 for x in (part_norm.x_norm**2 + part_norm.px_norm**2).T])
+amp_y = np.array([np.mean(y[~np.isnan(y)])/2 for y in (part_norm.y_norm**2 + part_norm.py_norm**2).T])
 
 
 # Plot the result
@@ -132,8 +131,8 @@ ax.plot(t, 1.e6*mon.nemitt_x, label='H')
 ax.plot(t, 1.e6*mon.nemitt_y, label='V')
 ax.plot(t, 1.e6*mon.nemitt_I, label='I')
 ax.plot(t, 1.e6*mon.nemitt_II, label='II')
-ax.plot(t, 1.e6*np.mean(part_norm.x_norm**2 + part_norm.px_norm**2, axis=0)/2 * mon.beta0 * mon.gamma0, label='xN')
-ax.plot(t, 1.e6*np.mean(part_norm.y_norm**2 + part_norm.py_norm**2, axis=0)/2 * mon.beta0 * mon.gamma0, label='yN')
+ax.plot(t, 1.e6 * amp_x * mon.beta0 * mon.gamma0, label='xN')
+ax.plot(t, 1.e6 * amp_y * mon.beta0 * mon.gamma0, label='yN')
 ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
 ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("turn")

@@ -134,30 +134,12 @@ class EmittanceMonitor(xt.BeamElement):
             self._cached_modes = False
 
 
-    @property
-    def horizontal(self):
-        return bool(self._plane_selector % 2)
-
-    @property
-    def vertical(self):
-        return bool((self._plane_selector >> 1) % 2)
-
-    @property
-    def longitudinal(self):
-        return bool((self._plane_selector >> 2) % 2)
-
-
-    @property
-    def beta0(self):
-        if not hasattr(self, '_beta0'):
-            raise ValueError("Need to call `set_beta0_gamma0()` first!")
-        return self._beta0
-
-    @property
-    def gamma0(self):
-        if not hasattr(self, '_gamma0'):
-            raise ValueError("Need to call `set_beta0_gamma0()` first!")
-        return self._gamma0
+    @classmethod
+    def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
+        line.insert_element(element=cls(**kwargs), name=name, at_s=at_s, at=at, s_tol=s_tol)
+        line[name]._name = name
+        line[name]._line = line
+        return line[name]
 
 
     @property
@@ -239,14 +221,36 @@ class EmittanceMonitor(xt.BeamElement):
         return self._gemitt_III * self.beta0 * self.gamma0
 
 
-    def set_beta0_gamma0(self, particles=None, beta=None, gamma=None):
-        if particles is not None:
-            if beta is not None or gamma is not None:
-                raise ValueError("Use either `particles` or `beta` and `gamma`!")
-            beta = particles.beta0[0]
-            gamma = particles.gamma0[0]
-        self._beta0 = beta
-        self._gamma0 = gamma
+    @property
+    def horizontal(self):
+        return bool(self._plane_selector % 2)
+
+    @property
+    def vertical(self):
+        return bool((self._plane_selector >> 1) % 2)
+
+    @property
+    def longitudinal(self):
+        return bool((self._plane_selector >> 2) % 2)
+
+    @property
+    def beta0(self):
+        if not hasattr(self, '_beta0') or not self._cached:
+            self._beta0 = self._line.particle_ref._xobject.beta0[0]
+        return self._beta0
+
+    @property
+    def gamma0(self):
+        if not hasattr(self, '_beta0') or not self._cached:
+            self._gamma0 = self._line.particle_ref._xobject.gamma0[0]
+        return self._gamma0
+
+
+    def set_closed_orbit(self, twiss):
+        rows = twiss.rows
+        self._co = {'x':    rows[self._name].x[0],    'px':    rows[self._name].px[0],
+                    'y':    rows[self._name].y[0],    'py':    rows[self._name].py[0],
+                    'zeta': rows[self._name].zeta[0], 'pzeta': rows[self._name].ptau[0]/self.beta0}
 
 
     def _check_horizontal(self):
@@ -266,6 +270,9 @@ class EmittanceMonitor(xt.BeamElement):
         if self._cached:
             return
 
+        if not hasattr(self, '_co'):
+            raise ValueError("Closed orbit not set! Use `set_closed_orbit` first.")
+
         # Calculate mean, variance, and std
         N = self.count
         mask = N > 0
@@ -280,12 +287,14 @@ class EmittanceMonitor(xt.BeamElement):
                     setattr(self, f'_{x}_mean', mean)
                 elif field.endswith('_sum2'):
                     x1, x2 = field[:-5].split('_')
-                    ff = getattr(self, f'{x1}_sum1')
-                    ff = ff[mask] if len(ff) == len(mask) else ff
-                    mean1 = ff / N
-                    ff = getattr(self, f'{x2}_sum1')
-                    ff = ff[mask] if len(ff) == len(mask) else ff
-                    mean2 = ff / N
+                    # ff = getattr(self, f'{x1}_sum1')
+                    # ff = ff[mask] if len(ff) == len(mask) else ff
+                    # mean1 = ff / N
+                    mean1 = self._co[x1]
+                    # ff = getattr(self, f'{x2}_sum1')
+                    # ff = ff[mask] if len(ff) == len(mask) else ff
+                    # mean2 = ff / N
+                    mean2 = self._co[x2]
                     ff = getattr(self, field)
                     ff = ff[mask] if len(ff) == len(mask) else ff
                     variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
