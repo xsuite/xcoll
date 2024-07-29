@@ -67,10 +67,6 @@ else:
 adt.amplitude = 0.1
 
 
-# Set the closed orbit for the emittance monitor
-mon.set_closed_orbit(twiss=twiss)
-
-
 # Generate a matched Gaussian bunch
 part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
                                           nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)

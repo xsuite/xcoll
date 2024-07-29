@@ -88,9 +88,8 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
 
 
-for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-    el.set_closed_orbit(twiss=tw)
-
+# Track!
+# ======
 xc.enable_scattering(line)
 line.track(part)
 print("Done Tracking!")

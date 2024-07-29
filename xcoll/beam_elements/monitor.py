@@ -10,9 +10,14 @@ import xtrack as xt
 
 from ..general import _pkg_root
 
-
 class EmittanceMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
+    x_sum1           = xo.Float64[:]
+    px_sum1          = xo.Float64[:]
+    y_sum1           = xo.Float64[:]
+    py_sum1          = xo.Float64[:]
+    zeta_sum1        = xo.Float64[:]
+    pzeta_sum1       = xo.Float64[:]
     x_x_sum2         = xo.Float64[:]
     x_px_sum2        = xo.Float64[:]
     x_y_sum2         = xo.Float64[:]
@@ -34,7 +39,6 @@ class EmittanceMonitorRecord(xo.Struct):
     zeta_zeta_sum2   = xo.Float64[:]
     zeta_pzeta_sum2  = xo.Float64[:]
     pzeta_pzeta_sum2 = xo.Float64[:]
-
 
 class EmittanceMonitor(xt.BeamElement):
     _xofields={
@@ -271,15 +275,6 @@ class EmittanceMonitor(xt.BeamElement):
         self._line = val
 
 
-    def set_closed_orbit(self, twiss=None):
-        if twiss is None:
-            twiss = self.line.twiss()
-        rows = twiss.rows
-        self._co = {'x':    rows[self.name].x[0],    'px':    rows[self.name].px[0],
-                    'y':    rows[self.name].y[0],    'py':    rows[self.name].py[0],
-                    'zeta': rows[self.name].zeta[0], 'pzeta': rows[self.name].ptau[0]/self.beta0}
-
-
     def _check_horizontal(self):
         if not self.horizontal:
             raise ValueError("Horizontal plane not monitored!")
@@ -296,8 +291,6 @@ class EmittanceMonitor(xt.BeamElement):
     def _calculate(self):
         if self._cached:
             return
-        if not hasattr(self, '_co'):
-            raise ValueError("Closed orbit not set! Use `set_closed_orbit` first.")
 
         # Calculate mean, variance, and std
         N = self.count
@@ -306,15 +299,18 @@ class EmittanceMonitor(xt.BeamElement):
         self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
         with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
             for field in [f.name for f in EmittanceMonitorRecord._fields]:
-                if field == 'count':
-                    continue
-                x1, x2 = field[:-5].split('_')
-                mean1 = self._co[x1]
-                mean2 = self._co[x2]
-                ff = getattr(self, field)
-                ff = ff[mask] if len(ff) == len(mask) else ff
-                variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
-                setattr(self, f'_{x1}_{x2}_var', variance)
+                if field.endswith('_sum2'):
+                    x1, x2 = field[:-5].split('_')
+                    ff1 = getattr(self, f'{x1}_sum1')
+                    ff1 = ff1[mask] if len(ff1) == len(mask) else ff1
+                    mean1 = ff1 / N
+                    ff2 = getattr(self, f'{x2}_sum1')
+                    ff2 = ff2[mask] if len(ff2) == len(mask) else ff2
+                    mean2 = ff2 / N
+                    ff = getattr(self, field)
+                    ff = ff[mask] if len(ff) == len(mask) else ff
+                    variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
+                    setattr(self, f'_{x1}_{x2}_var', variance)
         self._cached = True
         self._cached_modes = False
 
@@ -366,23 +362,23 @@ class EmittanceMonitor(xt.BeamElement):
                 block_z = np.zeros((2, 2))
             if self.horizontal and self.vertical:
                 block_xy = np.array([[self.x_y_var[i],  self.x_py_var[i]],
-                                    [self.px_y_var[i], self.px_py_var[i]]])
+                                     [self.px_y_var[i], self.px_py_var[i]]])
             else:
                 block_xy = np.zeros((2, 2))
             if self.horizontal and self.longitudinal:
-                block_xz = np.array([[self.x_zeta_var[i], self.x_pzeta_var[i]],
-                                    [self.px_zeta_var[i], self.px_pzeta_var[i]]])
+                block_xz = np.array([[self.x_zeta_var[i],  self.x_pzeta_var[i]],
+                                     [self.px_zeta_var[i], self.px_pzeta_var[i]]])
             else:
                 block_xz = np.zeros((2, 2))
             if self.vertical and self.longitudinal:
                 block_yz = np.array([[self.y_zeta_var[i],  self.y_pzeta_var[i]],
-                                    [self.py_zeta_var[i], self.py_pzeta_var[i]]])
+                                     [self.py_zeta_var[i], self.py_pzeta_var[i]]])
             else:
                 block_yz = np.zeros((2, 2))
 
             covariance_S = np.dot(np.block([[block_x,    block_xy,   block_xz],
-                                           [block_xy.T, block_y,    block_yz],
-                                           [block_xz.T, block_yz.T, block_z]]),
+                                            [block_xy.T, block_y,    block_yz],
+                                            [block_xz.T, block_yz.T, block_z]]),
                                   S)
             cond_number = np.linalg.cond(covariance_S)
             if cond_number > 1e10:

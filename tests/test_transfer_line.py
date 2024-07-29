@@ -28,9 +28,7 @@ def test_transfer_line(test_context):
     _add_monitors(line)
     line.build_tracker(_context=test_context)
     xc.disable_scattering(line)  # Scattering need to be disabled to be able to twiss
-    part, tw = _generate_matched_particles(line)
-    for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-        el.set_closed_orbit(twiss=tw)
+    part = _generate_matched_particles(line)
     xc.enable_scattering(line)   # Re-enable scattering
     line.track(part)
     nemitt_x = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
@@ -102,4 +100,4 @@ def _generate_matched_particles(line):
     part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                                 W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                                 nemitt_x=nemitt_x,nemitt_y=nemitt_y)
-    return part, tw
+    return part

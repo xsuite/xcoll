@@ -35,12 +35,10 @@ def test_blow_up(beam, plane, test_context):
     mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns)
 
     line.build_tracker(_context=test_context)
-    tw = line.twiss()
     if plane == 'H':
-        adt.calibrate_by_emittance(nemitt=nemitt_x, twiss=tw)
+        adt.calibrate_by_emittance(nemitt=nemitt_x)
     else:
-        adt.calibrate_by_emittance(nemitt=nemitt_y, twiss=tw)
-    mon.set_closed_orbit(twiss=tw)
+        adt.calibrate_by_emittance(nemitt=nemitt_y)
 
     part = xp.generate_matched_gaussian_bunch(num_particles=num_part, total_intensity_particles=1.6e11,
                                               nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)

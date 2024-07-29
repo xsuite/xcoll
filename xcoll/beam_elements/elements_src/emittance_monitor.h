@@ -54,6 +54,8 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
                 if (monitor_horizontal){
                     x  = LocalParticle_get_x(part);
                     px = LocalParticle_get_px(part);
+                    /*gpuglmem*/ double *x_sum1     = EmittanceMonitorRecord_getp1_x_sum1(record, slot);     atomicAdd(x_sum1, x);
+                    /*gpuglmem*/ double *px_sum1    = EmittanceMonitorRecord_getp1_px_sum1(record, slot);    atomicAdd(px_sum1, px);
                     /*gpuglmem*/ double *x_x_sum2   = EmittanceMonitorRecord_getp1_x_x_sum2(record, slot);   atomicAdd(x_x_sum2, x*x);
                     /*gpuglmem*/ double *x_px_sum2  = EmittanceMonitorRecord_getp1_x_px_sum2(record, slot);  atomicAdd(x_px_sum2, x*px);
                     /*gpuglmem*/ double *px_px_sum2 = EmittanceMonitorRecord_getp1_px_px_sum2(record, slot); atomicAdd(px_px_sum2, px*px);
@@ -62,6 +64,8 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
                 if (monitor_vertical){
                     y  = LocalParticle_get_y(part);
                     py = LocalParticle_get_py(part);
+                    /*gpuglmem*/ double *y_sum1     = EmittanceMonitorRecord_getp1_y_sum1(record, slot);     atomicAdd(y_sum1, y);
+                    /*gpuglmem*/ double *py_sum1    = EmittanceMonitorRecord_getp1_py_sum1(record, slot);    atomicAdd(py_sum1, py);
                     /*gpuglmem*/ double *y_y_sum2   = EmittanceMonitorRecord_getp1_y_y_sum2(record, slot);   atomicAdd(y_y_sum2, y*y);
                     /*gpuglmem*/ double *y_py_sum2  = EmittanceMonitorRecord_getp1_y_py_sum2(record, slot);  atomicAdd(y_py_sum2, y*py);
                     /*gpuglmem*/ double *py_py_sum2 = EmittanceMonitorRecord_getp1_py_py_sum2(record, slot); atomicAdd(py_py_sum2, py*py);
@@ -70,6 +74,8 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
                 if (monitor_longitudinal){
                     double const ptau = LocalParticle_get_ptau(part);
                     pzeta = ptau/beta0;
+                    /*gpuglmem*/ double *zeta_sum1        = EmittanceMonitorRecord_getp1_zeta_sum1(record, slot);        atomicAdd(zeta_sum1, zeta);
+                    /*gpuglmem*/ double *pzeta_sum1       = EmittanceMonitorRecord_getp1_pzeta_sum1(record, slot);       atomicAdd(pzeta_sum1, pzeta);
                     /*gpuglmem*/ double *zeta_zeta_sum2   = EmittanceMonitorRecord_getp1_zeta_zeta_sum2(record, slot);   atomicAdd(zeta_zeta_sum2, zeta*zeta);
                     /*gpuglmem*/ double *zeta_pzeta_sum2  = EmittanceMonitorRecord_getp1_zeta_pzeta_sum2(record, slot);  atomicAdd(zeta_pzeta_sum2, zeta*pzeta);
                     /*gpuglmem*/ double *pzeta_pzeta_sum2 = EmittanceMonitorRecord_getp1_pzeta_pzeta_sum2(record, slot); atomicAdd(pzeta_pzeta_sum2, pzeta*pzeta);
