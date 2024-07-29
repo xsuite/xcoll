@@ -27,7 +27,11 @@ def test_transfer_line(test_context):
     assert xt.line._dicts_equal(line["Air 2"].material.to_dict(), air.to_dict())
     _add_monitors(line)
     line.build_tracker(_context=test_context)
-    part = _generate_matched_particles(line)
+    xc.disable_scattering(line)  # Scattering need to be disabled to be able to twiss
+    part, tw = _generate_matched_particles(line)
+    for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
+        el.set_closed_orbit(twiss=tw)
+    xc.enable_scattering(line)   # Re-enable scattering
     line.track(part)
     nemitt_x = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
     nemitt_y = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
@@ -72,19 +76,14 @@ def _add_air_regions(line):
 
 
 def _add_monitors(line):
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor start", at_s=0)
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 1 start", at_s=20)
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 1 end", at_s=30)
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 2 start", at_s=50)
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor air 2 end", at_s=60)
-    line.insert_element(element=xc.EmittanceMonitor(longitudinal=False), name="monitor end", at_s=100)
-    for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-        el.set_beta0_gamma0(line.particle_ref)
-
+    xc.EmittanceMonitor.install(line, name="monitor start", at_s=0, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 1 start", at_s=20, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 1 end", at_s=30, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 2 start", at_s=50, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor air 2 end", at_s=60, longitudinal=False)
+    xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=False)
 
 def _generate_matched_particles(line):
-    # Scattering need to be disabled to be able to twiss
-    xc.disable_scattering(line)
     # Matched initial parameters
     betx0 = 154.0835045206266
     bety0 = 5.222566527078791
@@ -95,7 +94,7 @@ def _generate_matched_particles(line):
     dpx0 = 0.02
     dpy0 = 0.0
     tw_init = xt.TwissInit(betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0, dx=dx0, dy=dy0, dpx=dpx0, dpy=dpy0)
-    tw = line.twiss(method='4d', start="QF1", end="END", init=tw_init)
+    tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init)
     nemitt_x = 7.639770207283603e-06
     nemitt_y = 3.534081877201574e-06
     x_norm, px_norm = xp.generate_2D_gaussian(num_part)
@@ -103,6 +102,4 @@ def _generate_matched_particles(line):
     part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
                                 W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                                 nemitt_x=nemitt_x,nemitt_y=nemitt_y)
-    # re-enable scattering
-    xc.enable_scattering(line)
-    return part
+    return part, tw
