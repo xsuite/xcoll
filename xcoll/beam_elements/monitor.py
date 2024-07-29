@@ -136,10 +136,11 @@ class EmittanceMonitor(xt.BeamElement):
 
     @classmethod
     def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
-        line.insert_element(element=cls(**kwargs), name=name, at_s=at_s, at=at, s_tol=s_tol)
-        line[name]._name = name
-        line[name]._line = line
-        return line[name]
+        self = cls(**kwargs)
+        line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
+        self._name = name
+        self._line = line
+        return self
 
 
     @property
@@ -233,24 +234,53 @@ class EmittanceMonitor(xt.BeamElement):
     def longitudinal(self):
         return bool((self._plane_selector >> 2) % 2)
 
+
     @property
     def beta0(self):
-        if not hasattr(self, '_beta0') or not self._cached:
-            self._beta0 = self._line.particle_ref._xobject.beta0[0]
+        if not hasattr(self, '_beta0'):
+            self._beta0 = self.line.particle_ref.beta0[0]
         return self._beta0
 
     @property
     def gamma0(self):
-        if not hasattr(self, '_beta0') or not self._cached:
-            self._gamma0 = self._line.particle_ref._xobject.gamma0[0]
+        if not hasattr(self, '_gamma0'):
+            self._gamma0 = self.line.particle_ref.gamma0[0]
         return self._gamma0
 
+    @property
+    def turns(self):
+        self._calculate()
+        return self._turns
 
-    def set_closed_orbit(self, twiss):
+    @property
+    def name(self):
+        if not hasattr(self, '_name'):
+            raise ValueError("Name not set! Install the monitor using xc.EmittanceMonitor.install() "
+                             "or manually set the name after installation.")
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
+
+    @property
+    def line(self):
+        if not hasattr(self, '_line'):
+            raise ValueError("Line not set! Install the monitor using xc.EmittanceMonitor.install() "
+                             "or manually set the line after installation.")
+        return self._line
+
+    @line.setter
+    def line(self, val):
+        self._line = val
+
+    def set_closed_orbit(self, twiss=None):
+        if twiss is None:
+            twiss = self.line.twiss()
         rows = twiss.rows
-        self._co = {'x':    rows[self._name].x[0],    'px':    rows[self._name].px[0],
-                    'y':    rows[self._name].y[0],    'py':    rows[self._name].py[0],
-                    'zeta': rows[self._name].zeta[0], 'pzeta': rows[self._name].ptau[0]/self.beta0}
+        self._co = {'x':    rows[self.name].x[0],    'px':    rows[self.name].px[0],
+                    'y':    rows[self.name].y[0],    'py':    rows[self.name].py[0],
+                    'zeta': rows[self.name].zeta[0], 'pzeta': rows[self.name].ptau[0]/self.beta0}
 
 
     def _check_horizontal(self):
@@ -269,7 +299,6 @@ class EmittanceMonitor(xt.BeamElement):
     def _calculate(self):
         if self._cached:
             return
-
         if not hasattr(self, '_co'):
             raise ValueError("Closed orbit not set! Use `set_closed_orbit` first.")
 
@@ -277,6 +306,7 @@ class EmittanceMonitor(xt.BeamElement):
         N = self.count
         mask = N > 0
         N = N[mask]
+        self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
         with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
             for field in [f.name for f in EmittanceMonitorRecord._fields]:
                 if field.endswith('_sum1'):
@@ -329,6 +359,12 @@ class EmittanceMonitor(xt.BeamElement):
         N = self.count
         N = N[N > 0]
         for i in range(len(N)):
+            if N[i] < 25:
+                # Not enough statistics for a reliable calculation of the modes
+                gemitt_I.append(0)
+                gemitt_II.append(0)
+                gemitt_III.append(0)
+                continue
             if self.horizontal:
                 block_x = np.array([[self.x_x_var[i],  self.x_px_var[i]],
                                     [self.x_px_var[i], self.px_px_var[i]]])
@@ -369,7 +405,8 @@ class EmittanceMonitor(xt.BeamElement):
                 print(f"Warning: High condition number when calculating "
                     + f"the emittances modes at time step {i}: {cond_number}.\n"
                     + f"One of the coordinates might be close to zero or not "
-                    + f"varying enough among the different particles.")
+                    + f"varying enough among the different particles. Only "
+                    + f"{N[i]} particles were logged at this step.")
             rank = np.linalg.matrix_rank(covariance_S)
             expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
             if rank < expected_rank:
@@ -377,7 +414,8 @@ class EmittanceMonitor(xt.BeamElement):
                     + f"the emittances modes at time step {i}: rank {rank} "
                     + f"instead of expected {len(covariance_S)}.\n"
                     + f"One of the coordinates might be close to zero or not "
-                    + f"varying enough among the different particles.")
+                    + f"varying enough among the different particles. Only "
+                    + f"{N[i]} particles were logged at this step.")
 
             from xtrack.linear_normal_form import compute_linear_normal_form
             _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
@@ -394,6 +432,9 @@ class EmittanceMonitor(xt.BeamElement):
     def __getattr__(self, attr):
         if attr in [f.name for f in EmittanceMonitorRecord._fields]:
             return getattr(self.data, attr).to_nparray()
+
+        elif attr in self.__class__._xofields:
+            return super().__getattr(attr)
 
         else:
             if attr.startswith('_'):
