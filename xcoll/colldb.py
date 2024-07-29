@@ -4,13 +4,16 @@
 # ######################################### #
 
 import io
+import re
 import json
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 import xtrack as xt
 
-from .beam_elements import BlackAbsorber, EverestCollimator, EverestCrystal, collimator_classes, element_classes
+from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
+                           BaseCollimator, BaseCrystal, _all_collimator_classes
 from .install import install_elements
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
@@ -19,7 +22,7 @@ def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
     fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
-    fields.update({'bending_radius': 0, 'bending_angle': 0, 'width': 0, 'height': 0, 'miscut': 0})
+    fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
     for f, val in fields.items():
         if f not in dct.keys():
             dct[f] = val
@@ -76,7 +79,7 @@ class CollimatorDatabase:
                          kwargs.get('ignore_crystals', True))
         self.nemitt_x = kwargs['nemitt_x']
         self.nemitt_y = kwargs['nemitt_y']
-        self.line = None
+        self._elements = {}
 
 
     def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False, ignore_crystals=True):
@@ -147,7 +150,6 @@ class CollimatorDatabase:
 
     @classmethod
     def from_yaml(cls, file, **kwargs):
-
         # Only do the import here, as to not force people to install
         # ruamel if they don't load CollimatorDatabase yaml's
         from ruamel.yaml import YAML
@@ -155,7 +157,8 @@ class CollimatorDatabase:
         if isinstance(file, io.IOBase):
             dct = yaml.load(file)
         else:
-            with open(file, 'r') as fid:
+            file = Path(file).resolve()
+            with file.open('r') as fid:
                 dct = yaml.load(fid)
         dct = _dict_keys_to_lower(dct)
 
@@ -214,7 +217,8 @@ class CollimatorDatabase:
         if isinstance(file, io.IOBase):
             dct = json.load(file)
         else:
-            with open(file, 'r') as fid:
+            file = Path(file).resolve()
+            with file.open('r') as fid:
                 dct = json.load(fid)
         dct = _dict_keys_to_lower(dct)
         return cls.from_dict(dct, **kwargs)
@@ -259,17 +263,16 @@ class CollimatorDatabase:
 
     @classmethod
     def from_SixTrack(cls, file, ignore_crystals=True, **kwargs):
-        # only import regex here
-        import re
-        with open(file, 'r') as infile:
+        file = Path(file).resolve()
+        with file.open('r') as fp:
             coll_data_string = ''
             family_settings = {}
             family_types = {}
             side = {}
-            cry_fields = ['bending_radius', 'width', 'height', 'thick', 'miscut', 'crystal']
+            cry_fields = ['bending_radius', 'width', 'height', 'thick', 'tilt', 'miscut', 'crystal']
             cry = {}
 
-            for line in infile:
+            for line in fp:
                 if line.startswith('#'):
                     continue # Comment
                 sline = line.split()
@@ -282,8 +285,8 @@ class CollimatorDatabase:
                     elif sline[0].lower() == "crystal":
                         cry[sline[1]] = {}
                         for i, key in enumerate(cry_fields):
-                            idx = i+2 if i < 4 else i+3  # we skip "tilt"
-                            if i < 5:
+                            idx = i+2
+                            if i < 6:
                                 cry[sline[1]][key] = float(sline[idx])
                             else:
                                 cry[sline[1]][key] = int(sline[idx])
@@ -507,76 +510,84 @@ class CollimatorDatabase:
                 _print_colls(bx_colls, self, 'bx', file)
                 print('WARNING -- some collimators could not be assigned to b1 or b2. Tracking might not work with those collimators. Please manually change the output file if necessary.')
 
+
     # ====================================
     # ====== Installing collimators ======
     # ====================================
 
-    def install_black_absorbers(self, line, names=None, *, verbose=False, need_apertures=True):
-        self.line = line
-        elements = []
-        if names is None:
+    def _get_names_from_line(self, line, names, families):
+        if names is None and families is None:
             names = self.collimator_names
-        for name in names:
-            if verbose: print(f"Installing {name:20} as BlackAbsorber")
-            el = BlackAbsorber(gap=self[name]['gap'], angle=self[name]['angle'],
-                               length=self[name]['length'], side=self[name]['side'],
-                               _tracking=False)
+        elif names is None:
+            names = self.get_collimators_from_family(families)
+        elif families is not None:
+            names.append(self.get_collimators_from_family(families))
+        return list(set(names)) # Remove duplicates
 
+    def _check_installed(self, line, name, collimator_class):
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], tuple(collimator_classes)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
+            if isinstance(line[name], _all_collimator_classes):
+                raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
+                               + f"but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
-
             # TODO: only allow Marker elements, no Drifts!!
             #       How to do this with importing a line for MAD-X or SixTrack...?
+            #       Maybe we want a DriftCollimator type in Xtrack as a general placeholder
             elif not isinstance(line[name], (xt.Marker, xt.Drift)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but the line element to replace is not an xtrack.Marker "
+                raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
+                               + f"but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
-            el.emittance = [self.nemitt_x, self.nemitt_y]
-            elements.append(el)
-        install_elements(line, names, elements, need_apertures=need_apertures)
 
-    def install_everest_collimators(self, line, names=None, *, verbose=False, need_apertures=True):
-        self.line = line
-        elements = []
-        if names is None:
-            names = self.collimator_names
+    def _create_collimator(self, line, collimator_class, name, **kwargs):
+        assert issubclass(collimator_class, BaseCollimator)
+        self._check_installed(line, name, collimator_class)
+        if kwargs.pop('verbose', False):
+            print(f"Installing {name:20} as {collimator_class.__name__}")
+        el = collimator_class(gap=self[name]['gap'], angle=self[name]['angle'],
+                              length=self[name]['length'], side=self[name]['side'],
+                              _tracking=False, **kwargs)
+        el.emittance = [self.nemitt_x, self.nemitt_y]
+        self._elements[name] = el
+
+    def _create_crystal(self, line, crystal_class, name, **kwargs):
+        assert issubclass(crystal_class, BaseCrystal)
+        self._check_installed(line, name, crystal_class)
+        if kwargs.pop('verbose', False):
+            print(f"Installing {name:20} as {crystal_class.__name__}")
+        el = crystal_class(gap=self[name]['gap'], angle=self[name]['angle'],
+                           length=self[name]['length'], side=self[name]['side'],
+                           bending_radius=self[name]['bending_radius'],
+                           width=self[name]['width'], height=self[name]['height'],
+                           _tracking=False, **kwargs)
+        el.emittance = [self.nemitt_x, self.nemitt_y]
+        self._elements[name] = el
+
+    def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+        names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll[self[name]['material']]
-            if self[name]['crystal'] is None:
-                if verbose: print(f"Installing {name:20} as EverestCollimator")
-                el = EverestCollimator(gap=self[name]['gap'], angle=self[name]['angle'],
-                                       length=self[name]['length'], side=self[name]['side'],
-                                       material=mat[0], _tracking=False)
+            if self[name]['bending_radius'] is None:
+                self._create_collimator(line, BlackAbsorber, name, verbose=verbose)
             else:
-                if verbose: print(f"Installing {name:20} as EverestCrystal")
-                el = EverestCrystal(gap=self[name]['gap'], angle=self[name]['angle'],
-                                    length=self[name]['length'], side=self[name]['side'], material=mat[1],
-                                    lattice=self[name]['crystal'], bending_radius=self[name]['bending_radius'],
-                                    width=self[name]['width'], height=self[name]['height'],
-                                    miscut=self[name]['miscut'], _tracking=False)
-
-            # Check that collimator is not installed as different type
-            # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], tuple(collimator_classes)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but it is already installed as {line[name].__class__.__name__}!\n"
-                               + f"Please reconstruct the line.")
-
-            # TODO: only allow Marker elements, no Drifts!!
-            #       How to do this with importing a line for MAD-X or SixTrack...?
-            elif not isinstance(line[name], (xt.Marker, xt.Drift)):
-                raise ValueError(f"Trying to install {name} as {el.__class__.__name__},"
-                               + f" but the line element to replace is not an xtrack.Marker "
-                               + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
-                               + f"element.")
-            el.emittance = [self.nemitt_x, self.nemitt_y]
-            elements.append(el)
+                self._create_crystal(line, BlackCrystal, name, verbose=verbose)
+        elements = [self._elements[name] for name in names]
         install_elements(line, names, elements, need_apertures=need_apertures)
+
+    def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            mat = SixTrack_to_xcoll(self[name]['material'])
+            if self[name]['bending_radius'] is None:
+                self._create_collimator(line, EverestCollimator, name, material=mat[0],
+                                        verbose=verbose)
+            else:
+                self._create_crystal(line, EverestCrystal, name, material=mat[1],
+                                     lattice=self[name]['crystal'], verbose=verbose,
+                                     miscut=self[name]['miscut'])
+        elements = [self._elements[name] for name in names]
+        install_elements(line, names, elements, need_apertures=need_apertures)
+
 
     # ==================================
     # ====== Accessing attributes ======
@@ -588,15 +599,35 @@ class CollimatorDatabase:
 
     @property
     def collimator_families(self):
-        return self._family_dict.keys()
+        families = {fam: [] for fam in self._family_dict.keys()}
+        families["no family"] = []
+        for name in self.collimator_names:
+            if 'family' not in self[name] or self[name]['family'].lower() == 'unknown':
+                families["no family"].append(name)
+            else:
+                families[self[name]['family']].append(name)
+        return families
 
-    def __getattr__(self, name):
-        if name in self._family_dict:
-            return self._family_dict[name]
-        elif name in self._collimator_dict:
-            return self._collimator_dict[name]
+    def get_collimators_from_family(self, family):
+        if not hasattr(family, '__iter__') and not isinstance(family, str):
+            family = [family]
+        result = []
+        for fam in family:
+            if fam not in self.collimator_families:
+                raise ValueError(f"Family '{fam}' not found in CollimatorDatabase!")
+            result += self.collimator_families[fam]
+        return result
+
+    @property
+    def properties(self):
+        return {attr for d in self._collimator_dict.values() for attr in d.keys()}
+
+    def __getattr__(self, attr):
+        if attr in self.properties:
+            # TODO: include families
+            return {kk: vv.get(attr, None) for kk, vv in self._collimator_dict.items()}
         else:
-            raise ValueError(f"Family nor collimator '{name}' found in CollimatorDatabase!")
+            raise ValueError(f"Property `{attr}` not present in CollimatorDatabase!")
 
     def __getitem__(self, name):
         if name in self._family_dict:
@@ -604,7 +635,5 @@ class CollimatorDatabase:
         elif name in self._collimator_dict:
             return self._collimator_dict[name]
         else:
-            raise ValueError(f"Family nor collimator '{name}' found in CollimatorDatabase!")
-        
-        
+            raise ValueError(f"Family nor collimator `{name}` found in CollimatorDatabase!")
 

@@ -36,7 +36,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     xc.assign_optics_to_collimators(line=line)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
@@ -62,6 +62,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
         assert Path("coll_summary.txt").exists()
         Path("coll_summary.txt").unlink()
 
+        # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
         assert len(summ[summ.type=='EverestCollimator']) == 10

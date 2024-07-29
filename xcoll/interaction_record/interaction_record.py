@@ -18,34 +18,35 @@ class InteractionRecord(xt.BeamElement):
         '_index':            xt.RecordIndex,
         'at_element':        xo.Int64[:],
         'at_turn':           xo.Int64[:],
-        'ds':                xo.Float64[:],
         '_inter':            xo.Int64[:],
-        'parent_id':         xo.Int64[:],
-        'parent_x':          xo.Float64[:],
-        'parent_px':         xo.Float64[:],
-        'parent_y':          xo.Float64[:],
-        'parent_py':         xo.Float64[:],
-        'parent_zeta':       xo.Float64[:],
-        'parent_delta':      xo.Float64[:],
-        'parent_energy':     xo.Float64[:],
-        'parent_mass':       xo.Float64[:],
-        'parent_charge':     xo.Int64[:],
-        'parent_z':          xo.Int64[:],
-        'parent_a':          xo.Int64[:],
-        'parent_pdgid':      xo.Int64[:],
-        'child_id':          xo.Int64[:],
-        'child_x':           xo.Float64[:],
-        'child_px':          xo.Float64[:],
-        'child_y':           xo.Float64[:],
-        'child_py':          xo.Float64[:],
-        'child_zeta':        xo.Float64[:],
-        'child_delta':       xo.Float64[:],
-        'child_energy':      xo.Float64[:],
-        'child_mass':        xo.Float64[:],
-        'child_charge':      xo.Int64[:],
-        'child_z':           xo.Int64[:],
-        'child_a':           xo.Int64[:],
-        'child_pdgid':       xo.Int64[:],
+        'id_before':         xo.Int64[:],
+        's_before':          xo.Float64[:],
+        'x_before':          xo.Float64[:],
+        'px_before':         xo.Float64[:],
+        'y_before':          xo.Float64[:],
+        'py_before':         xo.Float64[:],
+        'zeta_before':       xo.Float64[:],
+        'delta_before':      xo.Float64[:],
+        'energy_before':     xo.Float64[:],
+        'mass_before':       xo.Float64[:],
+        'charge_before':     xo.Int64[:],
+        'z_before':          xo.Int64[:],
+        'a_before':          xo.Int64[:],
+        'pdgid_before':      xo.Int64[:],
+        'id_after':          xo.Int64[:],
+        's_after':           xo.Float64[:],
+        'x_after':           xo.Float64[:],
+        'px_after':          xo.Float64[:],
+        'y_after':           xo.Float64[:],
+        'py_after':          xo.Float64[:],
+        'zeta_after':        xo.Float64[:],
+        'delta_after':       xo.Float64[:],
+        'energy_after':      xo.Float64[:],
+        'mass_after':        xo.Float64[:],
+        'charge_after':      xo.Int64[:],
+        'z_after':           xo.Int64[:],
+        'a_after':           xo.Int64[:],
+        'pdgid_after':       xo.Int64[:],
     }
 
     allow_track = False
@@ -58,45 +59,69 @@ class InteractionRecord(xt.BeamElement):
 
 
     @classmethod
-    def start(cls, line, names=None, *, record_touches=None, record_scatterings=None, capacity=1e6, io_buffer=None):
-        names = _get_xcoll_elements(line, names)
+    def start(cls, *, line=None, elements=None, names=None, record_impacts=None, record_exits=None,
+              record_scatterings=None, capacity=1e6, io_buffer=None, coll_ids=None):
+        elements, names = _get_xcoll_elements(line, elements, names)
         if len(names) == 0:
             return
-        elements = [line[name] for name in names]
         capacity = int(capacity)
-        if io_buffer is None:
-            io_buffer = xt.new_io_buffer(capacity=capacity)
-        if record_touches is None and record_scatterings is None:
-            record_touches = True
+
+        if getattr(line, 'tracker', None) is None \
+        or getattr(line.tracker, 'io_buffer', None) is None:
+            if io_buffer is None:
+                io_buffer = xt.new_io_buffer(capacity=capacity)
+        elif io_buffer is not None:
+            raise ValueError("Cannot provide io_buffer when tracker already built!")
+        else:
+            io_buffer = line.tracker.io_buffer
+        if capacity > io_buffer.capacity:
+            io_buffer.grow(capacity - io_buffer.capacity)
+        if record_impacts is None and record_scatterings is None:
+            record_impacts = True
             record_scatterings = True
-        elif record_touches is None:
-            record_touches = not record_scatterings
+        elif record_impacts is None:
+            record_impacts = not record_scatterings
         elif record_scatterings is None:
-            record_scatterings = not record_touches
-        assert record_touches is True or record_touches is False
+            record_scatterings = not record_impacts
+        if record_exits is None:
+            # record_exits defaults to True only if the other two are True
+            record_exits = record_impacts and record_scatterings
+        assert record_impacts is True or record_impacts is False
+        assert record_exits is True or record_exits is False
         assert record_scatterings is True or record_scatterings is False
         for el in elements:
-            if not el.record_touches and not el.record_scatterings:
-                el.record_touches = record_touches
+            if not el.record_impacts and not el.record_exits and not el.record_scatterings:
+                el.record_impacts = record_impacts
+                el.record_exits = record_exits
                 el.record_scatterings = record_scatterings
         record = xt.start_internal_logging(io_buffer=io_buffer, capacity=capacity, \
                                            elements=elements)
         record._line = line
         record._io_buffer = io_buffer
-        record._recording_elements = names
-        record._coll_ids = {name: line.element_names.index(name) for name in names}
-        record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
+        recording_elements = names if len(names) > 0 else elements
+        record._recording_elements = recording_elements
+        if coll_ids is None:
+            if line is None:
+                if len(names) > 0:
+                    record._coll_ids = {name: idx for idx, name in enumerate(names)}
+            else:
+                record._coll_ids = {name: line.element_names.index(name) for name in names}
+        else:
+            assert len(coll_ids) == len(names)
+            record._coll_ids = {name: idx for name, idx in zip(names, coll_ids)}
+        if hasattr(record, '_coll_ids'):
+            record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
         return record
 
-    def stop(self, names=None):
+    def stop(self, *, elements=False, names=False):
         self.assert_class_init()
-        names = _get_xcoll_elements(self.line, names)
-        elements = [self.line[name] for name in names]
-        if self.line.tracker is not None:
+        elements, names = _get_xcoll_elements(self.line, elements, names)
+        if self.line is not None and self.line.tracker is not None:
             self.line.tracker._check_invalidated()
         xt.stop_internal_logging(elements=elements)
         # Removed the stopped collimators from list of logged elements
-        self._recording_elements = list(set(self._recording_elements) - set(names))
+        stopping_elements = names if len(names) > 0 else elements
+        self._recording_elements = list(set(self._recording_elements) - set(stopping_elements))
 
 
     def assert_class_init(self):
@@ -145,10 +170,10 @@ class InteractionRecord(xt.BeamElement):
             val = []
         record_start = _get_xcoll_elements(self.line, val)
         self.stop(set(self.recording_elements) - set(record_start))
-        elements = [line[name] for name in record_start]
-        for el in elements:
-            if not el.record_touches and not el.record_scatterings:
-                el.record_touches = True
+        elements = [self.line[name] for name in record_start]
+        for el in elements:  # TODO: this should be smarter
+            if not el.record_impacts and not el.record_scatterings:
+                el.record_impacts = True
                 el.record_scatterings = True
         xt.start_internal_logging(io_buffer=self.io_buffer, capacity=self.capacity, \
                                   record=self, elements=elements)
@@ -172,25 +197,29 @@ class InteractionRecord(xt.BeamElement):
 
     def _collimator_id(self, element_name):
         if not hasattr(self, '_coll_ids'):
-            return element_id
+            return element_name
         elif element_name not in self._coll_ids:
             raise ValueError(f"Element {element_name} not found in list of collimators of this record table! "
                            + f"Did the line change without updating the list in the table?")
         else:
             return self._coll_ids[element_name]
 
-    def to_pandas(self):
+    def to_pandas(self, frame=None):
+        if frame is None:
+            frame = 'jaw'
+        frame = frame.lower()
+        if frame not in ['jaw', 'collimator', 'lab']:
+            raise ValueError(f"Invalid frame {frame}. Must be 'jaw', 'collimator', or 'lab'!")
         n_rows = self._index.num_recorded
         coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
-                'ds':                self.ds[:n_rows],
                 **{
-                    f'{p}_{val}': getattr(self, f'{p}_{val}')[:n_rows]
-                    for p in ['parent', 'child']
-                    for val in ['id', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
+                    f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
+                    for p in ['before', 'after']
+                    for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
             })
         return df
@@ -207,46 +236,63 @@ class InteractionRecord(xt.BeamElement):
             mask = mask & (self.at_turn == turn)
             df = pd.DataFrame({
                     'int':  [shortcuts[inter] for inter in self._inter[mask]],
-                    'pid':  self.parent_id[mask]
+                    'pid':  self.id_before[mask]
                 })
             return df.groupby('pid', sort=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
                     'int':   [shortcuts[inter] for inter in self._inter[mask]],
                     'turn':  self.at_turn[mask],
-                    'pid':   self.parent_id[mask]
+                    'pid':   self.id_before[mask]
                 })
             return df.groupby(['pid', 'turn'], sort=False)['int'].apply(list)
 
-    def first_touch_per_turn(self):
+    def first_touch_per_turn(self, frame=None):
         n_rows = self._index.num_recorded
-        df = pd.DataFrame({'parent_id': self.parent_id[:n_rows],
+        df = pd.DataFrame({'id_before': self.id_before[:n_rows],
                            'at_turn': self.at_turn[:n_rows],
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
-        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'parent_id'], sort=False)]
-        df_first = self.to_pandas().loc[idx_first]
+        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'id_before'], sort=False)]
+        df_first = self.to_pandas(frame=frame).loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
-        to_drop = ['ds', 'interaction_type',
-                   *[col for col in df_first.columns if col.startswith('child_')]]
-        to_rename = {col: col.replace('parent_', '') for col in df_first.columns if col.startswith('parent_')}
+        to_drop = ['interaction_type',
+                   *[col for col in df_first.columns if col.endswith('_after')]]
+        to_rename = {col: col.replace('_before', '') for col in df_first.columns if col.endswith('before')}
+        to_rename['id_before'] = 'pid'
         return df_first.drop(columns=to_drop).rename(columns=to_rename)
 
 
-def _get_xcoll_elements(line, names):
+def _get_xcoll_elements(line=None, elements=None, names=None):
     from xcoll import element_classes
-    if names is None or names is True:
-        names = line.get_elements_of_type(element_classes)[1]
-        if len(names) == 0:
-            raise ValueError("No Xcoll elements in line!")
-    if names is False:
-        names = []
-    if not hasattr(names, '__iter__') or isinstance(names, str):
+    if names is not None and names is not False and \
+    (not hasattr(names, '__iter__') or isinstance(names, str)):
         names = [names]
-    for name in names:
-        if name not in line.element_names:
-            raise ValueError(f"Element {name} not found in line!")
-        if not isinstance(line[name], element_classes):
+    if elements is not None and elements is not False and \
+    (not hasattr(elements, '__iter__') or isinstance(elements, str)):
+        elements = [elements]
+    if line is None:
+        if elements is None:
+            raise ValueError("No line nor elements provided!")
+    else:
+        if elements is not None and elements is not False:
+            raise ValueError("Cannot provide both line and elements!")
+        if names is None or names is True:
+            elements, names = line.get_elements_of_type(element_classes)
+            if len(names) == 0:
+                raise ValueError("No Xcoll elements in line!")
+        elif names is False:
+            names = []
+            elements = []
+        else:
+            assert elements is not False
+            for name in names:
+                if name not in line.element_names:
+                    raise ValueError(f"Element {name} not found in line!")
+            elements = [line[name] for name in names]
+    for idx, element in enumerate(elements):
+        if not isinstance(element, element_classes):
+            name = name[idx] if names is not None else element.__class__.__name__
             raise ValueError(f"Element {name} not an Xcoll element!")
-    return names
+    return elements, names
 

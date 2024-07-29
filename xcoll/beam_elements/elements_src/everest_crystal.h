@@ -9,6 +9,22 @@
 #include <stdio.h>
 
 
+/*gpufun*/
+int8_t EverestCrystalData_get_record_impacts(EverestCrystalData el){
+    return EverestCrystalData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCrystalData_get_record_exits(EverestCrystalData el){
+    return (EverestCrystalData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
+    return (EverestCrystalData_get__record_interactions(el) >> 2) % 2;
+}
+
+
 void EverestCrystal_set_material(EverestCrystalData el){
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
@@ -53,18 +69,22 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         // Miscut centre
         cg->s_P = -R*sin(cg->miscut_angle);
         cg->x_P = R*cos(cg->miscut_angle);
-        // Mirror the crystal geometry
+        if (cg->side == 1 && R < 0){
+            // If R<0, a left-sided crystal bends towards the beam
+            cg->x_P = cg->x_P + cg->width;
+            cg->x_B = cg->x_B + cg->width;
+        } else if (cg->side == -1 && R > 0){
+            // If R>0, a right-sided crystal bends towards the beam
+            cg->x_P = cg->x_P - cg->width;
+            cg->x_B = cg->x_B - cg->width;
+        }
         if (cg->side == -1){
+            // Mirror the crystal geometry
             cg->bending_radius = -cg->bending_radius;
             cg->bending_angle  = -cg->bending_angle;
             cg->miscut_angle   = -cg->miscut_angle;
             cg->x_P            = -cg->x_P;
             cg->x_B            = -cg->x_B;
-        }
-        if (R < 0){
-            // If R<0, a left-sided crystal bends towards the beam
-            cg->x_P = cg->x_P + cg->width;
-            cg->x_B = cg->x_B + cg->width;
         }
         // From here on, crystal geometry parameters can always be treated as left-sided.
         // Note that the segments are not mirrored, which is fine as get_s_of_first_crossing_with_vlimit
@@ -80,10 +100,12 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         // Impact table
         cg->record = EverestCrystalData_getp_internal_record(el, part0);
         cg->record_index = NULL;
-        cg->record_touches = 0;
+        cg->record_impacts = 0;
+        cg->record_exits = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = EverestCrystalData_get_record_touches(el);
+            cg->record_impacts = EverestCrystalData_get_record_impacts(el);
+            cg->record_exits = EverestCrystalData_get_record_exits(el);
         }
     }
 
@@ -129,7 +151,6 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         if (coll->record){
             coll->record_index = InteractionRecordData_getp__index(coll->record);
             coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
-            coll->record_touches = EverestCrystalData_get_record_touches(el);
         }
     }
     return coll;
