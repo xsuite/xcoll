@@ -10,14 +10,9 @@ import xtrack as xt
 
 from ..general import _pkg_root
 
+
 class EmittanceMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
-    x_sum1           = xo.Float64[:]
-    px_sum1          = xo.Float64[:]
-    y_sum1           = xo.Float64[:]
-    py_sum1          = xo.Float64[:]
-    zeta_sum1        = xo.Float64[:]
-    pzeta_sum1       = xo.Float64[:]
     x_x_sum2         = xo.Float64[:]
     x_px_sum2        = xo.Float64[:]
     x_y_sum2         = xo.Float64[:]
@@ -39,6 +34,7 @@ class EmittanceMonitorRecord(xo.Struct):
     zeta_zeta_sum2   = xo.Float64[:]
     zeta_pzeta_sum2  = xo.Float64[:]
     pzeta_pzeta_sum2 = xo.Float64[:]
+
 
 class EmittanceMonitor(xt.BeamElement):
     _xofields={
@@ -274,6 +270,7 @@ class EmittanceMonitor(xt.BeamElement):
     def line(self, val):
         self._line = val
 
+
     def set_closed_orbit(self, twiss=None):
         if twiss is None:
             twiss = self.line.twiss()
@@ -309,28 +306,15 @@ class EmittanceMonitor(xt.BeamElement):
         self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
         with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
             for field in [f.name for f in EmittanceMonitorRecord._fields]:
-                if field.endswith('_sum1'):
-                    x = field[:-5]
-                    ff = getattr(self, field)
-                    ff = ff[mask] if len(ff) == len(mask) else ff
-                    mean = ff / N
-                    setattr(self, f'_{x}_mean', mean)
-                elif field.endswith('_sum2'):
-                    x1, x2 = field[:-5].split('_')
-                    # ff = getattr(self, f'{x1}_sum1')
-                    # ff = ff[mask] if len(ff) == len(mask) else ff
-                    # mean1 = ff / N
-                    mean1 = self._co[x1]
-                    # ff = getattr(self, f'{x2}_sum1')
-                    # ff = ff[mask] if len(ff) == len(mask) else ff
-                    # mean2 = ff / N
-                    mean2 = self._co[x2]
-                    ff = getattr(self, field)
-                    ff = ff[mask] if len(ff) == len(mask) else ff
-                    variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
-                    setattr(self, f'_{x1}_{x2}_var', variance)
-                    if x1 == x2:
-                        setattr(self, f'_{x1}_std', np.sqrt(variance))
+                if field == 'count':
+                    continue
+                x1, x2 = field[:-5].split('_')
+                mean1 = self._co[x1]
+                mean2 = self._co[x2]
+                ff = getattr(self, field)
+                ff = ff[mask] if len(ff) == len(mask) else ff
+                variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
+                setattr(self, f'_{x1}_{x2}_var', variance)
         self._cached = True
         self._cached_modes = False
 
@@ -440,7 +424,7 @@ class EmittanceMonitor(xt.BeamElement):
             if attr.startswith('_'):
                 raise AttributeError(f"Attribute {attr} not set!")
 
-            if attr.endswith('_mean') or attr.endswith('_var') or attr.endswith('_std'):
+            if attr.endswith('_var'):
                 self._calculate()
                 return getattr(self, f'_{attr}')
 
