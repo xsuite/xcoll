@@ -181,7 +181,7 @@ class BlowUp(InvalidXcoll):
         if beta_gamma_rel is None:
             if not hasattr(line, 'particle_ref'):
                 raise ValueError("The provided line has no reference particle. Use the argument `beta_gamma_rel`")
-            beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
+            beta_gamma_rel = line.particle_ref.gamma0[0]*line.particle_ref.beta0[0]
         if twiss is None:
             twiss = line.twiss()
         gamma = twiss.rows[name][f"gam{'x' if self.plane == 'H' else 'y'}"][0]
