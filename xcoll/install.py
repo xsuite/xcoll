@@ -83,6 +83,8 @@ def _get_s_start(line, name, length, tab=None):
         existing_length = line[name].length
     else:
         existing_length = 0
+    if name not in tab.name:
+        raise ValueError(f"Element {name} not found in line. Need to mmanually provide `at_s`.")
     return tab.rows[name].s[0] + existing_length/2. - length/2
 
 
@@ -171,7 +173,7 @@ def prepare_space_for_element(line, name, s_start, s_end, tab=None, s_tol=1.e-6)
             continue
         if not element_type.startswith('Limit'):
             print(f"Warning: Removed active element {element_name} "
-                + f"at location inside collimator!")
+                + f"at location inside collimator {name}!")
         length = line[element_name].length if hasattr(line[element_name], 'length') else 0
         line.element_dict[element_name] = xt.Drift(length=length)
 

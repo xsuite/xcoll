@@ -23,7 +23,7 @@ class BlackAbsorber(BaseCollimator):
     _depends_on = [BaseCollimator, XcollGeometry]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','black_absorber.h')
+        _pkg_root.joinpath('beam_elements','elements_src','black_absorber.h')
     ]
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -54,7 +54,7 @@ class BlackCrystal(BaseCrystal):
     _depends_on = [BaseCrystal, XcollGeometry]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','collimators_src','black_crystal.h')
+        _pkg_root.joinpath('beam_elements','elements_src','black_crystal.h')
     ]
 
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict

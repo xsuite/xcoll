@@ -16,7 +16,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
-    int64_t i_slot;
+    int64_t i_slot = -1;
 
 
     double Ang_avr = everest->Ang_avr;
@@ -47,7 +47,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
     double t_VR = Ang_avr + Ang_rms;
     LocalParticle_add_to_xp(part, t_VR);
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, 0);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 }
 
 
@@ -58,7 +58,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
-    int64_t i_slot;
+    int64_t i_slot = -1;
 
     // Accumulated effect of mcs on the angles (with initial energy)
     // TODO: pc is energy
@@ -91,7 +91,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
 
     // Finally log particle at end of mcs
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
     return pc;
 }
@@ -216,7 +216,6 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
         // Exit crystal
         // MCS to exit point
         pc = amorphous_transport(everest, part, pc, length_exit, 0);
-        // Now drift the remaining
         // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
         double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
         if (s3 < fmin(s1, s2) && s4 < s2){
@@ -224,12 +223,6 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
             Drift_single_particle_4d(part, s4 - exit_point);
             // We call the main Amorphous function for the leftover
             pc = Amorphous(everest, part, cg, pc, length - length_exit - s4 + exit_point);
-        } else {
-            // Drift leftover out of the crystal
-            if (everest->coll->record_touches){
-                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
-            }
-            Drift_single_particle_4d(part, length - length_exit);
         }
     }
 
