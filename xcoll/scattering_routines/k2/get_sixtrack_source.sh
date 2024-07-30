@@ -22,14 +22,14 @@ do
 done
 
 mv crlibm/CMakeLists.txt crlibm_CMakeLists.txt
-for file in ${path}crlibm/*
+for file in ${path}crlibm/*.{c,h}
 do
     cp $file crlibm/
 done
 mv crlibm_CMakeLists.txt crlibm/CMakeLists.txt
 
 mv roundctl/CMakeLists.txt roundctl_CMakeLists.txt
-for file in ${path}roundctl/*
+for file in ${path}roundctl/*.{c,h}
 do
     cp $file roundctl/
 done
