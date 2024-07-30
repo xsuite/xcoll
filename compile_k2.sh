@@ -20,21 +20,21 @@ then
   cp roundctl/CMakeLists.txt roundctl/CMakeLists.txt.bak
   sed -i '' 's/-mfpmath=sse -msse2//g' crlibm/CMakeLists.txt
   sed -i '' 's/-mfpmath=sse -msse2//g' roundctl/CMakeLists.txt
-  CFLAGS="'-fPIC'"
+  THISCFLAGS="'-fPIC'"
 else
-  CFLAGS="'-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'"
+  THISCFLAGS="'-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'"
 fi
 cd crlibm
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS=$CFLAGS
+make CFLAGS=$THISCFLAGS
 mv libcrlibm.a ../
 cd ../roundctl
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS=$CFLAGS
+make CFLAGS=$THISCFLAGS
 mv libroundctl.a ../
 cd ..
 if [[ "$OSTYPE" == "darwin"* ]]
@@ -47,11 +47,11 @@ fi
 # Compile FORTRAN
 if [[ "$OSTYPE" == "darwin"* ]]
 then
-  FFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3"
+  THISFFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3"
 else
-  FFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma"
+  THISFFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma"
 fi
-gfortran $FFLAGS -c \
+gfortran $THISFFLAGS -c \
  core_tools.f90 \
  constants.f90 \
  strings.f90 \
