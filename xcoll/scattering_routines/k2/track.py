@@ -55,15 +55,16 @@ def track(coll, part):
     hit             = np.zeros(npart, dtype=np.int32)
     absorbed        = np.zeros(npart, dtype=np.int32)
 
-    x_particles[:npart]     = part.x.copy()
-    xp_particles[:npart]    = part.kin_xprime.copy()
-    y_particles[:npart]     = part.y.copy()
-    yp_particles[:npart]    = part.kin_yprime.copy()
-    e_particles[:npart]     = part.energy.copy()
-    p_particles[:npart]     = (1 + part.delta)*part.p0c
-    delta_particles[:npart] = part.delta.copy()
-    rvv_particles[:npart]   = part.rvv.copy()
-    rpp_particles[:npart]   = part.rpp.copy()
+    mask = part.state > 0
+    x_particles[:npart]     = part.x[mask].copy()
+    xp_particles[:npart]    = part.kin_xprime[mask].copy()
+    y_particles[:npart]     = part.y[mask].copy()
+    yp_particles[:npart]    = part.kin_yprime[mask].copy()
+    e_particles[:npart]     = part.energy[mask].copy()
+    p_particles[:npart]     = (1 + part.delta[mask])*part.p0c[mask]
+    delta_particles[:npart] = part.delta[mask].copy()
+    rvv_particles[:npart]   = part.rvv[mask].copy()
+    rpp_particles[:npart]   = part.rpp[mask].copy()
 
     # `linside` is an array of logicals in fortran. Beware of the fortran converion:
     # True <=> -1 (https://stackoverflow.com/questions/39454349/numerical-equivalent-of-true-is-1)
@@ -82,19 +83,23 @@ def track(coll, part):
                absorbed=absorbed)
 
     # Update particles object
-    part.add_to_energy(e_particles - part.energy[:npart])
-    rpp = part.rpp[:npart]
-    part.x[:npart]  = x_particles.copy()
-    part.px[:npart] = xp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
-    part.y[:npart]  = y_particles.copy()
-    part.py[:npart] = yp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
+    energy_diff = np.zeros(len(part.energy), dtype=np.float64)
+    energy_diff[mask] = e_particles - part.energy[mask]
+    part.add_to_energy(energy_diff)
+    rpp = part.rpp[mask]
+    part.x[mask]  = x_particles.copy()
+    part.px[mask] = xp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
+    part.y[mask]  = y_particles.copy()
+    part.py[mask] = yp_particles / rpp / np.sqrt(1 + xp_particles**2 + yp_particles**2)
 
     # Masks of hit and survived particles
     mask_lost = absorbed > 0
     mask_hit  = hit > 0
     mask_not_hit = ~mask_hit
     mask_survived_hit = mask_hit & (~mask_lost)
-    part.state[mask_lost] = -339
+    states = part.state[mask]
+    states[mask_lost] = -339
+    part.state[mask] = states
 
     part.reorganize()
 

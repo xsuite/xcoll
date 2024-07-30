@@ -3,17 +3,15 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import numpy as np
+from contextlib import contextmanager
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal, InvalidXcoll
 from ..scattering_routines.k2 import K2Engine, track
 from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack_from_xcoll, \
                                             SixTrack_from_xcoll_crystal, Material, CrystalMaterial
-from ..general import _pkg_root
 
 
 class _K2Collimator(BaseCollimator):
@@ -36,19 +34,27 @@ class _K2Collimator(BaseCollimator):
 
     _depends_on = [BaseCollimator, K2Engine]
 
+    _allowed_fields_when_frozen = ['_tracking', '_record_interactions', 'record_impacts', 'record_exits', 'record_scatterings']
+
+    def __new__(cls, *args, **kwargs):
+        with cls._in_constructor():
+            self = super().__new__(cls, *args, **kwargs)
+        return self
 
     def __init__(self, **kwargs):
-        to_assign = {}
-        if '_xobject' not in kwargs:
-            to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = ''.ljust(4)
-            kwargs.setdefault('_tracking', True)
-            kwargs['_k2_id'] = -1
-        super().__init__(**kwargs)
-        for key, val in to_assign.items():
-            setattr(self, key, val)
-        if not hasattr(self, '_equivalent_drift'):
-            self._equivalent_drift = xt.Drift(length=self.length)
+        with self.__class__._in_constructor():
+            to_assign = {}
+            if '_xobject' not in kwargs:
+                to_assign['material'] = kwargs.pop('material', None)
+                kwargs['_material'] = ''.ljust(4)
+                kwargs.setdefault('_tracking', True)
+                kwargs['_k2_id'] = -1
+            super().__init__(**kwargs)
+            for key, val in to_assign.items():
+                setattr(self, key, val)
+            if not hasattr(self, '_equivalent_drift'):
+                self._equivalent_drift = xt.Drift(length=self.length)
+
 
     @property
     def material(self):
@@ -73,20 +79,29 @@ class _K2Collimator(BaseCollimator):
 
 
     def track(self, part):
-        if self._tracking:
-            track(self, part)
-
-
-    def __setattribute__(self, name, value):
-        if K2Engine.is_running():
-            raise ValueError('K2Engine is running; _K2Collimator is frozen.')
-        super().__setattribute__(name, value)
-
+        track(self, part)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
                             _buffer=_buffer, _offset=_offset)
 
+
+    def __setattr__(self, name, value):
+        if name not in self._allowed_fields_when_frozen and K2Engine.is_running():
+            raise ValueError('K2Engine is running; _K2Collimator is frozen.')
+        super().__setattr__(name, value)
+
+    @classmethod
+    @contextmanager
+    def _in_constructor(cls):    # This method is used to prevent the setting of attributes when frozen
+        original_setattr = cls.__setattr__
+        def new_setattr(self, *args, **kwargs):
+            return super().__setattr__( *args, **kwargs)
+        cls.__setattr__ = new_setattr
+        try:
+            yield
+        finally:
+            cls.__setattr__ = original_setattr
 
 class _K2Crystal(BaseCrystal):
     _xofields = {**BaseCrystal._xofields,
@@ -110,21 +125,29 @@ class _K2Crystal(BaseCrystal):
 
     _depends_on = [BaseCrystal, K2Engine]
 
+    _allowed_fields_when_frozen = ['_tracking', '_record_interactions', 'record_impacts', 'record_exits', 'record_scatterings']
+
+    def __new__(cls, *args, **kwargs):
+        with cls._in_constructor():
+            self = super().__new__(cls, *args, **kwargs)
+        return self
 
     def __init__(self, **kwargs):
-        to_assign = {}
-        if '_xobject' not in kwargs:
-            to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = ''.ljust(4)
-            to_assign['lattice'] = kwargs.pop('lattice', 'strip')
-            kwargs.setdefault('miscut', 0)
-            kwargs.setdefault('_tracking', True)
-            kwargs['_k2_id'] = -1
-        super().__init__(**kwargs)
-        for key, val in to_assign.items():
-            setattr(self, key, val)
-        if not hasattr(self, '_equivalent_drift'):
-            self._equivalent_drift = xt.Drift(length=self.length)
+        with self.__class__._in_constructor():
+            to_assign = {}
+            if '_xobject' not in kwargs:
+                to_assign['material'] = kwargs.pop('material', None)
+                kwargs['_material'] = ''.ljust(4)
+                to_assign['lattice'] = kwargs.pop('lattice', 'strip')
+                kwargs.setdefault('miscut', 0)
+                kwargs.setdefault('_tracking', True)
+                kwargs['_k2_id'] = -1
+            super().__init__(**kwargs)
+            for key, val in to_assign.items():
+                setattr(self, key, val)
+            if not hasattr(self, '_equivalent_drift'):
+                self._equivalent_drift = xt.Drift(length=self.length)
+
 
     @property
     def lattice(self):
@@ -168,17 +191,27 @@ class _K2Crystal(BaseCrystal):
 
 
     def track(self, part):
-        if self._tracking:
-            track(self, part)
-
-
-    def __setattribute__(self, name, value):
-        if K2Engine.is_running():
-            raise ValueError('K2Engine is running; _K2Crystal is frozen.')
-        super().__setattribute__(name, value)
-
+        track(self, part)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
                             _buffer=_buffer, _offset=_offset)
+
+
+    def __setattr__(self, name, value):
+        if name not in self._allowed_fields_when_frozen and K2Engine.is_running():
+            raise ValueError('K2Engine is running; _K2Crystal is frozen.')
+        super().__setattr__(name, value)
+
+    @classmethod
+    @contextmanager
+    def _in_constructor(cls):    # This method is used to prevent the setting of attributes when frozen
+        original_setattr = cls.__setattr__
+        def new_setattr(self, *args, **kwargs):
+            return super().__setattr__( *args, **kwargs)
+        cls.__setattr__ = new_setattr
+        try:
+            yield
+        finally:
+            cls.__setattr__ = original_setattr
 

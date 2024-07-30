@@ -17,7 +17,7 @@ from xcoll.scattering_routines.k2 import K2Engine
 beam = 1
 plane = 'H'
 
-num_turns = 200
+num_turns = 20
 num_particles = 50000
 
 path_in  = xc._pkg_root.parent / 'examples'
@@ -57,7 +57,6 @@ K2Engine.start(line=line, cwd='run_1')
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles)
-
 
 
 # Track!

@@ -6,7 +6,6 @@
 import numpy as np
 import os
 from pathlib import Path
-import shutil
 
 import xtrack as xt
 
@@ -144,9 +143,10 @@ class K2Engine:
 
     @classmethod
     def is_running(cls):
+        # TODO: this can probably be done better; the file might be a leftover from a crash
         cls()
         this = cls.instance
-        return this._file is not None or this._file.exists()
+        return this._file is not None and this._file.exists()
 
 
     @property
