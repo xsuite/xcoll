@@ -44,10 +44,10 @@ class K2Engine:
 
 
     @classmethod
-    def start(cls, line, *, seed=None, cwd=None, nemitt_x=None, nemitt_y=None):
+    def start(cls, line, *, seed=None, cwd=None, nemitt_x=None, nemitt_y=None, **kwargs):
         from ...beam_elements.k2 import _K2Collimator, _K2Crystal
         from .sixtrack_input import create_dat_file
-        cls()
+        cls(**kwargs)
         this = cls.instance
 
         try:
@@ -80,7 +80,8 @@ class K2Engine:
         this._cwd = cwd
 
         elements, names = line.get_elements_of_type((_K2Collimator, _K2Crystal))
-
+        elements = [el for el in elements if el.gap is not None]
+        names    = [name for name in names if line[name].gap is not None]
         if np.any([not hasattr(el, 'optics') or el.optics is None for el in elements]):
             raise ValueError("Not all collimators have optics assigned. Do this first")
         if nemitt_x is None:
@@ -101,7 +102,6 @@ class K2Engine:
 
         this._file = create_dat_file(line=line, names=names, file=cwd / _FILE_NAME)
         assert this._file.exists()
-
         num_coll = np.int32(len(names))
         e0       = line.particle_ref.energy0[0]
         p0       = line.particle_ref.p0c[0]
