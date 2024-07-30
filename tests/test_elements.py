@@ -36,11 +36,38 @@ import pytest
 # The list 'base_user_fields_read_only' is for fields that should not be written
 # to: it is verified that an exception is raised.
 
-
-# BaseCollimator
-
+# BaseBlock
 base_fields = {
     'length':  1.3,
+    'active':  1,
+    '_record_interactions': 0
+}
+base_dict_fields = [
+    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, '_record_interactions': 1}},
+    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
+    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
+    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
+    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
+    {'field': 'record_scatterings', 'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': False, '_record_interactions': 0}},
+    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
+    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  '_record_interactions': 5}},
+    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
+    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  '_record_interactions': 6}},
+    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': False, 'record_exits': False, 'record_scatterings': True,  '_record_interactions': 4}},
+    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': True,  '_record_interactions': 6}},
+    {'field': 'record_scatterings', 'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
+    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, '_record_interactions': 3}},
+    {'field': 'record_impacts',     'val':  False, 'expected': {'record_impacts': False, 'record_exits': True,  'record_scatterings': False, '_record_interactions': 2}},
+    {'field': 'record_impacts',     'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': False, '_record_interactions': 3}},
+    {'field': 'record_exits',       'val':  False, 'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': False, '_record_interactions': 1}},
+    {'field': 'record_scatterings', 'val':  True,  'expected': {'record_impacts': True,  'record_exits': False, 'record_scatterings': True,  '_record_interactions': 5}},
+    {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  '_record_interactions': 7}}
+]
+base_user_fields = {}
+base_user_fields_read_only = []
+
+# BaseCollimator
+base_coll_fields = {**base_fields,
     '_jaw_LU': 0.01544,
     '_jaw_LD': 0.0152,
     '_jaw_RU': -0.0152,
@@ -59,121 +86,58 @@ base_fields = {
     '_cos_yR': 1.,
     '_tan_yR': 0.,
     '_side':   0,
-    'active':  1,
-    'record_touches':     0,
-    'record_scatterings': 0,
     '_align':    0,
     '_gap_L':    3,
     '_gap_R':    4,
     '_nemitt_x': 3.5e-6,
     '_nemitt_y': 2.5e-6
 }
-base_dict_fields = {
-    'angle': [
-        {'val':  40,        'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180),
-                                         '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
-        {'val':  [40],      'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180),
-                                         '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
-        {'val':  [40, 47],  'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180),
-                                         '_sin_zR': np.sin(47*np.pi/180), '_cos_zR': np.cos(47*np.pi/180)}}],
-    'jaw': [
-        {'val':  0.015,            'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,
-                                                'jaw_L':  0.015,   'jaw_R':  -0.015, 'jaw': [[0.01512, -0.015], [0.01488, -0.015]],
-                                                'tilt_L': -0.0001692308, 'tilt_R': 0}},  # Existing tilt from base_fields
-        {'val':  [0.015],          'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,
-                                                'jaw_L':  0.015,   'jaw_R':  -0.015, 'jaw': [[0.01512, -0.015], [0.01488, -0.015]],
-                                                'tilt_L': -0.0001692308, 'tilt_R': 0}},
-        {'val':  [0.015, -0.014],  'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.014, 'jaw_LD': 0.01488, 'jaw_RD': -0.014,
-                                                'jaw_L':  0.015,   'jaw_R':  -0.014, 'jaw': [[0.01512, -0.014], [0.01488, -0.014]],
-                                                'tilt_L': -0.0001692308, 'tilt_R': 0}},
-        {'val':  [[0.015, -0.014],[0.0152, -0.0143]], 
-                                   'expected': {'jaw_LU': 0.015,  'jaw_RU': -0.014,   'jaw_LD': 0.0152, 'jaw_RD': -0.0143,
-                                                'jaw_L':  0.0151, 'jaw_R':  -0.01415, 'jaw': [[0.015, -0.014], [0.0152, -0.0143]],
-                                                'tilt_L': 0.0001538462, 'tilt_R': -0.0002307692}}],
-    'tilt': [
-        {'val':  5.2e-3,           'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3),
-                                                '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3),
-                                                '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3),
-                                                'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 
-                                                'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739,
-                                                'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
-        {'val':  [5.2e-3],         'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3),
-                                                '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3),
-                                                '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3),
-                                                'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 
-                                                'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739,
-                                                'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
-        {'val':  [5.2e-3, 3.7e-3], 'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3),
-                                                '_sin_yR': np.sin(3.7e-3), '_cos_yR': np.cos(3.7e-3),
-                                                '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(3.7e-3),
-                                                'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01655499451259542,
-                                                'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.011745005487404576,
-                                                'jaw_L':  0.0151, 'jaw_R':  -0.01415}}],
-    'gap': [
-        {'val':  5,       'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
-        {'val':  [5],     'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
-        {'val':  [5, -3], 'expected': {'gap': [5, -3], 'gap_L': 5, 'gap_R': -3}}],
-    'side': [
-        {'val':  'left',  'expected': {'_side': 1,  'jaw_LU': 0.01172001523251274, 'jaw_RU': None, '_jaw_RU': -3.0024049945125952, 'gap_L': 5,
-                                                    'jaw_LD': 0.018479984767487263,'jaw_RD': None, '_jaw_RD': -2.9975950054874047, 'gap_R': None}},
-        {'val':  'both',  'expected': {'_side': 0,  'jaw_LU': 0.01172001523251274, 'jaw_RU': None, '_jaw_RU': -3.0024049945125952, 'gap_L': 5,
-                                                    'jaw_LD': 0.018479984767487263,'jaw_RD': None, '_jaw_RD': -2.9975950054874047, 'gap_R': None}},
-        {'val':  'right', 'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  'L',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  'R',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  '+',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  '-',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  '+-',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
-        {'val':  '-+',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, 'gap_L': None,
-                                                    '_jaw_LD': 3.0033799847674874, '_jaw_RD': -2.9975950054874047, 'gap_R': None,
-                                                    'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}}]
-}
-base_user_fields = {
-    'angle_L': [{'val':  40, 'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180)}}],
-    'angle_R': [{'val':  43, 'expected': {'_sin_zR': np.sin(43*np.pi/180), '_cos_zR': np.cos(43*np.pi/180)}}],
-    'tilt_L':  [{'val':  0.5*np.pi/180, 'expected': {
-                '_sin_yL': np.sin(0.5*np.pi/180), '_cos_yL': np.cos(0.5*np.pi/180), '_tan_yL': np.tan(0.5*np.pi/180)}}],
-    'tilt_R':  [{'val':  0.7*np.pi/180, 'expected': {
-                '_sin_yR': np.sin(0.7*np.pi/180), '_cos_yR': np.cos(0.7*np.pi/180), '_tan_yR': np.tan(0.7*np.pi/180)}}],
-    'jaw_L':   [{'val':  0.013,  'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': None, '_jaw_RU': -3.0079410505429107,
-                                              'jaw_LD': 0.018672248073943076, 'jaw_RD': None, '_jaw_RD': -2.9920589494570894,
-                                              'tilt':  [0.0087266463, 0.0122173048]}}],
-    'jaw_R':   [{'val':  -0.011, 'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': -0.01894105054291073,
-                                              'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994,
-                                              'tilt':  [0.0087266463, 0.0122173048]}}],
-    'gap_L':   [{'val':  5,      'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}}],
-    'gap_R':   [{'val':  -3,     'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}}],
-    'align': [
-        {'val':  'upstream',   'expected': {'_align': 0, 'align': 'upstream'}},
-        {'val':  'downstream', 'expected': {'_align': 1, 'align': 'downstream'}}],
-    'emittance': [
-        {'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
-        {'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
-        {'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
-        {'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6, 'nemitt_y': 2.5e-6}}],
-    'nemitt_x': [
-        {'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6, 'nemitt_y': 2.5e-6}}],
-    'nemitt_y': [
-        {'val':  1.5e-6,           'expected': {'emittance': 1.5e-6, 'nemitt_x': 1.5e-6, 'nemitt_y': 1.5e-6}}]
-}
-base_user_fields_read_only = []
+base_coll_dict_fields = [*base_dict_fields,
+    {'field': 'angle', 'val':  40,       'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
+    {'field': 'angle', 'val':  [40],     'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
+    {'field': 'angle', 'val':  [40, 47], 'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(47*np.pi/180), '_cos_zR': np.cos(47*np.pi/180)}},
+    {'field': 'jaw',   'val':  0.015,                               'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, -0.015], [0.01488, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},  # Existing tilt from base_fields
+    {'field': 'jaw',   'val':  [0.015],                             'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, -0.015], [0.01488, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
+    {'field': 'jaw',   'val':  [0.015, -0.014],                     'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.014, 'jaw_LD': 0.01488, 'jaw_RD': -0.014,  'jaw_L':  0.015,  'jaw_R':  -0.014,   'jaw': [[0.01512, -0.014], [0.01488, -0.014]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
+    {'field': 'jaw',   'val':  [[0.015, -0.014],[0.0152, -0.0143]], 'expected': {'jaw_LU': 0.015,   'jaw_RU': -0.014, 'jaw_LD': 0.0152,  'jaw_RD': -0.0143, 'jaw_L':  0.0151, 'jaw_R':  -0.01415, 'jaw': [[0.015, -0.014], [0.0152, -0.0143]],   'tilt_L': 0.0001538462,  'tilt_R': -0.0002307692}},
+    {'field': 'tilt',  'val':  5.2e-3,           'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
+    {'field': 'tilt',  'val':  [5.2e-3],         'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
+    {'field': 'tilt',  'val':  [5.2e-3, 3.7e-3], 'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(3.7e-3), '_cos_yR': np.cos(3.7e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(3.7e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01655499451259542, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.011745005487404576, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
+    {'field': 'gap',   'val':  5,       'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
+    {'field': 'gap',   'val':  [5],     'expected': {'gap': 5,       'gap_L': 5, 'gap_R': -5}},
+    {'field': 'gap',   'val':  [5, -3], 'expected': {'gap': [5, -3], 'gap_L': 5, 'gap_R': -3}},
+    {'field': 'side',  'val':  'left',  'expected': {'_side': 1,  'jaw_LU': 0.01172001523251274, '_jaw_RU': -3.0024049945125952, 'jaw_LD': 0.018479984767487263, '_jaw_RD': -2.9975950054874047, 'gap_L': 5,    'gap_R': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  'both',  'expected': {'_side': 0,  'jaw_LU': 0.01172001523251274, '_jaw_RU': -3.0024049945125952, 'jaw_LD': 0.018479984767487263, '_jaw_RD': -2.9975950054874047, 'gap_L': 5,    'gap_R': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  'right', 'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  'L',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  'R',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  '+',     'expected': {'_side': 1,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  '-',     'expected': {'_side': -1, '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  '+-',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'side',  'val':  '-+',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}}
+]
+base_coll_user_fields = [*base_user_fields,
+    {'field': 'angle_L',   'val':  40,               'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180)}},
+    {'field': 'angle_R',   'val':  43,               'expected': {'_sin_zR': np.sin(43*np.pi/180), '_cos_zR': np.cos(43*np.pi/180)}},
+    {'field': 'tilt_L',    'val':  0.5*np.pi/180,    'expected': {'_sin_yL': np.sin(0.5*np.pi/180), '_cos_yL': np.cos(0.5*np.pi/180), '_tan_yL': np.tan(0.5*np.pi/180)}},
+    {'field': 'tilt_R',    'val':  0.7*np.pi/180,    'expected': {'_sin_yR': np.sin(0.7*np.pi/180), '_cos_yR': np.cos(0.7*np.pi/180), '_tan_yR': np.tan(0.7*np.pi/180)}},
+    {'field': 'jaw_L',     'val':  0.013,            'expected': {'jaw_LU': 0.007327751926056947, '_jaw_RU': -3.0079410505429107, 'jaw_LD': 0.018672248073943076, '_jaw_RD': -2.9920589494570894,   'tilt':  [0.0087266463, 0.0122173048], 'jaw_RU': None, 'jaw_RD': None}},
+    {'field': 'jaw_R',     'val':  -0.011,           'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': -0.01894105054291073, 'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994, 'tilt':  [0.0087266463, 0.0122173048]}},
+    {'field': 'gap_L',     'val':  5,                'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}},
+    {'field': 'gap_R',     'val':  -3,               'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
+    {'field': 'align',     'val':  'downstream',     'expected': {'_align': 1, 'align': 'downstream'}},
+    {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
+    {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
+    {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
+    {'field': 'emittance', 'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6, 'nemitt_y': 2.5e-6}},
+    {'field': 'nemitt_x',  'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6, 'nemitt_y': 2.5e-6}},
+    {'field': 'nemitt_y',  'val':  1.5e-6,           'expected': {'emittance': 1.5e-6, 'nemitt_x': 1.5e-6, 'nemitt_y': 1.5e-6}}
+]
+base_coll_user_fields_read_only = base_user_fields_read_only
 
 # BaseCrystal
-
-base_crystal_fields = {
-    'length':  1.3,
+base_crystal_fields = {**base_fields,
     '_jaw_U': 0.01544,
     '_sin_z': np.sin(137.8*np.pi/180),
     '_cos_z': np.cos(137.8*np.pi/180),
@@ -181,9 +145,6 @@ base_crystal_fields = {
     '_cos_y': np.sqrt(1. - 0.00022**2/1.3**2),
     '_tan_y': -0.00022/1.3/np.sqrt(1. - 0.00022**2/1.3**2),
     '_side':  1,
-    'active': 1,
-    'record_touches':     0,
-    'record_scatterings': 0,
     '_align': 0,
     '_gap':   3,
     '_nemitt_x': 3.5e-6,
@@ -193,75 +154,58 @@ base_crystal_fields = {
     'width':            0.05,
     'height':           0.02
 }
-base_crystal_dict_fields = {
-    'angle': [
-        {'val':  40,      'expected': {'_sin_z': np.sin(40*np.pi/180), '_cos_z': np.cos(40*np.pi/180)}}],
-    'jaw': [
-        {'val':  0.015,   'expected': {'jaw': 0.015, 'jaw_U': 0.015, 'jaw_D': 0.08540449144429954}}],
-    'tilt': [
-        {'val':  5.2e-3,  'expected': {'_sin_y': np.sin(5.2e-3), '_cos_y': np.cos(5.2e-3), '_tan_y': np.tan(5.2e-3),
-                                       'jaw_U': 0.015,  'jaw_D': 0.09238350714959694}}],
-    'gap': [
-        {'val':  5,       'expected': {'gap': 5, '_gap': 5}}],
-    'side': [
-        {'val':  'left',  'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
-        {'val':  'right', 'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
-        {'val':  'L',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
-        {'val':  'R',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
-        {'val':  '+',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
-        {'val':  '-',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}}],
-    'bending_radius': [
-        {'val':  47,        'expected': {'_bending_radius': 47.0, '_bending_angle': 0.027663102518570612,
-                                         'jaw_U': 0.015,  'jaw_D': 0.039715568642416266}}],
-    'bending_angle': [
-        {'val':  0.07,      'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07,
-                                         'jaw_U': 0.015,  'jaw_D': 0.06713730900985289}}]
-}
-base_crystal_user_fields = {
-    'jaw_U':   [{'val':  0.013,  'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}}],
-    'align': [
-        {'val':  'upstream',   'expected': {'_align': 0, 'align': 'upstream'}}],
-    'emittance': [
-        {'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
-        {'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
-        {'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
-        {'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6, 'nemitt_y': 2.5e-6}}],
-    'nemitt_x': [
-        {'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6, 'nemitt_y': 2.5e-6}}],
-    'nemitt_y': [
-        {'val':  1.5e-6,           'expected': {'emittance': 1.5e-6, 'nemitt_x': 1.5e-6, 'nemitt_y': 1.5e-6}}]
-}
-base_crystal_user_fields_read_only = []
+base_crystal_dict_fields = [*base_dict_fields,
+    {'field': 'angle',          'val':  40,      'expected': {'_sin_z': np.sin(40*np.pi/180), '_cos_z': np.cos(40*np.pi/180)}},
+    {'field': 'jaw',            'val':  0.015,   'expected': {'jaw': 0.015, 'jaw_U': 0.015, 'jaw_D': 0.08540449144429954}},
+    {'field': 'tilt',           'val':  5.2e-3,  'expected': {'_sin_y': np.sin(5.2e-3), '_cos_y': np.cos(5.2e-3), '_tan_y': np.tan(5.2e-3), 'jaw_U': 0.015,  'jaw_D': 0.09238350714959694}},
+    {'field': 'gap',            'val':  5,       'expected': {'gap': 5, '_gap': 5}},
+    {'field': 'side',           'val':  'left',  'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+    {'field': 'side',           'val':  'right', 'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
+    {'field': 'side',           'val':  'L',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+    {'field': 'side',           'val':  'R',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
+    {'field': 'side',           'val':  '+',     'expected': {'_side': 1,  'jaw_D': 0.09238350714959694}},
+    {'field': 'side',           'val':  '-',     'expected': {'_side': -1, 'jaw_D': 0.09206107586980695}},
+    {'field': 'bending_radius', 'val':  47,      'expected': {'_bending_radius': 47.0,              '_bending_angle': 0.027663102518570612, 'jaw_U': 0.015, 'jaw_D': 0.039715568642416266}},
+    {'field': 'bending_angle',  'val':  0.07,    'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07,                 'jaw_U': 0.015, 'jaw_D': 0.06713730900985289}}
+]
+base_crystal_user_fields = [*base_user_fields,
+    {'field': 'jaw_U',     'val':  0.013,            'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
+    {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,           'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
+    {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6,          'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
+    {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,           'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
+    {'field': 'emittance', 'val':  [2.0e-6, 2.5e-6], 'expected': {'emittance': [2.0e-6, 2.5e-6], 'nemitt_x': 2.0e-6,  'nemitt_y': 2.5e-6}},
+    {'field': 'nemitt_x',  'val':  1.5e-6,           'expected': {'emittance': [1.5e-6, 2.5e-6], 'nemitt_x': 1.5e-6,  'nemitt_y': 2.5e-6}},
+    {'field': 'nemitt_y',  'val':  1.5e-6,           'expected': {'emittance': 1.5e-6,           'nemitt_x': 1.5e-6,  'nemitt_y': 1.5e-6}}
+]
+base_crystal_user_fields_read_only = base_user_fields_read_only
 
 
 # BlackAbsorber
+absorber_fields = base_coll_fields
+absorber_dict_fields = base_coll_dict_fields
+absorber_user_fields = base_coll_user_fields
+absorber_user_fields_read_only = base_coll_user_fields_read_only
 
-absorber_fields = base_fields
-absorber_dict_fields = base_dict_fields
-absorber_user_fields = base_user_fields
-absorber_user_fields_read_only = base_user_fields_read_only
+# BlackCrystal
 black_crystal_fields = base_crystal_fields
 black_crystal_dict_fields = base_crystal_dict_fields
 black_crystal_user_fields = base_crystal_user_fields
 black_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
-
 # EverestCollimator
-
-everest_fields = {**base_fields,
+everest_fields = {**base_coll_fields,
     '_material':         xc.materials.Copper,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
-everest_dict_fields = {**base_dict_fields,
-    'material':          [{'val': xc.materials.Copper, 'expected': {'_material': xc.materials.Copper}}]
-}
-everest_user_fields = base_user_fields
-everest_user_fields_read_only = base_user_fields_read_only
-
+everest_dict_fields = [*base_coll_dict_fields,
+    {'field': 'material', 'val': xc.materials.Copper, 'expected': {'_material': xc.materials.Copper}}
+]
+everest_user_fields = base_coll_user_fields
+everest_user_fields_read_only = base_coll_user_fields_read_only
 
 # EverestCrystal
-
 everest_crystal_fields = {**base_crystal_fields,
     'miscut':            1.2e-6,
     '_orient':           2,
@@ -270,34 +214,18 @@ everest_crystal_fields = {**base_crystal_fields,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
-
-everest_crystal_dict_fields = {**base_crystal_dict_fields,
-    'material':          [{'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}}],
-    'lattice': [
-        {'val': 'strip',             'expected': {'_orient': 1}},
-        {'val': '110',               'expected': {'_orient': 1}},
-        {'val': 110,                 'expected': {'_orient': 1}},
-        {'val': 'quasi-mosaic',      'expected': {'_orient': 2}},
-        {'val': '111',               'expected': {'_orient': 2}},
-        {'val': 111,                 'expected': {'_orient': 2}}]
-}
+everest_crystal_dict_fields = [*base_crystal_dict_fields,
+    {'field': 'material', 'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}},
+    {'field': 'lattice', 'val': 'strip',        'expected': {'_orient': 1}},
+    {'field': 'lattice', 'val': '110',          'expected': {'_orient': 1}},
+    {'field': 'lattice', 'val': 110,            'expected': {'_orient': 1}},
+    {'field': 'lattice', 'val': 'quasi-mosaic', 'expected': {'_orient': 2}},
+    {'field': 'lattice', 'val': '111',          'expected': {'_orient': 2}},
+    {'field': 'lattice', 'val': 111,            'expected': {'_orient': 2}}
+]
 everest_crystal_user_fields = base_crystal_user_fields
 everest_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
-
-def assert_all_close(expected, setval):
-    if hasattr(expected, 'to_dict'):
-        assert _dicts_equal(expected.to_dict(), setval.to_dict())
-    elif hasattr(expected, '__iter__') and not isinstance(expected, str):
-        for exp, stv in zip(expected, setval):
-            assert_all_close(exp, stv)
-    else:
-        if expected is None:
-            assert setval is None
-        elif isinstance(expected, str):
-            assert setval == expected
-        else:
-            assert np.isclose(expected, setval, atol=1e-12, rtol=0)  
 
 
 # Tests
@@ -308,41 +236,8 @@ def assert_all_close(expected, setval):
 def test_black_absorber(test_context):
     # Test instantiation
     elem = xc.BlackAbsorber(length=1, _context=test_context)
-
-    # Test existence of fields
-    assert np.all([key in dir(elem) for key in absorber_fields])
-    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = 5
-    assert np.all([key in elem.to_dict() for key in absorber_dict_fields])
-    elem.jaw = 1
-    elem.gap = None
-
-    # Test reading fields
-    for field in list(absorber_fields.keys()) + list(absorber_dict_fields.keys()) \
-               + list(absorber_user_fields.keys()) + absorber_user_fields_read_only:
-        print(f"Reading field {field}: {getattr(elem, field)}")
-
-    # Test writing xofields
-    for field, val in absorber_fields.items():
-        print(f"Writing field {field}")
-        setattr(elem, field, val)
-        setval = getattr(elem, field)
-        assert_all_close(val, setval)
-
-    # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    for field, vals in {**absorber_dict_fields, **absorber_user_fields}.items():
-        print(f"Writing field {field}...")
-        for val in vals:
-            print(val['val'])
-            setattr(elem, field, val['val'])
-            for basefield, expected in val['expected'].items():
-                setval = getattr(elem, basefield)
-                assert_all_close(expected, setval)
-
-    # Writing to a read-only field should fail
-    for field in absorber_user_fields_read_only:
-        with pytest.raises(Exception) as e_info:
-            setattr(elem, field, 0.3)
+    _check_all_elements(elem, absorber_fields, absorber_dict_fields, absorber_user_fields, \
+                        absorber_user_fields_read_only)
 
 
 @for_all_test_contexts(
@@ -351,43 +246,8 @@ def test_black_absorber(test_context):
 def test_black_crystal(test_context):
     # Test instantiation
     elem = xc.BlackCrystal(length=1, jaw=0.99, side='-', _context=test_context)
-
-    # Test existence of fields
-    assert np.all([key in dir(elem) for key in black_crystal_fields])
-    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = 5
-    assert np.all([key in elem.to_dict() for key in black_crystal_dict_fields])
-    elem.jaw = 1
-    elem.gap = None
-
-    # Test reading fields
-    for field in list(black_crystal_fields.keys()) + list(black_crystal_dict_fields.keys()) \
-               + list(black_crystal_user_fields.keys()) + black_crystal_user_fields_read_only:
-        print(f"Reading field {field}: {getattr(elem, field)}")
-
-    # Test writing xofields
-    for field, val in black_crystal_fields.items():
-        print(f"Writing field {field}")
-        setattr(elem, field, val)
-        setval = getattr(elem, field)
-        assert_all_close(val, setval)
-
-    # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    for field, vals in {**black_crystal_dict_fields, **black_crystal_user_fields}.items():
-        print(f"Writing field {field}...")
-        # print(elem.
-        # print(elem.to_dict())
-        for val in vals:
-            setattr(elem, field, val['val'])
-            for basefield, expected in val['expected'].items():
-                setval = getattr(elem, basefield)
-                print(f"{basefield=}   {expected=}   {setval=}")
-                assert_all_close(expected, setval)
-
-    # Writing to a read-only field should fail
-    for field in black_crystal_user_fields_read_only:
-        with pytest.raises(Exception) as e_info:
-            setattr(elem, field, 0.3)
+    _check_all_elements(elem, black_crystal_fields, black_crystal_dict_fields, \
+                        black_crystal_user_fields, black_crystal_user_fields_read_only)
 
 
 @for_all_test_contexts(
@@ -418,41 +278,8 @@ def test_everest_block(test_context):
 def test_everest(test_context):
     # Test instantiation
     elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
-
-    # Test existence of fields
-    assert np.all([key in dir(elem) for key in everest_fields])
-    elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
-    elem.gap = 5
-    assert np.all([key in elem.to_dict() for key in everest_dict_fields])
-    elem.jaw = 1
-    elem.gap = None
-
-    # Test reading fields
-    for field in list(everest_fields.keys()) + list(everest_dict_fields.keys()) \
-               + list(everest_user_fields.keys()) + everest_user_fields_read_only:
-        print(f"Reading field {field}: {getattr(elem, field)}")
-
-    # Test writing xofields
-    for field, val in everest_fields.items():
-        print(f"Writing field {field}")
-        setattr(elem, field, val)
-        setval = getattr(elem, field)
-        assert_all_close(val, setval)
-
-    # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    for field, vals in {**everest_dict_fields, **everest_user_fields}.items():
-        print(f"Writing field {field}...")
-        for val in vals:
-            print(val['val'])
-            setattr(elem, field, val['val'])
-            for basefield, expected in val['expected'].items():
-                setval = getattr(elem, basefield)
-                assert_all_close(expected, setval)
-
-    # Writing to a read-only field should fail
-    for field in everest_user_fields_read_only:
-        with pytest.raises(Exception) as e_info:
-            setattr(elem, field, 0.3)
+    _check_all_elements(elem, everest_fields, everest_dict_fields, everest_user_fields, \
+                        everest_user_fields_read_only)
 
 
 @for_all_test_contexts(
@@ -461,44 +288,62 @@ def test_everest(test_context):
 def test_everest_crystal(test_context):
     # Test instantiation
     elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, side='-', _context=test_context)
+    _check_all_elements(elem, everest_crystal_fields, everest_crystal_dict_fields, \
+                        everest_crystal_user_fields, everest_crystal_user_fields_read_only)
 
+
+
+def _assert_all_close(expected, setval):
+    if hasattr(expected, 'to_dict'):
+        assert _dicts_equal(expected.to_dict(), setval.to_dict())
+    elif hasattr(expected, '__iter__') and not isinstance(expected, str):
+        for exp, stv in zip(expected, setval):
+            _assert_all_close(exp, stv)
+    else:
+        if expected is None:
+            assert setval is None
+        elif isinstance(expected, str):
+            assert setval == expected
+        else:
+            assert np.isclose(expected, setval, atol=1e-12, rtol=0)
+
+
+def _check_all_elements(elem, fields, dict_fields, user_fields, user_fields_read_only):
     # Test existence of fields
-    assert np.all([key in dir(elem) for key in everest_crystal_fields])
+    assert np.all([key in dir(elem) for key in fields])
     elem.jaw = 0.8 # Need to give non-default value to jaw and gap, otherwise it is None and not in to_dict()
     elem.gap = 5
-    assert np.all([key in elem.to_dict() for key in everest_crystal_dict_fields])
+    assert np.all([key['field'] in elem.to_dict() for key in dict_fields])
     elem.jaw = 1
     elem.gap = None
 
     # Test reading fields
-    for field in list(everest_crystal_fields.keys()) + list(everest_crystal_dict_fields.keys()) \
-               + list(everest_crystal_user_fields.keys()) + everest_crystal_user_fields_read_only:
+    for field in list(fields.keys()) + [vv['field'] for vv in dict_fields] \
+               + [vv['field'] for vv in user_fields] + user_fields_read_only:
         print(f"Reading field {field}: {getattr(elem, field)}")
 
     # Test writing xofields
-    for field, val in everest_crystal_fields.items():
+    for field, val in fields.items():
         print(f"Writing field {field}")
         setattr(elem, field, val)
         setval = getattr(elem, field)
-        assert_all_close(val, setval)
+        _assert_all_close(val, setval)
 
     # Test writing the to_dict and user-friendly fields (can be multiple options per field)
-    # print(this_dict)
-    for field, vals in {**everest_crystal_dict_fields, **everest_crystal_user_fields}.items():
-        print(f"Writing field {field}...")
-        # print(elem.
-        # print(elem.to_dict())
-        for val in vals:
-            setattr(elem, field, val['val'])
-            for basefield, expected in val['expected'].items():
-                setval = getattr(elem, basefield)
-                print(f"{basefield=}   {expected=}   {setval=}")
-                assert_all_close(expected, setval)
+    for data in [*dict_fields, *user_fields]:
+        field = data['field']
+        val = data['val']
+        setattr(elem, field, val)
+        for basefield, expected in data['expected'].items():
+            setval = getattr(elem, basefield)
+            print(f"Writing field {field} with {val}:  {basefield} expected {expected}, got {setval}")
+            _assert_all_close(expected, setval)
 
     # Writing to a read-only field should fail
-    for field in everest_crystal_user_fields_read_only:
+    for field in user_fields_read_only:
         with pytest.raises(Exception) as e_info:
             setattr(elem, field, 0.3)
+
 
 # TODO:
 # def test_jaw_func():

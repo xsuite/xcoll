@@ -45,16 +45,18 @@ class InvalidXcoll(xt.BeamElement):
 
 class BaseBlock(xt.BeamElement):
     _xofields = {
-        'length':             xo.Float64,
-        'active':             xo.Int8,
-        'record_touches':     xo.Int8,
-        'record_scatterings': xo.Int8
+        'length':                xo.Float64,
+        'active':                xo.Int8,
+        '_record_interactions':  xo.Int8
     }
 
     isthick = True
     allow_track = False
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
+
+    _skip_in_to_dict  = ['_record_interactions']
+    _store_in_to_dict = ['record_impacts', 'record_exits', 'record_scatterings']
 
     _depends_on = [InvalidXcoll]
 
@@ -67,13 +69,60 @@ class BaseBlock(xt.BeamElement):
         instance = super().__new__(cls)
         return instance
 
+    def __init__(self, **kwargs):
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('active', True)
+        super().__init__(**kwargs)
+
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
+            if hasattr(self, 'optics') and self.optics is None and \
+            (hasattr(self, '_gap_L_set_manually') and self._gap_L_set_manually() \
+            or hasattr(self, '_gap_R_set_manually') and self._gap_R_set_manually()):
+                raise ValueError("Gap set but optics not yet assigned! "
+                               + "Cannot enable scattering.")
             self._tracking = True
 
     def disable_scattering(self):
         if hasattr(self, '_tracking'):
             self._tracking = False
+
+    @property
+    def record_impacts(self):
+        return bool(self._record_interactions % 2)
+
+    @record_impacts.setter
+    def record_impacts(self, val):
+        if val and not self.record_impacts:
+            self._record_interactions += 1
+        elif not val and self.record_impacts:
+            self._record_interactions -= 1
+
+    @property
+    def record_exits(self):
+        return bool((self._record_interactions >> 1) % 2)
+
+    @record_exits.setter
+    def record_exits(self, val):
+        if val and not self.record_exits:
+            self._record_interactions += 2
+        elif not val and self.record_exits:
+            self._record_interactions -= 2
+
+    @property
+    def record_scatterings(self):
+        return bool((self._record_interactions >> 2) % 2)
+
+    @record_scatterings.setter
+    def record_scatterings(self, val):
+        if val and not self.record_scatterings:
+            self._record_interactions += 4
+        elif not val and self.record_scatterings:
+            self._record_interactions -= 4
+
+    def _verify_consistency(self):
+        assert isinstance(self.active, bool) or self.active in [0, 1]
+        assert self._record_interactions in list(range(8))
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length,
@@ -118,8 +167,8 @@ class BaseCollimator(BaseBlock):
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = True
 
-    _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
-    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
     _depends_on = [BaseBlock]
 
@@ -202,9 +251,6 @@ class BaseCollimator(BaseBlock):
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
             to_assign['emittance'] = kwargs.pop('emittance', None)
-            kwargs.setdefault('active', True)
-            kwargs.setdefault('record_touches', False)
-            kwargs.setdefault('record_scatterings', False)
 
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
@@ -258,7 +304,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def angle_R(self):
-        return round(np.rad2deg(np.arctan2(self._sin_zL, self._cos_zL)), 10)
+        return round(np.rad2deg(np.arctan2(self._sin_zR, self._cos_zR)), 10)
 
     @angle_R.setter
     def angle_R(self, angle_R):
@@ -551,8 +597,8 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
-        from xcoll import element_classes
-        if not isinstance(self, element_classes):
+        from xcoll.beam_elements import _all_collimator_classes
+        if not isinstance(self, _all_collimator_classes):
             raise ValueError("Please install collimator before assigning optics.")
         if nemitt_x is None:
             if self.nemitt_x is None:
@@ -876,17 +922,8 @@ class BaseCollimator(BaseBlock):
     # Methods
     # =======
 
-    def enable_scattering(self):
-        if hasattr(self, '_tracking'):
-            if self.optics is None:
-                raise ValueError("Optics not assigned! Cannot enable scattering.")
-            self._tracking = True
-
-    def disable_scattering(self):
-        if hasattr(self, '_tracking'):
-            self._tracking = False
-
     def _verify_consistency(self):
+        BaseBlock._verify_consistency(self)
         # Verify angles
         if abs(self.angle_L - self.angle_R) >= 90.:
             raise ValueError("Angles of both jaws differ more than 90 degrees!")
@@ -922,9 +959,6 @@ class BaseCollimator(BaseBlock):
         # Verify bools
         assert self._side in [-1, 1, 0]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
-        assert isinstance(self.active, bool) or self.active in [0, 1]
-        assert isinstance(self.record_touches, bool) or self.record_touches in [0, 1]
-        assert isinstance(self.record_scatterings, bool) or self.record_scatterings in [0, 1]
 
     def jaw_func(self, pos):
         positions = ['LU', 'RU', 'LD', 'RD']
@@ -978,8 +1012,8 @@ class BaseCrystal(BaseBlock):
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = False
 
-    _skip_in_to_dict  = [f for f in _xofields if f.startswith('_')]
-    _store_in_to_dict = ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
                          'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
@@ -1040,8 +1074,6 @@ class BaseCrystal(BaseBlock):
             to_assign['align'] = kwargs.pop('align', 'upstream')
             to_assign['emittance'] = kwargs.pop('emittance', None)
             kwargs.setdefault('active', True)
-            kwargs.setdefault('record_touches', False)
-            kwargs.setdefault('record_scatterings', False)
 
             # Set crystal specific
             if 'bending_angle' in kwargs:
@@ -1313,13 +1345,8 @@ class BaseCrystal(BaseBlock):
     # Methods
     # =======
 
-    def enable_scattering(self):
-        BaseCollimator.enable_scattering(self)
-
-    def disable_scattering(self):
-        BaseCollimator.disable_scattering(self)
-
     def _verify_consistency(self):
+        BaseBlock._verify_consistency(self)
         # Verify angles
         ang = abs(np.arccos(self._cos_z))
         ang = np.pi - ang if ang > np.pi/2 else ang
@@ -1329,10 +1356,7 @@ class BaseCrystal(BaseBlock):
         assert np.isclose(ang, abs(np.arcsin(self._sin_y)))
         assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
         # Verify bools
-        assert self._side in [-1, 1, 0]
-        assert isinstance(self.active, bool) or self.active in [0, 1]
-        assert isinstance(self.record_touches, bool) or self.record_touches in [0, 1]
-        assert isinstance(self.record_scatterings, bool) or self.record_scatterings in [0, 1]
+        assert self._side in [-1, 1]
         # Crystal specific
         assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 

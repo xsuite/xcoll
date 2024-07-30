@@ -6,7 +6,6 @@
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll

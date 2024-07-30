@@ -15,6 +15,7 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .initial_distribution import *
 from .lossmap import LossMap
+
 # Deprecated
 from .manager import CollimatorManager
 

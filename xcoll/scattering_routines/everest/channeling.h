@@ -196,14 +196,9 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         if (L_chan <= fmin(L_dechan, L_nucl)){
             // Channel full length
             double* result_chan = channel_transport(everest, part, pc, L_chan, t_I, t_P);
-            double channeled_length = result_chan[0];
+            // double channeled_length = result_chan[0];
             pc               = result_chan[1];
             free(result_chan);
-            // Drift leftover outside of crystal
-            if (everest->coll->record_touches){
-                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
-            }
-            Drift_single_particle_4d(part, length - channeled_length);
 
         } else if (L_dechan < L_nucl) {
             // Channel up to L_dechan, then amorphous

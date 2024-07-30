@@ -69,9 +69,8 @@ def enable_scattering(line):
                 or not np.isclose(el.nemitt_x, nemitt_x):
                     raise ValueError("Not all collimators have the same "
                                    + "emittance. This is not supported.")
-            el.enable_scattering()
-        # self.line.tracker.io_buffer = self._io_buffer
-        # self._set_record_interaction_record()
+            if hasattr(el, 'enable_scattering'):
+                el.enable_scattering()
 
 def disable_scattering(line):
     elements = line.get_elements_of_type(element_classes)[0]
@@ -79,4 +78,5 @@ def disable_scattering(line):
         print("No xcoll elements found in line.")
     else:
         for el in elements:
-            el.disable_scattering()
+            if hasattr(el, 'disable_scattering'):
+                el.disable_scattering()
