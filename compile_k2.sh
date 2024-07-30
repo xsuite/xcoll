@@ -13,24 +13,45 @@ cd xcoll/scattering_routines/k2/FORTRAN_src
 rm *.mod *.o
 
 
-# compile libraries
+# Compile libraries
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+  cp crlibm/CMakeLists.txt crlibm/CMakeLists.txt.bak
+  cp roundctl/CMakeLists.txt roundctl/CMakeLists.txt.bak
+  sed -i '' 's/-mfpmath=sse -msse2//g' crlibm/CMakeLists.txt
+  sed -i '' 's/-mfpmath=sse -msse2//g' roundctl/CMakeLists.txt
+  CFLAGS="'-fPIC'"
+else
+  CFLAGS="'-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'"
+fi
 cd crlibm
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS='-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'
+make CFLAGS=$CFLAGS
 mv libcrlibm.a ../
 cd ../roundctl
 make clean
 rm -r CMakeCache*.txt CMakeFiles Makefile* cmake_install*.cmake &> /dev/null
 cmake .
-make CFLAGS='-fPIC -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma'
+make CFLAGS=$CFLAGS
 mv libroundctl.a ../
 cd ..
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+  mv crlibm/CMakeLists.txt.bak crlibm/CMakeLists.txt
+  mv roundctl/CMakeLists.txt.bak roundctl/CMakeLists.txt
+fi
 
-# compile fortran
-gfortran -m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3 \
- -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma -c \
+
+# Compile FORTRAN
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+  FFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3"
+else
+  FFLAGS="-m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUND_NEAR -O3 -mfpmath=sse -msse2 -mavx -mavx2 -mno-fma4 -mno-fma"
+fi
+gfortran $FFLAGS -c \
  core_tools.f90 \
  constants.f90 \
  strings.f90 \
@@ -56,7 +77,8 @@ gfortran -m64 -fpic -funroll-loops -std=f2008 -cpp -DDOUBLE_MATH -DCRLIBM -DROUN
  coll_dist.f90 \
  collimation.f90
 
-# link fortran
+
+# Link FORTRAN
 f2py -m pyk2f -c pyk2.f90 \
  core_tools.o \
  constants.o \
