@@ -13,24 +13,14 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-# This example is a more realistic example of the ADT in the LHC. Each
-# particle in a bunch gets the same kick (this is the default for a BlowUp).
-# Note that this realistic behaviour shakes the beam around at every pass:
-# the distribution becomes unmatched as it is no longer centered around
-# the closed orbit. After the blow-up, the beam needs some relaxation time
-# for the particles to decohere again.
-# This is investigated in this example: the emittance is calculated by an
-# emittance monitor (based on the covariance matrix of physical coordinates),
-# and by a particles monitor that calculates the emittance based on normalised
-# coordinates (which implicitly assumes a matched beam). In the resulting
-# plots, the emittance based on normalised coordinates directly reflects its
-# final value once the blow-up is stopped, while the emittance based on physical
-# coordinates needs some relaxation time to reach this final value.
+# This example is a simplified example of the ADT in the LHC. Each
+# particle gets a different kick, randomly sampled. This allows for
+# a quicker and more controlled emittance growth (though less realistic).
 
 beam = 1
 plane = 'V'
 adt_turns = 1000
-total_turns = 3500
+total_turns = 2000
 num_particles = 5000
 nemitt_x = 3.5e-6
 nemitt_y = 2.5e-6
@@ -48,7 +38,7 @@ tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
 adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
 adt = xc.BlowUp.install(line, name=name, at_s=adt_pos, need_apertures=False, plane=plane,
-                        stop_at_turn=adt_turns)
+                        stop_at_turn=adt_turns, use_individual_kicks=True)
 
 
 # Add an emittance monitor
@@ -117,7 +107,7 @@ ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Horizontal emittance growth by ADT blow-up in the LHC")
 print(f"Total calculation time {time.time()-start_time}s")
-plt.savefig("adt_horizontal_emittance.png", dpi=300)
+plt.savefig("adt_simplified_horizontal_emittance.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -128,7 +118,7 @@ ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
-plt.savefig("adt_horizontal_amplitude.png", dpi=300)
+plt.savefig("adt_simplified_horizontal_amplitude.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -140,7 +130,7 @@ ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Vertical emittance growth by ADT blow-up in the LHC")
-plt.savefig("adt_vertical_emittance.png", dpi=300)
+plt.savefig("adt_simplified_vertical_emittance.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -151,7 +141,7 @@ ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
-plt.savefig("adt_vertical_amplitude.png", dpi=300)
+plt.savefig("adt_simplified_vertical_amplitude.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -162,5 +152,5 @@ ax.set_ylabel(r"$\epsilon\; [\mathrm{cm}]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Longitudinal emittance growth by ADT blow-up in the LHC")
-plt.savefig("adt_longitudinal_emittance.png", dpi=300)
+plt.savefig("adt_simplified_longitudinal_emittance.png", dpi=300)
 plt.show()

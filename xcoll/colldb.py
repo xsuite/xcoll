@@ -578,7 +578,7 @@ class CollimatorDatabase:
     def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll[self[name]['material']]
+            mat = SixTrack_to_xcoll(self[name]['material'])
             if self[name]['bending_radius'] is None:
                 self._create_collimator(line, EverestCollimator, name, material=mat[0],
                                         verbose=verbose)

@@ -45,21 +45,18 @@ line = xt.Line(elements=elements, element_names=element_names, particle_ref=part
 # ===============
 X0_air = 301
 air = xc.Material(radiation_length=X0_air, name="Air (1 atm 20C)")
-
 line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 1", at_s=20)
 line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 2", at_s=50)
 
 
 # Add monitors
 # ============
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor start", at_s=0)
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 1 start", at_s=20)
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 1 end", at_s=30)
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 2 start", at_s=50)
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor air 2 end", at_s=60)
-line.insert_element(element=xc.EmittanceMonitor(), name="monitor end", at_s=100)
-for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]:
-    el.set_beta_gamma_rel(line.particle_ref)
+xc.EmittanceMonitor.install(line, name="monitor start", at_s=0, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 start", at_s=20, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 end", at_s=30, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 start", at_s=50, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 end", at_s=60, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=False)
 
 
 # Generate an initial distribution of particles
@@ -79,7 +76,7 @@ dy0 = 0.0
 dpx0 = 0.02
 dpy0 = 0.0
 tw_init = xt.TwissInit(betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0, dx=dx0, dy=dy0, dpx=dpx0, dpy=dpy0)
-tw = line.twiss(method='4d', start="QF1", end="END", init=tw_init)
+tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init)
 
 nemitt_x = 7.639770207283603e-06
 nemitt_y = 3.534081877201574e-06
@@ -91,8 +88,11 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
 
 
+# Track!
+# ======
 xc.enable_scattering(line)
 line.track(part)
+print("Done Tracking!")
 
 
 # Plot the result
@@ -109,4 +109,3 @@ ax.legend()
 
 print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
-

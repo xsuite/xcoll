@@ -66,7 +66,8 @@ class InteractionRecord(xt.BeamElement):
             return
         capacity = int(capacity)
 
-        if not hasattr(line, 'tracker'):
+        if getattr(line, 'tracker', None) is None \
+        or getattr(line.tracker, 'io_buffer', None) is None:
             if io_buffer is None:
                 io_buffer = xt.new_io_buffer(capacity=capacity)
         elif io_buffer is not None:
@@ -83,8 +84,8 @@ class InteractionRecord(xt.BeamElement):
         elif record_scatterings is None:
             record_scatterings = not record_impacts
         if record_exits is None:
-            # record_exits is the same as record_impacts unless explicitly set
-            record_exits = record_impacts
+            # record_exits defaults to True only if the other two are True
+            record_exits = record_impacts and record_scatterings
         assert record_impacts is True or record_impacts is False
         assert record_exits is True or record_exits is False
         assert record_scatterings is True or record_scatterings is False
@@ -216,7 +217,7 @@ class InteractionRecord(xt.BeamElement):
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
                 **{
-                    f'{p}_{val}': getattr(self, f'{val}_{p}')[:n_rows]
+                    f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
                     for p in ['before', 'after']
                     for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
