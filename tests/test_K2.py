@@ -57,9 +57,9 @@ def _create_4_particles(line, pos, num_particles, plane):
         part_rand = line.build_particles(y = pos_distr, py = angle_rand)
     return part_0, part_pos, part_neg, part_rand
 
-def _track_with_angles(beam, plane, pos, everest=False, material=False, K2coll=None, Ecoll=None):
+def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=False, K2coll=None, Ecoll=None):
     path = Path(__file__).parent / 'data'
-    num_particles = int(1e6)
+    num_particles = int(num_particles)
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
@@ -174,7 +174,7 @@ def test_everest_and_K2_angles(beam, plane):
 @pytest.mark.parametrize("beam, plane",[[1,'V']])  
 def test_everest_and_K2_materials(beam, plane):
     pos    = [0.0015, 0.00131, 0.0013, 0.00129, 0.0011]
-
+    num_particles = 1e6
     light  = _K2Collimator(length=0.6, jaw=0.0013, material='C', angle=90, emittance=3.5e-6) # 1.67
     middle = _K2Collimator(length=0.6, jaw=0.0013, material='MoGR', angle=90, emittance=3.5e-6) # 10.22 
     heavy  = _K2Collimator(length=0.6, jaw=0.0013, material='Iner', angle=90, emittance=3.5e-6) # 18 
@@ -197,8 +197,8 @@ def test_everest_and_K2_materials(beam, plane):
 
     for j in range(len(K2)): 
         for idx, i in enumerate(pos):
-            part_0, part_pos, part_neg, part_rand,_, _, _, _,_,_ = _track_with_angles(beam=beam, plane=plane, pos=i, material=True, K2coll=K2[j])
-            part_0_E, part_pos_E, part_neg_E, part_rand_E,_,_,_,_,_,_ = _track_with_angles(beam, plane, pos=i, material=True, everest=True, Ecoll=Everest[j])
+            part_0, part_pos, part_neg, part_rand,_, _, _, _,_,_ = _track_with_angles(beam=beam, plane=plane, num_particles=num_particles, pos=i, material=True, K2coll=K2[j])
+            part_0_E, part_pos_E, part_neg_E, part_rand_E,_,_,_,_,_,_ = _track_with_angles(beam, plane, num_particles=num_particles, pos=i, material=True, everest=True, Ecoll=Everest[j])
 
             assert _are_numbers_equal_within_tolerance(np.sum(part_0.state < 1), np.sum(part_0_E.state < 1),1.5), f"{np.sum(part_0.state < 1)}, {np.sum(part_0_E.state<1)}"
             assert _are_numbers_equal_within_tolerance(np.sum(part_pos.state < 1), np.sum(part_pos_E.state < 1),1.5), f"{np.sum(part_pos.state<1)}, {np.sum(part_pos_E.state<1)}"
@@ -208,86 +208,86 @@ def test_everest_and_K2_materials(beam, plane):
                 if idx == 0:
                     abs_light_inside[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_light_inside[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f" abs light inside 0: {(np.sum(part_0.state < 1)/int(1e6))*100} %, {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f" abs light inside pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f" abs light inside neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f" abs light inside rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_light_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs light inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f" abs light inside 0: {(np.sum(part_0.state < 1)/int(num_particles))*100} %, {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f" abs light inside pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f" abs light inside neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f" abs light inside rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_light_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs light inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 2:
                     abs_light_corner[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_light_corner[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs light corner 0 {(np.sum(part_0.state < 1)/int(1e6))*100} %,{(np.sum(part_0_E.state<1)/int(1e6))*100}%")
-                    print(f"abs light corner pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs light corner neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f"abs light corner rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_light_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs light corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs light corner 0 {(np.sum(part_0.state < 1)/int(num_particles))*100} %,{(np.sum(part_0_E.state<1)/int(num_particles))*100}%")
+                    print(f"abs light corner pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs light corner neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f"abs light corner rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_light_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs light corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 4:
                     abs_light_drift[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_light_drift[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs light drift 0 {(np.sum(part_0.state < 1)/int(1e6))*100} %,{(np.sum(part_0_E.state<1)/int(1e6))*100}%")
-                    print(f"abs light drift pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs light drift neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f"abs light drift rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_light_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs light drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs light drift 0 {(np.sum(part_0.state < 1)/int(num_particles))*100} %,{(np.sum(part_0_E.state<1)/int(num_particles))*100}%")
+                    print(f"abs light drift pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs light drift neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f"abs light drift rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_light_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs light drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
             if j == 1:
                 if idx == 0:
                     abs_middle_inside[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_middle_inside[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f" abs middle inside 0 {(np.sum(part_0.state < 1)/int(1e6))*100}%, {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f" abs middle inside pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f" abs middle inside neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f" abs middle inside rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_middle_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs middle inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f" abs middle inside 0 {(np.sum(part_0.state < 1)/int(num_particles))*100}%, {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f" abs middle inside pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f" abs middle inside neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f" abs middle inside rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_middle_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs middle inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 2:
                     abs_middle_corner[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_middle_corner[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs_middle_corner 0 {(np.sum(part_0.state < 1)/int(1e6))*100} %,{(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_middle_corner pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_middle_corner neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f"abs_middle_corner rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_middle_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs middle corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs_middle_corner 0 {(np.sum(part_0.state < 1)/int(num_particles))*100} %,{(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_middle_corner pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_middle_corner neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f"abs_middle_corner rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_middle_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs middle corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 4:
                     abs_middle_drift[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_middle_drift[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs_middle_drift 0 {(np.sum(part_0.state < 1)/int(1e6))*100}%, {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_middle_drift pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_middle_drift neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %") 
-                    print(f"abs_middle_drift rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_middle_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs middle drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs_middle_drift 0 {(np.sum(part_0.state < 1)/int(num_particles))*100}%, {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_middle_drift pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_middle_drift neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %") 
+                    print(f"abs_middle_drift rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_middle_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs middle drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
             if j == 2:
                 if idx == 0:
                     abs_heavy_inside[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_heavy_inside[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs_heavy_inside 0 {(np.sum(part_0.state < 1)/int(1e6)*100)} %, {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_inside pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_inside neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f"abs_heavy_inside rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_heavy_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs heavy inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs_heavy_inside 0 {(np.sum(part_0.state < 1)/int(num_particles)*100)} %, {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_inside pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_inside neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f"abs_heavy_inside rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_heavy_inside {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs heavy inside E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 2:
                     abs_heavy_corner[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_heavy_corner[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs_heavy_corner 0 {(np.sum(part_0.state < 1)/int(1e6))*100} %,  {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_corner pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_corner neg {np.sum(part_neg.state < 1)/int(1e6)} %, {np.sum(part_neg_E.state<1)/int(1e6)} %")
-                    print(f"abs_heavy_corner rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_heavy_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs heavy corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs_heavy_corner 0 {(np.sum(part_0.state < 1)/int(num_particles))*100} %,  {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_corner pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_corner neg {np.sum(part_neg.state < 1)/int(num_particles)} %, {np.sum(part_neg_E.state<1)/int(num_particles)} %")
+                    print(f"abs_heavy_corner rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_heavy_corner {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs heavy corner E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
                 elif idx == 4:
                     abs_heavy_drift[0] += np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + np.sum(part_0.state < 1)
                     abs_heavy_drift[1] += np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + np.sum(part_0_E.state < 1)
-                    print(f"abs_heavy_drift 0 {(np.sum(part_0.state < 1)/int(1e6))*100} %,  {(np.sum(part_0_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_drift pos {(np.sum(part_pos.state < 1)/int(1e6)*100)} %, {(np.sum(part_pos_E.state<1)/int(1e6))*100} %")
-                    print(f"abs_heavy_drift neg {(np.sum(part_neg.state < 1)/int(1e6)*100)} %, {(np.sum(part_neg_E.state<1)/int(1e6)*100)} %")
-                    print(f"abs_heavy_drift rand {np.sum(part_rand.state < 1)/int(1e6)} %, {np.sum(part_rand_E.state<1)/int(1e6)} %")
-                    print(f"abs_heavy_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(1e6)))*100} %")
-                    print(f"abs heavy drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(1e6)))*100} %")
+                    print(f"abs_heavy_drift 0 {(np.sum(part_0.state < 1)/int(num_particles))*100} %,  {(np.sum(part_0_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_drift pos {(np.sum(part_pos.state < 1)/int(num_particles)*100)} %, {(np.sum(part_pos_E.state<1)/int(num_particles))*100} %")
+                    print(f"abs_heavy_drift neg {(np.sum(part_neg.state < 1)/int(num_particles)*100)} %, {(np.sum(part_neg_E.state<1)/int(num_particles)*100)} %")
+                    print(f"abs_heavy_drift rand {np.sum(part_rand.state < 1)/int(num_particles)} %, {np.sum(part_rand_E.state<1)/int(num_particles)} %")
+                    print(f"abs_heavy_drift {(np.sum(part_neg.state < 1) + np.sum(part_pos.state < 1) + np.sum(part_rand.state < 1) + (np.sum(part_0.state < 1))/(4*int(num_particles)))*100} %")
+                    print(f"abs heavy drift E {(np.sum(part_neg_E.state < 1) + np.sum(part_pos_E.state < 1) + np.sum(part_rand_E.state < 1) + (np.sum(part_0_E.state < 1))/(4*int(num_particles)))*100} %")
 
             del part_0, part_pos, part_neg, part_rand
             del part_0_E, part_pos_E, part_neg_E, part_rand_E
