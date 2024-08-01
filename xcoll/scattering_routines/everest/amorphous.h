@@ -216,7 +216,6 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
         // Exit crystal
         // MCS to exit point
         pc = amorphous_transport(everest, part, pc, length_exit, 0);
-        // Now drift the remaining
         // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
         double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
         if (s3 < fmin(s1, s2) && s4 < s2){
@@ -224,12 +223,6 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
             Drift_single_particle_4d(part, s4 - exit_point);
             // We call the main Amorphous function for the leftover
             pc = Amorphous(everest, part, cg, pc, length - length_exit - s4 + exit_point);
-        } else {
-            // Drift leftover out of the crystal
-            if (everest->coll->record_touches){
-                InteractionRecordData_log(record, record_index, part, XC_EXIT_JAW);
-            }
-            Drift_single_particle_4d(part, length - length_exit);
         }
     }
 

@@ -75,10 +75,10 @@ module collimation
   real(kind=fPrec), private, save :: sigsecut2 = one
 
   ! Normalised emittances from input
-  real(kind=fPrec), public, save :: emitnx0_dist    = zero
-  real(kind=fPrec), public, save :: emitny0_dist    = zero
-  real(kind=fPrec), public, save :: emitnx0_collgap = zero
-  real(kind=fPrec), public, save :: emitny0_collgap = zero
+  real(kind=fPrec), public,  save :: emitnx0_dist    = zero
+  real(kind=fPrec), public,  save :: emitny0_dist    = zero
+  real(kind=fPrec), public,  save :: emitnx0_collgap = zero
+  real(kind=fPrec), public,  save :: emitny0_collgap = zero
 
   ! Geometric emittances
   real(kind=fPrec), private, save :: c_emitx0_dist    = zero
@@ -112,8 +112,8 @@ module collimation
   real(kind=fPrec), allocatable, private, save :: sqsum_ay(:)
 
   ! Arrays allocated to npart
-  integer,          allocatable, public, save :: part_hit_pos(:)   ! Hit flag for last hit
-  integer,          allocatable, public, save :: part_hit_turn(:)  ! Hit flag for last hit
+  integer,          allocatable, public,  save :: part_hit_pos(:)   ! Hit flag for last hit
+  integer,          allocatable, public,  save :: part_hit_turn(:)  ! Hit flag for last hit
   integer,          allocatable, public,  save :: part_abs_pos(:)   ! Absorbed in element
   integer,          allocatable, public,  save :: part_abs_turn(:)  ! Absorbed in turn
   integer,          allocatable, private, save :: part_select(:)
@@ -604,7 +604,7 @@ subroutine coll_init
   ! After this, the number of slices is also stored per collimator, and can be extracted again later
   call cdb_setMasterJawFit(n_slices, smin_slices, smax_slices, recenter1, recenter2, jaw_fit, jaw_ssf)
 
-!  call coll_getMinGapID(minGapID)
+  !call coll_getMinGapID(minGapID)
 
   ! if pencil beam is used and on collimator with smallest gap the
   ! distribution should be generated, set ipencil to minGapID

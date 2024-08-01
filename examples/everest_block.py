@@ -17,5 +17,7 @@ part = xp.Particles(x=np.zeros(1000000), energy0=450.e9)
 block.track(part)
 
 plt.hist(part.x, bins=200, density=True)
+plt.show()
+
 plt.hist(part.px*part.rpp, bins=200, density=True)
 plt.show()

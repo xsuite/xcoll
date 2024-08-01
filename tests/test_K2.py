@@ -9,8 +9,6 @@ from pathlib import Path
 import pytest
 from scipy.stats import skew, kurtosis, moment
 
-import xobjects as xo
-import xpart as xp
 import xtrack as xt
 import xcoll as xc
 from xcoll.scattering_routines.k2 import K2Engine
@@ -75,7 +73,7 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         coll  = line[f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"]
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
-        K2Engine.start(line=line, cwd='run_1',_capacity=num_particles)
+        K2Engine.start(line=line, cwd='run_1', _capacity=num_particles)
     elif material and everest:
         xc.install_elements(line, [Ecoll[1]], [Ecoll[0]], need_apertures=False)
         line.build_tracker()
@@ -85,7 +83,7 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         xc.install_elements(line, [K2coll[1]], [K2coll[0]], need_apertures=False)
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
-        K2Engine.start(line=line, cwd='run_1',_capacity=num_particles)
+        K2Engine.start(line=line, cwd='run_1', _capacity=num_particles)
         coll = K2coll[0]
 
     part_zero_init, part_pos_init, part_neg_init, part_rand_init = _create_4_particles(line=line, pos=pos, num_particles=num_particles, plane=plane)
