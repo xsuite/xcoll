@@ -6,7 +6,7 @@
 import numpy as np
 import os
 from pathlib import Path
-
+import shutil
 import xtrack as xt
 
 
@@ -48,7 +48,6 @@ class K2Engine:
         from .sixtrack_input import create_dat_file
         cls(**kwargs)
         this = cls.instance
-
         try:
             from .pyk2f import pyk2_init
         except ImportError:
@@ -98,7 +97,6 @@ class K2Engine:
 
         for i, name in enumerate(names):
             line[name]._k2_id = i + 1  # FORTRAN is 1-indexed
-
         this._file = create_dat_file(line=line, names=names, file=cwd / _FILE_NAME)
         assert this._file.exists()
         num_coll = np.int32(len(names))
@@ -126,7 +124,6 @@ class K2Engine:
     def stop(cls):
         cls()
         this = cls.instance
-        this._cwd = None
         if this._old_cwd is not None:
             os.chdir(this._old_cwd)
             this._old_cwd = None
@@ -138,8 +135,9 @@ class K2Engine:
             this._seed = None
         if this._file is not None:
             if this._file.exists():
-                this._file.unlink()
+                shutil.rmtree(this._cwd)
             this._file = None
+            this._cwd = None
 
     @classmethod
     def is_running(cls):
