@@ -4,8 +4,6 @@
 # ######################################### #
 
 import numpy as np
-from pathlib import Path
-import sys, os, contextlib
 import matplotlib.pyplot as plt
 
 import xobjects as xo

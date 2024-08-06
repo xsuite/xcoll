@@ -57,10 +57,9 @@ class Geant4Engine(xo.HybridClass):
                     _geant4_warning_given = True
                     self.g4link = None
             else:
-                unit_GeV = 1e9 # GeV to eV
                 self.g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
                                                  referencePdgId=self.reference_pdg_id,
-                                                 referenceEk=self.reference_kinetic_energy / unit_GeV, # BDSIM expects GeV
+                                                 referenceEk=self.reference_kinetic_energy / 1e9, # BDSIM expects GeV
                                                  relativeEnergyCut=self.relative_energy_cut,
                                                  seed=self.random_generator_seed, batchMode=batch_mode)
             print('Geant4 engine initialised')  # TODO should this not be indented?
@@ -135,7 +134,7 @@ class Geant4Engine(xo.HybridClass):
 
 
     def add_collimator(self, element_id, material, length, jaw_L, jaw_R, tilt_L, tilt_R,
-                       angle, centre_x, centre_y, side, active):
+                       angle, centre_x, centre_y, side):
         if not self.connected:
             raise ValueError("Geant4Engine not linked to BDSIM! Cannot add collimator.")
 

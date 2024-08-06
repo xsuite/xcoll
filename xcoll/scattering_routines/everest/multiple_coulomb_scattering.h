@@ -113,7 +113,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
     int8_t sc = everest->coll->record_scatterings;
 
     // First log particle at start of multiple coulomb scattering
-    int64_t i_slot;
+    int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
 
     double const radl = everest->coll->radl;
@@ -195,7 +195,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
     LocalParticle_add_to_s(part, s*radl);
 
     // Finally log particle at end of multiple coulomb scattering
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 }
 
 #endif /* XCOLL_EVEREST_MCS_H */

@@ -6,13 +6,13 @@
 import numpy as np
 import xtrack as xt
 
-from .beam_elements import element_classes, collimator_classes
+from .beam_elements import element_classes, _all_collimator_classes
 
 
 def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
     if not line._has_valid_tracker():
         raise Exception("Please build tracker before setting the openings!")
-    names = line.get_elements_of_type(collimator_classes)[1]
+    names = line.get_elements_of_type(_all_collimator_classes)[1]
     tw_upstream, tw_downstream = get_optics_at(names, twiss=twiss, line=line)
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
     for coll in names:
@@ -35,7 +35,7 @@ def get_optics_at(names, *, twiss=None, line=None):
 
 def open_collimators(line, names=None):
     if names is None:
-        names = line.get_elements_of_type(collimator_classes)[1]
+        names = line.get_elements_of_type(_all_collimator_classes)[1]
     if len(names) == 0:
         print("No collimators found in line.")
     else:
@@ -45,7 +45,7 @@ def open_collimators(line, names=None):
 
 def send_to_parking(line, names=None):
     if names is None:
-        names = line.get_elements_of_type(collimator_classes)[1]
+        names = line.get_elements_of_type(_all_collimator_classes)[1]
     if len(names) == 0:
         print("No collimators found in line.")
     else:
@@ -69,9 +69,8 @@ def enable_scattering(line):
                 or not np.isclose(el.nemitt_x, nemitt_x):
                     raise ValueError("Not all collimators have the same "
                                    + "emittance. This is not supported.")
-            el.enable_scattering()
-        # self.line.tracker.io_buffer = self._io_buffer
-        # self._set_record_interaction_record()
+            if hasattr(el, 'enable_scattering'):
+                el.enable_scattering()
 
 def disable_scattering(line):
     elements = line.get_elements_of_type(element_classes)[0]
@@ -79,4 +78,5 @@ def disable_scattering(line):
         print("No xcoll elements found in line.")
     else:
         for el in elements:
-            el.disable_scattering()
+            if hasattr(el, 'disable_scattering'):
+                el.disable_scattering()

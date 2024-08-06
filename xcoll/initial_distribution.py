@@ -9,7 +9,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes
+from .beam_elements import _all_collimator_classes, EverestCrystal
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -24,7 +24,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
 
     coll = line[name]
 
-    if not isinstance(coll, tuple(collimator_classes)):
+    if not isinstance(coll, tuple(_all_collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
 
     if coll.optics is None:
@@ -171,14 +171,26 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
 
     if side == '+':
         if is_converging:
-            pencil_pos = coll.jaw_LU + impact_parameter
+            if isinstance(coll, EverestCrystal):
+                pencil_pos = coll.jaw_U + impact_parameter
+            else:
+                pencil_pos = coll.jaw_LU + impact_parameter
         else:
-            pencil_pos = coll.jaw_LD + impact_parameter
+            if isinstance(coll, EverestCrystal):
+                pencil_pos = coll.jaw_D - impact_parameter
+            else:
+                pencil_pos = coll.jaw_LD + impact_parameter
     elif side == '-':
         if is_converging:
-            pencil_pos = coll.jaw_RU - impact_parameter
+            if isinstance(coll, EverestCrystal):
+                pencil_pos = coll.jaw_U - impact_parameter
+            else:
+                pencil_pos = coll.jaw_RU - impact_parameter
         else:
-            pencil_pos = coll.jaw_RD - impact_parameter
+            if isinstance(coll, EverestCrystal):
+                pencil_pos = coll.jaw_D + impact_parameter
+            else:
+                pencil_pos = coll.jaw_RD - impact_parameter
 
     # Collimator plane: generate pencil distribution
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
