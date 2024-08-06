@@ -8,23 +8,32 @@ import xobjects as xo
 import xpart as xp
 
 
-def track(collimator_id, particles):
+def track(coll, particles):
+    from ...beam_elements import Geant4Collimator
+    if not isinstance(coll, Geant4Collimator):
+        raise ValueError("Collimator is not a Geant4Collimator!\nCannot use Geant4 to track.")
+
+    if not coll.active or not coll._tracking:
+        coll._equivalent_drift.track(particles)
+        return
+
+    npart = particles._num_active_particles
+    if npart == 0:
+        return
 
     assert isinstance(particles._buffer.context, xo.ContextCpu)
-    assert particles._num_active_particles >= 0
 
+    # Check the server and whether it's initialised correctly
     from .engine import Geant4Engine
-
-    g4engine = Geant4Engine() # Get the singleton engine instance
-    if not g4engine.connected:
-        raise ValueError("Geant4Engine not linked to BDSIM! Cannot track.")
-
-    g4engine.assert_geometry()
+    g4engine = Geant4Engine().instance
+    if not g4engine.is_running():
+        raise ValueError(f"Geant4Engine not yet running!\nPlease do this first, by calling "
+                       + f"xcoll.Geant4Engine.start().\n(id: {id(g4engine)})")
 
     g4link = g4engine.g4link
     g4link.clearData() # Clear the old data - bunch particles and hits
 
-    print(f"Processing collimator: {collimator_id}")
+    print(f"Processing collimator: {coll.geant4_id}")
     # This temp delta is necessary because for primary particles, the coordinates are
     # modified in place. But for the longitudinal plane there are 3 coordinates that must
     # be updated, so pass a copy of the delta for the update in place and trigger the
@@ -38,11 +47,9 @@ def track(collimator_id, particles):
                    particles.pdg_id,particles.particle_id, particles.state,
                    particles.at_element, particles.at_turn]
 
-
-
     g4link.addParticles(coordinates)
     # The collimators must be defined already in the g4manager
-    g4link.selectCollimator(collimator_id)
+    g4link.selectCollimator(coll.geant4_id)
 
     g4link.collimate() # Performs the physical interaction simulation
 
@@ -54,9 +61,6 @@ def track(collimator_id, particles):
     # as the update_delta method only updates the delta for active particles
     particles._delta[:len(delta_temp)] = delta_temp
     particles.update_delta(delta_temp)
-
-    # TODO: This should work also when no products are there
-    #       Particles reorganization should still happen
 
     if products is None or products['x'].size == 0:
         particles.reorganize()

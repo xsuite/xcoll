@@ -12,8 +12,8 @@ from pathlib import Path
 
 import xtrack as xt
 
-from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, Geant4Collimator, \
-                           BaseCollimator, BaseCrystal, _all_collimator_classes
+from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
+                           Geant4Collimator, BaseCollimator, BaseCrystal, _all_collimator_classes
 from .install import install_elements
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 from .scattering_routines.geant4 import Geant4Engine
@@ -591,49 +591,17 @@ class CollimatorDatabase:
 
     def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
                                    bdsim_config_file=None, relative_energy_cut=0.15, random_seed=None):
-        if hasattr(Geant4Engine, 'instance'):
-            print(f"Warning: Geant4Engine already running.")
-        else:
-            if bdsim_config_file is None:
-                raise NotImplementedError
-            self._initialise_geant4_engine(line, bdsim_config_file, relative_energy_cut, random_seed)
+        if Geant4Engine.is_running():
+            print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
+            Geant4Engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll(self[name]['material'])
             if self[name]['bending_radius'] is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
             self._create_collimator(line, Geant4Collimator, name, verbose=verbose,
                                     material=self[name]['material'])
         elements = [self._elements[name] for name in names]
         install_elements(line, names, elements, need_apertures=need_apertures)
-
-
-    def _initialise_geant4_engine(self, line, bdsim_config_file, relative_energy_cut=0.15, random_seed=None):
-        ref_part = line.particle_ref
-        kinetic_energy = lambda part: part.energy0 - part.mass0
-        reference_kinetic_energy = kinetic_energy(ref_part)
-
-        _mass_close_tol = 50 # eV
-        if ref_part.q0 == -1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
-            # electron
-            reference_pdg_id = -11
-        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.ELECTRON_MASS_EV, atol=_mass_close_tol):
-            # positron
-            reference_pdg_id = 11
-        elif ref_part.q0 == 1 and np.isclose(ref_part.mass0, xp.PROTON_MASS_EV, atol=_mass_close_tol):
-            # proton
-            reference_pdg_id = 2212
-        else:
-            # TODO: implement support for ions
-            raise ValueError(f'Cannot deduce PDG particle id for',
-                             'reference particle {ref_part.to_dict()}.\n'
-                             ' Likely bad input or a disallowed particle type')
-
-        Geant4Engine(random_generator_seed=random_seed,
-                     reference_pdg_id=reference_pdg_id,
-                     reference_kinetic_energy=reference_kinetic_energy,
-                     relative_energy_cut=relative_energy_cut,
-                     bdsim_config_file=bdsim_config_file)
 
 
     # ==================================

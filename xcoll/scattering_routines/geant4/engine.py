@@ -4,20 +4,18 @@
 # ######################################### #
 
 import numpy as np
-import xobjects as xo
 
-_geant4_warning_given = False
+import xobjects as xo
+import xtrack as xt
+import xpart as xp
 
 class Geant4Engine(xo.HybridClass):
-
     _xofields = {
-        'random_generator_seed':    xo.Int64,
-        'reference_pdg_id':         xo.Int64,
-        'reference_kinetic_energy': xo.Float64,
-        'relative_energy_cut':      xo.Float64,
-        'bdsim_config_file':        xo.String
+        'particle_ref':        xp.Particles,
+        'seed':                xo.Int64,
+        'relative_energy_cut': xo.Float64,
+        'bdsim_config_file':   xo.String
 #         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
-#         'collimators':            Geant4Collimator[:],  # Does not work, need a pointer of sorts
     }
 
     # The engine is a singleton
@@ -27,122 +25,165 @@ class Geant4Engine(xo.HybridClass):
             cls.instance._initialised = False
         return cls.instance
 
-
-    def __init__(self, batch_mode=True, **kwargs):
-        if(self._initialised):
+    def __init__(self, **kwargs):
+        # Apply kwargs
+        if self._initialised:
+            for kk, vv in kwargs.items():
+                if not hasattr(self, kk):
+                    raise ValueError(f"Invalid attribute {kk} for FlukaEngine!")
+                setattr(self, kk, vv)
             return
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('particle_ref', xp.Particles())
+            kwargs.setdefault('seed', -1)
+            kwargs.setdefault('relative_energy_cut', -1)
+            kwargs.setdefault('bdsim_config_file', ''.ljust(40))
+        super().__init__(**kwargs)
+        if not hasattr(self, 'g4link'):
+            self.g4link = None
         self._initialised = True
 
-        if '_xobject' not in kwargs:
-            # Allow seed to be set to None to get default:
-            kwargs.setdefault('random_generator_seed', None)
-            if kwargs['random_generator_seed'] is None:
-                kwargs['random_generator_seed'] = np.random.randint(1, 10000000)
-            kwargs.setdefault('reference_pdg_id', -1)
-            kwargs.setdefault('reference_kinetic_energy', -1)
-            kwargs.setdefault('relative_energy_cut', -1)
-            kwargs.setdefault('bdsim_config_file', '')
-            self.registered_collimators = {}
-            self._geometry_constructed = False
-            self._built_collimators = {}
-        super().__init__(**kwargs)
-        if '_xobject' not in kwargs:
-            try:
-                import collimasim as cs
-            except ImportError:
-                global _geant4_warning_given
-                if not _geant4_warning_given:
-                    print("Warning: Failed to import collimasim. " \
-                        + "Geant4Collimators will be installed but are not trackable.")
-                    _geant4_warning_given = True
-                    self.g4link = None
-            else:
-                self.g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
-                                                 referencePdgId=self.reference_pdg_id,
-                                                 referenceEk=self.reference_kinetic_energy / 1e9, # BDSIM expects GeV
-                                                 relativeEnergyCut=self.relative_energy_cut,
-                                                 seed=self.random_generator_seed, batchMode=batch_mode)
-            print('Geant4 engine initialised')  # TODO should this not be indented?
+    def __del__(self, *args, **kwargs):
+        self.stop()
+
+
+    @classmethod
+    def start(cls, *, bdsim_config_file=None, line=None, elements=None, names=None, cwd=None,
+              relative_energy_cut=0.15, seed=None, batch_mode=True,
+              particle_ref=None, p0c=None, **kwargs):
+        from ...beam_elements.geant4 import Geant4Collimator
+
+        cls(**kwargs)
+        this = cls.instance
+        if this.is_running():
+            print("Geant4Engine already running.", flush=True)
+            return
+
+        if bdsim_config_file is None:
+            raise NotImplementedError
+        # if cwd is not None:
+        #     cwd = Path(cwd).expanduser().resolve()
+        #     cwd.mkdir(parents=True, exist_ok=True)
+        #     this._old_cwd = Path.cwd()
+        #     os.chdir(cwd)
+        # else:
+        #     cwd = Path.cwd()
+        # this._cwd = cwd
+
+        this.bdsim_config_file = bdsim_config_file
+        cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
+        Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
+        pdg_id = this.particle_ref.pdg_id
+        # TODO: the original Geant4 coupling had -11 for electrons and 11 for positrons. This is wrong. Was this an error in the original code, or is this wrong in BDSIM?
+        if abs(pdg_id) == 11:
+            pdg_id = -pdg_id
+
+        if seed is None:
+            if this._seed is None:
+                this._seed = np.int64(np.random.randint(1, int(2^63-1)))
+        else:
+            this.seed = seed
+            # Setting a seed here does not count as manually setting it
+            this._seed_set_manually = False
+        print(f"Using seed {this.seed}.")
+        this.relative_energy_cut = relative_energy_cut
+
+        try:
+            import collimasim as cs
+        except ImportError as e:
+            raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+        else:
+            this.g4link = cs.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+                                             referencePdgId=pdg_id,
+                                             referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                             relativeEnergyCut=this.relative_energy_cut,
+                                             seed=this.seed, batchMode=batch_mode)
+
+        elements, _ = line.get_elements_of_type(Geant4Collimator)
+        elements = [el for el in elements if el.gap is not None and el.active]
+        for el in elements:
+            side = 2 if el.side == -1 else el.side
+            this.g4link.addCollimator(el.geant4_id, el.material, el.length,
+                                      apertureLeft=el.jaw_L,
+                                      apertureRight=-el.jaw_R,   # TODO: is this correct?
+                                      rotation=np.deg2rad(el.angle),
+                                      xOffset=0, yOffset=0, side=side,
+                                      jawTiltLeft=el.tilt_L, jawTiltRight=el.tilt_R)
+
+        print('Geant4Engine initialised')
+
+
+    @classmethod
+    def stop(cls, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        this.g4link = None
+
+
+    @classmethod
+    def is_running(cls, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        return this.g4link is not None
+
 
     @property
-    def connected(self):
-        return self.g4link is not None
+    def seed(self):
+        return self._seed
 
-    def register_collimator(self, collimator):
-        # Register the collimators by reference
-        self.registered_collimators[collimator.collimator_id] = collimator
-
-    def deregister_collimator(self, collimator):
-        if collimator.collimator_id in self.registered_collimators:
-            del self.registered_collimators[collimator.collimator_id]
-
-    def assert_geometry(self):
-        if not self._geometry_constructed:
-            self._construct_geometry()
+    @seed.setter
+    def seed(self, val):
+        if val is None:
+            self._seed_set_manually = False
         else:
-            for collimator_id, collimator in self.registered_collimators.items():
-                if not collimator.active:
-                    continue
-                parameters_for_geometry = self._extract_parameters(collimator)
-                if collimator_id not in self._built_collimators \
-                or self._built_collimators[collimator_id] != parameters_for_geometry:
-                    # TODO: flush and re-start the BDSIM instance in this case (hard, as not re-entry safe)
-                    raise Exception("Collimator settings changed after the Geant4 geometry "
-                                 + f"has been build for collimator with id {collimator_id}. "
-                                 +  "This is not currently supported.")
+            self._seed_set_manually = True
+            new_val = np.int64(abs(np.int64(val)))
+            if new_val != int(val):
+                print(f"Warning: overflow for seed {val}. Using {new_val}.")
+        self._seed = val
 
-    def _extract_parameters(self, collimator):
-        try:
-            iter(collimator.angle)
-        except TypeError:
-            angle = float(collimator.angle)
+
+    @classmethod
+    def set_particle_ref(cls, particle_ref=None, line=None, p0c=None, **kwargs):
+        cls(**kwargs)
+        this = cls.instance
+        if this._has_particle_ref():
+            print("Reference particle already set!")
+            return
+
+        if particle_ref is None:
+            if line is None or line.particle_ref is None:
+                raise ValueError("Line has no reference particle! "
+                               + "Please provide one using `particle_ref`.")
+            particle_ref = line.particle_ref
+        elif isinstance(particle_ref, xp.Particles):
+            if particle_ref._capacity > 1:
+                raise ValueError("`particle_ref` has to be a single particle!")
+        elif p0c is not None:
+                particle_ref = xp.Particles.reference_from_pdg_id(particle_ref, p0c=p0c)
         else:
-            raise Exception('The Geant4 scattering engine does not '
-                          + 'support unequal jaw rotation angles')
+            raise ValueError("When providing `particle_ref`, it should be an "
+                             "xp.Particles object or a PDG ID. In the latter case, "
+                             "provide `p0c` as well.")
 
-        material_rename_map = {
-            'c': 'AC150GPH',
-            'cu': 'Cu',
-            'mogr': 'MG6403Fc',
-            'cucd': 'CUDIAM75',
-            'iner': 'INERM180',
-        }
+        if particle_ref.pdg_id == 0:
+            particle_ref.pdg_id = xp.get_pdg_id_from_mass_charge(particle_ref.mass0, particle_ref.q0)
+            # TODO: this should be updated in xpart: antiparticle not correctly recognised (missing positron and antimuon etc)
+            q0, _, _, _ = xp.get_properties_from_pdg_id(particle_ref.pdg_id)
+            if particle_ref.q0 == -q0:
+                pdg_id = -pdg_id
 
-        material_name = collimator.material
-        bdsim_material = material_rename_map.get(material_name.lower(), material_name) 
+        # TODO: test PDG ID consistent with mass and charge
 
-        parameters_for_geometry = (collimator.collimator_id, 
-                                    bdsim_material, 
-                                    collimator.length, 
-                                    collimator.jaw_L, collimator.jaw_R,
-                                    collimator.tilt_L, collimator.tilt_R,
-                                    angle, 0, 0, collimator._side, collimator.active)
-        return parameters_for_geometry
+        this.particle_ref = particle_ref
+        if line is not None and line.particle_ref is not None \
+        and not xt.line._dicts_equal(line.particle_ref.to_dict(), particle_ref.to_dict()):
+            print("Warning: Found different reference particle in line! Overwritten.")
+            line.particle_ref = particle_ref
 
 
-    def _construct_geometry(self):
-        for collimator_id, collimator in self.registered_collimators.items():
-            # TODO: impement a more elegant way to enable and disable colliamtors
-            if not collimator.active:
-                continue
-
-            parameters_for_geometry = self._extract_parameters(collimator)
-            self._built_collimators[collimator_id] = parameters_for_geometry
-            self.add_collimator(*parameters_for_geometry)
-
-        self._geometry_constructed = True
-
-
-    def add_collimator(self, element_id, material, length, jaw_L, jaw_R, tilt_L, tilt_R,
-                       angle, centre_x, centre_y, side):
-        if not self.connected:
-            raise ValueError("Geant4Engine not linked to BDSIM! Cannot add collimator.")
-
-        self.g4link.addCollimator(element_id, material, length, 
-                                  apertureLeft=jaw_L, 
-                                  apertureRight=-jaw_R,
-                                  rotation=np.deg2rad(angle), 
-                                  xOffset=centre_x, yOffset=centre_y,
-                                  jawTiltLeft=tilt_L, jawTiltRight=tilt_R, 
-                                  side=side)
+    def _has_particle_ref(self):
+        initial = xp.Particles().to_dict()
+        current = self.particle_ref.to_dict()
+        return not xt.line._dicts_equal(initial, current)
 
