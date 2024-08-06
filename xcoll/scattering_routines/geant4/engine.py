@@ -48,7 +48,7 @@ class Geant4Engine(xo.HybridClass):
 
 
     @classmethod
-    def start(cls, *, bdsim_config_file=None, line=None, elements=None, names=None, cwd=None,
+    def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
               relative_energy_cut=0.15, seed=None, batch_mode=True,
               particle_ref=None, p0c=None, **kwargs):
         from ...beam_elements.geant4 import Geant4Collimator
@@ -99,7 +99,13 @@ class Geant4Engine(xo.HybridClass):
                                              relativeEnergyCut=this.relative_energy_cut,
                                              seed=this.seed, batchMode=batch_mode)
 
-        elements, _ = line.get_elements_of_type(Geant4Collimator)
+        if line is None:
+            if elements is None:
+                raise ValueError("Need to provide either `line` or `elements`.")
+        elif elements is None:
+            elements, _ = line.get_elements_of_type(Geant4Collimator)
+        if not hasattr(elements, '__iter__') or isinstance(elements, str):
+            elements = [elements]
         elements = [el for el in elements if el.gap is not None and el.active]
         for el in elements:
             side = 2 if el.side == -1 else el.side
@@ -109,7 +115,6 @@ class Geant4Engine(xo.HybridClass):
                                       rotation=np.deg2rad(el.angle),
                                       xOffset=0, yOffset=0, side=side,
                                       jawTiltLeft=el.tilt_L, jawTiltRight=el.tilt_R)
-
         print('Geant4Engine initialised')
 
 

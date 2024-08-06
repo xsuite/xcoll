@@ -22,18 +22,15 @@ path = Path.cwd() / 'data_test_geant4'
 )
 @pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
 def test_multiple_tracking(test_context):
-    xc.Geant4Engine(random_generator_seed=1993, 
-                    reference_pdg_id=2212, 
-                    reference_kinetic_energy=7e12, 
-                    relative_energy_cut=0.15, 
-                    bdsim_config_file=str(path / f'settings_black_absorber_protons.gmad'))
-
     g4_collimators = _make_geant4_collimators(_context=test_context)
     ba_collimators = _make_black_absorbers(_context=test_context)
 
     part = _generate_particles(_context=test_context)
 
     part_ba = part.copy()
+
+    xc.Geant4Engine.start(elements=g4_collimators, seed=1993, particle_ref='proton', p0c=7e12,
+                          bdsim_config_file=str(path / f'settings_black_absorber_protons.gmad'))
 
     for coll in g4_collimators:
         coll.track(part)

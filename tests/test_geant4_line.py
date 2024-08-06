@@ -79,8 +79,7 @@ def install_geant4_collimators(line, opening, part_distribution_width):
     colldb = xc.CollimatorDatabase.from_dict(coll_dict, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
     # Install collimators into line
-    colldb.install_geant4_collimators(verbose=False, line=line, random_seed=1993,
-                                      bdsim_config_file=str(path / f'settings_protons.gmad'))
+    colldb.install_geant4_collimators(verbose=False, line=line)
 
     # Build the tracker
     line.build_tracker()
@@ -114,6 +113,8 @@ def generate_initial_distribution(npart, part_distribution_width):
 def run_geant4_line(opening, part_distribution_width):
     line = create_line()
     part = install_geant4_collimators(line, opening, part_distribution_width)
+
+    xc.Geant4Engine.start(line=line, seed=1993, bdsim_config_file=str(path / f'settings_protons.gmad'))
 
     # Track
     xc.enable_scattering(line=line)
