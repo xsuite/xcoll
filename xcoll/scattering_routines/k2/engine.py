@@ -29,7 +29,7 @@ class K2Engine:
         self._warning_given = False
         self._file = None
         self._collimator_dict = {}
-        self._capacity = np.int32(kwargs.get('_capacity', 50000))
+        self._capacity = np.int32(kwargs.get('_capacity', 50000)) # this doesnt work, kwargs is empty
         self.seed = kwargs.get('seed', None)
 
     def __del__(self, *args, **kwargs):
@@ -76,6 +76,9 @@ class K2Engine:
         else:
             cwd = Path.cwd()
         this._cwd = cwd
+
+        for key, value in kwargs.items(): # temporary solution: NOT waterproof
+            setattr(this, key, value)
 
         elements, names = line.get_elements_of_type((_K2Collimator, _K2Crystal))
         elements = [el for el in elements if el.gap is not None]

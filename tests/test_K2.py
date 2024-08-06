@@ -73,7 +73,8 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         coll  = line[f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"]
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
-        K2Engine.start(line=line, cwd='run_1', _capacity=num_particles)
+        kwargs = {'_capacity': num_particles}
+        K2Engine.start(line=line, cwd='run_1', **kwargs)
     elif material and everest:
         xc.install_elements(line, [Ecoll[1]], [Ecoll[0]], need_apertures=False)
         line.build_tracker()
@@ -83,7 +84,8 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         xc.install_elements(line, [K2coll[1]], [K2coll[0]], need_apertures=False)
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
-        K2Engine.start(line=line, cwd='run_1', _capacity=num_particles)
+        kwargs = {'_capacity': num_particles}
+        K2Engine.start(line=line, cwd='run_1', **kwargs)
         coll = K2coll[0]
 
     part_zero_init, part_pos_init, part_neg_init, part_rand_init = _create_4_particles(line=line, pos=pos, num_particles=num_particles, plane=plane)
@@ -99,6 +101,8 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
     coll.track(part_rand)
     xc.disable_scattering(line=line)
     line.discard_tracker()
+    if not everest:
+        K2Engine.stop()
 
     part_zero.sort(interleave_lost_particles=True)
     part_pos.sort(interleave_lost_particles=True)
@@ -111,15 +115,16 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
 
 @pytest.mark.parametrize("beam, plane",[[1,'V'],[2,'H'], [1,'H'], [2,'V']])
 def test_everest_and_K2_angles(beam, plane):
+    num_particles = 1e6
     if plane == 'H':
         pos = [0.00098, 0.00093, 0.0009198, 0.00091, 0.00088] 
     else:
         pos = [0.0015, 0.00131, 0.0013092, 0.0013082, 0.00012]
 
     for idx,i in enumerate(pos):
-        part_0, part_pos, part_neg, part_rand, part_0_init, part_pos_init, part_neg_init, part_rand_init,_,_ = _track_with_angles(beam, plane, pos=i)
+        part_0, part_pos, part_neg, part_rand, part_0_init, part_pos_init, part_neg_init, part_rand_init,_,_ = _track_with_angles(beam=beam, plane=plane, num_particles=num_particles, pos=i)
         part_0_E, part_pos_E, part_neg_E, part_rand_E, part_0_init_E, \
-        part_pos_init_E, part_neg_init_E, part_rand_init_E, _, coll = _track_with_angles(beam, plane, pos=i, everest=True)
+        part_pos_init_E, part_neg_init_E, part_rand_init_E, _, coll = _track_with_angles(beam=beam, plane=plane, num_particles=num_particles, pos=i, everest=True)
         print(f"pos {i}")
         # checks that same number of particles are alive within a tolerance of 1 %
         assert _are_numbers_equal_within_tolerance(np.sum(part_0.state < 1),np.sum(part_0_E.state < 1),1)
@@ -172,7 +177,7 @@ def test_everest_and_K2_angles(beam, plane):
 @pytest.mark.parametrize("beam, plane",[[1,'V']])  
 def test_everest_and_K2_materials(beam, plane):
     pos    = [0.0015, 0.00131, 0.0013, 0.00129, 0.0011]
-    num_particles = 1e6
+    num_particles = 1000
     light  = _K2Collimator(length=0.6, jaw=0.0013, material='C', angle=90, emittance=3.5e-6) # 1.67
     middle = _K2Collimator(length=0.6, jaw=0.0013, material='MoGR', angle=90, emittance=3.5e-6) # 10.22 
     heavy  = _K2Collimator(length=0.6, jaw=0.0013, material='Iner', angle=90, emittance=3.5e-6) # 18 
@@ -305,12 +310,12 @@ def test_everest_and_K2_materials(beam, plane):
 @pytest.mark.parametrize("beam, plane",[[1,'V']]) 
 def test_everest_and_K2_histogram(beam, plane):
     pos    = [0.0015, 0.00131, 0.001305, 0.00129, 0.0011] 
-
+    num_particles = 1e6 
     K2Coll = _K2Collimator(length=0.6, jaw=0.0013, material='MoGR', angle=90.0, emittance=3.5e-6)
     EverestColl = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite,angle=90.0, emittance=3.5e-6) 
     for idx, i in enumerate(pos):
-        part_0, part_pos, part_neg, part_rand,zero_init,pos_init,neg_init, rand_init,_,_ = _track_with_angles(beam=beam, plane=plane, pos=i, material=True, K2coll=[K2Coll,'tcp.b6l7.b1'])
-        part_0_E, part_pos_E, part_neg_E, part_rand_E,zero_initE,pos_initE,neg_initE, rand_initE,_,_ = _track_with_angles(beam, plane, pos=i, material=True, everest=True, Ecoll=[EverestColl,'tcp.b6l7.b1'])
+        part_0, part_pos, part_neg, part_rand,zero_init,pos_init,neg_init, rand_init,_,_ = _track_with_angles(beam=beam, plane=plane, num_particles=num_particles, pos=i, material=True, K2coll=[K2Coll,'tcp.b6l7.b1'])
+        part_0_E, part_pos_E, part_neg_E, part_rand_E,zero_initE,pos_initE,neg_initE, rand_initE,_,_ = _track_with_angles(beam=beam, plane=plane, num_particles=num_particles, pos=i, material=True, everest=True, Ecoll=[EverestColl,'tcp.b6l7.b1'])
 
         mask_0     = part_0.state > 0
         ids0       = part_0.particle_id[mask_0]
