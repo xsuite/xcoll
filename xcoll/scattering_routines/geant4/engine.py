@@ -63,7 +63,7 @@ class Geant4Engine(xo.HybridClass):
                                                  referenceEk=self.reference_kinetic_energy / unit_GeV, # BDSIM expects GeV
                                                  relativeEnergyCut=self.relative_energy_cut,
                                                  seed=self.random_generator_seed, batchMode=batch_mode)
-            print('Geant4 engine initialised')
+            print('Geant4 engine initialised')  # TODO should this not be indented?
 
     @property
     def connected(self):

@@ -14,7 +14,7 @@ from .beam_elements import collimator_classes
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
                                   impact_parameter=0, sigma_z=7.61e-2, tw=None, longitudinal=None,
-                                  longitudinal_betatron_cut=None):
+                                  longitudinal_betatron_cut=None, _capacity=None):
     """
     Generate a pencil beam on a collimator.
     """
@@ -124,14 +124,14 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
                 line=line, at_element=name, match_at_s=match_at_s,
-                _context=coll._buffer.context
+                _context=coll._buffer.context, _capacity=_capacity
         )
     else:
         part = xp.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
                 line=line, at_element=name, match_at_s=match_at_s,
-                _context=coll._buffer.context
+                _context=coll._buffer.context, _capacity=_capacity
         )
 
     part._init_random_number_generator()
