@@ -22,6 +22,14 @@ class K2Engine:
 
     def __init__(self, **kwargs):
         if(self._initialised):
+            for kk, vv in kwargs.items():
+                print("yoehoe")
+                if not hasattr(self, kk):
+                    raise ValueError(f"Invalid attribute {kk} for K2Engine!")
+                if kk == 'capacity':
+                    self.capacity = vv   # This ensure the setter method (which casts to int32) is called
+                else:
+                    setattr(self, kk, vv)
             return
         self._cwd = False
         self._old_cwd = False
@@ -76,9 +84,6 @@ class K2Engine:
         else:
             cwd = Path.cwd()
         this._cwd = cwd
-
-        for key, value in kwargs.items(): # temporary solution: NOT waterproof
-            setattr(this, key, value)
 
         elements, names = line.get_elements_of_type((_K2Collimator, _K2Crystal))
         elements = [el for el in elements if el.gap is not None]
