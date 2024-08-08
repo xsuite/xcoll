@@ -23,7 +23,6 @@ class K2Engine:
     def __init__(self, **kwargs):
         if(self._initialised):
             for kk, vv in kwargs.items():
-                print("yoehoe")
                 if not hasattr(self, kk):
                     raise ValueError(f"Invalid attribute {kk} for K2Engine!")
                 if kk == 'capacity':
