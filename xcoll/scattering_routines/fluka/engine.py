@@ -225,8 +225,20 @@ class FlukaEngine(xo.HybridClass):
                 fid.write(f'{len(this._collimator_dict.keys())}\n')
                 for _, el in this._collimator_dict.items():
                     fid.write(f'{el["fluka_id"]} ')
-        elif touches is not None and touches is not False:
-            raise NotImplementedError("Only True or False are allowed for `touches` for now.")
+
+        # Check if touches is a list of collimator names
+        elif touches is not None:
+            if isinstance(touches, list):
+                relcol = Path('relcol.dat').resolve()
+                with relcol.open('w') as fid:
+                    fid.write(f'{len(touches)}\n')
+                    for touch in touches:
+                        if touch not in this._collimator_dict.keys():
+                            raise ValueError(f"Collimator {touch} not in collimator dict!")
+                        else:
+                            fid.write(f'{this._collimator_dict[touch]["fluka_id"]} ')
+        # and touches is not False:
+        #     raise NotImplementedError("Only True or False are allowed for `touches` for now.")
         # relcol.dat: first line is the number of collimators, second line is the IDs (no newline at end)
 
         cls.clean_output_files()
