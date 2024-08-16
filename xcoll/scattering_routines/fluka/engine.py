@@ -173,16 +173,17 @@ class FlukaEngine(xo.HybridClass):
             if not os.path.exists(fluka_folder):
                 print(f"Could not find the folder for fluka executable {fluka_folder}!")
             this._fluka = this._fluka.replace("project-f", "project/f")
-            if not this_fluka.exists():
+            if not this._fluka.exists():
                 raise ValueError(f"Could not find fluka executable {this._fluka}!")
         if not this._flukaserver.exists():
+            print(f"Could not find fluka executable {this._flukaserver}!")
+            print("Trying modifying the eos path project-f->project/f")
             flukaserver_folder = os.path.dirname(this._flukaserver)
             if not os.path.exists(flukaserver_folder):
                 print(f"Could not find the folder for fluka executable {flukaserver_folder}!")
             this._flukaserver = this._flukaserver.replace("project-f", "project/f")
-            if not this_fluka.exists():
+            if not this._flukaserver.exists():
                 raise ValueError(f"Could not find fluka executable {this._flukaserver}!")
-            raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
         this.test_gfortran()
         this._starting_server = True
 
