@@ -31,24 +31,25 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
             if hasattr(el.angle, '__iter__'):
                 raise ValueError(f"Collimator {name} has jaw-dependent angles. "
                                  f"Not supported.")
-            gap = el.gap
-            if not isinstance(gap, str) and hasattr(gap, '__iter__'):
-                gap = gap[0]  # Only left-sided collimators supported in SixTrack
-            if gap == None:
-                print(f"Warning: ignoring {name} in K2 input file generation as it "
-                      f"has no assigned opening.")
-                continue
             mat = el.material
             length = el.length
             angle = el.angle
+            gap = el.gap
             # SixTrack offset is wrt. closed orbit
             if el.side == 'both':
                 offset = np.round((el.jaw_L + el.jaw_R)/2 - orbit, 9) + 0 # adding 0 to avoid -0 output
+                if not isinstance(gap, str) and hasattr(gap, '__iter__'):
+                    gap = (gap[0] - gap[1])/2 # SixTrack gap is w.r.t. centre, not closed orbit
             elif el.side == 'left':
                 offset = 0.
                 onesided.append(name)
+                if not isinstance(gap, str) and hasattr(gap, '__iter__'):
+                    gap = gap[0]
             else:
                 raise ValueError(f"Right-sided collimator {name} not supported.")
+            if gap == None:
+                print(f"Warning: ignoring {name} in K2 input file generation as it "
+                      f"has no assigned opening.")
             if el.__class__ == _K2Crystal:
                 # Have to do this here and not at the start, to avoid having appended the crystal list
                 # but then continuing (e.g. because the gap is None)
