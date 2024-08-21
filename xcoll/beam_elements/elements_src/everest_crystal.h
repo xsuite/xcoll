@@ -271,7 +271,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             }
         }
     //end_per_particle_block
-    EverestCrystalData_set__critical_angle(el, t_c);
+    if (t_c > 1.e-12){
+        EverestCrystalData_set__critical_angle(el, t_c);
+    }
     EverestCrystal_free(cg, active);
     free(coll);
 }
