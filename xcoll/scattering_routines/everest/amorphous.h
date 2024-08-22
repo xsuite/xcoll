@@ -193,10 +193,11 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
             // We are on the VR side
             pc = amorphous_transport(everest, part, pc, length_VR_trans, 0);
             volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
-            pc = amorphous_transport(everest, part, pc, length - length_VR_trans, 0);
+            pc = Amorphous(everest, part, cg,  pc, length - length_VR_trans);
         } else {
             // We are on the AM side
-            pc = amorphous_transport(everest, part, pc, length, XC_MULTIPLE_COULOMB_TRANS_VR);
+            if (sc) InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
+            pc = Amorphous(everest, part, cg, pc, length);
         }
 #endif
 

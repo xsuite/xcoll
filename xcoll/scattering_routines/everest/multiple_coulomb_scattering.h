@@ -160,15 +160,16 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
             x  = res[0];
             xp = res[1];
             free(res);
-            if (x <= 0) {
-                s = rlen0 - rlen + s;
-                break; // go to 20
+            if (x < 0) {
+                // extrapolation back to where x = 0
+                s = rlen0 - rlen + (s - x/tan(xp * M_PI  / 180.0));
+                x = 0.0;
+                break;
             }
             if (s + dh >= rlen) {
                 s = rlen0;
-                break; // go to 20
+                break;
             }
-            // go to 10
             rlen = rlen - s;
         }
 
