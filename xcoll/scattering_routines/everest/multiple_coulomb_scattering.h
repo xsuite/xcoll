@@ -39,7 +39,7 @@ double soln3(double a, double b, double dh, double smax) {
         }
         return s;
     }
-    if (a == 0) {    
+    if (a == 0) {
         if (b > 0) {
             s = pow(b,2);
         } else {
@@ -162,7 +162,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
             free(res);
             if (x < 0) {
                 // extrapolation back to where x = 0
-                s = rlen0 - rlen + (s - x/tan(xp * M_PI  / 180.0));
+                s = rlen0 - rlen + (s - x/xp);
                 x = 0.0;
                 break;
             }
