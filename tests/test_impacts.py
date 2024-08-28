@@ -4,7 +4,7 @@
 # ######################################### #
 
 import numpy as np
-import pytest 
+import pytest
 from pathlib import Path
 
 import xobjects as xo
@@ -55,9 +55,9 @@ def test_impacts_from_line(beam, plane, test_context):
     mask = df.interaction_type == 'Enter Jaw R'
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
                   np.isclose(df.x_before[mask], 0.0, atol=1e-12))
-    # mask = df.interaction_type == 'Exit Jaw'
-    # assert np.all(np.isclose(df.s_before[mask], [line[coll].length for coll in df.collimator[mask]], atol=1e-12) |
-    #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    mask = df.interaction_type == 'Exit Jaw'
+    assert np.all(np.isclose(df.s_before[mask], [line[coll].length for coll in df.collimator[mask]], atol=1e-12) |
+                  np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
 @for_all_test_contexts(
@@ -66,7 +66,7 @@ def test_impacts_from_line(beam, plane, test_context):
 def test_impacts_single_collimator(test_context):
     coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite,
                                 emittance=3.5e-6, _context=test_context)
- 
+
     x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
@@ -87,9 +87,9 @@ def test_impacts_single_collimator(test_context):
     mask = df.interaction_type == 'Enter Jaw R'
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
                   np.isclose(df.x_before[mask], 0.0, atol=1e-12))
-    # mask = df.interaction_type == 'Exit Jaw'
-    # assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
-    #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    mask = df.interaction_type == 'Exit Jaw'
+    assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
+                  np.isclose(df.x_before[mask], 0.0, atol=1e-12))
 
 
 @for_all_test_contexts(
@@ -118,6 +118,6 @@ def test_impacts_single_crystal(test_context):
     mask = df.interaction_type == 'Enter Jaw L'
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
                   np.isclose(df.x_before[mask], 0.0, atol=1e-12))
-    # mask = df.interaction_type == 'Exit Jaw'
-    # assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
-    #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    mask = df.interaction_type == 'Exit Jaw'
+    assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
+                  np.isclose(df.x_before[mask], 0.0, atol=1e-12))
