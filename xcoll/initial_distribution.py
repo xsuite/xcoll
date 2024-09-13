@@ -63,11 +63,13 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         match_at_s = s_front
         sigma = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{plane}'][0]
         sigma_transv = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{transv_plane}'][0]
+        tw_at_s = line.twiss(at_s=match_at_s)
     else:
         # pencil at back of jaw
         match_at_s = s_back
         sigma = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{plane}'][1]
         sigma_transv = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{transv_plane}'][1]
+        tw_at_s = line.twiss(at_s=match_at_s)
     dr_sigmas = pencil_spread/sigma
 
     # Generate 4D coordinates
@@ -75,11 +77,11 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if side == '+-':
         num_plus = int(num_particles/2)
         num_min  = int(num_particles - num_plus)
-        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas, match_at_s, is_converging)
-        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas, match_at_s, is_converging)
+        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas, match_at_s, is_converging, tw_at_s)
+        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas, match_at_s, is_converging, tw_at_s)
         coords      = [ [*c_plus, *c_min] for c_plus, c_min in zip(coords_plus, coords_min)]
     else:
-        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter, dr_sigmas, match_at_s, is_converging)
+        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter, dr_sigmas, match_at_s, is_converging,tw_at_s)
     pencil            = coords[0]
     p_pencil          = coords[1]
     transverse_norm   = coords[2]
@@ -166,7 +168,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                dr_sigmas, match_at_s, is_converging):
+                                dr_sigmas, match_at_s, is_converging,tw_at_s=None):
     coll = line[name]
 
     if side == '+':
@@ -196,7 +198,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
                         num_particles, plane=plane, absolute_cut=pencil_pos, line=line,
                         dr_sigmas=dr_sigmas, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                        at_element=name, side=side,match_at_s=match_at_s
+                        at_element=name, side=side,match_at_s=match_at_s, tw_at_s=tw_at_s
                        )
 
     # Other plane: generate gaussian distribution in normalized coordinates
