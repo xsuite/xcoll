@@ -6,13 +6,14 @@ homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
 authors = [
            "Frederik F. Van der Veken <frederik@cern.ch>",
+           "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
            "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
 ]
 readme = "README.md"
 license = "Apache 2.0"
-include = [ "LICENSE", "NOTICE" ]
+include = ["LICENSE", "NOTICE"]
 
 
 [tool.poetry.dependencies]

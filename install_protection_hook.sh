@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
