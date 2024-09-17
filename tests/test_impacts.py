@@ -106,7 +106,6 @@ def test_impacts_single_crystal(test_context):
     part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
     impacts_cry = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
-
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
