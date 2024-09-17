@@ -14,7 +14,7 @@ from subprocess import run, PIPE
 from ...beam_elements import FlukaCollimator
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
-from .paths import fluka_builder, fedb, linebuilder
+from .paths import fedb, linebuilder
 
 
 _header_start = "*  XCOLL START  **"
@@ -88,8 +88,8 @@ def _fluka_builder(elements, names):
     os.environ['FEDB_PATH'] = fedb.as_posix()
     os.environ['LB_PATH'] = linebuilder.as_posix()
 
-    sys.path.append(fluka_builder.as_posix())
-    file_path = fluka_builder / "FLUKA_builder.py"
+    sys.path.append((linebuilder / "src").as_posix())
+    file_path = linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
             import FLUKA_builder as fb
