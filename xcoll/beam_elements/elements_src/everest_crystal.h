@@ -236,7 +236,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     } else {
-                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
+                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length, 1)*1.e9;
                     }
                     // Temporary workaround to store the critical angle for use later
                     calculate_critical_angle(everest, part, cg, e0/1.e9);
