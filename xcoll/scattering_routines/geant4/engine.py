@@ -108,7 +108,7 @@ class Geant4Engine(xo.HybridClass):
             elements = [elements]
         elements = [el for el in elements if el.gap is not None and el.active]
         for el in elements:
-            side = 2 if el.side == -1 else el.side
+            side = 2 if el._side == -1 else el._side
             this.g4link.addCollimator(el.geant4_id, el.material, el.length,
                                       apertureLeft=el.jaw_L,
                                       apertureRight=-el.jaw_R,   # TODO: is this correct?
