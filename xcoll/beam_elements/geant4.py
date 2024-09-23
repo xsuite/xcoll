@@ -95,6 +95,7 @@ class Geant4Collimator(BaseCollimator):
             'c':    'AC150GPH',
             'cu':   'Cu',
             'mogr': 'MG6403Fc',
+            'mo': 'Mo',
             'cucd': 'CUDIAM75',
             'iner': 'INERM180'
         }
