@@ -113,8 +113,9 @@ class Geant4Collimator(BaseCollimator):
 
 
     def track(self, part):
-        part2 = part.copy()
-        super().track(part2)
+        if self._record_interactions > 0:
+            part2 = part.copy()
+            super().track(part2)
         track_in_python(self, part)
 
 
