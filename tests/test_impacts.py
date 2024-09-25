@@ -95,7 +95,12 @@ def test_impacts_single_collimator(test_context):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
-def test_impacts_single_crystal(test_context):
+@pytest.mark.parametrize("R, side", [
+                            [1, '+'],
+                            [2, '+'],
+                            [1, '-'],
+                            [2, '-']], ids=["R>0 side=+", "R<0 side=+", "R>0 side=-", "R<0 side=-"])
+def test_impacts_single_crystal(R, side, test_context):
     coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=149e-6,
                         width=0.002, height=0.05, side='+', lattice='strip', jaw=0.001, _context=test_context)
 
