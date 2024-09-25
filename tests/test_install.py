@@ -35,7 +35,7 @@ def test_install_single_existing_marker(beam, test_context):
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
     assert isinstance(line[name], xc.BlackAbsorber)
     tab = line.get_table()
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     assert xt.line._is_aperture(line[idx-1], line)
     assert xt.line._is_aperture(line[idx+1], line)
 
@@ -47,14 +47,14 @@ def test_install_single_existing_marker(beam, test_context):
     tab = line.get_table()
     existing_length = 0.12
     line[name].length += existing_length
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     while True:
         idx -= 1
         if tab.element_type[idx].startswith('Drift'):
             assert line[idx].length > existing_length/2
             line[idx].length -= existing_length/2
             break
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     while True:
         idx += 1
         if tab.element_type[idx].startswith('Drift'):
@@ -68,7 +68,7 @@ def test_install_single_existing_marker(beam, test_context):
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
     assert isinstance(line[name], xc.EverestCollimator)
     tab = line.get_table()
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     assert xt.line._is_aperture(line[idx-1], line)
     assert xt.line._is_aperture(line[idx+1], line)
 
@@ -84,7 +84,7 @@ def test_install_single_existing_marker(beam, test_context):
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
     assert isinstance(line[name], xc.EverestCrystal)
     tab = line.get_table()
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     assert xt.line._is_aperture(line[idx-1], line)
     assert xt.line._is_aperture(line[idx+1], line)
 
@@ -121,7 +121,7 @@ def test_install_single_no_marker(beam, test_context):
     assert np.isclose(line.get_s_position(name), 12.4)
     assert isinstance(line[name], xc.BlackAbsorber)
     tab = line.get_table()
-    idx = tab.mask[[name]][0]
+    idx = tab.rows.indices[[name]][0]
     assert xt.line._is_aperture(line[idx-1], line)
     assert isinstance(line[idx-1], xt.LimitEllipse)
     assert np.isclose(line[idx-1].a_squ, 0.16)
