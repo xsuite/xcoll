@@ -10,8 +10,11 @@ from contextlib import contextmanager
 import xobjects as xo
 import xtrack as xt
 
+from ..general import _pkg_root
 from .base import BaseCollimator
-from ..scattering_routines.geant4 import Geant4Engine, track
+from ..scattering_routines.geometry import XcollGeometry
+from ..scattering_routines.geant4 import Geant4Engine
+from ..scattering_routines.geant4 import track as track_in_python
 from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack_from_xcoll, \
                                             SixTrack_from_xcoll_crystal, Material, CrystalMaterial
 
@@ -24,7 +27,7 @@ def _new_id64(len=16):
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
         'geant4_id': xo.String,
-        '_material':  xo.String,
+        '_material': xo.String,
         '_tracking': xo.Int8
     }
 
@@ -34,11 +37,15 @@ class Geant4Collimator(BaseCollimator):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
+    _depends_on = [BaseCollimator, XcollGeometry, Geant4Engine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','geant4_collimator.h')
+    ]
+
     _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
-
-    _depends_on = [BaseCollimator, Geant4Engine]
 
     _allowed_fields_when_frozen = ['_tracking']
 
@@ -95,7 +102,7 @@ class Geant4Collimator(BaseCollimator):
             'c':    'AC150GPH',
             'cu':   'Cu',
             'mogr': 'MG6403Fc',
-            'mo': 'Mo',
+            'mo':   'Mo',
             'cucd': 'CUDIAM75',
             'iner': 'INERM180'
         }
@@ -106,7 +113,9 @@ class Geant4Collimator(BaseCollimator):
 
 
     def track(self, part):
-        track(self, part)
+        part2 = part.copy()
+        super().track(part2)
+        track_in_python(self, part)
 
 
     def __setattr__(self, name, value):
