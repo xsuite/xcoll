@@ -629,7 +629,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("When using `twiss`, need to provide the name as well.")
         else:
             tw_up   = twiss.rows[name]
-            tw_down = twiss.rows[twiss.mask[[name]]+1]
+            tw_down = twiss.rows[twiss.rows.indices[[name]]+1]
         if not np.isclose(tw_up.s[0] + self.length, tw_down.s[0]):
             raise ValueError(f"Downstream twiss not compatible with length {self.length}m.")
         self._optics = {
