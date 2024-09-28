@@ -10,7 +10,8 @@ from .blowup import BlowUp
 from .monitor import EmittanceMonitor
 
 block_classes = tuple(v for v in globals().values()
-                      if isinstance(v, type) and issubclass(v, BaseBlock) and v != BaseBlock)
+                      if isinstance(v, type) and issubclass(v, BaseBlock) and v != BaseBlock
+                      and v != BaseCollimator and v != BaseCrystal)
 # Includes crystals
 collimator_classes = tuple(v for v in globals().values()
                            if isinstance(v, type) and (issubclass(v, BaseCollimator) or issubclass(v, BaseCrystal))
@@ -18,7 +19,7 @@ collimator_classes = tuple(v for v in globals().values()
 crystal_classes = tuple(v for v in globals().values()
                         if isinstance(v, type) and issubclass(v, BaseCrystal) and v != BaseCrystal)
 
-element_classes = block_classes + collimator_classes + (BlowUp, EmittanceMonitor)
+element_classes = block_classes + (BlowUp, EmittanceMonitor)
 
 # These should not go into any of the classes lists
 from .k2 import _K2Collimator, _K2Crystal
