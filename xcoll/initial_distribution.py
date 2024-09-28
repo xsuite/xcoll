@@ -63,13 +63,13 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if is_converging:
         # pencil at front of jaw
         match_at_s = s_front
-        sigma = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{plane}'][0]
-        sigma_transv = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{transv_plane}'][0]
+        sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][0]
+        sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][0]
     else:
         # pencil at back of jaw
         match_at_s = s_back
-        sigma = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{plane}'][1]
-        sigma_transv = beam_sizes.rows[name:f'{name}%%1'][f'sigma_{transv_plane}'][1]
+        sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][1]
+        sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][1]
     dr_sigmas = pencil_spread/sigma
 
     # Generate 4D coordinates
@@ -159,7 +159,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
         twiss = line.twiss()
 
     beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-    beam_sizes = beam_sizes.rows[at_element:f'{at_element}%%1'][f'sigma_{plane}']
+    beam_sizes = beam_sizes.rows[at_element:f'{at_element}>>1'][f'sigma_{plane}']
     sigma = beam_sizes[0] if match_at_front else beam_sizes[1]
     delta  = (position_mm - betatron_cut*sigma - twiss.rows[at_element][plane])
     delta /= twiss.rows[at_element][f'd{plane}']
