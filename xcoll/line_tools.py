@@ -26,9 +26,9 @@ def get_optics_at(names, *, twiss=None, line=None):
         twiss = line.twiss()
     if not hasattr(names, '__iter__') and not isinstance(names, str):
         names = [names]
-    coll_entry_mask = twiss.mask[names]
-    tw_entry = twiss.rows[coll_entry_mask]
-    tw_exit = twiss.rows[coll_entry_mask+1]
+    coll_entry_indices = twiss.rows.indices[names]
+    tw_entry = twiss.rows[coll_entry_indices]
+    tw_exit = twiss.rows[coll_entry_indices+1]
     tw_exit.name = tw_entry.name
     return tw_entry, tw_exit
 

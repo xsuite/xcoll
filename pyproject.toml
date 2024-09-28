@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.5.2rc0"
+version = "0.5.3rc0"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
@@ -8,7 +8,7 @@ authors = [
            "Frederik F. Van der Veken <frederik@cern.ch>",
            "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
            "Bjorn Lindstrom",
-           " Andre Donadon Servelle",
+           "Andre Donadon Servelle",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
            "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
