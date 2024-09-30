@@ -61,6 +61,8 @@ class BlowUp(InvalidXcoll):
     @classmethod
     def install(cls, line, name, *, at_s=None, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, **kwargs):
         self = cls(**kwargs)
+        if name in line.element_names:
+            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
         line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
         self._name = name
         self._line = line
