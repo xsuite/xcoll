@@ -31,8 +31,8 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
         cg->side   = BlackCrystalData_get__side(el);
         cg->bending_radius = BlackCrystalData_get__bending_radius(el);
         cg->bending_angle  = BlackCrystalData_get__bending_angle(el);
-        cg->width  = BlackCrystalData_get_width(el);
-        cg->height = BlackCrystalData_get_height(el);
+        cg->width  = BlackCrystalData_get__width(el);
+        cg->height = BlackCrystalData_get__height(el);
         cg->jaw_U  = BlackCrystalData_get__jaw_U(el);
         cg->sin_z  = BlackCrystalData_get__sin_z(el);
         cg->cos_z  = BlackCrystalData_get__cos_z(el);

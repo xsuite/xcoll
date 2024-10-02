@@ -47,8 +47,8 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
         cg->bending_radius = R;
         cg->bending_angle  = t_R;
         cg->miscut_angle   = EverestCrystalData_get_miscut(el);
-        cg->width  = EverestCrystalData_get_width(el);
-        cg->height = EverestCrystalData_get_height(el);
+        cg->width  = EverestCrystalData_get__width(el);
+        cg->height = EverestCrystalData_get__height(el);
         cg->jaw_U  = EverestCrystalData_get__jaw_U(el);
         cg->sin_z  = EverestCrystalData_get__sin_z(el);
         cg->cos_z  = EverestCrystalData_get__cos_z(el);
@@ -187,6 +187,10 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestCrystal_init(el, part0, active);
     CrystalGeometry cg   = EverestCrystal_init_geometry(el, part0, active);
+
+    if (cg->width==0 || cg->height==0 || cg->bending_radius==0){
+        kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
+    }
 
     double t_c = 0;
 
