@@ -26,7 +26,8 @@ def _coll_dict(elements, names, dump=False):
 
     collimator_dict = {}
     for ee, name in zip(elements, names):
-        nsig = OPEN_GAP
+        # nsig = OPEN_GAP
+        nsig = 1
         if ee.side == 'left':
             if ee.jaw_L is None:
                 half_gap = OPEN_JAW
