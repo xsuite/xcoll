@@ -12,6 +12,8 @@ from ..general import _pkg_root
 import numpy as np
 import pandas as pd
 
+# TODO: accessor for underlying fields
+
 
 class InteractionRecord(xt.BeamElement):
     _xofields = {
@@ -57,15 +59,13 @@ class InteractionRecord(xt.BeamElement):
         _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
 
-
-    @classmethod
-    def start(cls, *, line=None, elements=None, names=None, record_impacts=None, record_exits=None,
-              record_scatterings=None, capacity=1e6, io_buffer=None, coll_ids=None):
-        elements, names = _get_xcoll_elements(line, elements, names)
-        if len(names) == 0:
-            return
+    def __init__(self, *, line=None, capacity=1e6, io_buffer=None, elements=None, names=None,
+                record_impacts=None, record_exits=None, record_scatterings=None, coll_ids=None,
+                **kwargs):
+        super().__init__(**kwargs)
+        self._record = None
+        self._line = line
         capacity = int(capacity)
-
         if getattr(line, 'tracker', None) is None \
         or getattr(line.tracker, 'io_buffer', None) is None:
             if io_buffer is None:
@@ -76,6 +76,17 @@ class InteractionRecord(xt.BeamElement):
             io_buffer = line.tracker.io_buffer
         if capacity > io_buffer.capacity:
             io_buffer.grow(capacity - io_buffer.capacity)
+        self._io_buffer = io_buffer
+        self._recording_elements = []
+        self._coll_ids = {}
+        self._set_record_flags(record_impacts=record_impacts, record_exits=record_exits,
+                               record_scatterings=record_scatterings)
+        if elements is not None or names is not None:
+            self.start(elements=elements, names=names, coll_ids=coll_ids)
+
+
+    def _set_record_flags(self, *, record_impacts=None, record_exits=None,
+                          record_scatterings=None):
         if record_impacts is None and record_scatterings is None:
             record_impacts = True
             record_scatterings = True
@@ -89,33 +100,47 @@ class InteractionRecord(xt.BeamElement):
         assert record_impacts is True or record_impacts is False
         assert record_exits is True or record_exits is False
         assert record_scatterings is True or record_scatterings is False
+        self._record_impacts = record_impacts
+        self._record_exits = record_exits
+        self._record_scatterings = record_scatterings
+
+
+    def start(self, *, elements=None, names=None, record_impacts=None, record_exits=None,
+              record_scatterings=None, coll_ids=None):
+        if elements is not None and self._line is not None:
+            raise ValueError("Cannot provide both line and elements! Uses names.")
+        elements, names = _get_xcoll_elements(self._line, elements, names)
+        if len(elements) == 0:
+            return
+        if record_impacts is not None or record_exits is not None \
+        or record_scatterings is not None:
+            self._set_record_flags(record_impacts=record_impacts, record_exits=record_exits,
+                                record_scatterings=record_scatterings)
         for el in elements:
             if not el.record_impacts and not el.record_exits and not el.record_scatterings:
                 el.record_impacts = record_impacts
                 el.record_exits = record_exits
                 el.record_scatterings = record_scatterings
-        record = xt.start_internal_logging(io_buffer=io_buffer, capacity=capacity, \
-                                           elements=elements)
-        record._line = line
-        record._io_buffer = io_buffer
-        recording_elements = names if len(names) > 0 else elements
-        record._recording_elements = recording_elements
+        self._record = xt.start_internal_logging(io_buffer=io_buffer, capacity=capacity, \
+                                                 elements=elements)
+        self._recording_elements = names if len(names) > 0 else elements
         if coll_ids is None:
             if line is None:
                 if len(names) > 0:
-                    record._coll_ids = {name: idx for idx, name in enumerate(names)}
+                    self._coll_ids = {name: idx for idx, name in enumerate(names)}
             else:
-                record._coll_ids = {name: line.element_names.index(name) for name in names}
+                self._coll_ids = {name: line.element_names.index(name) for name in names}
         else:
             assert len(coll_ids) == len(names)
-            record._coll_ids = {name: idx for name, idx in zip(names, coll_ids)}
-        if hasattr(record, '_coll_ids'):
-            record._coll_names = {vv: kk for kk, vv in record._coll_ids.items()}
-        return record
+            self._coll_ids = {name: idx for name, idx in zip(names, coll_ids)}
+        if hasattr(self, '_coll_ids'):
+            self._coll_names = {vv: kk for kk, vv in self._coll_ids.items()}
 
-    def stop(self, *, elements=False, names=False):
+    def stop(self, *, elements=None, names=None):
         self.assert_class_init()
-        elements, names = _get_xcoll_elements(self.line, elements, names)
+        if elements is not None and self._line is not None:
+            raise ValueError("Cannot provide both line and elements! Uses names.")
+        elements, names = _get_xcoll_elements(this._line, elements, names)
         if self.line is not None and self.line.tracker is not None:
             self.line.tracker._check_invalidated()
         xt.stop_internal_logging(elements=elements)
@@ -163,24 +188,24 @@ class InteractionRecord(xt.BeamElement):
         if hasattr(self, '_recording_elements'):
             return self._recording_elements
 
-    @recording_elements.setter
-    def recording_elements(self, val):
-        self.assert_class_init()
-        if val is None:
-            val = []
-        record_start = _get_xcoll_elements(self.line, val)
-        self.stop(set(self.recording_elements) - set(record_start))
-        elements = [self.line[name] for name in record_start]
-        for el in elements:  # TODO: this should be smarter
-            if not el.record_impacts and not el.record_scatterings:
-                el.record_impacts = True
-                el.record_scatterings = True
-        xt.start_internal_logging(io_buffer=self.io_buffer, capacity=self.capacity, \
-                                  record=self, elements=elements)
-        self._recording_elements = record_start
-        # Updating coll IDs: careful to correctly overwrite existing values
-        self._coll_ids.update({name: self.line.element_names.index(name) for name in record_start})
-        self._coll_names = {vv: kk for kk, vv in self._coll_ids.items()}
+    # @recording_elements.setter
+    # def recording_elements(self, val):
+    #     self.assert_class_init()
+    #     if val is None:
+    #         val = []
+    #     record_start = _get_xcoll_elements(self.line, val)
+    #     self.stop(set(self.recording_elements) - set(record_start))
+    #     elements = [self.line[name] for name in record_start]
+    #     for el in elements:  # TODO: this should be smarter
+    #         if not el.record_impacts and not el.record_scatterings:
+    #             el.record_impacts = True
+    #             el.record_scatterings = True
+    #     xt.start_internal_logging(io_buffer=self.io_buffer, capacity=self.capacity, \
+    #                               record=self, elements=elements)
+    #     self._recording_elements = record_start
+    #     # Updating coll IDs: careful to correctly overwrite existing values
+    #     self._coll_ids.update({name: self.line.element_names.index(name) for name in record_start})
+    #     self._coll_names = {vv: kk for kk, vv in self._coll_ids.items()}
 
     @property
     def interaction_type(self):
@@ -204,17 +229,17 @@ class InteractionRecord(xt.BeamElement):
         else:
             return self._coll_ids[element_name]
 
-    def to_pandas(self, frame=None):
+    def to_pandas(self, frame=None, force_collimator_column=False):
         if frame is None:
             frame = 'jaw'
         frame = frame.lower()
         if frame not in ['jaw', 'collimator', 'lab']:
             raise ValueError(f"Invalid frame {frame}. Must be 'jaw', 'collimator', or 'lab'!")
+        if frame != 'jaw':
+            raise NotImplementedError("Only 'jaw' frame implemented so far!")  # TODO
         n_rows = self._index.num_recorded
-        coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
-                coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
                 'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
                 **{
                     f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
@@ -222,6 +247,9 @@ class InteractionRecord(xt.BeamElement):
                     for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
                 }
             })
+        if len(self.recording_elements) > 1 or force_collimator_column:
+            coll_header = 'collimator' if hasattr(self, '_coll_names') else 'collimator_id'
+            df.insert(1, coll_header, [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]])
         return df
 
     # TODO: list of impacted collimators
@@ -254,7 +282,7 @@ class InteractionRecord(xt.BeamElement):
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
         idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'id_before'], sort=False)]
-        df_first = self.to_pandas(frame=frame).loc[idx_first]
+        df_first = self.to_pandas(frame=frame, force_collimator_column=True).loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
         to_drop = ['interaction_type',
                    *[col for col in df_first.columns if col.endswith('_after')]]
@@ -265,27 +293,19 @@ class InteractionRecord(xt.BeamElement):
 
 def _get_xcoll_elements(line=None, elements=None, names=None):
     from xcoll.beam_elements import block_classes
-    if names is not None and names is not False and \
-    (not hasattr(names, '__iter__') or isinstance(names, str)):
+    if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
         names = [names]
-    if elements is not None and elements is not False and \
-    (not hasattr(elements, '__iter__') or isinstance(elements, str)):
+    if elements is not None and (not hasattr(elements, '__iter__') or isinstance(elements, str)):
         elements = [elements]
     if line is None:
         if elements is None:
             raise ValueError("No line nor elements provided!")
     else:
-        if elements is not None and elements is not False:
-            raise ValueError("Cannot provide both line and elements!")
-        if names is None or names is True:
+        if names is None:
             elements, names = line.get_elements_of_type(block_classes)
             if len(names) == 0:
                 raise ValueError("No Xcoll elements in line!")
-        elif names is False:
-            names = []
-            elements = []
         else:
-            assert elements is not False
             for name in names:
                 if name not in line.element_names:
                     raise ValueError(f"Element {name} not found in line!")
