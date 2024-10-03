@@ -18,7 +18,7 @@ then
   exit 1
 fi
 
-for file in pyproject.toml version.sh LICENSE install_protection_hook.sh xcoll/general.py
+for file in pyproject.toml gh.py version.py make_release_branch.py LICENSE install_protection_hook.sh xcoll/general.py
 do
   git diff --name-only | grep '^'${file}'$' &> /dev/null
   if [ $? -eq 0 ]
