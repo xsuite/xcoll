@@ -56,6 +56,17 @@ def _run_git(cmds):
 def git_current_branch():
     return _run_git(["symbolic-ref", "--short", "HEAD"])
 
+def git_rename_current_branch(new_branch, set_upstream=False):
+    old_branch = git_current_branch()
+    if old_branch == 'main':
+        raise GitError("Cannot rename the main branch.")
+    out = _run_git(["branch", "-m", new_branch])
+    if out: print(out)
+    if set_upstream:
+        out = _run_git(["push", "origin", "--delete", old_branch])
+        if out: print(out)
+        git_push(set_upstream=True)
+
 def git_switch(branch, create=False):
     cc = ['-c'] if create else []
     out = _run_git(["switch", *cc, branch])
