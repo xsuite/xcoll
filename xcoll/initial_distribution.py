@@ -198,7 +198,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
                         num_particles, plane=plane, absolute_cut=pencil_pos, line=line,
                         dr_sigmas=dr_sigmas, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                        at_element=name, side=side,match_at_s=match_at_s, tw_at_s=tw_at_s
+                        at_element=name, side=side,match_at_s=match_at_s, tw=tw_at_s
                        )
 
     # Other plane: generate gaussian distribution in normalized coordinates
