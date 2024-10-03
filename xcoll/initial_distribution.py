@@ -63,13 +63,13 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         match_at_s = s_front
         sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][0]
         sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][0]
-        tw_at_s = line.twiss(at_s=match_at_s)
+        tw_at_s = tw.rows[name]
     else:
         # pencil at back of jaw
         match_at_s = s_back
         sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][1]
         sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][1]
-        tw_at_s = line.twiss(at_s=match_at_s) 
+        tw_at_s = tw.rows[f'{name}>>1']
     dr_sigmas = pencil_spread/sigma
 
     # Generate 4D coordinates
