@@ -1145,8 +1145,8 @@ class BaseCrystal(BaseBlock):
             length = self.length
             if self._side*self.bending_radius < 0:
                 # Correction for inner corner point
-                length -= self._*np.sin(abs(self._bending_angle))
-            shift = np.tan(self_._bending_angle/2)*self._cos_y + self._sin_y
+                length -= self.width*np.sin(abs(self._bending_angle))
+            shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
             return self._jaw_U + length*shift
 
     @jaw_D.setter   # This moves both jaw_LU and jaw_LD in parallel
