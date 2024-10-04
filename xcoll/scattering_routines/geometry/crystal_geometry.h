@@ -32,6 +32,7 @@ typedef struct CrystalGeometry_ {
     double t_VImax;
     // Segments
     Segment* segments;
+    Segment* segments_jf;  // Segments in jaw frame
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
@@ -47,7 +48,7 @@ typedef CrystalGeometry_* CrystalGeometry;
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
 int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry restrict cg){
-    double part_x, part_tan_x, part_y, part_tan_y;
+    double part_s = 0, part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
 
     // Crystal should be single-sided
@@ -68,9 +69,9 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
 #else
     part_tan_y = LocalParticle_get_yp(part);
 #endif
-    s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
+    s = crossing_drift_vlimit_first(cg->segments, 4, part_s, part_x, part_tan_x, part_y, part_tan_y, -cg->height/2, cg->height/2);
 
-    if (s < S_MAX){
+    if (s < XC_S_MAX){
         // Hit: Drift to the impact position, and move to jaw frame if relevant
 #ifdef XCOLL_USE_EXACT
         Drift_single_particle_exact(part, s);

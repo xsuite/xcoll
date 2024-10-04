@@ -63,6 +63,8 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
             cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, cg->jaw_U - cg->width, \
                                           cg->sin_y, cg->cos_y);
         }
+        // Jaw frame is always left-sided
+        cg->segments_jf = create_crystal(cg->bending_radius, cg->width, cg->length, 0, 0, 1);
         // Bend centre
         cg->s_B = 0;
         cg->x_B = cg->bending_radius;

@@ -1082,8 +1082,8 @@ class BaseCrystal(BaseBlock):
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
             else:
                 to_assign['bending_radius'] = kwargs.pop('bending_radius', 1)
-            to_assign['width'] = kwargs.pop('width', 0)
-            to_assign['height'] = kwargs.pop('height', 0)
+            to_assign['width'] = kwargs.pop('width', 1)
+            to_assign['height'] = kwargs.pop('height', 1)
 
         xt.BeamElement.__init__(self, **kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..

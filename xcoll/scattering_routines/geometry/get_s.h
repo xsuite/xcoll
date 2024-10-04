@@ -16,28 +16,31 @@
 // (hence no backscattering/backtracking is allowed)
 
 
+// Find the s-coordinate of the first crossing of a drift with a set of segments
 /*gpufun*/
-double get_s_of_first_crossing(double part_x, double part_tan, Segment* segments, \
-                               int8_t n_segments){
+double crossing_drift_first(Segment* segments, int8_t n_segments, \
+                            double part_s, double part_x, double part_tan){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
-    find_crossing(&n_hit, s, part_x, part_tan, segments, n_segments);
+    double* s = (double*) malloc(XC_DRIFT_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    crossing_drift(segments, n_segments, &n_hit, s, part_s, part_x, part_tan);
     if (n_hit==0){
         // No crossing
         free(s);
-        return S_MAX;
+        return XC_S_MAX;
     }
     double result = s[0];
     free(s);
     return result;
 }
 
+// Find the s-coordinate of the first crossing after a given s of a drift with a set of segments
 /*gpufun*/
-double get_s_of_crossing_after_s(double part_x, double part_tan, Segment* segments, \
-                                 int8_t n_segments, double current_s){
+double crossing_drift_after_s(Segment* segments, int8_t n_segments, \
+                              double part_s, double part_x, double part_tan, \
+                              double current_s){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
-    find_crossing(&n_hit, s, part_x, part_tan, segments, n_segments);
+    double* s = (double*) malloc(XC_DRIFT_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    crossing_drift(segments, n_segments, &n_hit, s, part_s, part_x, part_tan);
     for (int8_t i=0; i<n_hit; i++){
         if (s[i] >= current_s){
             double result = s[i];
@@ -47,35 +50,39 @@ double get_s_of_crossing_after_s(double part_x, double part_tan, Segment* segmen
     }
     // No crossing
     free(s);
-    return S_MAX;
+    return XC_S_MAX;
 }
 
+// Find the s-coordinate of the first crossing of a drift with a set of segments including a vertical restriction
 /*gpufun*/
-double get_s_of_first_crossing_with_vlimit(double part_x, double part_tan_x, \
-                                double part_y, double part_tan_y, Segment* segments, \
-                                int8_t n_segments, double y_min, double y_max){
+double crossing_drift_vlimit_first(Segment* segments, int8_t n_segments, \
+                                   double part_s, double part_x, double part_tan_x, \
+                                   double part_y, double part_tan_y, \
+                                   double y_min, double y_max){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
-    find_crossing_with_vlimit(&n_hit, s, part_x, part_tan_x, part_y, part_tan_y, \
-                              segments, n_segments, y_min, y_max);
+    double* s = (double*) malloc(XC_DRIFT_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    crossing_drift_vlimit(segments, n_segments, &n_hit, s, part_s, part_x, part_tan_x, \
+                          part_y, part_tan_y, y_min, y_max);
     if (n_hit==0){
         // No crossing
         free(s);
-        return S_MAX;
+        return XC_S_MAX;
     }
     double result = s[0];
     free(s);
     return result;
 }
 
+// Find the s-coordinate of the first crossing after a given s of a drift with a set of segments including a vertical restriction
 /*gpufun*/
-double get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
-                                double part_y, double part_tan_y, Segment* segments, \
-                                int8_t n_segments, double y_min, double y_max, double current_s){
+double crossing_drift_vlimit_after_s(Segment* segments, int8_t n_segments, \
+                                     double part_s, double part_x, double part_tan_x, \
+                                     double part_y, double part_tan_y, \
+                                     double y_min, double y_max, double current_s){
     int8_t n_hit = 0;
-    double* s = (double*) malloc(XC_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
-    find_crossing_with_vlimit(&n_hit, s, part_x, part_tan_x, part_y, part_tan_y, \
-                              segments, n_segments, y_min, y_max);
+    double* s = (double*) malloc(XC_DRIFT_MAX_CROSS_PER_SEGMENT*n_segments*sizeof(double));
+    crossing_drift_vlimit(segments, n_segments, &n_hit, s, part_s, part_x, part_tan_x, \
+                          part_y, part_tan_y, y_min, y_max);
     for (int8_t i=0; i<n_hit; i++){
         if (s[i] >= current_s){
             double result = s[i];
@@ -85,7 +92,7 @@ double get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
     }
     // No crossing
     free(s);
-    return S_MAX;
+    return XC_S_MAX;
 }
 
 

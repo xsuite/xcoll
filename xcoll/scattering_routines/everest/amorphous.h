@@ -121,10 +121,15 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
     // -----------------------------------------------
     // Calculate longitudinal position where we go out
     // -----------------------------------------------
-    // Assumption: crystal bends away from beam (this does not work when crystal bends towards beam)
-    // All s are absolute in the collimator frame
-    // TODO: we are not checking vertical position; we might exit from the top or bottom
     // TODO: rewrite better readable, and use general output function
+    // TODO: check for all R and side
+    // double s  = LocalParticle_get_s(part);
+    // double x  = LocalParticle_get_x(part);
+    // double xp = LocalParticle_get_xp(part);
+    // double s_exit = get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
+    //                             double part_y, double part_tan_y, Segment* segments, \
+    //                             int8_t n_segments, double y_min, double y_max, double current_s
+    // s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
     double R = cg->bending_radius;
     double d = cg->width;
     double sB = cg->s_B;

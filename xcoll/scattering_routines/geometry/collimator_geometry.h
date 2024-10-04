@@ -45,7 +45,7 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
 int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry restrict cg){
-    double part_x, part_tan;
+    double part_s = 0, part_x, part_tan;
     int8_t is_hit = 0;
     double s_L = 1.e21;
     double s_R = 1.e21;
@@ -59,8 +59,8 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 #else
         part_tan = LocalParticle_get_xp(part);
 #endif
-        s_L = get_s_of_first_crossing(part_x, part_tan, cg->segments_L, 3);
-        if (s_L < S_MAX){
+        s_L = crossing_drift_first(cg->segments_L, 3, part_s, part_x, part_tan);
+        if (s_L < XC_S_MAX){
             is_hit = 1;
         } else if (cg->side == 1){
             // If left-sided and no hit, rotate back to lab frame
@@ -89,8 +89,8 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 #else
         part_tan = LocalParticle_get_xp(part);
 #endif
-        s_R = get_s_of_first_crossing(part_x, part_tan, cg->segments_R, 3);
-        if (s_R < S_MAX && s_R < s_L){
+        s_R = crossing_drift_first(cg->segments_R, 3, part_s, part_x, part_tan);
+        if (s_R < XC_S_MAX && s_R < s_L){
             is_hit = -1;
         } else if (is_hit == 1){
             if (!cg->jaws_parallel){
