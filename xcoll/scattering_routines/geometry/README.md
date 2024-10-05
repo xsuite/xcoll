@@ -1,6 +1,7 @@
 # Developer Notes on Xcoll Geometry
 
 The geometry code is meant to be as independent as possible, as to allow a flexible way to define new geometries.
+It is built around `Segment`s with functions that return the `s` location(s) where a certain trajectory (nominally a drift) crosses a (collection of) `Segment`s. While the latter can be defined parametrically (e.g. a perpendicular line segment can exist), each trajectory should be a well-defined function of `s` which return `x` (perpendicular trajectories are not allowed).
 
 ## Files
 
@@ -61,10 +62,14 @@ To define a new type of segment, one has to:
 2. Define a constructor function (in segments.h)
 3. For each trajectory type, define a crossing function for that segment and update the general function `crossing_...` (in crossing_....h). Roots with multiplicity should be added a number of times equal to the multiplicity (this is because the algorithm will count IN/OUT trajectories based on the ordered roots)
 4. For each trajectory type, adapt `max_array_size_..` to give the maximum number of crossings that can occur (in crossing_....h)
+5. Add tests for this new segment
 
 
 ## Defining new objects
-To define a new type of object, one only needs to define the `create_` and `destroy_` functions in objects.h. Additionally, it might be useful to define an API to link it to Xsuite as done in collimator_geometry.h.
+To define a new type of object, one has to:
+1. Define the `create_` and `destroy_` functions in objects.h
+2. It might be useful to define an API to link it to Xsuite as done in collimator_geometry.h
+3. Add tests for this new object (and potentially for its API)
 
 
 ## Defining new trajectory types
@@ -72,3 +77,4 @@ To define a new type of trajectory (e.g. multiple coulomb scattering), one has t
 1. Create a new file crossing_trajectoryname.h and add it to geometry.h
 2. For all segments, define the crossing functions and the general `crossing_trajectoryname`,`crossing_trajectoryname_vlimit`, and `max_array_trajectoryname_drift` (as done in crossing_drift.h)
 3. Add the four `s` functions (`crossing_trajectoryname_first`, `crossing_trajectoryname_vlimit_first`, `crossing_trajectoryname_after_s`, `crossing_trajectoryname_vlimit_after_s`) in get_s.h
+4. Add tests for this new trajectory

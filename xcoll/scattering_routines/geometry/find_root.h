@@ -12,11 +12,13 @@
 
 
 // Function to compute the value of the cubic equation at t
+/*gpufun*/
 double _bezier_cubic(double t, double a, double b, double c, double d) {
     return a*t*t*t + b*t*t + c*t + d;
 }
 
 // Derivative of the cubic function
+/*gpufun*/
 double _bezier_cubic_prime(double t, double a, double b, double c) {
     return 3*a*t*t + 2*b*t + c;
 }
@@ -28,6 +30,7 @@ double _bezier_cubic_prime(double t, double a, double b, double c) {
 // TODO: Need a catch for undefined values (e.g. when derivative has a 1/x).
 //       Similarily, the iteration can send itself beyond the valid domain
 //       Example: f(x) = ln x  => x_(n+1) = xn(1- ln xn). If one starts at x >= e, it will get NaN
+/*gpufun*/
 double newton_method(double a, double b, double c, double d, double initial_guess, int *status) {
     double t = initial_guess;
     double t_new;
@@ -62,6 +65,7 @@ double newton_method(double a, double b, double c, double d, double initial_gues
 }
 
 // Bisection method to find root in an interval [t1, t2]
+/*gpufun*/
 double bisection_method(double a, double b, double c, double d, double t1, double t2) {
     double mid;
 

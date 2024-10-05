@@ -25,12 +25,12 @@ void _crossing_drift_line(int8_t* n_hit, double* s, double s1, double s2, double
     double trajectory2 = x2 - part_x - (s2 - part_s)*part_tan;
     if (trajectory1*trajectory2 <= 0){
         // It's a crossing
-        if (fabs(s2 - s1) < 1.e-12){
+        if (fabs(s2 - s1) < XC_EPSILON){
             s[*n_hit] = s1;
             (*n_hit)++;
         } else {
             double poly_tan = (x2 - x1)/(s2 - s1);
-            if (fabs(poly_tan - part_tan) < 1.e-12){
+            if (fabs(poly_tan - part_tan) < XC_EPSILON){
                 // The trajectory is parallel to the segment.
                 // TODO: this is situational; we should return s1 if get_s_first and current_s if after current_s
                 s[*n_hit] = s1;
@@ -65,7 +65,7 @@ void crossing_drift_halfopenline(void* segment, int8_t* n_hit, double* s, double
     // In practice we just add a polygon point at the wall overflow (at 1000km for the x-coordinate).
     double x2 = 1.e6*seg->sign;
     double s2;
-    if (fabs(seg->inv_slope) < 1.e-12){
+    if (fabs(seg->inv_slope) < XC_EPSILON){
         s2 = s1;
     } else {
         s2 = s1 - (x2 - x1)*seg->inv_slope;
@@ -95,23 +95,25 @@ void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double par
     double bb = sC - part_tan*(part_x - xC - part_tan*part_s); // This is -b/2 with b from the quadratic formula
     double c = sC*sC + (part_x - xC - part_tan*part_s)*(part_x - xC - part_tan*part_s) - R*R;
     double disc = bb*bb - a*c; // This is  2*discriminant**2
-    if (disc >= 0){
-        for (int8_t i = 0; i < 2; i++) {
-            double sgnD = i*2-1; // negative and positive solutions
-            double new_s = 1/a*(bb + sgnD*sqrt(disc));
-            double new_x = part_x + (new_s - part_s)*part_tan;
-            double t = atan2(new_x - xC, new_s - sC);
-            if (reversed){
-                // t2 < t1, so we are looking at the inverted region of angles
-                if (t1 >= t || t >= t2){
-                    s[*n_hit] = new_s;
-                    (*n_hit)++;
-                }
-            } else {
-                if (t1 <= t && t <= t2){
-                    s[*n_hit] = new_s;
-                    (*n_hit)++;
-                }
+    if (disc < 0){
+        // No crossing
+        return;
+    }
+    for (int8_t i = 0; i < 2; i++) {
+        double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
+        double new_s = (bb + sgnD*sqrt(fabs(disc))/a;
+        double new_x = part_x + (new_s - part_s)*part_tan;
+        double t = atan2(new_x - xC, new_s - sC);
+        if (reversed){
+            // t2 < t1, so we are looking at the inverted region of angles
+            if (t1 >= t || t >= t2){
+                s[*n_hit] = new_s;
+                (*n_hit)++;
+            }
+        } else {
+            if (t1 <= t && t <= t2){
+                s[*n_hit] = new_s;
+                (*n_hit)++;
             }
         }
     }
@@ -120,6 +122,19 @@ void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double par
 
 // Bézier Segment
 // --------------
+
+/*gpufun*/
+double _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
+    double s1 = seg->point1_s;
+    double cs1 = seg->control_point1_s;
+    double s2 = seg->point2_s;
+    double cs2 = seg->control_point2_s;
+    double new_s = (1-t)*(1-t)*(1-t)*s1 + 3*(1-t)*(1-t)*t*cs1 + 3*(1-t)*t*t*cs2 + t*t*t*s2;
+    for (int8_t i = 0; i < multiplicity; i++) {
+        s[*n_hit] = new_s;
+        (*n_hit)++;
+    }
+}
 
 /*gpufun*/
 void crossing_drift_bezier(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
@@ -133,23 +148,100 @@ void crossing_drift_bezier(void* segment, int8_t* n_hit, double* s, double part_
     double x2 = seg->point2_x;
     double cs2 = seg->control_point2_s;
     double cx2 = seg->control_point2_x;
-    // The Bézier curve is defined by the parametric equations
+    // The Bézier curve is defined by the parametric equations (with t in [0, 1]):
     // s(t) = (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2
     // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
     double s0 = part_s;
     double x0 = part_x;
     double m = part_tan;
     // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
-    // The solutions for t (which we get by Newton's method) are valid if in [0, 1]
+    // The solutions for t (which we get by Cardano's method) are valid if in [0, 1]
     double a = (m*s1 - x1) - (m*s2 - x2) - 3*(m*cs1 - cx1) + 3*(m*cs2 - cx2);
     double b = 6*(m*cs1 - cx1) - 3*(m*cs2 - cx2) - 3*(m*s1 - x1);
     double c = 3*(m*s1 - x1) - 3*(m*cs1 - cx1);
     double d = (m*s0 - x0) - (m*s1 - x1);
-    double disc = 18*a*b*c*d - 4*b*b*b*d + b*b*c*c - 4*a*c*c*c - 27*a*a*d*d;
-
-
-cbrt(x)
-
+    double t;
+    // Edge cases
+    if (fabs(a) < XC_EPSILON){
+        if (fabs(b) < XC_EPSILON){
+            if (fabs(c) < XC_EPSILON){
+                if (fabs(d) < XC_EPSILON){
+                    // The trajectory is on the Bézier curve
+                    // TODO: This cannot happen because we don't have a cubic trajectory.
+                    //       Adapt if these ever would be implemented.
+                    return;
+                } else {
+                    // No solutions
+                    return;
+                }
+            } else {
+                // This is a linear equation
+                t = -d/c;
+                if (0 <= t && t <= 1){
+                    _hit_s_bezier(seg, t, 1, n_hit, s);
+                }
+            }
+        } else {
+            // This is a quadratic equation
+            double disc = c*c - 4*b*d;
+            if (disc < 0){
+                // No solutions
+                return;
+            }
+            for (int8_t i = 0; i < 2; i++) {
+                double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
+                t = (-c + sgnD*sqrt(fabs(disc)))/(2*b);
+                if (0 <= t && t <= 1){
+                    _hit_s_bezier(seg, t, 1, n_hit, s);
+                }
+            }
+        }
+    } else {
+        // Full cubic equation. Coefficients for the depressed cubic t^3 + p*t + q = 0:
+        double p = (3*a*c - b*b)/(3*a*a);
+        double q = (2*b*b*b - 9*a*b*c + 27*a*a*d)/(27*a*a*a);
+        double disc = -p*p*p/27 - q*q/4;  // This is the discriminant of the depressed cubic but divided by (4*27)
+        if (fabs(disc) < XC_EPSILON){
+            if (fabs(p) < XC_EPSILON){
+                // One real root with multiplicity 3
+                t = -b/(3*a);
+                if (0 <= t && t <= 1){
+                    _hit_s_bezier(seg, t, 3, n_hit, s);
+                }
+            } else {
+                // Two real roots (one simple and one with multiplicity 2)
+                t = 3*q/p - b/(3*a);
+                if (0 <= t && t <= 1){
+                    _hit_s_bezier(seg, t, 1, n_hit, s);
+                }
+                t = -3*q/(2*p) - b/(3*a);
+                if (0 <= t && t <= 1){
+                    _hit_s_bezier(seg, t, 2, n_hit, s);
+                }
+            }
+        } else if (disc < 0){
+            // One real root
+            t = cbrt(-q/2 + sqrt(fabs(disc))) + cbrt(-q/2 - sqrt(fabs(disc))) - b/(3*a);
+            if (0 <= t && t <= 1){
+                _hit_s_bezier(seg, t, 1, n_hit, s);
+            }
+        } else {
+            // Three real roots
+            double phi = acos(3*q/(2*p)*sqrt(fabs(3/p)));
+            t = 2*sqrt(fabs(p/3))*cos(phi/3) - b/(3*a);
+            if (0 <= t && t <= 1){
+                _hit_s_bezier(seg, t, 1, n_hit, s);
+            }
+            t = 2*sqrt(fabs(p/3))*cos((phi + 2*M_PI)/3) - b/(3*a);
+            if (0 <= t && t <= 1){
+                _hit_s_bezier(seg, t, 1, n_hit, s);
+            }
+            t = 2*sqrt(fabs(p/3))*cos((phi + 4*M_PI)/3) - b/(3*a);
+            if (0 <= t && t <= 1){
+                _hit_s_bezier(seg, t, 1, n_hit, s);
+            }
+        }
+    }
 }
 
 
@@ -179,7 +271,7 @@ void crossing_drift_vlimit(Segment* segments, int8_t n_segments, int8_t* n_hit, 
                            double part_s, double part_x, double part_tan_x, \
                            double part_y, double part_tan_y, \
                            double y_min, double y_max){
-    if (fabs(part_tan_y) < 1.e-12){
+    if (fabs(part_tan_y) < XC_EPSILON){
         // Trajectory parallel to s axis
         if (part_y < y_min || part_y > y_max){
             // No crossing

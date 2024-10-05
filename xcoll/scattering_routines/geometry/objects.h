@@ -98,7 +98,7 @@ Segment* create_crystal(double R, double width, double length, double jaw_U, dou
     double R_short  = sgnR*(fabs(R) - width);
     double sin_a = length/fabs(R);
     double cos_a = sqrt(1 - length*length/R/R);
-    if (fabs(R) < 1.e-12){
+    if (fabs(R) < XC_EPSILON){
         // straight crystal - not yet implemented 
         printf("Straight crystal not yet implemented!"); //only_for_context cpu_serial
         fflush(stdout);                 //only_for_context cpu_serial

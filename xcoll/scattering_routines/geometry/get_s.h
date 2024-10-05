@@ -7,12 +7,8 @@
 #define XCOLL_GEOM_GET_S_H
 
 
-// IMPORTANT:
-// These functions assume that the particle moves towards positive s!
-// (hence no backscattering/backtracking is allowed)
-
-
 // Find the s-coordinate of the first crossing of a drift with a set of segments
+// Here, first means the smallest s-coordinate (needs to be adapted for back-scattering)
 /*gpufun*/
 double crossing_drift_first(Segment* segments, int8_t n_segments, \
                             double part_s, double part_x, double part_tan){
