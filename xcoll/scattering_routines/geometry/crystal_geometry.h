@@ -5,8 +5,6 @@
 
 #ifndef XCOLL_CRY_GEOM_H
 #define XCOLL_CRY_GEOM_H
-#include <math.h>
-#include <stdio.h>
 
 typedef struct CrystalGeometry_ {
     // Crystal inner upstream corner (with tilt)

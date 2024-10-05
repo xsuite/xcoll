@@ -5,8 +5,6 @@
 
 #ifndef XCOLL_GEOM_ROT_H
 #define XCOLL_GEOM_ROT_H
-#include <math.h>
-#include <stdio.h>
 
 
 /*gpufun*/

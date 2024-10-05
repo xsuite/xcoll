@@ -5,10 +5,6 @@
 
 #ifndef XCOLL_GEOM_METHODS_H
 #define XCOLL_GEOM_METHODS_H
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 #define XC_S_MAX 1.e21
 

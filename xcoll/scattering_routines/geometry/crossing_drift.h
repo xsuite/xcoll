@@ -5,13 +5,6 @@
 
 #ifndef XCOLL_GEOM_CROSSING_DRIFT_H
 #define XCOLL_GEOM_CROSSING_DRIFT_H
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-
-#define XC_DRIFT_MAX_CROSS_PER_SEGMENT 2  // Update if new segment type allows more crossings
 
 
 // All segments have a function that calculates the s-coordinate of the crossing(s) with a
@@ -38,10 +31,9 @@ void _crossing_drift_line(int8_t* n_hit, double* s, double s1, double s2, double
         } else {
             double poly_tan = (x2 - x1)/(s2 - s1);
             if (fabs(poly_tan - part_tan) < 1.e-12){
-                // The only case where we have two hits is when the trajectory is parallel to the segment
+                // The trajectory is parallel to the segment.
+                // TODO: this is situational; we should return s1 if get_s_first and current_s if after current_s
                 s[*n_hit] = s1;
-                (*n_hit)++;
-                s[*n_hit] = s2;
                 (*n_hit)++;
             } else {
                 // Normal crossing of two lines
@@ -89,11 +81,11 @@ void crossing_drift_halfopenline(void* segment, int8_t* n_hit, double* s, double
 void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
     // Get segment data
     CircularSegment seg = (CircularSegment) segment;
-    double R   = seg->R;
+    double R = seg->R;
     double sC = seg->centre_s;
     double xC = seg->centre_x;
-    double t1  = seg->point1_angle;
-    double t2  = seg->point2_angle;
+    double t1 = seg->point1_angle;
+    double t2 = seg->point2_angle;
     // Calculate crossings
     int8_t reversed = 0;
     if (t2 < t1){
@@ -126,6 +118,41 @@ void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double par
 }
 
 
+// Bézier Segment
+// --------------
+
+/*gpufun*/
+void crossing_drift_bezier(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
+    // Get segment data
+    BezierSegment seg = (BezierSegment) segment;
+    double s1 = seg->point1_s;
+    double x1 = seg->point1_x;
+    double cs1 = seg->control_point1_s;
+    double cx1 = seg->control_point1_x;
+    double s2 = seg->point2_s;
+    double x2 = seg->point2_x;
+    double cs2 = seg->control_point2_s;
+    double cx2 = seg->control_point2_x;
+    // The Bézier curve is defined by the parametric equations
+    // s(t) = (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2
+    // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
+    double s0 = part_s;
+    double x0 = part_x;
+    double m = part_tan;
+    // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
+    // The solutions for t (which we get by Newton's method) are valid if in [0, 1]
+    double a = (m*s1 - x1) - (m*s2 - x2) - 3*(m*cs1 - cx1) + 3*(m*cs2 - cx2);
+    double b = 6*(m*cs1 - cx1) - 3*(m*cs2 - cx2) - 3*(m*s1 - x1);
+    double c = 3*(m*s1 - x1) - 3*(m*cs1 - cx1);
+    double d = (m*s0 - x0) - (m*s1 - x1);
+    double disc = 18*a*b*c*d - 4*b*b*b*d + b*b*c*c - 4*a*c*c*c - 27*a*a*d*d;
+
+
+cbrt(x)
+
+}
+
+
 // Array of segments
 // -----------------
 
@@ -140,6 +167,8 @@ void crossing_drift(Segment* segments, int8_t n_segments, int8_t* n_hit, double*
             crossing_drift_halfopenline(segments[i], n_hit, s, part_s, part_x, part_tan);
         } else if (id == XC_CIRCULARSEGMENT_ID){
             crossing_drift_circular(segments[i], n_hit, s, part_s, part_x, part_tan);
+        } else if (id == XC_BEZIERSEGMENT_ID){
+            crossing_drift_bezier(segments[i], n_hit, s, part_s, part_x, part_tan);
         } // TODO: else throw fatal error
     }
     sort_array_of_double(s, (int64_t) *n_hit);
@@ -170,6 +199,24 @@ void crossing_drift_vlimit(Segment* segments, int8_t n_segments, int8_t* n_hit, 
         calculate_overlap_array_interval(s, n_hit, restrict_s);
         free(restrict_s);
     }
+}
+
+/*gpufun*/
+int max_array_size_drift(Segment* segments, int8_t n_segments){
+    int size = 0;
+    for (int8_t i=0; i<n_segments;i++) {
+        int id = segments[i]->id;
+        if (id == XC_LINESEGMENT_ID){
+            size += 1;
+        } else if (id == XC_HALFOPENLINESEGMENT_ID){
+            size += 1;
+        } else if (id == XC_CIRCULARSEGMENT_ID){
+            size += 2;
+        } else if (id == XC_BEZIERSEGMENT_ID){
+            size += 3;
+        } // TODO: else throw fatal error
+    }
+    return size;
 }
 
 #endif /* XCOLL_GEOM_CROSSING_DRIFT_H */

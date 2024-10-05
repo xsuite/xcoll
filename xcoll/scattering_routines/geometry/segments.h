@@ -101,4 +101,39 @@ CircularSegment create_circular_segment(double R, double centre_s, double centre
 }
 
 
+// Bézier segment, defined by a start and end point P1 and P2, and two control points that define the curve
+// --------------------------------------------------------------------------------------------------------
+
+#define XC_BEZIERSEGMENT_ID 3
+typedef struct BezierSegment_ {
+    int id;
+    double point1_s;
+    double point1_x;
+    double control_point1_s;
+    double control_point1_x;
+    double point2_s;
+    double point2_x;
+    double control_point2_s;
+    double control_point2_x;
+} BezierSegment_;
+typedef BezierSegment_* BezierSegment;
+
+/*gpufun*/
+BezierSegment create_bezier_segment(double point1_s, double point1_x, double control_point1_s, \
+                                    double control_point1_x, double point2_s, double point2_x, \
+                                    double control_point2_s, double control_point2_x){
+    BezierSegment seg = (BezierSegment) malloc(sizeof(BezierSegment_));
+    seg->id = XC_BEZIERSEGMENT_ID;
+    seg->point1_s = point1_s;
+    seg->point1_x = point1_x;
+    seg->control_point1_s = control_point1_s;
+    seg->control_point1_x = control_point1_x;
+    seg->point2_s = point2_s;
+    seg->point2_x = point2_x;
+    seg->control_point2_s = control_point2_s;
+    seg->control_point2_x = control_point2_x;
+    return seg;
+}
+
+
 #endif /* XCOLL_GEOM_SEGMENTS_H */

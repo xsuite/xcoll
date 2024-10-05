@@ -5,10 +5,6 @@
 
 #ifndef XCOLL_GEOM_OBJECTS_H
 #define XCOLL_GEOM_OBJECTS_H
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 
 // Assumption for all objects: the particle at -inf is outside the object (otherwise some comparisons might give wrong results)

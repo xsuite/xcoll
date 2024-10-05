@@ -10,6 +10,10 @@ A basic low-level fast implementation to sort arrays of ints or floats.
 **methods.h:**
 A collection of useful functions. Currently there is only one: to calculate the overlap between two intervals.
 
+**find_root.h:**
+First steps towards a smart implementation of a root finder.
+Not yet used.
+
 **segments.h:**
 The segment definitions, as polymorphous variants of the `Segment` parent struct.
 Currently there are a `LineSegment`, a `HalfOpenLineSegment`, and a `CircularArcSegment`.
@@ -48,14 +52,15 @@ API to simplify the integration with collimators in Xsuite: a struct to pass the
 The same but for crystals.
 
 **geometry.py**:
-An Xobject that contains all C dependencies.
+An Xobject that contains all C dependencies, such that `BeamElements` can be dependent on them and automatically get the C code.
 
 
 ## Defining new segments
 To define a new type of segment, one has to:
-1. Create the struct definition and ID macro (in segments.h)
+1. Create the struct definition and ID macro - make sure the ID is unique (in segments.h)
 2. Define a constructor function (in segments.h)
-3. For each trajectory type, define a crossing function for that segment and update the general functions `crossing_...` and `crossing_..._vlimit`, and update `XC_..._MAX_CROSS_PER_SEGMENT` if needed (currently only in crossing_drift.h)
+3. For each trajectory type, define a crossing function for that segment and update the general function `crossing_...` (in crossing_....h). Roots with multiplicity should be added a number of times equal to the multiplicity (this is because the algorithm will count IN/OUT trajectories based on the ordered roots)
+4. For each trajectory type, adapt `max_array_size_..` to give the maximum number of crossings that can occur (in crossing_....h)
 
 
 ## Defining new objects
@@ -65,5 +70,5 @@ To define a new type of object, one only needs to define the `create_` and `dest
 ## Defining new trajectory types
 To define a new type of trajectory (e.g. multiple coulomb scattering), one has to:
 1. Create a new file crossing_trajectoryname.h and add it to geometry.h
-2. Define crossing functions for all segments and general `crossing_trajectoryname` and `crossing_trajectoryname_vlimit` (as done in crossing_drift.h)
+2. For all segments, define the crossing functions and the general `crossing_trajectoryname`,`crossing_trajectoryname_vlimit`, and `max_array_trajectoryname_drift` (as done in crossing_drift.h)
 3. Add the four `s` functions (`crossing_trajectoryname_first`, `crossing_trajectoryname_vlimit_first`, `crossing_trajectoryname_after_s`, `crossing_trajectoryname_vlimit_after_s`) in get_s.h

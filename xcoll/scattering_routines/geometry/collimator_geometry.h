@@ -5,8 +5,6 @@
 
 #ifndef XCOLL_COLL_GEOM_H
 #define XCOLL_COLL_GEOM_H
-#include <math.h>
-#include <stdio.h>
 
 typedef struct CollimatorGeometry_ {
     // Collimator jaws (with tilts)
