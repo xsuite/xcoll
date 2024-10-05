@@ -53,9 +53,9 @@ void _crossing_drift_line(int8_t* n_hit, double* s, double s1, double s2, double
 }
 
 /*gpufun*/
-void crossing_drift_line(void* self, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
+void crossing_drift_line(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
     // Get segment data
-    LineSegment seg = (LineSegment) self;
+    LineSegment seg = (LineSegment) segment;
     double s1 = seg->point1_s;
     double s2 = seg->point2_s;
     double x1 = seg->point1_x;
@@ -64,9 +64,9 @@ void crossing_drift_line(void* self, int8_t* n_hit, double* s, double part_s, do
 }
 
 /*gpufun*/
-void crossing_drift_halfopenline(void* self, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
+void crossing_drift_halfopenline(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
     // Get segment data
-    HalfOpenLineSegment seg = (HalfOpenLineSegment) self;
+    HalfOpenLineSegment seg = (HalfOpenLineSegment) segment;
     double s1 = seg->point_s;
     double x1 = seg->point_x;
     // A half-open segment implies one of its points lies at +-inf.
@@ -86,9 +86,9 @@ void crossing_drift_halfopenline(void* self, int8_t* n_hit, double* s, double pa
 // ----------------
 
 /*gpufun*/
-void crossing_drift_circular(void* self, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
+void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double part_s, double part_x, double part_tan){
     // Get segment data
-    CircularSegment seg = (CircularSegment) self;
+    CircularSegment seg = (CircularSegment) segment;
     double R   = seg->R;
     double sC = seg->centre_s;
     double xC = seg->centre_x;
