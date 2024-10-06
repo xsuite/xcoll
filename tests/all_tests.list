@@ -74,22 +74,22 @@ tests/test_everest.py::test_angles_b2
 tests/test_everest.py::test_lengths_b1
 tests/test_everest.py::test_lengths_b2
 tests/test_everest.py::test_crystals
-tests/test_geometry.py::test_jaw
+tests/test_geometry.py::test_jaw_first
 tests/test_geometry.py::test_jaw_after_s
-tests/test_geometry.py::test_jaw_with_vlimit
-tests/test_geometry.py::test_jaw_after_s_with_vlimit
-tests/test_geometry.py::test_polygon
+tests/test_geometry.py::test_jaw_vlimit_first
+tests/test_geometry.py::test_jaw_vlimit_after_s
+tests/test_geometry.py::test_polygon_first
 tests/test_geometry.py::test_polygon_after_s
-tests/test_geometry.py::test_polygon_with_vlimit
-tests/test_geometry.py::test_polygon_after_s_with_vlimit
-tests/test_geometry.py::test_open_polygon
+tests/test_geometry.py::test_polygon_vlimit_first
+tests/test_geometry.py::test_polygon_vlimit_after_s
+tests/test_geometry.py::test_open_polygon_first
 tests/test_geometry.py::test_open_polygon_after_s
-tests/test_geometry.py::test_open_polygon_with_vlimit
-tests/test_geometry.py::test_open_polygon_after_s_with_vlimit
-tests/test_geometry.py::test_crystal
+tests/test_geometry.py::test_open_polygon_vlimit_first
+tests/test_geometry.py::test_open_polygon_vlimit_after_s
+tests/test_geometry.py::test_crystal_first
 tests/test_geometry.py::test_crystal_after_s
-tests/test_geometry.py::test_crystal_with_vlimit
-tests/test_geometry.py::test_crystal_after_s_with_vlimit
+tests/test_geometry.py::test_crystal_vlimit_first
+tests/test_geometry.py::test_crystal_vlimit_after_s
 tests/test_impacts.py::test_impacts_from_line[B1H-ContextCpu]
 tests/test_impacts.py::test_impacts_from_line[B1H-ContextCpu:auto]
 tests/test_impacts.py::test_impacts_from_line[B2V-ContextCpu]
@@ -100,8 +100,14 @@ tests/test_impacts.py::test_impacts_from_line[B2H-ContextCpu]
 tests/test_impacts.py::test_impacts_from_line[B2H-ContextCpu:auto]
 tests/test_impacts.py::test_impacts_single_collimator[ContextCpu]
 tests/test_impacts.py::test_impacts_single_collimator[ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_crystal[ContextCpu]
-tests/test_impacts.py::test_impacts_single_crystal[ContextCpu:auto]
+tests/test_impacts.py::test_impacts_single_crystal[R>0 side=+-ContextCpu]
+tests/test_impacts.py::test_impacts_single_crystal[R>0 side=+-ContextCpu:auto]
+tests/test_impacts.py::test_impacts_single_crystal[R<0 side=+-ContextCpu]
+tests/test_impacts.py::test_impacts_single_crystal[R<0 side=+-ContextCpu:auto]
+tests/test_impacts.py::test_impacts_single_crystal[R>0 side=--ContextCpu]
+tests/test_impacts.py::test_impacts_single_crystal[R>0 side=--ContextCpu:auto]
+tests/test_impacts.py::test_impacts_single_crystal[R<0 side=--ContextCpu]
+tests/test_impacts.py::test_impacts_single_crystal[R<0 side=--ContextCpu:auto]
 tests/test_initial_distribution.py::test_create_initial_distribution[B1_default]
 tests/test_initial_distribution.py::test_create_initial_distribution[B2_diff_spread]
 tests/test_initial_distribution.py::test_create_initial_distribution[B1_bucket]

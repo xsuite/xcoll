@@ -101,7 +101,7 @@ void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double par
     }
     for (int8_t i = 0; i < 2; i++) {
         double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
-        double new_s = (bb + sgnD*sqrt(fabs(disc))/a;
+        double new_s = (bb + sgnD*sqrt(fabs(disc)))/a;
         double new_x = part_x + (new_s - part_s)*part_tan;
         double t = atan2(new_x - xC, new_s - sC);
         if (reversed){
@@ -124,7 +124,7 @@ void crossing_drift_circular(void* segment, int8_t* n_hit, double* s, double par
 // --------------
 
 /*gpufun*/
-double _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
+void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
     double s1 = seg->point1_s;
     double cs1 = seg->control_point1_s;
     double s2 = seg->point2_s;

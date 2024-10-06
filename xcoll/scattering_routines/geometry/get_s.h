@@ -12,16 +12,19 @@
 /*gpufun*/
 double crossing_drift_first(Segment* segments, int8_t n_segments, \
                             double part_s, double part_x, double part_tan){
+    // printf("crossing_drift_first\n");fflush(stdout);
     int8_t n_hit = 0;
     double* s = (double*) malloc(max_array_size_drift(segments, n_segments)*sizeof(double));
     crossing_drift(segments, n_segments, &n_hit, s, part_s, part_x, part_tan);
     if (n_hit==0){
         // No crossing
         free(s);
+        // printf("crossing_drift_first done (no crossing)\n");fflush(stdout);
         return XC_S_MAX;
     }
     double result = s[0];
     free(s);
+    // printf("crossing_drift_first done\n");fflush(stdout);
     return result;
 }
 
@@ -29,19 +32,22 @@ double crossing_drift_first(Segment* segments, int8_t n_segments, \
 /*gpufun*/
 double crossing_drift_after_s(Segment* segments, int8_t n_segments, \
                               double part_s, double part_x, double part_tan, \
-                              double current_s){
+                              double after_s){
+    // printf("crossing_drift_after_s\n");fflush(stdout);
     int8_t n_hit = 0;
     double* s = (double*) malloc(max_array_size_drift(segments, n_segments)*sizeof(double));
     crossing_drift(segments, n_segments, &n_hit, s, part_s, part_x, part_tan);
     for (int8_t i=0; i<n_hit; i++){
-        if (s[i] >= current_s){
+        if (s[i] >= after_s){
             double result = s[i];
             free(s);
+            // printf("crossing_drift_after_s done\n");fflush(stdout);
             return result;
         }
     }
     // No crossing
     free(s);
+    // printf("crossing_drift_after_s done (no crossing)\n");fflush(stdout);
     return XC_S_MAX;
 }
 
@@ -51,6 +57,7 @@ double crossing_drift_vlimit_first(Segment* segments, int8_t n_segments, \
                                    double part_s, double part_x, double part_tan_x, \
                                    double part_y, double part_tan_y, \
                                    double y_min, double y_max){
+    // printf("crossing_drift_vlimit_first\n");fflush(stdout);
     int8_t n_hit = 0;
     double* s = (double*) malloc(max_array_size_drift(segments, n_segments)*sizeof(double));
     crossing_drift_vlimit(segments, n_segments, &n_hit, s, part_s, part_x, part_tan_x, \
@@ -58,10 +65,12 @@ double crossing_drift_vlimit_first(Segment* segments, int8_t n_segments, \
     if (n_hit==0){
         // No crossing
         free(s);
+        // printf("crossing_drift_vlimit_first done (no crossing)\n");fflush(stdout);
         return XC_S_MAX;
     }
     double result = s[0];
     free(s);
+    // printf("crossing_drift_vlimit_first done\n");fflush(stdout);
     return result;
 }
 
@@ -70,20 +79,23 @@ double crossing_drift_vlimit_first(Segment* segments, int8_t n_segments, \
 double crossing_drift_vlimit_after_s(Segment* segments, int8_t n_segments, \
                                      double part_s, double part_x, double part_tan_x, \
                                      double part_y, double part_tan_y, \
-                                     double y_min, double y_max, double current_s){
+                                     double y_min, double y_max, double after_s){
+    // printf("crossing_drift_vlimit_after_s\n");fflush(stdout);
     int8_t n_hit = 0;
     double* s = (double*) malloc(max_array_size_drift(segments, n_segments)*sizeof(double));
     crossing_drift_vlimit(segments, n_segments, &n_hit, s, part_s, part_x, part_tan_x, \
                           part_y, part_tan_y, y_min, y_max);
     for (int8_t i=0; i<n_hit; i++){
-        if (s[i] >= current_s){
+        if (s[i] >= after_s){
             double result = s[i];
             free(s);
+            // printf("crossing_drift_vlimit_after_s done\n");fflush(stdout);
             return result;
         }
     }
     // No crossing
     free(s);
+    // printf("crossing_drift_vlimit_after_s done (no crossing)\n");fflush(stdout);
     return XC_S_MAX;
 }
 
