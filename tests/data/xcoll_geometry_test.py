@@ -28,12 +28,12 @@ from xcoll.scattering_routines.geometry import XcollGeometry
 # Auto-generate code and kernels for all objects and methods
 # ----------------------------------------------------------
 
-def _create_source_per_method_for_object(name, object_vars, object_constructor, object_destructor):
+def _create_source_per_method_for_object(name, object_vars, object_constructor, object_destructor, num_segments):
     return f'''
 /*gpufun*/
 double test_{name}_first(double part_s, double part_x, double part_tan_x, {object_vars}){{
     {object_constructor}
-    double s = crossing_drift_first(segments, 3, part_s, part_x, part_tan_x);
+    double s = crossing_drift_first(segments, {num_segments}, part_s, part_x, part_tan_x);
     {object_destructor}  // Important to free memory!!
     return s;
 }}
@@ -41,29 +41,26 @@ double test_{name}_first(double part_s, double part_x, double part_tan_x, {objec
 /*gpufun*/
 double test_{name}_after_s(double part_s, double part_x, double part_tan_x, {object_vars}, double after_s){{
     {object_constructor}
-    double s = crossing_drift_after_s(segments, 3, part_s, part_x, part_tan_x, after_s);
+    double s = crossing_drift_after_s(segments, {num_segments}, part_s, part_x, part_tan_x, after_s);
     {object_destructor}  // Important to free memory!!
     return s;
 }}
 
 /*gpufun*/
-double test_{name}_vlimit_first(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
-                             {object_vars}, double y_min, double y_max){{
+double test_{name}_vlimit_first(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, {object_vars}, double y_min, double y_max){{
     {object_constructor}
-    double s = crossing_drift_vlimit_first(segments, 3, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max);
+    double s = crossing_drift_vlimit_first(segments, {num_segments}, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max);
     {object_destructor}  // Important to free memory!!
     return s;
 }}
 
 /*gpufun*/
-double test_{name}_vlimit_after_s(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
-                               {object_vars}, double y_min, double y_max, double after_s){{
+double test_{name}_vlimit_after_s(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, {object_vars}, double y_min, double y_max, double after_s){{
     {object_constructor}
-    double s = crossing_drift_vlimit_after_s(segments, 3, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max, after_s);
+    double s = crossing_drift_vlimit_after_s(segments, {num_segments}, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max, after_s);
     {object_destructor}  // Important to free memory!!
     return s;
 }}
-
 '''
 
 def _create_kernels_per_method_for_object(name, object_args):
@@ -127,22 +124,22 @@ class XcollGeometryTest(xt.BeamElement):
 
     _extra_c_sources = [
         _create_source_per_method_for_object(
-            name="jaw",
+            name="jaw", num_segments=3,
             object_vars="double s_U, double x_U, double s_D, double x_D, double tilt_tan, int8_t side",
             object_constructor="Segment* segments = create_jaw(s_U, x_U, s_D, x_D, tilt_tan, side);",
             object_destructor="destroy_jaw(segments);") \
         + _create_source_per_method_for_object(
-            name="polygon",
+            name="polygon", num_segments='num_polys',
             object_vars="double* s_poly, double* x_poly, int8_t num_polys",
             object_constructor="Segment* segments = create_polygon(s_poly, x_poly, num_polys);",
             object_destructor="destroy_polygon(segments, num_polys);") \
         + _create_source_per_method_for_object(
-            name="open_polygon",
+            name="open_polygon", num_segments='num_polys',
             object_vars="double* s_poly, double* x_poly, int8_t num_polys, double tilt_tan, int8_t side",
             object_constructor="Segment* segments = create_open_polygon(s_poly, x_poly, num_polys, tilt_tan, side);",
             object_destructor="destroy_open_polygon(segments, num_polys);") \
         + _create_source_per_method_for_object(
-            name="crystal",
+            name="crystal", num_segments=4,
             object_vars="double R, double width, double length, double jaw_U, double tilt_sin, double tilt_cos",
             object_constructor="Segment* segments = create_crystal(R, width, length, jaw_U, tilt_sin, tilt_cos);",
             object_destructor="destroy_crystal(segments);")

@@ -6,10 +6,6 @@
 #ifndef XCOLL_GEOM_METHODS_H
 #define XCOLL_GEOM_METHODS_H
 
-#define XC_EPSILON 1.e-12
-#define XC_S_MAX 1.e21
-
-
 // This function calculates the overlap between an array and a given interval.
 // The array comes in pairs of points, e.g. in-out-in-out... or out-in-out-in...
 // IMPORTANT:
