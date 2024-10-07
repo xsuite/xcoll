@@ -39,7 +39,7 @@ double test_{name}_first(double part_s, double part_x, double part_tan_x, {objec
 }}
 
 /*gpufun*/
-double test_jaw_after_s(double part_s, double part_x, double part_tan_x, {object_vars}, double after_s){{
+double test_{name}_after_s(double part_s, double part_x, double part_tan_x, {object_vars}, double after_s){{
     {object_constructor}
     double s = crossing_drift_after_s(segments, 3, part_s, part_x, part_tan_x, after_s);
     {object_destructor}  // Important to free memory!!
@@ -47,7 +47,7 @@ double test_jaw_after_s(double part_s, double part_x, double part_tan_x, {object
 }}
 
 /*gpufun*/
-double test_jaw_vlimit_first(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
+double test_{name}_vlimit_first(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
                              {object_vars}, double y_min, double y_max){{
     {object_constructor}
     double s = crossing_drift_vlimit_first(segments, 3, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max);
@@ -56,7 +56,7 @@ double test_jaw_vlimit_first(double part_s, double part_x, double part_tan_x, do
 }}
 
 /*gpufun*/
-double test_jaw_vlimit_after_s(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
+double test_{name}_vlimit_after_s(double part_s, double part_x, double part_tan_x, double part_y, double part_tan_y, \
                                {object_vars}, double y_min, double y_max, double after_s){{
     {object_constructor}
     double s = crossing_drift_vlimit_after_s(segments, 3, part_s, part_x, part_tan_x, part_y, part_tan_y, y_min, y_max, after_s);
@@ -67,7 +67,7 @@ double test_jaw_vlimit_after_s(double part_s, double part_x, double part_tan_x, 
 '''
 
 def _create_kernels_per_method_for_object(name, object_args):
-    return [
+    return {
         f'test_{name}_first': xo.Kernel(
                 c_name=f'test_{name}_first',
                 args=[
@@ -114,7 +114,7 @@ def _create_kernels_per_method_for_object(name, object_args):
                     xo.Arg(xo.Float64, name='after_s')     # method args
                 ],
                 ret=xo.Arg(xo.Float64, pointer=False, name='s'))
-    ]
+    }
 
 
 
@@ -148,8 +148,8 @@ class XcollGeometryTest(xt.BeamElement):
             object_destructor="destroy_crystal(segments);")
     ]
 
-    _kernels = [
-        *_create_kernels_per_method_for_object(name="jaw", object_args=[
+    _kernels = {
+        **_create_kernels_per_method_for_object(name="jaw", object_args=[
                     xo.Arg(xo.Float64, name='s_U'),
                     xo.Arg(xo.Float64, name='x_U'),
                     xo.Arg(xo.Float64, name='s_D'),
@@ -157,19 +157,19 @@ class XcollGeometryTest(xt.BeamElement):
                     xo.Arg(xo.Float64, name='tilt_tan'),
                     xo.Arg(xo.Int8,    name='side'),
             ]),
-        *_create_kernels_per_method_for_object(name="polygon", object_args=[
+        **_create_kernels_per_method_for_object(name="polygon", object_args=[
                     xo.Arg(xo.Float64, pointer=True, name='s_poly'),
                     xo.Arg(xo.Float64, pointer=True, name='x_poly'),
                     xo.Arg(xo.Int8,    name='num_polys')
             ]),
-        *_create_kernels_per_method_for_object(name="open_polygon", object_args=[
+        **_create_kernels_per_method_for_object(name="open_polygon", object_args=[
                     xo.Arg(xo.Float64, pointer=True, name='s_poly'),
                     xo.Arg(xo.Float64, pointer=True, name='x_poly'),
                     xo.Arg(xo.Int8,    name='num_polys'),
                     xo.Arg(xo.Float64, name='tilt_tan'),
                     xo.Arg(xo.Int8,    name='side')
             ]),
-        *_create_kernels_per_method_for_object(name="crystal", object_args=[
+        **_create_kernels_per_method_for_object(name="crystal", object_args=[
                     xo.Arg(xo.Float64, name='R'),
                     xo.Arg(xo.Float64, name='width'),
                     xo.Arg(xo.Float64, name='length'),
@@ -177,4 +177,4 @@ class XcollGeometryTest(xt.BeamElement):
                     xo.Arg(xo.Float64, name='tilt_sin'),
                     xo.Arg(xo.Float64, name='tilt_cos')
             ]),
-    ]
+    }
