@@ -236,7 +236,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                    fprintf(fptr, "s=%f, x=%f, xp=%f, sP=%f, xP=%f, R=%f, r=%f, tI=%f, tC=%f\n",
+                    double energy2 = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
+                                      ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+                    fprintf(fptr, "s=%.5e, x=%.5e, xp=%.5e, sP=%.5e, xP=%.5e, R=%.5e, r=%.5e, tI=%.5e, tC=%.5e\n",
                                     LocalParticle_get_s(part),
                                     LocalParticle_get_x(part),
                                     xp,
@@ -245,6 +247,14 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                                     cg->bending_radius,
                                     everest->r,
                                     everest->t_I,
+                                    everest->t_c);
+                    fprintf(fptr, "eum=%.5e, ai=%.5e, eta=%.5e, tc0=%.5e, E=%.5e, RcoR=%.5e, tc=%.5e\n",
+                                    everest->coll->eum,
+                                    everest->coll->ai,
+                                    everest->coll->eta,
+                                    everest->t_c0,
+                                    energy2,
+                                    everest->Rc_over_R,
                                     everest->t_c);
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
