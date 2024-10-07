@@ -236,7 +236,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                    fprintf(fptr, "s=%f, x=%f, xp=%f, sP=%f, xP=%, R=%f, r=%f, tI=%f, tC=%f\n",
+                    fprintf(fptr, "s=%f, x=%f, xp=%f, sP=%f, xP=%f, R=%f, r=%f, tI=%f, tC=%f\n",
                                     LocalParticle_get_s(part),
                                     LocalParticle_get_x(part),
                                     xp,
