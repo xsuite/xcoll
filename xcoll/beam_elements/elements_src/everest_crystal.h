@@ -190,6 +190,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     double t_c = 0;
 
+    FILE *fptr;
+    fptr = fopen("crystal_particles.txt", "w");
+
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -233,6 +236,16 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
+                    fprintf(fptr, "s=%f, x=%f, xp=%f, sP=%f, xP=%, R=%f, r=%f, tI=%f, tC=%f\n",
+                                    LocalParticle_get_s(part),
+                                    LocalParticle_get_x(part),
+                                    xp,
+                                    cg->s_P,
+                                    cg->x_P,
+                                    cg->bending_radius,
+                                    everest->r,
+                                    everest->t_I,
+                                    everest->t_c);
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     } else {
@@ -274,6 +287,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     EverestCrystalData_set__critical_angle(el, t_c);
     EverestCrystal_free(cg, active);
     free(coll);
+    // Close the file
+    fclose(fptr);
 }
 
 
