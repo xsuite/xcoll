@@ -29,7 +29,7 @@ def test_listing():
     only_current = current_tests.difference(expected_tests)
     only_expected = expected_tests.difference(current_tests)
     if len(only_current) > 0:
-        pytest.exit(f"Please run store_all_tests.py as there are some new "
-                  + f"tests that are not logged yet:{only_current}.")
+        pytest.exit("Please run store_all_tests.py as there are some new "
+                  + "tests that are not logged yet:\n" + '\n'.join(only_current))
     if len(only_expected) > 0:
-        pytest.exit(f"The following tests were expected but not found: {only_expected}.")
+        pytest.exit("The following tests were expected but not found:\n" + '\n'.join(only_expected))
