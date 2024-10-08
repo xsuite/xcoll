@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -12,5 +12,5 @@ citation = "F.F. Van der Veken, et al.: Recent Developments with the New Tools f
 # ======================
 # Do not change
 # ======================
-__version__ = '0.5.3'
+__version__ = '0.5.4rc0'
 # ======================

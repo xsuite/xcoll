@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -190,8 +190,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
     double t_c = 0;
     // MESSAGE FOR FREDERICK: write a function to calculate the critical angle using beam energy! Chiara and Dora
-    EverestCrystalData_set__critical_angle(el, t_c);
-
+    if (t_c > 1.e-12){
+        EverestCrystalData_set__critical_angle(el, t_c);
+    }
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -239,7 +240,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     } else {
-                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
+                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length, 1)*1.e9;
                     }
                     free(everest);
                 }
@@ -271,7 +272,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             }
         }
     //end_per_particle_block
-
     EverestCrystal_free(cg, active);
     free(coll);
 }

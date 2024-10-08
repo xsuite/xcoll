@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -59,7 +59,6 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
         double s = LocalParticle_get_s(part) - s0;
         p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
     }
-
     return p*1e9;  // Back to eV
 }
 
