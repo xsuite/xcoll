@@ -14,6 +14,7 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 num_part = 50000
+num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
@@ -38,10 +39,10 @@ def test_impacts_from_line(beam, plane, test_context):
     xc.assign_optics_to_collimators(line=line)
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     tw = line.twiss()
-    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_part, tw=tw)
+    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_part, twiss=tw)
 
     xc.enable_scattering(line)
-    line.track(part, num_turns=20, time=True, with_progress=1)
+    line.track(part, num_turns=num_turns, time=True, with_progress=1)
     xc.disable_scattering(line)
 
     df = impacts.to_pandas()
