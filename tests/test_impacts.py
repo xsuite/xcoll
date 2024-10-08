@@ -96,12 +96,12 @@ def test_impacts_single_collimator(test_context):
 )
 @pytest.mark.parametrize("R, side", [
                             [1, '+'],
-                            [2, '+'],
+                            [-1, '+'],
                             [1, '-'],
-                            [2, '-']], ids=["R>0 side=+", "R<0 side=+", "R>0 side=-", "R<0 side=-"])
+                            [-1, '-']], ids=["R>0 side=+", "R<0 side=+", "R>0 side=-", "R<0 side=-"])
 def test_impacts_single_crystal(R, side, test_context):
-    coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=149e-6,
-                        width=0.002, height=0.05, side='+', lattice='strip', jaw=0.001, _context=test_context)
+    coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=R*149e-6,
+                        width=0.002, height=0.05, side=side, lattice='strip', jaw=0.001, _context=test_context)
 
     x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
