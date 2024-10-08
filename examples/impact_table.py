@@ -19,13 +19,13 @@ import xcoll as xc
 # Get line and collimators
 line = xt.Line.from_json(xc._pkg_root / '..' / 'examples' / 'machines' / 'lhc_run3_b1.json')
 
-coll_manager = xc.CollimatorDatabase.from_yaml(xc._pkg_root / '..' / 'examples' / 'colldb' / 'lhc_run3.yaml', beam=1)
-coll_manager.install_everest_collimators(verbose=True, line=line)
+colldb = xc.CollimatorDatabase.from_yaml(xc._pkg_root / '..' / 'examples' / 'colldb' / 'lhc_run3.yaml', beam=1)
+colldb.install_everest_collimators(verbose=True, line=line)
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 # Start interaction record
-impacts = xc.InteractionRecord.start(line)
+impacts = xc.InteractionRecord.start(line=line)
 
 # Build tracker, assign optics and generate particles 
 line.build_tracker()
@@ -43,7 +43,7 @@ xc.disable_scattering(line)
 line.discard_tracker()
 
 df = impacts.to_pandas()
-df[(df.interaction_type == 'Enter Jaw L') & (df.ds == 0.0)]
+df[df.interaction_type == 'Enter Jaw L']
 df.to_csv('impacts.csv', index=False)
 
 # ============================================
