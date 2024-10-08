@@ -5,7 +5,6 @@
 # ######################################### #
 
 import sys
-import platform
 from gh import *
 sys.tracebacklimit = 0
 
@@ -38,18 +37,18 @@ if not branch == f"release/v{current_ver[:-3]}":
 # Check that there are no conflicting PRs open
 prs = gh_pr_list(base=branch)
 if prs:
-    raise GitError(f"There are open PRs to the current release branch:\n" \
-                   + "\n".join([f"PR#{pr} from {br}" for pr, br in prs.items()]) \
-                   + "\nThese would be automatically closed by this script, " \
-                   + "as the target branch disappears. Please close them manually, " \
-                   + "or change the target branch.")
+    raise GitError("There are open PRs to the current release branch:\n" \
+                 + "\n".join([f"PR#{pr} from {br}" for pr, br in prs.items()]) \
+                 + "\nThese would be automatically closed by this script, " \
+                 + "as the target branch disappears. Please close them manually, " \
+                 + "or change the target branch.")
 prs = gh_pr_list(head=branch)
 if prs:
-    raise GitError(f"There are open PRs from the current release branch:\n" \
-                   + "\n".join([f"PR#{pr} from {br}" for pr, br in prs.items()]) \
-                   + "\nThese would be automatically closed by this script, " \
-                   + "as the head branch disappears. Please close or resolve them " \
-                   + "manually.")
+    raise GitError("There are open PRs from the current release branch:\n" \
+                 + "\n".join([f"PR#{pr} from {br}" for pr, br in prs.items()]) \
+                 + "\nThese would be automatically closed by this script, " \
+                 + "as the head branch disappears. Please close or resolve them " \
+                 + "manually.")
 
 
 # Check that we are not accidentally bumping a major version
@@ -103,7 +102,7 @@ for file, pattern in zip(["xcoll/general.py", "tests/test_version.py"],
 
 # Commit and push
 git_add(['pyproject.toml', 'xcoll/general.py', 'tests/test_version.py'])
-git_commit(f"Renamed release branch {} into release/v{new_ver}.", no_verify=True)
+git_commit(f"Renamed release branch {branch} into {new_branch}.", no_verify=True)
 git_push(set_upstream=True)
 
 print("All done!")
