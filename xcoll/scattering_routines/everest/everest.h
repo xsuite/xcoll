@@ -65,6 +65,14 @@ typedef EverestData_ *EverestData;
 
 
 /*gpufun*/
+double LocalParticle_get_energy(LocalParticle* part){
+    double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
+    return (LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part) \
+            + LocalParticle_get_energy0(part)) * mass_ratio;
+}
+
+
+/*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);

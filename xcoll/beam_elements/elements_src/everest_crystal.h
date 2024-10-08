@@ -162,17 +162,12 @@ EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restri
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
-
     // Preinitialise scattering parameters
-    double charge_ratio = LocalParticle_get_charge_ratio(part);
-    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
-    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    double energy = LocalParticle_get_energy(part) / 1e9; // energy in GeV
     calculate_scattering(everest, energy);
     calculate_ionisation_properties(everest, energy);
     calculate_critical_angle(everest, part, cg, energy);
     calculate_VI_parameters(everest, part, energy);
-
     return everest;
 }
 
@@ -188,11 +183,14 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     EverestCollData coll = EverestCrystal_init(el, part0, active);
     CrystalGeometry cg   = EverestCrystal_init_geometry(el, part0, active);
 
-    double t_c = 0;
-    // MESSAGE FOR FREDERICK: write a function to calculate the critical angle using beam energy! Chiara and Dora
-    if (t_c > 1.e-12){
-        EverestCrystalData_set__critical_angle(el, t_c);
-    }
+    // For info
+    double const e0 = LocalParticle_get_energy0(part0);
+    double t_c0  = _critical_angle0(coll, e0);
+    double Rcrit = _critical_radius(coll, e0);
+    double t_c = _critical_angle(coll, t_c0, Rcrit / fabs(cg->bending_radius));
+    EverestCrystalData_set__critical_radius(el, Rcrit);
+    EverestCrystalData_set__critical_angle(el, t_c);
+
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
@@ -203,13 +201,11 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             int8_t is_valid = xcoll_check_particle_init(coll->rng, part);
 
             if (is_valid) {
+                // Store s-location of start of crystal
                 double const s_coll = LocalParticle_get_s(part);
                 LocalParticle_set_s(part, 0);
 
                 // Store initial coordinates for updating later
-                double const e0         = LocalParticle_get_energy0(part);
-                double const p0         = LocalParticle_get_p0c(part);
-                double const ptau_in    = LocalParticle_get_ptau(part);
                 double const rvv_in     = LocalParticle_get_rvv(part);
 #ifdef XCOLL_USE_EXACT
                 double const xp_in      = LocalParticle_get_exact_xp(part);
@@ -219,8 +215,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 double const yp_in      = LocalParticle_get_yp(part);
 #endif
                 double const zeta_in    = LocalParticle_get_zeta(part);
-                double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
-                double energy           = (p0*ptau_in + e0) * mass_ratio;
+                double const energy_in  = LocalParticle_get_energy(part);
+                double energy_out;
 
                 // Check if hit on jaws
                 int8_t is_hit = hit_crystal_check_and_transform(part, cg);
@@ -236,11 +232,10 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                   
                     if (fabs(xp - everest->t_I) < everest->t_c) {
-                        energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
+                        energy_out = Channel(everest, part, cg, energy_in/1.e9, remaining_length)*1.e9;
                     } else {
-                        energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length, 1)*1.e9;
+                        energy_out = Amorphous(everest, part, cg, energy_in/1.e9, remaining_length, 1)*1.e9;
                     }
                     free(everest);
                 }
@@ -252,9 +247,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_set_zeta(part, zeta_in);
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part)>0){
-                    // Update energy
-                    double ptau_out = (energy/mass_ratio - e0) / p0;
-                    LocalParticle_update_ptau(part, ptau_out);
+                    // Update energy; the last flag keeps angles constant (even valid for exact angles!)
+                    LocalParticle_add_to_energy(part, energy_out - energy_in, 0);
                     // Update zeta
 #ifdef XCOLL_USE_EXACT
                     double xp  = LocalParticle_get_exact_xp(part);
