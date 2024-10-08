@@ -9,6 +9,11 @@ import xtrack as xt
 from .beam_elements import element_classes, _all_collimator_classes
 
 
+class XcollLineAPI:
+    def __init__(self, line):
+        self._line = line
+
+
 def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
     if not line._has_valid_tracker():
         raise Exception("Please build tracker before setting the openings!")
