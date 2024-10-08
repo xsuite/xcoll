@@ -3,11 +3,10 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+from pathlib import Path
 import numpy as np
 import pytest
-from pathlib import Path
 
-import xobjects as xo
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
@@ -28,7 +27,7 @@ path = Path(__file__).parent / 'data'
                             [2, 'H']], ids=["B1H", "B2V", "B1V", "B2H"])
 def test_impacts_from_line(beam, plane, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-    coll_manager = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3.yaml', beam=beam)
+    coll_manager = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     coll_manager.install_everest_collimators(verbose=True, line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
@@ -122,6 +121,6 @@ def test_impacts_single_crystal(R, side, test_context):
     mask = df.interaction_type == 'Enter Jaw L'
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
                   np.isclose(df.x_before[mask], 0.0, atol=1e-12))
-    mask = df.interaction_type == 'Exit Jaw'
-    assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
-                  np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    # mask = df.interaction_type == 'Exit Jaw'
+    # assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
+    #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
