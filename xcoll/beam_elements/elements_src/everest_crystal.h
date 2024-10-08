@@ -162,7 +162,7 @@ EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restri
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
-#ifndef XCOLL_REFINE_ENERGY
+
     // Preinitialise scattering parameters
     double charge_ratio = LocalParticle_get_charge_ratio(part);
     double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
@@ -172,7 +172,7 @@ EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restri
     calculate_ionisation_properties(everest, energy);
     calculate_critical_angle(everest, part, cg, energy);
     calculate_VI_parameters(everest, part, energy);
-#endif
+
     return everest;
 }
 
@@ -189,9 +189,8 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     CrystalGeometry cg   = EverestCrystal_init_geometry(el, part0, active);
 
     double t_c = 0;
-
-    FILE *fptr;
-    fptr = fopen("crystal_particles.txt", "w");
+    // MESSAGE FOR FREDERICK: write a function to calculate the critical angle using beam energy! Chiara and Dora
+    EverestCrystalData_set__critical_angle(el, t_c);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -229,41 +228,19 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
-                    EverestData everest = EverestCrystal_init_data(part0, coll, cg);
+                    EverestData everest = EverestCrystal_init_data(part, coll, cg);
                     calculate_initial_angle(everest, part, cg);
 #ifdef XCOLL_USE_EXACT
                     double const xp = LocalParticle_get_exact_xp(part);
 #else
                     double const xp = LocalParticle_get_xp(part);
 #endif
-                    double energy2 = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-                                      ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
-                    fprintf(fptr, "s=%.5e, x=%.5e, xp=%.5e, sP=%.5e, xP=%.5e, R=%.5e, r=%.5e, tI=%.5e, tC=%.5e\n",
-                                    LocalParticle_get_s(part),
-                                    LocalParticle_get_x(part),
-                                    xp,
-                                    cg->s_P,
-                                    cg->x_P,
-                                    cg->bending_radius,
-                                    everest->r,
-                                    everest->t_I,
-                                    everest->t_c);
-                    fprintf(fptr, "eum=%.5e, ai=%.5e, eta=%.5e, tc0=%.5e, E=%.5e, RcoR=%.5e, tc=%.5e\n",
-                                    everest->coll->eum,
-                                    everest->coll->ai,
-                                    everest->coll->eta,
-                                    everest->t_c0,
-                                    energy2,
-                                    everest->Rc_over_R,
-                                    everest->t_c);
+                   
                     if (fabs(xp - everest->t_I) < everest->t_c) {
                         energy = Channel(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     } else {
                         energy = Amorphous(everest, part, cg, energy/1.e9, remaining_length)*1.e9;
                     }
-                    // Temporary workaround to store the critical angle for use later
-                    calculate_critical_angle(everest, part, cg, e0/1.e9);
-                    t_c = everest->t_c;
                     free(everest);
                 }
 
@@ -294,11 +271,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
             }
         }
     //end_per_particle_block
-    EverestCrystalData_set__critical_angle(el, t_c);
+
     EverestCrystal_free(cg, active);
     free(coll);
-    // Close the file
-    fclose(fptr);
 }
 
 
