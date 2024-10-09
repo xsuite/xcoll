@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -7,6 +7,11 @@ import numpy as np
 import xtrack as xt
 
 from .beam_elements import element_classes, _all_collimator_classes
+
+
+class XcollLineAPI:
+    def __init__(self, line):
+        self._line = line
 
 
 def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):

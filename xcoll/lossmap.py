@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -160,14 +160,14 @@ class LossMap:
         coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
         coll_losses   = np.array([self._line.element_names[i]
                                   for i in self._part.at_element[coll_mask]])
-        coll_lengths  = [self._line[j].length for j in collimator_names] 
+        coll_lengths  = [self._line[j].length for j in collimator_names]
         coll_pos      = [(self._line.get_s_position(i) + self._line[i].length/2)
                          for i in collimator_names]
 
         if self._line_is_reversed:
             coll_pos  = [self._machine_length - s for s in coll_pos]
 
-        coll_types    = [self._line[i].__class__.__name__ for i in collimator_names]  
+        coll_types    = [self._line[i].__class__.__name__ for i in collimator_names]
         coll_weights  = self._weights[coll_mask]
         nabs          = [coll_weights[coll_losses == j].sum() for j in collimator_names]
 
@@ -198,7 +198,7 @@ class LossMap:
         # Create output arrays
         aper_pos     = np.unique(aper_s)
         aper_weights = self._weights[aper_mask]
-        aper_nabs    = [aper_weights[aper_s == j].sum() for j in aper_pos] 
+        aper_nabs    = [aper_weights[aper_s == j].sum() for j in aper_pos]
         aper_names   = [name_dict[ss] for ss in aper_pos]
 
         aper_energy = 0

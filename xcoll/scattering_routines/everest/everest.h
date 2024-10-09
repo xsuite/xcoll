@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -62,6 +62,14 @@ typedef struct EverestData_ {
     double r;
 } EverestData_;
 typedef EverestData_ *EverestData;
+
+
+/*gpufun*/
+double LocalParticle_get_energy(LocalParticle* part){
+    double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
+    return (LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part) \
+            + LocalParticle_get_energy0(part)) * mass_ratio;
+}
 
 
 /*gpufun*/

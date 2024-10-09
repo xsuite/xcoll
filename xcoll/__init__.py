@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -17,7 +17,7 @@ from .initial_distribution import *
 from .lossmap import LossMap
 
 # Deprecated
-from .manager import CollimatorManager
+from ._manager import CollimatorManager
 
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)
