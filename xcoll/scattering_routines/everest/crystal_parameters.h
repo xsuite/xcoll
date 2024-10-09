@@ -11,7 +11,7 @@
 
 
 /*gpufun*/
-void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg) {
+void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
     double R = cg->bending_radius;
     double s = LocalParticle_get_s(part);
     double x = LocalParticle_get_x(part);
@@ -24,7 +24,7 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
 
 
 /*gpufun*/
-void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg) {
+void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
     double t    = cg->bending_angle;
     double xd   = cg->width;
     double R    = cg->bending_radius;
@@ -76,31 +76,47 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
 
 
 /*gpufun*/
-void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc) {
+double _critical_angle0(EverestCollData restrict coll, double pc){
     // Define typical angles/probabilities for orientation 110
-    double eum   = everest->coll->eum;
-    double ai    = everest->coll->ai;
-    double eta   = everest->coll->eta;
-    double t_c0  = sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals   // pc is actually beta pc
-    double Rcrit = pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]          // pc is actually beta pc
+    double eum   = coll->eum;
+    double eta   = coll->eta;
+    return sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals    // pc is actually beta pc
+}
 
+/*gpufun*/
+double _critical_radius(EverestCollData restrict coll, double pc){
+    // Define typical angles/probabilities for orientation 110
+    double eum   = coll->eum;
+    double ai    = coll->ai;
+    double eta   = coll->eta;
+    return pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]   // pc is actually beta pc
+}
+
+/*gpufun*/
+double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_over_R){
+    double t_c = 0;
+    if (Rc_over_R <= 1.) {
+        // Otherwise no channeling possible
+        t_c = t_c0*(1 - Rc_over_R); // Critical angle for curved crystal
+        if (coll->orient == 2) {
+            t_c *= 0.98;
+        }
+    }
+    return t_c;
+}
+
+/*gpufun*/
+void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc){
+    // Define typical angles/probabilities for orientation 110
+    everest->t_c0  = _critical_angle0(everest->coll, pc);
+    double Rcrit = _critical_radius(everest->coll, pc);
     everest->Rc_over_R = Rcrit / fabs(cg->bending_radius);
-    everest->t_c0 = t_c0;
-    if (everest->Rc_over_R > 1.) {
-        // no channeling possible
-        everest->t_c  = 0.;
-    } else {
-        everest->t_c  = t_c0*(1 - everest->Rc_over_R); // Critical angle for curved crystal
-    }
-
-    if (everest->coll->orient == 2) {
-        everest->t_c *= 0.98;
-    }
+    everest->t_c = _critical_angle(everest->coll, everest->t_c0, everest->Rc_over_R);
 }
 
 
 /*gpufun*/
-void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, double pc) {
+void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, double pc){
 
     double ratio = everest->Rc_over_R;
     double t_c0  = everest->t_c0;

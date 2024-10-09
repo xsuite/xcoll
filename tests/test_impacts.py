@@ -3,11 +3,10 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+from pathlib import Path
 import numpy as np
 import pytest
-from pathlib import Path
 
-import xobjects as xo
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
@@ -15,6 +14,7 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 num_part = 50000
+num_turns = 3
 path = Path(__file__).parent / 'data'
 
 
@@ -28,7 +28,7 @@ path = Path(__file__).parent / 'data'
                             [2, 'H']], ids=["B1H", "B2V", "B1V", "B2H"])
 def test_impacts_from_line(beam, plane, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-    coll_manager = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3.yaml', beam=beam)
+    coll_manager = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     coll_manager.install_everest_collimators(verbose=True, line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
@@ -39,10 +39,10 @@ def test_impacts_from_line(beam, plane, test_context):
     xc.assign_optics_to_collimators(line=line)
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     tw = line.twiss()
-    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_part, tw=tw)
+    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_part, twiss=tw)
 
     xc.enable_scattering(line)
-    line.track(part, num_turns=20, time=True, with_progress=1)
+    line.track(part, num_turns=num_turns, time=True, with_progress=1)
     xc.disable_scattering(line)
 
     df = impacts.to_pandas()
@@ -97,12 +97,17 @@ def test_impacts_single_collimator(test_context):
 )
 @pytest.mark.parametrize("R, side", [
                             [1, '+'],
-                            [2, '+'],
+                            [-1, '+'],
                             [1, '-'],
-                            [2, '-']], ids=["R>0 side=+", "R<0 side=+", "R>0 side=-", "R<0 side=-"])
+                            [-1, '-']], ids=["R>0 side=+ ", "R<0 side=+ ", "R>0 side=- ", "R<0 side=- "])
 def test_impacts_single_crystal(R, side, test_context):
+<<<<<<< HEAD
     coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=0.1,
                         width=0.002, height=0.05, side='+', lattice='strip', jaw=0.001, _context=test_context)
+=======
+    coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=R*149e-6,
+                        width=0.002, height=0.05, side=side, lattice='strip', jaw=0.001, _context=test_context)
+>>>>>>> main
 
     x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
@@ -127,6 +132,7 @@ def test_impacts_single_crystal(R, side, test_context):
     s = df.s_before[mask]
     x = df.x_before[mask]
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
+<<<<<<< HEAD
                   np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
                   np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12))
 
@@ -136,3 +142,9 @@ def test_impacts_single_crystal(R, side, test_context):
     assert np.all(np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
                   np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12) |
                   np.isclose(x - x_B + 1./np.tan(coll.bending_angle)*s, 0., atol=1e-12))
+=======
+                  np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    # mask = df.interaction_type == 'Exit Jaw'
+    # assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
+    #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+>>>>>>> main
