@@ -11,7 +11,7 @@ from .trajectories import trajectories, trajectories_c_args, get_max_crossings
 from ..c_init import GeomCInit
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
-from .circular_arc import CircularSegment
+from .circular import CircularSegment
 from .bezier import BezierSegment
 
 
