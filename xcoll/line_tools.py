@@ -4,12 +4,15 @@
 # ######################################### #
 
 import numpy as np
+import warnings
+warnings.simplefilter("always")
+
 import xtrack as xt
 
 from .beam_elements import element_classes, _all_collimator_classes
 
 
-class XcollLineAPI:
+class XcollCollimatorAPI:
     def __init__(self, line):
         self._line = line
 
@@ -41,6 +44,33 @@ class XcollLineAPI:
             self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_x, twiss_upstream=tw_upstream,
                                     twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
+    def open(self, names=None):
+        if names is None:
+            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
+        if len(names) == 0:
+            print("No collimators found in line.")
+        else:
+            for coll in names:
+                self.line[coll].open_jaws(keep_tilts=False)
+                self.line[coll].gap = None
+
+    def to_parking(self, names=None):
+        if names is None:
+            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
+        if len(names) == 0:
+            print("No collimators found in line.")
+        else:
+            raise NotImplementedError("Need to move this to new type manager or so.")
+
+
+class XcollScatteringAPI:
+    def __init__(self, line):
+        self._line = line
+
+    @property
+    def line(self):
+        return self._line
+
     def enable(self):
         elements = self.line.get_elements_of_type(element_classes)[0]
         if len(elements) == 0:
@@ -70,53 +100,35 @@ class XcollLineAPI:
                 if hasattr(el, 'disable_scattering'):
                     el.disable_scattering()
 
-    def open_collimators(self, names=None):
-        if names is None:
-            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
-        if len(names) == 0:
-            print("No collimators found in line.")
-        else:
-            for coll in names:
-                self.line[coll].open_jaws(keep_tilts=False)
-                self.line[coll].gap = None
-
-    def send_to_parking(self, names=None):
-        if names is None:
-            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
-        if len(names) == 0:
-            print("No collimators found in line.")
-        else:
-            raise NotImplementedError("Need to move this to new type manager or so.")
-
 
 
 
 def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
-    print("Warning: The function xcoll.assign_optics_to_collimators() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.assign_optics() instead.")
-    line.scattering.assign_optics(nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss)
+    warnings.warn("The function xcoll.assign_optics_to_collimators() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.assign_optics() instead.", DeprecationWarning)
+    line.collimators.assign_optics(nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss)
 
 def get_optics_at(names, *, twiss=None, line=None):
-    print("Warning: The function xcoll.get_optics_at() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.get_optics_at() instead.")
-    return line.scattering.get_optics_at(names=names, twiss=twiss)
+    warnings.warn("The function xcoll.get_optics_at() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.get_optics_at() instead.", DeprecationWarning)
+    return line.collimators.get_optics_at(names=names, twiss=twiss)
 
 def open_collimators(line, names=None):
-    print("Warning: The function xcoll.open_collimators() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.open_collimators() instead.")
-    line.scattering.open_collimators(names=names)
+    warnings.warn("The function xcoll.open_collimators() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.open_collimators() instead.", DeprecationWarning)
+    line.collimators.open(names=names)
 
 def send_to_parking(line, names=None):
-    print("Warning: The function xcoll.send_to_parking() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.send_to_parking() instead.")
-    line.scattering.send_to_parking(names=names)
+    warnings.warn("The function xcoll.send_to_parking() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.send_to_parking() instead.", DeprecationWarning)
+    line.collimators.to_parking(names=names)
 
 def enable_scattering(line):
-    print("Warning: The function xcoll.enable_scattering() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.enable() instead.")
+    warnings.warn("The function xcoll.enable_scattering() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.enable() instead.", DeprecationWarning)
     line.scattering.enable()
 
 def disable_scattering(line):
-    print("Warning: The function xcoll.disable_scattering() is deprecated and will be "
-        + "removed in the future. Please use line.scattering.disable() instead.")
+    warnings.warn("The function xcoll.disable_scattering() is deprecated and will be "
+                + "removed in the future. Please use line.scattering.disable() instead.", DeprecationWarning)
     line.scattering.disable()
