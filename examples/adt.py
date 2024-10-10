@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -47,7 +47,7 @@ name = f'adtk{plane.lower()}.{pos}.b{beam}'
 tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
 adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-adt = xc.BlowUp.install(line, name=name, at_s=adt_pos, need_apertures=False, plane=plane,
+adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
                         stop_at_turn=adt_turns)
 
 
@@ -117,6 +117,7 @@ ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Horizontal emittance growth by ADT blow-up in the LHC")
 print(f"Total calculation time {time.time()-start_time}s")
+plt.tight_layout()
 plt.savefig("adt_horizontal_emittance.png", dpi=300)
 plt.show()
 
@@ -128,6 +129,7 @@ ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
+plt.tight_layout()
 plt.savefig("adt_horizontal_amplitude.png", dpi=300)
 plt.show()
 
@@ -140,6 +142,7 @@ ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Vertical emittance growth by ADT blow-up in the LHC")
+plt.tight_layout()
 plt.savefig("adt_vertical_emittance.png", dpi=300)
 plt.show()
 
@@ -150,6 +153,7 @@ ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
 ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("Turn number")
 ax.legend()
+plt.tight_layout()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
 plt.savefig("adt_vertical_amplitude.png", dpi=300)
 plt.show()
@@ -162,5 +166,6 @@ ax.set_ylabel(r"$\epsilon\; [\mathrm{cm}]$")
 ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Longitudinal emittance growth by ADT blow-up in the LHC")
+plt.tight_layout()
 plt.savefig("adt_longitudinal_emittance.png", dpi=300)
 plt.show()

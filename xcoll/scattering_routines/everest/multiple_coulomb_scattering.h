@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -39,7 +39,7 @@ double soln3(double a, double b, double dh, double smax) {
         }
         return s;
     }
-    if (a == 0) {    
+    if (a == 0) {
         if (b > 0) {
             s = pow(b,2);
         } else {
@@ -160,15 +160,16 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
             x  = res[0];
             xp = res[1];
             free(res);
-            if (x <= 0) {
-                s = rlen0 - rlen + s;
-                break; // go to 20
+            if (x < 0) {
+                // extrapolation back to where x = 0
+                s = rlen0 - rlen + (s - x/xp);
+                x = 0.0;
+                break;
             }
             if (s + dh >= rlen) {
                 s = rlen0;
-                break; // go to 20
+                break;
             }
-            // go to 10
             rlen = rlen - s;
         }
 

@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -13,14 +13,14 @@ from .beam_elements import _all_collimator_classes, EverestCrystal, FlukaCollima
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
-                                  impact_parameter=0, sigma_z=7.61e-2, tw=None, longitudinal=None,
-                                  longitudinal_betatron_cut=None, **kwargs):
+                                  impact_parameter=0, sigma_z=7.61e-2, twiss=None, longitudinal=None,
+                                  longitudinal_betatron_cut=None, tw=None):
     """
     Generate a pencil beam on a collimator.
     """
 
     if not line._has_valid_tracker():
-        raise Exception("Please build tracker before generating pencil distribution!")
+        raise ValueError("Please build tracker before generating pencil distribution!")
 
     coll = line[name]
 
@@ -28,7 +28,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         raise ValueError("Need to provide a valid collimator!")
 
     if coll.optics is None:
-        raise Exception("Need to assign optics to collimators before generating pencil distribution!")
+        raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
 
     num_particles = int(num_particles)
     if len(line.get_elements_of_type(FlukaCollimator)[0]) > 0:
@@ -50,26 +50,32 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     else:
         raise NotImplementedError("Pencil beam on a skew collimator not yet supported!")
 
-    if tw is None:
-        tw = line.twiss()    # TODO: can we do this smarter by caching?
+    if tw is not None:
+        print("The argument tw is deprecated. Please use twiss instead.")
+        if twiss is None:
+            twiss = tw
+
+    if twiss is None:
+        twiss = line.twiss()
 
     # Is it converging or diverging?    # TODO: This might change with a tilt!!!!!!
-    s_front = line.get_s_position(name)
-    s_back  = s_front + coll.length
-    is_converging  = tw[f'alf{plane}', name] > 0
+    is_converging  = twiss[f'alf{plane}', name] > 0
     print(f"Collimator {name} is {'con' if is_converging else 'di'}verging.")
 
-    beam_sizes = tw.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
+    beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
     if is_converging:
         # pencil at front of jaw
-        match_at_s = s_front
         sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][0]
         sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][0]
+        tw_at_s = twiss.rows[name]
+        at_element = name
     else:
         # pencil at back of jaw
-        match_at_s = s_back
         sigma = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{plane}'][1]
         sigma_transv = beam_sizes.rows[name:f'{name}>>1'][f'sigma_{transv_plane}'][1]
+        tw_at_s = twiss.rows[f'{name}>>1']
+        at_element = line.element_names[line.element_names.index(name)+1]
+
     dr_sigmas = pencil_spread/sigma
 
     # Generate 4D coordinates
@@ -77,11 +83,11 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if side == '+-':
         num_plus = int(num_particles/2)
         num_min  = int(num_particles - num_plus)
-        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas, match_at_s, is_converging)
-        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas, match_at_s, is_converging)
+        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
+        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
         coords      = [ [*c_plus, *c_min] for c_plus, c_min in zip(coords_plus, coords_min)]
     else:
-        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter, dr_sigmas, match_at_s, is_converging)
+        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
     pencil            = coords[0]
     p_pencil          = coords[1]
     transverse_norm   = coords[2]
@@ -125,18 +131,24 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         part = xp.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=name, match_at_s=match_at_s,
-                _context=coll._buffer.context, **kwargs
+                line=line, at_element=at_element, #match_at_s=match_at_s,
+                _context=coll._buffer.context
         )
     else:
         part = xp.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=name, match_at_s=match_at_s,
-                _context=coll._buffer.context, **kwargs
+                line=line, at_element=at_element, #match_at_s=match_at_s,
+                _context=coll._buffer.context
         )
 
     part._init_random_number_generator()
+
+    if not is_converging:
+        dri = xt.Drift(length=-coll.length)
+        dri.track(part)
+        part.start_tracking_at_element -= 1
+        part.at_element -= 1
 
     return part
 
@@ -168,7 +180,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                dr_sigmas, match_at_s, is_converging):
+                                dr_sigmas, at_element, is_converging, tw_at_s=None):
     coll = line[name]
 
     if side == '+':
@@ -198,7 +210,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
                         num_particles, plane=plane, absolute_cut=pencil_pos, line=line,
                         dr_sigmas=dr_sigmas, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                        at_element=name, side=side,match_at_s=match_at_s
+                        at_element=at_element, side=side, twiss=tw_at_s
                        )
 
     # Other plane: generate gaussian distribution in normalized coordinates

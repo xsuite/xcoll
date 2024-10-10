@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -64,7 +64,7 @@ xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=Fal
 line.build_tracker()
 
 # Scattering need to be disabled to be able to twiss
-xc.disable_scattering(line)
+line.scattering.disable()
 
 # Matched initial parameters
 betx0 = 154.0835045206266
@@ -90,7 +90,7 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
 
 # Track!
 # ======
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part)
 print("Done Tracking!")
 

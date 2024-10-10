@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
@@ -156,7 +156,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
 #endif
         volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
 #endif
-        pc = Amorphous(everest, part, cg, pc, length);
+        pc = Amorphous(everest, part, cg, pc, length, 1);
 
     } else {
         // CHANNEL
@@ -207,7 +207,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
             pc               = result_chan[1];
             free(result_chan);
             if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
-            pc = Amorphous(everest, part, cg, pc, length - channeled_length);
+            pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
 
         } else {
             // Channel up to L_nucl, then scatter, then amorphous
@@ -229,7 +229,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
 #ifndef XCOLL_REFINE_ENERGY
                 calculate_scattering(everest, pc);
 #endif
-                pc = Amorphous(everest, part, cg, pc, length - channeled_length);
+                pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
             }
         }
     }
