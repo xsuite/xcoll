@@ -12,10 +12,10 @@ import xcoll as xc
 # ============================================
 
 # Get line and collimators
-line = xt.Line.from_json(xc._pkg_root / '..' / 'examples' / 'machines' / 'lhc_run3_b1.json')
+line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / 'lhc_run3_b1.json')
 
-coll_manager = xc.CollimatorDatabase.from_yaml(xc._pkg_root / '..' / 'examples' / 'colldb' / 'lhc_run3.yaml', beam=1)
-coll_manager.install_everest_collimators(verbose=True, line=line)
+colldb = xc.CollimatorDatabase.from_yaml(xc._pkg_root.parent / 'examples' / 'colldb' / 'lhc_run3.yaml', beam=1)
+colldb.install_everest_collimators(verbose=True, line=line)
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
@@ -24,7 +24,7 @@ impacts = xc.InteractionRecord.start(line=line)
 
 # Build tracker, assign optics and generate particles 
 line.build_tracker()
-xc.assign_optics_to_collimators(line=line)
+line.collimators.assign_optics()
 part = xc.generate_pencil_on_collimator(line, 'tcp.d6l7.b1', 50000)
 
 # This is not needed, but is done here so that we can track with 12 treads.
@@ -32,14 +32,14 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 # Track
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part, num_turns=20, time=True, with_progress=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 line.discard_tracker()
 impacts.stop()
 
 df = impacts.to_pandas()
-df.to_csv('impacts.csv', index=False)
+df.to_csv('impacts_line.csv', index=False)
 
 # ============================================
 # With collimator 
@@ -59,7 +59,7 @@ coll.track(part)
 part.sort(interleave_lost_particles=True)
 
 df = impacts_coll.to_pandas()
-df[df.interaction_type == 'Enter Jaw L'].to_csv('Enter_Jaw_L.csv', index=False)
+df[df.interaction_type == 'Enter Jaw L'].to_csv('impacts_coll_enter_jaw_L.csv', index=False)
 
 # ============================================
 # With crystal
@@ -80,4 +80,4 @@ part.sort(interleave_lost_particles=True)
 
 impacts_crystal.to_pandas()
 df_crystal = impacts_crystal.interactions_per_collimator()
-df_crystal.to_csv('interactions_per_crystal.csv', index=False)
+df_crystal.to_csv('impacts_crystal_interactions.csv', index=False)

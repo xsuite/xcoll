@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -14,7 +14,7 @@ from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
 
-path = Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 # TODO:  we are not checking the angles of the pencil!
 
@@ -38,19 +38,23 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     colldb.install_everest_collimators(line=line)
     line.build_tracker()
-    xc.assign_optics_to_collimators(line=line)
+    line.collimators.assign_optics()
 
     tw = line.twiss()
     tcp_conv = f"tcp.c6{'l' if beam == 1 else 'r'}7.b{beam}"
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = xc.generate_pencil_on_collimator(line, tcp_conv, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
+    part_conv = xc.generate_pencil_on_collimator(line, tcp_conv, num_particles=npart, twiss=tw, pencil_spread=pencil_spread,
                                                 impact_parameter=impact_parameter, longitudinal=longitudinal,
                                                 longitudinal_betatron_cut=longitudinal_betatron_cut)
-    part_div = xc.generate_pencil_on_collimator(line, tcp_div, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
+    part_div = xc.generate_pencil_on_collimator(line, tcp_div, num_particles=npart, twiss=tw, pencil_spread=pencil_spread,
                                                 impact_parameter=impact_parameter, longitudinal=longitudinal,
                                                 longitudinal_betatron_cut=longitudinal_betatron_cut)
+    assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
+    assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
+    assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]
+    assert part_div.start_tracking_at_element == line.element_names.index(tcp_div)
 
     # Normalize coordinates
     part_norm_conv = tw.get_normalized_coordinates(part_conv, nemitt_x=3.5e-6, nemitt_y=3.5e-6)

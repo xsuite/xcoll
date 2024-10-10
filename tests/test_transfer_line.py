@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -27,9 +27,9 @@ def test_transfer_line(test_context):
     assert xt.line._dicts_equal(line["Air 2"].material.to_dict(), air.to_dict())
     _add_monitors(line)
     line.build_tracker(_context=test_context)
-    xc.disable_scattering(line)  # Scattering need to be disabled to be able to twiss
+    line.scattering.disable()  # Scattering need to be disabled to be able to twiss
     part = _generate_matched_particles(line)
-    xc.enable_scattering(line)   # Re-enable scattering
+    line.scattering.enable()   # Re-enable scattering
     line.track(part)
     nemitt_x = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
     nemitt_y = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])

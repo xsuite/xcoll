@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -24,7 +24,7 @@ def test_gaps(beam, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     coll = xc.BlackAbsorber(length=1.738, angle=127.5)
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
-    xc.install_elements(line, name, coll, need_apertures=True)
+    line.collimators.install(name, coll, need_apertures=True)
     line.build_tracker()
     tw = line.twiss()
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
@@ -35,7 +35,7 @@ def test_gaps(beam, test_context):
     coll.gap_R = None
     coll.angle = 127.5
     coll.tilt = 0.0
-    
+
     # gap L
     newval_gapL = np.array([[2.3, -0.0013],[2.3, 0.0016],[2.3, -2.4],[2.3, 98],[2.3, np.pi/5]]) 
     second_gapL = np.array(['jaw_R', 'jaw_L', 'gap_R', 'angle', 'tilt']) 

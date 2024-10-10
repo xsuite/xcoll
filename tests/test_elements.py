@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -224,7 +224,7 @@ everest_crystal_dict_fields = [*base_crystal_dict_fields,
     {'field': 'lattice', 'val': 111,            'expected': {'_orient': 2}}
 ]
 everest_crystal_user_fields = base_crystal_user_fields
-everest_crystal_user_fields_read_only = base_crystal_user_fields_read_only
+everest_crystal_user_fields_read_only = [*base_crystal_user_fields_read_only, 'critical_radius', 'critical_angle']
 
 
 
