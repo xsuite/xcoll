@@ -43,7 +43,7 @@ def test_impacts_from_line(beam, plane, test_context):
 
     line.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
-    line._scattering.disable()
+    line.scattering.disable()
 
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
