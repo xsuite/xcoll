@@ -12,6 +12,7 @@ class GeomCInit(xo.Struct):
         _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'defines.h',
         _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'methods.h',
+        _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'find_root.h',
     ]
 
     # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
