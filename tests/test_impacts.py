@@ -36,14 +36,14 @@ def test_impacts_from_line(beam, plane, test_context):
     impacts = xc.InteractionRecord.start(line=line, record_impacts=True, record_exits=True)
     line.build_tracker(_context=test_context)
 
-    xc.assign_optics_to_collimators(line=line)
+    line.collimators.assign_optics()
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     tw = line.twiss()
     part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_part, twiss=tw)
 
-    xc.enable_scattering(line)
+    line.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
-    xc.disable_scattering(line)
+    line._scattering.disable()
 
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)

@@ -67,7 +67,7 @@ line.build_tracker()
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
-xc.assign_optics_to_collimators(line=line, twiss=tw)
+line.collimators.assign_optics(twiss=tw)
 if plane == 'H':
     adt.calibrate_by_emittance(nemitt=nemitt_x, twiss=tw)
 else:
@@ -90,11 +90,11 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-xc.enable_scattering(line)
+line.scattering.enable()
 adt.activate()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 adt.deactivate()
-xc.disable_scattering(line)
+line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

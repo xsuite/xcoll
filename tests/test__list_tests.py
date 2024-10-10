@@ -1,6 +1,7 @@
 import pytest
 import contextlib
 import os
+from pathlib import Path
 
 path = Path(__file__).parent / 'data'
 
