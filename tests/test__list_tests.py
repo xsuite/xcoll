@@ -2,6 +2,7 @@ import pytest
 import contextlib
 import os
 
+path = Path(__file__).parent / 'data'
 
 def _collect_tests():
     # Create a list to store the collected test names
@@ -24,7 +25,7 @@ def _collect_tests():
 
 def test_listing():
     current_tests = _collect_tests()
-    with open('all_tests.list', 'r') as fid:
+    with open(path / 'all_tests.list', 'r') as fid:
         expected_tests = set([line.replace('\n', '') for line in fid.readlines()])
     only_current = current_tests.difference(expected_tests)
     only_expected = expected_tests.difference(current_tests)
