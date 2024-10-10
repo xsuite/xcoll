@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -154,6 +154,7 @@ class EverestCrystal(BaseCrystal):
         'miscut':             xo.Float64,
         '_orient':            xo.Int8,
         '_critical_angle':    xo.Float64,
+        '_critical_radius':   xo.Float64,
         '_material':          CrystalMaterial,
         'rutherford_rng':     xt.RandomRutherford,
         '_tracking':          xo.Int8
@@ -215,7 +216,11 @@ class EverestCrystal(BaseCrystal):
 
     @property
     def critical_angle(self):
-        return self._critical_angle if abs(self._critical_angle) > 1.e-10 else None
+        return self._critical_angle if abs(self._critical_angle) > 1.e-12 else None
+
+    @property
+    def critical_radius(self):
+        return self._critical_radius if abs(self._critical_radius) > 1.e-10 else None
 
     @property
     def lattice(self):

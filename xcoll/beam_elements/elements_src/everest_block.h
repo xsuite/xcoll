@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -59,7 +59,6 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
             coll->record_scatterings = EverestBlockData_get_record_scatterings(el);
         }
     }
-
     return coll;
 }
 
@@ -69,15 +68,10 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
-#ifndef XCOLL_REFINE_ENERGY
     // Preinitialise scattering parameters
-    double charge_ratio = LocalParticle_get_charge_ratio(part);
-    double mass_ratio = charge_ratio / LocalParticle_get_chi(part);
-    double energy = ( LocalParticle_get_ptau(part) + 1 / LocalParticle_get_beta0(part)
-                     ) * mass_ratio * LocalParticle_get_p0c(part) / 1e9; // energy in GeV
+    double energy = LocalParticle_get_energy(part) / 1e9; // energy in GeV
     calculate_scattering(everest, energy);
     calculate_ionisation_properties(everest, energy);
-#endif
     return everest;
 }
 
@@ -107,9 +101,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 LocalParticle_set_s(part, 0);
 
                 // Store initial coordinates for updating later
-                double const e0         = LocalParticle_get_energy0(part);
-                double const p0         = LocalParticle_get_p0c(part);
-                double const ptau_in    = LocalParticle_get_ptau(part);
                 double const rvv_in     = LocalParticle_get_rvv(part);
 #ifdef XCOLL_USE_EXACT
                 double const xp_in      = LocalParticle_get_exact_xp(part);
@@ -119,20 +110,19 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double const yp_in      = LocalParticle_get_yp(part);
 #endif
                 double const zeta_in    = LocalParticle_get_zeta(part);
-                double const mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);   // m/m0
-                double energy           = (p0*ptau_in + e0) * mass_ratio;
+                double const energy_in  = LocalParticle_get_energy(part);
+                double energy_out;
 
                 EverestData everest = EverestBlock_init_data(part, coll);
-                energy = jaw(everest, part, energy, length, 0);
+                energy_out = jaw(everest, part, energy_in, length, 0);
                 free(everest);
                 LocalParticle_add_to_s(part, s_block);
 
                 LocalParticle_set_zeta(part, zeta_in);
                 // Survived particles need correcting:
                 if (LocalParticle_get_state(part)>0){
-                    // Update energy
-                    double ptau_out = (energy/mass_ratio - e0) / p0;
-                    LocalParticle_update_ptau(part, ptau_out);
+                    // Update energy; the last flag keeps angles constant (even valid for exact angles!)
+                    LocalParticle_add_to_energy(part, energy_out - energy_in, 0);
                     // Update zeta
 #ifdef XCOLL_USE_EXACT
                     double xp  = LocalParticle_get_exact_xp(part);

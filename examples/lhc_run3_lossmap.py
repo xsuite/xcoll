@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -51,7 +51,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
-xc.assign_optics_to_collimators(line=line)
+line.collimators.assign_optics()
 
 
 # Optimise the line
@@ -70,9 +70,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
