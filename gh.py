@@ -51,7 +51,7 @@ def _run_git(cmds):
     if cmd.returncode == 0:
         return cmd.stdout.decode('UTF-8').strip()
     else:
-        raise GitError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip().split('\n'))
+        raise GitError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip())
 
 def git_current_branch():
     return _run_git(["symbolic-ref", "--short", "HEAD"])
@@ -103,7 +103,7 @@ def _run_gh(cmds):
     if cmd.returncode == 0:
         return cmd.stdout.decode('UTF-8').strip()
     else:
-        raise GhError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip().split('\n'))
+        raise GhError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip())
 
 def gh_pr_create(base_branch, title):
     out = _run_gh(["pr", "create", "--base", base_branch, "--title", title, '--fill'])
@@ -122,7 +122,7 @@ def gh_pr_list(base=None, head=None):
 def gh_pr_merge(pr_id, admin=False, delete_branch=False):
     adm = ["--admin"] if admin else []
     db = ["--delete-branch"] if delete_branch else []
-    out = _run_gh(["merge", str(pr_id), "--merge", *adm, *db])
+    out = _run_gh(["pr", "merge", str(pr_id), "--merge", *adm, *db])
     if out: print(out)
 
 def gh_release_create(version, title, draft=False):
@@ -138,7 +138,7 @@ def _run_poetry(cmds):
     if cmd.returncode == 0:
         return cmd.stdout.decode('UTF-8').strip()
     else:
-        raise PoetryError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip().split('\n'))
+        raise PoetryError(' '.join(cmds) + ":\n" + cmd.stderr.decode('UTF-8').strip())
 
 def poetry_bump_version(bump):
     out = _run_poetry(["version", bump])
