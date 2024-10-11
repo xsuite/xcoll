@@ -4,3 +4,6 @@
 # ######################################### #
 
 from .geometry import XcollGeometry
+
+from .segments import LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment, \
+                      Segments, all_segments
