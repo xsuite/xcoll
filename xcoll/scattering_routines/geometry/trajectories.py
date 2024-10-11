@@ -13,6 +13,13 @@ trajectories = {
             xo.Arg(xo.Float64, pointer=False, name="x0"),
             xo.Arg(xo.Float64, pointer=False, name="m")
         ],
+        "crossing_args_vlimit": [
+            xo.Arg(xo.Float64, pointer=False, name="s0"),
+            xo.Arg(xo.Float64, pointer=False, name="x0"),
+            xo.Arg(xo.Float64, pointer=False, name="xm"),
+            xo.Arg(xo.Float64, pointer=False, name="y0"),
+            xo.Arg(xo.Float64, pointer=False, name="ym")
+        ],
         "max_crossings": {
             "line": 2,          # 2 crossings in case of parallel trajectory
             "halfopenline": 2,
@@ -24,7 +31,9 @@ trajectories = {
 
 
 trajectories_c_args = {trajectory: [", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args']]),
-                                    ", ".join([f"{arg.name}" for arg in args['crossing_args']])]
+                                    ", ".join([f"{arg.name}" for arg in args['crossing_args']]),]
+                                    ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args_vlimit']]),
+                                    ", ".join([f"{arg.name}" for arg in args['crossing_args_vlimit']])
                        for trajectory, args in trajectories.items()}
 
 def get_max_crossings(segments, trajectory):

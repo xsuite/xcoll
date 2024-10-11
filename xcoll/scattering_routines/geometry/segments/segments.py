@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..trajectories import trajectories, trajectories_c_args, get_max_crossings
+from ..trajectories import trajectories, trajectories_c_args
 from ..c_init import GeomCInit
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -67,7 +67,7 @@ class Segments(xo.Struct):
         kwargs['_seg_id'] = 0
         super().__init__(**kwargs)
         if segments is not None:
-            print(len(segments))
+            print(len(segments)) # Need to get seg_id, make cases in C, recompile/assign compilation
 
     def __repr__(self):
         return f"Segments([{', '.join([seg.__class__.__name__ + '(...)' for seg in self])}])"
