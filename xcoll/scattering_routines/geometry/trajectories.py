@@ -31,14 +31,14 @@ trajectories = {
 
 
 trajectories_c_args = {trajectory: [", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args']]),
-                                    ", ".join([f"{arg.name}" for arg in args['crossing_args']]),]
+                                    ", ".join([f"{arg.name}" for arg in args['crossing_args']]),
                                     ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args_vlimit']]),
-                                    ", ".join([f"{arg.name}" for arg in args['crossing_args_vlimit']])
+                                    ", ".join([f"{arg.name}" for arg in args['crossing_args_vlimit']])]
                        for trajectory, args in trajectories.items()}
 
 def get_max_crossings(segments, trajectory):
     from xcoll.scattering_routines.geometry.segments import all_segments, Segments
-    if isinstance(segments, Segments):
+    if hasattr(segments, '__iter__') and all(isinstance(seg, all_segments) for seg in segments):
         max_crossings = 0
         for seg in segments:
             max_crossings += trajectories[trajectory]["max_crossings"][seg.__class__.__name__.lower()[:-7]]
