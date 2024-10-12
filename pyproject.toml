@@ -7,11 +7,13 @@ repository = "https://github.com/xsuite/xcoll"
 authors = [
            "Frederik F. Van der Veken <frederik@cern.ch>",
            "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
-           "Bjorn Lindstrom",
-           "Andre Donadon Servelle",
+           "Björn Lindstrom <bjorn.lindstrom@cern.ch>",
+           "Giacomo Broggi <giacomo.broggi@cern.ch>",
+           "André Donadon Servelle <andre.donadon.servelle@cern.ch>",
+           "Dora E. Veres <dora.erzsebet.veres@cern.ch>",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
-           "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
+           "Giovanni Iadarola <giovanni.iadarola@cern.ch>"
 ]
 readme = "README.md"
 license = "Apache 2.0"
