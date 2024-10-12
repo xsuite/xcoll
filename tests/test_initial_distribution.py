@@ -45,12 +45,12 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = xc.generate_pencil_on_collimator(line, tcp_conv, num_particles=npart, twiss=tw, pencil_spread=pencil_spread,
-                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
-    part_div = xc.generate_pencil_on_collimator(line, tcp_div, num_particles=npart, twiss=tw, pencil_spread=pencil_spread,
-                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_conv = line[tcp_conv].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
+                                               impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                               longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_div = line[tcp_div].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
+                                             impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                             longitudinal_betatron_cut=longitudinal_betatron_cut)
     assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
     assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
     assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]
