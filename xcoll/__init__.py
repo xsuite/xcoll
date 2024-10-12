@@ -11,13 +11,18 @@ from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
-from .initial_distribution import *
 from .lossmap import LossMap
 
 # Deprecated
 from ._manager import CollimatorManager
 from .install import install_elements
 from .line_tools import assign_optics_to_collimators, open_collimators, send_to_parking, enable_scattering, disable_scattering
+def generate_pencil_on_collimator(line, name, *args, **kwargs):
+    from warnings import warn
+    warn("`xcoll.generate_pencil_on_collimator()` is deprecated and will be removed. Use "
+       + "`line[coll].generate_pencil()` instead.", FutureWarning)
+    return line[name].generate_pencil(*args, **kwargs)
+
 
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)

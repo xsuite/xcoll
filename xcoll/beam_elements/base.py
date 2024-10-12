@@ -929,7 +929,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("Collimator is missing pointer to line. Install collimators "
                            + "with `line.collimators.install()` (or use "
                            + "`xc.generate_pencil_on_collimator()`).")
-        from xcoll import generate_pencil_on_collimator
+        from xcoll.initial_distribution import generate_pencil_on_collimator
         return generate_pencil_on_collimator(line=self._line, name=self._name, side=side,
                         num_particles=num_particles, pencil_spread=pencil_spread, tw=tw,
                         impact_parameter=impact_parameter, sigma_z=sigma_z, twiss=twiss,
