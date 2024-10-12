@@ -111,8 +111,10 @@ class XcollCollimatorAPI:
                 aper_downstream.append(aper2)
 
         # Remove elements at location of collimator (by changing them into markers)
-        for s1, s2, name in zip(s_start, s_end, names):
+        for s1, s2, name, el in zip(s_start, s_end, names, elements):
             self.prepare_space(name, s_start=s1, s_end=s2, table=tab, s_tol=s_tol)
+            el._line = self.line
+            el._name = name
 
         # Install
         self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)

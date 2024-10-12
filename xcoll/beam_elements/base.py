@@ -922,6 +922,20 @@ class BaseCollimator(BaseBlock):
     # Methods
     # =======
 
+    def generate_pencil(self, num_particles, *, side='+-', pencil_spread=1e-6,
+                        impact_parameter=0, sigma_z=7.61e-2, twiss=None, longitudinal=None,
+                        longitudinal_betatron_cut=None, tw=None, **kwargs):
+        if not hasattr(self, '_line') or not hasattr(self, '_name'):
+            raise ValueError("Collimator is missing pointer to line. Install collimators "
+                           + "with `line.collimators.install()` (or use "
+                           + "`xc.generate_pencil_on_collimator()`).")
+        from xcoll import generate_pencil_on_collimator
+        return generate_pencil_on_collimator(line=self._line, name=self._name, side=side,
+                        num_particles=num_particles, pencil_spread=pencil_spread, tw=tw,
+                        impact_parameter=impact_parameter, sigma_z=sigma_z, twiss=twiss,
+                        longitudinal=longitudinal, longitudinal_betatron_cut=longitudinal_betatron_cut,
+                        **kwargs)
+
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)
         # Verify angles
@@ -1344,6 +1358,9 @@ class BaseCrystal(BaseBlock):
 
     # Methods
     # =======
+
+    def generate_pencil(self, **kwargs):
+        return BaseCollimator.generate_pencil(self, **kwargs)
 
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)
