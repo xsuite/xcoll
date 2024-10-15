@@ -72,6 +72,9 @@ tests/test_everest.py::test_angles_b2
 tests/test_everest.py::test_lengths_b1
 tests/test_everest.py::test_lengths_b2
 tests/test_everest.py::test_crystals
+tests/test_geant4.py::test_multiple_tracking[ContextCpu]
+tests/test_geant4.py::test_multiple_tracking[ContextCpu:auto]
+tests/test_geant4_line.py::test_geant4_line
 tests/test_geometry.py::test_jaw
 tests/test_geometry.py::test_jaw_after_s
 tests/test_geometry.py::test_jaw_with_vlimit
