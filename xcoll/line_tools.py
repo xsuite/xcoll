@@ -243,7 +243,7 @@ class XcollCollimatorAPI:
         tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for coll in names:
-            self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_x, twiss_upstream=tw_upstream,
+            self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
                                     twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
     def open(self, names=None):
