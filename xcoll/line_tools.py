@@ -8,7 +8,7 @@ from warnings import warn
 
 import xtrack as xt
 
-from .beam_elements import element_classes, _all_collimator_classes
+from .beam_elements import element_classes, _all_collimator_classes, _all_block_classes
 
 
 class XcollScatteringAPI:
@@ -78,7 +78,8 @@ class XcollCollimatorAPI:
 
         # Verify elements
         for el in elements:
-            assert isinstance(el, element_classes)
+            print(el.__class__)
+            assert isinstance(el, _all_block_classes)
             el._tracking = False
 
         # Get positions
@@ -111,8 +112,10 @@ class XcollCollimatorAPI:
                 aper_downstream.append(aper2)
 
         # Remove elements at location of collimator (by changing them into markers)
-        for s1, s2, name in zip(s_start, s_end, names):
+        for s1, s2, name, el in zip(s_start, s_end, names, elements):
             self.prepare_space(name, s_start=s1, s_end=s2, table=tab, s_tol=s_tol)
+            el._line = self.line
+            el._name = name
 
         # Install
         self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)
@@ -236,7 +239,7 @@ class XcollCollimatorAPI:
                 twiss = tw
         if not self.line._has_valid_tracker():
             raise Exception("Please build tracker before setting the openings!")
-        names = self.line.get_elements_of_type(_all_collimator_classes)[1]
+        names = self.line.get_elements_of_type(_all_collimator_classes, _all_block_classes)[1]
         tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for coll in names:
@@ -245,7 +248,7 @@ class XcollCollimatorAPI:
 
     def open(self, names=None):
         if names is None:
-            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
+            names = self.line.get_elements_of_type(_all_collimator_classes, _all_block_classes)[1]
         if len(names) == 0:
             print("No collimators found in line.")
         else:

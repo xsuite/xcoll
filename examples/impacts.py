@@ -25,7 +25,7 @@ impacts = xc.InteractionRecord.start(line=line)
 # Build tracker, assign optics and generate particles 
 line.build_tracker()
 line.collimators.assign_optics()
-part = xc.generate_pencil_on_collimator(line, 'tcp.d6l7.b1', 50000)
+part = line['tcp.d6l7.b1'].generate_pencil(50000)
 
 # This is not needed, but is done here so that we can track with 12 treads.
 line.discard_tracker()
