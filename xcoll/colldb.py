@@ -13,7 +13,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           FlukaCollimator, BaseCollimator, BaseCrystal, _all_collimator_classes
+                           FlukaCollimator, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 from .scattering_routines.fluka import FlukaEngine
 
@@ -527,7 +527,7 @@ class CollimatorDatabase:
     def _check_installed(self, line, name, collimator_class):
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], _all_collimator_classes):
+            if isinstance(line[name], collimator_classes):
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
                                + f"but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
