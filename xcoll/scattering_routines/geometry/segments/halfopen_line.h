@@ -22,7 +22,7 @@ void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, 
             //       For now we hit twice (because we go nor IN nor OUT)
             s[*n_hit] = s1;
             (*n_hit)++;
-            s[*n_hit] = s2;
+            s[*n_hit] = s1;
             (*n_hit)++;
         } else {
             // No hit

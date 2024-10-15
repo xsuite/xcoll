@@ -18,10 +18,10 @@ from .segments_source import segments_source, get_seg_ids, create_cases_in_sourc
 all_segments = (LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment)
 
 
-# Sanity check to assert Segment crossing functions are correctly defined for all trajectories
+# Sanity check to assert Segment crossing functions are correctly defined for each segment type and for all trajectories
 for trajectory, c_args in trajectories_c_args.items():
     for seg in all_segments:
-        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{trajectory}({seg.__name__} seg, int8_t* n_hit, double* s, {c_args[0]})"
+        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{trajectory}({seg.__name__} seg, int8_t* n_hit, double* s, {c_args['c_types']})"
         header_found = False
         for src in seg._extra_c_sources:
             if isinstance(src, str) and header in src:
@@ -35,6 +35,10 @@ for trajectory, c_args in trajectories_c_args.items():
             raise ValueError(f"Missing or corrupt C crossing function for {trajectory} in {seg.__name__}.")
 
 
+# ===========================
+# == General segment class ==
+# ===========================
+
 class Segment(xo.UnionRef):
     """General segment, acting as a xobject-style parent class for all segment types"""
     _reftypes = all_segments
@@ -47,6 +51,7 @@ class Segment(xo.UnionRef):
                     ],
                     ret=None)
                 for trajectory, args in trajectories.items()]
+
 
 # TODO TODO Need to recompile/assign compilation
 class Segments(xo.Struct):
@@ -95,25 +100,3 @@ class Segments(xo.Struct):
             s.append(this_s)
             x.append(this_x)
         return np.concatenate(s), np.concatenate(x)
-
-
-
-
-class GeomObject(xo.Struct):
-    segments = Segments
-
-    def __init__(self, segments):
-        self.segments = Segments(data=segments)
-        self._extra_sources = [
-            """
-/*gpufun*/
-void GeomObject_crossing_drift(GeomObject obj, int8_t* n_hit, double* s, double s0, double x0, double m){
-    Segments_crossing_drift(GeomObject_get_segments(obj), n_hit, s, s0, x0, m);
-}
-"""
-        ]
-
-# class Jaw
-#     segments = Segments
-
-# get_c_type
