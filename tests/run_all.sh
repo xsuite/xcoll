@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # Verify all tests
 echo "Verifying all tests..."
