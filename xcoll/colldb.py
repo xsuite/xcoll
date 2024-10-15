@@ -14,7 +14,6 @@ import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
                            BaseCollimator, BaseCrystal, _all_collimator_classes
-from .install import install_elements
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
 
@@ -572,7 +571,7 @@ class CollimatorDatabase:
             else:
                 self._create_crystal(line, BlackCrystal, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
-        install_elements(line, names, elements, need_apertures=need_apertures)
+        line.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
@@ -586,7 +585,7 @@ class CollimatorDatabase:
                                      lattice=self[name]['crystal'], verbose=verbose,
                                      miscut=self[name]['miscut'])
         elements = [self._elements[name] for name in names]
-        install_elements(line, names, elements, need_apertures=need_apertures)
+        line.collimators.install(names, elements, need_apertures=need_apertures)
 
 
     # ==================================

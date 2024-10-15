@@ -1,17 +1,19 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.5.5"
+version = "0.5.6"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
 authors = [
            "Frederik F. Van der Veken <frederik@cern.ch>",
            "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
-           "Bjorn Lindstrom",
-           "Andre Donadon Servelle",
+           "Björn Lindstrom <bjorn.lindstrom@cern.ch>",
+           "Giacomo Broggi <giacomo.broggi@cern.ch>",
+           "André Donadon Servelle <andre.donadon.servelle@cern.ch>",
+           "Dora E. Veres <dora.erzsebet.veres@cern.ch>",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
-           "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
+           "Giovanni Iadarola <giovanni.iadarola@cern.ch>"
 ]
 readme = "README.md"
 license = "Apache 2.0"
@@ -42,9 +44,7 @@ build-backend = "poetry.core.masonry.api"
 
 # pyproject.toml
 [tool.pytest.ini_options]
-addopts = "-ra --durations=10 --durations-min=1 --junitxml=pytest_results.xml"
-junit_suite_name = "Xcoll"
-junit_duration_report = "call"
+addopts = "-ra --durations=10 --durations-min=1"
 python_functions = ["test_"]
 testpaths = [
     "tests",
