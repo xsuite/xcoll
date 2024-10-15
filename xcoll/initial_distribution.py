@@ -10,7 +10,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import _all_collimator_classes, EverestCrystal
+from .beam_elements import _all_collimator_classes, EverestCrystal, Geant4Collimator
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
