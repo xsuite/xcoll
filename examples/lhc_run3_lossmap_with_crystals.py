@@ -58,7 +58,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
-xc.assign_optics_to_collimators(line=line)
+line.collimators.assign_optics()
 
 # Apply settings
 line[tcpc].bending_angle = 40.e-6
@@ -72,7 +72,7 @@ line.optimize_for_tracking()
 
 
 # # Generate initial pencil distribution on crystal
-# part = xc.generate_pencil_on_collimator(line, tcpc, num_particles=num_particles)
+# part = line[tcp].generate_pencil(num_particles)
 # Generate initial halo
 x_norm, px_norm, _, _ = xp.generate_2D_uniform_circular_sector(r_range=(5, 5.04), num_particles=num_particles)
 y_norm  = np.random.normal(scale=0.01, size=num_particles)
@@ -91,9 +91,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 

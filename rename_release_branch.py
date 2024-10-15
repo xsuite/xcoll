@@ -6,7 +6,7 @@
 
 import sys
 from gh import *
-sys.tracebacklimit = 0
+# sys.tracebacklimit = 0
 
 class VersionError(OSError):
     pass
