@@ -78,7 +78,7 @@ class XcollCollimatorAPI:
 
         # Verify elements
         for el in elements:
-            assert isinstance(el, element_classes)
+            assert isinstance(el, _all_collimator_classes)
             el._tracking = False
 
         # Get positions
