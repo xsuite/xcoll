@@ -922,6 +922,31 @@ class BaseCollimator(BaseBlock):
     # Methods
     # =======
 
+    def generate_pencil(self, num_particles, *, side='+-', pencil_spread=1e-6,
+                        impact_parameter=0, sigma_z=7.61e-2, twiss=None, longitudinal=None,
+                        longitudinal_betatron_cut=None, tw=None, **kwargs):
+        if not hasattr(self, '_line') or not hasattr(self, '_name'):
+            raise ValueError("Collimator is missing a pointer to the line. Install collimators "
+                           + "with `line.collimators.install()` (or use "
+                           + "`xcoll.initial_distribution.generate_pencil_on_collimator()`).")
+        from xcoll.initial_distribution import generate_pencil_on_collimator
+        return generate_pencil_on_collimator(line=self._line, name=self._name, side=side,
+                        num_particles=num_particles, pencil_spread=pencil_spread, tw=tw,
+                        impact_parameter=impact_parameter, sigma_z=sigma_z, twiss=twiss,
+                        longitudinal=longitudinal, longitudinal_betatron_cut=longitudinal_betatron_cut,
+                        **kwargs)
+
+    def generate_delta(self, *, plane, position_mm, nemitt_x, nemitt_y, betatron_cut=0,
+                       match_at_front=True, twiss=None):
+        if not hasattr(self, '_line') or not hasattr(self, '_name'):
+            raise ValueError("Collimator is missing a pointer to the line. Install collimators "
+                           + "with `line.collimators.install()` (or use "
+                           + "`xcoll.initial_distribution.generate_delta_from_dispersion()`).")
+        from xcoll.initial_distribution import generate_delta_from_dispersion
+        return generate_delta_from_dispersion(line=self._line, at_element=self._name, plane=plane,
+                        position_mm=position_mm, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss,
+                        betatron_cut=betatron_cut, match_at_front=match_at_front)
+
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)
         # Verify angles
@@ -1344,6 +1369,9 @@ class BaseCrystal(BaseBlock):
 
     # Methods
     # =======
+
+    def generate_pencil(self, **kwargs):
+        return BaseCollimator.generate_pencil(self, **kwargs)
 
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)

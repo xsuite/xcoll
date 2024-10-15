@@ -1,5 +1,3 @@
-tests/test__list_tests.py::test_listing
-tests/test__regenerate_kernels.py::test_init
 tests/test_adt.py::test_blow_up[B1H-ContextCpu]
 tests/test_adt.py::test_blow_up[B1H-ContextCpu:auto]
 tests/test_adt.py::test_blow_up[B1V-ContextCpu]

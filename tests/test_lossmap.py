@@ -40,7 +40,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     line.collimators.assign_optics()
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = xc.generate_pencil_on_collimator(line, tcp, num_particles=npart)
+    part = line[tcp].generate_pencil(npart)
 
     line.scattering.enable()
     line.track(part, num_turns=2)
