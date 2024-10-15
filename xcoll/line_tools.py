@@ -8,7 +8,7 @@ from warnings import warn
 
 import xtrack as xt
 
-from .beam_elements import element_classes, _all_collimator_classes, _all_block_classes
+from .beam_elements import element_classes, collimator_classes, block_classes
 
 
 class XcollScatteringAPI:
@@ -79,7 +79,7 @@ class XcollCollimatorAPI:
         # Verify elements
         for el in elements:
             print(el.__class__)
-            assert isinstance(el, _all_block_classes)
+            assert isinstance(el, block_classes)
             el._tracking = False
 
         # Get positions
@@ -239,7 +239,7 @@ class XcollCollimatorAPI:
                 twiss = tw
         if not self.line._has_valid_tracker():
             raise Exception("Please build tracker before setting the openings!")
-        names = self.line.get_elements_of_type(_all_collimator_classes, _all_block_classes)[1]
+        names = self.line.get_elements_of_type(collimator_classes)[1]
         tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for coll in names:
@@ -248,7 +248,7 @@ class XcollCollimatorAPI:
 
     def open(self, names=None):
         if names is None:
-            names = self.line.get_elements_of_type(_all_collimator_classes, _all_block_classes)[1]
+            names = self.line.get_elements_of_type(collimator_classes)[1]
         if len(names) == 0:
             print("No collimators found in line.")
         else:
@@ -258,7 +258,7 @@ class XcollCollimatorAPI:
 
     def to_parking(self, names=None):
         if names is None:
-            names = self.line.get_elements_of_type(_all_collimator_classes)[1]
+            names = self.line.get_elements_of_type(collimator_classes)[1]
         if len(names) == 0:
             print("No collimators found in line.")
         else:
