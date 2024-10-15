@@ -597,9 +597,6 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
-        from xcoll.beam_elements import _all_collimator_classes
-        if not isinstance(self, _all_collimator_classes):
-            raise ValueError("Please install collimator before assigning optics.")
         if nemitt_x is None:
             if self.nemitt_x is None:
                 raise ValueError("Need to provide `nemitt_x`.")
