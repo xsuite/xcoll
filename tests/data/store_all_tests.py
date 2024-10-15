@@ -3,6 +3,10 @@
 import pytest
 import contextlib
 import os
+from pathlib import Path
+
+
+path = Path(__file__).parent
 
 
 # Create a list to store the collected test names
@@ -17,10 +21,10 @@ class TestCollector:
             collected_tests.append(item.nodeid)
 
 # Run pytest collection with our custom plugin
-#with contextlib.redirect_stdout(None):
+os.chdir(path.parent)
 with contextlib.redirect_stdout(open(os.devnull, 'w')):
     pytest.main(["--collect-only"], plugins=[TestCollector()])
 
-with open('all_tests.list', 'w') as fid:
+with open(path / 'all_tests.list', 'w') as fid:
     for line in collected_tests:
         fid.write(f"{line}\n")

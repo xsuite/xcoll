@@ -44,9 +44,7 @@ build-backend = "poetry.core.masonry.api"
 
 # pyproject.toml
 [tool.pytest.ini_options]
-addopts = "-ra --durations=10 --durations-min=1 --junitxml=pytest_results.xml"
-junit_suite_name = "Xcoll"
-junit_duration_report = "call"
+addopts = "-ra --durations=10 --durations-min=1"
 python_functions = ["test_"]
 testpaths = [
     "tests",
