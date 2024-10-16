@@ -7,4 +7,4 @@ from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
 from .circular import CircularSegment
 from .bezier import BezierSegment
-from .segments import Segment, Segments, all_segments
+from .segments import Segments, SegmentsVLimit, all_segments

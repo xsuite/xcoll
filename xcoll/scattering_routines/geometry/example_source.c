@@ -1,4 +1,30 @@
 #include <stdint.h>
+#ifndef XOBJ_TYPEDEF_Arr2Float64
+#define XOBJ_TYPEDEF_Arr2Float64
+typedef   struct Arr2Float64_s * Arr2Float64;
+ static inline Arr2Float64 Arr2Float64_getp(Arr2Float64 restrict  obj){
+  int64_t offset=0;
+  return (Arr2Float64)(( char*) obj+offset);
+}
+ static inline int64_t Arr2Float64_len(Arr2Float64 restrict  obj){
+  return 2;
+}
+ static inline double Arr2Float64_get(const Arr2Float64 restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=i0*8;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void Arr2Float64_set(Arr2Float64 restrict  obj, int64_t i0, double value){
+  int64_t offset=0;
+  offset+=i0*8;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* Arr2Float64_getp1(Arr2Float64 restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=i0*8;
+  return ( double*)(( char*) obj+offset);
+}
+#endif
 #ifndef XOBJ_TYPEDEF_GeomCInit
 #define XOBJ_TYPEDEF_GeomCInit
 typedef   struct GeomCInit_s * GeomCInit;
@@ -435,16 +461,16 @@ typedef   struct LineSegment_s * LineSegment;
 #define XCOLL_COLL_GEOM_LINESEG_H
 
  static inline
-void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double s1 = LineSegment_get_s1(seg);
     double x1 = LineSegment_get_x1(seg);
     double s2 = LineSegment_get_s2(seg);
     double x2 = LineSegment_get_x2(seg);
-    double denom = (x2 - x1) - (s2 - s1)*m;
+    double denom = (x2 - x1) - (s2 - s1)*xm;
     if (fabs(denom) < XC_EPSILON){
         // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - m) < XC_EPSILON){
+        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_EPSILON){
             // Trajectory overlaps with the segment
             // TODO: This is situational; we should return s1 if get_s_first and current_s if after current_s
             //       For now we hit twice (because we go nor IN nor OUT)
@@ -457,7 +483,7 @@ void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, doubl
             return;
         }
     } else {
-        double t = (x0 - x1 - (s0 - s1)*m) / denom;
+        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0 && t <= 1){
             s[*n_hit] = s1*(1-t) + s2*t;
             (*n_hit)++;
@@ -525,29 +551,29 @@ typedef   struct HalfOpenLineSegment_s * HalfOpenLineSegment;
 #define XCOLL_COLL_GEOM_HALFOPENLINESEG_H
 
  static inline
-void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double s1 = HalfOpenLineSegment_get_s(seg);
     double x1 = HalfOpenLineSegment_get_x(seg);
     double s2 = s1 + cos(HalfOpenLineSegment_get_t(seg));
     double x2 = x1 + sin(HalfOpenLineSegment_get_t(seg));
-    double denom = (x2 - x1) - (s2 - s1)*m;
+    double denom = (x2 - x1) - (s2 - s1)*xm;
     if (fabs(denom) < XC_EPSILON){
         // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - m) < XC_EPSILON){
+        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_EPSILON){
             // Trajectory overlaps with the segment
             // TODO: This is situational; we should return s1 if get_s_first and current_s if after current_s
             //       For now we hit twice (because we go nor IN nor OUT)
             s[*n_hit] = s1;
             (*n_hit)++;
-            s[*n_hit] = s2;
+            s[*n_hit] = s1;
             (*n_hit)++;
         } else {
             // No hit
             return;
         }
     } else {
-        double t = (x0 - x1 - (s0 - s1)*m) / denom;
+        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
             s[*n_hit] = s1*(1-t) + s2*t;
             (*n_hit)++;
@@ -645,7 +671,7 @@ typedef   struct CircularSegment_s * CircularSegment;
 #define XCOLL_COLL_GEOM_CIRCULARSEG_H
 
  static inline
-void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double R  = CircularSegment_get_R(seg);
     double sC = CircularSegment_get_s(seg);
@@ -673,9 +699,9 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
         reversed = 1;
     }
     // Calculate crossings
-    double a = 1 + m*m;
-    double bb = sC - m*(x0 - xC - m*s0); // This is -b/2 with b from the quadratic formula
-    double c = sC*sC + (x0 - xC - m*s0)*(x0 - xC - m*s0) - R*R;
+    double a = 1 + xm*xm;
+    double bb = sC - xm*(x0 - xC - xm*s0); // This is -b/2 with b from the quadratic formula
+    double c = sC*sC + (x0 - xC - xm*s0)*(x0 - xC - xm*s0) - R*R;
     double disc = bb*bb - a*c; // This is  2*discriminant**2
     if (disc < 0){
         // No crossing
@@ -684,7 +710,7 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
     for (int8_t i = 0; i < 2; i++) {
         double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
         double new_s = (bb + sgnD*sqrt(fabs(disc)))/a;
-        double new_x = x0 + (new_s - s0)*m;
+        double new_x = x0 + (new_s - s0)*xm;
         double t = atan2(new_x - xC, new_s - sC);
         if (full_circle){
             // Full circle, so always hit
@@ -853,7 +879,7 @@ void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_h
 }
 
  static inline
-void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double s1  = BezierSegment_get_s1(seg);
     double x1  = BezierSegment_get_x1(seg);
@@ -868,10 +894,10 @@ void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, d
     // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
     // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
     // The solutions for t (which we get by Cardano's method) are valid if in [0, 1]
-    double a = (m*s1 - x1) - (m*s2 - x2) - 3*(m*cs1 - cx1) + 3*(m*cs2 - cx2);
-    double b = 6*(m*cs1 - cx1) - 3*(m*cs2 - cx2) - 3*(m*s1 - x1);
-    double c = 3*(m*s1 - x1) - 3*(m*cs1 - cx1);
-    double d = (m*s0 - x0) - (m*s1 - x1);
+    double a = (xm*s1 - x1) - (xm*s2 - x2) - 3*(xm*cs1 - cx1) + 3*(xm*cs2 - cx2);
+    double b = 6*(xm*cs1 - cx1) - 3*(xm*cs2 - cx2) - 3*(xm*s1 - x1);
+    double c = 3*(xm*s1 - x1) - 3*(xm*cs1 - cx1);
+    double d = (xm*s0 - x0) - (xm*s1 - x1);
     double t;
     // Edge cases
     if (fabs(a) < XC_EPSILON){
@@ -957,75 +983,75 @@ void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, d
 }
 
 #endif /* XCOLL_COLL_GEOM_BEZIERSEG_H */
-#ifndef XOBJ_TYPEDEF_Segment
-#define XOBJ_TYPEDEF_Segment
-typedef   struct Segment_s * Segment;
-enum Segment_e{Segment_LineSegment_t,Segment_HalfOpenLineSegment_t,Segment_CircularSegment_t,Segment_BezierSegment_t};
- static inline Segment Segment_getp(Segment restrict  obj){
+#ifndef XOBJ_TYPEDEF_LocalSegment
+#define XOBJ_TYPEDEF_LocalSegment
+typedef   struct LocalSegment_s * LocalSegment;
+enum LocalSegment_e{LocalSegment_LineSegment_t,LocalSegment_HalfOpenLineSegment_t,LocalSegment_CircularSegment_t,LocalSegment_BezierSegment_t};
+ static inline LocalSegment LocalSegment_getp(LocalSegment restrict  obj){
   int64_t offset=0;
-  return (Segment)(( char*) obj+offset);
+  return (LocalSegment)(( char*) obj+offset);
 }
- static inline int64_t Segment_typeid(const Segment restrict  obj){
+ static inline int64_t LocalSegment_typeid(const LocalSegment restrict  obj){
   int64_t offset=0;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline  void* Segment_member(const Segment restrict  obj){
+ static inline  void* LocalSegment_member(const LocalSegment restrict  obj){
   int64_t offset=0;
   offset+=*( int64_t*)(( char*) obj+offset);
  return ( void*)(( char*) obj+offset);
 }
- static inline void Segment_crossing_drift(const Segment restrict  obj,  int8_t* restrict  n_hit,  double* restrict  s, double s0, double x0, double m){
-   void* member = Segment_member(obj);
-  switch (Segment_typeid(obj)){
-        #ifndef SEGMENT_SKIP_LINESEGMENT
-        case Segment_LineSegment_t:
-            return LineSegment_crossing_drift((LineSegment) member,n_hit,s,s0,x0,m);
+ static inline void LocalSegment_crossing_drift(const LocalSegment restrict  obj,  int8_t* restrict  n_hit,  double* restrict  s, double s0, double x0, double xm){
+   void* member = LocalSegment_member(obj);
+  switch (LocalSegment_typeid(obj)){
+        #ifndef LOCALSEGMENT_SKIP_LINESEGMENT
+        case LocalSegment_LineSegment_t:
+            return LineSegment_crossing_drift((LineSegment) member,n_hit,s,s0,x0,xm);
             break;
         #endif
-        #ifndef SEGMENT_SKIP_HALFOPENLINESEGMENT
-        case Segment_HalfOpenLineSegment_t:
-            return HalfOpenLineSegment_crossing_drift((HalfOpenLineSegment) member,n_hit,s,s0,x0,m);
+        #ifndef LOCALSEGMENT_SKIP_HALFOPENLINESEGMENT
+        case LocalSegment_HalfOpenLineSegment_t:
+            return HalfOpenLineSegment_crossing_drift((HalfOpenLineSegment) member,n_hit,s,s0,x0,xm);
             break;
         #endif
-        #ifndef SEGMENT_SKIP_CIRCULARSEGMENT
-        case Segment_CircularSegment_t:
-            return CircularSegment_crossing_drift((CircularSegment) member,n_hit,s,s0,x0,m);
+        #ifndef LOCALSEGMENT_SKIP_CIRCULARSEGMENT
+        case LocalSegment_CircularSegment_t:
+            return CircularSegment_crossing_drift((CircularSegment) member,n_hit,s,s0,x0,xm);
             break;
         #endif
-        #ifndef SEGMENT_SKIP_BEZIERSEGMENT
-        case Segment_BezierSegment_t:
-            return BezierSegment_crossing_drift((BezierSegment) member,n_hit,s,s0,x0,m);
+        #ifndef LOCALSEGMENT_SKIP_BEZIERSEGMENT
+        case LocalSegment_BezierSegment_t:
+            return BezierSegment_crossing_drift((BezierSegment) member,n_hit,s,s0,x0,xm);
             break;
         #endif
   }
   return;
 }
 #endif
-#ifndef XOBJ_TYPEDEF_ArrNSegment
-#define XOBJ_TYPEDEF_ArrNSegment
-typedef   struct ArrNSegment_s * ArrNSegment;
- static inline ArrNSegment ArrNSegment_getp(ArrNSegment restrict  obj){
+#ifndef XOBJ_TYPEDEF_ArrNLocalSegment
+#define XOBJ_TYPEDEF_ArrNLocalSegment
+typedef   struct ArrNLocalSegment_s * ArrNLocalSegment;
+ static inline ArrNLocalSegment ArrNLocalSegment_getp(ArrNLocalSegment restrict  obj){
   int64_t offset=0;
-  return (ArrNSegment)(( char*) obj+offset);
+  return (ArrNLocalSegment)(( char*) obj+offset);
 }
- static inline int64_t ArrNSegment_len(ArrNSegment restrict  obj){
+ static inline int64_t ArrNLocalSegment_len(ArrNLocalSegment restrict  obj){
   int64_t offset=0;
    int64_t* arr = ( int64_t*)(( char*) obj+offset);
   return arr[1];
 }
- static inline Segment ArrNSegment_getp1(ArrNSegment restrict  obj, int64_t i0){
+ static inline LocalSegment ArrNLocalSegment_getp1(ArrNLocalSegment restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16+i0*16;
-  return (Segment)(( char*) obj+offset);
+  return (LocalSegment)(( char*) obj+offset);
 }
- static inline int64_t ArrNSegment_typeid(const ArrNSegment restrict  obj, int64_t i0){
+ static inline int64_t ArrNLocalSegment_typeid(const ArrNLocalSegment restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16+i0*16;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline  void* ArrNSegment_member(const ArrNSegment restrict  obj, int64_t i0){
+ static inline  void* ArrNLocalSegment_member(const ArrNLocalSegment restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16+i0*16;
   offset+=*( int64_t*)(( char*) obj+offset);
@@ -1039,31 +1065,31 @@ typedef   struct Segments_s * Segments;
   int64_t offset=0;
   return (Segments)(( char*) obj+offset);
 }
- static inline ArrNSegment Segments_getp_data(Segments restrict  obj){
+ static inline ArrNLocalSegment Segments_getp_segments(Segments restrict  obj){
   int64_t offset=0;
   offset+=16;
-  return (ArrNSegment)(( char*) obj+offset);
+  return (ArrNLocalSegment)(( char*) obj+offset);
 }
- static inline int64_t Segments_len_data(Segments restrict  obj){
+ static inline int64_t Segments_len_segments(Segments restrict  obj){
   int64_t offset=0;
   offset+=16;
    int64_t* arr = ( int64_t*)(( char*) obj+offset);
   return arr[1];
 }
- static inline Segment Segments_getp1_data(Segments restrict  obj, int64_t i0){
+ static inline LocalSegment Segments_getp1_segments(Segments restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
-  return (Segment)(( char*) obj+offset);
+  return (LocalSegment)(( char*) obj+offset);
 }
- static inline int64_t Segments_typeid_data(const Segments restrict  obj, int64_t i0){
+ static inline int64_t Segments_typeid_segments(const Segments restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline  void* Segments_member_data(const Segments restrict  obj, int64_t i0){
+ static inline  void* Segments_member_segments(const Segments restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
@@ -1088,36 +1114,24 @@ typedef   struct Segments_s * Segments;
 #endif
 
  static inline
-void Segments_crossing_drift(Segments segs, int8_t* n_hit, double* s, double s0, double x0, double m){
-    int64_t n_segments = Segments_len_data(segs);
+void Segments_crossing_drift(Segments segs, int8_t* n_hit, double* s, double s0, double x0, double xm){
+    int64_t n_segments = Segments_len_segments(segs);
     for (int8_t i=0; i<n_segments;i++) {
-        Segment seg = Segments_getp1_data(segs, i);
-        Segment_crossing_drift(seg, n_hit, s, s0, x0, m);
+        LocalSegment seg = Segments_getp1_segments(segs, i);
+        LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
     }
     sort_array_of_double(s, (int64_t) *n_hit);
 }
 
-
  static inline
-void Segments_crossing_drift_vlimit(Segments segs, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
-    int64_t n_segments = Segments_len_data(segs);
-    for (int8_t i=0; i<n_segments;i++) {
-        Segment seg = Segments_getp1_data(segs, i);
-        // Segment_crossing_drift(seg, n_hit, s, s0, x0, xm, y0, ym);
-    }
-    sort_array_of_double(s, (int64_t) *n_hit);
-}
-
-
- static inline
-double Segments_crossing_drift_first(Segments segs, double s0, double x0, double m){
+double Segments_crossing_drift_first(Segments segs, double s0, double x0, double xm){
     int8_t n_hit = 0;
     int64_t seg_id = Segments_get__seg_id(segs);
     switch (seg_id){
-        /*START_SEG_ID_CASES_drift_first*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
+        /*START_SEG_ID_CASES_Segments_drift_first*/
+        case 0: {  // SIZE: 2
+            double s[2];
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[0];
             }
@@ -1125,91 +1139,63 @@ double Segments_crossing_drift_first(Segments segs, double s0, double x0, double
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[0];
             }
             return XC_S_MAX;
         }
-        case 2: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
-        }
-        case 3: {  // SIZE: 3
-            double s[3];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
-        }
-        /*END_SEG_ID_CASES_drift_first*/
+        /*END_SEG_ID_CASES_Segments_drift_first*/
         default:
-            printf("Unknown seg_id for Segment: %ld\nPlease recompile.", seg_id);
+            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
-
  static inline
-double Segments_crossing_drift_vlimit_first(Segments segs, double s0, double x0, double xm, double y0, double ym){
+double Segments_crossing_drift_before_s(Segments segs, double s0, double x0, double xm, double before_s){
     int8_t n_hit = 0;
     int64_t seg_id = Segments_get__seg_id(segs);
     switch (seg_id){
-        /*START_SEG_ID_CASES_drift_vlimit_first*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[0];
+        /*START_SEG_ID_CASES_Segments_drift_before_s*/
+        case 0: {  // SIZE: 2
+            double s[2];
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            for (int8_t i=n_hit-1; i>=0; i--){
+                if (s[i] <= before_s){
+                    return s[i];
+                }
             }
             return XC_S_MAX;
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[0];
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            for (int8_t i=n_hit-1; i>=0; i--){
+                if (s[i] <= before_s){
+                    return s[i];
+                }
             }
             return XC_S_MAX;
         }
-        case 2: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
-        }
-        case 3: {  // SIZE: 3
-            double s[3];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
-        }
-        /*END_SEG_ID_CASES_drift_vlimit_first*/
+        /*END_SEG_ID_CASES_Segments_drift_before_s*/
         default:
-            printf("Unknown seg_id for Segment: %ld\nPlease recompile.", seg_id);
+            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
-
  static inline
-double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, double m, double after_s){
+double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, double xm, double after_s){
     int8_t n_hit = 0;
     int64_t seg_id = Segments_get__seg_id(segs);
     switch (seg_id){
-        /*START_SEG_ID_CASES_drift_after_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
+        /*START_SEG_ID_CASES_Segments_drift_after_s*/
+        case 0: {  // SIZE: 2
+            double s[2];
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
             for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -1219,7 +1205,7 @@ double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, doub
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
             for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -1227,83 +1213,251 @@ double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, doub
             }
             return XC_S_MAX;
         }
-        case 2: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
-        }
-        case 3: {  // SIZE: 3
-            double s[3];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, m);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
-        }
-        /*END_SEG_ID_CASES_drift_after_s*/
+        /*END_SEG_ID_CASES_Segments_drift_after_s*/
         default:
-            printf("Unknown seg_id for Segment: %ld\nPlease recompile.", seg_id);
+            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
-
  static inline
-double Segments_crossing_drift_vlimit_after_s(Segments segs, double s0, double x0, double xm, double y0, double ym, double after_s){
+double Segments_crossing_drift_last(Segments segs, double s0, double x0, double xm){
     int8_t n_hit = 0;
     int64_t seg_id = Segments_get__seg_id(segs);
     switch (seg_id){
-        /*START_SEG_ID_CASES_drift_vlimit_after_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
+        /*START_SEG_ID_CASES_Segments_drift_last*/
+        case 0: {  // SIZE: 2
+            double s[2];
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            if (n_hit>0){
+                return s[n_hit-1];
             }
             return XC_S_MAX;
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
+            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            if (n_hit>0){
+                return s[n_hit-1];
             }
             return XC_S_MAX;
         }
-        case 2: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
-        }
-        case 3: {  // SIZE: 3
-            double s[3];
-            Segments_crossing_drift_vlimit(segs, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
-        }
-        /*END_SEG_ID_CASES_drift_vlimit_after_s*/
+        /*END_SEG_ID_CASES_Segments_drift_last*/
         default:
-            printf("Unknown seg_id for Segment: %ld\nPlease recompile.", seg_id);
+            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
+            return XC_S_MAX;
+    }
+}
+#ifndef XOBJ_TYPEDEF_SegmentsVLimit
+#define XOBJ_TYPEDEF_SegmentsVLimit
+typedef   struct SegmentsVLimit_s * SegmentsVLimit;
+ static inline SegmentsVLimit SegmentsVLimit_getp(SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  return (SegmentsVLimit)(( char*) obj+offset);
+}
+ static inline ArrNLocalSegment SegmentsVLimit_getp_segments(SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  offset+=32;
+  return (ArrNLocalSegment)(( char*) obj+offset);
+}
+ static inline int64_t SegmentsVLimit_len_segments(SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  offset+=32;
+   int64_t* arr = ( int64_t*)(( char*) obj+offset);
+  return arr[1];
+}
+ static inline LocalSegment SegmentsVLimit_getp1_segments(SegmentsVLimit restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=32;
+  offset+=16+i0*16;
+  return (LocalSegment)(( char*) obj+offset);
+}
+ static inline int64_t SegmentsVLimit_typeid_segments(const SegmentsVLimit restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=32;
+  offset+=16+i0*16;
+  offset+=8;
+  return *( int64_t*)(( char*) obj+offset);
+}
+ static inline  void* SegmentsVLimit_member_segments(const SegmentsVLimit restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=32;
+  offset+=16+i0*16;
+  offset+=*( int64_t*)(( char*) obj+offset);
+ return ( void*)(( char*) obj+offset);
+}
+ static inline Arr2Float64 SegmentsVLimit_getp_vlimit(SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  offset+=8;
+  return (Arr2Float64)(( char*) obj+offset);
+}
+ static inline int64_t SegmentsVLimit_len_vlimit(SegmentsVLimit restrict  obj){
+  return 2;
+}
+ static inline double SegmentsVLimit_get_vlimit(const SegmentsVLimit restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=8;
+  offset+=i0*8;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void SegmentsVLimit_set_vlimit(SegmentsVLimit restrict  obj, int64_t i0, double value){
+  int64_t offset=0;
+  offset+=8;
+  offset+=i0*8;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* SegmentsVLimit_getp1_vlimit(SegmentsVLimit restrict  obj, int64_t i0){
+  int64_t offset=0;
+  offset+=8;
+  offset+=i0*8;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline int64_t SegmentsVLimit_get__seg_id(const SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  offset+=24;
+  return *( int64_t*)(( char*) obj+offset);
+}
+ static inline void SegmentsVLimit_set__seg_id(SegmentsVLimit restrict  obj, int64_t value){
+  int64_t offset=0;
+  offset+=24;
+  *( int64_t*)(( char*) obj+offset)=value;
+}
+ static inline  int64_t* SegmentsVLimit_getp__seg_id(SegmentsVLimit restrict  obj){
+  int64_t offset=0;
+  offset+=24;
+  return ( int64_t*)(( char*) obj+offset);
+}
+#endif
+
+ static inline
+int8_t vlimit_drift(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){
+    if (fabs(ym) < XC_EPSILON){
+        // Trajectory parallel to s axis
+        if (y0 < ymin || y0 > ymax){
+            return 0;  // Completely outside - no crossing possible
+        } else {
+            return -1; // Completely inside - no vertical check needed
+        }
+    } else {
+        restrict_s[0] = (ymin - y0)/ym + s0;
+        restrict_s[1] = (ymax - y0)/ym + s0;
+        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+        return 1;  // Default behavior: check overlap with horizontal crossings
+    }
+}
+
+
+ static inline
+void SegmentsVLimit_crossing_drift(SegmentsVLimit segs, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
+    double restrict_s[2];
+    double ymin = SegmentsVLimit_get_vlimit(segs, 0);
+    double ymax = SegmentsVLimit_get_vlimit(segs, 1);
+    int8_t v_result = vlimit_drift(restrict_s, s0, y0, ym, ymin, ymax);
+    if (v_result == 0){
+        return;  // Completely outside - no crossing possible
+    } else {
+        int64_t n_segments = SegmentsVLimit_len_segments(segs);
+        for (int8_t i=0; i<n_segments;i++) {
+            LocalSegment seg = SegmentsVLimit_getp1_segments(segs, i);
+            LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
+        }
+        sort_array_of_double(s, (int64_t) *n_hit);
+        if (v_result == 1){
+            calculate_overlap_array_interval(s, n_hit, restrict_s);
+        }
+    }
+}
+
+ static inline
+double SegmentsVLimit_crossing_drift_first(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym){
+    int8_t n_hit = 0;
+    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    switch (seg_id){
+        /*START_SEG_ID_CASES_SegmentsVLimit_drift_first*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+            if (n_hit>0){
+                return s[0];
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_SegmentsVLimit_drift_first*/
+        default:
+            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
+            return XC_S_MAX;
+    }
+}
+
+ static inline
+double SegmentsVLimit_crossing_drift_before_s(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym, double before_s){
+    int8_t n_hit = 0;
+    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    switch (seg_id){
+        /*START_SEG_ID_CASES_SegmentsVLimit_drift_before_s*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+            for (int8_t i=n_hit-1; i>=0; i--){
+                if (s[i] <= before_s){
+                    return s[i];
+                }
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_SegmentsVLimit_drift_before_s*/
+        default:
+            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
+            return XC_S_MAX;
+    }
+}
+
+ static inline
+double SegmentsVLimit_crossing_drift_after_s(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym, double after_s){
+    int8_t n_hit = 0;
+    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    switch (seg_id){
+        /*START_SEG_ID_CASES_SegmentsVLimit_drift_after_s*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+            for (int8_t i=0; i<n_hit; i++){
+                if (s[i] >= after_s){
+                    return s[i];
+                }
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_SegmentsVLimit_drift_after_s*/
+        default:
+            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
+            return XC_S_MAX;
+    }
+}
+
+ static inline
+double SegmentsVLimit_crossing_drift_last(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym){
+    int8_t n_hit = 0;
+    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    switch (seg_id){
+        /*START_SEG_ID_CASES_SegmentsVLimit_drift_last*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+            if (n_hit>0){
+                return s[n_hit-1];
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_SegmentsVLimit_drift_last*/
+        default:
+            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }

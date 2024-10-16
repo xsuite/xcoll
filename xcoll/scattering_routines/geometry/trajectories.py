@@ -11,17 +11,17 @@ import xobjects as xo
 
 trajectories = {
     "drift": {
-        "crossing_args": [
-            xo.Arg(xo.Float64, pointer=False, name="s0"),
-            xo.Arg(xo.Float64, pointer=False, name="x0"),
-            xo.Arg(xo.Float64, pointer=False, name="m")
+        "args": [
+            xo.Arg(xo.Float64, pointer=False, name="s0"),  # Particle s
+            xo.Arg(xo.Float64, pointer=False, name="x0"),  # Particle x
+            xo.Arg(xo.Float64, pointer=False, name="xm")   # Particle slope in the x direction (= xp = tan(theta_x))
         ],
-        "crossing_args_vlimit": [
-            xo.Arg(xo.Float64, pointer=False, name="s0"),
-            xo.Arg(xo.Float64, pointer=False, name="x0"),
-            xo.Arg(xo.Float64, pointer=False, name="xm"),
-            xo.Arg(xo.Float64, pointer=False, name="y0"),
-            xo.Arg(xo.Float64, pointer=False, name="ym")
+        "args_vlimit_common": [
+            xo.Arg(xo.Float64, pointer=False, name="s0")   # Particle s
+        ],
+        "args_vlimit_extra": [
+            xo.Arg(xo.Float64, pointer=False, name="y0"),  # Particle y
+            xo.Arg(xo.Float64, pointer=False, name="ym")   # Particle slope in the y direction (= yp = tan(theta_y))
         ],
         "max_crossings": {
             "line": 2,          # 2 crossings in case of parallel trajectory
@@ -29,17 +29,33 @@ trajectories = {
             "circular": 2,
             "bezier": 3
         }
+    ## Add more trajectories here ##
     }
 }
 
 
-# C arguments for trajectories
-trajectories_c_args = {trajectory: {
-                            'c_types': ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args']]),
-                            'c_names': ", ".join([f"{arg.name}" for arg in args['crossing_args']]),
-                            'c_types_vlimit': ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args['crossing_args_vlimit']]),
-                            'c_names_vlimit': ", ".join([f"{arg.name}" for arg in args['crossing_args_vlimit']])}
-                       for trajectory, args in trajectories.items()}
+trajectories_vlimit_sources = {
+    'drift': f"""
+/*gpufun*/
+int8_t vlimit_drift(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){{
+    if (fabs(ym) < XC_EPSILON){{
+        // Trajectory parallel to s axis
+        if (y0 < ymin || y0 > ymax){{
+            return 0;  // Completely outside - no crossing possible
+        }} else {{
+            return -1; // Completely inside - no vertical check needed
+        }}
+    }} else {{
+        restrict_s[0] = (ymin - y0)/ym + s0;
+        restrict_s[1] = (ymax - y0)/ym + s0;
+        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+        return 1;  // Default behavior: check overlap with horizontal crossings
+    }}
+}}
+"""
+    ## Add vlimit functions for each trajectory here ##
+}
+
 
 # Function to get the maximum number of crossings for a given object type
 def get_max_crossings(segments, trajectory):

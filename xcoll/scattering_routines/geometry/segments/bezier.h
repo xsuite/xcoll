@@ -20,7 +20,7 @@ void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_h
 }
 
 /*gpufun*/
-void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double s1  = BezierSegment_get_s1(seg);
     double x1  = BezierSegment_get_x1(seg);
@@ -35,10 +35,10 @@ void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, d
     // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
     // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
     // The solutions for t (which we get by Cardano's method) are valid if in [0, 1]
-    double a = (m*s1 - x1) - (m*s2 - x2) - 3*(m*cs1 - cx1) + 3*(m*cs2 - cx2);
-    double b = 6*(m*cs1 - cx1) - 3*(m*cs2 - cx2) - 3*(m*s1 - x1);
-    double c = 3*(m*s1 - x1) - 3*(m*cs1 - cx1);
-    double d = (m*s0 - x0) - (m*s1 - x1);
+    double a = (xm*s1 - x1) - (xm*s2 - x2) - 3*(xm*cs1 - cx1) + 3*(xm*cs2 - cx2);
+    double b = 6*(xm*cs1 - cx1) - 3*(xm*cs2 - cx2) - 3*(xm*s1 - x1);
+    double c = 3*(xm*s1 - x1) - 3*(xm*cs1 - cx1);
+    double d = (xm*s0 - x0) - (xm*s1 - x1);
     double t;
     // Edge cases
     if (fabs(a) < XC_EPSILON){

@@ -7,7 +7,7 @@
 #define XCOLL_COLL_GEOM_CIRCULARSEG_H
 
 /*gpufun*/
-void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double m){
+void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
     double R  = CircularSegment_get_R(seg);
     double sC = CircularSegment_get_s(seg);
@@ -35,9 +35,9 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
         reversed = 1;
     }
     // Calculate crossings
-    double a = 1 + m*m;
-    double bb = sC - m*(x0 - xC - m*s0); // This is -b/2 with b from the quadratic formula
-    double c = sC*sC + (x0 - xC - m*s0)*(x0 - xC - m*s0) - R*R;
+    double a = 1 + xm*xm;
+    double bb = sC - xm*(x0 - xC - xm*s0); // This is -b/2 with b from the quadratic formula
+    double c = sC*sC + (x0 - xC - xm*s0)*(x0 - xC - xm*s0) - R*R;
     double disc = bb*bb - a*c; // This is  2*discriminant**2
     if (disc < 0){
         // No crossing
@@ -46,7 +46,7 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
     for (int8_t i = 0; i < 2; i++) {
         double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
         double new_s = (bb + sgnD*sqrt(fabs(disc)))/a;
-        double new_x = x0 + (new_s - s0)*m;
+        double new_x = x0 + (new_s - s0)*xm;
         double t = atan2(new_x - xC, new_s - sC);
         if (full_circle){
             // Full circle, so always hit
