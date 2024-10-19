@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+# To be removed
 from .geometry import XcollGeometry
 
 from .segments import LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment, \

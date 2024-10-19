@@ -17,13 +17,13 @@ from ..trajectories import trajectories, trajectories_vlimit_sources, get_max_cr
 # Different types of s selections (first crossing, last one before a given s, first one after a given s, last crossing)
 all_s_positions = {
     'first': {
-        'c_types': '',
+        'args': [],
         'code': """if (n_hit>0){
                 return s[0];
             }
             return XC_S_MAX;"""},
     'before_s': {
-        'c_types': 'double before_s',
+        'args': [xo.Arg(xo.Float64, name="before_s")],
         'code': """for (int8_t i=n_hit-1; i>=0; i--){
                 if (s[i] <= before_s){
                     return s[i];
@@ -31,7 +31,7 @@ all_s_positions = {
             }
             return XC_S_MAX;"""},
     'after_s': {
-        'c_types': 'double after_s',
+        'args': [xo.Arg(xo.Float64, name="after_s")],
         'code': """for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -39,7 +39,7 @@ all_s_positions = {
             }
             return XC_S_MAX;"""},
     'last': {
-        'c_types': '',
+        'args': [],
         'code': """if (n_hit>0){
                 return s[n_hit-1];
             }
@@ -70,10 +70,10 @@ void Segments_crossing_{trajectory}(Segments segs, int8_t* n_hit, double* s, {c_
 
     # Functions to get one crossing: (first crossing, last one before a given s, first one after a given s, last crossing)
     # This is just a template; the actual code will be generated at object instantiations and input inside the switch cases
-    for s_pos, s_args in all_s_positions.items():
+    for s_pos, s_vals in all_s_positions.items():
         s_pos_types = ''
-        if s_args['c_types']:
-            s_pos_types = f", {s_args['c_types']}"
+        if s_vals['args']:
+            s_pos_types = ", " + ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in s_vals['args']])
         segments_source.append(f"""
 /*gpufun*/
 double Segments_crossing_{trajectory}_{s_pos}(Segments segs, {c_types}{s_pos_types}){{
@@ -133,8 +133,8 @@ void SegmentsVLimit_crossing_{trajectory}(SegmentsVLimit segs, int8_t* n_hit, do
     # This is just a template; the actual code will be generated at object instantiations and input inside the switch cases
     for s_pos, s_args in all_s_positions.items():
         s_pos_types = ''
-        if s_args['c_types']:
-            s_pos_types = f", {s_args['c_types']}"
+        if s_vals['args']:
+            s_pos_types = ", " + ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in s_vals['args']])
         segments_vlimit_source.append(f"""
 /*gpufun*/
 double SegmentsVLimit_crossing_{trajectory}_{s_pos}(SegmentsVLimit segs, {c_types_all}{s_pos_types}){{
