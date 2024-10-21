@@ -6,6 +6,7 @@
 import xobjects as xo
 from ....general import _pkg_root
 
+XC_EPSILON = 1e-12
 
 class GeomCInit(xo.Struct):
     _extra_c_sources = [

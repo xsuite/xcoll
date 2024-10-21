@@ -1058,55 +1058,55 @@ typedef   struct ArrNLocalSegment_s * ArrNLocalSegment;
  return ( void*)(( char*) obj+offset);
 }
 #endif
-#ifndef XOBJ_TYPEDEF_Segments
-#define XOBJ_TYPEDEF_Segments
-typedef   struct Segments_s * Segments;
- static inline Segments Segments_getp(Segments restrict  obj){
+#ifndef XOBJ_TYPEDEF_Shape2D
+#define XOBJ_TYPEDEF_Shape2D
+typedef   struct Shape2D_s * Shape2D;
+ static inline Shape2D Shape2D_getp(Shape2D restrict  obj){
   int64_t offset=0;
-  return (Segments)(( char*) obj+offset);
+  return (Shape2D)(( char*) obj+offset);
 }
- static inline ArrNLocalSegment Segments_getp_segments(Segments restrict  obj){
+ static inline ArrNLocalSegment Shape2D_getp_segments(Shape2D restrict  obj){
   int64_t offset=0;
   offset+=16;
   return (ArrNLocalSegment)(( char*) obj+offset);
 }
- static inline int64_t Segments_len_segments(Segments restrict  obj){
+ static inline int64_t Shape2D_len_segments(Shape2D restrict  obj){
   int64_t offset=0;
   offset+=16;
    int64_t* arr = ( int64_t*)(( char*) obj+offset);
   return arr[1];
 }
- static inline LocalSegment Segments_getp1_segments(Segments restrict  obj, int64_t i0){
+ static inline LocalSegment Shape2D_getp1_segments(Shape2D restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
   return (LocalSegment)(( char*) obj+offset);
 }
- static inline int64_t Segments_typeid_segments(const Segments restrict  obj, int64_t i0){
+ static inline int64_t Shape2D_typeid_segments(const Shape2D restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline  void* Segments_member_segments(const Segments restrict  obj, int64_t i0){
+ static inline  void* Shape2D_member_segments(const Shape2D restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=16;
   offset+=16+i0*16;
   offset+=*( int64_t*)(( char*) obj+offset);
  return ( void*)(( char*) obj+offset);
 }
- static inline int64_t Segments_get__seg_id(const Segments restrict  obj){
+ static inline int64_t Shape2D_get__seg_id(const Shape2D restrict  obj){
   int64_t offset=0;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline void Segments_set__seg_id(Segments restrict  obj, int64_t value){
+ static inline void Shape2D_set__seg_id(Shape2D restrict  obj, int64_t value){
   int64_t offset=0;
   offset+=8;
   *( int64_t*)(( char*) obj+offset)=value;
 }
- static inline  int64_t* Segments_getp__seg_id(Segments restrict  obj){
+ static inline  int64_t* Shape2D_getp__seg_id(Shape2D restrict  obj){
   int64_t offset=0;
   offset+=8;
   return ( int64_t*)(( char*) obj+offset);
@@ -1114,24 +1114,24 @@ typedef   struct Segments_s * Segments;
 #endif
 
  static inline
-void Segments_crossing_drift(Segments segs, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    int64_t n_segments = Segments_len_segments(segs);
+void Shape2D_crossing_drift(Shape2D shape, int8_t* n_hit, double* s, double s0, double x0, double xm){
+    int64_t n_segments = Shape2D_len_segments(shape);
     for (int8_t i=0; i<n_segments;i++) {
-        LocalSegment seg = Segments_getp1_segments(segs, i);
+        LocalSegment seg = Shape2D_getp1_segments(shape, i);
         LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
     }
     sort_array_of_double(s, (int64_t) *n_hit);
 }
 
  static inline
-double Segments_crossing_drift_first(Segments segs, double s0, double x0, double xm){
+double Shape2D_crossing_drift_first(Shape2D shape, double s0, double x0, double xm){
     int8_t n_hit = 0;
-    int64_t seg_id = Segments_get__seg_id(segs);
+    int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Segments_drift_first*/
-        case 0: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+        /*START_SEG_ID_CASES_Shape2D_drift_first*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[0];
             }
@@ -1139,29 +1139,37 @@ double Segments_crossing_drift_first(Segments segs, double s0, double x0, double
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[0];
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Segments_drift_first*/
+        case 2: {  // SIZE: 2
+            double s[2];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            if (n_hit>0){
+                return s[0];
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_Shape2D_drift_first*/
         default:
-            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double Segments_crossing_drift_before_s(Segments segs, double s0, double x0, double xm, double before_s){
+double Shape2D_crossing_drift_before_s(Shape2D shape, double s0, double x0, double xm, double before_s){
     int8_t n_hit = 0;
-    int64_t seg_id = Segments_get__seg_id(segs);
+    int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Segments_drift_before_s*/
-        case 0: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+        /*START_SEG_ID_CASES_Shape2D_drift_before_s*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             for (int8_t i=n_hit-1; i>=0; i--){
                 if (s[i] <= before_s){
                     return s[i];
@@ -1171,7 +1179,7 @@ double Segments_crossing_drift_before_s(Segments segs, double s0, double x0, dou
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             for (int8_t i=n_hit-1; i>=0; i--){
                 if (s[i] <= before_s){
                     return s[i];
@@ -1179,23 +1187,33 @@ double Segments_crossing_drift_before_s(Segments segs, double s0, double x0, dou
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Segments_drift_before_s*/
+        case 2: {  // SIZE: 2
+            double s[2];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            for (int8_t i=n_hit-1; i>=0; i--){
+                if (s[i] <= before_s){
+                    return s[i];
+                }
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_Shape2D_drift_before_s*/
         default:
-            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, double xm, double after_s){
+double Shape2D_crossing_drift_after_s(Shape2D shape, double s0, double x0, double xm, double after_s){
     int8_t n_hit = 0;
-    int64_t seg_id = Segments_get__seg_id(segs);
+    int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Segments_drift_after_s*/
-        case 0: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+        /*START_SEG_ID_CASES_Shape2D_drift_after_s*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -1205,7 +1223,7 @@ double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, doub
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -1213,23 +1231,33 @@ double Segments_crossing_drift_after_s(Segments segs, double s0, double x0, doub
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Segments_drift_after_s*/
+        case 2: {  // SIZE: 2
+            double s[2];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            for (int8_t i=0; i<n_hit; i++){
+                if (s[i] >= after_s){
+                    return s[i];
+                }
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_Shape2D_drift_after_s*/
         default:
-            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double Segments_crossing_drift_last(Segments segs, double s0, double x0, double xm){
+double Shape2D_crossing_drift_last(Shape2D shape, double s0, double x0, double xm){
     int8_t n_hit = 0;
-    int64_t seg_id = Segments_get__seg_id(segs);
+    int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Segments_drift_last*/
-        case 0: {  // SIZE: 2
-            double s[2];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+        /*START_SEG_ID_CASES_Shape2D_drift_last*/
+        case 0: {  // SIZE: 8
+            double s[8];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[n_hit-1];
             }
@@ -1237,94 +1265,102 @@ double Segments_crossing_drift_last(Segments segs, double s0, double x0, double 
         }
         case 1: {  // SIZE: 15
             double s[15];
-            Segments_crossing_drift(segs, &n_hit, s, s0, x0, xm);
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
             if (n_hit>0){
                 return s[n_hit-1];
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Segments_drift_last*/
+        case 2: {  // SIZE: 2
+            double s[2];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            if (n_hit>0){
+                return s[n_hit-1];
+            }
+            return XC_S_MAX;
+        }
+        /*END_SEG_ID_CASES_Shape2D_drift_last*/
         default:
-            printf("Unknown seg_id for Segments: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
-#ifndef XOBJ_TYPEDEF_SegmentsVLimit
-#define XOBJ_TYPEDEF_SegmentsVLimit
-typedef   struct SegmentsVLimit_s * SegmentsVLimit;
- static inline SegmentsVLimit SegmentsVLimit_getp(SegmentsVLimit restrict  obj){
+#ifndef XOBJ_TYPEDEF_Shape2DV
+#define XOBJ_TYPEDEF_Shape2DV
+typedef   struct Shape2DV_s * Shape2DV;
+ static inline Shape2DV Shape2DV_getp(Shape2DV restrict  obj){
   int64_t offset=0;
-  return (SegmentsVLimit)(( char*) obj+offset);
+  return (Shape2DV)(( char*) obj+offset);
 }
- static inline ArrNLocalSegment SegmentsVLimit_getp_segments(SegmentsVLimit restrict  obj){
+ static inline ArrNLocalSegment Shape2DV_getp_segments(Shape2DV restrict  obj){
   int64_t offset=0;
   offset+=32;
   return (ArrNLocalSegment)(( char*) obj+offset);
 }
- static inline int64_t SegmentsVLimit_len_segments(SegmentsVLimit restrict  obj){
+ static inline int64_t Shape2DV_len_segments(Shape2DV restrict  obj){
   int64_t offset=0;
   offset+=32;
    int64_t* arr = ( int64_t*)(( char*) obj+offset);
   return arr[1];
 }
- static inline LocalSegment SegmentsVLimit_getp1_segments(SegmentsVLimit restrict  obj, int64_t i0){
+ static inline LocalSegment Shape2DV_getp1_segments(Shape2DV restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=32;
   offset+=16+i0*16;
   return (LocalSegment)(( char*) obj+offset);
 }
- static inline int64_t SegmentsVLimit_typeid_segments(const SegmentsVLimit restrict  obj, int64_t i0){
+ static inline int64_t Shape2DV_typeid_segments(const Shape2DV restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=32;
   offset+=16+i0*16;
   offset+=8;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline  void* SegmentsVLimit_member_segments(const SegmentsVLimit restrict  obj, int64_t i0){
+ static inline  void* Shape2DV_member_segments(const Shape2DV restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=32;
   offset+=16+i0*16;
   offset+=*( int64_t*)(( char*) obj+offset);
  return ( void*)(( char*) obj+offset);
 }
- static inline Arr2Float64 SegmentsVLimit_getp_vlimit(SegmentsVLimit restrict  obj){
+ static inline Arr2Float64 Shape2DV_getp_vlimit(Shape2DV restrict  obj){
   int64_t offset=0;
   offset+=8;
   return (Arr2Float64)(( char*) obj+offset);
 }
- static inline int64_t SegmentsVLimit_len_vlimit(SegmentsVLimit restrict  obj){
+ static inline int64_t Shape2DV_len_vlimit(Shape2DV restrict  obj){
   return 2;
 }
- static inline double SegmentsVLimit_get_vlimit(const SegmentsVLimit restrict  obj, int64_t i0){
+ static inline double Shape2DV_get_vlimit(const Shape2DV restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=8;
   offset+=i0*8;
   return *( double*)(( char*) obj+offset);
 }
- static inline void SegmentsVLimit_set_vlimit(SegmentsVLimit restrict  obj, int64_t i0, double value){
+ static inline void Shape2DV_set_vlimit(Shape2DV restrict  obj, int64_t i0, double value){
   int64_t offset=0;
   offset+=8;
   offset+=i0*8;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* SegmentsVLimit_getp1_vlimit(SegmentsVLimit restrict  obj, int64_t i0){
+ static inline  double* Shape2DV_getp1_vlimit(Shape2DV restrict  obj, int64_t i0){
   int64_t offset=0;
   offset+=8;
   offset+=i0*8;
   return ( double*)(( char*) obj+offset);
 }
- static inline int64_t SegmentsVLimit_get__seg_id(const SegmentsVLimit restrict  obj){
+ static inline int64_t Shape2DV_get__seg_id(const Shape2DV restrict  obj){
   int64_t offset=0;
   offset+=24;
   return *( int64_t*)(( char*) obj+offset);
 }
- static inline void SegmentsVLimit_set__seg_id(SegmentsVLimit restrict  obj, int64_t value){
+ static inline void Shape2DV_set__seg_id(Shape2DV restrict  obj, int64_t value){
   int64_t offset=0;
   offset+=24;
   *( int64_t*)(( char*) obj+offset)=value;
 }
- static inline  int64_t* SegmentsVLimit_getp__seg_id(SegmentsVLimit restrict  obj){
+ static inline  int64_t* Shape2DV_getp__seg_id(Shape2DV restrict  obj){
   int64_t offset=0;
   offset+=24;
   return ( int64_t*)(( char*) obj+offset);
@@ -1350,17 +1386,17 @@ int8_t vlimit_drift(double* restrict_s, double s0, double y0, double ym, double 
 
 
  static inline
-void SegmentsVLimit_crossing_drift(SegmentsVLimit segs, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
+void Shape2DV_crossing_drift(Shape2DV shape, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
     double restrict_s[2];
-    double ymin = SegmentsVLimit_get_vlimit(segs, 0);
-    double ymax = SegmentsVLimit_get_vlimit(segs, 1);
+    double ymin = Shape2DV_get_vlimit(shape, 0);
+    double ymax = Shape2DV_get_vlimit(shape, 1);
     int8_t v_result = vlimit_drift(restrict_s, s0, y0, ym, ymin, ymax);
     if (v_result == 0){
         return;  // Completely outside - no crossing possible
     } else {
-        int64_t n_segments = SegmentsVLimit_len_segments(segs);
+        int64_t n_segments = Shape2DV_len_segments(shape);
         for (int8_t i=0; i<n_segments;i++) {
-            LocalSegment seg = SegmentsVLimit_getp1_segments(segs, i);
+            LocalSegment seg = Shape2DV_getp1_segments(shape, i);
             LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
         }
         sort_array_of_double(s, (int64_t) *n_hit);
@@ -1371,36 +1407,36 @@ void SegmentsVLimit_crossing_drift(SegmentsVLimit segs, int8_t* n_hit, double* s
 }
 
  static inline
-double SegmentsVLimit_crossing_drift_first(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym){
+double Shape2DV_crossing_drift_first(Shape2DV shape, double s0, double x0, double xm, double y0, double ym){
     int8_t n_hit = 0;
-    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_SegmentsVLimit_drift_first*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+        /*START_SEG_ID_CASES_Shape2DV_drift_first*/
+        case 0: {  // SIZE: 15
+            double s[15];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
             if (n_hit>0){
                 return s[0];
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_SegmentsVLimit_drift_first*/
+        /*END_SEG_ID_CASES_Shape2DV_drift_first*/
         default:
-            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double SegmentsVLimit_crossing_drift_before_s(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym, double before_s){
+double Shape2DV_crossing_drift_before_s(Shape2DV shape, double s0, double x0, double xm, double y0, double ym, double before_s){
     int8_t n_hit = 0;
-    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_SegmentsVLimit_drift_before_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+        /*START_SEG_ID_CASES_Shape2DV_drift_before_s*/
+        case 0: {  // SIZE: 15
+            double s[15];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
             for (int8_t i=n_hit-1; i>=0; i--){
                 if (s[i] <= before_s){
                     return s[i];
@@ -1408,23 +1444,23 @@ double SegmentsVLimit_crossing_drift_before_s(SegmentsVLimit segs, double s0, do
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_SegmentsVLimit_drift_before_s*/
+        /*END_SEG_ID_CASES_Shape2DV_drift_before_s*/
         default:
-            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double SegmentsVLimit_crossing_drift_after_s(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym, double after_s){
+double Shape2DV_crossing_drift_after_s(Shape2DV shape, double s0, double x0, double xm, double y0, double ym, double after_s){
     int8_t n_hit = 0;
-    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_SegmentsVLimit_drift_after_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+        /*START_SEG_ID_CASES_Shape2DV_drift_after_s*/
+        case 0: {  // SIZE: 15
+            double s[15];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
             for (int8_t i=0; i<n_hit; i++){
                 if (s[i] >= after_s){
                     return s[i];
@@ -1432,31 +1468,31 @@ double SegmentsVLimit_crossing_drift_after_s(SegmentsVLimit segs, double s0, dou
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_SegmentsVLimit_drift_after_s*/
+        /*END_SEG_ID_CASES_Shape2DV_drift_after_s*/
         default:
-            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
 }
 
  static inline
-double SegmentsVLimit_crossing_drift_last(SegmentsVLimit segs, double s0, double x0, double xm, double y0, double ym){
+double Shape2DV_crossing_drift_last(Shape2DV shape, double s0, double x0, double xm, double y0, double ym){
     int8_t n_hit = 0;
-    int64_t seg_id = SegmentsVLimit_get__seg_id(segs);
+    int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_SegmentsVLimit_drift_last*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            SegmentsVLimit_crossing_drift(segs, &n_hit, s, s0, x0, xm, y0, ym);
+        /*START_SEG_ID_CASES_Shape2DV_drift_last*/
+        case 0: {  // SIZE: 15
+            double s[15];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
             if (n_hit>0){
                 return s[n_hit-1];
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_SegmentsVLimit_drift_last*/
+        /*END_SEG_ID_CASES_Shape2DV_drift_last*/
         default:
-            printf("Unknown seg_id for SegmentsVLimit: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
+            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
             return XC_S_MAX;
     }
