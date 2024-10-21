@@ -104,7 +104,10 @@ class Geant4Collimator(BaseCollimator):
             'mogr': 'MG6403Fc',
             'mo':   'Mo',
             'cucd': 'CUDIAM75',
-            'iner': 'INERM180'
+            'iner': 'INERM180',
+            'w':    'W',
+            'ta':   'Ta',
+            'ti':   'Ti'
         }
         if val.lower() not in geant4_materials:
             # TODO: need to check with BDSIM configuration file etc
