@@ -1,7 +1,53 @@
 # Developer Notes on Xcoll Geometry
 
 The geometry code is meant to be as independent as possible, as to allow a flexible way to define new geometries.
-It is built around `Segment`s with functions that return the `s` location(s) where a certain trajectory (nominally a drift) crosses a (collection of) `Segment`s. While the latter can be defined parametrically (e.g. a perpendicular line segment can exist), each trajectory should be a well-defined function of `s` which return `x` (perpendicular trajectories are not allowed).
+It provides all the necessary toolery to do a 2.5D geometry: a 2D geometry in the $(s, x')$ plane (where $x'$ is already rotated over the collimator angle) with optional vertical bounds.
+The main purpose of the code is to find the crossings of a given particle `trajectory` with a given `Shape2D`: a very flexible way to construct any shape from a set of `Segment`s.
+
+
+## Trajectories
+A trajectory is a particle moving along the $s$ direction. As such it should be a well-defined function of $s$ which returns $x$ (perpendicular trajectories, that would move along $x$ at constant $s$, are hence not allowed).
+
+The textbook (and currently only implemented) trajectory is the `drift`, defined as a line with slope $m_x$ through a point $(s_0, x_0)$
+
+## Segments
+are defined parametrically (e.g. a perpendicular line segment can exist), e
+
+## Shapes
+
+Pretty straightforward to define a new shape
+To define a new type of object, one has to:
+1. Define the `create_` and `destroy_` functions in objects.h
+2. It might be useful to define an API to link it to Xsuite as done in collimator_geometry.h
+3. Add tests for this new object (and potentially for its API)
+
+## Crossing Functions in C
+
+## Defining New Segment Types
+To define a new type of segment, one has to:
+1. Create the struct definition and ID macro - make sure the ID is unique (in segments.h)
+2. Define a constructor function (in segments.h)
+3. For each trajectory type, define a crossing function for that segment and update the general function `crossing_...` (in crossing_....h). Roots with multiplicity should be added a number of times equal to the multiplicity (this is because the algorithm will count IN/OUT trajectories based on the ordered roots)
+4. For each trajectory type, adapt `max_array_size_..` to give the maximum number of crossings that can occur (in crossing_....h)
+5. Add tests for this new segment
+
+add to xcoll init
+
+code auto-generation in Shape2D
+
+## Defining New Trajectories
+To define a new type of trajectory (e.g. multiple coulomb scattering), one has to:
+1. Create a new file crossing_trajectoryname.h and add it to geometry.h
+2. For all segments, define the crossing functions and the general `crossing_trajectoryname`,`crossing_trajectoryname_vlimit`, and `max_array_trajectoryname_drift` (as done in crossing_drift.h)
+3. Add the four `s` functions (`crossing_trajectoryname_first`, `crossing_trajectoryname_vlimit_first`, `crossing_trajectoryname_after_s`, `crossing_trajectoryname_vlimit_after_s`) in get_s.h
+4. Add tests for this new trajectory
+
+
+## Outlook
+
+One could think of using the `Segment` definitions to define a `FrontShape` class to define collimators with a particular transversal profile, but this is currently not yet implemented.
+
+
 
 ## Files
 
@@ -57,24 +103,7 @@ An Xobject that contains all C dependencies, such that `BeamElements` can be dep
 
 
 ## Defining new segments
-To define a new type of segment, one has to:
-1. Create the struct definition and ID macro - make sure the ID is unique (in segments.h)
-2. Define a constructor function (in segments.h)
-3. For each trajectory type, define a crossing function for that segment and update the general function `crossing_...` (in crossing_....h). Roots with multiplicity should be added a number of times equal to the multiplicity (this is because the algorithm will count IN/OUT trajectories based on the ordered roots)
-4. For each trajectory type, adapt `max_array_size_..` to give the maximum number of crossings that can occur (in crossing_....h)
-5. Add tests for this new segment
+
 
 
 ## Defining new objects
-To define a new type of object, one has to:
-1. Define the `create_` and `destroy_` functions in objects.h
-2. It might be useful to define an API to link it to Xsuite as done in collimator_geometry.h
-3. Add tests for this new object (and potentially for its API)
-
-
-## Defining new trajectory types
-To define a new type of trajectory (e.g. multiple coulomb scattering), one has to:
-1. Create a new file crossing_trajectoryname.h and add it to geometry.h
-2. For all segments, define the crossing functions and the general `crossing_trajectoryname`,`crossing_trajectoryname_vlimit`, and `max_array_trajectoryname_drift` (as done in crossing_drift.h)
-3. Add the four `s` functions (`crossing_trajectoryname_first`, `crossing_trajectoryname_vlimit_first`, `crossing_trajectoryname_after_s`, `crossing_trajectoryname_vlimit_after_s`) in get_s.h
-4. Add tests for this new trajectory
