@@ -53,6 +53,9 @@ class CircularSegment(xo.Struct):
         return sC + R*np.cos(t[mask]), xC + R*np.sin(t[mask])
 
     def get_vertices(self):
-        return (self.s + self.R*np.cos(self.t1), self.x + self.R*np.sin(self.t1)), \
-                (self.s + self.R*np.cos(self.t2), self.x + self.R*np.sin(self.t2))
+        s1 = self.round(self.s + self.R*np.cos(self.t1))
+        x1 = self.round(self.x + self.R*np.sin(self.t1))
+        s2 = self.round(self.s + self.R*np.cos(self.t2))
+        x2 = self.round(self.x + self.R*np.sin(self.t2))
+        return (s1, x1), (s2, x2)
 

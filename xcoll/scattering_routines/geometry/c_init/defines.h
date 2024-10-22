@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define XC_EPSILON 1.e-12
 #define XC_S_MAX 1.e21
 
 

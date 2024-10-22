@@ -57,7 +57,12 @@ for seg in all_segments:
     assert hasattr(seg, 'evaluate')
     assert hasattr(seg, 'get_vertices')
 
-# Extra methods for all segments
+
+# Define common methods for all segments
+def seg_round(self, val):
+    """Built-in to provide rounding to Xcoll precision"""
+    return round(val, -int(np.log10(XC_EPSILON)))
+
 def is_open(self):
     """Check if the segment is an open segment"""
     return len(self.get_vertices()) == 1
@@ -74,6 +79,7 @@ def is_connected_to(self, other):
     return len(self.connection_to(other)) > 0
 
 for seg in all_segments:
+    seg.round = seg_round
     seg.is_open = is_open
     seg.connection_to = connection_to
     seg.is_connected_to = is_connected_to
