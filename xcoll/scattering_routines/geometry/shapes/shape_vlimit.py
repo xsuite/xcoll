@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import pandas as pd
 
 import xobjects as xo
 
@@ -53,7 +54,7 @@ class Shape2DV(xo.Struct):
     def __init__(self, segments=None, vlimit=None, **kwargs):
         if not segments:
             raise ValueError("Need to provide `segments`.")
-        if not hasattr(segments, '__iter__'):
+        if not isinstance(segments, (list, set, tuple, np.ndarray, pd.Series)):
             raise ValueError("The variable `segments` should be a list of segments.")
         kwargs['segments'] = segments
         if not vlimit or isinstance(vlimit, str) \
@@ -64,9 +65,8 @@ class Shape2DV(xo.Struct):
 
     def __repr__(self):
         shape2d = Shape2D.__repr__(self)
-        return shape2d[:-1] + f", vlimit=[{self.vlimit[0]}, {self.vlimit[1]}])"
-        # segs = ',\n          '.join([seg.__repr__() for seg in self])
-        # return "Shape2DV([" + segs + "\n         ])"
+        sp_last = "\n         ], " if len(self._shapes) == 1 else "], "
+        return shape2d[:-2] + sp_last + f"vlimit=[{self.vlimit[0]}, {self.vlimit[1]}])"
 
     def __getitem__(self, i):
         return Shape2D.__getitem__(self, i)
@@ -90,11 +90,29 @@ class Shape2DV(xo.Struct):
         return Shape2D.is_open(self)
 
     def get_shapes(self):
-        for shape in self._shapes:
-            yield Shape2DV([self.segments[i] for i in shape], vlimit=self.vlimit)
+        if self.is_composite():
+            for shape in self._shapes:
+                yield Shape2DV([self[i] for i in shape], vlimit=self.vlimit)
+        else:
+            yield self
 
-    def plot(self, axes=None):
-        return Shape2D.plot(self, axes=axes)
+    def get_vertex_tree(self):
+        return Shape2D.get_vertex_tree(self)
 
-    def plot3d(self, axes=None, num_points=100):
-        return Shape2D.plot3d(self, axes=axes, num_points=num_points)
+    def get_vertices(self, **kwargs):
+        return Shape2D.get_vertices(self, **kwargs)
+
+    def plot(self, **kwargs):
+        return Shape2D.plot(self, **kwargs)
+
+    def plot3d(self, **kwargs):
+        return Shape2D.plot3d(self, **kwargs)
+
+
+Shape2DV.is_composite.__doc__ = Shape2D.is_composite.__doc__
+Shape2DV.is_open.__doc__ = Shape2D.is_open.__doc__
+Shape2DV.get_shapes.__doc__ = Shape2D.get_shapes.__doc__
+Shape2DV.get_vertex_tree.__doc__ = Shape2D.get_vertex_tree.__doc__
+Shape2DV.get_vertices.__doc__ = Shape2D.get_vertices.__doc__
+Shape2DV.plot.__doc__ = Shape2D.plot.__doc__
+Shape2DV.plot3d.__doc__ = Shape2D.plot3d.__doc__
