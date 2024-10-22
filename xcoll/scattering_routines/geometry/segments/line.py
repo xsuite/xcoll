@@ -21,6 +21,9 @@ class LineSegment(xo.Struct):
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'line.h']
 
+    def __repr__(self):
+        return f"LineSegment([{self.s1:.3}, {self.x1:.3}] -- [{self.s2:.3}, {self.x2:.3}])"
+
     def evaluate(self, t):
         s1 = self.s1
         x1 = self.x1
@@ -29,3 +32,6 @@ class LineSegment(xo.Struct):
         t = np.array(t)
         mask = (t >= 0) & (t <= 1)
         return s1*(1-t[mask]) + s2*t[mask], x1*(1-t[mask]) + x2*t[mask]
+
+    def get_vertices(self):
+        return (self.s1, self.x1), (self.s2, self.x2)

@@ -22,6 +22,11 @@ class CircularSegment(xo.Struct):
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'circular.h']
 
+    def __repr__(self):
+        p1, p2 = self.get_vertices()
+        return f"CircularSegment([{p1[0]:.3}, {p1[1]:.3}]-b-[{np.rad2deg(self.t1):.0f}" + u'\xb0' \
+             + f":{np.rad2deg(self.t2):.0f}" + u'\xb0' + f":{self.R:.3}]-b-[{p2[0]:.3}, {p2[1]:.3}])"
+
     def evaluate(self, t):
         R = self.R
         sC = self.s
@@ -46,3 +51,8 @@ class CircularSegment(xo.Struct):
         else:
             mask = (t1 <= t) | (t <= t2)
         return sC + R*np.cos(t[mask]), xC + R*np.sin(t[mask])
+
+    def get_vertices(self):
+        return (self.s + self.R*np.cos(self.t1), self.x + self.R*np.sin(self.t1)), \
+                (self.s + self.R*np.cos(self.t2), self.x + self.R*np.sin(self.t2))
+

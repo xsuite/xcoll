@@ -45,7 +45,7 @@ To define a new type of trajectory (e.g. multiple coulomb scattering), one has t
 
 ## Outlook
 
-One could think of using the `Segment` definitions to define a `FrontShape` class to define collimators with a particular transversal profile, but this is currently not yet implemented.
+One could think of using the `Segment` definitions to define a `FrontShape` class to define collimators with a particular transversal profile (where `vlimit` now would be an `slimit`), but this is currently not yet implemented.
 
 
 

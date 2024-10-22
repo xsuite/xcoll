@@ -20,6 +20,10 @@ class HalfOpenLineSegment(xo.Struct):
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'halfopen_line.h']
 
+    def __repr__(self):
+        return f"HalfOpenLineSegment([{self.s:.3}, {self.x:.3}] -- " \
+            + f"{np.rad2deg(self.t):.0f}" + u'\xb0' + " * inf)"
+
     def evaluate(self, t):
         s1 = self.s
         x1 = self.x
@@ -28,3 +32,6 @@ class HalfOpenLineSegment(xo.Struct):
         t = np.array(t)
         mask = t >= 0
         return s1*(1-t[mask]) + s2*t[mask], x1*(1-t[mask]) + x2*t[mask]
+
+    def get_vertices(self):
+        return ((self.s, self.x),)

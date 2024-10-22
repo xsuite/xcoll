@@ -58,21 +58,43 @@ class Shape2DV(xo.Struct):
         kwargs['segments'] = segments
         if not vlimit or isinstance(vlimit, str) \
         or not hasattr(vlimit, '__iter__') or len(vlimit) != 2:
-            raise ValueError("Need to provide `vlimit` as [ymin, ymax].")
+            raise ValueError("Need to provide `vlimit` as [vmin, vmax].")
         kwargs['vlimit'] = vlimit
         _init_shape(self, **kwargs)
 
     def __repr__(self):
-        return f"Shape2DV([{', '.join([seg.__class__.__name__ + '(...)' for seg in self])}], vlimit=[{self.vlimit[0], self.vlimit[1]}])"
+        shape2d = Shape2D.__repr__(self)
+        return shape2d[:-1] + f", vlimit=[{self.vlimit[0]}, {self.vlimit[1]}])"
+        # segs = ',\n          '.join([seg.__repr__() for seg in self])
+        # return "Shape2DV([" + segs + "\n         ])"
 
     def __getitem__(self, i):
-        return self.segments[i]
+        return Shape2D.__getitem__(self, i)
+        # return self.segments[i]
 
     def __iter__(self):
-        return iter(self.segments)
+        return Shape2D.__iter__(self)
+        # return iter(self.segments)
+
+    def __len__(self):
+        return Shape2D.__len__(self)
+        # return len(self.segments)
 
     def __getattr__(self, attr):
         return Shape2D.__getattr__(self, attr)
 
+    def is_composite(self):
+        return Shape2D.is_composite(self)
+
+    def is_open(self):
+        return Shape2D.is_open(self)
+
+    def get_shapes(self):
+        for shape in self._shapes:
+            yield Shape2DV([self.segments[i] for i in shape], vlimit=self.vlimit)
+
     def plot(self, axes=None):
         return Shape2D.plot(self, axes=axes)
+
+    def plot3d(self, axes=None, num_points=100):
+        return Shape2D.plot3d(self, axes=axes, num_points=num_points)

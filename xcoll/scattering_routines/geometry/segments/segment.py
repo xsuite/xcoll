@@ -7,6 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
+from ..c_init import  XC_EPSILON
 from ..trajectories import trajectories
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -53,3 +54,32 @@ def assert_localsegment_sources(seg):
 
 for seg in all_segments:
     assert_localsegment_sources(seg)
+    assert hasattr(seg, 'evaluate')
+    assert hasattr(seg, 'get_vertices')
+
+# Extra methods for all segments
+def is_open(self):
+    """Check if the segment is an open segment"""
+    return len(self.get_vertices()) == 1
+
+def connection_to(self, other):
+    """Get the point(s) at which the segment is connected to another segment"""
+    overlap = [vert1 for vert1 in self.get_vertices()
+                if np.any([np.allclose(vert1, vert2, atol=XC_EPSILON)
+                            for vert2 in other.get_vertices()])]
+    return overlap
+
+def is_connected_to(self, other):
+    """Check if this segment is connected to another segment"""
+    return len(self.connection_to(other)) > 0
+
+for seg in all_segments:
+    seg.is_open = is_open
+    seg.connection_to = connection_to
+    seg.is_connected_to = is_connected_to
+
+
+# Add some missing docstrings
+for seg in all_segments:
+    seg.evaluate.__doc__ = """Evaluate the segment over t using the parametric equation"""
+    seg.get_vertices.__doc__ = """Get the vertices of the segment"""
