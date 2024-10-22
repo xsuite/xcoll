@@ -65,15 +65,15 @@ def track(coll, particles):
 
     _drift(coll, particles, -coll.length_front)
     # FLUKA collimators are centered; need to shift
-    if coll.co is not None:
-        dx = coll.co[1][0]
-        dy = coll.co[1][1]
-        particles.x -= dx
-        particles.y -= dy
+    # if coll.co is not None:
+    #     dx = coll.co[1][0]
+    #     dy = coll.co[1][1]
+    #     particles.x -= dx
+    #     particles.y -= dy
     track_core(coll, particles)
-    if coll.co is not None:
-        particles.x += dx
-        particles.y += dy
+    # if coll.co is not None:
+    #     particles.x += dx
+    #     particles.y += dy
     _drift(coll, particles, -coll.length_back)
 
 
