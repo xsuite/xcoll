@@ -48,7 +48,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
-xc.assign_optics_to_collimators(line=line)
+line.collimators.assign_optics()
 
 
 # Connect to FLUKA
@@ -59,13 +59,13 @@ xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref, line=line)
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-part = xc.generate_pencil_on_collimator(line, tcp, num_particles=num_particles)
+part = line[tcp].generate_pencil(num_particles)
 
 
 # Track!
-xc.enable_scattering(line)  # TODO: this should start the flukaserver if not already running
+line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
