@@ -26,8 +26,8 @@ class BezierSegment(xo.Struct):
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'bezier.h']
 
     def __repr__(self):
-        return f"BezierSegment([{self.s1:.3}, {self.x1:.3}]-c-[{self.cs1:.3}, {self.cx1:.3}] -- " \
-             + f"[{self.cs2:.3}, {self.cx2:.3}]-c-[{self.s2:.3}, {self.x2:.3}])"
+        return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
+             + f"({self.cs2:.3}, {self.cx2:.3})-c-({self.s2:.3}, {self.x2:.3}))"
 
     def evaluate(self, t):
         s1  = self.s1

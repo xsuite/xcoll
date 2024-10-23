@@ -24,8 +24,8 @@ class CircularSegment(xo.Struct):
 
     def __repr__(self):
         p1, p2 = self.get_vertices()
-        return f"CircularSegment([{p1[0]:.3}, {p1[1]:.3}]-b-[{np.rad2deg(self.t1):.0f}" + u'\xb0' \
-             + f":{np.rad2deg(self.t2):.0f}" + u'\xb0' + f":{self.R:.3}]-b-[{p2[0]:.3}, {p2[1]:.3}])"
+        return f"CircularSegment(({p1[0]:.3}, {p1[1]:.3})-b-({np.rad2deg(self.t1):.0f}" + u'\xb0' \
+             + f":{np.rad2deg(self.t2):.0f}" + u'\xb0' + f":{self.R:.3})-b-({p2[0]:.3}, {p2[1]:.3}))"
 
     def evaluate(self, t):
         R = self.R

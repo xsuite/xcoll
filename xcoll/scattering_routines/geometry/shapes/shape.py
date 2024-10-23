@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import xobjects as xo
 
 from ..c_init import XC_EPSILON
-from ..segments import LocalSegment, CircularSegment, BezierSegment
+from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment
 from ..trajectories import trajectories, get_max_crossings
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
 
@@ -332,10 +332,10 @@ def _interpolate(segment, coords, smooth_points):
             if t2 < t1:
                 t2 += 2*np.pi
             t = np.linspace(t1, t2, smooth_points)
-        elif isinstance(segment, BezierSegment):
-            t = np.linspace(0, 1, smooth_points)
-        else:
+        elif isinstance(segment, (LineSegment, HalfOpenLineSegment)):
             return
+        else:
+            t = np.linspace(0, 1, smooth_points)
         s, x = segment.evaluate(t)
         interp = [(ss,xx) for ss,xx in zip(s,x)]
         if np.allclose(interp[0], coords[-1], atol=XC_EPSILON):

@@ -22,7 +22,7 @@ class LineSegment(xo.Struct):
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'line.h']
 
     def __repr__(self):
-        return f"LineSegment([{self.s1:.3}, {self.x1:.3}] -- [{self.s2:.3}, {self.x2:.3}])"
+        return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"
 
     def evaluate(self, t):
         s1 = self.s1
