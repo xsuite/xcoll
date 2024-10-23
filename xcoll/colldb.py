@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -13,8 +13,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           FlukaCollimator, BaseCollimator, BaseCrystal, _all_collimator_classes
-from .install import install_elements
+                           FlukaCollimator, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 from .scattering_routines.fluka import FlukaEngine
 
@@ -528,7 +527,7 @@ class CollimatorDatabase:
     def _check_installed(self, line, name, collimator_class):
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
-            if isinstance(line[name], _all_collimator_classes):
+            if isinstance(line[name], collimator_classes):
                 raise ValueError(f"Trying to install {name} as {collimator_class.__name__}, "
                                + f"but it is already installed as {line[name].__class__.__name__}!\n"
                                + f"Please reconstruct the line.")
@@ -573,12 +572,12 @@ class CollimatorDatabase:
             else:
                 self._create_crystal(line, BlackCrystal, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
-        install_elements(line, names, elements, need_apertures=need_apertures)
+        line.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll[self[name]['material']]
+            mat = SixTrack_to_xcoll(self[name]['material'])
             if self[name]['bending_radius'] is None:
                 self._create_collimator(line, EverestCollimator, name, material=mat[0],
                                         verbose=verbose)
@@ -587,7 +586,7 @@ class CollimatorDatabase:
                                      lattice=self[name]['crystal'], verbose=verbose,
                                      miscut=self[name]['miscut'])
         elements = [self._elements[name] for name in names]
-        install_elements(line, names, elements, need_apertures=need_apertures)
+        line.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
                                   fluka_input_file=None, remove_missing=True):
@@ -599,7 +598,7 @@ class CollimatorDatabase:
         for name in names:
             self._create_collimator(line, FlukaCollimator, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
-        install_elements(line, names, elements, need_apertures=need_apertures)
+        line.collimators.install(names, elements, need_apertures=need_apertures)
 
     # ==================================
     # ====== Accessing attributes ======

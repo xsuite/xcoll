@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -18,11 +18,13 @@ import xcoll as xc
 # We do the majority of the script on the default context to be able to use prebuilt kernels
 context = xo.ContextCpu()
 
-beam = 2
+beam = 1
 plane = 'V'
 
 num_turns     = 1000
-num_particles = 5000
+num_particles = 10000
+nemitt_x = 3.5e-6
+nemitt_y = 3.5e-6
 
 path_in  = xc._pkg_root.parent / 'examples'
 path_out = Path.cwd()
@@ -43,14 +45,14 @@ colldb.install_everest_collimators(line=line, verbose=True)
 # Install ADT into line
 # ADT kickers in LHC are named adtk[hv].[abcd]5[lr]4.b1 (with the position 5l4 (B1H or B2V) or 5r4 (B1V or B2H)
 # These are not in the line, but their tank names are: adtk[hv].[abcd]5[lr]4.[abcd].b1  (32 markers)
-adt = xc.BlowUp(plane=plane, amplitude=1)
 pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
 pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
 name = f'adtk{plane.lower()}.{pos}.b{beam}'
 tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
 tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
 adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-adt.install(line, name=name, at_s=adt_pos)
+adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, plane=plane, stop_at_turn=num_turns,
+                        amplitude=0.75, use_individual_kicks=True)
 
 
 # Aperture model check
@@ -65,8 +67,11 @@ line.build_tracker()
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
-xc.assign_optics_to_collimators(line=line, twiss=tw)
-adt.calibrate(twiss=tw, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+line.collimators.assign_optics(twiss=tw)
+if plane == 'H':
+    adt.calibrate_by_emittance(nemitt=nemitt_x, twiss=tw)
+else:
+    adt.calibrate_by_emittance(nemitt=nemitt_y, twiss=tw)
 
 
 # Optimise the line
@@ -85,11 +90,11 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-xc.enable_scattering(line)
+line.scattering.enable()
 adt.activate()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 adt.deactivate()
-xc.disable_scattering(line)
+line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
@@ -118,7 +123,7 @@ losses = {}
 for coll in collimators_with_most_losses:
     idx = line.element_names.index(coll)
     mask = part.at_element == idx
-    n, x, _ = plt.hist(part.at_turn[mask], 100)
+    n, x, _ = plt.hist(part.at_turn[mask], 500, cumulative=True)
     bin_centers[coll] = 0.5*(x[1:]+x[:-1])
     losses[coll] = n
     plt.close()

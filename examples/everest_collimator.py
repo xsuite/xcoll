@@ -1,11 +1,9 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import numpy as np
-from pathlib import Path
-import sys, os, contextlib
 import matplotlib.pyplot as plt
 
 import xobjects as xo
@@ -49,7 +47,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
-xc.assign_optics_to_collimators(line=line)
+line.collimators.assign_optics()
 
 
 # --------------------------------------------------------
@@ -73,9 +71,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking first test.. ")
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part, num_turns=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)
@@ -102,7 +100,7 @@ plt.show()
 # oscillations would make the cut profile symmetric anyway.
 
 line['tcp.c6l7.b1'].angle = 15
-xc.open_collimators(line)
+line.collimators.open()
 line['tcp.c6l7.b1'].gap = [4, -7]
 
 # Create initial particles
@@ -113,9 +111,9 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking second test.. ")
-xc.enable_scattering(line)
+line.scattering.enable()
 line.track(part, num_turns=1)
-xc.disable_scattering(line)
+line.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)

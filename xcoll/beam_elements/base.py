@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -597,9 +597,6 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
-        from xcoll.beam_elements import _all_collimator_classes
-        if not isinstance(self, _all_collimator_classes):
-            raise ValueError("Please install collimator before assigning optics.")
         if nemitt_x is None:
             if self.nemitt_x is None:
                 raise ValueError("Need to provide `nemitt_x`.")
@@ -629,7 +626,7 @@ class BaseCollimator(BaseBlock):
             raise ValueError("When using `twiss`, need to provide the name as well.")
         else:
             tw_up   = twiss.rows[name]
-            tw_down = twiss.rows[twiss.mask[[name]]+1]
+            tw_down = twiss.rows[twiss.rows.indices[[name]]+1]
         if not np.isclose(tw_up.s[0] + self.length, tw_down.s[0]):
             raise ValueError(f"Downstream twiss not compatible with length {self.length}m.")
         self._optics = {
@@ -921,6 +918,31 @@ class BaseCollimator(BaseBlock):
 
     # Methods
     # =======
+
+    def generate_pencil(self, num_particles, *, side='+-', pencil_spread=1e-6,
+                        impact_parameter=0, sigma_z=7.61e-2, twiss=None, longitudinal=None,
+                        longitudinal_betatron_cut=None, tw=None, **kwargs):
+        if not hasattr(self, '_line') or not hasattr(self, '_name'):
+            raise ValueError("Collimator is missing a pointer to the line. Install collimators "
+                           + "with `line.collimators.install()` (or use "
+                           + "`xcoll.initial_distribution.generate_pencil_on_collimator()`).")
+        from xcoll.initial_distribution import generate_pencil_on_collimator
+        return generate_pencil_on_collimator(line=self._line, name=self._name, side=side,
+                        num_particles=num_particles, pencil_spread=pencil_spread, tw=tw,
+                        impact_parameter=impact_parameter, sigma_z=sigma_z, twiss=twiss,
+                        longitudinal=longitudinal, longitudinal_betatron_cut=longitudinal_betatron_cut,
+                        **kwargs)
+
+    def generate_delta(self, *, plane, position_mm, nemitt_x, nemitt_y, betatron_cut=0,
+                       match_at_front=True, twiss=None):
+        if not hasattr(self, '_line') or not hasattr(self, '_name'):
+            raise ValueError("Collimator is missing a pointer to the line. Install collimators "
+                           + "with `line.collimators.install()` (or use "
+                           + "`xcoll.initial_distribution.generate_delta_from_dispersion()`).")
+        from xcoll.initial_distribution import generate_delta_from_dispersion
+        return generate_delta_from_dispersion(line=self._line, at_element=self._name, plane=plane,
+                        position_mm=position_mm, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss,
+                        betatron_cut=betatron_cut, match_at_front=match_at_front)
 
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)
@@ -1344,6 +1366,9 @@ class BaseCrystal(BaseBlock):
 
     # Methods
     # =======
+
+    def generate_pencil(self, **kwargs):
+        return BaseCollimator.generate_pencil(self, **kwargs)
 
     def _verify_consistency(self):
         BaseBlock._verify_consistency(self)

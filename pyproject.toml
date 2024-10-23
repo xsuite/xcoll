@@ -1,18 +1,23 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.4.0"
+version = "0.6.0rc0"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
 authors = [
            "Frederik F. Van der Veken <frederik@cern.ch>",
+           "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
+           "Björn Lindstrom <bjorn.lindstrom@cern.ch>",
+           "Giacomo Broggi <giacomo.broggi@cern.ch>",
+           "André Donadon Servelle <andre.donadon.servelle@cern.ch>",
+           "Dora E. Veres <dora.erzsebet.veres@cern.ch>",
            "Despina Demetriadou <despina.demetriadou@cern.ch>",
            "Andrey Abramov <andrey.abramov@cern.ch>",
-           "Giovanni Iadorala <giovanni.iadorala@cern.ch>"
+           "Giovanni Iadarola <giovanni.iadarola@cern.ch>"
 ]
 readme = "README.md"
 license = "Apache 2.0"
-include = [ "LICENSE", "NOTICE" ]
+include = ["LICENSE", "NOTICE"]
 
 
 [tool.poetry.dependencies]
@@ -36,3 +41,12 @@ tests = ["pytest", "ruamel-yaml"]
 # Needed for pip install -e (BTW: need pip version 22)
 requires = ["poetry-core>=1.0.8"]
 build-backend = "poetry.core.masonry.api"
+
+# pyproject.toml
+[tool.pytest.ini_options]
+addopts = "-ra --durations=10 --durations-min=1"
+python_functions = ["test_"]
+testpaths = [
+    "tests",
+]
+

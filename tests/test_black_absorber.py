@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -175,7 +175,8 @@ def test_black_crystal(test_context, side, sign_R):
     y = np.random.uniform(-1, 1, n_part)
     py = np.random.uniform(-1, 1, n_part)
     part_init = xp.build_particles(x=x, px=px, y=y, py=py, particle_ref=ref)
-    dri = xt.Drift(length=1) # To send the surviving particles further out
+    drift_length = 1  # To send the surviving particles further out
+    dri = xt.Drift(length=drift_length)
 
     for R in [0.87, 3.3, 17]:
         R = sign_R*R
@@ -205,15 +206,15 @@ def test_black_crystal(test_context, side, sign_R):
             Rx   = x_BU + R if sign_R == 1 else x_TU + R
 
             mask_alive = part.state > 0
-            assert np.allclose(part.s[mask_alive], length+1)
+            assert np.allclose(part.s[mask_alive], length+drift_length)
 
             # Rotate particles to tilted frame
             part_s =  part.s * np.cos(np.deg2rad(tilt)) + (part.x - x_BU) * np.sin(np.deg2rad(tilt))
             part_x = -part.s * np.sin(np.deg2rad(tilt)) + (part.x - x_BU)  * np.cos(np.deg2rad(tilt)) + x_BU
 
-            mask_not_end = part.s < length+1
+            mask_not_end = part.s < length + drift_length
             mask_height = (part.y < height/2) & (part.y > -height/2)
-            mask_front = np.isclose(part_s, 0) & mask_height
+            mask_front = np.isclose(part_s, 0) & mask_height & mask_not_end
             assert np.all(part.state[mask_front] < 1)
             assert np.all(part_x[mask_front] <= x_TU)
             assert np.all(part_x[mask_front] >= x_BU)
