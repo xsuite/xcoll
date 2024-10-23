@@ -12,7 +12,8 @@ from ..segments import *
 from .shape import Shape2D, Shape2DV
 
 
-def create_jaw(s_U, x_U, s_D, x_D, *, tilt, side):
+def create_jaw(s_U, x_U, s_D, x_D, *, side):
+    tilt = np.arctan((x_D - x_U)/(s_D - s_U))
     seg1 = HalfOpenLineSegment(s=s_U, x=x_U, t=side*np.pi/2 + tilt)
     seg1 = LineSegment(s1=s_U, x1=x_U, s2=s_D, x2=x_D)
     seg3 = HalfOpenLineSegment(s=s_D, x=x_D, t=side*np.pi/2 + tilt)

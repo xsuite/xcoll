@@ -7,4 +7,4 @@
 from .geometry import XcollGeometry
 
 from .segments import LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment, all_segments
-from .shapes import Shape2D, Shape2DV
+from .shapes import *
