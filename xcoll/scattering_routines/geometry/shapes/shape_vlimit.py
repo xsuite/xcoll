@@ -92,7 +92,7 @@ class Shape2DV(xo.Struct):
     def get_shapes(self):
         if self.is_composite():
             for shape in self._shapes:
-                yield Shape2DV([self[i] for i in shape], vlimit=self.vlimit)
+                yield Shape2DV([self[i] for i in shape], vlimit=list(self.vlimit))
         else:
             yield self
 

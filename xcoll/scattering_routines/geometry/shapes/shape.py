@@ -238,10 +238,9 @@ def _init_shape(shape, **kwargs):
     else:
         add_code = True
         kwargs['_seg_id'] = max(seg_ids.values()) + 1 if len(seg_ids) > 0 else 0
-    allow_single = kwargs.pop('allow_single', False)
     super(shape.__class__, shape).__init__(**kwargs)
     # Sort the segments into shapes and verify the structure
-    shape._shapes = _get_shapes(shape, allow_single=allow_single)
+    shape._shapes = _get_shapes(shape)
     # Shapes are defined anti-clockwise
     if len(shape._shapes) > 1:
         shape._shapes = [list(reversed(shape)) if is_clockwise(verts) else shape
@@ -252,7 +251,7 @@ def _init_shape(shape, **kwargs):
             shape.__class__._needs_compilation = True
 
 
-def _get_shapes(shape, allow_single=False):
+def _get_shapes(shape):
     # We create the vertex tree to verify the shapes are well-formed
     verts = shape.get_vertex_tree()
     for vert, vert_segs in verts.items():
@@ -386,5 +385,5 @@ class ShapeMalformedError(ValueError):
                 if i in bad_seg:
                     c = 'tab:red'
                 ax.plot(s, x, c=c)
-            plt.show()
+            fig.show()
         super().__init__(message)
