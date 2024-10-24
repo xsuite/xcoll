@@ -358,7 +358,7 @@ class PyMethod:
                 for arg in ker.args:
                     if arg.atype == xo.ThisClass:
                         arg.atype = instance.__class__
-            instance.__class__.compile_kernels(instance, save_source_as="example_source.c")
+            instance.__class__.compile_kernels(instance) #, save_source_as="example_source.c")
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         kwargs['shape'] = instance

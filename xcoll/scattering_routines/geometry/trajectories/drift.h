@@ -36,4 +36,42 @@ double DriftTrajectory_length(double s0, double x0, double xm, double y0, double
 }
 
 
+// The following functions do not need to be redefined for the other trajectories
+
+/*gpufun*/
+double Trajectory_get_first(int8_t n_hit, double* s){
+    if (n_hit>0){
+        return s[0];
+    }
+    return XC_S_MAX;
+}
+
+/*gpufun*/
+double Trajectory_get_before_s(int8_t n_hit, double* s, double before_s){
+    for (int8_t i=n_hit-1; i>=0; i--){
+        if (s[i] <= before_s){
+            return s[i];
+        }
+    }
+    return XC_S_MAX;
+}
+
+/*gpufun*/
+double Trajectory_get_after_s(int8_t n_hit, double* s, double after_s){
+    for (int8_t i=0; i<n_hit; i++){
+        if (s[i] >= after_s){
+            return s[i];
+        }
+    }
+    return XC_S_MAX;
+}
+
+/*gpufun*/
+double Trajectory_get_last(int8_t n_hit, double* s){
+    if (n_hit>0){
+        return s[n_hit-1];
+    }
+    return XC_S_MAX;
+}
+
 #endif /* XCOLL_COLL_GEOM_DRIFT_H */

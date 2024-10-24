@@ -434,6 +434,44 @@ double DriftTrajectory_length(double s0, double x0, double xm, double y0, double
 }
 
 
+// The following functions do not need to be redefined for the other trajectories
+
+ static inline
+double Trajectory_get_first(int8_t n_hit, double* s){
+    if (n_hit>0){
+        return s[0];
+    }
+    return XC_S_MAX;
+}
+
+ static inline
+double Trajectory_get_before_s(int8_t n_hit, double* s, double before_s){
+    for (int8_t i=n_hit-1; i>=0; i--){
+        if (s[i] <= before_s){
+            return s[i];
+        }
+    }
+    return XC_S_MAX;
+}
+
+ static inline
+double Trajectory_get_after_s(int8_t n_hit, double* s, double after_s){
+    for (int8_t i=0; i<n_hit; i++){
+        if (s[i] >= after_s){
+            return s[i];
+        }
+    }
+    return XC_S_MAX;
+}
+
+ static inline
+double Trajectory_get_last(int8_t n_hit, double* s){
+    if (n_hit>0){
+        return s[n_hit-1];
+    }
+    return XC_S_MAX;
+}
+
 #endif /* XCOLL_COLL_GEOM_DRIFT_H */
 #ifndef XOBJ_TYPEDEF_LineSegment
 #define XOBJ_TYPEDEF_LineSegment
@@ -1180,26 +1218,22 @@ double Shape2D_crossing_drift_first(Shape2D shape, double s0, double x0, double 
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_first(n_hit, s);
         }
         case 1: {  // SIZE: 15
             double s[15];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_first(n_hit, s);
         }
-        case 2: {  // SIZE: 2
+        case 2: {  // SIZE: 4
+            double s[4];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            return Trajectory_get_first(n_hit, s);
+        }
+        case 3: {  // SIZE: 2
             double s[2];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_first(n_hit, s);
         }
         /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_first*/
         default:
@@ -1218,32 +1252,22 @@ double Shape2D_crossing_drift_before_s(Shape2D shape, double s0, double x0, doub
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=n_hit-1; i>=0; i--){
-                if (s[i] <= before_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_before_s(n_hit, s, before_s);
         }
         case 1: {  // SIZE: 15
             double s[15];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=n_hit-1; i>=0; i--){
-                if (s[i] <= before_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_before_s(n_hit, s, before_s);
         }
-        case 2: {  // SIZE: 2
+        case 2: {  // SIZE: 4
+            double s[4];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            return Trajectory_get_before_s(n_hit, s, before_s);
+        }
+        case 3: {  // SIZE: 2
             double s[2];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=n_hit-1; i>=0; i--){
-                if (s[i] <= before_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_before_s(n_hit, s, before_s);
         }
         /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_before_s*/
         default:
@@ -1262,32 +1286,22 @@ double Shape2D_crossing_drift_after_s(Shape2D shape, double s0, double x0, doubl
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_after_s(n_hit, s, after_s);
         }
         case 1: {  // SIZE: 15
             double s[15];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_after_s(n_hit, s, after_s);
         }
-        case 2: {  // SIZE: 2
+        case 2: {  // SIZE: 4
+            double s[4];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            return Trajectory_get_after_s(n_hit, s, after_s);
+        }
+        case 3: {  // SIZE: 2
             double s[2];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_after_s(n_hit, s, after_s);
         }
         /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_after_s*/
         default:
@@ -1306,26 +1320,22 @@ double Shape2D_crossing_drift_last(Shape2D shape, double s0, double x0, double x
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[n_hit-1];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_last(n_hit, s);
         }
         case 1: {  // SIZE: 15
             double s[15];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[n_hit-1];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_last(n_hit, s);
         }
-        case 2: {  // SIZE: 2
+        case 2: {  // SIZE: 4
+            double s[4];
+            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
+            return Trajectory_get_last(n_hit, s);
+        }
+        case 3: {  // SIZE: 2
             double s[2];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            if (n_hit>0){
-                return s[n_hit-1];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_last(n_hit, s);
         }
         /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_last*/
         default:
@@ -1442,13 +1452,20 @@ double Shape2DV_crossing_drift_first(Shape2DV shape, double s0, double x0, doubl
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
         /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
-        case 0: {  // SIZE: 15
+        case 0: {  // SIZE: 21
+            double s[21];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_first(n_hit, s);
+        }
+        case 1: {  // SIZE: 6
+            double s[6];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_first(n_hit, s);
+        }
+        case 2: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_first(n_hit, s);
         }
         /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
         default:
@@ -1464,15 +1481,20 @@ double Shape2DV_crossing_drift_before_s(Shape2DV shape, double s0, double x0, do
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
         /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
-        case 0: {  // SIZE: 15
+        case 0: {  // SIZE: 21
+            double s[21];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_before_s(n_hit, s, before_s);
+        }
+        case 1: {  // SIZE: 6
+            double s[6];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_before_s(n_hit, s, before_s);
+        }
+        case 2: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=n_hit-1; i>=0; i--){
-                if (s[i] <= before_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_before_s(n_hit, s, before_s);
         }
         /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
         default:
@@ -1488,15 +1510,20 @@ double Shape2DV_crossing_drift_after_s(Shape2DV shape, double s0, double x0, dou
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
         /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
-        case 0: {  // SIZE: 15
+        case 0: {  // SIZE: 21
+            double s[21];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_after_s(n_hit, s, after_s);
+        }
+        case 1: {  // SIZE: 6
+            double s[6];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_after_s(n_hit, s, after_s);
+        }
+        case 2: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;
+            return Trajectory_get_after_s(n_hit, s, after_s);
         }
         /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
         default:
@@ -1512,13 +1539,20 @@ double Shape2DV_crossing_drift_last(Shape2DV shape, double s0, double x0, double
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
         /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
-        case 0: {  // SIZE: 15
+        case 0: {  // SIZE: 21
+            double s[21];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_last(n_hit, s);
+        }
+        case 1: {  // SIZE: 6
+            double s[6];
+            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
+            return Trajectory_get_last(n_hit, s);
+        }
+        case 2: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            if (n_hit>0){
-                return s[n_hit-1];
-            }
-            return XC_S_MAX;
+            return Trajectory_get_last(n_hit, s);
         }
         /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
         default:

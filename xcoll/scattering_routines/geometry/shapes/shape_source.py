@@ -9,7 +9,7 @@ import xobjects as xo
 
 from ..c_init import xo_to_ctypes, xo_to_cnames
 from ..segments import get_max_crossings
-from ..trajectories import all_trajectories, args_cross_h, args_cross_v, args_vlimit
+from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h, args_cross_v, args_vlimit
 
 
 # =================
@@ -20,33 +20,44 @@ from ..trajectories import all_trajectories, args_cross_h, args_cross_v, args_vl
 all_s_positions = {
     'first': {
         'args': [],
-        'code': """if (n_hit>0){
-                return s[0];
-            }
-            return XC_S_MAX;"""},
+        'code': f"return Trajectory_get_first({xo_to_cnames(args_cross_h)});"
+        },
     'before_s': {
         'args': [xo.Arg(xo.Float64, name="before_s")],
-        'code': """for (int8_t i=n_hit-1; i>=0; i--){
-                if (s[i] <= before_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;"""},
+        'code': f"return Trajectory_get_before_s({xo_to_cnames(args_cross_h)}, before_s);"
+        },
     'after_s': {
         'args': [xo.Arg(xo.Float64, name="after_s")],
-        'code': """for (int8_t i=0; i<n_hit; i++){
-                if (s[i] >= after_s){
-                    return s[i];
-                }
-            }
-            return XC_S_MAX;"""},
+        'code': f"return Trajectory_get_after_s({xo_to_cnames(args_cross_h)}, after_s);"
+        },
     'last': {
         'args': [],
-        'code': """if (n_hit>0){
-                return s[n_hit-1];
-            }
-            return XC_S_MAX;"""}
+        'code': f"return Trajectory_get_last({xo_to_cnames(args_cross_h)});"
+        }
 }
+
+# Sanity check to assert the drift trajectory code has all s position functions
+def assert_s_pos_sources(tra):
+    for s_pos, s_args in all_s_positions.items():
+        cnames = f"{args_cross_h[0].get_c_type()[:-1]} {args_cross_h[0].name}, {xo_to_ctypes(args_cross_h[1:])}"
+        if s_args['args']:
+            cnames += f", {xo_to_ctypes(s_args['args'])}"
+        header = f"/*gpufun*/\ndouble Trajectory_get_{s_pos}({cnames})"
+        header_found = False
+        for src in tra._extra_c_sources:
+            if isinstance(src, str):
+                if header in src:
+                    header_found = True
+                    break
+            else:
+                with open(src) as f:
+                    if header in f.read():
+                        header_found = True
+                        break
+        if not header_found:
+            raise SystemError(f"Missing or corrupt C Trajectory_get_s function for {s_pos}.")
+
+assert_s_pos_sources(DriftTrajectory)
 
 
 # ==========================
