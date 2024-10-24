@@ -9,7 +9,7 @@ import pandas as pd
 import xobjects as xo
 
 from ..segments import LocalSegment
-from ..trajectories import trajectories
+from ..trajectories import all_trajectories, args_cross_h
 from .shape import Shape2D, _init_shape
 from .shape_source import all_s_positions, shape_v_source
 
@@ -27,28 +27,23 @@ class Shape2DV(xo.Struct):
     _extra_c_sources = shape_v_source
 
     _kernels = {**{
-                f"Shape2DV_crossing_{trajectory}": xo.Kernel(
-                    c_name=f"Shape2DV_crossing_{trajectory}",
+                f"Shape2DV_crossing_{tra.name}": xo.Kernel(
+                    c_name=f"Shape2DV_crossing_{tra.name}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
-                        xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
-                        xo.Arg(xo.Float64, pointer=True, name="s"),
-                        *vals["args"],
-                        *vals["args_vlimit_extra"]
+                        *args_cross_h, *tra.args_hv, *tra.args_h, *tra.args_v
                     ],
                     ret=None)
-                for trajectory, vals in trajectories.items()},
+                for tra in all_trajectories},
                 **{
-                f"Shape2DV_crossing_{trajectory}_{s_pos}": xo.Kernel(
-                    c_name=f"Shape2DV_crossing_{trajectory}_{s_pos}",
+                f"Shape2DV_crossing_{tra.name}_{s_pos}": xo.Kernel(
+                    c_name=f"Shape2DV_crossing_{tra.name}_{s_pos}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
-                        *vals["args"],
-                        *vals["args_vlimit_extra"],
-                        *s_vals["args"]
+                        *tra.args_hv, *tra.args_h, *tra.args_v, *s_vals["args"]
                     ],
                     ret=xo.Arg(xo.Float64, pointer=False, name='s'))
-                for s_pos, s_vals in all_s_positions.items() for trajectory, vals in trajectories.items()}
+                for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
                 }
 
     def __init__(self, segments=None, vlimit=None, **kwargs):

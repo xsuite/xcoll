@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ....general import _pkg_root
-from ..c_init import GeomCInit
+from ..trajectories import all_trajectories, DriftTrajectory
 
 
 class LineSegment(xo.Struct):
@@ -18,8 +18,10 @@ class LineSegment(xo.Struct):
     s2 = xo.Float64
     x2 = xo.Float64
 
-    _depends_on = [GeomCInit]
+    _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'line.h']
+
+    max_crossings = {DriftTrajectory: 2}
 
     def __repr__(self):
         return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"

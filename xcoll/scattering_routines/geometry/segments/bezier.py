@@ -7,8 +7,8 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit
 from ....general import _pkg_root
+from ..trajectories import all_trajectories, DriftTrajectory
 
 
 class BezierSegment(xo.Struct):
@@ -22,8 +22,10 @@ class BezierSegment(xo.Struct):
     cs2 = xo.Float64
     cx2 = xo.Float64
 
-    _depends_on = [GeomCInit]
+    _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'bezier.h']
+
+    max_crossings = {DriftTrajectory: 3}
 
     def __repr__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \

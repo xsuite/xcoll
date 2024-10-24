@@ -11,8 +11,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import xobjects as xo
 
 from ..c_init import XC_EPSILON
-from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment
-from ..trajectories import trajectories, get_max_crossings
+from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment, get_max_crossings
+from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
 
 
@@ -29,26 +29,23 @@ class Shape2D(xo.Struct):
     _extra_c_sources = shape_source
 
     _kernels = {**{
-                f"Shape2D_crossing_{trajectory}": xo.Kernel(
-                    c_name=f"Shape2D_crossing_{trajectory}",
+                f"Shape2D_crossing_{tra.name}": xo.Kernel(
+                    c_name=f"Shape2D_crossing_{tra.name}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
-                        xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
-                        xo.Arg(xo.Float64, pointer=True, name="s"),
-                        *vals["args"]
+                        *args_cross_h, *tra.args_hv, *tra.args_h
                     ],
                     ret=None)
-                for trajectory, vals in trajectories.items()},
+                for tra in all_trajectories},
                 **{
-                f"Shape2D_crossing_{trajectory}_{s_pos}": xo.Kernel(
-                    c_name=f"Shape2D_crossing_{trajectory}_{s_pos}",
+                f"Shape2D_crossing_{tra.name}_{s_pos}": xo.Kernel(
+                    c_name=f"Shape2D_crossing_{tra.name}_{s_pos}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
-                        *vals["args"],
-                        *s_vals["args"]
+                        *tra.args_hv, *tra.args_h, *s_vals["args"]
                     ],
                     ret=xo.Arg(xo.Float64, pointer=False, name='s'))
-                for s_pos, s_vals in all_s_positions.items() for trajectory, vals in trajectories.items()}
+                for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
                 }
 
     def __init__(self, segments=None, **kwargs):
@@ -231,7 +228,7 @@ def _init_shape(shape, **kwargs):
     # Each different object type will get its own seg_id, by inspecting the source code
     # First we check if code for this object type already exists
     seg_ids = get_seg_ids(shape)
-    max_crossings = get_max_crossings(kwargs['segments'], 'drift')  # test with drift to check if seg_id already has source
+    max_crossings = get_max_crossings(kwargs['segments'])
     add_code = False
     if max_crossings in seg_ids:
         kwargs['_seg_id'] = seg_ids[max_crossings]
@@ -246,8 +243,8 @@ def _init_shape(shape, **kwargs):
         shape._shapes = [list(reversed(shape)) if is_clockwise(verts) else shape
                         for shape, verts in zip(shape._shapes, shape.get_vertices())]
     if add_code:
-        for trajectory in trajectories.keys():
-            create_cases_in_source(shape, trajectory)
+        for tra in all_trajectories:
+            create_cases_in_source(shape, tra)
             shape.__class__._needs_compilation = True
 
 
@@ -361,7 +358,7 @@ class PyMethod:
                 for arg in ker.args:
                     if arg.atype == xo.ThisClass:
                         arg.atype = instance.__class__
-            instance.__class__.compile_kernels(instance) #, save_source_as="temp.c")
+            instance.__class__.compile_kernels(instance, save_source_as="example_source.c")
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         kwargs['shape'] = instance

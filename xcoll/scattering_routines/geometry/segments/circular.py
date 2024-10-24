@@ -7,8 +7,8 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit
 from ....general import _pkg_root
+from ..trajectories import all_trajectories, DriftTrajectory
 
 
 class CircularSegment(xo.Struct):
@@ -19,8 +19,10 @@ class CircularSegment(xo.Struct):
     t1 = xo.Float64  # Starting angle
     t2 = xo.Float64  # Ending angle
 
-    _depends_on = [GeomCInit]
+    _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'circular.h']
+
+    max_crossings = {DriftTrajectory: 2}
 
     def __init__(self, *args, **kwargs):
         if 't1' in kwargs:

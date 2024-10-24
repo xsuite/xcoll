@@ -3,4 +3,5 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from .c_init import GeomCInit, XC_EPSILON, XC_S_MAX, xo_to_ctypes, xo_to_cnames
+from .drift import DriftTrajectory
+from .trajectory import all_trajectories, args_cross_h, args_cross_v, args_vlimit

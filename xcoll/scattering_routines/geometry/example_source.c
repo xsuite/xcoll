@@ -33,10 +33,6 @@ typedef   struct GeomCInit_s * GeomCInit;
   return (GeomCInit)(( char*) obj+offset);
 }
 #endif
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
 
 #ifndef XCOLL_GEOM_DEFINES_H
 #define XCOLL_GEOM_DEFINES_H
@@ -45,11 +41,16 @@ typedef   struct GeomCInit_s * GeomCInit;
 #include <stdint.h>
 #include <stdlib.h>
 
-#define XC_EPSILON 1.e-12
-#define XC_S_MAX 1.e21
+#ifndef XC_EPSILON
+#define XC_EPSILON 1e-15
+#endif
 
+#ifndef XC_S_MAX
+#define XC_S_MAX 1e+21
+#endif
 
 #endif /* XCOLL_GEOM_DEFINES_H */
+
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
@@ -387,6 +388,53 @@ double bisection_method(double a, double b, double c, double d, double t1, doubl
 }
 
 #endif /* XCOLL_GEOM_FIND_ROOT_H */
+#ifndef XOBJ_TYPEDEF_DriftTrajectory
+#define XOBJ_TYPEDEF_DriftTrajectory
+typedef   struct DriftTrajectory_s * DriftTrajectory;
+ static inline DriftTrajectory DriftTrajectory_getp(DriftTrajectory restrict  obj){
+  int64_t offset=0;
+  return (DriftTrajectory)(( char*) obj+offset);
+}
+#endif
+// copyright ############################### #
+// This file is part of the Xcoll package.   #
+// Copyright (c) CERN, 2024.                 #
+// ######################################### #
+
+#ifndef XCOLL_COLL_GEOM_DRIFT_H
+#define XCOLL_COLL_GEOM_DRIFT_H
+
+
+ static inline
+int8_t DriftTrajectory_vlimit(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){
+    if (fabs(ym) < XC_EPSILON){
+        // Trajectory parallel to s axis
+        if (y0 < ymin || y0 > ymax){
+            return 0;  // Completely outside - no crossing possible
+        } else {
+            return -1; // Completely inside - no vertical check needed
+        }
+    } else {
+        restrict_s[0] = (ymin - y0)/ym + s0;
+        restrict_s[1] = (ymax - y0)/ym + s0;
+        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+        return 1;  // Default behavior: check overlap with horizontal crossings
+    }
+}
+
+
+// Curve length is int_s1^s2 sqrt(1 + (dx/ds)^2 + (dy/ds)^2) ds
+
+ static inline
+double DriftTrajectory_length(double s0, double x0, double xm, double y0, double ym, double s1, double s2){
+    (void) s0;  // Avoid unused parameter warning
+    (void) x0;  // Avoid unused parameter warning
+    (void) y0;  // Avoid unused parameter warning
+    return (s2-s1)*sqrt(1 + xm*xm + ym*ym);
+}
+
+
+#endif /* XCOLL_COLL_GEOM_DRIFT_H */
 #ifndef XOBJ_TYPEDEF_LineSegment
 #define XOBJ_TYPEDEF_LineSegment
 typedef   struct LineSegment_s * LineSegment;
@@ -1128,7 +1176,7 @@ double Shape2D_crossing_drift_first(Shape2D shape, double s0, double x0, double 
     int8_t n_hit = 0;
     int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_drift_first*/
+        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_first*/
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
@@ -1153,7 +1201,7 @@ double Shape2D_crossing_drift_first(Shape2D shape, double s0, double x0, double 
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2D_drift_first*/
+        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_first*/
         default:
             printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1166,7 +1214,7 @@ double Shape2D_crossing_drift_before_s(Shape2D shape, double s0, double x0, doub
     int8_t n_hit = 0;
     int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_drift_before_s*/
+        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_before_s*/
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
@@ -1197,7 +1245,7 @@ double Shape2D_crossing_drift_before_s(Shape2D shape, double s0, double x0, doub
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2D_drift_before_s*/
+        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_before_s*/
         default:
             printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1210,7 +1258,7 @@ double Shape2D_crossing_drift_after_s(Shape2D shape, double s0, double x0, doubl
     int8_t n_hit = 0;
     int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_drift_after_s*/
+        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_after_s*/
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
@@ -1241,7 +1289,7 @@ double Shape2D_crossing_drift_after_s(Shape2D shape, double s0, double x0, doubl
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2D_drift_after_s*/
+        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_after_s*/
         default:
             printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1254,7 +1302,7 @@ double Shape2D_crossing_drift_last(Shape2D shape, double s0, double x0, double x
     int8_t n_hit = 0;
     int64_t seg_id = Shape2D_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_drift_last*/
+        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_last*/
         case 0: {  // SIZE: 8
             double s[8];
             Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
@@ -1279,7 +1327,7 @@ double Shape2D_crossing_drift_last(Shape2D shape, double s0, double x0, double x
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2D_drift_last*/
+        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_last*/
         default:
             printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1368,29 +1416,11 @@ typedef   struct Shape2DV_s * Shape2DV;
 #endif
 
  static inline
-int8_t vlimit_drift(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){
-    if (fabs(ym) < XC_EPSILON){
-        // Trajectory parallel to s axis
-        if (y0 < ymin || y0 > ymax){
-            return 0;  // Completely outside - no crossing possible
-        } else {
-            return -1; // Completely inside - no vertical check needed
-        }
-    } else {
-        restrict_s[0] = (ymin - y0)/ym + s0;
-        restrict_s[1] = (ymax - y0)/ym + s0;
-        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
-        return 1;  // Default behavior: check overlap with horizontal crossings
-    }
-}
-
-
- static inline
 void Shape2DV_crossing_drift(Shape2DV shape, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
     double restrict_s[2];
     double ymin = Shape2DV_get_vlimit(shape, 0);
     double ymax = Shape2DV_get_vlimit(shape, 1);
-    int8_t v_result = vlimit_drift(restrict_s, s0, y0, ym, ymin, ymax);
+    int8_t v_result = DriftTrajectory_vlimit(restrict_s, s0, y0, ym, ymin, ymax);
     if (v_result == 0){
         return;  // Completely outside - no crossing possible
     } else {
@@ -1411,7 +1441,7 @@ double Shape2DV_crossing_drift_first(Shape2DV shape, double s0, double x0, doubl
     int8_t n_hit = 0;
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_drift_first*/
+        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
         case 0: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
@@ -1420,7 +1450,7 @@ double Shape2DV_crossing_drift_first(Shape2DV shape, double s0, double x0, doubl
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2DV_drift_first*/
+        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
         default:
             printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1433,7 +1463,7 @@ double Shape2DV_crossing_drift_before_s(Shape2DV shape, double s0, double x0, do
     int8_t n_hit = 0;
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_drift_before_s*/
+        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
         case 0: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
@@ -1444,7 +1474,7 @@ double Shape2DV_crossing_drift_before_s(Shape2DV shape, double s0, double x0, do
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2DV_drift_before_s*/
+        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
         default:
             printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1457,7 +1487,7 @@ double Shape2DV_crossing_drift_after_s(Shape2DV shape, double s0, double x0, dou
     int8_t n_hit = 0;
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_drift_after_s*/
+        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
         case 0: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
@@ -1468,7 +1498,7 @@ double Shape2DV_crossing_drift_after_s(Shape2DV shape, double s0, double x0, dou
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2DV_drift_after_s*/
+        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
         default:
             printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning
@@ -1481,7 +1511,7 @@ double Shape2DV_crossing_drift_last(Shape2DV shape, double s0, double x0, double
     int8_t n_hit = 0;
     int64_t seg_id = Shape2DV_get__seg_id(shape);
     switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_drift_last*/
+        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
         case 0: {  // SIZE: 15
             double s[15];
             Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
@@ -1490,7 +1520,7 @@ double Shape2DV_crossing_drift_last(Shape2DV shape, double s0, double x0, double
             }
             return XC_S_MAX;
         }
-        /*END_SEG_ID_CASES_Shape2DV_drift_last*/
+        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
         default:
             printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
             (void) n_hit;  // Avoid warning

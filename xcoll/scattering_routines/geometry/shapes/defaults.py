@@ -9,7 +9,8 @@ import xobjects as xo
 
 from ..c_init import XC_EPSILON
 from ..segments import *
-from .shape import Shape2D, Shape2DV
+from .shape import Shape2D
+from .shape_vlimit import Shape2DV
 
 
 def create_jaw(s_U, x_U, s_D, x_D, *, side):

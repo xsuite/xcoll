@@ -7,8 +7,8 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit
 from ....general import _pkg_root
+from ..trajectories import all_trajectories, DriftTrajectory
 
 
 class HalfOpenLineSegment(xo.Struct):
@@ -17,8 +17,10 @@ class HalfOpenLineSegment(xo.Struct):
     x = xo.Float64
     t = xo.Float64 # angle (wrt s-axis) towards inf
 
-    _depends_on = [GeomCInit]
+    _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'halfopen_line.h']
+
+    max_crossings = {DriftTrajectory: 2}
 
     def __repr__(self):
         return f"HalfOpenLineSegment(({self.s:.3}, {self.x:.3}) -- " \

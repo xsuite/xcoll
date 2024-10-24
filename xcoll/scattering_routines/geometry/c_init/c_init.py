@@ -6,8 +6,21 @@
 import xobjects as xo
 from ....general import _pkg_root
 
+
 XC_EPSILON = 1.e-15
 XC_S_MAX = 1.e21
+
+
+def xo_to_ctypes(args):
+    if not hasattr(args, '__iter__') or isinstance(args, str):
+        args = [args]
+    return ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in args])
+
+def xo_to_cnames(args):
+    if not hasattr(args, '__iter__') or isinstance(args, str):
+        args = [args]
+    return ", ".join([f"{arg.name}" for arg in args])
+
 
 define_src = f"""
 #ifndef XCOLL_GEOM_DEFINES_H

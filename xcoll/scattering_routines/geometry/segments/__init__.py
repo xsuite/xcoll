@@ -7,4 +7,4 @@ from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
 from .circular import CircularSegment
 from .bezier import BezierSegment
-from .segment import LocalSegment, all_segments
+from .segment import LocalSegment, all_segments, get_max_crossings

@@ -7,8 +7,9 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import  XC_EPSILON
-from ..trajectories import trajectories
+from ..c_init import  XC_EPSILON, xo_to_ctypes
+from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h, args_cross_v, args_vlimit
+
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
 from .circular import CircularSegment
@@ -17,26 +18,22 @@ from .bezier import BezierSegment
 
 all_segments = (LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment)
 
+
 class LocalSegment(xo.UnionRef):
     """General segment, acting as a xobject-style parent class for all segment types"""
     _reftypes = all_segments
     _methods = [xo.Method(
-                    c_name=f"crossing_{trajectory}",
-                    args=[
-                        xo.Arg(xo.Int8,    pointer=True,  name="n_hit"),
-                        xo.Arg(xo.Float64, pointer=True,  name="s"),
-                        *vals["args"]
-                    ],
+                    c_name=f"crossing_{tra.name}",
+                    args=[*args_cross_h, *tra.args_hv, *tra.args_h],
                     ret=None)
-                for trajectory, vals in trajectories.items()]
-
+                for tra in all_trajectories]
 
 
 # Sanity check to assert all segment types have crossing functions for all trajectories
 def assert_localsegment_sources(seg):
-    for trajectory, vals in trajectories.items():
-        c_types = ", ".join([f"{arg.get_c_type()} {arg.name}" for arg in vals['args']])
-        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{trajectory}({seg.__name__} seg, int8_t* n_hit, double* s, {c_types})"
+    for tra in all_trajectories:
+        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
+               + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
         header_found = False
         for src in seg._extra_c_sources:
             if isinstance(src, str):
@@ -49,13 +46,14 @@ def assert_localsegment_sources(seg):
                         header_found = True
                         break
         if not header_found:
-            raise SystemError(f"Missing or corrupt C crossing function for {trajectory} in {seg.__name__}.")
+            raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
 
 
 for seg in all_segments:
     assert_localsegment_sources(seg)
     assert hasattr(seg, 'evaluate')
     assert hasattr(seg, 'get_vertices')
+    assert hasattr(seg, 'max_crossings')
 
 
 # Define common methods for all segments
@@ -89,3 +87,16 @@ for seg in all_segments:
 for seg in all_segments:
     seg.evaluate.__doc__ = """Evaluate the segment over t using the parametric equation"""
     seg.get_vertices.__doc__ = """Get the vertices of the segment"""
+
+
+# Function to get the maximum number of crossings for a given object type
+def get_max_crossings(segments, trajectory=DriftTrajectory):
+    if hasattr(segments, '__iter__') and all(isinstance(seg, all_segments) for seg in segments):
+        max_crossings = 0
+        for seg in segments:
+            max_crossings += seg.max_crossings[trajectory]
+        return max_crossings
+    elif isinstance(segments, all_segments):
+        return segments.max_crossings[trajectory]
+    else:
+        raise ValueError(f"Unexpected type for segments: {type(segments)}")
