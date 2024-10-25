@@ -6,6 +6,7 @@
 #ifndef XCOLL_COLL_GEOM_LINESEG_H
 #define XCOLL_COLL_GEOM_LINESEG_H
 
+
 /*gpufun*/
 void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
     // Get segment data
