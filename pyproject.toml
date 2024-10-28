@@ -32,7 +32,7 @@ xtrack = ">=0.36.5"
 
 [tool.poetry.dev-dependencies]
 pytest = ">=7.3"
-xaux
+xaux = "0.2.0"
 
 [tool.poetry.extras]
 tests = ["pytest", "ruamel-yaml"]
