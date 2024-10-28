@@ -5,10 +5,12 @@
 
 import numpy as np
 
+import pytest
+
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 import xcoll as xc
-from xcoll.scattering_routines.geometry.c_init import XC_EPSILON
+from xcoll.geometry.c_init import XC_EPSILON
 
 
 num_seg = 1000
@@ -39,7 +41,6 @@ def test_line_segment(test_context):
         assert np.all(s <= max(s1, s2))
         assert np.all(min(x1, x2) <= x)
         assert np.all(x <= max(x1, x2))
-
 
 
 @for_all_test_contexts
@@ -122,6 +123,59 @@ def test_bezier_segment(test_context):
         s, x = seg.evaluate(t)
         # First and last evaluated points have to equal the vertices
         assert np.allclose((s[0], x[0], s[-1], x[-1]), (s1, x1, s2, x2), atol=XC_EPSILON)
+
+
+@for_all_test_contexts
+def test_shape_instantiation(test_context):
+    shape1 = xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1), xc.LineSegment(s1=0.2, x1=1, s2=1, x2=1),
+                     xc.LineSegment(s1=1, x1=1, s2=0.8, x2=0), xc.LineSegment(s1=0.8, x1=0, s2=0, x2=0)])
+    shape2 = xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                        xc.BezierSegment(s1=0.2, x1=1, s2=1+0.5*np.cos(3*np.pi/4), x2=0.5+0.5*np.sin(3*np.pi/4), cs1=0.5, cx1=2.5, cs2=1+0.5*np.cos(3*np.pi/4)-0.6, cx2=0.5+0.5*np.sin(3*np.pi/4)-0.6),
+                        xc.CircularSegment(R=0.5, s=1, x=0.5, t1=-np.pi/2, t2=3*np.pi/4),
+                        xc.LineSegment(s1=1, x1=0, s2=0, x2=0),
+                        xc.HalfOpenLineSegment(s=2, x=1, t=np.pi/4),
+                        xc.LineSegment(s1=2, x1=1, s2=3, x2=0),
+                        xc.HalfOpenLineSegment(s=3, x=0, t=np.pi/4)])
+    shape3 = xc.Shape2DV([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                        xc.BezierSegment(s1=0.2, x1=1, s2=1+0.5*np.cos(3*np.pi/4), x2=0.5+0.5*np.sin(3*np.pi/4), cs1=0.5, cx1=2.5, cs2=1+0.5*np.cos(3*np.pi/4)-0.6, cx2=0.5+0.5*np.sin(3*np.pi/4)-0.6),
+                        xc.CircularSegment(R=0.5, s=1, x=0.5, t1=-np.pi/2, t2=3*np.pi/4),
+                        xc.LineSegment(s1=1, x1=0, s2=0, x2=0),
+                        xc.HalfOpenLineSegment(s=2, x=1, t=np.pi/4),
+                        xc.LineSegment(s1=2, x1=1, s2=3, x2=0),
+                        xc.HalfOpenLineSegment(s=3, x=0, t=np.pi/4),
+                        xc.HalfOpenLineSegment(s=1.8, x=-0.5, t=5*np.pi/8),
+                        xc.CircularSegment(R=0.3, s=1.8-0.3*np.cos(np.pi/8), x=-0.5-0.3*np.sin(np.pi/8), t1=-7*np.pi/8, t2=np.pi/8),
+                        xc.HalfOpenLineSegment(s=1.8-0.6*np.cos(np.pi/8), x=-0.5-0.6*np.sin(np.pi/8), t=5*np.pi/8)],
+                        vlimit=[-0.1, 0.1])
+    shape4 = xc.Shape2DV([xc.CircularSegment(R=1, s=0, x=0, t1=0, t2=2*np.pi/3),
+                        xc.CircularSegment(R=1, s=0, x=0, t1=2*np.pi/3, t2=4*np.pi/3),
+                        xc.CircularSegment(R=1, s=0, x=0, t1=4*np.pi/3, t2=2*np.pi)],
+                        vlimit=[-0.1, 0.1])
+    R1 = 0.5
+    R2 = 2
+    t = np.arcsin(R1/R2)
+    shape5 = xc.Shape2D([xc.CircularSegment(R=R1, s=0, x=0, t1=np.pi/2, t2=-np.pi/2),
+                        xc.CircularSegment(R=R2, s=-R2*np.cos(t), x=0, t1=-t, t2=t)])
+    shape6 = xc.Shape2D([xc.HalfOpenLineSegment(s=0, x=0, t=np.pi/4),
+                        xc.HalfOpenLineSegment(s=0, x=0, t=-np.pi/4)])
+    with pytest.raises(xc.geometry.ShapeMalformedError,
+                       match=" connected to more than 2 segments: "):
+        xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                    xc.LineSegment(s1=0.2, x1=1, s2=1, x2=1),
+                    xc.LineSegment(s1=0.2, x1=1, s2=0, x2=1.2),
+                    xc.LineSegment(s1=1, x1=1, s2=0.8, x2=0),
+                    xc.LineSegment(s1=0.8, x1=0, s2=0, x2=0)])
+    # Test to_dict() (also for all segments!!),  is_composite, is_open, get_shapes, get_vertex_tree, get_vertices, plot, plot3d
+
+
+@for_all_test_contexts
+def test_shape_defaults(test_context):
+    pass
+
+
+@for_all_test_contexts
+def test_shape_crossings_drift(test_context):
+    pass
 
 
 # from xcoll.scattering_routines.geometry.trajectories import get_max_crossings

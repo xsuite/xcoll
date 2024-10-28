@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -23,7 +23,7 @@ class BezierSegment(xo.Struct):
     cx2 = xo.Float64
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'bezier.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
     max_crossings = {DriftTrajectory: 3}
 

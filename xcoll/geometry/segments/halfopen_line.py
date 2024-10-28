@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -18,7 +18,7 @@ class HalfOpenLineSegment(xo.Struct):
     t = xo.Float64 # angle (wrt s-axis) towards inf
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'halfopen_line.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
 
     max_crossings = {DriftTrajectory: 2}
 

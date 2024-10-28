@@ -82,6 +82,13 @@ class Shape2D(xo.Struct):
             return PyMethod(kernel_name=attr, element=self)
         raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
+    def to_dict(self):
+        """Returns a dictionary in the same style as a HybridClass"""
+        this_dict = {'__class__': self.__class__.__name__}
+        this_dict.update(self._to_json())
+        this_dict['segments'] = [{'__class__': kk, **vv} for kk, vv in this_dict['segments']]
+        return this_dict
+
     def is_composite(self):
         """Returns True if the shape is a composite of multiple shapes"""
         return len(self._shapes) > 1

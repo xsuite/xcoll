@@ -57,6 +57,10 @@ for seg in all_segments:
 
 
 # Define common methods for all segments
+def to_dict(self):
+    """Returns a dictionary in the same style as a HybridClass"""
+    return {'__class__': self.__class__.__name__, **self._to_json()}
+
 def seg_round(self, val):
     """Built-in to provide rounding to Xcoll precision"""
     return round(val, -int(np.log10(XC_EPSILON)))
@@ -77,6 +81,7 @@ def is_connected_to(self, other):
     return len(self.connection_to(other)) > 0
 
 for seg in all_segments:
+    seg.to_dict = to_dict
     seg.round = seg_round
     seg.is_open = is_open
     seg.connection_to = connection_to

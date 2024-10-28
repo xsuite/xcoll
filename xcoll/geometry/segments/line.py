@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -19,7 +19,7 @@ class LineSegment(xo.Struct):
     x2 = xo.Float64
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'line.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
 
     max_crossings = {DriftTrajectory: 2}
 

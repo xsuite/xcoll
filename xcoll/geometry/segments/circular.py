@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -20,7 +20,7 @@ class CircularSegment(xo.Struct):
     t2 = xo.Float64  # Ending angle
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'circular.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
     max_crossings = {DriftTrajectory: 2}
 
