@@ -28,6 +28,23 @@ class LocalSegment(xo.UnionRef):
                     ret=None)
                 for tra in all_trajectories]
 
+    def __init__(self, *args, **kwargs):
+        raise ValueError("LocalSegment is an abstract class and should not be instantiated")
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        """Returns the correct segment object from a dictionary in the same style as a HybridClass"""
+        this_dct = dct.copy()
+        this_cls = this_dct.pop('__class__')
+        class_found = False
+        for cls in all_segments:
+            if this_cls == cls.__name__:
+                class_found = True
+                break
+        if not class_found:
+            raise ValueError(f"Not a segment class: {this_cls}")
+        return cls(**this_dct, **kwargs)
+
 
 # Sanity check to assert all segment types have crossing functions for all trajectories
 def assert_localsegment_sources(seg):
@@ -57,9 +74,22 @@ for seg in all_segments:
 
 
 # Define common methods for all segments
+def seg__eq__(self, other):
+    """Check if two segments are equal"""
+    return self.to_dict() == other.to_dict()
+
 def to_dict(self):
     """Returns a dictionary in the same style as a HybridClass"""
     return {'__class__': self.__class__.__name__, **self._to_json()}
+
+@classmethod
+def from_dict(cls, dct, **kwargs):
+    """Returns the object from a dictionary in the same style as a HybridClass"""
+    this_dct = dct.copy()
+    this_cls = this_dct.pop('__class__')
+    if this_cls != cls.__name__:
+        raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
+    return cls(**this_dct, **kwargs)
 
 def seg_round(self, val):
     """Built-in to provide rounding to Xcoll precision"""
@@ -81,7 +111,9 @@ def is_connected_to(self, other):
     return len(self.connection_to(other)) > 0
 
 for seg in all_segments:
+    seg.__eq__ = seg__eq__
     seg.to_dict = to_dict
+    seg.from_dict = from_dict
     seg.round = seg_round
     seg.is_open = is_open
     seg.connection_to = connection_to
