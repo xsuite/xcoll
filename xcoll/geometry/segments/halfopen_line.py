@@ -22,6 +22,14 @@ class HalfOpenLineSegment(xo.Struct):
 
     max_crossings = {DriftTrajectory: 2}
 
+    def __init__(self, *args, **kwargs):
+        if 't' in kwargs:
+            while kwargs['t'] < -np.pi:
+                kwargs['t'] += 2*np.pi
+            while kwargs['t'] > np.pi:
+                kwargs['t'] -= 2*np.pi
+        super().__init__(*args, **kwargs)
+
     def __repr__(self):
         return f"HalfOpenLineSegment(({self.s:.3}, {self.x:.3}) -- " \
             + f"{np.rad2deg(self.t):.0f}" + u'\xb0' + " * inf)"
@@ -37,3 +45,22 @@ class HalfOpenLineSegment(xo.Struct):
 
     def get_vertices(self):
         return ((self.s, self.x),)
+
+    def _translate_inplace(self, ds, dx):
+        self.s += ds
+        self.x += dx
+
+    def _rotate_inplace(self, ps, px, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        self._translate_inplace(-ps, -px)
+        new_s = self.s * c - self.x * s
+        new_x = self.s * s + self.x * c
+        self.s = new_s
+        self.x = new_x
+        self.t += angle
+        while self.t < -np.pi:
+            self.t += 2*np.pi
+        while self.t < -np.pi:
+            self.t += 2*np.pi
+        self._translate_inplace(ps, px)

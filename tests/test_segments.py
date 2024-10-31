@@ -54,6 +54,11 @@ def test_line_segment(test_context):
         assert isinstance(seg3, xc.LineSegment)
         assert seg3 == seg
         assert np.allclose((seg3.s1, seg3.x1, seg3.s2, seg3.x2), (s1, x1, s2, x2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s1, seg.x1, seg.s2, seg.x2),
+                            (seg4.s1, seg4.x1, seg4.s2, seg4.x2), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -64,6 +69,11 @@ def test_halfopen_line_segment(test_context):
         # Test instantiation
         seg = xc.HalfOpenLineSegment(s=s1, x=x1, t=t1, _context=test_context)
         print(seg)  # test __repr__
+        # Move t1 to [-pi, pi]
+        while t1 < -np.pi:
+            t1 += 2*np.pi
+        while t1 > np.pi:
+            t1 -= 2*np.pi
         assert np.allclose((seg.s, seg.x, seg.t), (s1, x1, t1), atol=XC_EPSILON)
         # Test vertices
         verts = seg.get_vertices()
@@ -95,6 +105,10 @@ def test_halfopen_line_segment(test_context):
         assert isinstance(seg3, xc.HalfOpenLineSegment)
         assert seg3 == seg
         assert np.allclose((seg3.s, seg3.x, seg3.t), (s1, x1, t1), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s, seg.x, seg.t), (seg4.s, seg4.x, seg4.t), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -139,6 +153,11 @@ def test_circular_segment(test_context):
         assert isinstance(seg3, xc.CircularSegment)
         assert seg3 == seg
         assert np.allclose((seg3.R, seg3.s, seg3.x, seg3.t1, seg3.t2), (R, s0, x0, t1, t2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.R, seg.s, seg.x, seg.t1, seg.t2),
+                            (seg4.R, seg4.s, seg4.x, seg4.t1, seg4.t2), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -171,6 +190,12 @@ def test_bezier_segment(test_context):
         assert seg3 == seg
         assert np.allclose((seg3.s1, seg3.x1, seg3.s2, seg3.x2, seg3.cs1, seg3.cx1, seg3.cs2, seg3.cx2),
                             (s1, x1, s2, x2, cs1, cx1, cs2, cx2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s1, seg.x1, seg.s2, seg.x2, seg.cs1, seg.cx1, seg.cs2, seg.cx2),
+                           (seg4.s1, seg4.x1, seg4.s2, seg4.x2, seg4.cs1, seg4.cx1, seg4.cs2, seg4.cx2),
+                           atol=XC_EPSILON)
 
 
 @for_all_test_contexts

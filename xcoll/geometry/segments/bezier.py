@@ -48,3 +48,35 @@ class BezierSegment(xo.Struct):
     def get_vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2)
 
+    def _translate_inplace(self, ds, dx):
+        self.s1 += ds
+        self.x1 += dx
+        self.s2 += ds
+        self.x2 += dx
+        self.cs1 += ds
+        self.cx1 += dx
+        self.cs2 += ds
+        self.cx2 += dx
+
+    def _rotate_inplace(self, ps, px, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        self._translate_inplace(-ps, -px)
+        new_s1 = self.s1 * c - self.x1 * s
+        new_x1 = self.s1 * s + self.x1 * c
+        new_s2 = self.s2 * c - self.x2 * s
+        new_x2 = self.s2 * s + self.x2 * c
+        self.s1 = new_s1
+        self.x1 = new_x1
+        self.s2 = new_s2
+        self.x2 = new_x2
+        new_cs1 = self.cs1 * c - self.cx1 * s
+        new_cx1 = self.cs1 * s + self.cx1 * c
+        new_cs2 = self.cs2 * c - self.cx2 * s
+        new_cx2 = self.cs2 * s + self.cx2 * c
+        self.cs1 = new_cs1
+        self.cx1 = new_cx1
+        self.cs2 = new_cs2
+        self.cx2 = new_cx2
+        self._translate_inplace(ps, px)
+
