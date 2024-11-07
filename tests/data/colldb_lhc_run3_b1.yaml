@@ -62,7 +62,7 @@ Collimators:
   tcdqa.b4r6.b1:      { <<: *TCDQ                   }
   tcsp.a4r6.b1:       { <<: *TCSP                   }
   tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR  }
-  tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR  }
+  tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR, tilt: [-250e-6, 250e6]  }
   tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
   tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
   tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  width: 5.0e-3,  height: 30.0e-3  }

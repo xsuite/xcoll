@@ -198,6 +198,13 @@ class BaseCollimator(BaseBlock):
                 to_assign['angle_L'] = kwargs.pop('angle_L', 0)
                 to_assign['angle_R'] = kwargs.pop('angle_R', 0)
 
+            # We do not allow any combination of jaw_ and gap_ attributes
+            # (except when jaw=..., gap=None or jaw=None, gap=... is used, as this is how the colldb installs it)
+            if 'jaw' in kwargs and kwargs['jaw'] is None:
+                kwargs.pop('jaw')
+            if 'gap' in kwargs and kwargs['gap'] is None:
+                kwargs.pop('gap')
+
             # Set jaw
             if 'jaw' in kwargs:
                 for key in ['jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
@@ -1057,6 +1064,14 @@ class BaseCrystal(BaseBlock):
 
             # Set angle
             to_assign['angle'] = kwargs.pop('angle', 0)
+
+            # We do not allow any combination of jaw_ and gap_ attributes
+            # (except when jaw=..., gap=None or jaw=None, gap=... is used, as this is how the colldb installs it)
+            if 'jaw' in kwargs and kwargs['jaw'] is None:
+                kwargs.pop('jaw')
+            if 'gap' in kwargs and kwargs['gap'] is None:
+                kwargs.pop('gap')
+
 
             # Set jaw
             if 'jaw' in kwargs:

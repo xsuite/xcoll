@@ -30,7 +30,7 @@ tcdqa.c4r6.b1:      { gap: 7.3, stage: tertiary,  material: C,    length: 3,   a
 tcdqa.b4r6.b1:      { gap: 7.3, stage: tertiary,  material: C,    length: 3,   angle:   0,   parking: 0.025, side: left }
 tcsp.a4r6.b1:       { gap: 7.3, stage: SECONDARY, material: C,    Length: 1,   angle:   0,   parking: 0.025 }
 TCP.D6l7.B1:        { gap: 5,   stage: primary,   material: MoGR, length: 0.6, angle:  90,   parking: 0.025 }
-tcp.c6l7.b1:        { gap: 5,   stage: primary,   MATeRIAL: MoGR, length: 0.6, angle:   0,   parking: 0.025 }
+tcp.c6l7.b1:        { gap: 5,   stage: primary,   MATeRIAL: MoGR, length: 0.6, angle:   0,   parking: 0.025, tilt: [-250e-6, 250e6] }
 tcp.b6l7.b1:        { gap: 5,   stage: primary,   material: C,    length: 0.6, angle: 127.5, parking: 0.025 }
 tcsg.a6l7.b1:       { gap: 6.5, stage: secondary, material: C,    length: 1,   angle: 141.1, parking: 0.025 }
 tcpcv.a6l7.b1:      { gap: null, stage: special,  material: Si,   length: 0.004, angle:  90, parking: 0.025, side: left,  crystal: strip, Bending_radius: 85.10, Width: 5.0e-3, height: 30.0e-3 }
