@@ -4,8 +4,8 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from xaux.tools import dev_make_release_branch
+from xaux.dev_tools import make_release_branch
 # sys.tracebacklimit = 0
 
 
-dev_make_release_branch("xcoll")
+make_release_branch("xcoll")
