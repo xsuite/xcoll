@@ -36,4 +36,4 @@ if len(only_current) > 0:
     sys.exit("Please run data/store_all_tests.py as there are some new "
            + "tests that are not logged yet:\n" + '\n'.join(only_current))
 if len(only_expected) > 0:
-    sys.exit("The following tests were expected but not found:\n" + '\n'.join(only_expected))
+    sys.exit("The following tests were expected but not found:\n" + '\n'.join(only_expected) + "Please run data/store_all_tests.py")

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xcoll"
-version = "0.5.9"
+version = "0.5.10"
 description = "Xsuite collimation package"
 homepage = "https://github.com/xsuite/xcoll"
 repository = "https://github.com/xsuite/xcoll"
@@ -26,7 +26,7 @@ ruamel-yaml = { version = "^0.17.31", optional = true }
 numpy = ">=1.0"
 pandas = ">=1.4"
 xobjects = ">=0.4.5"
-xdeps = ">=0.7.3"
+xdeps = ">=0.7.4"
 xpart = ">=0.19.1"
 xtrack = ">=0.69.7"
 
