@@ -253,7 +253,7 @@
       "family": "TCP7",
       "angle":   0,
       "material": "MoGR",
-      "tilt": [-250e-6, 250e6]
+      "tilt": [-250e-6, 250e-6]
     },
     "tcp.b6l7.b1": {
       "family": "TCP7",
