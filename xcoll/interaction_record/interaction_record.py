@@ -238,14 +238,14 @@ class InteractionRecord(xt.BeamElement):
                     'int':  [shortcuts[inter] for inter in self._inter[mask]],
                     'pid':  self.id_before[mask]
                 })
-            return df.groupby('pid', sort=False)['int'].agg(list)
+            return df.groupby('pid', sort=False, group_keys=False)['int'].agg(list)
         else:
             df = pd.DataFrame({
                     'int':   [shortcuts[inter] for inter in self._inter[mask]],
                     'turn':  self.at_turn[mask],
                     'pid':   self.id_before[mask]
                 })
-            return df.groupby(['pid', 'turn'], sort=False)['int'].apply(list)
+            return df.groupby(['pid', 'turn'], sort=False, group_keys=False)['int'].apply(list)
 
     def first_touch_per_turn(self, frame=None):
         n_rows = self._index.num_recorded
@@ -253,7 +253,8 @@ class InteractionRecord(xt.BeamElement):
                            'at_turn': self.at_turn[:n_rows],
                            'at_element': self.at_element[:n_rows]})
         mask = np.char.startswith(self.interaction_type[:n_rows], 'Enter Jaw')
-        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(['at_turn', 'id_before'], sort=False)]
+        idx_first = [group.at_element.idxmin() for _, group in df[mask].groupby(
+                        ['at_turn', 'id_before'], sort=False, group_keys=False)]
         df_first = self.to_pandas(frame=frame).loc[idx_first]
         df_first.insert(2, "jaw", df_first.interaction_type.astype(str).str[-1])
         to_drop = ['interaction_type',

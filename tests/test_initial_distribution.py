@@ -70,7 +70,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     with flaky_assertions():
         # Pencil: left jaw
-        pos_jawL_conv = coll_conv.jaw_L
+        pos_jawL_conv = coll_conv.jaw_LU
         pos_partL_conv = part_conv.x[mask_conv_L].min()
         pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
         assert np.isclose(pencil_spread_convL, pencil_spread, atol=atol_spread)
@@ -78,7 +78,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
 
         # Pencil: right jaw
-        pos_jawR_conv = coll_conv.jaw_R
+        pos_jawR_conv = coll_conv.jaw_RU
         pos_partR_conv = part_conv.x[mask_conv_R].max()
         pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
         assert np.isclose(pencil_spread_convR, pencil_spread, atol=atol_spread)
@@ -117,7 +117,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     with flaky_assertions():
         # Pencil: left jaw
-        pos_jawL_div = coll_div.jaw_L
+        pos_jawL_div = coll_div.jaw_LD
         pos_partL_div = part_div.y[mask_div_L].min()
         pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
         assert np.isclose(pencil_spread_divL, pencil_spread, atol=atol_spread)
@@ -125,7 +125,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         assert pos_partL_div - impact_parameter - pos_jawL_div > 0
 
         # Pencil: right jaw
-        pos_jawR_div = coll_div.jaw_R
+        pos_jawR_div = coll_div.jaw_RD
         pos_partR_div = part_div.y[mask_div_R].max()
         pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
         assert np.isclose(pencil_spread_divR, pencil_spread, atol=atol_spread)

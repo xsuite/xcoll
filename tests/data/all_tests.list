@@ -52,8 +52,6 @@ tests/test_colldb.py::test_loading_no_merge
 tests/test_colldb.py::test_loading_crystals
 tests/test_colldb.py::test_loading_SixTrack
 tests/test_colldb.py::test_loading_SixTrack_crystals
-tests/test_colldb.py::test_dumping
-tests/test_colldb.py::test_dumping_from_Sixtrack
 tests/test_elements.py::test_black_absorber[ContextCpu]
 tests/test_elements.py::test_black_absorber[ContextCpu:auto]
 tests/test_elements.py::test_black_crystal[ContextCpu]
