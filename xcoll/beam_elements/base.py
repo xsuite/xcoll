@@ -198,6 +198,10 @@ class BaseCollimator(BaseBlock):
                 to_assign['angle_L'] = kwargs.pop('angle_L', 0)
                 to_assign['angle_R'] = kwargs.pop('angle_R', 0)
 
+            # We do not allow any combination of jaw_ and gap_ attributes
+            # (except when jaw=..., gap=None or jaw=None, gap=... is used, as this is how the colldb installs it)
+            kwargs = {kk: vv for kk, vv in kwargs.items() if not vv is None}
+
             # Set jaw
             if 'jaw' in kwargs:
                 for key in ['jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
@@ -333,7 +337,7 @@ class BaseCollimator(BaseBlock):
         or   (self.tilt_L == 0 and self.tilt_R == 0):
             return [self.jaw_L, self.jaw_R]
         else:
-            return [[self.jaw_LU, self.jaw_RU], [self.jaw_LD, self.jaw_RD]]
+            return [[self.jaw_LU, self.jaw_LD], [self.jaw_RU, self.jaw_RD]]
 
     @jaw.setter   # Keeps the tilts unless all 4 corners are specified
     def jaw(self, val):
@@ -352,8 +356,8 @@ class BaseCollimator(BaseBlock):
             if hasattr(val[0], '__iter__'):
                 if hasattr(val[1], '__iter__') and len(val[0]) == 2 and len(val[1]) == 2:
                     self.jaw_LU = val[0][0]
-                    self.jaw_RU = val[0][1]
-                    self.jaw_LD = val[1][0]
+                    self.jaw_LD = val[0][1]
+                    self.jaw_RU = val[1][0]
                     self.jaw_RD = val[1][1]
                     return
             else:
@@ -556,6 +560,8 @@ class BaseCollimator(BaseBlock):
             print("Warning: Setting a tilt does not preserve the hierarchy, as there "
                 + "will always be one corner that tightens (the tilt is applied at "
                 + "the centre of the jaw).")
+            if val > np.pi/2 or val < -np.pi/2:
+                raise ValueError("Tilts larger than 90 degrees are not supported.")
         self._sin_yL = np.sin(val)
         self._cos_yL = np.cos(val)
         self._tan_yL = np.tan(val)
@@ -577,6 +583,8 @@ class BaseCollimator(BaseBlock):
             print("Warning: Setting a tilt does not preserve the hierarchy, as there "
                 + "will always be one corner that tightens (the tilt is applied at "
                 + "the centre of the jaw).")
+            if val > np.pi/2 or val < -np.pi/2:
+                raise ValueError("Tilts larger than 90 degrees are not supported.")
         self._sin_yR = np.sin(val)
         self._cos_yR = np.cos(val)
         self._tan_yR = np.tan(val)
@@ -597,9 +605,6 @@ class BaseCollimator(BaseBlock):
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
-        from xcoll.beam_elements import _all_collimator_classes
-        if not isinstance(self, _all_collimator_classes):
-            raise ValueError("Please install collimator before assigning optics.")
         if nemitt_x is None:
             if self.nemitt_x is None:
                 raise ValueError("Need to provide `nemitt_x`.")
@@ -968,8 +973,6 @@ class BaseCollimator(BaseBlock):
             assert self._jaws_parallel == False
             assert np.isclose(self._sin_zDiff, self._cos_zL*self._sin_zR - self._sin_zL*self._cos_zR)
             assert np.isclose(self._cos_zDiff, self._cos_zL*self._cos_zR + self._sin_zL*self._sin_zR)
-        if self.side == 'both' and abs(self.tilt_L - self.tilt_R) >= 90.:
-            raise ValueError("Tilts of both jaws differ more than 90 degrees!")
         if self.side != 'right':
             ang = abs(np.arccos(self._cos_yL))
             ang = np.pi - ang if ang > np.pi/2 else ang
@@ -1060,6 +1063,11 @@ class BaseCrystal(BaseBlock):
 
             # Set angle
             to_assign['angle'] = kwargs.pop('angle', 0)
+
+            # We do not allow any combination of jaw_ and gap_ attributes
+            # (except when jaw=..., gap=None or jaw=None, gap=... is used, as this is how the colldb installs it)
+            kwargs = {kk: vv for kk, vv in kwargs.items() if not vv is None}
+
 
             # Set jaw
             if 'jaw' in kwargs:
@@ -1217,6 +1225,8 @@ class BaseCrystal(BaseBlock):
             if val > min(0, -self.bending_angle/2):
                 print("Warning: Setting a positive tilt does not preserve the hierarchy, as the "
                     + "crystal tightens towards the beam.")
+        if val > np.pi/2 or val < -np.pi/2:
+            raise ValueError("Tilts larger than 90 degrees are not supported.")
         self._sin_y = np.sin(val)
         self._cos_y = np.cos(val)
         self._tan_y = np.tan(val)
