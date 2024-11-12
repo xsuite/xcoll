@@ -6,6 +6,8 @@
 from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
+from .k2 import _K2Collimator, _K2Crystal
+
 from .blowup import BlowUp
 from .monitor import EmittanceMonitor
 

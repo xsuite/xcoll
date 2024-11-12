@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 
-def create_dat_file(line, names, file="k2_colldb.dat"):
+def create_dat_file(elements, names, file="k2_colldb.dat"):
     from ...beam_elements import _K2Collimator, _K2Crystal
     file = Path(file).expanduser().resolve()
     if file.exists():
@@ -15,8 +15,7 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
     with file.open('w') as fp:
         onesided = []
         crystal  = []
-        for name in names:
-            el = line[name]
+        for el, name in zip(elements, names):
             if el.__class__ == _K2Crystal:
                 orbit = el.co[0]
             elif el.__class__ == _K2Collimator:
@@ -59,14 +58,12 @@ def create_dat_file(line, names, file="k2_colldb.dat"):
         if len(onesided) > 0:
             fp.write("SETTINGS \n")
             for name in onesided:
-                el = line[name]
                 fp.write(f"ONESIDED  {name:50}     {el._side}\n")
 
         if len(crystal) > 0:
             if len(onesided) == 0:
                 fp.write("SETTINGS \n")
             for name in crystal:
-                el = line[name]
                 fp.write(f"CRYSTAL   {name:18}  {el.bending_radius:5}  {el.width}  "
                          f"{el.height}  0.0  {el.tilt}  {el.miscut}  {el._orient}\n")
 

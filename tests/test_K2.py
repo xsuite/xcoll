@@ -74,7 +74,7 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
         kwargs = {'_capacity': num_particles}
-        K2Engine.start(line=line, cwd='run_1', **kwargs)
+        K2Engine.start(line=line, **kwargs)
     elif material and everest:
         xc.install_elements(line, [Ecoll[1]], [Ecoll[0]], need_apertures=False)
         line.build_tracker()
@@ -85,7 +85,7 @@ def _track_with_angles(beam, plane, num_particles, pos, everest=False, material=
         line.build_tracker()
         xc.assign_optics_to_collimators(line=line)
         kwargs = {'_capacity': num_particles}
-        K2Engine.start(line=line, cwd='run_1', **kwargs)
+        K2Engine.start(line=line, **kwargs)
         coll = K2coll[0]
 
     part_zero_init, part_pos_init, part_neg_init, part_rand_init = _create_4_particles(line=line, pos=pos, num_particles=num_particles, plane=plane)
