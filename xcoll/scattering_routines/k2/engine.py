@@ -157,8 +157,8 @@ class K2Engine:
                 off2 = ((el.jaw_L - el.jaw_R)/10)**2
                 betx = 10000 if abs(el._cos_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_x /(el._cos_zL**2)
                 bety = 10000 if abs(el._sin_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_y /(el._sin_zL**2)
-                el._optics[el.align]['betx'] = [100000]
-                el._optics[el.align]['bety'] = [100000]
+                el._optics[el.align]['betx'] = [betx]  # TODO: understand
+                el._optics[el.align]['bety'] = [bety]
                 el._optics[el.align]['x']  = [(el.jaw_L + el.jaw_R)/2 * el._cos_zL]
                 el._optics[el.align]['y']  = [(el.jaw_L + el.jaw_R)/2 * el._sin_zL]
                 el._optics[el.align]['px'] = [0]

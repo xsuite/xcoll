@@ -119,6 +119,7 @@ for j, iL, iR, oL, oR in zip(jaws, spread_inside_L, spread_inside_R, spread_outs
 
 
 # TODO TODO TODO: issue with inside (and only when inside): outliers at x = +- 0.1
+#                 seems to be related to the gap size (fixed large beta gives small gaps, and online then do we get inside vetoes)
 plt.plot(jaws, spread_inside_L)
 plt.plot(jaws, spread_inside_R)
 plt.plot(jaws, spread_outside_L)
