@@ -57,8 +57,15 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if twiss is None:
         twiss = line.twiss()
 
-    # Is it converging or diverging?    # TODO: This might change with a tilt!!!!!!
-    is_converging  = twiss[f'alf{plane}', name] > 0
+    # Is it converging or diverging?
+    tilt = coll.tilt[0] if isinstance(coll.tilt, list) else coll.tilt
+    beta0 = line.particle_ref.beta0[0]
+    gamma0 = line.particle_ref.gamma0[0]
+    gemitts = {'x': coll.nemitt_x / beta0 / gamma0,
+               'y': coll.nemitt_y / beta0 / gamma0}
+    betatron_angle = -coll.gap * twiss[f'alf{plane}', name] * np.sqrt(gemitts[plane] / twiss[f'bet{plane}', name])
+    tolerance_tilt = 1e-7 # 0.1 urad tolerance on jaw tilt
+    is_converging = tilt >= betatron_angle - tolerance_tilt
     print(f"Collimator {name} is {'con' if is_converging else 'di'}verging.")
 
     beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
