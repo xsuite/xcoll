@@ -581,7 +581,7 @@ class CollimatorDatabase:
         # Check server
         if FlukaEngine.is_running():
             print("Warning: FLUKA server is already running. Stopping server to install collimators.")
-            FlukaEngine.stop_server(fluka_input_file)
+            FlukaEngine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
             self._create_collimator(line, FlukaCollimator, name, verbose=verbose)
