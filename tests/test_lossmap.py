@@ -8,6 +8,7 @@ import numpy as np
 from pathlib import Path
 import xtrack as xt
 import xcoll as xc
+import xpart as xp
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
@@ -45,10 +46,46 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     line.scattering.enable()
     line.track(part, num_turns=2)
     line.scattering.disable()
+    assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal')
 
-    line_is_reversed = True if beam == 2 else False
+
+@retry()
+def test_run_lossmap_fluka():
+    # If a previous test failed, stop the server manually
+    if xc.FlukaEngine.is_running():
+        xc.FlukaEngine.stop(clean=True)
+
+    npart = 5000
+    beam = 2
+    plane = 'H'
+
+    # line = xt.Line.from_json(path / 'machines' / f'lhc_run3_b{beam}.json')
+    # colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb' / f'lhc_run3_fluka.yaml', beam=beam)
+    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
+    colldb.install_fluka_collimators(line=line)
+    df_with_coll = line.check_aperture()
+    assert not np.any(df_with_coll.has_aperture_problem)
+    line.build_tracker()
+    line.collimators.assign_optics()
+
+    xc.FlukaEngine.start(line=line, _capacity=2*npart, cwd='run_fluka_temp', debug_level=1)
+    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref, line=line)
+
+    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
+    part = line[tcp].generate_pencil(npart)
+
+    line.scattering.enable()
+    line.track(part, num_turns=2)
+    line.scattering.disable()
+    xc.FlukaEngine.stop(clean=True)
+    assert_lossmap(beam, npart, line, part, tcp, 0.1, True, 'FlukaCollimator', None)
+
+
+def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls):
     with flaky_assertions():
-
+        line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
                          interpolation=interpolation)
 
@@ -65,9 +102,10 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
-        assert len(summ[summ.type=='EverestCollimator']) == 10
+        assert len(summ[summ.type==coll_cls]) == 10
         if not ignore_crystals:
-            assert len(summ[summ.type=='EverestCrystal']) == 2
+            assert len(summ[summ.type==cry_cls]) == 2
+
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
@@ -94,5 +132,4 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
             assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed
-
 
