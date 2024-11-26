@@ -157,10 +157,33 @@ class FlukaEngine(xo.HybridClass):
         if this.is_running():
             print("Server already running.", flush=True)
             return
+
+        timeout = 180 # Checking for 3 minutes if _fluka and _flukaserver exist.
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            if this._fluka.exists() and this._flukaserver.exists():
+                break
+            time.sleep(1)
+
         if not this._fluka.exists():
-            raise ValueError(f"Could not find fluka executable {this._fluka}!")
+            print(f"Could not find fluka executable {this._fluka}!")
+            print("Trying modifying the eos path project-f->project/f")
+            fluka_folder = os.path.dirname(this._fluka)
+            if not os.path.exists(fluka_folder):
+                print(f"Could not find the folder for fluka executable {fluka_folder}!")
+            this._fluka = this._fluka.replace("project-f", "project/f")
+            if not this._fluka.exists():
+                raise ValueError(f"Could not find fluka executable {this._fluka}!")
         if not this._flukaserver.exists():
-            raise ValueError(f"Could not find flukaserver executable {this._flukaserver}!")
+            print(f"Could not find fluka executable {this._flukaserver}!")
+            print("Trying modifying the eos path project-f->project/f")
+            flukaserver_folder = os.path.dirname(this._flukaserver)
+            if not os.path.exists(flukaserver_folder):
+                print(f"Could not find the folder for fluka executable {flukaserver_folder}!")
+            this._flukaserver = this._flukaserver.replace("project-f", "project/f")
+            if not this._flukaserver.exists():
+                raise ValueError(f"Could not find fluka executable {this._flukaserver}!")
         this.test_gfortran()
         this._starting_server = True
 
@@ -225,8 +248,20 @@ class FlukaEngine(xo.HybridClass):
                 fid.write(f'{len(this._collimator_dict.keys())}\n')
                 for _, el in this._collimator_dict.items():
                     fid.write(f'{el["fluka_id"]} ')
-        elif touches is not None and touches is not False:
-            raise NotImplementedError("Only True or False are allowed for `touches` for now.")
+
+        # Check if touches is a list of collimator names
+        elif touches is not None:
+            if isinstance(touches, list):
+                relcol = Path('relcol.dat').resolve()
+                with relcol.open('w') as fid:
+                    fid.write(f'{len(touches)}\n')
+                    for touch in touches:
+                        if touch not in this._collimator_dict.keys():
+                            raise ValueError(f"Collimator {touch} not in collimator dict!")
+                        else:
+                            fid.write(f'{this._collimator_dict[touch]["fluka_id"]} ')
+        # and touches is not False:
+        #     raise NotImplementedError("Only True or False are allowed for `touches` for now.")
         # relcol.dat: first line is the number of collimators, second line is the IDs (no newline at end)
 
         cls.clean_output_files()

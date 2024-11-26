@@ -64,7 +64,7 @@ def track(coll, particles):
         raise ValueError("Some particles are missing the pdg_id!")
 
     _drift(coll, particles, -coll.length_front)
-    # FLUKA collimators are centered; need to shift
+    #FLUKA collimators are centered; need to shift
     if coll.co is not None:
         dx = coll.co[1][0]
         dy = coll.co[1][1]
