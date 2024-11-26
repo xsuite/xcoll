@@ -44,7 +44,7 @@ def _coll_dict(elements, names, dump=False):
                 nsig = ee.gap_R
                 half_gap = -ee.jaw_R   #  TODO: is the sign correct?
             offset = 0
-            tilt_1= 0
+            tilt_1 = 0
             tilt_2 = ee.tilt_R
         else:
             if ee.jaw_L is None and ee.jaw_R is None:
@@ -70,8 +70,6 @@ def _coll_dict(elements, names, dump=False):
             'sigma_x': 1,
             'sigma_y': 1,
             'offset': offset,
-            'offset_x': 0, # -ee.co[1][0] if ee.co is not None else 0,
-            'offset_y': 0, # -ee.co[1][1] if ee.co is not None else 0,
             'tilt_1': tilt_1,
             'tilt_2': tilt_2,
             'nsig': nsig,

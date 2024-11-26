@@ -158,11 +158,19 @@ class FlukaEngine(xo.HybridClass):
             print("Server already running.", flush=True)
             return
 
-        timeout = 180 # Checking for 3 minutes if _fluka and _flukaserver exist.
+        # Trying to find fluka and flukaserver executables
+        # Wait for 3 minutes if they are not found to allow EOS to sync
+        timeout = 180
         start_time = time.time()
+        _alt_fluka = Path(this._fluka.as_posix().replace("project/f", "project-f"))
+        _alt_flukaserver = Path(this._flukaserver.as_posix().replace("project/f", "project-f"))
 
         while time.time() - start_time < timeout:
             if this._fluka.exists() and this._flukaserver.exists():
+                break
+            elif _alt_fluka.exists() and _alt_flukaserver.exists():
+                this._fluka = _alt_fluka
+                this._flukaserver = _alt_flukaserver
                 break
             time.sleep(1)
 
@@ -241,7 +249,8 @@ class FlukaEngine(xo.HybridClass):
         verify_insertion_file(insertion_file, collimator_dict)
         this._match_collimators_to_engine(line=line, elements=elements, names=names)
 
-        # Create touches file
+        # Create touches file (relcol.dat)
+        # # First line is the number of collimators, second line is the IDs (no newline at end)
         if touches is True:
             touches = Path('relcol.dat').resolve()
             with touches.open('w') as fid:
@@ -250,19 +259,20 @@ class FlukaEngine(xo.HybridClass):
                     fid.write(f'{el["fluka_id"]} ')
 
         # Check if touches is a list of collimator names
-        elif touches is not None:
-            if isinstance(touches, list):
-                relcol = Path('relcol.dat').resolve()
-                with relcol.open('w') as fid:
-                    fid.write(f'{len(touches)}\n')
-                    for touch in touches:
-                        if touch not in this._collimator_dict.keys():
-                            raise ValueError(f"Collimator {touch} not in collimator dict!")
-                        else:
-                            fid.write(f'{this._collimator_dict[touch]["fluka_id"]} ')
-        # and touches is not False:
-        #     raise NotImplementedError("Only True or False are allowed for `touches` for now.")
-        # relcol.dat: first line is the number of collimators, second line is the IDs (no newline at end)
+        elif touches is not None and isinstance(touches, list):
+            relcol = Path('relcol.dat').resolve()
+            with relcol.open('w') as fid:
+                fid.write(f'{len(touches)}\n')
+                for touch in touches:
+                    if touch not in this._collimator_dict.keys():
+                        raise ValueError(f"Collimator {touch} not in collimator dict!")
+                    else:
+                        fid.write(f'{this._collimator_dict[touch]["fluka_id"]} ')
+
+        # Check if touches is not wrongly set
+        elif touches is not None and not touches is False:
+            raise NotImplementedError("Only True/False or a list of collimstors is allowed "
+                                    + "for `touches` for now.")
 
         cls.clean_output_files()
 
