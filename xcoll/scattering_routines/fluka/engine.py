@@ -30,7 +30,7 @@ server_log = "rfluka.log"
 class FlukaEngine(xo.HybridClass):
     _xofields = {
         'network_port':    xo.Int64,
-        '_capacity':         xo.Int64,
+        '_capacity':       xo.Int64,
         'timeout_sec':     xo.Int32,
         'particle_ref':    xp.Particles,
         'max_particle_id': xo.Int64,
@@ -205,7 +205,8 @@ class FlukaEngine(xo.HybridClass):
         if cwd is not None:
             cwd = Path(cwd).expanduser().resolve()
         else:
-            cwd = Path.cwd() / f'fluka_run_{int(time.time())-1720000000}'
+            # TODO: use xaux.ranID here
+            cwd = Path.cwd() / f'fluka_run_{int(100000*time.time())-173000000000000}'
         this._cwd = cwd
         cwd.mkdir(parents=True, exist_ok=True)
         this._old_cwd = Path.cwd()
@@ -357,7 +358,7 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def stop(cls, warn=True, **kwargs):
+    def stop(cls, warn=True, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
         # Stop flukaio connection
@@ -386,9 +387,27 @@ class FlukaEngine(xo.HybridClass):
         # Delete network file
         if this._network_nfo is not None and this._network_nfo.exists():
             this._network_nfo.unlink()
-        this._tracking_initialised = False
         if hasattr(this, '_old_cwd') and this._old_cwd is not None:
             os.chdir(this._old_cwd)
+            del this._old_cwd
+        if clean:
+            this.clean_output_files(clean_all=True)
+        this._cwd = None
+        this._network_nfo = None
+        this._log = None
+        this._log_fid = None
+        this._server_process = None
+        this._input_file = None
+        this.server_pid = None
+        this._gfortran_installed = False
+        this._flukaio_connected = False
+        this._warning_given = False
+        this._tracking_initialised = False
+        this._insertion = {}
+        this._collimator_dict = {}
+        this.network_port = 0
+        this.max_particle_id =  0
+        this.seed = -1
 
 
     @classmethod
@@ -432,7 +451,7 @@ class FlukaEngine(xo.HybridClass):
 
 
     @classmethod
-    def clean_output_files(cls, input_file=None, cwd=None, **kwargs):    # TODO: remove folders?
+    def clean_output_files(cls, input_file=None, cwd=None, clean_all=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
         if input_file is None:
@@ -443,18 +462,21 @@ class FlukaEngine(xo.HybridClass):
             input_file = Path(input_file)
             if cwd is None:
                 cwd = input_file.parent
-        if cwd is not None:
-            files_to_delete = [cwd / f for f in [network_file, fluka_log, server_log]]
+        if isinstance(cwd, Path):
+            files_to_delete = [cwd / f for f in [network_file, fluka_log, server_log, 'fluka_isotope.log',
+                                                 'fort.208', 'fort.251']]
             if input_file is not None:
                 files_to_delete += list(cwd.glob(f'ran{input_file.stem}*'))
                 files_to_delete += list(cwd.glob(f'{input_file.stem}*'))
                 files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
-            files_to_delete += [cwd / f'fort.{n}' for n in [208, 251]]
-            files_to_delete += [cwd / 'fluka_isotope.log']
+            if clean_all:
+                files_to_delete += [cwd / f for f in ['insertion.txt', 'new_collgaps.dat', 'relcol.dat']]
+                files_to_delete += [this._input_file]
             for f in files_to_delete:
-                if f is not None:
-                    if f.exists():
-                        f.unlink()
+                if f is not None and f.exists():
+                    f.unlink()
+            if clean_all and cwd != Path.cwd():
+                cwd.rmdir()
 
 
     def _match_collimators_to_engine(self, *, line=None, elements=None, names=None):
@@ -534,9 +556,9 @@ class FlukaEngine(xo.HybridClass):
     def set_particle_ref(cls, particle_ref=None, line=None, **kwargs):
         cls(**kwargs)
         this = cls.instance
-        if this._has_particle_ref():
-            print("Reference particle already set!")
-            return
+        # if this._has_particle_ref():
+        #     print("Reference particle already set!")
+        #     return
         overwrite_particle_ref_in_line = False
         if particle_ref is None:
             if line is None or line.particle_ref is None:

@@ -10,8 +10,10 @@ import xobjects as xo
 
 
 def _drift(coll, particles, length):
+    old_length = coll._equivalent_drift.length
     coll._equivalent_drift.length = length
     coll._equivalent_drift.track(particles)
+    coll._equivalent_drift.length = old_length
 
 def track(coll, particles):
     from ...beam_elements import FlukaCollimator

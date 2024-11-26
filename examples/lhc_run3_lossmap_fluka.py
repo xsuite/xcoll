@@ -29,7 +29,6 @@ line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
 
 # Initialise colldb
-# TODO: standard colldb; only install regular collimators (need release 0.4.1)
 colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3_fluka.yaml', beam=beam)
 
 

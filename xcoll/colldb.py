@@ -584,7 +584,10 @@ class CollimatorDatabase:
             FlukaEngine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            self._create_collimator(line, FlukaCollimator, name, verbose=verbose)
+            if self[name]['bending_radius'] is None:
+                self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
+            else:
+                raise ValueError("Xcoll - Fluka coupling does not yet support crystals!")
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
