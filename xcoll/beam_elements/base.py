@@ -12,8 +12,8 @@ from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
 
 
-OPEN_JAW = 3.
-OPEN_GAP = 999.
+OPEN_JAW = 3
+OPEN_GAP = 999
 
 
 class InvalidXcoll(xt.BeamElement):
@@ -744,8 +744,8 @@ class BaseCollimator(BaseBlock):
             alfy = self.optics[self.align]['alfy'][0]
             betx = self.optics[self.align]['betx'][0]
             bety = self.optics[self.align]['bety'][0]
-            divx = -np.sqrt(self.nemitt_x/self.optics['beta_gamma_rel']/betx)*alfx
-            divy = -np.sqrt(self.nemitt_y/self.optics['beta_gamma_rel']/bety)*alfy
+            divx = -np.sqrt(self.gemitt_x/betx)*alfx
+            divy = -np.sqrt(self.gemitt_y/bety)*alfy
             if hasattr(self, '_cos_zL'):
                 if self.side != 'right':
                     return divx if abs(self.angle_L) < 1e-6 else divy
