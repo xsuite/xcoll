@@ -28,8 +28,8 @@ path = Path(__file__).parent / 'data'
                             [2, 'H']], ids=["B1H", "B2V", "B1V", "B2H"])
 def test_impacts_from_line(beam, plane, test_context):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-    coll_manager = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
-    coll_manager.install_everest_collimators(verbose=True, line=line)
+    colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
+    colldb.install_everest_collimators(verbose=True, line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
 
