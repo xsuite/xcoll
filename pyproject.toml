@@ -35,7 +35,7 @@ pytest = ">=7.3"
 xaux = ">=0.2.2"
 
 [tool.poetry.extras]
-tests = ["pytest", "ruamel-yaml"]
+tests = ["pytest", "ruamel-yaml", "pytest-html", "pytest-xdist"]
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)

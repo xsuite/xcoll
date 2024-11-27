@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 
+from xobjects.context import get_test_contexts
 
 path = Path(__file__).parent
 
@@ -25,9 +26,14 @@ def _collect_tests():
     with contextlib.redirect_stdout(open(os.devnull, 'w')):
         pytest.main(["--collect-only"], plugins=[TestCollector()])
 
+    # do not keep GPU contexts as tests in the listing, as the names can change
+    collected_tests = [tst for tst in collected_tests
+                       if 'Context' not in tst or 'ContextCpu' in tst]
+
     return set(collected_tests)
 
 current_tests = _collect_tests()
+# available_contexts = [ctx.__class__.__name__ for ctx in get_test_contexts()]
 with open(path / 'all_tests.list', 'r') as fid:
     expected_tests = set([line.replace('\n', '') for line in fid.readlines()])
 only_current = current_tests.difference(expected_tests)
