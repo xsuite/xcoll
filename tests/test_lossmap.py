@@ -24,7 +24,7 @@ path = Path(__file__).parent / 'data'
                             [2, 'V', 500, 0.3, True],
                             [1, 'V', 3500, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
-                        ], ids=["B1", "B2V", "B1V_crystals", "B2H_crystals"])
+                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
@@ -45,12 +45,15 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
     line.scattering.enable()
     line.track(part, num_turns=2)
     line.scattering.disable()
+    assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal')
 
-    line_is_reversed = True if beam == 2 else False
+
+def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls):
     with flaky_assertions():
-
+        line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
                          interpolation=interpolation)
+        print(ThisLM.summary)
 
         ThisLM.to_json("lossmap.json")
         assert Path("lossmap.json").exists()
@@ -65,9 +68,10 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
         assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
-        assert len(summ[summ.type=='EverestCollimator']) == 10
+        assert len(summ[summ.type==coll_cls]) == 10
         if not ignore_crystals:
-            assert len(summ[summ.type=='EverestCrystal']) == 2
+            assert len(summ[summ.type==cry_cls]) == 2
+
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.collname==tcp,'nabs'].values[0] > 0.05*npart
 
@@ -94,5 +98,3 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
             assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed
-
-

@@ -33,7 +33,7 @@ class XcollScatteringAPI:
                     if nemitt_y is None:
                         nemitt_y = el.nemitt_y
                     if not np.isclose(el.nemitt_x, nemitt_x) \
-                    or not np.isclose(el.nemitt_x, nemitt_x):
+                    or not np.isclose(el.nemitt_y, nemitt_y):
                         raise ValueError("Not all collimators have the same "
                                     + "emittance. This is not supported.")
                 if hasattr(el, 'enable_scattering'):
@@ -243,7 +243,7 @@ class XcollCollimatorAPI:
         tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for coll in names:
-            self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_x, twiss_upstream=tw_upstream,
+            self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
                                     twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
     def open(self, names=None):
@@ -282,22 +282,22 @@ class XcollCollimatorAPI:
 
 def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
     warn("The function xcoll.assign_optics_to_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.assign_optics() instead.", FutureWarning)
+       + "removed in the future. Please use line.collimators.assign_optics() instead.", FutureWarning)
     line.collimators.assign_optics(nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss)
 
 def get_optics_at(names, *, twiss=None, line=None):
     warn("The function xcoll.get_optics_at() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.get_optics_at() instead.", FutureWarning)
+       + "removed in the future. Please use line.collimators.get_optics_at() instead.", FutureWarning)
     return line.collimators.get_optics_at(names=names, twiss=twiss)
 
 def open_collimators(line, names=None):
     warn("The function xcoll.open_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.open_collimators() instead.", FutureWarning)
+       + "removed in the future. Please use line.collimators.open_collimators() instead.", FutureWarning)
     line.collimators.open(names=names)
 
 def send_to_parking(line, names=None):
     warn("The function xcoll.send_to_parking() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.send_to_parking() instead.", FutureWarning)
+       + "removed in the future. Please use line.collimators.send_to_parking() instead.", FutureWarning)
     line.collimators.to_parking(names=names)
 
 def enable_scattering(line):
