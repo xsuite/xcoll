@@ -56,7 +56,7 @@ def test_simple_track(num_part):
         print(f"FLUKA tracking took {fluka_time}s")
 
     # Drift tracking
-    coll._equivalent_drift.length = 0.6 # length of tcp
+    coll._equivalent_drift.length = coll.length
     coll._equivalent_drift.track(part_drift)
 
     perform_ks_test(part_fluka, part_drift)
@@ -72,9 +72,10 @@ def test_simple_track(num_part):
 
 @pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]])
 def test_fluka_jaw(jaw):
-    _ACCURACY = 1e-7  # Anything in this region around the jaw might or might not hit; we can't be sure
+    _ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
     num_part = 5000
     _capacity = num_part*2
+    jaw_band = 1.e-7
 
     # If a previous test failed, stop the server manually
     if xc.FlukaEngine.is_running():
@@ -89,7 +90,6 @@ def test_fluka_jaw(jaw):
 
     # Particle distribution
     num_part_step = num_part//5
-    jaw_band = 1.e-7
     x = np.random.uniform(-0.1, 0.1, num_part_step)
     x = np.concatenate([x, np.random.uniform(coll.jaw_L - jaw_band, coll.jaw_L -_ACCURACY, num_part_step)])
     x = np.concatenate([x, np.random.uniform(coll.jaw_L +_ACCURACY, coll.jaw_L + jaw_band, num_part_step)])

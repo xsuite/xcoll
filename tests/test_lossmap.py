@@ -88,6 +88,7 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
         line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
                          interpolation=interpolation)
+        print(ThisLM.summary)
 
         ThisLM.to_json("lossmap.json")
         assert Path("lossmap.json").exists()
