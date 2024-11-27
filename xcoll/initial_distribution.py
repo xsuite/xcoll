@@ -62,8 +62,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     # TODO: this should be checked jaw by jaw (we are currently checking the left jaw - watch out for sign of tilt of right jaw)
     # TODO: skew collimators
     tilt = coll.tilt[0] if isinstance(coll.tilt, list) else coll.tilt
-    gemitts = {'x': coll.gemitt_x, 'y': coll.gemitt_y}
-    betatron_angle = -coll.gap * coll.divergence
+    betatron_angle = coll.gap * coll.divergence
     tolerance_tilt = 1e-12 # 0.1 urad tolerance on jaw tilt  =>  we prioritise converging
     is_converging = tilt + tolerance_tilt >= betatron_angle
     print(f"Collimator {name} is {'con' if is_converging else 'di'}verging.")
