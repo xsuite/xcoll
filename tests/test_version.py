@@ -6,4 +6,4 @@
 from xcoll import __version__
 
 def test_version():
-    assert __version__ == '0.5.11'
+    assert __version__ == '0.5.11.dev0+geant4'
