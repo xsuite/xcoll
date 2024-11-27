@@ -33,7 +33,7 @@ class XcollScatteringAPI:
                     if nemitt_y is None:
                         nemitt_y = el.nemitt_y
                     if not np.isclose(el.nemitt_x, nemitt_x) \
-                    or not np.isclose(el.nemitt_x, nemitt_x):
+                    or not np.isclose(el.nemitt_y, nemitt_y):
                         raise ValueError("Not all collimators have the same "
                                     + "emittance. This is not supported.")
                 if hasattr(el, 'enable_scattering'):
