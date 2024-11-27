@@ -25,6 +25,10 @@ os.chdir(path.parent)
 with contextlib.redirect_stdout(open(os.devnull, 'w')):
     pytest.main(["--collect-only"], plugins=[TestCollector()])
 
+# do not keep GPU contexts as tests in the listing, as the names can change
+collected_tests = [tst for tst in collected_tests
+                    if 'Context' not in tst or 'ContextCpu' in tst]
+
 with open(path / 'all_tests.list', 'w') as fid:
     for line in collected_tests:
         fid.write(f"{line}\n")
