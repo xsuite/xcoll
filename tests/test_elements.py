@@ -64,7 +64,7 @@ base_dict_fields = [
     {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  '_record_interactions': 7}}
 ]
 base_user_fields = {}
-base_user_fields_read_only = []
+base_user_fields_read_only = ['gemitt_x', 'gemitt_y']
 
 # BaseCollimator
 base_coll_fields = {**base_fields,

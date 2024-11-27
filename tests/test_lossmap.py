@@ -25,7 +25,7 @@ path = Path(__file__).parent / 'data'
                             [2, 'V', 500, 0.3, True],
                             [1, 'V', 3500, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
-                        ], ids=["B1", "B2V", "B1V_crystals", "B2H_crystals"])
+                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')

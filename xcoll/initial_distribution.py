@@ -59,8 +59,14 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if twiss is None:
         twiss = line.twiss()
 
-    # Is it converging or diverging?    # TODO: This might change with a tilt!!!!!!
-    is_converging  = twiss[f'alf{plane}', name] > 0
+    # Is it converging or diverging?
+    # TODO: dispersion might change this
+    # TODO: this should be checked jaw by jaw (we are currently checking the left jaw - watch out for sign of tilt of right jaw)
+    # TODO: skew collimators
+    tilt = coll.tilt[0] if isinstance(coll.tilt, list) else coll.tilt
+    betatron_angle = coll.gap * coll.divergence
+    tolerance_tilt = 1e-12 # 0.1 urad tolerance on jaw tilt  =>  we prioritise converging
+    is_converging = tilt + tolerance_tilt >= betatron_angle
     print(f"Collimator {name} is {'con' if is_converging else 'di'}verging.")
 
     beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)

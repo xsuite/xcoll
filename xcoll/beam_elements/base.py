@@ -12,8 +12,8 @@ from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
 
 
-OPEN_JAW = 3.
-OPEN_GAP = 999.
+OPEN_JAW = 3
+OPEN_GAP = 999
 
 
 class InvalidXcoll(xt.BeamElement):
@@ -660,6 +660,11 @@ class BaseCollimator(BaseBlock):
         self._apply_optics()
 
     @property
+    def gemitt_x(self):
+        if self.nemitt_x is not None and self.optics_ready():
+            return self.nemitt_x / self.optics['beta_gamma_rel']
+
+    @property
     def nemitt_y(self):
         if self._nemitt_y == 0:
             return None
@@ -673,6 +678,11 @@ class BaseCollimator(BaseBlock):
             raise ValueError(f"The field `nemitt_y` should be positive, but got {val}.")
         self._nemitt_y = val
         self._apply_optics()
+
+    @property
+    def gemitt_y(self):
+        if self.nemitt_y is not None and self.optics_ready():
+            return self.nemitt_y / self.optics['beta_gamma_rel']
 
     @property
     def emittance(self):
@@ -734,8 +744,8 @@ class BaseCollimator(BaseBlock):
             alfy = self.optics[self.align]['alfy'][0]
             betx = self.optics[self.align]['betx'][0]
             bety = self.optics[self.align]['bety'][0]
-            divx = -np.sqrt(self.nemitt_x/self.optics['beta_gamma_rel']/betx)*alfx
-            divy = -np.sqrt(self.nemitt_y/self.optics['beta_gamma_rel']/bety)*alfy
+            divx = -np.sqrt(self.gemitt_x/betx)*alfx
+            divy = -np.sqrt(self.gemitt_y/bety)*alfy
             if hasattr(self, '_cos_zL'):
                 if self.side != 'right':
                     return divx if abs(self.angle_L) < 1e-6 else divy
@@ -1257,12 +1267,20 @@ class BaseCrystal(BaseBlock):
         BaseCollimator.nemitt_x.fset(self, val)
 
     @property
+    def gemitt_x(self):
+        return BaseCollimator.gemitt_x.fget(self)
+
+    @property
     def nemitt_y(self):
         return BaseCollimator.nemitt_y.fget(self)
 
     @nemitt_y.setter
     def nemitt_y(self, val):
         BaseCollimator.nemitt_y.fset(self, val)
+
+    @property
+    def gemitt_y(self):
+        return BaseCollimator.gemitt_y.fget(self)
 
     @property
     def emittance(self):
