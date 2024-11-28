@@ -1,12 +1,11 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import numpy as np
 
 import xobjects as xo
-import xpart as xp
 import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
@@ -146,7 +145,7 @@ class EverestCollimator(BaseCollimator):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
-                                 _buffer=_buffer, _offset=_offset)
+                            _buffer=_buffer, _offset=_offset)
 
 
 
@@ -155,6 +154,7 @@ class EverestCrystal(BaseCrystal):
         'miscut':             xo.Float64,
         '_orient':            xo.Int8,
         '_critical_angle':    xo.Float64,
+        '_critical_radius':   xo.Float64,
         '_material':          CrystalMaterial,
         'rutherford_rng':     xt.RandomRutherford,
         '_tracking':          xo.Int8
@@ -216,7 +216,11 @@ class EverestCrystal(BaseCrystal):
 
     @property
     def critical_angle(self):
-        return self._critical_angle if abs(self._critical_angle) > 1.e-10 else None
+        return self._critical_angle if abs(self._critical_angle) > 1.e-12 else None
+
+    @property
+    def critical_radius(self):
+        return self._critical_radius if abs(self._critical_radius) > 1.e-10 else None
 
     @property
     def lattice(self):
@@ -240,6 +244,6 @@ class EverestCrystal(BaseCrystal):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context,
-                                 _buffer=_buffer, _offset=_offset)
+                            _buffer=_buffer, _offset=_offset)
 
 

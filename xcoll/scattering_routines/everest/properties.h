@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
@@ -12,7 +12,9 @@
 
 /*gpufun*/
 void calculate_scattering(EverestData restrict everest, double p) {
-
+    if (everest->coll->only_mcs){   // TODO: this should be done smarter
+        return;
+    }
     // Material properties
     double const anuc  = everest->coll->anuc;
     double const rho   = everest->coll->rho;
@@ -92,6 +94,9 @@ void calculate_scattering(EverestData restrict everest, double p) {
 
 /*gpufun*/
 void calculate_ionisation_properties(EverestData restrict everest, double pc) {
+    if (everest->coll->only_mcs){   // TODO: this should be done smarter
+        return;
+    }
 
     // Material properties
     double const exenergy = everest->coll->exenergy;

@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -33,7 +33,8 @@ typedef struct CollimatorGeometry_ {
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
-    int8_t record_touches;
+    int8_t record_impacts;
+    int8_t record_exits;
 } CollimatorGeometry_;
 typedef CollimatorGeometry_* CollimatorGeometry;
 
@@ -109,7 +110,6 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
     // if bothsided  and no hit: lab  frame
     // if bothsided  and hit:    hit   frame
 
-
     // Drift to the impact position or end, and move to jaw frame if relevant
     if (is_hit == 1){
         // Move to the impact position
@@ -124,7 +124,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
         // Rotate the reference frame to tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_yL));
         LocalParticle_set_s(part, new_s);
-        if (cg->record_touches){
+        if (cg->record_impacts){
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
         }
 
@@ -148,7 +148,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 #else
         LocalParticle_scale_xp(part, -1);
 #endif
-        if (cg->record_touches){
+        if (cg->record_impacts){
             InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
         }
 
@@ -166,6 +166,11 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 
 /*gpufun*/
 void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
+    if (is_hit != 0 && LocalParticle_get_state(part) > 0){
+        if (cg->record_exits){
+            InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+        }
+    }
     if (is_hit == 1){
         // Rotate back from tilt
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_yL));
@@ -175,9 +180,6 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yL));
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
-            if (cg->record_touches){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
-            }
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else
@@ -202,9 +204,6 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         LocalParticle_add_to_s(part, cg->length/2*(1 - cg->cos_yR));
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
-            if (cg->record_touches){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
-            }
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else

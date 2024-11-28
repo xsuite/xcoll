@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -14,7 +14,7 @@ from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
 
-path = Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 # TODO:  we are not checking the angles of the pencil!
 
@@ -38,19 +38,23 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     colldb.install_everest_collimators(line=line)
     line.build_tracker()
-    xc.assign_optics_to_collimators(line=line)
+    line.collimators.assign_optics()
 
     tw = line.twiss()
     tcp_conv = f"tcp.c6{'l' if beam == 1 else 'r'}7.b{beam}"
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
     # Generate particles on a collimator
-    part_conv = xc.generate_pencil_on_collimator(line, tcp_conv, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
-                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
-    part_div = xc.generate_pencil_on_collimator(line, tcp_div, num_particles=npart, tw=tw, pencil_spread=pencil_spread,
-                                                impact_parameter=impact_parameter, longitudinal=longitudinal,
-                                                longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_conv = line[tcp_conv].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
+                                               impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                               longitudinal_betatron_cut=longitudinal_betatron_cut)
+    part_div = line[tcp_div].generate_pencil(npart, twiss=tw, pencil_spread=pencil_spread,
+                                             impact_parameter=impact_parameter, longitudinal=longitudinal,
+                                             longitudinal_betatron_cut=longitudinal_betatron_cut)
+    assert np.unique(part_conv.at_element) == [line.element_names.index(tcp_conv)]
+    assert part_conv.start_tracking_at_element == line.element_names.index(tcp_conv)
+    assert np.unique(part_div.at_element) == [line.element_names.index(tcp_div)]
+    assert part_div.start_tracking_at_element == line.element_names.index(tcp_div)
 
     # Normalize coordinates
     part_norm_conv = tw.get_normalized_coordinates(part_conv, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
@@ -66,7 +70,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     with flaky_assertions():
         # Pencil: left jaw
-        pos_jawL_conv = coll_conv.jaw_L
+        pos_jawL_conv = coll_conv.jaw_LU
         pos_partL_conv = part_conv.x[mask_conv_L].min()
         pencil_spread_convL = part_conv.x[mask_conv_L].max() - pos_partL_conv
         assert np.isclose(pencil_spread_convL, pencil_spread, atol=atol_spread)
@@ -74,7 +78,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         assert pos_partL_conv - impact_parameter - pos_jawL_conv > 0
 
         # Pencil: right jaw
-        pos_jawR_conv = coll_conv.jaw_R
+        pos_jawR_conv = coll_conv.jaw_RU
         pos_partR_conv = part_conv.x[mask_conv_R].max()
         pencil_spread_convR = pos_partR_conv - part_conv.x[mask_conv_R].min()
         assert np.isclose(pencil_spread_convR, pencil_spread, atol=atol_spread)
@@ -113,7 +117,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
 
     with flaky_assertions():
         # Pencil: left jaw
-        pos_jawL_div = coll_div.jaw_L
+        pos_jawL_div = coll_div.jaw_LD
         pos_partL_div = part_div.y[mask_div_L].min()
         pencil_spread_divL = part_div.y[mask_div_L].max() - pos_partL_div
         assert np.isclose(pencil_spread_divL, pencil_spread, atol=atol_spread)
@@ -121,7 +125,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         assert pos_partL_div - impact_parameter - pos_jawL_div > 0
 
         # Pencil: right jaw
-        pos_jawR_div = coll_div.jaw_R
+        pos_jawR_div = coll_div.jaw_RD
         pos_partR_div = part_div.y[mask_div_R].max()
         pencil_spread_divR = pos_partR_div - part_div.y[mask_div_R].min()
         assert np.isclose(pencil_spread_divR, pencil_spread, atol=atol_spread)

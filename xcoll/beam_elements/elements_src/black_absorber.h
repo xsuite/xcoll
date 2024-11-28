@@ -1,10 +1,26 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
+
+
+/*gpufun*/
+int8_t BlackAbsorberData_get_record_impacts(BlackAbsorberData el){
+    return BlackAbsorberData_get__record_interactions(el) % 2;
+}
+
+/*gpufun*/
+int8_t BlackAbsorberData_get_record_exits(BlackAbsorberData el){
+    return (BlackAbsorberData_get__record_interactions(el) >> 1) % 2;
+}
+
+/*gpufun*/
+int8_t BlackAbsorberData_get_record_scatterings(BlackAbsorberData el){
+    return (BlackAbsorberData_get__record_interactions(el) >> 2) % 2;
+}
 
 
 /*gpufun*/
@@ -46,10 +62,12 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
         // Impact table
         cg->record = BlackAbsorberData_getp_internal_record(el, part0);
         cg->record_index = NULL;
-        cg->record_touches = 0;
+        cg->record_impacts = 0;
+        cg->record_exits = 0;
         if (cg->record){
             cg->record_index = InteractionRecordData_getp__index(cg->record);
-            cg->record_touches = BlackAbsorberData_get_record_touches(el);
+            cg->record_impacts = BlackAbsorberData_get_record_impacts(el);
+            cg->record_exits = BlackAbsorberData_get_record_exits(el);
         }
     }
 

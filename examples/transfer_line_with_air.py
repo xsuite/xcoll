@@ -1,11 +1,10 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import numpy as np
 import time
-start_time = time.time()
 import matplotlib.pyplot as plt
 
 import xpart as xp
@@ -14,6 +13,7 @@ import xcoll as xc
 
 
 num_part = int(1e5)
+start_time = time.time()
 
 
 # Make a transfer line
@@ -45,21 +45,18 @@ line = xt.Line(elements=elements, element_names=element_names, particle_ref=part
 # ===============
 X0_air = 301
 air = xc.Material(radiation_length=X0_air, name="Air (1 atm 20C)")
-
 line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 1", at_s=20)
 line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 2", at_s=50)
 
 
 # Add monitors
 # ============
-mon_air_1_s = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-mon_air_1_e = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-mon_air_2_s = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-mon_air_2_e = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, num_particles=num_part)
-line.insert_element(element=mon_air_1_s, name="monitor air 1 start", at_s=20)
-line.insert_element(element=mon_air_1_e, name="monitor air 1 end", at_s=30)
-line.insert_element(element=mon_air_2_s, name="monitor air 2 start", at_s=50)
-line.insert_element(element=mon_air_2_e, name="monitor air 2 end", at_s=60)
+xc.EmittanceMonitor.install(line, name="monitor start", at_s=0, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 start", at_s=20, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 1 end", at_s=30, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 start", at_s=50, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor air 2 end", at_s=60, longitudinal=False)
+xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=False)
 
 
 # Generate an initial distribution of particles
@@ -67,7 +64,7 @@ line.insert_element(element=mon_air_2_e, name="monitor air 2 end", at_s=60)
 line.build_tracker()
 
 # Scattering need to be disabled to be able to twiss
-xc.disable_scattering(line)
+line.scattering.disable()
 
 # Matched initial parameters
 betx0 = 154.0835045206266
@@ -79,7 +76,7 @@ dy0 = 0.0
 dpx0 = 0.02
 dpy0 = 0.0
 tw_init = xt.TwissInit(betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0, dx=dx0, dy=dy0, dpx=dpx0, dpy=dpy0)
-tw = line.twiss(method='4d', start="QF1", end="END", init=tw_init)
+tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init)
 
 nemitt_x = 7.639770207283603e-06
 nemitt_y = 3.534081877201574e-06
@@ -90,63 +87,25 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
                             W_matrix=tw.W_matrix[0], particle_on_co=line.particle_ref,
                             nemitt_x=nemitt_x,nemitt_y=nemitt_y)
 
-# re-enable scattering
-xc.enable_scattering(line)
 
-
-
-# Track and store emittance at every turn
-# =======================================
-def calculate_nemitt(part):
-    cov_x = np.cov(part.x, part.px)
-    cov_y = np.cov(part.y, part.py)
-    nemitt_x = part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-    nemitt_y = part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
-    return nemitt_x, nemitt_y
-
-def calculate_nemitt_monitor(mon):
-    result = []
-    for turn in range(mon.x.shape[1]):
-        cov_x = np.cov([x[turn] for x in mon.x], [px[turn] for px in mon.px])
-        cov_y = np.cov([y[turn] for y in mon.y], [py[turn] for py in mon.py])
-        nemitt_x = part.gamma0[0]*np.sqrt(cov_x[0,0]*cov_x[1,1]-cov_x[1,0]*cov_x[0,1])
-        nemitt_y = part.gamma0[0]*np.sqrt(cov_y[0,0]*cov_y[1,1]-cov_y[1,0]*cov_y[0,1])
-        result = [*result, [nemitt_x, nemitt_y]]
-    return result
-
-ex, ey = calculate_nemitt(part)
-nemitt_x = [ex]
-nemitt_y = [ey]
-
+# Track!
+# ======
+line.scattering.enable()
 line.track(part)
-
-ex, ey = calculate_nemitt_monitor(mon_air_1_s)[0]
-nemitt_x.append(ex)
-nemitt_y.append(ey)
-ex, ey = calculate_nemitt_monitor(mon_air_1_e)[0]
-nemitt_x.append(ex)
-nemitt_y.append(ey)
-ex, ey = calculate_nemitt_monitor(mon_air_2_s)[0]
-nemitt_x.append(ex)
-nemitt_y.append(ey)
-ex, ey = calculate_nemitt_monitor(mon_air_2_e)[0]
-nemitt_x.append(ex)
-nemitt_y.append(ey)
-ex, ey = calculate_nemitt(part)
-nemitt_x.append(ex)
-nemitt_y.append(ey)
+print("Done Tracking!")
 
 
 # Plot the result
 # ===============
 _, ax = plt.subplots(figsize=(6,4))
 s = [0, 20, 30, 50, 60, 100]
-ax.plot(s, 1.e6*np.array(nemitt_x), label='H')
-ax.plot(s, 1.e6*np.array(nemitt_y), label='V')
-ax.set_ylabel(r"$\epsilon\; [\mu\mathrm{m}]$")
+ex = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+ey = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
+ax.plot(s, 1.e6*ex, label='H')
+ax.plot(s, 1.e6*ey, label='V')
+ax.set_ylabel(r"$\epsilon_N\; [\mu\mathrm{m}]$")
 ax.set_xlabel("s [m]")
 ax.legend()
 
 print(f"Total calculation time {time.time()-start_time}s")
 plt.show()
-

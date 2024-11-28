@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -14,7 +14,6 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
-    int8_t record_touches;
     // Material properties
     // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
     double exenergy;
@@ -66,6 +65,14 @@ typedef EverestData_ *EverestData;
 
 
 /*gpufun*/
+double LocalParticle_get_energy(LocalParticle* part){
+    double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
+    return (LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part) \
+            + LocalParticle_get_energy0(part)) * mass_ratio;
+}
+
+
+/*gpufun*/
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
@@ -81,6 +88,10 @@ void Drift_single_particle_4d(LocalParticle* part, double length){
 
 /*gpukern*/
 void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
+    if (GeneralMaterialData_get__only_mcs(material)){
+        RandomRutherford_set(ran, 1, 1, 0.0001, 0.01);
+        return;
+    }
     double const zatom    = GeneralMaterialData_get_Z(material);
     double const emr      = GeneralMaterialData_get_nuclear_radius(material);
     double const hcut     = GeneralMaterialData_get_hcut(material);

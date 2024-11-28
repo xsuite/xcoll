@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -35,7 +35,8 @@ typedef struct CrystalGeometry_ {
     // Impact table
     InteractionRecordData record;
     RecordIndex record_index;
-    int8_t record_touches;
+    int8_t record_impacts;
+    int8_t record_exits;
 } CrystalGeometry_;
 typedef CrystalGeometry_* CrystalGeometry;
 
@@ -82,7 +83,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
         double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), asin(cg->sin_y));
         LocalParticle_set_s(part, new_s);
         if (cg->side == 1){
-            if (cg->record_touches){
+            if (cg->record_impacts){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_L);
             }
 
@@ -94,7 +95,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
 #else
             LocalParticle_scale_xp(part, -1);
 #endif
-            if (cg->record_touches){
+            if (cg->record_impacts){
                 InteractionRecordData_log(cg->record, cg->record_index, part, XC_ENTER_JAW_R);
             }
         }
@@ -117,6 +118,11 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
 /*gpufun*/
 void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
     if (is_hit != 0){
+        if (LocalParticle_get_state(part) > 0){
+            if (cg->record_exits){
+                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
+            }
+        }
         if (cg->side == -1){
             // Mirror back
             LocalParticle_scale_x(part, -1);
@@ -133,9 +139,6 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
         XYShift_single_particle(part, -cg->jaw_U, 0);
         // If particle survived, drift to end of element
         if (LocalParticle_get_state(part) > 0){
-            if (cg->record_touches){
-                InteractionRecordData_log(cg->record, cg->record_index, part, XC_EXIT_JAW);
-            }
 #ifdef XCOLL_USE_EXACT
             Drift_single_particle_exact(part, cg->length - LocalParticle_get_s(part));
 #else

@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -39,7 +39,7 @@ double soln3(double a, double b, double dh, double smax) {
         }
         return s;
     }
-    if (a == 0) {    
+    if (a == 0) {
         if (b > 0) {
             s = pow(b,2);
         } else {
@@ -113,7 +113,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
     int8_t sc = everest->coll->record_scatterings;
 
     // First log particle at start of multiple coulomb scattering
-    int64_t i_slot;
+    int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
 
     double const radl = everest->coll->radl;
@@ -160,15 +160,16 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
             x  = res[0];
             xp = res[1];
             free(res);
-            if (x <= 0) {
-                s = rlen0 - rlen + s;
-                break; // go to 20
+            if (x < 0) {
+                // extrapolation back to where x = 0
+                s = rlen0 - rlen + (s - x/xp);
+                x = 0.0;
+                break;
             }
             if (s + dh >= rlen) {
                 s = rlen0;
-                break; // go to 20
+                break;
             }
-            // go to 10
             rlen = rlen - s;
         }
 
@@ -195,7 +196,7 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
     LocalParticle_add_to_s(part, s*radl);
 
     // Finally log particle at end of multiple coulomb scattering
-    if (sc) InteractionRecordData_log_child(record, i_slot, part, length);
+    if (sc) InteractionRecordData_log_child(record, i_slot, part);
 }
 
 #endif /* XCOLL_EVEREST_MCS_H */

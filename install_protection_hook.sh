@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
@@ -18,7 +18,7 @@ then
   exit 1
 fi
 
-for file in pyproject.toml version.sh LICENSE install_protection_hook.sh xcoll/general.py
+for file in pyproject.toml gh.py release.py make_release_branch.py rename_release_branch.py LICENSE install_protection_hook.sh xcoll/general.py
 do
   git diff --name-only | grep '^'${file}'$' &> /dev/null
   if [ $? -eq 0 ]

@@ -1,5 +1,5 @@
 // copyright ############################### #
-// This file is part of the Xcoll Package.   #
+// This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
@@ -77,7 +77,7 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
         LocalParticle_add_to_xp_yp(part, tx, tz);
 #endif
 
-        if (sc) InteractionRecordData_log_child(record, i_slot, part, 0);
+        if (sc) InteractionRecordData_log_child(record, i_slot, part);
     }
 
     return pc;

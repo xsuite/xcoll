@@ -1,5 +1,5 @@
 # copyright ############################### #
-# This file is part of the Xcoll Package.   #
+# This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
@@ -17,5 +17,7 @@ part = xp.Particles(x=np.zeros(1000000), energy0=450.e9)
 block.track(part)
 
 plt.hist(part.x, bins=200, density=True)
+plt.show()
+
 plt.hist(part.px*part.rpp, bins=200, density=True)
 plt.show()
