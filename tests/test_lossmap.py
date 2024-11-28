@@ -102,7 +102,7 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
 
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
-        assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
+        assert list(summ.columns) == ['collname', 'nabs', 'energy', 'length', 's', 'type']
         assert len(summ[summ.type==coll_cls]) == 10
         if not ignore_crystals:
             assert len(summ[summ.type==cry_cls]) == 2
@@ -114,22 +114,25 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
         summ = summ[summ.nabs > 0]
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', \
                                    'interpolation', 'reversed']
-        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
+        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n', 'e']
         assert len(lm['collimator']['s']) == len(summ)
         assert len(lm['collimator']['name']) == len(summ)
         assert len(lm['collimator']['length']) == len(summ)
         assert len(lm['collimator']['n']) == len(summ)
+        assert len(lm['collimator']['e']) == len(summ)
         assert np.all(lm['collimator']['s'] == summ.s)
         assert np.all(lm['collimator']['name'] == summ.collname)
         assert np.all(lm['collimator']['length'] == summ.length)
         assert np.all(lm['collimator']['n'] == summ.nabs)
+        assert np.all(lm['collimator']['e'] == summ.energy)
         assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
         assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
-        assert list(lm['aperture'].keys()) == ['s', 'name', 'n']
+        assert list(lm['aperture'].keys()) == ['s', 'name', 'n', 'e']
         if npart > 5000:
             assert len(lm['aperture']['s']) > 0
             assert len(lm['aperture']['s']) == len(lm['aperture']['name'])
             assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
+            assert len(lm['aperture']['s']) == len(lm['aperture']['e'])
             assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed
