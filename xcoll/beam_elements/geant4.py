@@ -100,6 +100,7 @@ class Geant4Collimator(BaseCollimator):
                 raise ValueError("SixTrack material 'BL' not supported. Use a BlackAbsorber.")
         geant4_materials = {
             'c':    'AC150GPH',
+            'si':   'Si',
             'cu':   'Cu',
             'mogr': 'MG6403Fc',
             'mo':   'Mo',
