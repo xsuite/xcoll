@@ -14,11 +14,11 @@ from ..scattering_routines.fluka import track, FlukaEngine
 
 class FlukaCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
-        'fluka_id':            xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
-        'accumulated_energy':  xo.Float64,
-        'length_front':        xo.Float64,
-        'length_back':         xo.Float64,
-        '_tracking':           xo.Int8
+        'fluka_id':              xo.Int16,    # Do not change! Should be 16 bit because of FlukaIO type
+        'length_front':          xo.Float64,
+        'length_back':           xo.Float64,
+        '_tracking':             xo.Int8,
+        '_acc_ionisation_loss':  xo.Float64   # TODO: this is not very robust, for when a track is done with new particles etc
     }
 
     isthick = True
@@ -33,7 +33,7 @@ class FlukaCollimator(BaseCollimator):
 
     _depends_on = [BaseCollimator, FlukaEngine]
 
-    _allowed_fields_when_frozen = ['_tracking']
+    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -44,6 +44,7 @@ class FlukaCollimator(BaseCollimator):
         with self.__class__._in_constructor():
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
+                kwargs.setdefault('_acc_ionisation_loss', -1.)
             super().__init__(**kwargs)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)

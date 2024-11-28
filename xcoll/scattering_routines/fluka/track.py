@@ -18,7 +18,7 @@ def _drift(coll, particles, length):
 def track(coll, particles):
     from ...beam_elements import FlukaCollimator
     if not isinstance(coll, FlukaCollimator):
-        raise ValueError("Collimator is not a FlukaCollimator!\nCannot use fluka to track.")
+        raise ValueError("Collimator is not a FlukaCollimator!\nCannot use FLUKA to track.")
 
     if not coll.active or not coll._tracking:
         _drift(coll, particles, coll.length)
@@ -37,7 +37,7 @@ def track(coll, particles):
                        + f"(id: {id(engine)})")
 
     if not engine._has_particle_ref:
-        raise ValueError(f"Fluka reference particle not set!\nPlease do this first, by calling "
+        raise ValueError(f"FLUKA reference particle not set!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.set_particle_ref().")
 
     if 1.4*npart > engine._capacity:
@@ -66,8 +66,7 @@ def track(coll, particles):
         raise ValueError("Some particles are missing the pdg_id!")
 
     _drift(coll, particles, -coll.length_front)
-    # FLUKA collimators are centered; need to shift
-    if coll.co is not None:
+    if coll.co is not None: # FLUKA collimators are centered; need to shift
         dx = coll.co[1][0]
         dy = coll.co[1][1]
         particles.x -= dx
@@ -101,18 +100,18 @@ def track_core(coll, part):
     assert alive_at_entry.sum() == npart
 
     # Get particle data
-    mass       = part.mass0*part.charge_ratio[alive_at_entry] / part.chi[alive_at_entry]
-    charge     = part.q0*part.charge_ratio[alive_at_entry]
+    mass       = part.mass0*part.charge_ratio[alive_at_entry].copy() / part.chi[alive_at_entry].copy()
+    charge     = part.q0*part.charge_ratio[alive_at_entry].copy()
     pdg_id     = part.pdg_id[alive_at_entry].copy()
-    _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
+    _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id.copy())
 
     # Prepare arrays for FORTRAN
     # TODO: exact angles and drifts
     data = {}
     data['x']      = _expand(part.x[alive_at_entry].copy() * 1000.)
-    data['xp']     = _expand(part.px[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
+    data['xp']     = _expand(part.px[alive_at_entry].copy() * part.rpp[alive_at_entry].copy() * 1000.)
     data['y']      = _expand(part.y[alive_at_entry].copy() * 1000.)
-    data['yp']     = _expand(part.py[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
+    data['yp']     = _expand(part.py[alive_at_entry].copy() * part.rpp[alive_at_entry].copy() * 1000.)
     data['zeta']   = _expand(part.zeta[alive_at_entry].copy() * 1000.)
     data['e']      = _expand(part.energy[alive_at_entry].copy() / 1.e6)
     data['m']      = _expand(mass / 1.e6)
@@ -142,6 +141,8 @@ def track_core(coll, part):
     ele_in   = part.at_element[0]
     turn_in  = part.at_turn[0]
     start    = part.start_tracking_at_element  # TODO: is this needed?
+    if coll._acc_ionisation_loss < 0:
+        coll._acc_ionisation_loss = 0.
 
     # send to fluka
     track_fluka(turn=turn_in+1,                # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
@@ -176,12 +177,12 @@ def track_core(coll, part):
     new_pid  = data['pid'][:npart] - 1   # return to python 0-index
     new_ppid = data['ppid'][:npart] - 1  # return to python 0-index
     # Restore the parent IDs: if ppid != pid an interaction occurred and nothing needs to be done
-    # (the parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
+    # (the real parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
     mask_to_restore = new_pid == new_ppid
     idx_to_restore  = np.array([np.where(old_pid==idx)[0][0] for idx in new_pid[mask_to_restore]])
     new_ppid[mask_to_restore] = old_ppid[idx_to_restore]
     # When the parent changed (interaction), the parent ID must have been an alive particle at entry
-    assert np.all([ppid in part.particle_id[alive_at_entry] for ppid in new_ppid[~mask_to_restore]])
+    assert np.all([ppid in old_pid for ppid in new_ppid[~mask_to_restore]])
 
     # TODO: Impact Table
     #     Absorbed: trivial
@@ -209,6 +210,7 @@ def track_core(coll, part):
         E_diff = np.zeros(len(part.x))
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing]*1.e6
         part.add_to_energy(-E_diff) # TODO: need to correct for weight
+        coll._acc_ionisation_loss += np.sum(E_diff[idx_old])
         rpp = part.rpp[idx_old]    # This is now already updated by the new energy
 
         # Update other fields
@@ -231,9 +233,6 @@ def track_core(coll, part):
     if np.any(mask_existing):
         part.state[idx_old]        = 1     # These actually survived
 
-    # TODO: Need to correct for energy lost due to elastic interactions; this is currently not deposited in the collimator!!
-    #       No way to keep trace of this (if we want to avoid having an accumulation variable...)?
-
     # Add new particles
     # ================
     mask_new = new_pid > max_id
@@ -246,9 +245,11 @@ def track_core(coll, part):
         num_free = part._capacity - part._num_lost_particles - part._num_active_particles
         num_needed = np.sum(mask_new)
         if num_free < num_needed:
-            extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
-            # TODO: this does not work!!
-            part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
+            raise RuntimeError(f"Too many particles generated by FLUKA ({num_needed} needed, "
+                             + f"but only {num_free} free in particles object)!")
+            # extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
+            # # TODO: this does not work!!
+            # part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
 
         # Sanity check
         idx_parents = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_ppid[mask_new]])
@@ -281,9 +282,10 @@ def track_core(coll, part):
                 pdg_id = data['pdg_id'][:npart][mask_new],
                 parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new],
-                start_tracking_at_element = start)  # TODO: is this needed?
+                start_tracking_at_element = part.start_tracking_at_element)
 
-        # Correct energy of parent particles: not everything was lost there     TODO: in principle FLUKA uses pc, not energy!!
+        # Correct energy of parent particles: not everything was lost there
+        # TODO: in principle FLUKA uses pc, not energy!!
         E_diff = np.bincount(idx_parents, weights=-new_part.energy, minlength=len(part.x))
         part.add_to_energy(E_diff)   # TODO: need to correct for weight
 
@@ -291,4 +293,3 @@ def track_core(coll, part):
         new_part._init_random_number_generator()
         part.add_particles(new_part)
         engine.max_particle_id = part.particle_id.max()
-

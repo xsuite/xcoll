@@ -12,7 +12,7 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from .beam_elements import collimator_classes, crystal_classes
+from .beam_elements import collimator_classes, crystal_classes, FlukaCollimator
 
 
 class LossMap:
@@ -24,6 +24,10 @@ class LossMap:
         self._machine_length = line.get_length()
         self._part = part
         self._interpolation = interpolation
+
+        fluka_coll = line.get_elements_of_type(FlukaCollimator)[0]
+        if len(fluka_coll) > 0 and np.any([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
+            raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
         if weights is None:
             if weight_function is None:
                 self._weights = np.ones(len(part.x))
@@ -51,14 +55,14 @@ class LossMap:
                     'name':   coll_summary['collname'],
                     'length': coll_summary['length'],
                     'n':      coll_summary['nabs'],
-                    # 'e':      coll_summary['energy']
+                    'e':      coll_summary['energy']
                 }
                 ,
                 'aperture': {
                     's':    aper_s,
                     'name': aper_names,
                     'n':    aper_nabs,
-                    # 'e':    aper_energy
+                    'e':    aper_energy
                 }
                 ,
                 'machine_length': self._machine_length
@@ -128,14 +132,24 @@ class LossMap:
                             + f"moved to {self._line.element_names[elem-1]}")
                     part.at_element[idx] = elem - 1
                     what_type = self._line[elem-1].__class__.__name__
-                    if what_type == 'EverestCollimator':
+                    if what_type == 'EverestBlock':
+                        part.state[idx] = -330
+                    elif what_type == 'EverestCollimator':
                         part.state[idx] = -331
                     elif what_type == 'EverestCrystal':
                         part.state[idx] = -332
+                    elif what_type == 'FlukaBlock':
+                        part.state[idx] = -333
                     elif what_type == 'FlukaCollimator':
-                        part.state[idx] = -334   # TODO: what if crystal?
+                        part.state[idx] = -334
+                    elif what_type == 'FlukaCrystal':
+                        part.state[idx] = -335
+                    elif what_type == 'Geant4Block':
+                        part.state[idx] = -336
                     elif what_type == 'Geant4Collimator':
-                        part.state[idx] = -337   # TODO: what if crystal?
+                        part.state[idx] = -337
+                    elif what_type == 'Geant4Crystal':
+                        part.state[idx] = -338
                     elif what_type == 'BlackAbsorber':
                         part.state[idx] = -340
                     else:
@@ -157,24 +171,37 @@ class LossMap:
 
     def _make_coll_summary(self):
         collimator_names = self._line.get_elements_of_type(collimator_classes)[1]
-        coll_mask     = (self._part.state <= -330) & (self._part.state >= -340)
+        coll_mask     = (self._part.state <= -330) & (self._part.state >= -350)
         coll_losses   = np.array([self._line.element_names[i]
                                   for i in self._part.at_element[coll_mask]])
-        coll_lengths  = [self._line[j].length for j in collimator_names]
-        coll_pos      = [(self._line.get_s_position(i) + self._line[i].length/2)
-                         for i in collimator_names]
+        coll_lengths  = [self._line[name].length for name in collimator_names]
+        coll_pos      = [(self._line.get_s_position(name) + self._line[name].length/2)
+                         for name in collimator_names]
 
         if self._line_is_reversed:
             coll_pos  = [self._machine_length - s for s in coll_pos]
 
-        coll_types    = [self._line[i].__class__.__name__ for i in collimator_names]
+        coll_types    = [self._line[name].__class__.__name__ for name in collimator_names]
         coll_weights  = self._weights[coll_mask]
-        nabs          = [coll_weights[coll_losses == j].sum() for j in collimator_names]
+        nabs          = [coll_weights[coll_losses == name].sum() for name in collimator_names]
+
+        deposited_energy = {name: self._line[name]._acc_ionisation_loss
+                                  if hasattr(self._line[name], '_acc_ionisation_loss')
+                                  else 0.
+                            for name in collimator_names}
+        energy_weights = coll_weights * self._part.energy[coll_mask]
+        coll_energy    = [energy_weights[coll_losses == name].sum() + deposited_energy[name]
+                          for name in collimator_names]
+
+        # Resest accumulated ionisation loss
+        for name in collimator_names:
+            if hasattr(self._line[name], '_acc_ionisation_loss'):
+                self._line[name]._acc_ionisation_loss = -1.
 
         self._summary = pd.DataFrame({
             'collname': collimator_names,
             'nabs':     nabs,    # of particles lost on collimators
-            # 'energy':   energy,
+            'energy':   coll_energy,
             'length':   coll_lengths,
             's':        coll_pos,
             'type':     coll_types
@@ -196,12 +223,12 @@ class LossMap:
         name_dict    = dict(zip(aper_s, aper_names)) # TODO: not floating-point-safe and slow
 
         # Create output arrays
-        aper_pos     = np.unique(aper_s)
-        aper_weights = self._weights[aper_mask]
-        aper_nabs    = [aper_weights[aper_s == j].sum() for j in aper_pos]
-        aper_names   = [name_dict[ss] for ss in aper_pos]
-
-        aper_energy = 0
+        aper_pos       = np.unique(aper_s)
+        aper_names     = [name_dict[ss] for ss in aper_pos]
+        aper_weights   = self._weights[aper_mask]
+        aper_nabs      = [aper_weights[aper_s == s].sum() for s in aper_pos]
+        energy_weights = aper_weights * self._part.energy[aper_mask]
+        aper_energy    = [energy_weights[aper_s == s].sum() for s in aper_pos]
 
         return aper_pos, aper_names, aper_nabs, aper_energy
 

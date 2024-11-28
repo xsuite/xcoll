@@ -1,3 +1,5 @@
+tests/fluka_tests/test_fluka_input.py::test_fluka_input
+tests/fluka_tests/test_track_id.py::test_track_id[10]
 tests/test_adt.py::test_blow_up[B1H-ContextCpu]
 tests/test_adt.py::test_blow_up[B1H-ContextCpu:auto]
 tests/test_adt.py::test_blow_up[B1V-ContextCpu]
@@ -70,6 +72,12 @@ tests/test_everest.py::test_angles_b2
 tests/test_everest.py::test_lengths_b1
 tests/test_everest.py::test_lengths_b2
 tests/test_everest.py::test_crystals
+tests/test_fluka.py::test_simple_track[1000]
+tests/test_fluka.py::test_simple_track[5000]
+tests/test_fluka.py::test_fluka_jaw[0.001]
+tests/test_fluka.py::test_fluka_jaw[jaw1]
+tests/test_fluka.py::test_fluka_jaw[jaw2]
+tests/test_fluka.py::test_fluka_jaw[jaw3]
 tests/test_geometry.py::test_jaw
 tests/test_geometry.py::test_jaw_after_s
 tests/test_geometry.py::test_jaw_with_vlimit
@@ -119,14 +127,15 @@ tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu]
 tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu:auto]
 tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu]
 tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu:auto]
-tests/test_lossmap.py::test_run_lossmap[B1-ContextCpu]
-tests/test_lossmap.py::test_run_lossmap[B1-ContextCpu:auto]
+tests/test_lossmap.py::test_run_lossmap[B1H-ContextCpu]
+tests/test_lossmap.py::test_run_lossmap[B1H-ContextCpu:auto]
 tests/test_lossmap.py::test_run_lossmap[B2V-ContextCpu]
 tests/test_lossmap.py::test_run_lossmap[B2V-ContextCpu:auto]
 tests/test_lossmap.py::test_run_lossmap[B1V_crystals-ContextCpu]
 tests/test_lossmap.py::test_run_lossmap[B1V_crystals-ContextCpu:auto]
 tests/test_lossmap.py::test_run_lossmap[B2H_crystals-ContextCpu]
 tests/test_lossmap.py::test_run_lossmap[B2H_crystals-ContextCpu:auto]
+tests/test_lossmap.py::test_run_lossmap_fluka
 tests/test_rf_sweep.py::test_rf_sweep[DP pos-ContextCpu]
 tests/test_rf_sweep.py::test_rf_sweep[DP pos-ContextCpu:auto]
 tests/test_rf_sweep.py::test_rf_sweep[DP neg-ContextCpu]
