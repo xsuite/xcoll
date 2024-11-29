@@ -20,6 +20,10 @@ def track(coll, particles):
     if not isinstance(coll, FlukaCollimator):
         raise ValueError("Collimator is not a FlukaCollimator!\nCannot use FLUKA to track.")
 
+    # Initialize ionisation loss accumulation variable
+    if coll._acc_ionisation_loss < 0:
+        coll._acc_ionisation_loss = 0.
+
     if not coll.active or not coll._tracking:
         _drift(coll, particles, coll.length)
         return
@@ -141,8 +145,6 @@ def track_core(coll, part):
     ele_in   = part.at_element[0]
     turn_in  = part.at_turn[0]
     start    = part.start_tracking_at_element  # TODO: is this needed?
-    if coll._acc_ionisation_loss < 0:
-        coll._acc_ionisation_loss = 0.
 
     # send to fluka
     track_fluka(turn=turn_in+1,                # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)

@@ -16,16 +16,6 @@ import matplotlib.pyplot as plt
 from scipy.stats import ks_2samp
 
 
-def particle_distribution(num_part, _capacity):
-    x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)
-    px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
-    py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
-    return xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref, _capacity=_capacity)
-
-
 @pytest.mark.parametrize('num_part', [1000, 5000])
 def test_simple_track(num_part):
     print(f"Running test_simple_track with {num_part} particles")
@@ -41,7 +31,14 @@ def test_simple_track(num_part):
     xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
 
     # Particle distribution
-    part_init = particle_distribution(num_part, _capacity)
+    x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)
+    px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
+    y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
+    py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
+    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+    part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
+                                   particle_ref=particle_ref, _capacity=_capacity)
     part_fluka = part_init.copy()
     part_drift = part_init.copy()
 
@@ -59,7 +56,11 @@ def test_simple_track(num_part):
     coll._equivalent_drift.length = coll.length
     coll._equivalent_drift.track(part_drift)
 
-    perform_ks_test(part_fluka, part_drift)
+    mask_fluka = part_fluka.state > 0
+    mask_drift = part_drift.state > 0
+    ks_stat, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
+    assert p_value <= 0.05, f"Distributions are not significantly different (p = {p_value})"
+    print(f"KS test passed with p = {p_value}")
     mask_fluka = part_fluka.state > 0
     mask_drift = part_drift.state > 0
     ks_stat, p_value = ks_2samp(part_fluka.x[mask_fluka], part_drift.x[mask_drift])
