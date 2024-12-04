@@ -26,7 +26,6 @@ def flukafile_resolve(fluka_file, timeout=180):
         _alt_fluka_file = Path(fluka_file.as_posix().replace("project/f", "project-f"))
 
         while time.time() - start_time < timeout:
-            print(f"Testing {fluka_file}")
             if fluka_file.exists():
                 return fluka_file
             elif _alt_fluka_file.exists():

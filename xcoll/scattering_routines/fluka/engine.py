@@ -166,7 +166,7 @@ class FlukaEngine(xo.HybridClass):
             raise ValueError(f"Could not find fluka executable {this._fluka}!")
         _flukaserver = flukafile_resolve(this._flukaserver)
         if _flukaserver is not None:
-            this._flukaserver = _fluka
+            this._flukaserver = _flukaserver
         else:
             raise ValueError(f"Could not find fluka executable {this._flukaserver}!")
 
