@@ -17,6 +17,7 @@ import xpart.pdg as pdg
 import xtrack as xt
 
 from .reference_masses import source, masses
+from .paths import flukafile_resolve
 from .paths import fluka as default_fluka_path
 from .paths import flukaserver as default_flukaserver_path
 from ...general import _pkg_root
@@ -158,40 +159,17 @@ class FlukaEngine(xo.HybridClass):
             print("Server already running.", flush=True)
             return
 
-        # Trying to find fluka and flukaserver executables
-        # Wait for 3 minutes if they are not found to allow EOS to sync
-        timeout = 180
-        start_time = time.time()
-        _alt_fluka = Path(this._fluka.as_posix().replace("project/f", "project-f"))
-        _alt_flukaserver = Path(this._flukaserver.as_posix().replace("project/f", "project-f"))
+        _fluka = flukafile_resolve(this._fluka)
+        if _fluka is not None:
+            this._fluka = _fluka
+        else:
+            raise ValueError(f"Could not find fluka executable {this._fluka}!")
+        _flukaserver = flukafile_resolve(this._flukaserver)
+        if _flukaserver is not None:
+            this._flukaserver = _fluka
+        else:
+            raise ValueError(f"Could not find fluka executable {this._flukaserver}!")
 
-        while time.time() - start_time < timeout:
-            if this._fluka.exists() and this._flukaserver.exists():
-                break
-            elif _alt_fluka.exists() and _alt_flukaserver.exists():
-                this._fluka = _alt_fluka
-                this._flukaserver = _alt_flukaserver
-                break
-            time.sleep(1)
-
-        if not this._fluka.exists():
-            print(f"Could not find fluka executable {this._fluka}!")
-            print("Trying modifying the eos path project-f->project/f")
-            fluka_folder = os.path.dirname(this._fluka)
-            if not os.path.exists(fluka_folder):
-                print(f"Could not find the folder for fluka executable {fluka_folder}!")
-            this._fluka = this._fluka.replace("project-f", "project/f")
-            if not this._fluka.exists():
-                raise ValueError(f"Could not find fluka executable {this._fluka}!")
-        if not this._flukaserver.exists():
-            print(f"Could not find fluka executable {this._flukaserver}!")
-            print("Trying modifying the eos path project-f->project/f")
-            flukaserver_folder = os.path.dirname(this._flukaserver)
-            if not os.path.exists(flukaserver_folder):
-                print(f"Could not find the folder for fluka executable {flukaserver_folder}!")
-            this._flukaserver = this._flukaserver.replace("project-f", "project/f")
-            if not this._flukaserver.exists():
-                raise ValueError(f"Could not find fluka executable {this._flukaserver}!")
         this.test_gfortran()
         this._starting_server = True
 
@@ -206,7 +184,10 @@ class FlukaEngine(xo.HybridClass):
             cwd = Path(cwd).expanduser().resolve()
         else:
             # TODO: use xaux.ranID here
-            cwd = Path.cwd() / f'fluka_run_{int(100000*time.time())-173000000000000}'
+            import base64
+            ran = base64.urlsafe_b64encode(os.urandom(8)).decode('utf-8')
+            ran_str = ''.join(c if c.isalnum() else 'X' for c in ran)
+            cwd = Path.cwd() / f'fluka_run_{ran_str}'
         this._cwd = cwd
         cwd.mkdir(parents=True, exist_ok=True)
         this._old_cwd = Path.cwd()
@@ -284,7 +265,6 @@ class FlukaEngine(xo.HybridClass):
             this._warn_pyfluka(error)
             this.stop(warn=False)
             return
-
         # Set reference particle
         if not this._has_particle_ref():
             if reference_particle is not None:
@@ -310,7 +290,6 @@ class FlukaEngine(xo.HybridClass):
                         this.set_particle_ref(line=line)
             else:
                 print("No line given, so reference particle not yet set. Don't forget to set it later.")
-
         # Declare network
         this._network_nfo = this._cwd / network_file
         cmd = run(["hostname"], cwd=this._cwd, stdout=PIPE, stderr=PIPE)
@@ -321,7 +300,6 @@ class FlukaEngine(xo.HybridClass):
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         with this._network_nfo.open('w') as fid:
             fid.write(f"{host}\n")
-
         # Start server
         this._log = this._cwd / server_log
         this._log_fid = this._log.open('w')

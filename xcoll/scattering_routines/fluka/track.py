@@ -53,12 +53,12 @@ def track(coll, particles):
     if particles.particle_id.max() > engine.max_particle_id:
         raise ValueError(f"Some particles have an id that is higher than the highest id known "
                        + f"to FLUKA ({engine.max_particle_id}).\nThis could happen if this "
-                       + f"particles object is larger than the first particles instance "
-                       + f"tracked in this session, or if secondary particles are generated "
-                       + f"somewhere else than FLUKA.\nIn that case, call "
-                       + f"xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
-                       + f"with a value large enough to accommodate secondaries outside of FLUKA.\n"
-                       + f"In any case, please stop and restart the FlukaEngine now.")
+                       + "particles object is larger than the first particles instance "
+                       + "tracked in this session, or if secondary particles are generated "
+                       + "somewhere else than FLUKA.\nIn that case, call "
+                       + "xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
+                       + "with a value large enough to accommodate secondaries outside of "
+                       + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
     if abs(particles.mass0 - engine.particle_ref.mass0) > 1e-3:
         raise ValueError("Error in reference mass of `particles`: not in sync with FLUKA reference particle!\n"
@@ -212,7 +212,7 @@ def track_core(coll, part):
         E_diff = np.zeros(len(part.x))
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing]*1.e6
         part.add_to_energy(-E_diff) # TODO: need to correct for weight
-        coll._acc_ionisation_loss += np.sum(E_diff[idx_old])
+        coll._acc_ionisation_loss += np.sum(E_diff[idx_old]*part.weight[idx_old])
         rpp = part.rpp[idx_old]    # This is now already updated by the new energy
 
         # Update other fields

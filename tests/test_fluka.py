@@ -71,7 +71,8 @@ def test_simple_track(num_part):
     xc.FlukaEngine.stop(clean=True)
 
 
-@pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]])
+@pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]],
+                         ids=['symmetric', 'asymmetric', 'negative', 'positive'])
 def test_fluka_jaw(jaw):
     _ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
     num_part = 5000
