@@ -37,7 +37,7 @@ class Geant4Engine(xo.HybridClass):
             kwargs.setdefault('particle_ref', xp.Particles())
             kwargs.setdefault('seed', -1)
             kwargs.setdefault('relative_energy_cut', -1)
-            kwargs.setdefault('bdsim_config_file', ''.ljust(40))
+            kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
         super().__init__(**kwargs)
         if not hasattr(self, 'g4link'):
             self.g4link = None
