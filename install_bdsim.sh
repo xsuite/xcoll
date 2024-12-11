@@ -189,6 +189,7 @@ function setupEnvironment(){
     $envexe install mesa-libgl-devel-cos7-x86_64 mesa-dri-drivers-cos7-x86_64 libselinux-cos7-x86_64 libxdamage-cos7-x86_64 libxxf86vm-cos7-x86_64 libxext-cos7-x86_64 -y
     $envexe install xorg-libxmu -y
     $envexe install flex bison -y
+    $envexe install xorg-renderproto xorg-xextproto xorg-xproto -y
 }
 
 GOTO 'main'        
