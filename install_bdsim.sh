@@ -21,7 +21,7 @@ rootpath=$(pwd)
 cd $xcollpath
 
 while true; do
-    read -p "$(echo -e ${CYAN}Set up conda or mamba environment? [y/n] ${RESET})\n${RED}WARNING: this will use $HOME/miniconda3 as dir for your conda setup. If you have it in a different directory, please set up the environment manually before building.${RESET}" yn
+    read -p "$(echo -e ${CYAN}Set up conda or mamba environment? [y/n] ${RESET}\n${RED}WARNING: this will use $HOME/miniconda3 as dir for your conda setup. If you have it in a different directory, please set up the environment manually before building.${RESET})" yn
     case $yn in
         [Yy]* ) echo -e "${YELLOW}setting up environment...${RESET}"; setupEnvironment ;
                 break ;;
@@ -189,6 +189,7 @@ function setupEnvironment(){
     $envexe install mesa-libgl-devel-cos7-x86_64 mesa-dri-drivers-cos7-x86_64 libselinux-cos7-x86_64 libxdamage-cos7-x86_64 libxxf86vm-cos7-x86_64 libxext-cos7-x86_64 -y
     $envexe install xorg-libxmu -y
     $envexe install flex bison -y
+    $envexe install xorg-renderproto xorg-xextproto xorg-xproto -y
 }
 
 GOTO 'main'        
