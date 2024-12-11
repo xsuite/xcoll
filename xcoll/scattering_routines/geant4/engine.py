@@ -30,7 +30,7 @@ class Geant4Engine(xo.HybridClass):
         if self._initialised:
             for kk, vv in kwargs.items():
                 if not hasattr(self, kk):
-                    raise ValueError(f"Invalid attribute {kk} for FlukaEngine!")
+                    raise ValueError(f"Invalid attribute {kk} for Geant4Engine!")
                 setattr(self, kk, vv)
             return
         if '_xobject' not in kwargs:
