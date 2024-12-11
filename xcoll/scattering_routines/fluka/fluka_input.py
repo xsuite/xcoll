@@ -202,8 +202,10 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     for name,ee in zip(names, elements):
         if name not in collimator_dict:
             continue
-        collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
         collimator_dict[name]['length'] /= 100
+        collimator_dict[name]['angle'] = ee.angle
+        collimator_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
+        collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
     # Delete prototypes and include files to avoid confusion
     if prototypes_file.parent != Path.cwd():
         (Path.cwd() / 'prototypes.lbp').unlink()

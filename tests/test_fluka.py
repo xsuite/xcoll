@@ -71,27 +71,29 @@ def test_simple_track(num_part):
     xc.FlukaEngine.stop(clean=True)
 
 
+@pytest.mark.parametrize('tilt', [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]],
+                         ids=['no_tilt', 'positive_tilt', 'pos_neg_tilt'])
 @pytest.mark.parametrize('angle', [0, 90, 130.5])
 @pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]],
                          ids=['symmetric', 'asymmetric', 'negative', 'positive'])
-def test_fluka_jaw(jaw, angle):
+def test_fluka_jaw(jaw, angle, tilt):
     _ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
     num_part = 5000
     _capacity = num_part*2
-    jaw_band = 1.e-7
+    jaw_band = 1.e-6
 
     # If a previous test failed, stop the server manually
     if xc.FlukaEngine.is_running():
         xc.FlukaEngine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=0.6, jaw=jaw, angle=angle)
+    coll = xc.FlukaCollimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt)
     coll_name = 'tcp.c6l7.b1'
     xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
 
-    # Particle distribution
+    # Particle distribution (x and y are in the frame of the collimator)
     num_part_step = num_part//5
     x = np.random.uniform(-0.02, 0.02, num_part_step)
     x = np.concatenate([x, np.random.uniform(coll.jaw_L - jaw_band, coll.jaw_L -_ACCURACY, num_part_step)])
@@ -103,7 +105,8 @@ def test_fluka_jaw(jaw, angle):
     y_new = np.sin(np.deg2rad(angle))*x + np.cos(np.deg2rad(angle))*y
     part_init = xp.build_particles(x=x_new, y=y_new, particle_ref=xc.FlukaEngine().particle_ref,
                                    _capacity=xc.FlukaEngine()._capacity)
-    mask = np.concatenate([(x >= coll.jaw_L) | (x <= coll.jaw_R), np.full(5*num_part_step, False)])
+    mask = np.concatenate([(x >= min(coll.jaw_LU, coll.jaw_LD)) | (x <= max(coll.jaw_RU, coll.jaw_RD)),
+                          np.full(5*num_part_step, False)])
     hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
     not_hit_ids = part_init.particle_id[~mask & (part_init.state > 0)]
 
