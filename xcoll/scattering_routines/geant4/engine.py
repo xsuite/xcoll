@@ -107,7 +107,7 @@ class Geant4Engine(xo.HybridClass):
             elements, _ = line.get_elements_of_type(Geant4Collimator)
         if not hasattr(elements, '__iter__') or isinstance(elements, str):
             elements = [elements]
-        elements = [el for el in elements if (el.gap is not None or el.jaw is not None) and el.active]
+        elements = [el for el in elements if el.jaw is not None and el.active]
         for el in elements:
             side = 2 if el._side == -1 else el._side
             jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
