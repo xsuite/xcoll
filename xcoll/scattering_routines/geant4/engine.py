@@ -49,7 +49,7 @@ class Geant4Engine(xo.HybridClass):
 
     @classmethod
     def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
-              relative_energy_cut=0.15, seed=None, batch_mode=True,
+              relative_energy_cut=0.15, seed=1993, batch_mode=True,
               particle_ref=None, p0c=None, **kwargs):
         from ...beam_elements.geant4 import Geant4Collimator
 
