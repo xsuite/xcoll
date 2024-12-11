@@ -14,8 +14,8 @@ class Geant4Engine(xo.HybridClass):
     _xofields = {
         'particle_ref':        xp.Particles,
         'seed':                xo.Int64,
-        'relative_energy_cut':      xo.Float64,
-        'bdsim_config_file':        xo.String
+        'relative_energy_cut': xo.Float64,
+        'bdsim_config_file':   xo.String
 #         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
@@ -71,7 +71,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        this.bdsim_config_file = bdsim_config_file
+        this.bdsim_config_file = bdsim_config_file.as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
@@ -124,7 +124,7 @@ class Geant4Engine(xo.HybridClass):
 
 
     @classmethod
-    def stop(cls, **kwargs):
+    def stop(cls, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
         this.g4link = None
