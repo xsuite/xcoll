@@ -16,7 +16,7 @@ from .shape_vlimit import Shape2DV
 def create_jaw(s_U, x_U, s_D, x_D, *, side):
     tilt = np.arctan((x_D - x_U)/(s_D - s_U))
     seg1 = HalfOpenLineSegment(s=s_U, x=x_U, t=side*np.pi/2 + tilt)
-    seg1 = LineSegment(s1=s_U, x1=x_U, s2=s_D, x2=x_D)
+    seg2 = LineSegment(s1=s_U, x1=x_U, s2=s_D, x2=x_D)
     seg3 = HalfOpenLineSegment(s=s_D, x=x_D, t=side*np.pi/2 + tilt)
     return Shape2D([seg1, seg2, seg3])
 
@@ -41,14 +41,14 @@ def create_polygon_jaw(s_poly, x_poly, *, tilt, side):
 
 def create_crystal(R, *, width, height, length, jaw_U, tilt):
     # First corner is what defines the crystal position
-    A_s = 0;
-    A_x = jaw_U;
+    A_s = 0
+    A_x = jaw_U
 
     # Manipulate R in function of sign
     sgnR = (R > 0) - (R < 0)
     R_short  = sgnR*(abs(R) - width)
     sin_a = length/abs(R)
-    cos_a = sqrt(1 - length*length/R/R)
+    cos_a = np.sqrt(1 - length*length/R/R)
     if (abs(R) < XC_EPSILON):
         raise ValueError("Straight crystal not yet implemented!")
 
@@ -68,7 +68,7 @@ def create_crystal(R, *, width, height, length, jaw_U, tilt):
     D_s = R_s + abs(R)*sin_a*np.cos(tilt) + R*cos_a*np.sin(tilt)
     B_x = R_x - R_short*np.cos(tilt)
     C_x = R_x - cos_a*np.cos(tilt)*R_short + sin_a*np.sin(tilt)*abs(R_short)
-    D_x = R_x - cos_a*np.cos(tilt)*R + sin_a*np.sin(tilt)*fabs(R)
+    D_x = R_x - cos_a*np.cos(tilt)*R + sin_a*np.sin(tilt)*abs(R)
     A_t = np.arctan2(A_x - R_x, A_s - R_s)
     D_t = np.arctan2(D_x - R_x, D_s - R_s)
     t1 = min(A_t, D_t)
