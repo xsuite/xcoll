@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from pathlib import Path
 
 import xobjects as xo
 import xtrack as xt
@@ -71,7 +72,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        this.bdsim_config_file = bdsim_config_file.as_posix()
+        this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
@@ -94,7 +95,7 @@ class Geant4Engine(xo.HybridClass):
         except ImportError as e:
             raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
         else:
-            this.g4link = cs.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+            this.g4link = cs.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
                                              referencePdgId=pdg_id,
                                              referenceEk=Ekin / 1e9, # BDSIM expects GeV
                                              relativeEnergyCut=this.relative_energy_cut,
