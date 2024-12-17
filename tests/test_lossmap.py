@@ -74,8 +74,7 @@ def test_run_lossmap_geant4():
     line.build_tracker()
     line.collimators.assign_optics()
 
-    xc.Geant4Engine.start(line=line, random_seed=1993,
-                          bdsim_config_file=path / 'geant4_protons.gmad')
+    xc.Geant4Engine.start(line=line, seed=1993, bdsim_config_file=path / 'geant4_protons.gmad')
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
