@@ -15,7 +15,7 @@ except ImportError:
     cs = None
 
 rng = np.random.default_rng(42)
-path = Path.cwd() / 'data_test_geant4'
+path = Path.cwd() / 'data'
 npart = int(1e3)
 opening = 5e-3 # m
 part_distribution_width = 15e-3 # m

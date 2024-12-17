@@ -10,6 +10,7 @@ import xtrack as xt
 import xpart as xp
 
 class Geant4Engine(xo.HybridClass):
+
     _xofields = {
         'particle_ref':        xp.Particles,
         'seed':                xo.Int64,
@@ -40,7 +41,7 @@ class Geant4Engine(xo.HybridClass):
             kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
         super().__init__(**kwargs)
         if not hasattr(self, 'g4link'):
-            self.g4link = None
+                    self.g4link = None
         self._initialised = True
 
     def __del__(self, *args, **kwargs):
@@ -70,7 +71,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        this.bdsim_config_file = bdsim_config_file
+        this.bdsim_config_file = bdsim_config_file.as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
@@ -106,20 +107,24 @@ class Geant4Engine(xo.HybridClass):
             elements, _ = line.get_elements_of_type(Geant4Collimator)
         if not hasattr(elements, '__iter__') or isinstance(elements, str):
             elements = [elements]
-        elements = [el for el in elements if el.gap is not None and el.active]
+        elements = [el for el in elements if el.jaw is not None and el.active]
         for el in elements:
             side = 2 if el._side == -1 else el._side
+            jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
+            jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
+            tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
+            tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
             this.g4link.addCollimator(el.geant4_id, el.material, el.length,
-                                      apertureLeft=el.jaw_L,
-                                      apertureRight=-el.jaw_R,   # TODO: is this correct?
+                                      apertureLeft=jaw_L,
+                                      apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
                                       xOffset=0, yOffset=0, side=side,
-                                      jawTiltLeft=el.tilt_L, jawTiltRight=el.tilt_R)
+                                      jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
         print('Geant4Engine initialised')
 
 
     @classmethod
-    def stop(cls, **kwargs):
+    def stop(cls, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
         this.g4link = None
