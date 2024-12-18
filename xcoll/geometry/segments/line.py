@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -19,7 +19,7 @@ class LineSegment(xo.Struct):
     x2 = xo.Float64
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'line.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
 
     max_crossings = {DriftTrajectory: 2}
 
@@ -37,3 +37,23 @@ class LineSegment(xo.Struct):
 
     def get_vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2)
+
+    def _translate_inplace(self, ds, dx):
+        self.s1 += ds
+        self.x1 += dx
+        self.s2 += ds
+        self.x2 += dx
+
+    def _rotate_inplace(self, ps, px, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        self._translate_inplace(-ps, -px)
+        new_s1 = self.s1 * c - self.x1 * s
+        new_x1 = self.s1 * s + self.x1 * c
+        self.s1 = new_s1
+        self.x1 = new_x1
+        new_s2 = self.s2 * c - self.x2 * s
+        new_x2 = self.s2 * s + self.x2 * c
+        self.s2 = new_s2
+        self.x2 = new_x2
+        self._translate_inplace(ps, px)

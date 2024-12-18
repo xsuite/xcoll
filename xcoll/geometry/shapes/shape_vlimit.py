@@ -78,6 +78,13 @@ class Shape2DV(xo.Struct):
     def __getattr__(self, attr):
         return Shape2D.__getattr__(self, attr)
 
+    def to_dict(self, attr):
+        return Shape2D.to_dict(self, attr)
+
+    @classmethod
+    def from_dict(cls, dct):
+        return Shape2D.from_dict(cls, dct)
+
     def is_composite(self):
         return Shape2D.is_composite(self)
 

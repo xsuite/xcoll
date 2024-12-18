@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..c_init import GeomCInit
 
 
@@ -15,7 +15,7 @@ class DriftTrajectory(xo.Struct):
     """Wrapper that holds C code and API for a drift trajectory"""
 
     _depends_on = [GeomCInit]
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'trajectories' / 'drift.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'drift.h']
 
     args_hv = [
             # The arguments that define the particle trajectory, common to both planes

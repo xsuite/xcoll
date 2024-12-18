@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..trajectories import all_trajectories, DriftTrajectory
 
 
@@ -20,7 +20,7 @@ class CircularSegment(xo.Struct):
     t2 = xo.Float64  # Ending angle
 
     _depends_on = all_trajectories
-    _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'segments' / 'circular.h']
+    _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
     max_crossings = {DriftTrajectory: 2}
 
@@ -65,4 +65,28 @@ class CircularSegment(xo.Struct):
         s2 = self.round(self.s + self.R*np.cos(self.t2))
         x2 = self.round(self.x + self.R*np.sin(self.t2))
         return (s1, x1), (s2, x2)
+
+    def _translate_inplace(self, ds, dx):
+        self.sC += ds
+        self.xC += dx
+
+    def _rotate_inplace(self, ps, px, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        self._translate_inplace(-ps, -px)
+        new_sC = self.s * c - self.x * s
+        new_xC = self.s * s + self.x * c
+        self.s = new_sC
+        self.x = new_xC
+        self.t1 += angle
+        self.t2 += angle
+        while self.t1 < -np.pi:
+            self.t1 += 2*np.pi
+        while self.t1 < -np.pi:
+            self.t1 += 2*np.pi
+        while self.t2 < -np.pi:
+            self.t2 += 2*np.pi
+        while self.t2 < -np.pi:
+            self.t2 += 2*np.pi
+        self._translate_inplace(ps, px)
 

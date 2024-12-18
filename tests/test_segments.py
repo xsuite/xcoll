@@ -5,13 +5,17 @@
 
 import numpy as np
 
+import pytest
+
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 import xcoll as xc
-from xcoll.scattering_routines.geometry.c_init import XC_EPSILON
+from xcoll.geometry.c_init import XC_EPSILON
 
 
 num_seg = 1000
+
+# TODO: test     seg.is_open, seg.connection_to,  seg.is_connected_to
 
 @for_all_test_contexts
 def test_line_segment(test_context):
@@ -39,7 +43,22 @@ def test_line_segment(test_context):
         assert np.all(s <= max(s1, s2))
         assert np.all(min(x1, x2) <= x)
         assert np.all(x <= max(x1, x2))
-
+        # Testing the to_dict() and from_dict() methods
+        dct = seg.to_dict()
+        assert set(dct.keys()) == {'__class__', 's1', 'x1', 's2', 'x2'}
+        assert dct['__class__'] == 'LineSegment'
+        seg2 = xc.LineSegment.from_dict(dct, _context=test_context)
+        assert seg2 == seg
+        assert np.allclose((seg2.s1, seg2.x1, seg2.s2, seg2.x2), (s1, x1, s2, x2), atol=XC_EPSILON)
+        seg3 = xc.geometry.LocalSegment.from_dict(dct, _context=test_context)
+        assert isinstance(seg3, xc.LineSegment)
+        assert seg3 == seg
+        assert np.allclose((seg3.s1, seg3.x1, seg3.s2, seg3.x2), (s1, x1, s2, x2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s1, seg.x1, seg.s2, seg.x2),
+                            (seg4.s1, seg4.x1, seg4.s2, seg4.x2), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -50,6 +69,11 @@ def test_halfopen_line_segment(test_context):
         # Test instantiation
         seg = xc.HalfOpenLineSegment(s=s1, x=x1, t=t1, _context=test_context)
         print(seg)  # test __repr__
+        # Move t1 to [-pi, pi]
+        while t1 < -np.pi:
+            t1 += 2*np.pi
+        while t1 > np.pi:
+            t1 -= 2*np.pi
         assert np.allclose((seg.s, seg.x, seg.t), (s1, x1, t1), atol=XC_EPSILON)
         # Test vertices
         verts = seg.get_vertices()
@@ -70,6 +94,21 @@ def test_halfopen_line_segment(test_context):
             assert np.all(x1 <= x)
         else:
             assert np.all(x <= x1)
+        # Testing the to_dict() and from_dict() methods
+        dct = seg.to_dict()
+        assert set(dct.keys()) == {'__class__', 's', 'x', 't'}
+        assert dct['__class__'] == 'HalfOpenLineSegment'
+        seg2 = xc.HalfOpenLineSegment.from_dict(dct, _context=test_context)
+        assert seg2 == seg
+        assert np.allclose((seg2.s, seg2.x, seg2.t), (s1, x1, t1), atol=XC_EPSILON)
+        seg3 = xc.geometry.LocalSegment.from_dict(dct, _context=test_context)
+        assert isinstance(seg3, xc.HalfOpenLineSegment)
+        assert seg3 == seg
+        assert np.allclose((seg3.s, seg3.x, seg3.t), (s1, x1, t1), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s, seg.x, seg.t), (seg4.s, seg4.x, seg4.t), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -103,6 +142,22 @@ def test_circular_segment(test_context):
             assert np.all((t1 <= angs) & (angs <= t2))
         else:
             assert np.all((t1 <= angs) | (angs <= t2))
+        # Testing the to_dict() and from_dict() methods
+        dct = seg.to_dict()
+        assert set(dct.keys()) == {'__class__', 'R', 's', 'x', 't1', 't2'}
+        assert dct['__class__'] == 'CircularSegment'
+        seg2 = xc.CircularSegment.from_dict(dct, _context=test_context)
+        assert seg2 == seg
+        assert np.allclose((seg2.R, seg2.s, seg2.x, seg2.t1, seg2.t2), (R, s0, x0, t1, t2), atol=XC_EPSILON)
+        seg3 = xc.geometry.LocalSegment.from_dict(dct, _context=test_context)
+        assert isinstance(seg3, xc.CircularSegment)
+        assert seg3 == seg
+        assert np.allclose((seg3.R, seg3.s, seg3.x, seg3.t1, seg3.t2), (R, s0, x0, t1, t2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.R, seg.s, seg.x, seg.t1, seg.t2),
+                            (seg4.R, seg4.s, seg4.x, seg4.t1, seg4.t2), atol=XC_EPSILON)
 
 
 @for_all_test_contexts
@@ -122,6 +177,78 @@ def test_bezier_segment(test_context):
         s, x = seg.evaluate(t)
         # First and last evaluated points have to equal the vertices
         assert np.allclose((s[0], x[0], s[-1], x[-1]), (s1, x1, s2, x2), atol=XC_EPSILON)
+        # Testing the to_dict() and from_dict() methods
+        dct = seg.to_dict()
+        assert set(dct.keys()) == {'__class__', 's1', 'x1', 's2', 'x2', 'cs1', 'cx1', 'cs2', 'cx2'}
+        assert dct['__class__'] == 'BezierSegment'
+        seg2 = xc.BezierSegment.from_dict(dct, _context=test_context)
+        assert seg2 == seg
+        assert np.allclose((seg2.s1, seg2.x1, seg2.s2, seg2.x2, seg2.cs1, seg2.cx1, seg2.cs2, seg2.cx2),
+                            (s1, x1, s2, x2, cs1, cx1, cs2, cx2), atol=XC_EPSILON)
+        seg3 = xc.geometry.LocalSegment.from_dict(dct, _context=test_context)
+        assert isinstance(seg3, xc.BezierSegment)
+        assert seg3 == seg
+        assert np.allclose((seg3.s1, seg3.x1, seg3.s2, seg3.x2, seg3.cs1, seg3.cx1, seg3.cs2, seg3.cx2),
+                            (s1, x1, s2, x2, cs1, cx1, cs2, cx2), atol=XC_EPSILON)
+        seg4 = seg.copy()
+        assert id(seg) != id(seg4)
+        assert seg == seg4
+        assert np.allclose((seg.s1, seg.x1, seg.s2, seg.x2, seg.cs1, seg.cx1, seg.cs2, seg.cx2),
+                           (seg4.s1, seg4.x1, seg4.s2, seg4.x2, seg4.cs1, seg4.cx1, seg4.cs2, seg4.cx2),
+                           atol=XC_EPSILON)
+
+
+@for_all_test_contexts
+def test_shape_instantiation(test_context):
+    shape1 = xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1), xc.LineSegment(s1=0.2, x1=1, s2=1, x2=1),
+                     xc.LineSegment(s1=1, x1=1, s2=0.8, x2=0), xc.LineSegment(s1=0.8, x1=0, s2=0, x2=0)])
+    shape2 = xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                        xc.BezierSegment(s1=0.2, x1=1, s2=1+0.5*np.cos(3*np.pi/4), x2=0.5+0.5*np.sin(3*np.pi/4), cs1=0.5, cx1=2.5, cs2=1+0.5*np.cos(3*np.pi/4)-0.6, cx2=0.5+0.5*np.sin(3*np.pi/4)-0.6),
+                        xc.CircularSegment(R=0.5, s=1, x=0.5, t1=-np.pi/2, t2=3*np.pi/4),
+                        xc.LineSegment(s1=1, x1=0, s2=0, x2=0),
+                        xc.HalfOpenLineSegment(s=2, x=1, t=np.pi/4),
+                        xc.LineSegment(s1=2, x1=1, s2=3, x2=0),
+                        xc.HalfOpenLineSegment(s=3, x=0, t=np.pi/4)])
+    shape3 = xc.Shape2DV([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                        xc.BezierSegment(s1=0.2, x1=1, s2=1+0.5*np.cos(3*np.pi/4), x2=0.5+0.5*np.sin(3*np.pi/4), cs1=0.5, cx1=2.5, cs2=1+0.5*np.cos(3*np.pi/4)-0.6, cx2=0.5+0.5*np.sin(3*np.pi/4)-0.6),
+                        xc.CircularSegment(R=0.5, s=1, x=0.5, t1=-np.pi/2, t2=3*np.pi/4),
+                        xc.LineSegment(s1=1, x1=0, s2=0, x2=0),
+                        xc.HalfOpenLineSegment(s=2, x=1, t=np.pi/4),
+                        xc.LineSegment(s1=2, x1=1, s2=3, x2=0),
+                        xc.HalfOpenLineSegment(s=3, x=0, t=np.pi/4),
+                        xc.HalfOpenLineSegment(s=1.8, x=-0.5, t=5*np.pi/8),
+                        xc.CircularSegment(R=0.3, s=1.8-0.3*np.cos(np.pi/8), x=-0.5-0.3*np.sin(np.pi/8), t1=-7*np.pi/8, t2=np.pi/8),
+                        xc.HalfOpenLineSegment(s=1.8-0.6*np.cos(np.pi/8), x=-0.5-0.6*np.sin(np.pi/8), t=5*np.pi/8)],
+                        vlimit=[-0.1, 0.1])
+    shape4 = xc.Shape2DV([xc.CircularSegment(R=1, s=0, x=0, t1=0, t2=2*np.pi/3),
+                        xc.CircularSegment(R=1, s=0, x=0, t1=2*np.pi/3, t2=4*np.pi/3),
+                        xc.CircularSegment(R=1, s=0, x=0, t1=4*np.pi/3, t2=2*np.pi)],
+                        vlimit=[-0.1, 0.1])
+    R1 = 0.5
+    R2 = 2
+    t = np.arcsin(R1/R2)
+    shape5 = xc.Shape2D([xc.CircularSegment(R=R1, s=0, x=0, t1=np.pi/2, t2=-np.pi/2),
+                        xc.CircularSegment(R=R2, s=-R2*np.cos(t), x=0, t1=-t, t2=t)])
+    shape6 = xc.Shape2D([xc.HalfOpenLineSegment(s=0, x=0, t=np.pi/4),
+                        xc.HalfOpenLineSegment(s=0, x=0, t=-np.pi/4)])
+    with pytest.raises(xc.geometry.ShapeMalformedError,
+                       match=" connected to more than 2 segments: "):
+        xc.Shape2D([xc.LineSegment(s1=0, x1=0, s2=0.2, x2=1),
+                    xc.LineSegment(s1=0.2, x1=1, s2=1, x2=1),
+                    xc.LineSegment(s1=0.2, x1=1, s2=0, x2=1.2),
+                    xc.LineSegment(s1=1, x1=1, s2=0.8, x2=0),
+                    xc.LineSegment(s1=0.8, x1=0, s2=0, x2=0)])
+    # Test to_dict(), from_dict(), __eq__,  is_composite, is_open, get_shapes, get_vertex_tree, get_vertices, plot, plot3d
+
+
+@for_all_test_contexts
+def test_shape_defaults(test_context):
+    pass
+
+
+@for_all_test_contexts
+def test_shape_crossings_drift(test_context):
+    pass
 
 
 # from xcoll.scattering_routines.geometry.trajectories import get_max_crossings

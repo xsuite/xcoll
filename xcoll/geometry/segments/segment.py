@@ -28,6 +28,23 @@ class LocalSegment(xo.UnionRef):
                     ret=None)
                 for tra in all_trajectories]
 
+    def __init__(self, *args, **kwargs):
+        raise ValueError("LocalSegment is an abstract class and should not be instantiated")
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        """Returns the correct segment object from a dictionary in the same style as a HybridClass"""
+        this_dct = dct.copy()
+        this_cls = this_dct.pop('__class__')
+        class_found = False
+        for cls in all_segments:
+            if this_cls == cls.__name__:
+                class_found = True
+                break
+        if not class_found:
+            raise ValueError(f"Not a segment class: {this_cls}")
+        return cls(**this_dct, **kwargs)
+
 
 # Sanity check to assert all segment types have crossing functions for all trajectories
 def assert_localsegment_sources(seg):
@@ -54,9 +71,32 @@ for seg in all_segments:
     assert hasattr(seg, 'evaluate')
     assert hasattr(seg, 'get_vertices')
     assert hasattr(seg, 'max_crossings')
+    assert hasattr(seg, '_translate_inplace')
+    assert hasattr(seg, '_rotate_inplace')
 
 
 # Define common methods for all segments
+def seg__eq__(self, other):
+    """Check if two segments are equal"""
+    return self.to_dict() == other.to_dict()
+
+def to_dict(self):
+    """Returns a dictionary in the same style as a HybridClass"""
+    return {'__class__': self.__class__.__name__, **self._to_json()}
+
+@classmethod
+def from_dict(cls, dct, **kwargs):
+    """Returns the object from a dictionary in the same style as a HybridClass"""
+    this_dct = dct.copy()
+    this_cls = this_dct.pop('__class__')
+    if this_cls != cls.__name__:
+        raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
+    return cls(**this_dct, **kwargs)
+
+def seg_copy(self):
+    """Returns a copy of the segment"""
+    return self.from_dict(self.to_dict())
+
 def seg_round(self, val):
     """Built-in to provide rounding to Xcoll precision"""
     return round(val, -int(np.log10(XC_EPSILON)))
@@ -76,11 +116,42 @@ def is_connected_to(self, other):
     """Check if this segment is connected to another segment"""
     return len(self.connection_to(other)) > 0
 
+def translate(self, ds, dx, *, inplace=False):
+    """
+    Translate the segment by (ds, dx). If `inplace` is False, the method returns a
+    new segment, otherwise the segment is modified in place and nothing is returned.
+    """
+    if inplace:
+        self._translate_inplace(ds, dx)
+    else:
+        new_seg = self.copy()
+        new_seg._translate_inplace(ds, dx)
+        return new_seg
+
+def rotate(self, ps, px, angle, *, inplace=False):
+    """
+    Rotates the segment over an angle at a pivot point (ps, px). If `inplace` is False,
+    the method returns a new segment, otherwise the segment is modified in place and
+    nothing is returned.
+    """
+    if inplace:
+        self._rotate_inplace(ps, px, angle)
+    else:
+        new_seg = self.copy()
+        new_seg._rotate_inplace(ps, px, angle)
+        return new_seg
+
 for seg in all_segments:
+    seg.__eq__ = seg__eq__
+    seg.to_dict = to_dict
+    seg.from_dict = from_dict
+    seg.copy = seg_copy
     seg.round = seg_round
     seg.is_open = is_open
     seg.connection_to = connection_to
     seg.is_connected_to = is_connected_to
+    seg.translate = translate
+    seg.rotate = rotate
 
 
 # Add some missing docstrings

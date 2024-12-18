@@ -4,7 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
-from ....general import _pkg_root
+from ...general import _pkg_root
 
 
 XC_EPSILON = 1.e-15
@@ -44,9 +44,9 @@ define_src = f"""
 class GeomCInit(xo.Struct):
     _extra_c_sources = [
         define_src,
-        _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'sort.h',
-        _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'methods.h',
-        _pkg_root / 'scattering_routines' / 'geometry' / 'c_init' / 'find_root.h',
+        _pkg_root / 'geometry' / 'c_init' / 'sort.h',
+        _pkg_root / 'geometry' / 'c_init' / 'methods.h',
+        _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
 
     # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation

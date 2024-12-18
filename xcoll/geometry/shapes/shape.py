@@ -82,6 +82,32 @@ class Shape2D(xo.Struct):
             return PyMethod(kernel_name=attr, element=self)
         raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
+    def __eq__(self, other):
+        """Check if two shapes are equal"""
+        this_dct = self.to_dict()
+        other_dct = other.to_dict()
+        # Order of segments is not important
+        this_dct['segments'] = set(this_dct['segments'])
+        other_dct['segments'] = set(other_dct['segments'])
+        return this_dct == other_dct
+
+    def to_dict(self):
+        """Returns a dictionary in the same style as a HybridClass"""
+        this_dict = {'__class__': self.__class__.__name__}
+        this_dict.update(self._to_json())
+        this_dict['segments'] = [{'__class__': kk, **vv} for kk, vv in this_dict['segments']]
+        return this_dict
+
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+        """Returns the object from a dictionary in the same style as a HybridClass"""
+        this_dct = dct.copy()
+        this_cls = this_dct.pop('__class__')
+        if this_cls != cls.__name__:
+            raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
+        this_dct['segments'] = [LocalSegment.from_dict(seg) for seg in this_dct['segments']]
+        return cls(**this_dct, **kwargs)
+
     def is_composite(self):
         """Returns True if the shape is a composite of multiple shapes"""
         return len(self._shapes) > 1
