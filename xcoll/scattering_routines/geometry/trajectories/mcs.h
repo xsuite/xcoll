@@ -6,6 +6,7 @@
 #ifndef XCOLL_COLL_GEOM_TRAJECTORIES_MCS_H
 #define XCOLL_COLL_GEOM_TRAJECTORIES_MCS_H
 
+#include "../c_init/simpson.h" // this is obv wrong 
 #include <stdio.h>
 #include <math.h>
 
@@ -26,9 +27,8 @@
 //     }
 // }
 
+// MULTIPLE COULOMB SCATTERING TRAJECTORY ------------------------------------------------------------------
 
-// Curve length is int_s1^s2 sqrt(1 + (dx/ds)^2 + (dy/ds)^2) ds
-// need to get A from wherever it is. When do we need the length? Is z already calc?
 void generate_gaussian_random_numbers(double* z1, double* z2) {
     // get z1 and z2 from Box-Muller transform
     double v1, v2, r2;
@@ -42,53 +42,49 @@ void generate_gaussian_random_numbers(double* z1, double* z2) {
     *z2 = v2 * a;
 }
 
-// Function to calculate A. MOVE THIS
-double A(double Xo, double p) {
+void A(double Xo, double p, double* Ax, double* Ay) {
+    // z1, z2 are gaussian random numbers. Xo is the radiation length, p is the momentum
     double z1, z2;
     generate_gaussian_random_numbers(&z1, &z2);
-    return (z1 / sqrt(12) + z2 / 2.0) * Xo * 13.6e-3 / p * 0.038;
+    *Ax = (z1 / sqrt(12) + z2 / 2.0) * Xo * 13.6e-3 / p * 0.038;
+    *Ay = (z1 / sqrt(12) + z2 / 2.0) * Xo * 13.6e-3 / p * 0.038;
 }
+
+// void B(double* B) {
+//     *B = 1.0/0.038// + log(q**2/beta**2) // do we approx beta to one? 
+// }
+
+double MultipleCoulombTrajectory(double s, double const Xo, const double Ax, const double Ay, const double B){
+    // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
+    return Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
+}
+
+
+// CURVE LENGTH ---------------------------------------------------------------------------------------------
+// Curve length is int_s1^s2 sqrt(1 + (dx/ds)^2 + (dy/ds)^2) ds
 
 double integrand(double s, void *params) {
     // Extract Ax, Ay, Xo from the params
     double *p = (double *)params;
-    double Ax = p[0];
-    double Ay = p[1];
-    double Xo = p[2];
+    const double Ax = p[0];
+    const double Ay = p[1];
+    const double Xo = p[2];
+    double x;
+    double y;
 
-    x = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo))
-    y = Ay/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo))
+    x = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
+    y = Ay/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
     return sqrt(1 + x*x + y*y);
 }
 
-// Simpson's Rule function for numerical integration
-double simpson(double (*func)(double,void*), double a, double b, int n, void *params) {
-    if (n % 2 == 1) {
-        n++;                                         // Requires an even number of subintervals
-    }
-    double h = (b - a) / n;                          // Step size
-    double sum = func(a, params) + func(b, params);  // f(a) + f(b)
-
-    // Sum the middle terms
-    for (int i = 1; i < n; i++) {
-        double x = a + i * h;
-        if (i % 2 == 0) {
-            sum += 2.0 * func(x, params);            // Even indices (except the endpoints) are multiplied by 2
-        } else {
-            sum += 4.0 * func(x, params);            // Odd indices are multiplied by 4
-        }
-    }
-    sum *= h / 3;                                    // Multiply by step size / 3
-    return sum;
-}
-
 /*gpufun*/
-double MultipleCoulombTrajectory_length(double s0, double x0, double y0, double s1, double s2, double Ax, double Ay, double Xo){
+double MultipleCoulombTrajectory_length(double s0, double x0, double y0, const double s1, const double s2, 
+                                        const double* Ax, const double* Ay, const double Xo){
     (void) s0;  // Avoid unused parameter warning
     (void) x0;  // Avoid unused parameter warning
     (void) y0;  // Avoid unused parameter warning
-    double n = 1000; // number of subintervals
-    double params[3] = {Ax, Ay, Xo};
+    double n = 1000; // number of subintervals, must be even
+    double params[3] = {*Ax, *Ay, Xo};
 
     // compare with adaptive gauss/kronrod quadrature later! 
     double length = simpson(integrand, s1, s2, n, params); // shold avoid magic numbers
