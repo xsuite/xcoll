@@ -38,4 +38,18 @@ void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, doubl
     }
 }
 
+/*gpufun*/
+void LineSegment_crossing_mcs(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
+    // Get segment data
+    double s1 = LineSegment_get_s1(seg);
+    double x1 = LineSegment_get_x1(seg);
+    double s2 = LineSegment_get_s2(seg);
+    double x2 = LineSegment_get_x2(seg);
+    
+    // check here if parallell to segment 
+
+    // Get crossing
+    double roots[2];
+    grid_search_and_newton(mcs_traj, mcs_traj_prime, smax, smin, roots);
+
 #endif /* XCOLL_COLL_GEOM_LINESEG_H */

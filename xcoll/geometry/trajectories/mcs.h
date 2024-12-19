@@ -54,7 +54,7 @@ void A(double Xo, double p, double* Ax, double* Ay) {
 //     *B = 1.0/0.038// + log(q**2/beta**2) // do we approx beta to one? 
 // }
 
-double MultipleCoulombTrajectory(double s, double const Xo, const double Ax, const double Ay, const double B){
+double MultipleCoulombTrajectory(double s, double const Xo, const double Ax, const double Ay){
     // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
     return Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
 }
@@ -90,3 +90,5 @@ double MultipleCoulombTrajectory_length(double s0, double x0, double y0, const d
     double length = simpson(integrand, s1, s2, n, params); // shold avoid magic numbers
     return length;
 }
+
+#endif /* XCOLL_COLL_GEOM_TRAJECTORIES_MCS_H */

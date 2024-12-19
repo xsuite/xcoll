@@ -18,6 +18,8 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
 
     double rlen = length;
     double s0 = LocalParticle_get_s(part);
+    double x0 = LocalParticle_get_x(part);
+    double y0 = LocalParticle_get_y(part);
     p /= 1e9;   // Energy (not momentum) in GeV
 
     if (everest->coll->only_mcs) {
@@ -27,6 +29,8 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
         // Do a step for a point-like interaction.
         // Get monte-carlo interaction length.
         while (1) {
+            double Ax, Ay;
+            double s1 = LocalParticle_get_s(part) - s0;
             calculate_ionisation_properties(everest, p);
             double length_step = everest->xintl*RandomExponential_generate(part);
 
@@ -36,6 +40,14 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
                 mcs(everest, part, rlen, p, edge_check);
                 break;
             }
+// changes from here -----------------------------------------------------  
+            A(everest->coll->radl, p, &Ax, &Ay);
+            mcs_trajectory = MultipleCoulombTrajectory(everest->coll->radl, Ax, Ay); // like this? Then check how if we do it or nucl? 
+            // get crossing
+            //curve_length = MultipleCoulombTrajectory_length(s0, x0, y0, s1, s2=crossing, Ax, Ay);
+            // if we do then get crossing 
+            // if not then nucl int, and start over again 
+            // before we restart we update s? 
 
             // Otherwise do multi-coulomb scattering.
             mcs(everest, part, length_step, p, edge_check);
@@ -44,7 +56,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
                 // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
                 break;
             }
-
+// changes to here -----------------------------------------------------
             p = nuclear_interaction(everest, part, p);
             if (LocalParticle_get_state(part) < 1){
                 // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.

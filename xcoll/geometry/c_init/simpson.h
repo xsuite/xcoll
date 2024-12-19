@@ -26,3 +26,5 @@ double simpson(double (*func)(double,void*), double a, double b, int n, void *pa
     sum *= h / 3;                                    // Multiply by step size / 3
     return sum;
 }
+
+#endif /* XCOLL_GEOM_SIMPSON_H */
