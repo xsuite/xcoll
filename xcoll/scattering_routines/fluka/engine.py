@@ -38,7 +38,6 @@ class FlukaEngine(BaseEngine):
     }
 
     _int32 = True
-    _element_classes = ('FlukaCollimator',)
     _uses_input_file = True
     _uses_run_folder = True
 
@@ -46,6 +45,9 @@ class FlukaEngine(BaseEngine):
 
     def __init__(self, **kwargs):
         if not self._initialised and '_xobject' not in kwargs:
+            # Set element classes dynamically
+            from ...beam_elements import FlukaCollimator
+            self.__class__._element_classes = (FlukaCollimator,)
             # Initialise fluka-only defaults
             self._network_nfo = None
             self._log = None
@@ -57,6 +59,8 @@ class FlukaEngine(BaseEngine):
             kwargs.setdefault('network_port', 0)
             kwargs.setdefault('timeout_sec', 36000) # 10 hours
             kwargs.setdefault('max_particle_id', 0)
+            kwargs.setdefault('fluka', default_fluka_path)
+            kwargs.setdefault('flukaserver', default_flukaserver_path)
         super().__init__(**kwargs)
 
 
@@ -423,7 +427,7 @@ class FlukaEngine(BaseEngine):
             with touches.open('w') as fid:
                 fid.write(f'{len(self._element_dict.keys())}\n')
                 for _, el in self._element_dict.items():
-                    fid.write(f'{el["fluka_id"]} ')
+                    fid.write(f'{el.fluka_id} ')
             self._input_file.append(touches)
         # Check if touches is a list of collimator names
         elif touches is not None and isinstance(touches, list):
@@ -434,7 +438,7 @@ class FlukaEngine(BaseEngine):
                     if touch not in self._element_dict:
                         raise ValueError(f"Collimator {touch} not in collimator dict!")
                     else:
-                        fid.write(f'{self._element_dict[touch]["fluka_id"]} ')
+                        fid.write(f'{self._element_dict[touch].fluka_id} ')
             self._input_file.append(relcol)
         # Check if touches is not wrongly set
         elif touches is not None and not touches is False:

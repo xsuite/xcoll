@@ -34,7 +34,7 @@ def track(coll, particles):
 
     # Check the server and whether it's initialised correctly
     from .engine import FlukaEngine
-    engine = FlukaEngine().instance
+    engine = FlukaEngine.get_self()
     if not engine._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "

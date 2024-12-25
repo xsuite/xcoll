@@ -69,9 +69,9 @@ def test_run_lossmap_fluka():
     line.build_tracker()
     line.collimators.assign_optics()
 
-    xc.FlukaEngine.start(line=line, _capacity=2*npart, cwd='run_fluka_temp', debug_level=1)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref, line=line)
+    xc.FlukaEngine.particle_ref = particle_ref
+    xc.FlukaEngine.start(line=line, _capacity=2*npart, cwd='run_fluka_temp', verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)

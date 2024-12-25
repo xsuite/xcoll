@@ -249,6 +249,6 @@ def verify_insertion_file(insertion_file, collimator_dict):
         for line in fid.readlines():
             all_fluka_ids.append(int(line.split()[0]))
     for name, val in collimator_dict.items():
-        if val['fluka_id'] not in all_fluka_ids:
+        if val.fluka_id not in all_fluka_ids:
             raise ValueError(f'FlukaCollimator {name} not found in insertion file!')
 

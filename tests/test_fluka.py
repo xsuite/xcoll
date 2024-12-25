@@ -28,15 +28,15 @@ def test_simple_track(num_part):
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=0.6, jaw=0.001)
     coll_name = 'tcp.c6l7.b1'
-    xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
+    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.FlukaEngine.particle_ref = particle_ref
+    xc.FlukaEngine.start(elements=coll, names=coll_name, _capacity=_capacity, verbose=True)
 
     # Particle distribution
     x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)
     px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                    particle_ref=particle_ref, _capacity=_capacity)
     part_fluka = part_init.copy()
@@ -89,9 +89,9 @@ def test_fluka_jaw(jaw, angle, tilt):
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt)
     coll_name = 'tcp.c6l7.b1'
-    xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+    xc.FlukaEngine.particle_ref = particle_ref
+    xc.FlukaEngine.start(elements=coll, names=coll_name, _capacity=_capacity, verbose=True)
 
     # Particle distribution (x and y are in the frame of the collimator)
     num_part_step = num_part//5
