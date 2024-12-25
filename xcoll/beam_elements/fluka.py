@@ -53,7 +53,8 @@ class FlukaCollimator(BaseCollimator):
         track(self, part)
 
     def __setattr__(self, name, value):
-        if name not in self._allowed_fields_when_frozen and FlukaEngine.is_running():
+        if name not in self._allowed_fields_when_frozen \
+        and FlukaEngine.is_running() is True:
             raise ValueError('Engine is running; FlukaCollimator is frozen.')
         super().__setattr__(name, value)
 

@@ -7,9 +7,13 @@ import json
 import numpy as np
 import sys
 import os
-from pathlib import Path
 import shutil
 from subprocess import run, PIPE
+
+try:
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
+except ImportError:
+    from ...xaux import FsPath
 
 from ...beam_elements import FlukaCollimator
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
@@ -17,15 +21,22 @@ from ...general import _pkg_root
 from .paths import fedb, linebuilder, flukafile_resolve
 
 
+_lb_souce_files = [
+    fedb / "tools" / "expand.sh",
+    fedb / "structure.py",
+    *list((linebuilder / "src").glob('*.py')),
+    *list((linebuilder / "lib").glob('*.py')),
+    *list((linebuilder / "db").glob('*.py')),
+]
+
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
 # TODO check that prototype is valid and its sides
-def _coll_dict(elements, names, dump=False):
-
+def _element_dict_to_fluka(element_dict, dump=False):
     collimator_dict = {}
-    for ee, name in zip(elements, names):
+    for name, ee in element_dict.items():
         # nsig = OPEN_GAP
         nsig = 1
         if ee.side == 'left':
@@ -75,13 +86,14 @@ def _coll_dict(elements, names, dump=False):
             'nsig': nsig,
             'half_gap': half_gap
         }
-        if dump:
-            # dump coll_dictionary in json format
-            with open('collimator_dict.json', 'w') as fp:
-                json.dump(collimator_dict, fp, indent=4)
+    if dump:
+        # dump coll_dictionary in json format
+        with open('collimator_dict.json', 'w') as fp:
+            json.dump(collimator_dict, fp, indent=4)
     return collimator_dict
 
-def _fluka_builder(elements, names):
+
+def _fluka_builder(element_dict):
     # Save system state
     old_sys_path = sys.path.copy()
     old_os_env = os.environ.copy()
@@ -97,6 +109,11 @@ def _fluka_builder(elements, names):
     else:
         raise ValueError(f"Could not find linebuilder folder {linebuilder}!")
 
+    for f in _lb_souce_files:
+        # This forces syncing of the files
+        if not f.exists():
+            raise FileNotFoundError(f"Linebuilder source file not found: {f}.")
+
     sys.path.append((linebuilder / "src").as_posix())
     file_path = linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
@@ -107,7 +124,7 @@ def _fluka_builder(elements, names):
     else:
         raise EnvironmentError("FLUKA_builder.py not found at:", file_path)
 
-    collimator_dict = _coll_dict(elements, names)
+    collimator_dict = _element_dict_to_fluka(element_dict)
     collimatorList = fb.CollimatorList()
     collimatorList.acquireCollxsuite(collimator_dict)
 
@@ -140,25 +157,12 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         fp.write("\n".join(header) + "\n*\n" + data)
 
 
-def create_fluka_input(prototypes_file, include_files, *, line=None, elements=None, names=None,
-                       filename=None, cwd=None):
-    if elements is None or names is None:
-        if line is None:
-            raise ValueError("Need to provide either `line` or `elements` and `names`.")
-        elements, names = line.get_elements_of_type(FlukaCollimator)
-    elif line is not None:
-        print("Warning: `line` is provided. `elements` and `names` will be used.")
-    if not hasattr(elements, '__iter__') or isinstance(elements, str):
-        elements = [elements]
-    if not hasattr(names, '__iter__') or isinstance(names, str):
-        names = [names]
-    assert len(elements) == len(names)
-    if len(elements) == 0:
-        raise ValueError('No FlukaCollimator elements found in line!')
-    prototypes_file = Path(prototypes_file).resolve()
+def create_fluka_input(element_dict, prototypes_file, include_files, *, filename=None,
+                       cwd=None, verbose=False):
+    prototypes_file = FsPath(prototypes_file).resolve()
     if not prototypes_file.exists():
         raise FileNotFoundError(f"Prototypes file not found: {prototypes_file}.")
-    include_files = [Path(ff).resolve() for ff in include_files]
+    include_files = [FsPath(ff).resolve() for ff in include_files]
     for ff in include_files:
         if not ff.exists():
             raise FileNotFoundError(f"Include file not found: {ff}.")
@@ -173,45 +177,47 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
 
     # Change to the directory of the input file
     if filename is not None:
-        filename = Path(filename).expanduser().resolve().with_suffix('.inp')
+        filename = FsPath(filename).expanduser().resolve().with_suffix('.inp')
         if cwd is None:
             cwd = filename.parent
     if cwd is None:
-        cwd = Path.cwd()
+        cwd = FsPath.cwd()
     cwd.mkdir(parents=True, exist_ok=True)
-    prev_cwd = Path.cwd()
+    prev_cwd = FsPath.cwd()
     os.chdir(cwd)
-    shutil.copy(prototypes_file, Path.cwd() / 'prototypes.lbp')
+    shutil.copy(prototypes_file, FsPath.cwd() / 'prototypes.lbp')
     for ff in include_files:
-        shutil.copy(ff, Path.cwd() / ff.name)
+        shutil.copy(ff, FsPath.cwd() / ff.name)
     # Call FLUKA_builder
-    input_file, collimator_dict = _fluka_builder(elements, names)
-    input_file = Path(input_file).resolve()
+    input_file, fluka_dict = _fluka_builder(element_dict)
+    input_file = FsPath(input_file).resolve()
     insertion_file = (input_file.parent / 'insertion.txt').resolve()
     assert input_file.exists()
     assert insertion_file.exists()
     # Expand using include files
-    print(f"Expanding {input_file} using {include_files}.")
+    if verbose:
+        print(f"Expanding {input_file} using {include_files}.")
     cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
-              cwd=Path.cwd(), stdout=PIPE, stderr=PIPE)
+              cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
-        print("Expanded include files.")
+        if verbose:
+            print("Expanded include files.")
     else:
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
         raise RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}")
-    for name,ee in zip(names, elements):
-        if name not in collimator_dict:
+    for name, ee in element_dict.items():
+        if name not in fluka_dict:
             continue
-        collimator_dict[name]['length'] /= 100
-        collimator_dict[name]['angle'] = ee.angle
-        collimator_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
-        collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
+        fluka_dict[name]['length'] /= 100
+        fluka_dict[name]['angle'] = ee.angle
+        fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
+        fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
     # Delete prototypes and include files to avoid confusion
-    if prototypes_file.parent != Path.cwd():
-        (Path.cwd() / 'prototypes.lbp').unlink()
+    if prototypes_file.parent != FsPath.cwd():
+        (FsPath.cwd() / 'prototypes.lbp').unlink()
     for ff in include_files:
-        if ff.parent != Path.cwd():
-            (Path.cwd() / ff.name).unlink()
+        if ff.parent != FsPath.cwd():
+            (FsPath.cwd() / ff.name).unlink()
     # Return to previous directory
     os.chdir(prev_cwd)
     if filename is None:
@@ -219,11 +225,12 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     input_file     = input_file.parent / f'{input_file.stem}_exp.inp'
     input_file     = input_file.rename(cwd / filename)
     insertion_file = insertion_file.rename(cwd / 'insertion.txt')
-    _write_xcoll_header_to_fluka_input(input_file, collimator_dict)
+    _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
     assert input_file.exists()
     assert insertion_file.exists()
-    print(f"Created FLUKA input file {input_file}.")
-    return input_file
+    if verbose:
+        print(f"Created FLUKA input file {input_file}.")
+    return input_file, insertion_file
 
 
 def get_collimators_from_input_file(input_file):

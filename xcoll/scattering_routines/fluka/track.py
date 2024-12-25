@@ -40,9 +40,7 @@ def track(coll, particles):
                        + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "
                        + f"(id: {id(engine)})")
 
-    if not engine._has_particle_ref:
-        raise ValueError(f"FLUKA reference particle not set!\nPlease do this first, by calling "
-                       + f"xcoll.FlukaEngine.set_particle_ref().")
+    FlukaEngine.assert_particle_ref()
 
     if 1.4*npart > engine._capacity:
         raise ValueError(f"Tracking {npart} particles but only {engine._capacity} allocated in "
