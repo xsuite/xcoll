@@ -128,7 +128,7 @@ class FlukaEngine(BaseEngine):
 
     @classmethod
     def generate_input_file(cls, *, line=None, elements=None, names=None, prototypes_file=None,
-                            include_files=None):
+                            include_files=None, **kwargs):
         self = cls.get_self(**kwargs)
         if self._element_dict == {}:
             # This is for the case that the method is not called within start() but manually in advance
@@ -232,7 +232,7 @@ class FlukaEngine(BaseEngine):
         self._gfortran_installed = False
         self.network_port = 0
         self.max_particle_id = 0
-        super().stop(warn=warn, clean=clean, **kwargs)
+        super().stop(clean=clean, **kwargs)
 
 
     @classmethod
@@ -279,7 +279,7 @@ class FlukaEngine(BaseEngine):
     def clean_output_files(cls, input_file=None, cwd=None, clean_all=False, **kwargs):
         self = cls.get_self(**kwargs)
         if input_file is None:
-            input_file = self._input_file[0]
+            input_file = self.input_file[0]
             if cwd is None and self._cwd is not None:
                 cwd = self._cwd
         else:
@@ -344,6 +344,7 @@ class FlukaEngine(BaseEngine):
         super()._use_particle_ref(particle_ref=particle_ref)
         part = self.particle_ref
         mass = part.mass0
+        pdg_id = part.pdg_id[0]
         if pdg_id in masses:
             mass_fluka = masses[pdg_id][-1]
             if abs(mass-mass_fluka) > 1.:    # The mass differs more than 1eV from the FLUKA reference mass
@@ -372,7 +373,7 @@ class FlukaEngine(BaseEngine):
         # Read the elements in the input file and compare to the elements in the engine,
         # overwriting parameters where necessary
         from .fluka_input import get_collimators_from_input_file
-        input_dict = get_collimators_from_input_file(self._input_file[0])
+        input_dict = get_collimators_from_input_file(self.input_file[0])
         for name in input_dict:
             if name not in self._element_dict:
                 raise ValueError(f"Element {name} in input file not found in engine!")
@@ -456,7 +457,7 @@ class FlukaEngine(BaseEngine):
     def _start_server(self):
         self._log = self._cwd / server_log
         self._log_fid = self._log.open('w')
-        self._server_process = Popen([self.fluka.as_posix(), input_file, '-e', self.flukaserver.as_posix(), '-M', "1"], 
+        self._server_process = Popen([self.fluka.as_posix(), self.input_file[0], '-e', self.flukaserver.as_posix(), '-M', "1"], 
                                     cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)
