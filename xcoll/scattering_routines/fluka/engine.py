@@ -32,9 +32,9 @@ server_log = "rfluka.log"
 
 class FlukaEngine(BaseEngine):
     _xofields = {**BaseEngine._xofields,
-        'network_port':    xo.Int64,
-        'timeout_sec':     xo.Int32,
-        'max_particle_id': xo.Int64
+        '_network_port':    xo.UInt64,
+        '_timeout_sec':     xo.UInt32,
+        '_max_particle_id': xo.UInt64
     }
 
     _int32 = True
@@ -56,9 +56,11 @@ class FlukaEngine(BaseEngine):
             self.server_pid = None
             self._gfortran_installed = False
             self._flukaio_connected = False
-            kwargs.setdefault('network_port', 0)
-            kwargs.setdefault('timeout_sec', 36000) # 10 hours
-            kwargs.setdefault('max_particle_id', 0)
+            kwargs.setdefault('_network_port', 0)
+            kwargs.setdefault('_timeout_sec', 36000) # 10 hours
+            kwargs.setdefault('_max_particle_id', 0)
+            self._fluka = None
+            self._flukaserver = None
             kwargs.setdefault('fluka', default_fluka_path)
             kwargs.setdefault('flukaserver', default_flukaserver_path)
         super().__init__(**kwargs)
@@ -67,6 +69,22 @@ class FlukaEngine(BaseEngine):
     # ======================
     # === New Properties ===
     # ======================
+
+    @ClassProperty
+    def network_port(cls):
+        return cls.get_self()._network_port
+
+    @ClassProperty
+    def timeout_sec(cls):
+        return cls.get_self()._timeout_sec
+
+    @timeout_sec.setter
+    def timeout_sec(cls, val):
+        cls.get_self()._timeout_sec = val
+
+    @ClassProperty
+    def max_particle_id(cls):
+        return cls.get_self()._max_particle_id
 
     @ClassProperty
     def fluka(cls):
@@ -169,7 +187,8 @@ class FlukaEngine(BaseEngine):
         if self.verbose:
             print("Starting FLUKA engine...", flush=True)
         super().start(line=line, elements=elements, names=names, cwd=cwd, seed=seed,
-                      particle_ref=particle_ref, input_file=input_file, **kwargs)
+                      particle_ref=particle_ref, input_file=input_file,
+                      prototypes_file=prototypes_file, include_files=include_files, **kwargs)
 
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
@@ -234,8 +253,8 @@ class FlukaEngine(BaseEngine):
             self._network_nfo.unlink()
             self._network_nfo = None
         self._gfortran_installed = False
-        self.network_port = 0
-        self.max_particle_id = 0
+        self._network_port = 0
+        self._max_particle_id = 0
         super().stop(clean=clean, **kwargs)
 
 
@@ -334,7 +353,7 @@ class FlukaEngine(BaseEngine):
                     + f"and energy {E0}MeV.", flush=True)
             pyfluka_init_max_uid(max_particle_id)
             pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
-            self.max_particle_id = max_particle_id
+            self._max_particle_id = max_particle_id
             self._tracking_initialised = True
 
 
@@ -477,7 +496,7 @@ class FlukaEngine(BaseEngine):
             with self._network_nfo.open('r') as fid:
                 lines = fid.readlines()
                 if len(lines) > 1:
-                    self.network_port = int(lines[1].strip())
+                    self._network_port = int(lines[1].strip())
                     break
                 if self._server_process.poll() is not None:
                     raise RuntimeError("The flukaserver died. Please check the FLUKA output.")

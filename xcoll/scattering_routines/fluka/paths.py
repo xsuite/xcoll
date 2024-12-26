@@ -29,6 +29,10 @@ def flukafile_resolve(fluka_file, timeout=180):
     fluka_file = FsPath(fluka_file).resolve()
     _alt_fluka_file = FsPath(fluka_file.as_posix().replace("project/f", "project-f"))
 
+    print(fluka_file)
+    print(fluka_file.exists())
+    print(_alt_fluka_file)
+    print(_alt_fluka_file.exists())
     while time.time() - start_time < timeout:
         if fluka_file.exists():
             return fluka_file
