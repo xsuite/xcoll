@@ -29,9 +29,8 @@ coll2.jaw = 0.001
 
 
 # Connect to FLUKA
-xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
-particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.FlukaEngine.start(elements=coll, names=coll_name, capacity=_capacity)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -40,8 +39,9 @@ x_init   = np.random.normal(loc=0.001, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=particle_ref,
-                          _capacity=_capacity)
+part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
+                               particle_ref=xc.FlukaEngine.particle_ref,
+                               _capacity=xc.FlukaEngine.capacity)
 part = part_init.copy()
 part2 = part_init.copy()
 

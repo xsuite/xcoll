@@ -34,23 +34,23 @@ def track(coll, particles):
 
     # Check the server and whether it's initialised correctly
     from .engine import FlukaEngine
-    engine = FlukaEngine.get_self()
-    if not engine._flukaio_connected:
+    if not FlukaEngine()._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "
-                       + f"(id: {id(engine)})")
+                       + f"(id: {id(FlukaEngine())})")
 
     FlukaEngine.assert_particle_ref()
 
-    if 1.4*npart > engine._capacity:
-        raise ValueError(f"Tracking {npart} particles but only {engine._capacity} allocated in "
+    if 1.4*npart > FlukaEngine.capacity:
+        raise ValueError(f"Tracking {npart} particles but only {FlukaEngine.capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
 
     FlukaEngine.init_tracking(npart)
 
-    if particles.particle_id.max() > engine.max_particle_id:
-        raise ValueError(f"Some particles have an id that is higher than the highest id known "
-                       + f"to FLUKA ({engine.max_particle_id}).\nThis could happen if this "
+    if particles.particle_id.max() > FlukaEngine.max_particle_id:
+        raise ValueError(f"Some particles have an id ({particles.particle_id.max()} that is "
+                       + "higher than the highest id known "
+                       + f"to FLUKA ({FlukaEngine.max_particle_id}).\nThis could happen if this "
                        + "particles object is larger than the first particles instance "
                        + "tracked in this session, or if secondary particles are generated "
                        + "somewhere else than FLUKA.\nIn that case, call "
@@ -58,10 +58,10 @@ def track(coll, particles):
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
-    if abs(particles.mass0 - engine.particle_ref.mass0) > 1e-3:
+    if abs(particles.mass0 - FlukaEngine.particle_ref.mass0) > 1e-3:
         raise ValueError("Error in reference mass of `particles`: not in sync with FLUKA reference particle!\n"
                        + "Rebuild the particles object using the FLUKA reference particle.")
-    if abs(particles.q0 - engine.particle_ref.q0) > 1e-3:
+    if abs(particles.q0 - FlukaEngine.particle_ref.q0) > 1e-3:
         raise ValueError("Error in reference charge of `particles`: not in sync with FLUKA reference particle!\n"
                        + "Rebuild the particles object using the FLUKA reference particle.")
     if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
@@ -82,21 +82,20 @@ def track(coll, particles):
 
 def _expand(arr, dtype=float):
     from .engine import FlukaEngine
-    max_part = FlukaEngine.instance._capacity
+    max_part = FlukaEngine.capacity
     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
 
 
 def track_core(coll, part):
     npart = part._num_active_particles
     from .engine import FlukaEngine
-    engine = FlukaEngine.instance
     try:
         from .pyflukaf import track_fluka
     except ImportError as error:
-        engine._warn_pyfluka(error)
+        FlukaEngine()._warn_pyfluka(error)
         return
 
-    max_part       = engine._capacity
+    max_part       = FlukaEngine.capacity
     alive_at_entry = part.state > 0
     max_id         = part.particle_id[alive_at_entry].max()
     assert alive_at_entry.sum() == npart
@@ -292,4 +291,9 @@ def track_core(coll, part):
         # Add new particles
         new_part._init_random_number_generator()
         part.add_particles(new_part)
-        engine.max_particle_id = part.particle_id.max()
+        max_particle_id = part.particle_id.max()
+        if max_particle_id <= FlukaEngine.max_particle_id:
+            raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
+                           + f"lower than the highest ID known ({FlukaEngine.max_particle_id}).\n"
+                           + "This should not happen. Please report this issue to the developers.")
+        FlukaEngine._max_particle_id = max_particle_id

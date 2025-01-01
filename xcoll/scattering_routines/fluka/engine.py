@@ -32,9 +32,9 @@ server_log = "rfluka.log"
 
 class FlukaEngine(BaseEngine):
     _xofields = {**BaseEngine._xofields,
-        '_network_port':    xo.UInt64,
-        '_timeout_sec':     xo.UInt32,
-        '_max_particle_id': xo.UInt64
+        '_network_port':    xo.Int64,
+        '_timeout_sec':     xo.Int32,
+        '_max_particle_id': xo.Int64
     }
 
     _int32 = True

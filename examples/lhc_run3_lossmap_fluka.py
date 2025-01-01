@@ -51,9 +51,8 @@ line.collimators.assign_optics()
 
 
 # Connect to FLUKA
-particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-xc.FlukaEngine.particle_ref = particle_ref
-xc.FlukaEngine.start(line=line, _capacity=2*num_particles, cwd='run_fluka_temp', verbose=True)
+xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.FlukaEngine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', verbose=True)
 
 
 # Generate initial pencil distribution on horizontal collimator
