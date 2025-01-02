@@ -48,7 +48,7 @@ def track(coll, particles):
     FlukaEngine.init_tracking(npart)
 
     if particles.particle_id.max() > FlukaEngine.max_particle_id:
-        raise ValueError(f"Some particles have an id ({particles.particle_id.max()} that is "
+        raise ValueError(f"Some particles have an id ({particles.particle_id.max()}) that is "
                        + "higher than the highest id known "
                        + f"to FLUKA ({FlukaEngine.max_particle_id}).\nThis could happen if this "
                        + "particles object is larger than the first particles instance "
@@ -296,4 +296,4 @@ def track_core(coll, part):
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
                            + f"lower than the highest ID known ({FlukaEngine.max_particle_id}).\n"
                            + "This should not happen. Please report this issue to the developers.")
-        FlukaEngine._max_particle_id = max_particle_id
+        FlukaEngine()._max_particle_id = max_particle_id
