@@ -14,20 +14,10 @@ try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except ImportError:
     from ...xaux import FsPath
-
-from ...beam_elements import FlukaCollimator
-from ...beam_elements.base import OPEN_GAP, OPEN_JAW
-from ...general import _pkg_root
 from .paths import fedb, linebuilder, flukafile_resolve
+from ...beam_elements.base import OPEN_JAW
+from ...general import _pkg_root
 
-
-_lb_souce_files = [
-    fedb / "tools" / "expand.sh",
-    fedb / "structure.py",
-    *list((linebuilder / "src").glob('*.py')),
-    *list((linebuilder / "lib").glob('*.py')),
-    *list((linebuilder / "db").glob('*.py')),
-]
 
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
@@ -37,7 +27,6 @@ _header_stop  = "*  XCOLL END  **"
 def _element_dict_to_fluka(element_dict, dump=False):
     collimator_dict = {}
     for name, ee in element_dict.items():
-        # nsig = OPEN_GAP
         nsig = 1
         if ee.side == 'left':
             if ee.jaw_L is None:
@@ -109,9 +98,25 @@ def _fluka_builder(element_dict):
     else:
         raise ValueError(f"Could not find linebuilder folder {linebuilder}!")
 
-    for f in _lb_souce_files:
+    lb_src = flukafile_resolve(this_linebuilder / "src")
+    if lb_src is None:
+        raise FileNotFoundError(f"Linebuilder src folder not found.")
+    lb_lib = flukafile_resolve(this_linebuilder / "lib")
+    if lb_lib is None:
+        raise FileNotFoundError(f"Linebuilder lib folder not found.")
+    lb_db = flukafile_resolve(this_linebuilder / "db")
+    if lb_db is None:
+        raise FileNotFoundError(f"Linebuilder db folder not found.")
+    lb_souce_files = [
+        this_fedb / "tools" / "expand.sh",
+        this_fedb / "structure.py",
+        *list(lb_src.glob('*.py')),
+        *list(lb_lib.glob('*.py')),
+        *list(lb_db.glob('*.py')),
+    ]
+    for f in lb_souce_files:
         # This forces syncing of the files
-        if not f.exists():
+        if flukafile_resolve(f) is None:
             raise FileNotFoundError(f"Linebuilder source file not found: {f}.")
 
     sys.path.append((linebuilder / "src").as_posix())
