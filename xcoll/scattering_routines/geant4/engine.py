@@ -10,6 +10,12 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
+from .environment import set_geant4_env, unset_geant4_env
+
+
+geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling")
+
+
 class Geant4Engine(xo.HybridClass):
 
     _xofields = {
@@ -72,6 +78,8 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
+        this._old_os_environ = set_geant4_env(geant4_path)
+
         this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
@@ -129,6 +137,8 @@ class Geant4Engine(xo.HybridClass):
         cls(**kwargs)
         this = cls.instance
         this.g4link = None
+        unset_geant4_env(this._old_os_environ)
+        del this._old_os_environ
 
 
     @classmethod
