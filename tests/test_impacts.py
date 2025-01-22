@@ -41,9 +41,7 @@ def test_impacts_from_line(beam, plane, test_context):
     tw = line.twiss()
     part = line[tcp].generate_pencil(num_part, twiss=tw)
 
-    line.scattering.enable()
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
-    line.scattering.disable()
 
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)

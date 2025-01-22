@@ -14,11 +14,6 @@
 
 /*gpufun*/
 int8_t xcoll_check_particle_init(RandomRutherfordData rng, LocalParticle* part) {
-    int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
-    if (!is_tracking){
-        printf("Collimator tracking code is called, but we are not supposed to be tracking!"); //only_for_context cpu_serial
-        fflush(stdout);                                                                        //only_for_context cpu_serial
-    }
     int8_t rng_is_set  = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
     if (!rng_is_set){
         printf("Random generator seeds in particles object are not set!"); //only_for_context cpu_serial
@@ -29,7 +24,7 @@ int8_t xcoll_check_particle_init(RandomRutherfordData rng, LocalParticle* part) 
         printf("Rutherford random generator not initialised!"); //only_for_context cpu_serial
         fflush(stdout);                                         //only_for_context cpu_serial
     }
-    return is_tracking*rng_is_set*ruth_is_set;
+    return rng_is_set*ruth_is_set;
 }
 
 #endif /* XCOLL_CHECKS_H */

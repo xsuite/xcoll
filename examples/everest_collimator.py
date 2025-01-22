@@ -71,9 +71,7 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking first test.. ")
-line.scattering.enable()
 line.track(part, num_turns=1)
-line.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)
@@ -111,9 +109,7 @@ part = line.build_particles(x_norm=x_norm, y_norm=y_norm,
 
 # Track
 print("Tracking second test.. ")
-line.scattering.enable()
 line.track(part, num_turns=1)
-line.scattering.disable()
 
 # Sort the particles by their ID
 part.sort(interleave_lost_particles=True)

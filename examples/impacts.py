@@ -32,9 +32,7 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads=12))
 
 # Track
-line.scattering.enable()
 line.track(part, num_turns=20, time=True, with_progress=1)
-line.scattering.disable()
 line.discard_tracker()
 impacts.stop()
 

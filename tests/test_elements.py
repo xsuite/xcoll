@@ -196,8 +196,7 @@ black_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 # EverestCollimator
 everest_fields = {**base_coll_fields,
     '_material':         xc.materials.Copper,
-    'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
-    '_tracking':         False
+    'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20)
 }
 everest_dict_fields = [*base_coll_dict_fields,
     {'field': 'material', 'val': xc.materials.Copper, 'expected': {'_material': xc.materials.Copper}}
@@ -211,8 +210,7 @@ everest_crystal_fields = {**base_crystal_fields,
     '_orient':           2,
     '_critical_angle':   1.3e-6,
     '_material':         xc.materials.TungstenCrystal,
-    'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
-    '_tracking':         False
+    'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20)
 }
 everest_crystal_dict_fields = [*base_crystal_dict_fields,
     {'field': 'material', 'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}},
@@ -257,7 +255,6 @@ def test_everest_block(test_context):
     # Test instantiation
     elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
     assert np.isclose(elem.length, 1.3)
-    assert elem._tracking == True
     assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)

@@ -81,9 +81,7 @@ rf_sweep.info(sweep=sweep, num_turns=num_turns)
 
 
 # Track during RF sweep:
-line.scattering.enable()
 rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
-line.scattering.disable()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
 

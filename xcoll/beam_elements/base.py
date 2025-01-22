@@ -22,8 +22,9 @@ class InvalidXcoll(xt.BeamElement):
     }
 
     isthick = True
-    behaves_like_drift = True
     allow_track = False
+    skip_in_twiss = True
+    behaves_like_drift = True
     skip_in_loss_location_refinement = True
     allow_loss_refinement = True
 
@@ -52,6 +53,7 @@ class BaseBlock(xt.BeamElement):
 
     isthick = True
     allow_track = False
+    skip_in_twiss = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -73,19 +75,6 @@ class BaseBlock(xt.BeamElement):
         if '_xobject' not in kwargs:
             kwargs.setdefault('active', True)
         super().__init__(**kwargs)
-
-    def enable_scattering(self):
-        if hasattr(self, '_tracking'):
-            if hasattr(self, 'optics') and self.optics is None and \
-            (hasattr(self, '_gap_L_set_manually') and self._gap_L_set_manually() \
-            or hasattr(self, '_gap_R_set_manually') and self._gap_R_set_manually()):
-                raise ValueError("Gap set but optics not yet assigned! "
-                               + "Cannot enable scattering.")
-            self._tracking = True
-
-    def disable_scattering(self):
-        if hasattr(self, '_tracking'):
-            self._tracking = False
 
     @property
     def record_impacts(self):
@@ -163,6 +152,7 @@ class BaseCollimator(BaseBlock):
 
     isthick = BaseBlock.isthick
     allow_track = BaseBlock.allow_track
+    skip_in_twiss = BaseBlock.skip_in_twiss
     behaves_like_drift = BaseBlock.behaves_like_drift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = True
@@ -1046,6 +1036,7 @@ class BaseCrystal(BaseBlock):
 
     isthick = BaseBlock.isthick
     allow_track = BaseBlock.allow_track
+    skip_in_twiss = BaseBlock.skip_in_twiss
     behaves_like_drift = BaseBlock.behaves_like_drift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = False

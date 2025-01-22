@@ -63,9 +63,6 @@ xc.EmittanceMonitor.install(line, name="monitor end", at_s=100, longitudinal=Fal
 # =============================================
 line.build_tracker()
 
-# Scattering need to be disabled to be able to twiss
-line.scattering.disable()
-
 # Matched initial parameters
 betx0 = 154.0835045206266
 bety0 = 5.222566527078791
@@ -90,7 +87,6 @@ part = line.build_particles(x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_no
 
 # Track!
 # ======
-line.scattering.enable()
 line.track(part)
 print("Done Tracking!")
 

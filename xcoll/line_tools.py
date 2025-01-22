@@ -20,33 +20,10 @@ class XcollScatteringAPI:
         return self._line
 
     def enable(self):
-        elements = self.line.get_elements_of_type(element_classes)[0]
-        if len(elements) == 0:
-            print("No xcoll elements found in line.")
-        else:
-            nemitt_x = None
-            nemitt_y = None
-            for el in elements:
-                if hasattr(el, 'optics') and el.optics is not None:
-                    if nemitt_x is None:
-                        nemitt_x = el.nemitt_x
-                    if nemitt_y is None:
-                        nemitt_y = el.nemitt_y
-                    if not np.isclose(el.nemitt_x, nemitt_x) \
-                    or not np.isclose(el.nemitt_y, nemitt_y):
-                        raise ValueError("Not all collimators have the same "
-                                    + "emittance. This is not supported.")
-                if hasattr(el, 'enable_scattering'):
-                    el.enable_scattering()
+        raise ValueError("Enabling scattering is deprecated. Use the latest version of Xtrack.")
 
     def disable(self):
-        elements = self.line.get_elements_of_type(element_classes)[0]
-        if len(elements) == 0:
-            print("No xcoll elements found in line.")
-        else:
-            for el in elements:
-                if hasattr(el, 'disable_scattering'):
-                    el.disable_scattering()
+        raise ValueError("Disabling scattering is deprecated. Use the latest version of Xtrack.")
 
 
 class XcollCollimatorAPI:
@@ -79,7 +56,6 @@ class XcollCollimatorAPI:
         # Verify elements
         for el in elements:
             assert isinstance(el, block_classes)
-            el._tracking = False
 
         # Get positions
         tab = self.line.get_table()
@@ -300,11 +276,7 @@ def send_to_parking(line, names=None):
     line.collimators.to_parking(names=names)
 
 def enable_scattering(line):
-    warn("The function xcoll.enable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.enable() instead.", FutureWarning)
-    line.scattering.enable()
+    raise ValueError("The function xcoll.enable_scattering() is deprecated. Use the latest version of Xtrack.")
 
 def disable_scattering(line):
-    warn("The function xcoll.disable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.disable() instead.", FutureWarning)
-    line.scattering.disable()
+    raise ValueError("The function xcoll.disable_scattering() is deprecated. Use the latest version of Xtrack.")

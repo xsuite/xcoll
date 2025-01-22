@@ -13,24 +13,16 @@ from ..scattering_routines.everest import Material, CrystalMaterial, EverestEngi
 from ..general import _pkg_root
 
 
-# TODO:
-#      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
-#      but as if 'iscollective = False' for normal tracking as it is natively in C...
-#      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
-#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
-#      get_backtrack_element. We want it nicer..
-
-
 class EverestBlock(BaseBlock):
     _xofields = {**BaseBlock._xofields,
         '_material':        Material,
         'rutherford_rng':   xt.RandomRutherford,
-        '_tracking':        xo.Int8
     }
 
     isthick = True
     needs_rng = True
     allow_track = True
+    skip_in_twiss = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -58,7 +50,6 @@ class EverestBlock(BaseBlock):
             to_assign['material'] = kwargs.pop('material', None)
             kwargs['_material'] = Material()
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
@@ -89,12 +80,12 @@ class EverestCollimator(BaseCollimator):
     _xofields = {**BaseCollimator._xofields,
         '_material':        Material,
         'rutherford_rng':   xt.RandomRutherford,
-        '_tracking':        xo.Int8
     }
 
     isthick = True
     needs_rng = True
     allow_track = True
+    skip_in_twiss = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -122,7 +113,6 @@ class EverestCollimator(BaseCollimator):
             to_assign['material'] = kwargs.pop('material', None)
             kwargs['_material'] = Material()
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
@@ -148,7 +138,6 @@ class EverestCollimator(BaseCollimator):
                             _buffer=_buffer, _offset=_offset)
 
 
-
 class EverestCrystal(BaseCrystal):
     _xofields = {**BaseCrystal._xofields,
         'miscut':             xo.Float64,
@@ -156,13 +145,13 @@ class EverestCrystal(BaseCrystal):
         '_critical_angle':    xo.Float64,
         '_critical_radius':   xo.Float64,
         '_material':          CrystalMaterial,
-        'rutherford_rng':     xt.RandomRutherford,
-        '_tracking':          xo.Int8
+        'rutherford_rng':     xt.RandomRutherford
     }
 
     isthick = True
     needs_rng = True
     allow_track = True
+    skip_in_twiss = True
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
@@ -192,7 +181,6 @@ class EverestCrystal(BaseCrystal):
             to_assign['lattice'] = kwargs.pop('lattice', 'strip')
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
-            kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)

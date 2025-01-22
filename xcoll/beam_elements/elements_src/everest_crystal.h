@@ -176,7 +176,6 @@ EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restri
 /*gpufun*/
 void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
     int8_t active = EverestCrystalData_get_active(el);
-    active       *= EverestCrystalData_get__tracking(el);
     double length = EverestCrystalData_get_length(el);
 
     // Initialise collimator data

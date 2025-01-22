@@ -79,10 +79,7 @@ void BlackCrystal_free(CrystalGeometry restrict cg, int8_t active){
 
 /*gpufun*/
 void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0){
-
-    // Collimator active and length
     int8_t active = BlackCrystalData_get_active(el);
-    active       *= BlackCrystalData_get__tracking(el);
     double const length = BlackCrystalData_get_length(el);
 
     // Get geometry
@@ -99,28 +96,23 @@ void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0
             Drift_single_particle(part, length);
 
         } else {
-            // Check collimator initialisation
-            int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
+            // Store s-location of start of collimator
+            double s_coll = LocalParticle_get_s(part);
+            LocalParticle_set_s(part, 0);
 
-            if (is_tracking) {
-                // Store s-location of start of collimator
-                double s_coll = LocalParticle_get_s(part);
-                LocalParticle_set_s(part, 0);
+            // Check if hit on jaws
+            int8_t is_hit = hit_crystal_check_and_transform(part, cg);
 
-                // Check if hit on jaws
-                int8_t is_hit = hit_crystal_check_and_transform(part, cg);
-
-                if (is_hit != 0){
-                    LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
-                    if (record_scatterings) {
-                        InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
-                    }
+            if (is_hit != 0){
+                LocalParticle_set_state(part, XC_LOST_ON_ABSORBER);
+                if (record_scatterings) {
+                    InteractionRecordData_log(cg->record, cg->record_index, part, XC_ABSORBED);  // In coll jaw reference frame
                 }
-
-                // Transform back to the lab frame
-                hit_crystal_transform_back(is_hit, part, cg);
-                LocalParticle_add_to_s(part, s_coll);
             }
+
+            // Transform back to the lab frame
+            hit_crystal_transform_back(is_hit, part, cg);
+            LocalParticle_add_to_s(part, s_coll);
         }
     //end_per_particle_block
     BlackCrystal_free(cg, active);

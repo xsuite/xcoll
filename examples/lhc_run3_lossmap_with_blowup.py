@@ -90,11 +90,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 
 # Track!
-line.scattering.enable()
 adt.activate()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 adt.deactivate()
-line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
