@@ -5,7 +5,18 @@
 
 #ifndef XCOLL_COLL_GEOM_LINESEG_H
 #define XCOLL_COLL_GEOM_LINESEG_H
+#define XC_LINE_CROSSINGS 2
+#include "../trajectories/mcs.h"
+#include "../c_init/simpson.h" // this is just for me to avoid squiggles
 
+typedef struct {
+    double Xo;
+    double Ax;
+    double x2;
+    double s2;
+    double x1;
+    double s1;
+} Params_Line;
 
 /*gpufun*/
 void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
@@ -39,17 +50,59 @@ void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, doubl
 }
 
 /*gpufun*/
-void LineSegment_crossing_mcs(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
+double MultipleCoulomb_Line(double s, void* params){
+    // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
+    Params_Line* p = (Params_Line*)params;
+    const double Ax = p->Ax;
+    const double Xo = p->Xo;
+    double x2 = p->x2;
+    double s2 = p->s2;
+    double x1 = p->x1;
+    double s1 = p->s1;
+
+    double mcs  = Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
+    double line = x2 + (x2 - x1) / (s2 - s1) * (s - s1);
+    return mcs - line;
+}
+
+/*gpufun*/
+double MultipleCoulombDeriv_Line(double s, void* params){
+    // MCS trajectory derivative wrt s
+    Params_Line* p = (Params_Line*)params;
+    const double Ax = p->Ax;
+    const double Xo = p->Xo;
+    double x2 = p->x2;
+    double s2 = p->s2;
+    double x1 = p->x1;
+    double s1 = p->s1;
+
+    double mcs_deriv  = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
+    double line_deriv = (x2 - x1) / (s2 - s1);
+    return mcs_deriv - line_deriv;
+}
+
+/*gpufun*/
+void LineSegment_crossing_mcs(LineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo){
     // Get segment data
     double s1 = LineSegment_get_s1(seg);
     double x1 = LineSegment_get_x1(seg);
     double s2 = LineSegment_get_s2(seg);
     double x2 = LineSegment_get_x2(seg);
     
-    // check here if parallell to segment 
+    // Define roots array and parameters
+    Params_Line params = {Xo, *Ax, x2, s2, x1, s1};
+    double roots[XC_LINE_CROSSINGS];
 
-    // Get crossing
-    double roots[2];
-    grid_search_and_newton(mcs_traj, mcs_traj_prime, smax, smin, roots);
+    grid_search_and_newton(MultipleCoulomb_Line, MultipleCoulombDeriv_Line, s1, s2, roots, XC_LINE_CROSSINGS, &params);
+    // now we have the roots, but that doesnt mean anything yet
 
+    // should this function be about finding the crossings, and THEN checking in jaw if nucl or not, and then updating nhit?
+    // Process the roots
+    for (int i = 0; i < XC_LINE_CROSSINGS; ++i) {
+        if (roots[i] >= s1 && roots[i] <= s2) {
+            s[*n_hit] = roots[i];
+            (*n_hit)++;
+        }
+    }
+}
 #endif /* XCOLL_COLL_GEOM_LINESEG_H */

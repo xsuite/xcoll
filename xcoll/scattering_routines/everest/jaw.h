@@ -42,9 +42,10 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
             }
 // changes from here -----------------------------------------------------  
             A(everest->coll->radl, p, &Ax, &Ay);
-            mcs_trajectory = MultipleCoulombTrajectory(everest->coll->radl, Ax, Ay); // like this? Then check how if we do it or nucl? 
-            // get crossing
-            //curve_length = MultipleCoulombTrajectory_length(s0, x0, y0, s1, s2=crossing, Ax, Ay);
+            // mcs_trajectory = MultipleCoulombTrajectory(everest->coll->radl, Ax, Ay); // like this? Then check how if we do it or nucl? 
+            //  ... intervals declared as variable ? Here or in cross func itself? 
+            // get crossing - how do we go from here to there?
+            curve_length = MultipleCoulombTrajectory_length(s0, x0, y0, s1, s2=crossing, Ax, Ay);
             // if we do then get crossing 
             // if not then nucl int, and start over again 
             // before we restart we update s? 

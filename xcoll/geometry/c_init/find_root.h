@@ -9,7 +9,7 @@
 #define XC_NEWTON_EPSILON 1.e-10
 #define XC_NEWTON_MAX_ITER 100  // Maximum number of iterations
 #define XC_NEWTON_DERIVATIVE_TOL 1e-10  // Threshold for small derivative
-#define XC_GRID_MAX_INTER 10     // Maximum number of intervals for grid search
+// #define XC_GRID_MAX_INTER 10     // Maximum number of intervals for grid search
 #define XC_GRID_POINTS 1000     // Number of points to search in grid
 
 #include <math.h>
@@ -36,43 +36,44 @@
 //       Example: f(x) = ln x  => x_(n+1) = xn(1- ln xn). If one starts at x >= e, it will get NaN
 
 /*gpufun*/
-void grid_search_and_newton(double (*func)(double), double (*func_deriv)(double), double s_min, 
-                            double s_max, double* roots) {
+void grid_search_and_newton(double (*func)(double, void*), double (*func_deriv)(double, void*), double s_min, 
+                            double s_max, double* roots, double max_crossings, void* params, int* number_of_roots) {
     /// Find the intervals where the function changes sign within the range [s_min, s_max]
     //  in which later Newton's method can be applied to find the root(s) for each interval
     double grid_step = (s_max - s_min) / XC_GRID_POINTS;
     int interval_count = 0;
 
     double prev_s   = s_min;
-    double prev_val = func(prev_s);
+    double prev_val = func(prev_s, params);
 
     for (int i = 1; i <= XC_GRID_POINTS - 1; i++) {
-        if (interval_count >= XC_GRID_MAX_INTER) break;
+        if (interval_count >= max_crossings) break; // you cannot have more intervals than roots
         double curr_s = s_min + i * grid_step;
-        double curr_val = func(curr_s);
+        double curr_val = func(curr_s, params);
         if (prev_val * curr_val < 0) {  
             double initial_guess = 0.5 * (prev_s + curr_s);      // initial guess is midpoint
-            roots[interval_count] = newton(func, func_deriv, initial_guess);
+            roots[interval_count] = newton(func, func_deriv, initial_guess, params);
             interval_count++;
         }
         prev_s = curr_s;
         prev_val = curr_val;
     }
+    *number_of_roots = interval_count;
 }
 
 /*gpufun*/
-double newton(double (*func)(double), double (*func_deriv)(double), double initial_guess) {
-    double t = initial_guess;
+double newton(double (*func)(double, void*), double (*func_deriv)(double, void*), double initial_guess, void* params) {
+    double guess = initial_guess;
     for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
-        double f = func(t);
-        double f_prime = func_deriv(t);
-        if (fabs(f_prime) < XC_NEWTON_DERIVATIVE_TOL) return t;
+        double f = func(guess, params);
+        double f_prime = func_deriv(guess, params);
+        if (fabs(f_prime) < XC_NEWTON_DERIVATIVE_TOL) return guess;
 
-        double t_new = t - f / f_prime;
-        if (fabs(t_new - t) < XC_NEWTON_EPSILON) return t_new;
-        t = t_new;
+        double guess_new = guess - f / f_prime;
+        if (fabs(guess_new - guess) < XC_NEWTON_EPSILON) return guess_new;
+        guess = guess_new;
     }
-    return t;
+    return guess;
 }
 
 // /*gpufun*/
