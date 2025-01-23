@@ -6,7 +6,7 @@
 import xtrack as xt
 import xobjects as xo
 from .base import BaseCollimator, BaseCrystal, InvalidXcoll
-from ..scattering_routines.geometry import XcollGeometry
+from ..geometry.old_geometry import XcollGeometry
 from ..general import _pkg_root
 
 
