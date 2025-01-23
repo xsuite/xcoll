@@ -121,67 +121,92 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
     // -----------------------------------------------
     // Calculate longitudinal position where we go out
     // -----------------------------------------------
-    // TODO: rewrite better readable, and use general output function
-    // TODO: check for all R and side
+    // TODO: all of this is not exactly correct; need investigation
+    // // TODO: rewrite better readable, and use general output function
+    // // TODO: check for all R and side
+    // // double s  = LocalParticle_get_s(part);
+    // // double x  = LocalParticle_get_x(part);
+    // // double xp = LocalParticle_get_xp(part);
+    // // double s_exit = get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
+    // //                             double part_y, double part_tan_y, Segment* segments, \
+    // //                             int8_t n_segments, double y_min, double y_max, double current_s
+    // // s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
+    //
+    // double R = cg->bending_radius;
+    // double d = cg->width;
+    // double sB = cg->s_B;
+    // double xB = cg->x_B;
     // double s  = LocalParticle_get_s(part);
     // double x  = LocalParticle_get_x(part);
     // double xp = LocalParticle_get_xp(part);
-    // double s_exit = get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
-    //                             double part_y, double part_tan_y, Segment* segments, \
-    //                             int8_t n_segments, double y_min, double y_max, double current_s
-    // s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
+    // double cot = cos(cg->bending_angle)/sin(cg->bending_angle);
+    // double xx = xB - x + s*xp;
+    // // We either exit the crystal at the exit face
+    // double s1 = (xx + cot*sB) / (xp + cot);
+    // if (s1 < s) {s1 = 1e10;}
+    // // or the larger bend
+    // double s2 = 1e10;
+    // double s3 = 1e10;
+    // double xpxp = 1 + xp*xp;
+    // double cc = (xp*xx + sB) / xpxp;
+    // double ee = (xx - sB*xp)*(xx - sB*xp);
+    // double dd = xpxp * R*R - ee;
+    // if (dd >= 0){
+    //     s2 = cc + sqrt(dd) / xpxp;
+    //     if (s2 < s || s2 < sB || (xB > 0 && xp*s2 > xx) || (xB < 0 && xp*s2 < xx)){
+    //         s2 = 1e10; // wrong quadrant
+    //     }
+    //     if (dd > 0){
+    //         s3 = cc - sqrt(dd) / xpxp;
+    //         if (s3 < s || s3 < sB || (xB > 0 && xp*s3 > xx) || (xB < 0 && xp*s3 < xx)){
+    //             s3 = 1e10; // wrong quadrant
+    //         }
+    //     }
+    // }
+    // // or the smaller bend
+    // double s4 = 1e10;
+    // double s5 = 1e10;
+    // dd = xpxp * (R-d)*(R-d) - ee;
+    // if (dd >= 0){
+    //     s4 = cc + sqrt(dd) / xpxp;
+    //     if (s4 < s || s4 < sB || (xB > 0 && xp*s4 > xx) || (xB < 0 && xp*s4 < xx)){
+    //         s4 = 1e10; // wrong quadrant
+    //     }
+    //     if (dd > 0){
+    //         s5 = cc - sqrt(dd) / xpxp;
+    //         if (s5 < s || s5 < sB || (xB > 0 && xp*s5 > xx) || (xB < 0 && xp*s5 < xx)){
+    //             s5 = 1e10; // wrong quadrant
+    //         }
+    //     }
+    // }
+    // // whichever comes first after the current position.
+    // // This gives us an "exit length" \with respect to the current position
+    // double exit_point  = fmin(fmin(fmin(fmin(s1, s2), s3), s4), s5);
+    // double length_exit = fmin(exit_point - s, length);
+    // printf("exit length: %f\n", length);
+
+    // Assumption: crystal bends away from beam (this does not work when crystal bends towards beam)
+    // All s are absolute in the collimator frame
     double R = cg->bending_radius;
+    double t = cg->bending_angle;
     double d = cg->width;
-    double sB = cg->s_B;
-    double xB = cg->x_B;
     double s  = LocalParticle_get_s(part);
     double x  = LocalParticle_get_x(part);
     double xp = LocalParticle_get_xp(part);
-    double cot = cos(cg->bending_angle)/sin(cg->bending_angle);
-    double xx = xB - x + s*xp;
     // We either exit the crystal at the exit face
-    double s1 = (xx + cot*sB) / (xp + cot);
+    double s1 = (R - x + s*xp) / (xp + cos(t)/sin(t) );
     if (s1 < s) {s1 = 1e10;}
     // or the larger bend
-    double s2 = 1e10;
-    double s3 = 1e10;
-    double xpxp = 1 + xp*xp;
-    double cc = (xp*xx + sB) / xpxp;
-    double ee = (xx - sB*xp)*(xx - sB*xp);
-    double dd = xpxp * R*R - ee;
-    if (dd >= 0){
-        s2 = cc + sqrt(dd) / xpxp;
-        if (s2 < s || s2 < sB || (xB > 0 && xp*s2 > xx) || (xB < 0 && xp*s2 < xx)){
-            s2 = 1e10; // wrong quadrant
-        }
-        if (dd > 0){
-            s3 = cc - sqrt(dd) / xpxp;
-            if (s3 < s || s3 < sB || (xB > 0 && xp*s3 > xx) || (xB < 0 && xp*s3 < xx)){
-                s3 = 1e10; // wrong quadrant
-            }
-        }
-    }
-    // or the smaller bend
-    double s4 = 1e10;
-    double s5 = 1e10;
-    dd = xpxp * (R-d)*(R-d) - ee;
-    if (dd >= 0){
-        s4 = cc + sqrt(dd) / xpxp;
-        if (s4 < s || s4 < sB || (xB > 0 && xp*s4 > xx) || (xB < 0 && xp*s4 < xx)){
-            s4 = 1e10; // wrong quadrant
-        }
-        if (dd > 0){
-            s5 = cc - sqrt(dd) / xpxp;
-            if (s5 < s || s5 < sB || (xB > 0 && xp*s5 > xx) || (xB < 0 && xp*s5 < xx)){
-                s5 = 1e10; // wrong quadrant
-            }
-        }
-    }
+    double dd = (R - x + s*xp) / (1 + xp*xp);
+    double s2 = dd*xp + sqrt(R*R / (1 + xp*xp) * dd*dd);
+    if (s2 < s) {s2 = 1e10;}
+    // or the smaller bend (which potentially has two solutions, in case the particle enters again before the exit face)
+    double s3 = dd*xp - sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);
+    if (s3 < s) {s3 = 1e10;}
     // whichever comes first after the current position.
     // This gives us an "exit length" \with respect to the current position
-    double exit_point  = fmin(fmin(fmin(fmin(s1, s2), s3), s4), s5);
+    double exit_point  = fmin(fmin(s1, s2), s3);
     double length_exit = fmin(exit_point - s, length);
-    printf("exit length: %f\n", length);
 
     // ----------------------------------------------------
     // Calculate longitudinal length of nuclear interaction
