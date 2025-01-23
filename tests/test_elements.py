@@ -64,7 +64,7 @@ base_dict_fields = [
     {'field': 'record_exits',       'val':  True,  'expected': {'record_impacts': True,  'record_exits': True,  'record_scatterings': True,  '_record_interactions': 7}}
 ]
 base_user_fields = {}
-base_user_fields_read_only = []
+base_user_fields_read_only = ['gemitt_x', 'gemitt_y']
 
 # BaseCollimator
 base_coll_fields = {**base_fields,
@@ -96,10 +96,10 @@ base_coll_dict_fields = [*base_dict_fields,
     {'field': 'angle', 'val':  40,       'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
     {'field': 'angle', 'val':  [40],     'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
     {'field': 'angle', 'val':  [40, 47], 'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(47*np.pi/180), '_cos_zR': np.cos(47*np.pi/180)}},
-    {'field': 'jaw',   'val':  0.015,                               'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, -0.015], [0.01488, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},  # Existing tilt from base_fields
-    {'field': 'jaw',   'val':  [0.015],                             'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, -0.015], [0.01488, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
-    {'field': 'jaw',   'val':  [0.015, -0.014],                     'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.014, 'jaw_LD': 0.01488, 'jaw_RD': -0.014,  'jaw_L':  0.015,  'jaw_R':  -0.014,   'jaw': [[0.01512, -0.014], [0.01488, -0.014]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
-    {'field': 'jaw',   'val':  [[0.015, -0.014],[0.0152, -0.0143]], 'expected': {'jaw_LU': 0.015,   'jaw_RU': -0.014, 'jaw_LD': 0.0152,  'jaw_RD': -0.0143, 'jaw_L':  0.0151, 'jaw_R':  -0.01415, 'jaw': [[0.015, -0.014], [0.0152, -0.0143]],   'tilt_L': 0.0001538462,  'tilt_R': -0.0002307692}},
+    {'field': 'jaw',   'val':  0.015,                                'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, 0.01488], [-0.015, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},  # Existing tilt from base_fields
+    {'field': 'jaw',   'val':  [0.015],                              'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.015, 'jaw_LD': 0.01488, 'jaw_RD': -0.015,  'jaw_L':  0.015,  'jaw_R':  -0.015,   'jaw': [[0.01512, 0.01488], [-0.015, -0.015]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
+    {'field': 'jaw',   'val':  [0.015, -0.014],                      'expected': {'jaw_LU': 0.01512, 'jaw_RU': -0.014, 'jaw_LD': 0.01488, 'jaw_RD': -0.014,  'jaw_L':  0.015,  'jaw_R':  -0.014,   'jaw': [[0.01512, 0.01488], [-0.014, -0.014]], 'tilt_L': -0.0001692308, 'tilt_R': 0}},
+    {'field': 'jaw',   'val':  [[0.015, 0.0152], [-0.014, -0.0143]], 'expected': {'jaw_LU': 0.015,   'jaw_RU': -0.014, 'jaw_LD': 0.0152,  'jaw_RD': -0.0143, 'jaw_L':  0.0151, 'jaw_R':  -0.01415, 'jaw': [[0.015, 0.0152], [-0.014, -0.0143]],   'tilt_L': 0.0001538462,  'tilt_R': -0.0002307692}},
     {'field': 'tilt',  'val':  5.2e-3,           'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
     {'field': 'tilt',  'val':  [5.2e-3],         'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(5.2e-3), '_cos_yR': np.cos(5.2e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(5.2e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01752998476748726, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.010770015232512739, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},
     {'field': 'tilt',  'val':  [5.2e-3, 3.7e-3], 'expected': {'_sin_yL': np.sin(5.2e-3), '_cos_yL': np.cos(5.2e-3), '_sin_yR': np.sin(3.7e-3), '_cos_yR': np.cos(3.7e-3), '_tan_yL': np.tan(5.2e-3), '_tan_yR': np.tan(3.7e-3), 'jaw_LU': 0.01172001523251274,  'jaw_RU': -0.01655499451259542, 'jaw_LD': 0.018479984767487263, 'jaw_RD': -0.011745005487404576, 'jaw_L':  0.0151, 'jaw_R':  -0.01415}},

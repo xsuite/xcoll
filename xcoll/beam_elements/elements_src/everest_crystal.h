@@ -140,6 +140,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0,
         coll->csref[0] = CrystalMaterialData_get_cross_section(material, 0);
         coll->csref[1] = CrystalMaterialData_get_cross_section(material, 1);
         coll->csref[5] = CrystalMaterialData_get_cross_section(material, 5);
+        coll->only_mcs = CrystalMaterialData_get__only_mcs(material);
         coll->dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
         coll->dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
         coll->ai       = CrystalMaterialData_get_crystal_plane_distance(material);

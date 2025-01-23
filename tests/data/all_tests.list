@@ -52,8 +52,6 @@ tests/test_colldb.py::test_loading_no_merge
 tests/test_colldb.py::test_loading_crystals
 tests/test_colldb.py::test_loading_SixTrack
 tests/test_colldb.py::test_loading_SixTrack_crystals
-tests/test_colldb.py::test_dumping
-tests/test_colldb.py::test_dumping_from_Sixtrack
 tests/test_elements.py::test_black_absorber[ContextCpu]
 tests/test_elements.py::test_black_absorber[ContextCpu:auto]
 tests/test_elements.py::test_black_crystal[ContextCpu]
@@ -121,8 +119,8 @@ tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu]
 tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu:auto]
 tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu]
 tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu:auto]
-tests/test_lossmap.py::test_run_lossmap[B1-ContextCpu]
-tests/test_lossmap.py::test_run_lossmap[B1-ContextCpu:auto]
+tests/test_lossmap.py::test_run_lossmap[B1H-ContextCpu]
+tests/test_lossmap.py::test_run_lossmap[B1H-ContextCpu:auto]
 tests/test_lossmap.py::test_run_lossmap[B2V-ContextCpu]
 tests/test_lossmap.py::test_run_lossmap[B2V-ContextCpu:auto]
 tests/test_lossmap.py::test_run_lossmap[B1V_crystals-ContextCpu]
