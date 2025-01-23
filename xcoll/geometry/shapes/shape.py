@@ -10,13 +10,12 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import xobjects as xo
 
-from ..c_init import XC_EPSILON
+from ..c_init import XC_EPSILON, PyMethod
 from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment, get_max_crossings
 from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
 
 
-# TODO: need to rename kernels (remove Shape2D_ prefix) when xobjects PR #142 is merged
 class Shape2D(xo.Struct):
     """Array of segments, representing objects in the geometry.
        The array can contain multiple shapes, as long as each shape is either a closed loop
@@ -29,7 +28,7 @@ class Shape2D(xo.Struct):
     _extra_c_sources = shape_source
 
     _kernels = {**{
-                f"Shape2D_crossing_{tra.name}": xo.Kernel(
+                f"crossing_{tra.name}": xo.Kernel(
                     c_name=f"Shape2D_crossing_{tra.name}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
@@ -38,7 +37,7 @@ class Shape2D(xo.Struct):
                     ret=None)
                 for tra in all_trajectories},
                 **{
-                f"Shape2D_crossing_{tra.name}_{s_pos}": xo.Kernel(
+                f"crossing_{tra.name}_{s_pos}": xo.Kernel(
                     c_name=f"Shape2D_crossing_{tra.name}_{s_pos}",
                     args=[
                         xo.Arg(xo.ThisClass, name="shape"),
@@ -75,11 +74,8 @@ class Shape2D(xo.Struct):
         return len(self.segments)
 
     def __getattr__(self, attr):
-        if not attr.startswith(self.__class__.__name__):
-            # TODO: to be removed when xobjects PR #142 is merged
-            attr = f"{self.__class__.__name__}_{attr}"
         if attr in self._kernels:
-            return PyMethod(kernel_name=attr, element=self)
+            return PyMethod(kernel_name=attr, element=self, element_name='shape')
         raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
     def __eq__(self, other):
@@ -364,32 +360,6 @@ def _interpolate(segment, coords, smooth_points):
             coords.extend(interp[1:-1])
         else:
             coords.extend(list(reversed(interp[1:-1])))
-
-
-class PyMethod:
-    # Similar class as for the xt.BeamElement, but without the Metaclass magic
-    # (and hence no need for PyMethodDescriptor)
-    def __init__(self, kernel_name, element):
-        self.kernel_name = kernel_name
-        self.element = element
-
-    def __call__(self, **kwargs):
-        instance = self.element
-        context = instance._context
-        # import pdb; pdb.set_trace()
-
-        if instance.__class__._needs_compilation:
-            # We don't have the HybridClass metaclass magic, so we need to manually replace ThisClass
-            for ker in instance.__class__._kernels.values():
-                for arg in ker.args:
-                    if arg.atype == xo.ThisClass:
-                        arg.atype = instance.__class__
-            instance.__class__.compile_kernels(instance) #, save_source_as="example_source.c")
-            instance.__class__._needs_compilation = False
-        kernel = context.kernels[self.kernel_name]
-        kwargs['shape'] = instance
-
-        return kernel( **kwargs)
 
 
 class ShapeMalformedError(ValueError):

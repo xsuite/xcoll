@@ -51,3 +51,64 @@ class GeomCInit(xo.Struct):
 
     # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
     _depends_on = [xo.Float64]
+
+    _needs_compilation = True
+
+    # _kernels = {"grid_search_and_newton":
+    #             xo.Kernel(
+    #                 c_name="grid_search_and_newton",
+    #                 args=[
+    #                     xo.Arg(xo.Int8, "traj_id"),
+    #                     xo.Arg(xo.Int8, "seg_id"),
+    #                     xo.Arg(xo.Float64, "s_min"),
+    #                     xo.Arg(xo.Float64, "s_max"),
+    #                     xo.Arg(xo.Float64, name="roots", pointer=True),
+    #                     xo.Arg(xo.Float64, "max_crossings"),
+    #                     xo.Arg(McsLineParams, "params"),
+    #                     xo.Arg(xo.Int8, "number_of_roots", pointer=True),
+    #                 ],
+    #                 ret=None)
+    #             }
+
+class McsLineParams(xo.Struct):
+    Xo = xo.Float64
+    Ax = xo.Float64
+    s1 = xo.Float64
+    x1 = xo.Float64
+    s2 = xo.Float64
+    x2 = xo.Float64
+
+# params = McsLineParams(Xo=0, Ax=0, s1=0, x1=0, s2=0, x2=0)
+# max_crossings = 8
+# roots = np.zeros(max_crossings, dtype=np.float64)
+# number_of_roots = np.zeros(1, dtype=np.int8)
+# GeomCInit.grid_search_and_newton(traj_id=0, seg_id=0, s_min=0, s_max=1, roots=roots, params=params,
+#                                 max_crossings=max_crossings, number_of_roots=number_of_roots)
+
+
+class PyMethod:
+    # Similar class as for the xt.BeamElement, but without the Metaclass magic
+    # (and hence no need for PyMethodDescriptor)
+    def __init__(self, kernel_name, element, element_name=None):
+        self.kernel_name = kernel_name
+        self.element = element
+        self.element_name = element_name
+
+    def __call__(self, **kwargs):
+        instance = self.element
+        context = instance._context
+        # import pdb; pdb.set_trace()
+
+        if instance.__class__._needs_compilation:
+            # We don't have the HybridClass metaclass magic, so we need to manually replace ThisClass
+            for ker in instance.__class__._kernels.values():
+                for arg in ker.args:
+                    if arg.atype == xo.ThisClass:
+                        arg.atype = instance.__class__
+            instance.__class__.compile_kernels(instance) #, save_source_as="example_source.c")
+            instance.__class__._needs_compilation = False
+        kernel = context.kernels[self.kernel_name]
+        if self.element_name:
+            kwargs[element_name] = instance
+
+        return kernel(**kwargs)
