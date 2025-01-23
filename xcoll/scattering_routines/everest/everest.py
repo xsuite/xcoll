@@ -6,7 +6,7 @@
 import xtrack as xt
 
 from .materials import Material, CrystalMaterial
-from ..geometry import XcollGeometry
+from ...geometry.old_geometry import XcollGeometry
 from ...interaction_record import InteractionRecord
 from ...general import _pkg_root
 
