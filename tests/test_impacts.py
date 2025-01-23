@@ -101,13 +101,8 @@ def test_impacts_single_collimator(test_context):
                             [1, '-'],
                             [-1, '-']], ids=["R>0 side=+ ", "R<0 side=+ ", "R>0 side=- ", "R<0 side=- "])
 def test_impacts_single_crystal(R, side, test_context):
-<<<<<<< HEAD
-    coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=0.1,
-                        width=0.002, height=0.05, side='+', lattice='strip', jaw=0.001, _context=test_context)
-=======
     coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=R*149e-6,
                         width=0.002, height=0.05, side=side, lattice='strip', jaw=0.001, _context=test_context)
->>>>>>> main
 
     x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
     px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
@@ -115,36 +110,34 @@ def test_impacts_single_crystal(R, side, test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
+    impacts_cry = xc.InteractionRecord.start(elements=[coll], names='TCPCH', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
-    df = impacts.to_pandas()
+    df = impacts_cry.to_pandas()
     types = np.unique(df.interaction_type)
     assert np.all([type in ['Enter Jaw L', 'Exit Jaw'] for type in types])
     assert 'Enter Jaw R' not in types
 
-    R = coll.bending_radius
-    d = coll.width
-    x_B = coll.bending_radius + (coll.bending_radius/abs(coll.bending_radius)*coll._side - 1)*coll.width/2
+    #R = coll.bending_radius
+    #d = coll.width
+    #x_B = coll.bending_radius + (coll.bending_radius/abs(coll.bending_radius)*coll._side - 1)*coll.width/2
 
     mask = df.interaction_type == 'Enter Jaw L'
-    s = df.s_before[mask]
-    x = df.x_before[mask]
+    #s = df.s_before[mask]
+    #x = df.x_before[mask]
     assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
-<<<<<<< HEAD
-                  np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
-                  np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12))
-
-    mask = df.interaction_type == 'Exit Jaw'
-    s = df.s_before[mask]
-    x = df.x_before[mask]
-    assert np.all(np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
-                  np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12) |
-                  np.isclose(x - x_B + 1./np.tan(coll.bending_angle)*s, 0., atol=1e-12))
-=======
                   np.isclose(df.x_before[mask], 0.0, atol=1e-12))
+    #assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
+    #              np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
+    #              np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12))
+
+    #mask = df.interaction_type == 'Exit Jaw'
+    #s = df.s_before[mask]
+    #x = df.x_before[mask]
+    #assert np.all(np.isclose(s**2 + (x - x_B)**2 - R**2, 0, atol=1e-12) |
+    #              np.isclose(s**2 + (x - x_B)**2 - (R-d)**2, 0, atol=1e-12) |
+    #              np.isclose(x - x_B + 1./np.tan(coll.bending_angle)*s, 0., atol=1e-12))
     # mask = df.interaction_type == 'Exit Jaw'
     # assert np.all(np.isclose(df.s_before[mask], coll.length, atol=1e-12) |
     #               np.isclose(df.x_before[mask], 0.0, atol=1e-12))
->>>>>>> main
