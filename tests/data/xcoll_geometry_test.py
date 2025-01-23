@@ -5,7 +5,7 @@
 
 import xobjects as xo
 import xtrack as xt
-from xcoll.scattering_routines.geometry import XcollGeometry
+from xcoll.geometry.old_geometry import XcollGeometry
 
 # These tests would be very inefficient in tracking, as the segments should be
 # created before tracking each particle. For ease of testing (and because we

@@ -251,7 +251,7 @@ def test_shape_crossings_drift(test_context):
     pass
 
 
-# from xcoll.scattering_routines.geometry.trajectories import get_max_crossings
+# from xcoll.geometry.trajectories import get_max_crossings
 # from xobjects.test_helpers import for_all_test_contexts
 
 # path = Path(__file__).parent / 'data_test_segments'

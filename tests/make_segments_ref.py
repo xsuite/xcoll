@@ -11,9 +11,9 @@ from pathlib import Path
 
 import xobjects as xo
 import xcoll as xc
-from xcoll.scattering_routines.geometry.segments import *
-from xcoll.scattering_routines.geometry.c_init import *
-from xcoll.scattering_routines.geometry.segments.trajectories import get_max_crossings
+from xcoll.geometry.segments import *
+from xcoll.geometry.c_init import *
+from xcoll.geometry.segments.trajectories import get_max_crossings
 
 # add kernels 
 context = xo.ContextCpu()

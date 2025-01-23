@@ -20,7 +20,7 @@ class EverestEngine(xt.BeamElement):
                    xt.RandomNormal, xt.RandomRutherford, xt.Drift, XcollGeometry]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
+        _pkg_root.joinpath('geometry','old_geometry','rotation.h'),
         _pkg_root.joinpath('scattering_routines','everest','constants.h'),
         _pkg_root.joinpath('scattering_routines','everest','everest.h'),
         _pkg_root.joinpath('scattering_routines','everest','properties.h'),
