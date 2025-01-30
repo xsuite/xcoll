@@ -71,16 +71,18 @@ def test_simple_track(num_part):
     xc.FlukaEngine.stop(clean=True)
 
 
-@pytest.mark.parametrize('tilt', [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]],
-                         ids=['no_tilt', 'positive_tilt', 'pos_neg_tilt'])
+# @pytest.mark.parametrize('tilt', [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]],
+#                          ids=['no_tilt', 'positive_tilt', 'pos_neg_tilt'])
 @pytest.mark.parametrize('angle', [0, 90, 130.5])
 @pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]],
                          ids=['symmetric', 'asymmetric', 'negative', 'positive'])
-def test_fluka_jaw(jaw, angle, tilt):
-    _ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
+def test_fluka_jaw(jaw, angle):
+    _JAW_ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
+    _MOMENTUM_ACCURACY = 1e-12
     num_part = 5000
     _capacity = num_part*2
     jaw_band = 1.e-6
+    tilt = 0
 
     # If a previous test failed, stop the server manually
     if xc.FlukaEngine.is_running():
@@ -95,18 +97,21 @@ def test_fluka_jaw(jaw, angle, tilt):
 
     # Particle distribution (x and y are in the frame of the collimator)
     num_part_step = num_part//5
+    num_part = 5*num_part_step
     x = np.random.uniform(-0.02, 0.02, num_part_step)
-    x = np.concatenate([x, np.random.uniform(coll.jaw_L - jaw_band, coll.jaw_L -_ACCURACY, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(coll.jaw_L +_ACCURACY, coll.jaw_L + jaw_band, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(coll.jaw_R - jaw_band, coll.jaw_R -_ACCURACY, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(coll.jaw_R +_ACCURACY, coll.jaw_R + jaw_band, num_part_step)])
-    y = np.random.uniform(-0.02, 0.02, 5*num_part_step)
+    jaw_L = min(coll.jaw_LU, coll.jaw_LD)
+    jaw_R = max(coll.jaw_RU, coll.jaw_RD)
+    x = np.concatenate([x, np.random.uniform(jaw_L - jaw_band, jaw_L -_JAW_ACCURACY, num_part_step)])
+    x = np.concatenate([x, np.random.uniform(jaw_L +_JAW_ACCURACY, jaw_L + jaw_band, num_part_step)])
+    x = np.concatenate([x, np.random.uniform(jaw_R - jaw_band, jaw_R -_JAW_ACCURACY, num_part_step)])
+    x = np.concatenate([x, np.random.uniform(jaw_R +_JAW_ACCURACY, jaw_R + jaw_band, num_part_step)])
+    y = np.random.uniform(-0.02, 0.02, num_part)
     x_new = np.cos(np.deg2rad(angle))*x - np.sin(np.deg2rad(angle))*y
     y_new = np.sin(np.deg2rad(angle))*x + np.cos(np.deg2rad(angle))*y
     part_init = xp.build_particles(x=x_new, y=y_new, particle_ref=xc.FlukaEngine().particle_ref,
                                    _capacity=xc.FlukaEngine()._capacity)
-    mask = np.concatenate([(x >= min(coll.jaw_LU, coll.jaw_LD)) | (x <= max(coll.jaw_RU, coll.jaw_RD)),
-                          np.full(5*num_part_step, False)])
+    mask = np.concatenate([(x >= jaw_L) | (x <= jaw_R),
+                          np.full(_capacity-num_part, False)])
     hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
     not_hit_ids = part_init.particle_id[~mask & (part_init.state > 0)]
 
@@ -127,18 +132,20 @@ def test_fluka_jaw(jaw, angle, tilt):
     # plt.scatter(part_init.x[mask_not_hit_init], part_init.y[mask_not_hit_init], c='b', s=2)
     # plt.scatter(part_init.x[mask_hit_init], part_init.y[mask_hit_init], c='g', s=2)
     # plt.scatter(part_init.x[mask_wrong_init], part_init.y[mask_wrong_init], c='r', s=2)
-    # plt.axvline(coll.jaw_L, c='k', linestyle='--')
-    # plt.axvline(coll.jaw_R, c='k', linestyle='--')
+    # plt.axvline(coll.jaw_LU, c='k', linestyle='--')
+    # plt.axvline(coll.jaw_LD, c='k', linestyle='--')
+    # plt.axvline(coll.jaw_RU, c='k', linestyle='--')
+    # plt.axvline(coll.jaw_RD, c='k', linestyle='--')
     # plt.show()
 
 
     # Particles that are supposed to not have hit the collimator, but have a kick or are dead, are considered faulty
-    assert not np.any(abs(part.px[mask_not_hit]) > _ACCURACY)
-    assert not np.any(abs(part.py[mask_not_hit]) > _ACCURACY)
+    assert not np.any(abs(part.px[mask_not_hit]) > _MOMENTUM_ACCURACY)
+    assert not np.any(abs(part.py[mask_not_hit]) > _MOMENTUM_ACCURACY)
     assert not np.any(part.state[mask_not_hit] < 1)
 
     # Particles that are supposed to have hit the collimator, but are alive and have no kick, are considered faulty
-    faulty =  mask_hit & (abs(part.px) < _ACCURACY) & (abs(part.py) < _ACCURACY)
+    faulty =  mask_hit & (abs(part.px) < _MOMENTUM_ACCURACY) & (abs(part.py) < _MOMENTUM_ACCURACY)
     faulty &= (part.state > 0)
     assert len(part.x[faulty]) <= 1  # We allow for a small margin of error
 

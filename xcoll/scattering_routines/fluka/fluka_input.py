@@ -57,8 +57,10 @@ def _coll_dict(elements, names, dump=False):
                     nsig = ee.gap_R
                 half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
-            tilt_1 = ee.tilt_L
-            tilt_2 = ee.tilt_R
+            tilt_1 = np.round(ee.tilt_L, 9)
+            tilt_2 = np.round(ee.tilt_R, 9)
+        if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
+            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported!")
 
         collimator_dict[name] = {
             'name': name,

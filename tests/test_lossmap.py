@@ -68,6 +68,9 @@ def test_run_lossmap_fluka():
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker()
     line.collimators.assign_optics()
+    # Tilts are not yet implemented in FlukaCollimator
+    for coll in colldb.collimator_names:
+        line[coll].tilt = 0
 
     xc.FlukaEngine.start(line=line, _capacity=2*npart, cwd='run_fluka_temp', debug_level=1)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
