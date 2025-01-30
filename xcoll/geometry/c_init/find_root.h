@@ -37,62 +37,24 @@
 
 
 /*gpufun*/
-double TrajectorySegmentFunc(int8_t traj_id, int8_t seg_id, double s, McsLineParams params) {
-    switch (traj_id){
-        case 0: 
-            switch (seg_id) {
-                case 0: return MultipleCoulomb_Line(s, params);
-                case 1: return MultipleCoulomb_HalfOpenLine(s, params);
-                case 2: return MultipleCoulomb_Circular(s, params);
-                // case 3: return MultipleCoulomb_Bezier(s, params);
-                default: 
-                    printf("Segment ID not recognized\n");
-                    fflush(stdout);
-            }
-        default: 
-            printf("Trajectory ID not recognized\n");
-            fflush(stdout);
-    }
-}
-
-/*gpufun*/
-double TrajectorySegmentDeriv(int8_t traj_id, int8_t seg_id, double s, McsLineParams params) {
-    switch (traj_id){
-        case 0: 
-            switch (seg_id) {
-                case 0: return MultipleCoulombDeriv_Line(s, params);
-                case 1: return MultipleCoulombDeriv_HalfOpenLine(s, params);
-                case 2: return MultipleCoulombDeriv_Circular(s, params);
-                // case 3: return MultipleCoulomb_Bezier(s, params);
-                default: 
-                    printf("Segment ID not recognized\n");
-                    fflush(stdout);
-            }
-        default: 
-            printf("Trajectory ID not recognized\n");
-            fflush(stdout);
-    }
-}
-
-// TODO:  auto generate this function
-/*gpufun*/
-void grid_search_and_newton(int8_t traj_id, int8_t seg_id, double s_min, 
-                            double s_max, double* roots, double max_crossings, McsLineParams params, int8_t* number_of_roots) {
+void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg,
+                            double s_min, double s_max, double* roots, double max_crossings,
+                            int8_t* number_of_roots) {
     /// Find the intervals where the function changes sign within the range [s_min, s_max]
     //  in which later Newton's method can be applied to find the root(s) for each interval
     double grid_step = (s_max - s_min) / XC_GRID_POINTS;
     int interval_count = 0;
 
     double prev_s   = s_min;
-    double prev_val = TrajectorySegmentFunc(traj_id, seg_id, prev_s, params);
+    double prev_val = LocalTrajectory_func(traj, prev_s) - LocalSegment_func(seg, prev_s);
 
     for (int i = 1; i <= XC_GRID_POINTS - 1; i++) {
         if (interval_count >= max_crossings) break; // you cannot have more intervals than roots
         double curr_s = s_min + i * grid_step;
-        double curr_val = TrajectorySegmentFunc(traj_id, seg_id, curr_s, params);
-        if (prev_val * curr_val < 0) {  
+        double curr_val = LocalTrajectory_func(traj, curr_s) - LocalSegment_func(seg, curr_s);
+        if (prev_val * curr_val < 0) {
             double initial_guess = 0.5 * (prev_s + curr_s);      // initial guess is midpoint
-            roots[interval_count] = newton(traj_id, seg_id, initial_guess, params);
+            roots[interval_count] = newton(traj, seg, initial_guess);
             interval_count++;
         }
         prev_s = curr_s;
@@ -102,17 +64,17 @@ void grid_search_and_newton(int8_t traj_id, int8_t seg_id, double s_min,
 }
 
 /*gpufun*/
-double newton(int8_t traj_id, int8_t seg_id, double guess, McsLineParams params) {
+double newton(LocalTrajectory traj, LocalSegment seg, double guess_s) {
     for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
-        double f = TrajectorySegmentFunc(traj_id, seg_id, guess, params);
-        double f_prime = TrajectorySegmentDeriv(traj_id, seg_id, guess, params);
-        if (fabs(f_prime) < XC_NEWTON_DERIVATIVE_TOL) return guess;
+        double f = LocalTrajectory_func(traj, guess_s) - LocalSegment_func(seg, guess_s);
+        double f_prime = LocalTrajectory_deriv(traj, guess_s) - LocalSegment_deriv(seg, guess_s);
+        if (fabs(f_prime) < XC_NEWTON_DERIVATIVE_TOL) return guess_s;
 
-        double guess_new = guess - f / f_prime;
-        if (fabs(guess_new - guess) < XC_NEWTON_EPSILON) return guess_new;
-        guess = guess_new;
+        double guess_new = guess_s - f / f_prime;
+        if (fabs(guess_new - guess_s) < XC_NEWTON_EPSILON) return guess_new;
+        guess_s = guess_new;
     }
-    return guess;
+    return guess_s;
 }
 
 // /*gpufun*/
