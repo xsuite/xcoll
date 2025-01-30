@@ -11,57 +11,42 @@
 #include <math.h>
 
 // MULTIPLE COULOMB SCATTERING VLIMIT ----------------------------------------------------------------------
-typedef struct {
-    double y; 
-    double Ax;
-    double Xo;
-} Params_y_func;
 
 /*gpufun*/
-double MultipleCoulomb_y(double s, void* params){
-    Params_y_func* p = (Params_y_func*)params;
-    double y = p->y;
-    double Ax = p->Ax;
-    double Xo = p->Xo;
+double MultipleCoulomb_y(double s, McsVlimitParams params){
+    double y  = McsVlimitParams_get_y(params);
+    double Ax = McsVlimitParams_get_Ax(params);
+    double Xo = McsVlimitParams_get_Xo(params);
 
     double mcs = Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo)); // just for clarity
     return mcs - y;
 }
 
 /*gpufun*/
-double MultipleCoulombDeriv_y(double s, void* params){
-    Params_y_func* p = (Params_y_func*)params;
-    double Ax = p->Ax;
-    double Xo = p->Xo;
+double MultipleCoulombDeriv_y(double s, McsVlimitParams params){
+    double Ax = McsVlimitParams_get_Ax(params);
+    double Xo = McsVlimitParams_get_Xo(params);
 
     double mcs_deriv = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo)); // just for clarity
     return mcs_deriv;
 }
 /*gpufun*/
 int8_t MultipleCoulombTrajectory_vlimit(double* restrict_s, double s0, const double* Ax, const double Xo, double ymin, double ymax){
-    // if (fabs(ym) < XC_EPSILON){
-    //     // Trajectory parallel to s axis
-    //     if (y0 < ymin || y0 > ymax){
-    //         return 0;  // Completely outside - no crossing possible
-    //     } else {ded
-    //     }
-    // } else {
-    Params_y_func params_min = {ymin, *Ax, Xo};
-    Params_y_func params_max = {ymax, *Ax, Xo};
-    int number_of_roots_min = 0;
-    int number_of_roots_max = 0;
-    double roots_min[1];
-    double roots_max[1]; // can this be done smarter? 
-    double s_max = 2.0;  // are we in this frame? I need coll length?  
+ 
+    // int number_of_roots_min = 0;
+    // int number_of_roots_max = 0;
+    // double roots_min[1];
+    // double roots_max[1]; // can this be done smarter? 
+    // double s_max = 2.0;  // are we in this frame? I need coll length?  
 
-    grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_max, 1, &params_max, &number_of_roots_max);
-    grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_min, 1, &params_min, &number_of_roots_min);
+    // grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_max, 1, &params_max, &number_of_roots_max);
+    // grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_min, 1, &params_min, &number_of_roots_min);
 
-    restrict_s[0] = roots_min[0];
-    restrict_s[1] = roots_max[0];
-    SWAP(restrict_s, 0, 1);   // To make sure these are sorted
-    return 1;  // Default behavior: check overlap with horizontal crossings
-    // }
+    // restrict_s[0] = roots_min[0];
+    // restrict_s[1] = roots_max[0];
+    // SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+    // return 1;  // Default behavior: check overlap with horizontal crossings
+    // // }
 }
 
 // MULTIPLE COULOMB SCATTERING TRAJECTORY ------------------------------------------------------------------

@@ -7,14 +7,6 @@
 #define XCOLL_COLL_GEOM_HALFOPENLINESEG_H
 #define XC_HALFOPENLINE_CROSSINGS 2
 
-typedef struct {
-    double Xo;
-    double Ax;
-    double x2;
-    double s2;
-    double x1;
-    double s1;
-} Params_HalfOpenLine;
 
 /*gpufun*/
 void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
@@ -48,15 +40,14 @@ void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, 
 }
 
 /*gpufun*/
-double MultipleCoulomb_HalfOpenLine(double s, void* params){
+double MultipleCoulomb_HalfOpenLine(double s, McsHalfOpenLineParams params){
     // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
-    Params_HalfOpenLine* p = (Params_HalfOpenLine*)params;
-    const double Ax = p->Ax;
-    const double Xo = p->Xo;
-    double s2       = p->s2;
-    double x2       = p->x2;
-    double s1       = p->s1;
-    double x1       = p->x1;
+    const double Ax = McsHalfOpenLineParams_get_Ax(params);
+    const double Xo = McsHalfOpenLineParams_get_Xo(params);
+    double s2       = McsHalfOpenLineParams_get_s2(params);
+    double x2       = McsHalfOpenLineParams_get_x2(params);
+    double s1       = McsHalfOpenLineParams_get_s1(params);
+    double x1       = McsHalfOpenLineParams_get_x1(params);
 
     double mcs  = Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
     double half_open_line = x2 + (x2 - x1) / (s2 - s1) * (s - s1);
@@ -64,15 +55,14 @@ double MultipleCoulomb_HalfOpenLine(double s, void* params){
 }
 
 /*gpufun*/
-double MultipleCoulombDeriv_HalfOpenLine(double s, void* params){
+double MultipleCoulombDeriv_HalfOpenLine(double s,  McsHalfOpenLineParams params){
     // MCS trajectory derivative wrt s
-    Params_HalfOpenLine* p = (Params_HalfOpenLine*)params;
-    const double Ax = p->Ax;
-    const double Xo = p->Xo;
-    double s2       = p->s2;
-    double x2       = p->x2;
-    double s1       = p->s1;
-    double x1       = p->x1;
+    const double Ax = McsHalfOpenLineParams_get_Ax(params);
+    const double Xo = McsHalfOpenLineParams_get_Xo(params);
+    double s2       = McsHalfOpenLineParams_get_s2(params);
+    double x2       = McsHalfOpenLineParams_get_x2(params);
+    double s1       = McsHalfOpenLineParams_get_s1(params);
+    double x1       = McsHalfOpenLineParams_get_x1(params);
 
     double mcs_deriv  = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
     double half_open_line_deriv = (x2 - x1) / (s2 - s1);
@@ -81,28 +71,27 @@ double MultipleCoulombDeriv_HalfOpenLine(double s, void* params){
 
 /*gpufun*/
 void HalfOpenLineSegment_crossing_mcs(HalfOpenLineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo){
-    // Get segment data
-    double s1 = HalfOpenLineSegment_get_s(seg);
-    double x1 = HalfOpenLineSegment_get_x(seg);
-    double s2 = s1 + cos(HalfOpenLineSegment_get_t(seg));
-    double x2 = x1 + sin(HalfOpenLineSegment_get_t(seg));
+    // // Get segment data
+    // double s1 = HalfOpenLineSegment_get_s(seg);
+    // double x1 = HalfOpenLineSegment_get_x(seg);
+    // double s2 = s1 + cos(HalfOpenLineSegment_get_t(seg));
+    // double x2 = x1 + sin(HalfOpenLineSegment_get_t(seg));
 
-    // Define roots array and parameters
-    double roots[XC_HALFOPENLINE_CROSSINGS];
-    int number_of_roots = 0;
-    Params_HalfOpenLine params = {Xo, *Ax, x2, s2, x1, s1};
+    // // Define roots array and parameters
+    // double roots[XC_HALFOPENLINE_CROSSINGS];
+    // int number_of_roots = 0;
+    // Params_HalfOpenLine params = {Xo, *Ax, x2, s2, x1, s1};
 
-    grid_search_and_newton(MultipleCoulomb_HalfOpenLine, MultipleCoulombDeriv_HalfOpenLine, s1, s2, roots, XC_HALFOPENLINE_CROSSINGS, &params, &number_of_roots);
-    // now we have the roots, but that doesnt mean anything yet
+    // grid_search_and_newton(MultipleCoulomb_HalfOpenLine, MultipleCoulombDeriv_HalfOpenLine, s1, s2, roots, XC_HALFOPENLINE_CROSSINGS, &params, &number_of_roots);
+    // // now we have the roots, but that doesnt mean anything yet
     
-    // should this function be about finding the crossings, and THEN checking in jaw if nucl or not, and then updating nhit?
-    // Process the roots
-    for (int i = 0; i < XC_HALFOPENLINE_CROSSINGS; ++i) {
-        if (roots[i] >= s1 && roots[i] <= s2 && i < number_of_roots){
-            s[*n_hit] = roots[i];
-            (*n_hit)++;
-        }
-    }
+    // // should this function be about finding the crossings, and THEN checking in jaw if nucl or not, and then updating nhit?
+    // // Process the roots
+    // for (int i = 0; i < XC_HALFOPENLINE_CROSSINGS; ++i) {
+    //     if (roots[i] >= s1 && roots[i] <= s2 && i < number_of_roots){
+    //         s[*n_hit] = roots[i];
+    //         (*n_hit)++;
+    //     }
+    // }
 }  
-#endif /* XCOLL_COLL_GEOM_LINESEG_H */
 #endif /* XCOLL_COLL_GEOM_HALFOPENLINESEG_H */

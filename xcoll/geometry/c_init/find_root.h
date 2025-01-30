@@ -35,24 +35,64 @@
 //       Similarily, the iteration can send itself beyond the valid domain
 //       Example: f(x) = ln x  => x_(n+1) = xn(1- ln xn). If one starts at x >= e, it will get NaN
 
+
 /*gpufun*/
-void grid_search_and_newton(double (*func)(double, void*), double (*func_deriv)(double, void*), double s_min, 
-                            double s_max, double* roots, double max_crossings, void* params, int* number_of_roots) {
+double TrajectorySegmentFunc(int8_t traj_id, int8_t seg_id, double s, McsLineParams params) {
+    switch (traj_id){
+        case 0: 
+            switch (seg_id) {
+                case 0: return MultipleCoulomb_Line(s, params);
+                case 1: return MultipleCoulomb_HalfOpenLine(s, params);
+                case 2: return MultipleCoulomb_Circular(s, params);
+                // case 3: return MultipleCoulomb_Bezier(s, params);
+                default: 
+                    printf("Segment ID not recognized\n");
+                    fflush(stdout);
+            }
+        default: 
+            printf("Trajectory ID not recognized\n");
+            fflush(stdout);
+    }
+}
+
+/*gpufun*/
+double TrajectorySegmentDeriv(int8_t traj_id, int8_t seg_id, double s, McsLineParams params) {
+    switch (traj_id){
+        case 0: 
+            switch (seg_id) {
+                case 0: return MultipleCoulombDeriv_Line(s, params);
+                case 1: return MultipleCoulombDeriv_HalfOpenLine(s, params);
+                case 2: return MultipleCoulombDeriv_Circular(s, params);
+                // case 3: return MultipleCoulomb_Bezier(s, params);
+                default: 
+                    printf("Segment ID not recognized\n");
+                    fflush(stdout);
+            }
+        default: 
+            printf("Trajectory ID not recognized\n");
+            fflush(stdout);
+    }
+}
+
+// TODO:  auto generate this function
+/*gpufun*/
+void grid_search_and_newton(int8_t traj_id, int8_t seg_id, double s_min, 
+                            double s_max, double* roots, double max_crossings, McsLineParams params, int8_t* number_of_roots) {
     /// Find the intervals where the function changes sign within the range [s_min, s_max]
     //  in which later Newton's method can be applied to find the root(s) for each interval
     double grid_step = (s_max - s_min) / XC_GRID_POINTS;
     int interval_count = 0;
 
     double prev_s   = s_min;
-    double prev_val = func(prev_s, params);
+    double prev_val = TrajectorySegmentFunc(traj_id, seg_id, prev_s, params);
 
     for (int i = 1; i <= XC_GRID_POINTS - 1; i++) {
         if (interval_count >= max_crossings) break; // you cannot have more intervals than roots
         double curr_s = s_min + i * grid_step;
-        double curr_val = func(curr_s, params);
+        double curr_val = TrajectorySegmentFunc(traj_id, seg_id, curr_s, params);
         if (prev_val * curr_val < 0) {  
             double initial_guess = 0.5 * (prev_s + curr_s);      // initial guess is midpoint
-            roots[interval_count] = newton(func, func_deriv, initial_guess, params);
+            roots[interval_count] = newton(traj_id, seg_id, initial_guess, params);
             interval_count++;
         }
         prev_s = curr_s;
@@ -62,11 +102,10 @@ void grid_search_and_newton(double (*func)(double, void*), double (*func_deriv)(
 }
 
 /*gpufun*/
-double newton(double (*func)(double, void*), double (*func_deriv)(double, void*), double initial_guess, void* params) {
-    double guess = initial_guess;
+double newton(int8_t traj_id, int8_t seg_id, double guess, McsLineParams params) {
     for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
-        double f = func(guess, params);
-        double f_prime = func_deriv(guess, params);
+        double f = TrajectorySegmentFunc(traj_id, seg_id, guess, params);
+        double f_prime = TrajectorySegmentDeriv(traj_id, seg_id, guess, params);
         if (fabs(f_prime) < XC_NEWTON_DERIVATIVE_TOL) return guess;
 
         double guess_new = guess - f / f_prime;

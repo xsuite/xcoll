@@ -6,7 +6,7 @@
 import numpy as np
 
 import xobjects as xo
-from ....general import _pkg_root
+from ...general import _pkg_root
 from ..c_init import GeomCInit
 
 class MultipleCoulombTrajectory(xo.Struct):
@@ -29,3 +29,4 @@ class MultipleCoulombTrajectory(xo.Struct):
             xo.Arg(xo.Float64, pointer=False, name="y0"),  # Particle y
             xo.Arg(xo.Float64, pointer=False, name="ym")   # Particle slope in the y direction (= yp = tan(theta_y))
     ]
+

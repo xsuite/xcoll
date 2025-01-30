@@ -80,15 +80,14 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
 
 
 /*gpufun*/
-double MultipleCoulomb_Circular(double s, void* params){//CircularSegment sehh, double x, const double Xo, const double Ax){
+double MultipleCoulomb_Circular(double s, McsCircularParams params){//CircularSegment sehh, double x, const double Xo, const double Ax){
     // MCS trajectory form PDG rewritted in terms of A, B and s/Xo and with circular equation. Note: s is particle s.
-    Params_Circular* p = (Params_Circular*)params;
-    double R = p->R;
-    double sC = p->sC;
-    double xC = p->xC;
-    const double Ax = p->Ax;
-    const double Xo = p->Xo;
-    double x  = p->x;
+    double R        = McsCircularParams_get_R(params);
+    double sC       = McsCircularParams_get_sC(params);
+    double xC       = McsCircularParams_get_xC(params);
+    const double Ax = McsCircularParams_get_Ax(params);
+    const double Xo = McsCircularParams_get_Xo(params);
+    double x        = McsCircularParams_get_x(params);
 
     double mcs  = Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
     double circle = pow(x - xC, 2.0) + pow(s - sC, 2.0) - pow(R, 2.0);
@@ -96,13 +95,12 @@ double MultipleCoulomb_Circular(double s, void* params){//CircularSegment sehh, 
 }
 
 /*gpufun*/
-double MultipleCoulombDeriv_Circular(double s, void* params){
+double MultipleCoulombDeriv_Circular(double s, McsCircularParams params){
     // MCS trajectory derivative wrt s. Note: s is particle s.
-    Params_Circular* p = (Params_Circular*)params;
-    double R = p->R;
-    double sC = p->sC;
-    const double Ax = p->Ax;
-    const double Xo = p->Xo;
+    double R        = McsCircularParams_get_R(params);
+    double sC       = McsCircularParams_get_sC(params);
+    const double Ax = McsCircularParams_get_Ax(params);
+    const double Xo = McsCircularParams_get_Xo(params);
 
     double mcs_deriv  = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
     double circle_deriv = 2*(s - sC);
@@ -112,29 +110,29 @@ double MultipleCoulombDeriv_Circular(double s, void* params){
 /*gpufun*/
 void CircularSegment_crossing_mcs(CircularSegment seg, int8_t* n_hit, double* s, double x, const double* Ax, const double Xo){
     // Get segment data
-    double R  = CircularSegment_get_R(seg);
-    double sC = CircularSegment_get_s(seg);
-    double xC = CircularSegment_get_x(seg);
-    double t1 = CircularSegment_get_t1(seg);
-    double t2 = CircularSegment_get_t2(seg);
-    double s_min = sC - R;
-    double s_max = sC + R;
+    // double R  = CircularSegment_get_R(seg);
+    // double sC = CircularSegment_get_s(seg);
+    // double xC = CircularSegment_get_x(seg);
+    // double t1 = CircularSegment_get_t1(seg);
+    // double t2 = CircularSegment_get_t2(seg);
+    // double s_min = sC - R;
+    // double s_max = sC + R;
 
-    // define parameters 
-    Params_Circular params = {Xo, *Ax, R, sC, xC, x};
-    int number_of_roots = 0;
-    double roots[XC_CIRCULARSEG_CROSSINGS];
+    // // define parameters 
+    // Params_Circular params = {Xo, *Ax, R, sC, xC, x};
+    // int number_of_roots = 0;
+    // double roots[XC_CIRCULARSEG_CROSSINGS];
 
-    grid_search_and_newton(MultipleCoulomb_Circular, MultipleCoulombDeriv_Circular, s_min, s_max, roots, XC_CIRCULARSEG_CROSSINGS, &params, &number_of_roots);
-    // now we have the roots, but that doesnt mean anything yet
+    // grid_search_and_newton(MultipleCoulomb_Circular, MultipleCoulombDeriv_Circular, s_min, s_max, roots, XC_CIRCULARSEG_CROSSINGS, &params, &number_of_roots);
+    // // now we have the roots, but that doesnt mean anything yet
 
-    // should this function be about finding the crossings, and THEN checking in jaw if nucl or not, and then updating nhit?
-    // Process the roots
-    for (int i = 0; i < XC_CIRCULARSEG_CROSSINGS; ++i) {
-        if (roots[i] >= sC - R && roots[i] <= sC + R && i < number_of_roots) {
-            s[*n_hit] = roots[i];
-            (*n_hit)++;                                  // is this correct..? 
-        }
-    }
+    // // should this function be about finding the crossings, and THEN checking in jaw if nucl or not, and then updating nhit?
+    // // Process the roots
+    // for (int i = 0; i < XC_CIRCULARSEG_CROSSINGS; ++i) {
+    //     if (roots[i] >= sC - R && roots[i] <= sC + R && i < number_of_roots) {
+    //         s[*n_hit] = roots[i];
+    //         (*n_hit)++;                                  // is this correct..? 
+    //     }
+    // }
 }
 #endif /* XCOLL_COLL_GEOM_CIRCULARSEG_H */
