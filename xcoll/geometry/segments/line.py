@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..trajectories import all_trajectories, DriftTrajectory
+from ..trajectories import all_trajectories, DriftTrajectory, MultipleCoulombTrajectory
 
 
 class LineSegment(xo.Struct):
@@ -21,7 +21,7 @@ class LineSegment(xo.Struct):
     _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
 
-    max_crossings = {DriftTrajectory: 2}
+    max_crossings = {DriftTrajectory: 2, MultipleCoulombTrajectory: 2}
 
     def __repr__(self):
         return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"

@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..trajectories import all_trajectories, DriftTrajectory
+from ..trajectories import all_trajectories, DriftTrajectory, MultipleCoulombTrajectory
 
 
 class CircularSegment(xo.Struct):
@@ -22,7 +22,7 @@ class CircularSegment(xo.Struct):
     _depends_on = all_trajectories
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
-    max_crossings = {DriftTrajectory: 2}
+    max_crossings = {DriftTrajectory: 2, MultipleCoulombTrajectory: 2}
 
     def __init__(self, *args, **kwargs):
         if 't1' in kwargs:
