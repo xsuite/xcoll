@@ -18,7 +18,7 @@ path=xcoll/scattering_routines/geant4
 
 collimasim_path=$path/collimasim
 
-git submodule update --init --recursive
+# git submodule update --init --recursive
 
 echo "Preparing $collimasim_path"
 python -m pip install --user --editable $collimasim_path || (echo; echo; echo "Failed installing collimasim. Make sure BDSIM is installed correctly (see https://www.pp.rhul.ac.uk/bdsim/manual/)"; echo)

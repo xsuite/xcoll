@@ -13,7 +13,7 @@ import xpart as xp
 from .environment import set_geant4_env, unset_geant4_env
 
 
-geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling")
+geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling/v10.4.3/")
 
 
 class Geant4Engine(xo.HybridClass):
@@ -78,7 +78,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        this._old_os_environ = set_geant4_env(geant4_path)
+        # this._old_os_environ = set_geant4_env(geant4_path)
 
         this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
@@ -136,9 +136,10 @@ class Geant4Engine(xo.HybridClass):
     def stop(cls, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
+        del this.g4link
         this.g4link = None
-        unset_geant4_env(this._old_os_environ)
-        del this._old_os_environ
+        # unset_geant4_env(this._old_os_environ)
+        # del this._old_os_environ
 
 
     @classmethod
