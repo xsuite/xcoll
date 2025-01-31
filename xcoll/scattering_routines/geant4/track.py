@@ -31,6 +31,7 @@ def track(coll, particles):
                        + f"xcoll.Geant4Engine.start().\n(id: {id(g4engine)})")
 
     g4link = g4engine.g4link
+    print('hej')
     g4link.clearData() # Clear the old data - bunch particles and hits
 
     print(f"Processing collimator: {coll.geant4_id}")
@@ -47,7 +48,13 @@ def track(coll, particles):
                    particles.pdg_id,particles.particle_id, particles.state,
                    particles.at_element, particles.at_turn]
 
-    g4link.addParticles(coordinates)
+    #g4link.addParticles(coordinates)
+    g4link.addParticles(particles.x, particles.y, particles.px, particles.py,
+                        particles.zeta, delta_temp, particles.chi,
+                        particles.charge_ratio, particles.s,
+                        particles.pdg_id,particles.particle_id, particles.state,
+                        particles.at_element, particles.at_turn)
+
     # The collimators must be defined already in the g4manager
     g4link.selectCollimator(coll.geant4_id)
 
@@ -55,8 +62,15 @@ def track(coll, particles):
 
     # Modifies the primary coordinates in place and returns a list of arrays for the
     # coordinates of the secondary particles.
-    products = g4link.collimateReturn(coordinates)
-
+    #products = g4link.collimateReturn(coordinates)
+    secondaries_x = np.zeros(len(particles.x)*2)
+    products = g4link.collimateReturn(particles.x, particles.y, particles.px, particles.py,
+                        particles.zeta, delta_temp, particles.chi,
+                        particles.charge_ratio, particles.s,
+                        particles.pdg_id,particles.particle_id, particles.state,
+                        particles.at_element, particles.at_turn,
+                                      secondaries_x)
+    print('hej')
     # Force the update using the private member _delta
     # as the update_delta method only updates the delta for active particles
     particles._delta[:len(delta_temp)] = delta_temp

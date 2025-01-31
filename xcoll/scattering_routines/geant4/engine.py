@@ -4,7 +4,7 @@
 # ######################################### #
 
 import numpy as np
-
+from pathlib import Path
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
@@ -71,7 +71,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        this.bdsim_config_file = bdsim_config_file.as_posix()
+        this.bdsim_config_file = Path(bdsim_config_file).as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
@@ -89,16 +89,37 @@ class Geant4Engine(xo.HybridClass):
         print(f"Using seed {this.seed}.")
         this.relative_energy_cut = relative_energy_cut
 
-        try:
-            import collimasim as cs
-        except ImportError as e:
-            raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        else:
-            this.g4link = cs.XtrackInterface(bdsimConfigFile=bdsim_config_file,
-                                             referencePdgId=pdg_id,
-                                             referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                             relativeEnergyCut=this.relative_energy_cut,
-                                             seed=this.seed, batchMode=batch_mode)
+        ### revert after geant4 bug fixed try:
+        ### revert after geant4 bug fixed     import collimasim as cs
+        ### revert after geant4 bug fixed except ImportError as e:
+        ### revert after geant4 bug fixed     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+        ### revert after geant4 bug fixed else:
+        ### revert after geant4 bug fixed     this.g4link = cs.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+        ### revert after geant4 bug fixed                                      referencePdgId=pdg_id,
+        ### revert after geant4 bug fixed                                      referenceEk=Ekin / 1e9, # BDSIM expects GeV
+        ### revert after geant4 bug fixed                                      relativeEnergyCut=this.relative_energy_cut,
+        ### revert after geant4 bug fixed                                      seed=this.seed, batchMode=batch_mode)
+
+        ### remove the following lines after geant4 bug fixed
+        from subprocess import Popen
+        import rpyc
+        import time
+        Popen(['rpyc_classic', '-m', 'oneshot', '-p', str(1234)])  # return handle to stop it??
+        time.sleep(5) # ping to check when open
+        this.conn = rpyc.classic.connect('localhost', port=1234)
+        this.conn.execute('import sys')
+        this.conn.execute('sys.path.append("/home/a20/ドキュメント/work/git/xtrack/dev/xcoll_geant4/xcoll/xcoll/scattering_routines/geant4")')
+        this.conn.execute('import engine_server')
+        this.conn.execute('import collimasim as cs')
+        BDSIMServer = this.conn.namespace['engine_server']
+        this.g4link = BDSIMServer.BDSIMServer()
+        this.g4link.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+                                    referencePdgId=pdg_id,
+                                    referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                    relativeEnergyCut=this.relative_energy_cut,
+                                    seed=this.seed, batchMode=batch_mode) 
+        
+        ### remove down to here after geant4 bug fixed
 
         if line is None:
             if elements is None:
@@ -114,12 +135,22 @@ class Geant4Engine(xo.HybridClass):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
+            ### revert after geant4 bug fixedthis.g4link.addCollimator(el.geant4_id, el.material, el.length,
+            ### revert after geant4 bug fixed                          apertureLeft=jaw_L,
+            ### revert after geant4 bug fixed                          apertureRight=-jaw_R,   # TODO: is this correct?
+            ### revert after geant4 bug fixed                          rotation=np.deg2rad(el.angle),
+            ### revert after geant4 bug fixed                          xOffset=0, yOffset=0, side=side,
+            ### revert after geant4 bug fixed                          jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
+
+            ### remove the following lines after geant4 bug fixed
             this.g4link.addCollimator(el.geant4_id, el.material, el.length,
                                       apertureLeft=jaw_L,
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
                                       xOffset=0, yOffset=0, side=side,
                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
+
+            ### remove down to here after geant4 bug fixed
         print('Geant4Engine initialised')
 
 
