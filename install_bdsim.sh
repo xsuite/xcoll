@@ -53,13 +53,14 @@ cd $rootpath
 
 echo
 echo -e "${YELLOW}downloading bdsim...${RESET}"
-git clone --recursive https://bitbucket.org/jairhul/bdsim
+git clone --recursive https://github.com/bdsim-collaboration/bdsim.git
 
 # edit bdsim/CMakeLists.txt to change CMAKE_CXX_STANDARD to 17
 sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMakeLists.txt
 mkdir -p bdsim/build
-source $rootpath/geant4-v10.4.3/bin/geant4.sh
-cd bdsim/build
+cd $rootpath/geant4-v10.4.3/bin
+source geant4.sh
+cd $rootpath/bdsim/build
 cmake $rootpath/bdsim \
     -DCMAKE_INSTALL_PREFIX=$rootpath/bdsim \
     -DUSE_SIXTRACKLINK=ON \
