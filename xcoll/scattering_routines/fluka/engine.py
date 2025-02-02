@@ -51,6 +51,10 @@ class FlukaEngine(xo.HybridClass):
 
     def __del__(self, *args, **kwargs):
         self.stop(warn=False)
+        try:
+            super().__del__()
+        except AttributeError:
+            pass
 
     def __init__(self, fluka=None, flukaserver=None, verbose=None, testing=False, **kwargs):
         # Apply init variables
@@ -85,6 +89,7 @@ class FlukaEngine(xo.HybridClass):
         if '_xobject' not in kwargs:
             # Initialise defaults
             self._cwd = None
+            self._old_cwd = None
             self._network_nfo = None
             self._log = None
             self._log_fid = None
@@ -152,7 +157,6 @@ class FlukaEngine(xo.HybridClass):
               reference_particle=None, p0c=None, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
                                  verify_insertion_file
-
         cls(**kwargs)
         this = cls.instance
         if this.is_running():
@@ -202,7 +206,7 @@ class FlukaEngine(xo.HybridClass):
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
                     _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
                 ]
-            input_file = create_fluka_input(line=line, elements=elements, names=names,
+            input_file, elements, names = create_fluka_input(line=line, elements=elements, names=names,
                                             prototypes_file=prototypes_file,
                                             include_files=include_files)
 
@@ -212,7 +216,6 @@ class FlukaEngine(xo.HybridClass):
             shutil.copy(input_file, Path.cwd())
             input_file = Path.cwd() / input_file.name
         this._input_file = input_file
-
 
         # Check insertion file
         insertion_file = input_file.parent / "insertion.txt"
@@ -224,9 +227,8 @@ class FlukaEngine(xo.HybridClass):
 
         # Match collimators
         collimator_dict = get_collimators_from_input_file(input_file)
-        this._collimator_dict = collimator_dict
         verify_insertion_file(insertion_file, collimator_dict)
-        this._match_collimators_to_engine(line=line, elements=elements, names=names)
+        this._match_collimators_to_engine(collimator_dict, line=line, elements=elements, names=names)
 
         # Create touches file (relcol.dat)
         # # First line is the number of collimators, second line is the IDs (no newline at end)
@@ -235,8 +237,7 @@ class FlukaEngine(xo.HybridClass):
             with touches.open('w') as fid:
                 fid.write(f'{len(this._collimator_dict.keys())}\n')
                 for _, el in this._collimator_dict.items():
-                    fid.write(f'{el["fluka_id"]} ')
-
+                    fid.write(f'{el.fluka_id} ')
         # Check if touches is a list of collimator names
         elif touches is not None and isinstance(touches, list):
             relcol = Path('relcol.dat').resolve()
@@ -246,8 +247,7 @@ class FlukaEngine(xo.HybridClass):
                     if touch not in this._collimator_dict.keys():
                         raise ValueError(f"Collimator {touch} not in collimator dict!")
                     else:
-                        fid.write(f'{this._collimator_dict[touch]["fluka_id"]} ')
-
+                        fid.write(f'{this._collimator_dict[touch].fluka_id} ')
         # Check if touches is not wrongly set
         elif touches is not None and not touches is False:
             raise NotImplementedError("Only True/False or a list of collimstors is allowed "
@@ -362,11 +362,14 @@ class FlukaEngine(xo.HybridClass):
         # Delete network file
         if this._network_nfo is not None and this._network_nfo.exists():
             this._network_nfo.unlink()
-        if hasattr(this, '_old_cwd') and this._old_cwd is not None:
+        if this._old_cwd is not None:
             os.chdir(this._old_cwd)
-            del this._old_cwd
+            this._old_cwd = None
         if clean:
             this.clean_output_files(clean_all=True)
+        # Unassign the prototypes
+        for name, ee in this._collimator_dict.items():
+            ee.assembly.remove_element(name, force=False)
         this._cwd = None
         this._network_nfo = None
         this._log = None
@@ -443,9 +446,11 @@ class FlukaEngine(xo.HybridClass):
             if input_file is not None:
                 files_to_delete += list(cwd.glob(f'ran{input_file.stem}*'))
                 files_to_delete += list(cwd.glob(f'{input_file.stem}*'))
-                files_to_delete  = [file for file in files_to_delete if Path(file).resolve() != input_file.resolve()]
+                files_to_delete  = [file for file in files_to_delete
+                                    if Path(file).resolve() != input_file.resolve()]
             if clean_all:
-                files_to_delete += [cwd / f for f in ['insertion.txt', 'new_collgaps.dat', 'relcol.dat']]
+                files_to_delete += [cwd / f for f in ['insertion.txt', 'new_collgaps.dat',
+                                                      'prototypes.lbp', 'relcol.dat']]
                 files_to_delete += [this._input_file]
             for f in files_to_delete:
                 if f is not None and f.exists():
@@ -454,7 +459,7 @@ class FlukaEngine(xo.HybridClass):
                 cwd.rmdir()
 
 
-    def _match_collimators_to_engine(self, *, line=None, elements=None, names=None):
+    def _match_collimators_to_engine(self, collimator_dict, *, line=None, elements=None, names=None):
         from ...beam_elements import FlukaCollimator
         if line is None:
             if elements is None or names is None:
@@ -466,39 +471,43 @@ class FlukaEngine(xo.HybridClass):
         if not hasattr(names, '__iter__') or isinstance(names, str):
             names = [names]
         assert len(elements) == len(names)
+        self._collimator_dict = {}
         for el, name in zip(elements, names):
-            if name not in self._collimator_dict:
-                print(f"Warning: FlukaCollimator {name} not in FLUKA input file! "
-                    + f"Maybe it was fully open. Deactivated")
-                el.active = False
+            if name not in collimator_dict:
+                if el.active:
+                    print(f"Warning: FlukaCollimator {name} not in FLUKA input file! "
+                        + f"Maybe it was fully open. Deactivated")
+                    el.active = False
                 continue
-            el.fluka_id = self._collimator_dict[name]['fluka_id']
-            el.length_front = (self._collimator_dict[name]['length'] - el.length)/2
-            el.length_back = (self._collimator_dict[name]['length'] - el.length)/2
-            jaw = self._collimator_dict[name]['jaw']
+            el.fluka_id = collimator_dict[name]['fluka_id']
+            el.length_front = (collimator_dict[name]['length'] - el.length)/2
+            el.length_back = (collimator_dict[name]['length'] - el.length)/2
+            jaw = collimator_dict[name]['jaw']
             if not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]
             if jaw[0] is None and jaw[1] is None:
                 el.jaw = None
-            if jaw[0] is None:
-                if el.side != 'right':
-                    print(f"Warning: {name} is right-sided in the input file, but not "
-                         + "in the line! Overwritten by the former.")
-                    el.side = 'right'
-            elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
-                print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
-                    + f"vs {jaw[0]})! Overwritten.")
-                el.jaw_L = jaw[0]
-            if jaw[1] is None:
-                if el.side != 'left':
-                    print(f"Warning: {name} is left-sided in the input file, but not "
-                         + "in the line! Overwritten by the former.")
-                    el.side = 'left'
-            elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
-                print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
-                    + f"vs {jaw[1]})! Overwritten.")
-                el.jaw_R = jaw[1]
-            # TODO: tilts!!
+            else:
+                if jaw[0] is None:
+                    if el.side != 'right':
+                        print(f"Warning: {name} is right-sided in the input file, but not "
+                            + "in the line! Overwritten by the former.")
+                        el.side = 'right'
+                elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
+                    print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
+                        + f"vs {jaw[0]})! Overwritten.")
+                    el.jaw_L = jaw[0]
+                if jaw[1] is None:
+                    if el.side != 'left':
+                        print(f"Warning: {name} is left-sided in the input file, but not "
+                            + "in the line! Overwritten by the former.")
+                        el.side = 'left'
+                elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
+                    print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
+                        + f"vs {jaw[1]})! Overwritten.")
+                    el.jaw_R = jaw[1]
+            self._collimator_dict[name] = el
+        # TODO: tilts!!
 
 
     @classmethod
