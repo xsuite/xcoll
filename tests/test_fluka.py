@@ -73,10 +73,15 @@ def test_simple_track(num_part):
 
 # @pytest.mark.parametrize('tilt', [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]],
 #                          ids=['no_tilt', 'positive_tilt', 'pos_neg_tilt'])
+@pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcpm', 'lhc_tcsg',
+                                      'lhc_tcsp', 'lhc_tcla', 'lhc_tct', 'lhc_tcl',
+                                      'lhc_tclia', 'lhc_tclib', 'lhc_tcdqaa', 'lhc_tcdqab',
+                                      'lhc_tcdqac', 'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty',
+                                      'hilumi_tctpx', 'hilumi_tclx', 'fcc_tcp', 'fcc_tcsg'])
 @pytest.mark.parametrize('angle', [0, 90, 130.5])
 @pytest.mark.parametrize('jaw', [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]],
                          ids=['symmetric', 'asymmetric', 'negative', 'positive'])
-def test_fluka_jaw(jaw, angle):
+def test_fluka_jaw(jaw, angle, assembly):
     _JAW_ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
     _MOMENTUM_ACCURACY = 1e-12
     num_part = 5000
@@ -89,7 +94,8 @@ def test_fluka_jaw(jaw, angle):
         xc.FlukaEngine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly='lhc_tcla')
+    side = 'left' if 'tcdq' in assembly else 'both'
+    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly, side=side)
     coll_name = 'tcp.c6l7.b1'
     xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
@@ -99,12 +105,20 @@ def test_fluka_jaw(jaw, angle):
     num_part_step = num_part//5
     num_part = 5*num_part_step
     x = np.random.uniform(-0.02, 0.02, num_part_step)
-    jaw_L = min(coll.jaw_LU, coll.jaw_LD)
-    jaw_R = max(coll.jaw_RU, coll.jaw_RD)
-    x = np.concatenate([x, np.random.uniform(jaw_L - jaw_band, jaw_L -_JAW_ACCURACY, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(jaw_L +_JAW_ACCURACY, jaw_L + jaw_band, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(jaw_R - jaw_band, jaw_R -_JAW_ACCURACY, num_part_step)])
-    x = np.concatenate([x, np.random.uniform(jaw_R +_JAW_ACCURACY, jaw_R + jaw_band, num_part_step)])
+    if coll.side != 'both':
+        num_part_step *= 2
+    if coll.side == 'left' or coll.side == 'both':
+        jaw_L = min(coll.jaw_LU, coll.jaw_LD)
+        x = np.concatenate([x, np.random.uniform(jaw_L - jaw_band, jaw_L -_JAW_ACCURACY, num_part_step)])
+        x = np.concatenate([x, np.random.uniform(jaw_L +_JAW_ACCURACY, jaw_L + jaw_band, num_part_step)])
+    else:
+        jaw_L = 1e6
+    if coll.side == 'right' or coll.side == 'both':
+        jaw_R = max(coll.jaw_RU, coll.jaw_RD)
+        x = np.concatenate([x, np.random.uniform(jaw_R - jaw_band, jaw_R -_JAW_ACCURACY, num_part_step)])
+        x = np.concatenate([x, np.random.uniform(jaw_R +_JAW_ACCURACY, jaw_R + jaw_band, num_part_step)])
+    else:
+        jaw_R = -1e6
     y = np.random.uniform(-0.02, 0.02, num_part)
     x_new = np.cos(np.deg2rad(angle))*x - np.sin(np.deg2rad(angle))*y
     y_new = np.sin(np.deg2rad(angle))*x + np.cos(np.deg2rad(angle))*y

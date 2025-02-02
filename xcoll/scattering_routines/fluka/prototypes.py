@@ -5,76 +5,53 @@
 
 from pathlib import Path
 
-from xobjects import HybridClass, String
-
 from .paths import fedb
 
 
-class FlukaPrototype(HybridClass):
-    _xofields = {
-        '_fedb_series': String,
-        '_fedb_tag':    String,
-        '_name':        String,
-    }
+class FlukaPrototype:
+    # This is a registry to keep track of prototypes. If one is already defined,
+    # we do not create a new instance but return the existing one
+    _registry = []
 
-    # We have a registry for FlukaPrototypes and another for FlukaAssemblies
-    _registry = {}
-
-    # A HybridClass needs something to depend on, otherwise the class is added
-    # twice in the cdefs during compilation
-    _depends_on = [String]
-
-    _store_in_to_dict = ['_info', '_extra_commands']
+    # This is a registry to keep track of prototypes that are in use (and for which
+    # we will need to generate protoype code). We have a separate registry for
+    # FlukaPrototypes and another for FlukaAssemblies.
+    _active_registry = {}
 
     def __new__(cls, **kwargs):
-        # If the prototype is already active, return the existing instance
+        # If the prototype is already defined, return the existing instance
         fedb_series = kwargs.get('fedb_series', None)
         fedb_tag = kwargs.get('fedb_tag', None)
         if fedb_series is not None or fedb_tag is not None:
-            _registry = {**FlukaPrototype._registry, **FlukaAssembly._registry}
-            for prototype in _registry.values():
-                if prototype.fedb_series == fedb_series and prototype.fedb_tag == fedb_tag:
-                    if not isinstance(prototype, cls):
-                        raise ValueError(f"{cls.__name__} '{fedb_series}_{fedb_tag}' already exists "
+            for prototype in FlukaPrototype._registry:
+                if prototype.fedb_series.upper() == fedb_series.upper() \
+                and prototype.fedb_tag.upper() == fedb_tag.upper():
+                    if prototype.__class__ != cls:
+                        raise ValueError(f"{cls.__name__} '{fedb_tag}' is already defined "
                                        + f"as a {prototype.__class__.__name__}!")
                     return prototype
-        try:
-            return HybridClass.__new__(cls, **kwargs)
-        except TypeError:
-            return HybridClass.__new__(cls)
+        # Register the new prototype
+        self = object.__new__(cls)
+        FlukaPrototype._registry.append(self)
+        return self
 
-    def __init__(self, **kwargs):
-        to_assign = {}
-        if '_xobject' not in kwargs:
-            kwargs['_fedb_series'] = kwargs.pop('fedb_series', None)
-            kwargs['_fedb_tag'] = kwargs.pop('fedb_tag', None)
-            if kwargs['_fedb_series'] is None and kwargs['_fedb_tag'] is None:
-                kwargs['_fedb_series'] = ''
-                kwargs['_fedb_tag'] = ''
-                kwargs['info'] = None
-                kwargs['extra_commands'] = None
-            elif kwargs['_fedb_series'] is None or kwargs['_fedb_tag'] is None:
-                raise ValueError("Both 'fedb_series' and 'fedb_tag' must be provided.")
-            kwargs['_fedb_series'] = kwargs['_fedb_series'].ljust(8)  # Pre-allocate 8 chars using whitespace
-            kwargs['_fedb_tag'] = kwargs['_fedb_tag'].ljust(8)        # Pre-allocate 8 chars using whitespace
-            kwargs['_name'] = kwargs['_fedb_tag']
-            to_assign['_info'] = kwargs.pop('info', None)
-            to_assign['_extra_commands'] = kwargs.pop('extra_commands', None)
-        super().__init__(**kwargs)
-        if not hasattr(self, '_id'):
-            self._id = None
-        if not hasattr(self, '_is_null'):
-            if self._fedb_series.strip() == '' and self._fedb_tag.strip() == '':
-                self._is_null = True
-            else:
-                self._is_null = False
-        if not hasattr(self, '_type'):
-            self._type = self.__class__.__name__[5:].lower()
-        if not hasattr(self, '_elements'):
-            self._elements = []
-        for key, val in to_assign.items():
-            setattr(self, key, val)
-        # print(self)
+    def __init__(self, fedb_series=None, fedb_tag=None, info=None, extra_commands=None):
+        if fedb_series is None and fedb_tag is None:
+            self._is_null = True
+            info = None
+            extra_commands = None
+        elif fedb_series is None or fedb_tag is None:
+            raise ValueError("Both 'fedb_series' and 'fedb_tag' must be provided.")
+        else:
+            self._is_null = False
+        self._fedb_series = fedb_series
+        self._fedb_tag = fedb_tag
+        self._name = fedb_tag
+        self._info = info
+        self._extra_commands = extra_commands
+        self._id = None
+        self._type = self.__class__.__name__[5:].lower()
+        self._elements = []
 
     def __repr__(self):
         if self._is_null:
@@ -94,33 +71,33 @@ class FlukaPrototype(HybridClass):
             return ''
         return self.__repr__()
 
-    # def to_dict(self):
-    #     if self._is_null:
-    #         return None
-    #     return {
-    #         '__class__': self.__class__.__name__,
-    #         'name': self.name,
-    #         'fedb_series': self.fedb_series,
-    #         'fedb_tag': self.fedb_tag,
-    #         'info': self.info,
-    #         'extra_commands': self.extra_commands,
-    #     }
+    def to_dict(self):
+        if self._is_null:
+            return {'__class__': self.__class__.__name__}
+        return {
+            '__class__': self.__class__.__name__,
+            'name': self.name,
+            'fedb_series': self.fedb_series,
+            'fedb_tag': self.fedb_tag,
+            'info': self.info,
+            'extra_commands': self.extra_commands,
+        }
 
-    # @classmethod
-    # def from_dict(cls, data):
-    #     cls = data.pop('__class__', None)
-    #     if cls == 'FlukaPrototype':
-    #         return FlukaPrototype(**data)
-    #     elif cls == 'FlukaAssembly':
-    #         return FlukaAssembly(**data)
-    #     else:
-    #         raise ValueError(f"Invalid data format for {cls}.")
+    @classmethod
+    def from_dict(cls, data):
+        cls = data.pop('__class__', None)
+        if cls == 'FlukaPrototype':
+            return FlukaPrototype(**data)
+        elif cls == 'FlukaAssembly':
+            return FlukaAssembly(**data)
+        else:
+            raise ValueError(f"Invalid data format for {cls}.")
 
     @property
     def name(self):
         if self._is_null:
             return None
-        return self._name.strip()
+        return self._name
 
     @name.setter
     def name(self, val):
@@ -134,13 +111,13 @@ class FlukaPrototype(HybridClass):
     def fedb_series(self):
         if self._is_null:
             return None
-        return self._fedb_series.strip()
+        return self._fedb_series
 
     @property
     def fedb_tag(self):
         if self._is_null:
             return None
-        return self._fedb_tag.strip()
+        return self._fedb_tag
 
     @property
     def info(self):
@@ -182,7 +159,7 @@ class FlukaPrototype(HybridClass):
             if force:
                 raise ValueError("Cannot add a null element to a prototype!")
             return None
-        _registry = {**FlukaPrototype._registry, **FlukaAssembly._registry}
+        _registry = {**FlukaPrototype._active_registry, **FlukaAssembly._active_registry}
         # Verify that the element is not already assigned to another prototype
         for prototype in _registry.values():
             if prototype is self:
@@ -195,24 +172,25 @@ class FlukaPrototype(HybridClass):
             if not self.exists():
                 raise ValueError(f"{self._type.capitalize()} '{self.name}' "
                                + f"does not exist in the FEDB!")
-            if self.name in _registry:
-                # Rename the prototype if the name is already in use
+            # Rename the prototype if the name is already in use
+            existing_names = [key.upper() for key in _registry.keys()]
+            if self.name.upper() in existing_names:
                 i = 0
                 while True:
                     new_name = f"{self.name}{i}"
-                    if new_name not in _registry:
+                    if new_name.upper() not in existing_names:
                         print(f"Warning: {self._type.capitalize()} name {self.name} "
                             + f"already in use. Renaming to '{new_name}'.")
                         self.name = new_name
                         break
                     i += 1
             self._id = self._get_next_id()
-            self._registry[self.name] = self
+            self._active_registry[self.name] = self
         # Add the element to the list of elements that use this prototype
         if element not in self._elements:
             self._elements.append(element)
 
-    def remove_element(self, element):
+    def remove_element(self, element, force=True):
         if self._is_null:
             if force:
                 raise ValueError("Cannot remove element from a null prototype!")
@@ -226,12 +204,12 @@ class FlukaPrototype(HybridClass):
             self._elements.remove(element)
         if len(self._elements) == 0:
             # Remove the prototype from the registry of active prototypes
-            self._registry.pop(prototype.name)
+            self._active_registry.pop(self.name)
             # Update the IDs of the remaining prototypes and assemblies
-            for this_prototype in FlukaPrototype._registry.values():
+            for this_prototype in FlukaPrototype._active_registry.values():
                 if this_prototype._id > self._id:
                     this_prototype._id -= 1
-            for this_prototype in FlukaAssembly._registry.values():
+            for this_prototype in FlukaAssembly._active_registry.values():
                 if this_prototype._id > self._id:
                     this_prototype._id -= 1
             self._id = None
@@ -296,22 +274,22 @@ class FlukaPrototype(HybridClass):
     @classmethod
     def _get_next_id(cls):
         # The IDs should be unique over all prototypes and assemblies
-        _registry = {**FlukaPrototype._registry, **FlukaAssembly._registry}
-        if len(_registry) == 0:
+        _active_registry = {**FlukaPrototype._active_registry, **FlukaAssembly._active_registry}
+        if len(_active_registry) == 0:
             return 0
         else:
-            return max({prototype._id for prototype in _registry.values()}) + 1
+            return max({prototype._id for prototype in _active_registry.values()}) + 1
 
     @classmethod
     def make_prototypes(cls, save=True, path=None):
         prototypes = ["#...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8"]
         # First the prototypes
-        for prototype in FlukaPrototype._registry.values():
+        for prototype in FlukaPrototype._active_registry.values():
             if prototype.active:
                 assert isinstance(prototype, FlukaPrototype)
                 prototypes.append(prototype.generate_code())
         # Then the assemblies
-        for prototype in FlukaAssembly._registry.values():
+        for prototype in FlukaAssembly._active_registry.values():
             if prototype.active:
                 assert isinstance(prototype, FlukaAssembly)
                 prototypes.append(prototype.generate_code())
@@ -326,54 +304,59 @@ class FlukaPrototype(HybridClass):
 
 class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies
-    _registry = {}
+    _active_registry = {}
 
     def exists(self):
         return (fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp").exists()
 
-# import xcoll as xc
-# xc.fluka_assemblies['lhc_tcp'].add_element('TCP.C6L7.B1')
-# xc.fluka_assemblies['lhc_tcp'].add_element('TCP.D6L7.B1')
-# xc.fluka_assemblies['lhc_tcspm'].add_element('TCSPM.E5R7.B1')
-# xc.fluka_assemblies['lhc_tcdqaa'].add_element('TCDQ.A5R7.B1')
-# xc.fluka_assemblies['lhc_tcl'].add_element('TCL.4R1.B1')
-# xc.fluka_assemblies['lhc_tcl1'].add_element('TCL1.4R1.B1')
-# xc.fluka_assemblies['lhc_tcdqab'].add_element('TCDQ.B5R7.B1')
-# print(xc.FlukaAssembly.make_prototypes(save=False))
 
 assemblies = {
     # SPS assemblies
-    'sps_tcsm': FlukaAssembly(fedb_series='sps', fedb_tag='TCSM',    info="test collimator (hollow jaw)"),
+    'sps_tcsm':      FlukaAssembly(fedb_series='sps',    fedb_tag='TCSM',     info="test collimator (hollow jaw)"),
     # LHC assemblies
-    'lhc_tcp':    FlukaAssembly(fedb_series='lhc', fedb_tag='TCP',     info="primary with jaw in CFC"),
-    'lhc_tcsg':   FlukaAssembly(fedb_series='lhc', fedb_tag='TCSG',    info="secondary with jaw in CFC"),
-    'lhc_tcspm':  FlukaAssembly(fedb_series='lhc', fedb_tag='TCSPMC',  info="secondary with jaw in MoGr coated (5um)"),
-    'lhc_tcsp':   FlukaAssembly(fedb_series='lhc', fedb_tag='TCSP',    info="secondary with jaw in CFC and in-jaw BPMs (IR6)"),
-    'lhc_tcla':   FlukaAssembly(fedb_series='lhc', fedb_tag='TCLA',    info="shower absorber"),
-    'lhc_tct':    FlukaAssembly(fedb_series='lhc', fedb_tag='TCT',     info="tertiary"),
-    'lhc_tcl':    FlukaAssembly(fedb_series='lhc', fedb_tag='TCL',     info="physics debris absorber"),
-    # 'lhc_tcl1':    FlukaAssembly(fedb_series='lhc1', fedb_tag='TCL',     info="physics debris absorber"),
-    'lhc_tdi':    FlukaAssembly(fedb_series='lhc', fedb_tag='TDI',     info="injection protection"),
-    'lhc_tclia':  FlukaAssembly(fedb_series='lhc', fedb_tag='TCLIA',   info="injection protection"),
-    'lhc_tclib':  FlukaAssembly(fedb_series='lhc', fedb_tag='TCLIB',   info="injection protection"),
-    'lhc_tcdqaa': FlukaAssembly(fedb_series='lhc', fedb_tag='TCDQnAA', info="dump protection"),
-    # 'lhc_tcdqaa': FlukaPrototype(fedb_series='lhc', fedb_tag='TCDQnAA', info="dump protection"),
-    'lhc_tcdqab': FlukaAssembly(fedb_series='lhc', fedb_tag='TCDQnAB', info="dump protection"),
-    'lhc_tcdqac': FlukaAssembly(fedb_series='lhc', fedb_tag='TCDQnAC', info="dump protection"),
+    'lhc_tcp':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCP',      info="primary with jaw in CFC"),
+    'lhc_tcpm':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCPM',     info="primary with jaw in MoGr coated ??"),
+    'lhc_tcsg':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSG',     info="secondary with jaw in CFC"),
+    'lhc_tcsp':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSP',     info="secondary with jaw in CFC and in-jaw BPMs (IR6)"),
+    'lhc_tcla':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLA',     info="shower absorber"),
+    'lhc_tct':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCT',      info="tertiary"),
+    'lhc_tcl':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCL',      info="physics debris absorber"),
+    'lhc_tclia':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIA',    info="injection protection"),
+    'lhc_tclib':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIB',    info="injection protection"),
+    'lhc_tcdqaa':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAA',  info="dump protection"),
+    'lhc_tcdqab':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAB',  info="dump protection"),
+    'lhc_tcdqac':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAC',  info="dump protection"),
     # HL-LHC assemblies
-    'hilumi_tcppm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCPPM',    info="primary with jaw in MoGr coated"),
-    'hilumi_tcspm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated (6um)"),
-    'hilumi_tcspmp': FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPMPRT', info="secondary TCSPM prototype (three stripes)"),
-    'hilumi_tcsp':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPGRC',  info="secondary with jaw in CFC and in-jaw BPMs (IR6), with Cu coating layer (3um)"),
     'hilumi_tcld':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLD',     info="shower absorber"),
-    'hilumi_tdisp2': FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP2',   info="injection protection"),
-    'hilumi_tdisp8': FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP8',   info="injection protection"),
     'hilumi_tctx':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTx',     info="tertiary"),
     'hilumi_tcty':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTy',     info="tertiary"),
+    'hilumi_tctpx':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPX',    info="alternative tertiary"),
     'hilumi_tclx':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLX',     info="physics debris absorber"),
     # FCC assemblies
-    'fcc_tcp':  FlukaAssembly(fedb_series='fcc', fedb_tag='TCP',  info="primary"),
-    'fcc_tcsg': FlukaAssembly(fedb_series='fcc', fedb_tag='TCSG', info="secondary"),
-    'fcc_tcl':  FlukaAssembly(fedb_series='fcc', fedb_tag='TCL',  info="absorber"),
-    'fcc_tcdq': FlukaAssembly(fedb_series='fcc', fedb_tag='TCDQ', info="dump protection"),
+    'fcc_tcp':       FlukaAssembly(fedb_series='fcc',    fedb_tag='TCP',      info="primary"),
+    'fcc_tcsg':      FlukaAssembly(fedb_series='fcc',    fedb_tag='TCSG',     info="secondary"),
+}
+
+# The following assemblies give wrong results with the jaw test:
+assemblies_wrong_jaw = {
+    'lhc_tcspm':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated"),
+    'lhc_tcspmc':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMC',   info="secondary with jaw in MoGr coated (5um)"),
+    'lhc_tcspmp':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMP',   info="secondary with jaw in MoGr coated (prototype ??)"),
+    'lhc_tdi':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      info="injection protection"),
+    'lhc_tcdqaa_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAA',   info="dump protection"),
+    'lhc_tcdqab_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAB',   info="dump protection"),
+    'lhc_tcdqac_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAC',   info="dump protection"),
+    'hilumi_tcppm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCPPM',    info="primary with jaw in MoGr coated"),
+    'hilumi_tcspm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated (6um)"),
+    'hilumi_tcsg':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPGRC',  info="secondary with jaw in CFC with Cu coating layer (3um)"),
+    'hilumi_tctpxv': FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   info="alternative tertiary"),
+    'fcc_tcdq':      FlukaAssembly(fedb_series='fcc',    fedb_tag='TCDQ',     info="dump protection"),
+}
+
+# The following assemblies have errors in the prototype code:
+assemblies_invalid_prototype = {
+    'hilumi_tcspmp': FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPMPRT', info="secondary TCSPM prototype (three stripes)"),
+    'hilumi_tdisp2': FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP2',   info="injection protection"),
+    'hilumi_tdisp8': FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP8',   info="injection protection"),
+    'fcc_tcl':       FlukaAssembly(fedb_series='fcc',    fedb_tag='TCL',      info="absorber"),
 }

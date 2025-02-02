@@ -10,6 +10,7 @@ import xtrack as xt
 
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine, assemblies, FlukaPrototype
+from ..scattering_routines.fluka.prototypes import assemblies_wrong_jaw
 
 
 class FlukaCollimator(BaseCollimator):
@@ -92,6 +93,9 @@ class FlukaCollimator(BaseCollimator):
         if isinstance(assembly, str):
             if assembly in assemblies:
                 assembly = assemblies[assembly]
+            elif assembly in assemblies_wrong_jaw:
+                print(f"Warning: Assembly '{assembly}' might be wrong.")
+                assembly = assemblies_wrong_jaw[assembly]
             else:
                 raise ValueError(f"Assembly (or prototype) '{assembly}' not present "
                                + f"in internal database. Please define it yourself.")

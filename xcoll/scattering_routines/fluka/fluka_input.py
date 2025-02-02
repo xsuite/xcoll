@@ -62,6 +62,9 @@ def _coll_dict(elements, names, dump=False):
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
             raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported!")
 
+        if nsig is None:
+            nsig = 1
+
         collimator_dict[name] = {
             'name': name,
             'betx': 1,
