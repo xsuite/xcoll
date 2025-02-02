@@ -195,9 +195,6 @@ class FlukaEngine(xo.HybridClass):
 
         # Create input file
         if input_file is None:
-            if prototypes_file is None:
-                print("Using default prototypes file.")
-                prototypes_file = _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'prototypes.lbp'
             if include_files is None:
                 print("Using default include files.")
                 include_files = [

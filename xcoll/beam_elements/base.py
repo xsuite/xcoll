@@ -56,7 +56,7 @@ class BaseBlock(xt.BeamElement):
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['record_impacts', 'record_exits', 'record_scatterings']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
 
     _depends_on = [InvalidXcoll]
 
@@ -70,9 +70,27 @@ class BaseBlock(xt.BeamElement):
         return instance
 
     def __init__(self, **kwargs):
+        to_assign = {}
         if '_xobject' not in kwargs:
+            # Set name (useful for bookkeeping like in FLUKA)
+            to_assign['name'] = kwargs.pop('name', None)
+            # Set active
             kwargs.setdefault('active', True)
         super().__init__(**kwargs)
+        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
+        # We also have to manually initialise them for xobject generation
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+
+    @property
+    def name(self):
+        if not hasattr(self, '_name'):
+            self._name = None
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):

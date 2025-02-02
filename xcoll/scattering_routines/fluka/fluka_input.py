@@ -15,6 +15,7 @@ from ...beam_elements import FlukaCollimator
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
 from .paths import fedb, linebuilder, flukafile_resolve
+from .prototypes import FlukaAssembly
 
 
 _header_start = "*  XCOLL START  **"
@@ -83,6 +84,7 @@ def _coll_dict(elements, names, dump=False):
                 json.dump(collimator_dict, fp, indent=4)
     return collimator_dict
 
+
 def _fluka_builder(elements, names):
     # Save system state
     old_sys_path = sys.path.copy()
@@ -142,8 +144,9 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         fp.write("\n".join(header) + "\n*\n" + data)
 
 
-def create_fluka_input(prototypes_file, include_files, *, line=None, elements=None, names=None,
-                       filename=None, cwd=None):
+def create_fluka_input(include_files, *, line=None, elements=None, names=None,
+                       prototypes_file=None, filename=None, cwd=None):
+    # Checks
     if elements is None or names is None:
         if line is None:
             raise ValueError("Need to provide either `line` or `elements` and `names`.")
@@ -157,9 +160,7 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     assert len(elements) == len(names)
     if len(elements) == 0:
         raise ValueError('No FlukaCollimator elements found in line!')
-    prototypes_file = Path(prototypes_file).resolve()
-    if not prototypes_file.exists():
-        raise FileNotFoundError(f"Prototypes file not found: {prototypes_file}.")
+    # Includes
     include_files = [Path(ff).resolve() for ff in include_files]
     for ff in include_files:
         if not ff.exists():
@@ -172,7 +173,6 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in include_files]:
             include_files.append(ff)
-
     # Change to the directory of the input file
     if filename is not None:
         filename = Path(filename).expanduser().resolve().with_suffix('.inp')
@@ -183,9 +183,20 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
     cwd.mkdir(parents=True, exist_ok=True)
     prev_cwd = Path.cwd()
     os.chdir(cwd)
-    shutil.copy(prototypes_file, Path.cwd() / 'prototypes.lbp')
+    # Prototypes
+    if prototypes_file is None:
+        for name, el in zip(names, elements):
+            el.assembly.add_element(name)
+        FlukaAssembly.make_prototypes()
+    else:
+        prototypes_file = Path(prototypes_file).resolve()
+        shutil.copy(prototypes_file, Path.cwd() / 'prototypes.lbp')
     for ff in include_files:
         shutil.copy(ff, Path.cwd() / ff.name)
+    for name, el in zip(names, elements):
+        if not el.assembly.in_file(prototypes_file):
+            raise ValueError(f"Prototype {el.assembly.name} for {name} not found "
+                           + f"in prototypes file!")
     # Call FLUKA_builder
     input_file, collimator_dict = _fluka_builder(elements, names)
     input_file = Path(input_file).resolve()
@@ -208,9 +219,10 @@ def create_fluka_input(prototypes_file, include_files, *, line=None, elements=No
         collimator_dict[name]['angle'] = ee.angle
         collimator_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
         collimator_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
-    # Delete prototypes and include files to avoid confusion
-    if prototypes_file.parent != Path.cwd():
+    # If a prototypes file was provided (instead of generated), delete it
+    if prototypes_file is not None and prototypes_file.parent != Path.cwd():
         (Path.cwd() / 'prototypes.lbp').unlink()
+    # Delete include files
     for ff in include_files:
         if ff.parent != Path.cwd():
             (Path.cwd() / ff.name).unlink()

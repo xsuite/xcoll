@@ -20,7 +20,7 @@ from .scattering_routines.fluka import FlukaEngine
 
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
-    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
+    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None, 'assembly': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
     for f, val in fields.items():
@@ -548,6 +548,7 @@ class CollimatorDatabase:
             print(f"Installing {name:20} as {cls.__name__}")
         prop_dict = {kk: vv for kk, vv in self[name].items() \
                      if kk in cls._xofields or kk in cls._store_in_to_dict}
+        prop_dict['name'] = name
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
@@ -584,6 +585,8 @@ class CollimatorDatabase:
             FlukaEngine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
+            if 'assembly' not in self[name]:
+                raise ValueError(f"FlukaCollimator {name} needs an assembly!")
             if self[name]['bending_radius'] is None:
                 self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
             else:

@@ -9,7 +9,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator
-from ..scattering_routines.fluka import track, FlukaEngine
+from ..scattering_routines.fluka import track, FlukaEngine, assemblies, FlukaPrototype
 
 
 class FlukaCollimator(BaseCollimator):
@@ -18,7 +18,8 @@ class FlukaCollimator(BaseCollimator):
         'length_front':          xo.Float64,
         'length_back':           xo.Float64,
         '_tracking':             xo.Int8,
-        '_acc_ionisation_loss':  xo.Float64   # TODO: this is not very robust, for when a track is done with new particles etc
+        '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
+        '_assembly':             FlukaPrototype
     }
 
     isthick = True
@@ -28,7 +29,7 @@ class FlukaCollimator(BaseCollimator):
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
-    _store_in_to_dict      = BaseCollimator._store_in_to_dict
+    _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'assembly' ]
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, FlukaEngine]
@@ -42,12 +43,50 @@ class FlukaCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         with self.__class__._in_constructor():
+            to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
+                to_assign['assembly'] = kwargs.pop('assembly', None)
             super().__init__(**kwargs)
+            for key, val in to_assign.items():
+                setattr(self, key, val)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
+
+    @property
+    def name(self):
+        return BaseCollimator.name.fget(self)
+
+    @name.setter
+    def name(self, val):
+        self.assembly.remove_element(self.name, force=False)
+        BaseCollimator.name.fset(self, val)
+        self.assembly.add_element(self.name, force=False)
+
+    @property
+    def assembly(self):
+        if not hasattr(self, '_assembly'):
+            self._assembly = FlukaPrototype()
+        return self._assembly
+
+    @assembly.setter
+    def assembly(self, assembly):
+        if assembly is None:
+            assembly = FlukaPrototype()
+        if isinstance(assembly, str):
+            if assembly in assemblies:
+                assembly = assemblies[assembly]
+            else:
+                raise ValueError(f"Assembly (or prototype) '{assembly}' not present "
+                               + f"in internal database. Please define it yourself.")
+        elif not isinstance(assembly, FlukaPrototype):
+            raise ValueError('Invalid assembly or prototype!')
+        if self.name is not None:
+            # Remove the element from the old assembly and add it to the new one
+            self.assembly.remove_element(self.name, force=False)
+            assembly.add_element(self.name, force=False)
+        self._assembly = assembly
 
     def track(self, part):
         track(self, part)
