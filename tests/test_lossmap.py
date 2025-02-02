@@ -26,7 +26,7 @@ path = Path(__file__).parent / 'data'
                             [1, 'V', 3500, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
+def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
@@ -50,7 +50,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
 
 
 @retry()
-def test_run_lossmap_fluka():
+def test_lossmap_fluka():
     # If a previous test failed, stop the server manually
     if xc.FlukaEngine.is_running():
         xc.FlukaEngine.stop(clean=True)
@@ -59,8 +59,6 @@ def test_run_lossmap_fluka():
     beam = 2
     plane = 'H'
 
-    # line = xt.Line.from_json(path / 'machines' / f'lhc_run3_b{beam}.json')
-    # colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb' / f'lhc_run3_fluka.yaml', beam=beam)
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_fluka_collimators(line=line)

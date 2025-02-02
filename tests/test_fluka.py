@@ -26,7 +26,7 @@ def test_simple_track(num_part):
         xc.FlukaEngine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=0.6, jaw=0.001)
+    coll = xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
     coll_name = 'tcp.c6l7.b1'
     xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
 
@@ -89,7 +89,7 @@ def test_fluka_jaw(jaw, angle):
         xc.FlukaEngine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt)
+    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly='lhc_tcla')
     coll_name = 'tcp.c6l7.b1'
     xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)

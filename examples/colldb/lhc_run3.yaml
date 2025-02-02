@@ -38,7 +38,7 @@ families:
   - &CRY7    { <<: *ALL,  gap: null,  stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip, active: false }
   # Injection protection
   - &TCLI    { <<: *ALL,  gap: null,  stage: tertiary,   material: C,     length: 1,     angle: 90 }
-  - &TDI     { <<: *ALL,  gap: null,  stage: tertiary,   material: CU,    length: 1.565, angle: 90 }
+  - &TDI     { <<: *ALL,  gap: null,  stage: tertiary,   material: CU,    length: 1.565, assembly: 'lhc_tdi', angle: 90 }
   # Dump protection
   - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: C,     length: 3,     angle: 0,  side: left }
   - &TCSP    { <<: *ALL,  gap: 7.3,   stage: secondary,  material: C,     length: 1,     assembly: 'lhc_tcsp', angle: 0 }
@@ -64,11 +64,11 @@ collimators:
     tcl.6r1.b1:         { <<: *TCL6                   }
     tctph.4l2.b1:       { <<: *TCT2,   angle:   0     }
     tctpv.4l2.b1:       { <<: *TCT2,   angle:  90     }
-    tdisa.a4l2.b1:      { <<: *TDI,    assembly: 'hilumi_tdisp2' }
-    tdisb.a4l2.b1:      { <<: *TDI,    assembly: 'hilumi_tdisp2' }
-    tdisc.a4l2.b1:      { <<: *TDI,    assembly: 'hilumi_tdisp2' }
-    tclia.4r2:          { <<: *TCLI,   assembly: 'lhc_tclia'     }
-    tclib.6r2.b1:       { <<: *TCLI,   assembly: 'lhc_tclib'     }
+    tdisa.a4l2.b1:      { <<: *TDI                    }
+    tdisb.a4l2.b1:      { <<: *TDI                    }
+    tdisc.a4l2.b1:      { <<: *TDI                    }
+    tclia.4r2:          { <<: *TCLI,   assembly: 'lhc_tclia' }
+    tclib.6r2.b1:       { <<: *TCLI,   assembly: 'lhc_tclib' }
     tcld.a11r2.b1:      { <<: *TCLD                   }
     tcp.6l3.b1:         { <<: *TCP3,   angle:   0     }
     tcsg.5l3.b1:        { <<: *TCSG3,  angle:   0     }
@@ -123,11 +123,11 @@ collimators:
     tcl.6l1.b2:         { <<: *TCL6                   }
     tctph.4r8.b2:       { <<: *TCT8,   angle:   0     }
     tctpv.4r8.b2:       { <<: *TCT8,   angle:  90     }
-    tdisa.a4r8.b2:      { <<: *TDI,    assembly: 'hilumi_tdisp8' }
-    tdisb.a4r8.b2:      { <<: *TDI,    assembly: 'hilumi_tdisp8' }
-    tdisc.a4r8.b2:      { <<: *TDI,    assembly: 'hilumi_tdisp8' }
-    tclia.4l8:          { <<: *TCLI,   assembly: 'lhc_tclia'     }
-    tclib.6l8.b2:       { <<: *TCLI,   assembly: 'lhc_tclib'     }
+    tdisa.a4r8.b2:      { <<: *TDI                    }
+    tdisb.a4r8.b2:      { <<: *TDI                    }
+    tdisc.a4r8.b2:      { <<: *TDI                    }
+    tclia.4l8:          { <<: *TCLI,   assembly: 'lhc_tclia' }
+    tclib.6l8.b2:       { <<: *TCLI,   assembly: 'lhc_tclib' }
     tcp.d6r7.b2:        { <<: *TCP7,   angle:  90,    material: MoGR,  assembly: 'hilumi_tcppm' }
     tcp.c6r7.b2:        { <<: *TCP7,   angle:   0,    material: MoGR,  assembly: 'hilumi_tcppm' }
     tcp.b6r7.b2:        { <<: *TCP7,   angle: 127.5   }
