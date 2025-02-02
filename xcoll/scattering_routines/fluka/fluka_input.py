@@ -24,7 +24,6 @@ _header_stop  = "*  XCOLL END  **"
 
 # TODO check that prototype is valid and its sides
 def _coll_dict(elements, names, dump=False):
-
     collimator_dict = {}
     for ee, name in zip(elements, names):
         # nsig = OPEN_GAP
@@ -85,11 +84,8 @@ def _coll_dict(elements, names, dump=False):
     return collimator_dict
 
 
-def _fluka_builder(elements, names):
-    # Save system state
-    old_sys_path = sys.path.copy()
-    old_os_env = os.environ.copy()
-
+def _brute_force_environment():
+    # Add the paths to the environment
     this_fedb = flukafile_resolve(fedb)
     if this_fedb is not None:
         os.environ['FEDB_PATH'] = this_fedb.as_posix()
@@ -100,8 +96,38 @@ def _fluka_builder(elements, names):
         os.environ['LB_PATH'] = this_linebuilder.as_posix()
     else:
         raise ValueError(f"Could not find linebuilder folder {linebuilder}!")
-
+    # Brute-force the system paths
+    sys.path.append(fedb.as_posix())
+    sys.path.append((fedb / "tools").as_posix())
+    sys.path.append((fedb / "tools" / "tools").as_posix())
+    sys.path.append((fedb / "tools" / "materials" / "cables").as_posix())
     sys.path.append((linebuilder / "src").as_posix())
+    sys.path.append((linebuilder / "lib").as_posix())
+    # Force-resolve all dependent files
+    flukafile_resolve(fedb / "structure.py")
+    flukafile_resolve(fedb / "tools")
+    for ff in (fedb / "tools").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(fedb / "tools" / "tools")
+    for ff in (fedb / "tools" / "tools").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(fedb / "tools" / "materials" / "cables")
+    for ff in (fedb / "tools" / "materials" / "cables").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(linebuilder / "lib")
+    for ff in (linebuilder / "lib").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(linebuilder / "additionals" / "generic_frame.fluka")
+    flukafile_resolve(linebuilder / "src")
+    for ff in (linebuilder / "src").glob("*.py"):
+        flukafile_resolve(linebuilder / "src" / ff)
+
+
+def _fluka_builder(elements, names):
+    # Save system state
+    old_sys_path = sys.path.copy()
+    old_os_env = os.environ.copy()
+    _brute_force_environment()
     file_path = linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
@@ -109,7 +135,7 @@ def _fluka_builder(elements, names):
         except ImportError as e:
             raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
     else:
-        raise EnvironmentError("FLUKA_builder.py not found at:", file_path)
+        raise EnvironmentError(f"FLUKA_builder.py not found at: {file_path.as_posix()}")
 
     collimator_dict = _coll_dict(elements, names)
     collimatorList = fb.CollimatorList()
@@ -144,6 +170,22 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         fp.write("\n".join(header) + "\n*\n" + data)
 
 
+def _select_active_collimators(elements, names):
+    this_names = []
+    this_elements = []
+    for name, ee in zip(names, elements):
+        if (ee.jaw_L is None and ee.jaw_R is None):
+            print(f"Collimator {name} is fully open. Deactivated.")
+            ee.active = False
+            ee.assembly.remove_element(name)
+        elif not ee.active:
+            ee.assembly.remove_element(name)
+        else:
+            this_names.append(name)
+            this_elements.append(ee)
+    return this_elements, this_names
+
+
 def create_fluka_input(include_files, *, line=None, elements=None, names=None,
                        prototypes_file=None, filename=None, cwd=None):
     # Checks
@@ -152,14 +194,16 @@ def create_fluka_input(include_files, *, line=None, elements=None, names=None,
             raise ValueError("Need to provide either `line` or `elements` and `names`.")
         elements, names = line.get_elements_of_type(FlukaCollimator)
     elif line is not None:
-        print("Warning: `line` is provided. `elements` and `names` will be used.")
+        print("Warning: `line`, `elements`, and `names` are provided. Only the "
+            + "latter two will be used.")
     if not hasattr(elements, '__iter__') or isinstance(elements, str):
         elements = [elements]
     if not hasattr(names, '__iter__') or isinstance(names, str):
         names = [names]
     assert len(elements) == len(names)
+    elements, names = _select_active_collimators(elements, names)
     if len(elements) == 0:
-        raise ValueError('No FlukaCollimator elements found in line!')
+        raise ValueError('No active FlukaCollimator elements found in line!')
     # Includes
     include_files = [Path(ff).resolve() for ff in include_files]
     for ff in include_files:
@@ -237,7 +281,7 @@ def create_fluka_input(include_files, *, line=None, elements=None, names=None,
     assert input_file.exists()
     assert insertion_file.exists()
     print(f"Created FLUKA input file {input_file}.")
-    return input_file
+    return input_file, elements, names
 
 
 def get_collimators_from_input_file(input_file):

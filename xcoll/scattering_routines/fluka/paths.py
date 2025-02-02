@@ -18,16 +18,14 @@ fedb = (_fluka_coupling / 'fedb_coupling').resolve()
 
 
 # Trying to find fluka and flukaserver executables
-# Wait for 3 minutes if they are not found to allow EOS to sync
-def flukafile_resolve(fluka_file, timeout=180):
-        start_time = time.time()
-        fluka_file = FsPath(fluka_file).resolve()
-
-        while time.time() - start_time < timeout:
-            if hasattr(fluka_file, 'getfid'):
-                fluka_file.getfid()
-            if fluka_file.exists():
-                return fluka_file
-            time.sleep(1)
-
-        return None
+# Wait for 1 minute if they are not found to allow EOS to sync
+def flukafile_resolve(fluka_file, timeout=60):
+    start_time = time.time()
+    fluka_file = FsPath(fluka_file).resolve()
+    while time.time() - start_time < timeout:
+        if hasattr(fluka_file, 'getfid'):
+            fluka_file.getfid()
+        if fluka_file.exists():
+            return fluka_file
+        time.sleep(1)
+    return None
