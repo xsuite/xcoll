@@ -18,6 +18,7 @@ class BlackAbsorber(BaseCollimator):
     isthick = True
     allow_track = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
     _depends_on = [BaseCollimator, XcollGeometry]

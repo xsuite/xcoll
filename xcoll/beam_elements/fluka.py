@@ -26,6 +26,7 @@ class FlukaCollimator(BaseCollimator):
     allow_track = True
     iscollective = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -54,15 +55,29 @@ class FlukaCollimator(BaseCollimator):
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
+    def __del__(self):
+        self.assembly.remove_element(self.name, force=False)
+        try:
+            super().__del__()
+        except AttributeError:
+            pass
+
+    def copy(self, **kwargs):
+        obj = super().copy(**kwargs)
+        obj.assembly = self.assembly
+        return obj
+
     @property
     def name(self):
         return BaseCollimator.name.fget(self)
 
     @name.setter
     def name(self, val):
-        self.assembly.remove_element(self.name, force=False)
+        if self.name is not None:
+            self.assembly.remove_element(self.name, force=False)
         BaseCollimator.name.fset(self, val)
-        self.assembly.add_element(self.name, force=False)
+        if self.name is not None:
+            self.assembly.add_element(self.name, force=False)
 
     @property
     def assembly(self):

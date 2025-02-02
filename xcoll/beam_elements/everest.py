@@ -32,6 +32,7 @@ class EverestBlock(BaseBlock):
     needs_rng = True
     allow_track = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = ['_material']

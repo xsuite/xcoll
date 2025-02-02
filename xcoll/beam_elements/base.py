@@ -53,6 +53,7 @@ class BaseBlock(xt.BeamElement):
     isthick = True
     allow_track = False
     behaves_like_drift = True
+    allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
@@ -81,6 +82,11 @@ class BaseBlock(xt.BeamElement):
         # We also have to manually initialise them for xobject generation
         for key, val in to_assign.items():
             setattr(self, key, val)
+
+    def copy(self, **kwargs):
+        obj = super().copy(**kwargs)
+        obj.name = self.name
+        return obj
 
     @property
     def name(self):
@@ -182,11 +188,14 @@ class BaseCollimator(BaseBlock):
     isthick = BaseBlock.isthick
     allow_track = BaseBlock.allow_track
     behaves_like_drift = BaseBlock.behaves_like_drift
+    allow_rot_and_shift = BaseBlock.allow_rot_and_shift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = True
 
-    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
+                         *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
+                         'side', 'align', 'emittance']
 
     _depends_on = [BaseBlock]
 
@@ -562,7 +571,7 @@ class BaseCollimator(BaseBlock):
             self.tilt_L = val[0]
             self.tilt_R = val[1]
         else:
-            raise ValueError
+            raise ValueError(f"The attribute `tilt` should be of the form LR or [L, R] ")
 
     @property
     def tilt_L(self):
@@ -1065,6 +1074,7 @@ class BaseCrystal(BaseBlock):
     isthick = BaseBlock.isthick
     allow_track = BaseBlock.allow_track
     behaves_like_drift = BaseBlock.behaves_like_drift
+    allow_rot_and_shift = BaseBlock.allow_rot_and_shift
     skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
     allow_double_sided = False
 
