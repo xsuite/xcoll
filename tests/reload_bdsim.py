@@ -70,6 +70,8 @@ xc.Geant4Engine.start(elements=coll, seed=1993, particle_ref='proton', p0c=7.e12
 coll.track(part)
 mask_hit = np.isin(part.parent_particle_id, hit_ids)
 mask_not_hit = np.isin(part.parent_particle_id, not_hit_ids)
+print(part.x[mask_hit])
+print(part.px[mask_hit])
 # Particles that are supposed to not have hit the collimator, but have a kick or are dead, are considered faulty
 #assert not np.any(abs(part.px[mask_not_hit]) > _ACCURACY)
 #assert not np.any(abs(part.py[mask_not_hit]) > _ACCURACY)
@@ -87,5 +89,14 @@ xc.Geant4Engine.start(elements=coll, seed=1993, particle_ref='proton', p0c=7.e12
                       bdsim_config_file=str(path / 'geant4_protons.gmad'))
 part2 = part_init.copy()
 coll.track(part2)
+print(part2.px[mask_hit])
 
+xc.Geant4Engine.stop()
+print('hej')
+
+xc.Geant4Engine.start(elements=coll, seed=1992, particle_ref='proton', p0c=7.e12,
+                      bdsim_config_file=str(path / 'geant4_protons.gmad'))
+part3 = part_init.copy()
+coll.track(part3)
+print(part3.px[mask_hit])
 

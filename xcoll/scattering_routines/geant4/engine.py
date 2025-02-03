@@ -30,6 +30,8 @@ def get_open_port():
 
 class Geant4Engine(xo.HybridClass):
 
+    g4link = None
+
     _xofields = {
         'particle_ref':        xp.Particles,
         'seed':                xo.Int64,
@@ -59,8 +61,8 @@ class Geant4Engine(xo.HybridClass):
             kwargs.setdefault('relative_energy_cut', -1)
             kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
         super().__init__(**kwargs)
-        if not hasattr(self, 'g4link'):
-            self.g4link = None
+        #if not hasattr(self, 'g4link'):
+        #    self.g4link = None
         if not hasattr(self, 'server'):
             self.server = None
         self._initialised = True
@@ -134,9 +136,9 @@ class Geant4Engine(xo.HybridClass):
         this.conn.execute('import engine_server')
         this.conn.execute('import collimasim as cs')
         # BDSIMServer = this.conn.namespace['engine_server']
-        this.g4link = this.conn.namespace['engine_server'].BDSIMServer()
+        Geant4Engine.g4link = this.conn.namespace['engine_server'].BDSIMServer()
         print(f"{this.bdsim_config_file=}")
-        this.g4link.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
+        Geant4Engine.g4link.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
                                     referencePdgId=pdg_id,
                                     referenceEk=Ekin / 1e9, # BDSIM expects GeV
                                     relativeEnergyCut=this.relative_energy_cut,
@@ -157,7 +159,7 @@ class Geant4Engine(xo.HybridClass):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            this.g4link.addCollimator(el.geant4_id, el.material, el.length,
+            Geant4Engine.g4link.addCollimator(el.geant4_id, el.material, el.length,
                                       apertureLeft=jaw_L,
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
@@ -170,8 +172,8 @@ class Geant4Engine(xo.HybridClass):
     def stop(cls, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
-        del this.g4link
-        this.g4link = None
+        del Geant4Engine.g4link
+        Geant4Engine.g4link = None
         this.server.terminate()
         this.server = None
         # unset_geant4_env(this._old_os_environ)
