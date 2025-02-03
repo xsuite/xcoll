@@ -43,7 +43,11 @@ class BDSIMServer:
 
     def collimateReturn(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                         particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
-                        particles_state,particles_at_element, particles_at_turn, secondaries_x):
+                        particles_state,particles_at_element, particles_at_turn, secondaries_x,
+                        secondaries_y,secondaries_px,secondaries_py,secondaries_zeta,
+                        secondaries_delta,secondaries_charge_ratio,secondaries_s,
+                        secondaries_pdg_id,secondaries_parent_particle_id,secondaries_at_element,
+                        secondaries_at_turn,secondaries_mass_ratio):
         coordinates = [particles_x, particles_y, particles_px, particles_py,
                        particles_zeta, delta_temp, particles_chi,
                        particles_charge_ratio, particles_s,
@@ -52,7 +56,32 @@ class BDSIMServer:
         products = self.g4link.collimateReturn(coordinates)
         for i,x in enumerate(products['x']):
             secondaries_x[i] = x
-        return products
+        for i,x in enumerate(products['y']):
+            secondaries_y[i] = x
+        for i,x in enumerate(products['px']):
+            secondaries_px[i] = x
+        for i,x in enumerate(products['py']):
+            secondaries_py[i] = x
+        for i,x in enumerate(products['zeta']):
+            secondaries_zeta[i] = x
+        for i,x in enumerate(products['delta']):
+            secondaries_delta[i] = x
+        for i,x in enumerate(products['charge_ratio']):
+            secondaries_charge_ratio[i] = x
+        for i,x in enumerate(products['s']):
+            secondaries_s[i] = x
+        for i,x in enumerate(products['pdg_id']):
+            secondaries_pdg_id[i] = x
+        for i,x in enumerate(products['parent_particle_id']):
+            secondaries_parent_particle_id[i] = x
+        for i,x in enumerate(products['at_element']):
+            secondaries_at_element[i] = x
+        for i,x in enumerate(products['at_turn']):
+            secondaries_at_turn[i] = x
+        for i,x in enumerate(products['mass_ratio']):
+            secondaries_mass_ratio[i] = x
+
+        #return products
 
     def selectCollimator(self,geant4_id):
         self.g4link.selectCollimator(geant4_id)
