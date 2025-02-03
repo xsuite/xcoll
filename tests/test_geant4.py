@@ -66,6 +66,8 @@ def test_black_absorbers(test_context):
     assert np.all(part.filter(part.state==1).particle_id 
                   == part_ba.filter(part_ba.state==1).particle_id)
 
+    # Stop the Geant4 connection
+    xc.Geant4Engine.stop(clean=True)  
 
 @pytest.mark.parametrize('num_part', [1000, 5000])
 @pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
@@ -80,7 +82,7 @@ def test_simple_track(num_part):
     # Define collimator and start the FLUKA server
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='cu')
     coll_name = 'tcp.c6l7.b1'
-    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993,
+    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993, particle_ref='proton', p0c=7e12,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution
@@ -131,7 +133,7 @@ def test_simple_track(num_part):
 @pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
 def test_jaw(jaw, angle): #, tilt):
     tilt = 0    # For now, need to implement test for tilted jaws
-    _ACCURACY = 1e-12  # Anything in this region around the jaw might or might not hit; we can't be sure
+    _ACCURACY = 1.5e-9  # Anything in this region around the jaw might or might not hit; we can't be sure
     num_part = 5000
     _capacity = num_part*2
     jaw_band = 1.e-6
@@ -141,10 +143,9 @@ def test_jaw(jaw, angle): #, tilt):
         xc.Geant4Engine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.Geant4Collimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt, material='cu')
+    coll = xc.Geant4Collimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt, material='Ti', geant4_id=f'g4coll_0')
     coll_name = 'tcp.c6l7.b1'
-    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993, particle_ref=particle_ref,
+    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993, particle_ref='proton', p0c=7.e12,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution (x and y are in the frame of the collimator)
@@ -158,7 +159,7 @@ def test_jaw(jaw, angle): #, tilt):
     x_new = np.cos(np.deg2rad(angle))*x - np.sin(np.deg2rad(angle))*y
     y_new = np.sin(np.deg2rad(angle))*x + np.cos(np.deg2rad(angle))*y
     part_init = xp.build_particles(x=x_new, y=y_new, particle_ref=xc.Geant4Engine().particle_ref,
-                                   _capacity=xc.Geant4Engine()._capacity)
+                                   _capacity=_capacity)
     mask = np.concatenate([(x >= min(coll.jaw_LU, coll.jaw_LD)) | (x <= max(coll.jaw_RU, coll.jaw_RD)),
                           np.full(5*num_part_step, False)])
     hit_ids = part_init.particle_id[mask & (part_init.state > 0)]
@@ -198,4 +199,3 @@ def test_jaw(jaw, angle): #, tilt):
 
     # Stop the Geant4 connection
     xc.Geant4Engine.stop(clean=True)
-

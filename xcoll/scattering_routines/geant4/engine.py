@@ -5,18 +5,34 @@
 
 import numpy as np
 from pathlib import Path
+from subprocess import Popen # remove after geant4 bugfix
+import socket # remove after geant4 bugfix
+import time # remove after geant4 bugfix
 
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
 from .environment import set_geant4_env, unset_geant4_env
-
+from ...general import _pkg_root
 
 geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling/v10.4.3/")
 
 
+def get_open_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("",0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
 class Geant4Engine(xo.HybridClass):
+
+    g4link = None
+    server = None
+    conn = None
 
     _xofields = {
         'particle_ref':        xp.Particles,
@@ -47,8 +63,6 @@ class Geant4Engine(xo.HybridClass):
             kwargs.setdefault('relative_energy_cut', -1)
             kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
         super().__init__(**kwargs)
-        if not hasattr(self, 'g4link'):
-                    self.g4link = None
         self._initialised = True
 
     def __del__(self, *args, **kwargs):
@@ -69,14 +83,6 @@ class Geant4Engine(xo.HybridClass):
 
         if bdsim_config_file is None:
             raise NotImplementedError
-        # if cwd is not None:
-        #     cwd = Path(cwd).expanduser().resolve()
-        #     cwd.mkdir(parents=True, exist_ok=True)
-        #     this._old_cwd = Path.cwd()
-        #     os.chdir(cwd)
-        # else:
-        #     cwd = Path.cwd()
-        # this._cwd = cwd
 
         this._old_os_environ = set_geant4_env(geant4_path, bdsim_path)
 
@@ -98,16 +104,34 @@ class Geant4Engine(xo.HybridClass):
         print(f"Using seed {this.seed}.")
         this.relative_energy_cut = relative_energy_cut
 
-        try:
-            import collimasim as cs
-        except ImportError as e:
-            raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        else:
-            this.g4link = cs.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
-                                             referencePdgId=pdg_id,
-                                             referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                             relativeEnergyCut=this.relative_energy_cut,
-                                             seed=this.seed, batchMode=batch_mode)
+        ### revert after geant4 bug fixed try:
+        ### revert after geant4 bug fixed     import collimasim as cs
+        ### revert after geant4 bug fixed except ImportError as e:
+        ### revert after geant4 bug fixed     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+        ### revert after geant4 bug fixed else:
+        ### revert after geant4 bug fixed     this.g4link = cs.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+        ### revert after geant4 bug fixed                                      referencePdgId=pdg_id,
+        ### revert after geant4 bug fixed                                      referenceEk=Ekin / 1e9, # BDSIM expects GeV
+        ### revert after geant4 bug fixed                                      relativeEnergyCut=this.relative_energy_cut,
+        ### revert after geant4 bug fixed                                      seed=this.seed, batchMode=batch_mode)
+
+        ### remove the following lines after geant4 bug fixed
+        import rpyc
+        port = get_open_port()
+        Geant4Engine.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
+        time.sleep(5) # ping to check when open
+        Geant4Engine.conn = rpyc.classic.connect('localhost', port=port)
+        Geant4Engine.conn.execute('import sys')
+        Geant4Engine.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
+        Geant4Engine.conn.execute('import engine_server')
+        Geant4Engine.conn.execute('import collimasim as cs')
+        Geant4Engine.g4link = this.conn.namespace['engine_server'].BDSIMServer()
+        Geant4Engine.g4link.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
+                                    referencePdgId=pdg_id,
+                                    referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                    relativeEnergyCut=this.relative_energy_cut,
+                                    seed=this.seed, batchMode=batch_mode)
+        ### remove down to here after geant4 bug fixed
 
         if line is None:
             if elements is None:
@@ -123,7 +147,7 @@ class Geant4Engine(xo.HybridClass):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            this.g4link.addCollimator(el.geant4_id, el.material, el.length,
+            Geant4Engine.g4link.addCollimator(el.geant4_id, el.material, el.length,
                                       apertureLeft=jaw_L,
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
@@ -136,8 +160,10 @@ class Geant4Engine(xo.HybridClass):
     def stop(cls, clean=False, **kwargs):
         cls(**kwargs)
         this = cls.instance
-        del this.g4link
-        this.g4link = None
+        del Geant4Engine.g4link
+        Geant4Engine.g4link = None
+        Geant4Engine.server.terminate()
+        Geant4Engine.server = None
         unset_geant4_env(this._old_os_environ)
         this._old_os_environ = None
 
