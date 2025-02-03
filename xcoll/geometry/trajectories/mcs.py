@@ -11,7 +11,8 @@ from ..c_init import GeomCInit
 
 class MultipleCoulombTrajectory(xo.Struct):
     ''' Wrapper that holds C code and API for a multiple coulomb scattering trajectory'''
-
+    Ax = xo.Float64
+    Xo = xo.Float64
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'scattering_routines' / 'geometry' / 'trajectories' / 'mcs.h']
 
