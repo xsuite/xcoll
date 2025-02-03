@@ -56,8 +56,8 @@ class Geant4Engine(xo.HybridClass):
 
 
     @classmethod
-    def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
-              relative_energy_cut=0.15, seed=None, batch_mode=True,
+    def start(cls, *, bdsim_config_file=None, line=None, elements=None, names=None, cwd=None,
+              relative_energy_cut=0.15, seed=None, batch_mode=True, geant4_path=None, bdsim_path=None,
               particle_ref=None, p0c=None, **kwargs):
         from ...beam_elements.geant4 import Geant4Collimator
 
@@ -78,7 +78,7 @@ class Geant4Engine(xo.HybridClass):
         #     cwd = Path.cwd()
         # this._cwd = cwd
 
-        # this._old_os_environ = set_geant4_env(geant4_path)
+        this._old_os_environ = set_geant4_env(geant4_path, bdsim_path)
 
         this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
@@ -138,8 +138,8 @@ class Geant4Engine(xo.HybridClass):
         this = cls.instance
         del this.g4link
         this.g4link = None
-        # unset_geant4_env(this._old_os_environ)
-        # del this._old_os_environ
+        unset_geant4_env(this._old_os_environ)
+        this._old_os_environ = None
 
 
     @classmethod

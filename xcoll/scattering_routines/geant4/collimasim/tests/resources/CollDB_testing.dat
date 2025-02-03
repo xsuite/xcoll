@@ -1,0 +1,15 @@
+# Automatically converted collimator DB from old format file 'CollDB_HL.data'
+# Families
+NSIG_FAM dummy                 5.000000 PRIMARY
+#
+# Collimators
+# name                                                opening/fam mat.     length[m]    angle[deg]     offset[m]    
+coll_open                                                  90      W       10.00000      0.000000      0.000000
+coll_skew                                                 dummy    W       0.60000       45.000000      0.000000
+coll_skew_tilted                                          dummy    W       0.60000       45.000000      0.000000
+#
+
+#ONESIDED dummy1 1
+TILTED coll_skew_tilted 4 -9
+# Additional Collimator Settings
+SETTINGS
