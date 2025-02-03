@@ -5,15 +5,27 @@
 
 import numpy as np
 from pathlib import Path
+from subprocess import Popen # remove after geant4 bugfix
+import socket # remove after geant4 bugfix
+import time # remove after geant4 bugfix
 
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
 from .environment import set_geant4_env, unset_geant4_env
-
+from ...general import _pkg_root
 
 geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling/v10.4.3/")
+
+
+def get_open_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("",0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
 
 class Geant4Engine(xo.HybridClass):
@@ -48,7 +60,9 @@ class Geant4Engine(xo.HybridClass):
             kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
         super().__init__(**kwargs)
         if not hasattr(self, 'g4link'):
-                    self.g4link = None
+            self.g4link = None
+        if not hasattr(self, 'server'):
+            self.server = None
         self._initialised = True
 
     def __del__(self, *args, **kwargs):
@@ -56,7 +70,7 @@ class Geant4Engine(xo.HybridClass):
 
 
     @classmethod
-    def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
+    def start(cls, *, bdsim_config_file=None, line=None, elements=None, names=None, cwd=None,
               relative_energy_cut=0.15, seed=None, batch_mode=True,
               particle_ref=None, p0c=None, **kwargs):
         from ...beam_elements.geant4 import Geant4Collimator
@@ -110,24 +124,23 @@ class Geant4Engine(xo.HybridClass):
         ### revert after geant4 bug fixed                                      seed=this.seed, batchMode=batch_mode)
 
         ### remove the following lines after geant4 bug fixed
-        from subprocess import Popen
         import rpyc
-        import time
-        Popen(['rpyc_classic', '-m', 'oneshot', '-p', str(1234)])  # return handle to stop it??
+        port = get_open_port()
+        this.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
         time.sleep(5) # ping to check when open
-        this.conn = rpyc.classic.connect('localhost', port=1234)
+        this.conn = rpyc.classic.connect('localhost', port=port)
         this.conn.execute('import sys')
-        this.conn.execute('sys.path.append("/home/a20/ドキュメント/work/git/xtrack/dev/xcoll_geant4/xcoll/xcoll/scattering_routines/geant4")')
+        this.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
         this.conn.execute('import engine_server')
         this.conn.execute('import collimasim as cs')
-        BDSIMServer = this.conn.namespace['engine_server']
-        this.g4link = BDSIMServer.BDSIMServer()
-        this.g4link.XtrackInterface(bdsimConfigFile=bdsim_config_file,
+        # BDSIMServer = this.conn.namespace['engine_server']
+        this.g4link = this.conn.namespace['engine_server'].BDSIMServer()
+        print(f"{this.bdsim_config_file=}")
+        this.g4link.XtrackInterface(bdsimConfigFile=this.bdsim_config_file,
                                     referencePdgId=pdg_id,
                                     referenceEk=Ekin / 1e9, # BDSIM expects GeV
                                     relativeEnergyCut=this.relative_energy_cut,
-                                    seed=this.seed, batchMode=batch_mode) 
-        
+                                    seed=this.seed, batchMode=batch_mode)
         ### remove down to here after geant4 bug fixed
 
         if line is None:
@@ -144,22 +157,12 @@ class Geant4Engine(xo.HybridClass):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            ### revert after geant4 bug fixedthis.g4link.addCollimator(el.geant4_id, el.material, el.length,
-            ### revert after geant4 bug fixed                          apertureLeft=jaw_L,
-            ### revert after geant4 bug fixed                          apertureRight=-jaw_R,   # TODO: is this correct?
-            ### revert after geant4 bug fixed                          rotation=np.deg2rad(el.angle),
-            ### revert after geant4 bug fixed                          xOffset=0, yOffset=0, side=side,
-            ### revert after geant4 bug fixed                          jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
-
-            ### remove the following lines after geant4 bug fixed
             this.g4link.addCollimator(el.geant4_id, el.material, el.length,
                                       apertureLeft=jaw_L,
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
                                       xOffset=0, yOffset=0, side=side,
                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
-
-            ### remove down to here after geant4 bug fixed
         print('Geant4Engine initialised')
 
 
@@ -169,6 +172,8 @@ class Geant4Engine(xo.HybridClass):
         this = cls.instance
         del this.g4link
         this.g4link = None
+        this.server.terminate()
+        this.server = None
         # unset_geant4_env(this._old_os_environ)
         # del this._old_os_environ
 

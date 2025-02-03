@@ -8,15 +8,14 @@ class BDSIMServer:
             import collimasim as cs
         except ImportError as e:
             raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        if not hasattr(self, 'g4link'):
-            self.g4link = None
-        self._initialised = True
+        self.g4link = None
 
     def close(self):
         pass
 
     def XtrackInterface(self,bdsimConfigFile=None,referencePdgId=None,referenceEk=None,
                         relativeEnergyCut=None,seed=None,batchMode=None):
+        print(f"{bdsimConfigFile=}")
         self.g4link = cs.XtrackInterface(bdsimConfigFile=bdsimConfigFile,
                                          referencePdgId=referencePdgId,
                                          referenceEk=referenceEk, # BDSIM expects GeV

@@ -31,7 +31,6 @@ def track(coll, particles):
                        + f"xcoll.Geant4Engine.start().\n(id: {id(g4engine)})")
 
     g4link = g4engine.g4link
-    print('hej')
     g4link.clearData() # Clear the old data - bunch particles and hits
 
     print(f"Processing collimator: {coll.geant4_id}")
@@ -70,7 +69,6 @@ def track(coll, particles):
                         particles.pdg_id,particles.particle_id, particles.state,
                         particles.at_element, particles.at_turn,
                                       secondaries_x)
-    print('hej')
     # Force the update using the private member _delta
     # as the update_delta method only updates the delta for active particles
     particles._delta[:len(delta_temp)] = delta_temp

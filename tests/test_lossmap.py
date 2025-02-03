@@ -32,7 +32,7 @@ path = Path(__file__).parent / 'data'
                             [1, 'V', 3500, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
+def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
@@ -57,7 +57,7 @@ def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_co
 
 @retry()
 @pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
-def test_run_lossmap_geant4():
+def test_lossmap_geant4():
     # If a previous test failed, stop the server manually
     if xc.Geant4Engine.is_running():
         xc.Geant4Engine.stop(clean=True)
@@ -74,8 +74,8 @@ def test_run_lossmap_geant4():
     line.build_tracker()
     line.collimators.assign_optics()
 
-    xc.Geant4Engine.start(elements=coll, seed=1993, particle_ref='proton', p0c=7.e12,
-                      bdsim_config_file=str(path / 'geant4_protons.gmad'))   
+    xc.Geant4Engine.start(ine=line, seed=1993, particle_ref='proton', p0c=7.e12,
+                          bdsim_config_file=path / 'geant4_protons.gmad')
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
 
