@@ -60,24 +60,29 @@ class LocalTrajectory(xo.UnionRef):
         return cls(**this_dct, **kwargs)
 
 
-# Sanity check to assert all segment types have crossing functions for all trajectories
-def assert_localtrajectory_sources(seg):
-    for tra in all_trajectories:
-        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
-               + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
-        header_found = False
-        for src in seg._extra_c_sources:
-            if isinstance(src, str):
-                if header in src:
-                    header_found = True
-                    break
-            else:
-                with open(src) as f:
-                    if header in f.read():
-                        header_found = True
-                        break
-        if not header_found:
-            raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
+# # Sanity check to assert all segment types have crossing functions for all trajectories
+# def assert_localtrajectory_sources(seg):
+#     for tra in all_trajectories:
+#         header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
+#                + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
+#         header_found = False
+#         for src in seg._extra_c_sources:
+#             if isinstance(src, str):
+#                 if header in src:
+#                     header_found = True
+#                     break
+#             else:
+#                 with open(src) as f:
+#                     if header in f.read():
+#                         header_found = True
+#                         break
+#         if not header_found:
+#             raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
+
+
+
+
+
 
 
 
