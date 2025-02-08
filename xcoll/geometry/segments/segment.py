@@ -25,11 +25,13 @@ class LocalSegment(xo.UnionRef):
     _methods = [xo.Method(
                     c_name=f"func",
                     args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x")),
+                    ret=xo.Arg(xo.Float64, name="x"))
+                for tra in all_trajectories] + [
                 xo.Method(
                     c_name=f"deriv",
                     args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x")),
+                    ret=xo.Arg(xo.Float64, name="x"))
+                for tra in all_trajectories] + [
                 xo.Method(
                     c_name=f"crossing_{tra.name}",
                     args=[*args_cross_h, *tra.args_hv, *tra.args_h],

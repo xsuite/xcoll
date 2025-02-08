@@ -1,44 +1,58 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import xobjects as xo
 
 from ..c_init import xo_to_ctypes
 from .drift import DriftTrajectory
+from .mcs import MultipleCoulombTrajectory
+from .circular import CircularTrajectory
 
 
-all_trajectories = [DriftTrajectory]
+all_trajectories = [DriftTrajectory, MultipleCoulombTrajectory, CircularTrajectory]
 
 
-args_cross_h = [
-    xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
-    xo.Arg(xo.Float64, pointer=True, name="s"),
-]
-args_cross_v = [
-    xo.Arg(xo.Float64, pointer=True, name="restrict_s"),
-]
-args_vlimit = [
-    xo.Arg(xo.Float64, pointer=False, name="ymin"),
-    xo.Arg(xo.Float64, pointer=False, name="ymax")
-]
-args_length = [
-    xo.Arg(xo.Float64, pointer=False, name="s1"),
-    xo.Arg(xo.Float64, pointer=False, name="s2")
-]
+# args_cross_h = [
+#     xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
+#     xo.Arg(xo.Float64, pointer=True, name="s"),
+# ]
+# args_cross_v = [
+#     xo.Arg(xo.Float64, pointer=True, name="restrict_s"),
+# ]
+# args_vlimit = [
+#     xo.Arg(xo.Float64, pointer=False, name="ymin"),
+#     xo.Arg(xo.Float64, pointer=False, name="ymax")
+# ]
+# args_length = [
+#     xo.Arg(xo.Float64, pointer=False, name="s1"),
+#     xo.Arg(xo.Float64, pointer=False, name="s2")
+# ]
 
 
 class LocalTrajectory(xo.UnionRef):
     """General trajectory, acting as a xobject-style parent class for all trajectory types"""
     _reftypes = all_trajectories
     _methods = [xo.Method(
-                    c_name=f"func",
-                    args=[xo.Arg(xo.Float64, name="s")],
+                    c_name=f"func_s",
+                    args=[xo.Arg(xo.Float64, name="lambda")],
+                    ret=xo.Arg(xo.Float64, name="s")),
+                xo.Method(
+                    c_name=f"func_x",
+                    args=[xo.Arg(xo.Float64, name="lambda")],
                     ret=xo.Arg(xo.Float64, name="x")),
                 xo.Method(
-                    c_name=f"deriv",
-                    args=[xo.Arg(xo.Float64, name="s")],
+                    c_name=f"func_xp",
+                    args=[xo.Arg(xo.Float64, name="lambda")],
+                    ret=xo.Arg(xo.Float64, name="theta")),
+                xo.Method(
+                    c_name=f"deriv_s",
+                    args=[xo.Arg(xo.Float64, name="lambda")],
+                    ret=xo.Arg(xo.Float64, name="s")),
+                xo.Method(
+                    c_name=f"deriv_x",
+                    args=[xo.Arg(xo.Float64, name="lambda")],
                     ret=xo.Arg(xo.Float64, name="x"))
                 ]
 

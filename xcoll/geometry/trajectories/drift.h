@@ -1,10 +1,53 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_DRIFT_H
-#define XCOLL_COLL_GEOM_DRIFT_H
+#ifndef XCOLL_GEOM_TRAJ_DRIFT_H
+#define XCOLL_GEOM_TRAJ_DRIFT_H
+
+#include <stdio.h>
+#include <math.h>
+
+
+/*gpufun*/
+double DriftTrajectory_set_params(DriftTrajectory traj, LocalParticle part){
+    DriftTrajectory_set_s0(traj, LocalParticle_get_s(part));
+    DriftTrajectory_set_x0(traj, LocalParticle_get_x(part));
+    double xp = LocalParticle_get_exact_xp(part);
+    DriftTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));
+    DriftTrajectory_set_cos_t0(traj, 1 / sqrt(1+xp*xp));
+    DriftTrajectory_set_tan_t0(traj, xp);
+}
+
+/*gpufun*/
+double DriftTrajectory_func_s(DriftTrajectory traj, double lambda){
+    double s0 = DriftTrajectory_get_s0(traj);
+    double cos_t0 = DriftTrajectory_get_cos_t0(traj);
+    return s0 + lambda*cos_t0;
+}
+
+/*gpufun*/
+double DriftTrajectory_func_x(DriftTrajectory traj, double lambda){
+    double x0 = DriftTrajectory_get_x0(traj);
+    double sin_t0 = DriftTrajectory_get_sin_t0(traj);
+    return x0 + lambda*sin_t0;
+}
+
+/*gpufun*/
+double DriftTrajectory_func_xp(DriftTrajectory traj, double lambda){
+    return DriftTrajectory_get_tan_t0(traj);
+}
+
+/*gpufun*/
+double DriftTrajectory_deriv_s(DriftTrajectory traj, double lambda){
+    return DriftTrajectory_get_cos_t0(traj);
+}
+
+/*gpufun*/
+double DriftTrajectory_deriv_x(DriftTrajectory traj, double lambda){
+    return DriftTrajectory_get_sin_t0(traj);
+}
 
 
 /*gpufun*/
@@ -74,4 +117,4 @@ double Trajectory_get_last(int8_t n_hit, double* s){
     return XC_S_MAX;
 }
 
-#endif /* XCOLL_COLL_GEOM_DRIFT_H */
+#endif /* XCOLL_GEOM_TRAJ_DRIFT_H */
