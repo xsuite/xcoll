@@ -27,25 +27,25 @@ class Shape2D(xo.Struct):
     _needs_compilation = True
     _extra_c_sources = shape_source
 
-    _kernels = {**{
-                f"crossing_{tra.name}": xo.Kernel(
-                    c_name=f"Shape2D_crossing_{tra.name}",
-                    args=[
-                        xo.Arg(xo.ThisClass, name="shape"),
-                        *args_cross_h, *tra.args_hv, *tra.args_h
-                    ],
-                    ret=None)
-                for tra in all_trajectories},
-                **{
-                f"crossing_{tra.name}_{s_pos}": xo.Kernel(
-                    c_name=f"Shape2D_crossing_{tra.name}_{s_pos}",
-                    args=[
-                        xo.Arg(xo.ThisClass, name="shape"),
-                        *tra.args_hv, *tra.args_h, *s_vals["args"]
-                    ],
-                    ret=xo.Arg(xo.Float64, pointer=False, name='s'))
-                for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
-                }
+    # _kernels = {**{
+    #             f"crossing_{tra.name}": xo.Kernel(
+    #                 c_name=f"Shape2D_crossing_{tra.name}",
+    #                 args=[
+    #                     xo.Arg(xo.ThisClass, name="shape"),
+    #                     *args_cross_h, *tra.args_hv, *tra.args_h
+    #                 ],
+    #                 ret=None)
+    #             for tra in all_trajectories},
+    #             **{
+    #             f"crossing_{tra.name}_{s_pos}": xo.Kernel(
+    #                 c_name=f"Shape2D_crossing_{tra.name}_{s_pos}",
+    #                 args=[
+    #                     xo.Arg(xo.ThisClass, name="shape"),
+    #                     *tra.args_hv, *tra.args_h, *s_vals["args"]
+    #                 ],
+    #                 ret=xo.Arg(xo.Float64, pointer=False, name='s'))
+    #             for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
+    #             }
 
     def __init__(self, segments=None, **kwargs):
         if not segments:

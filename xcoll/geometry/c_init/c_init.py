@@ -41,6 +41,7 @@ define_src = f"""
 #endif /* XCOLL_GEOM_DEFINES_H */
 """
 
+
 class PyMethod:
     # Similar class as for the xt.BeamElement, but without the Metaclass magic
     # (and hence no need for PyMethodDescriptor)
@@ -68,6 +69,7 @@ class PyMethod:
 
         return kernel(**kwargs)
 
+
 class GeomCInit(xo.Struct):
     _extra_c_sources = [
         define_src,
@@ -80,9 +82,9 @@ class GeomCInit(xo.Struct):
     ]
 
     # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
-    _depends_on = [McsLineParams]
+    _depends_on = [xo.Float64]
 
-    _needs_compilation = True
+    # _needs_compilation = True
 
     # _kernels = {"grid_search_and_newton":
     #             xo.Kernel(

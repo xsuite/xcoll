@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_HALFOPENLINESEG_H
-#define XCOLL_COLL_GEOM_HALFOPENLINESEG_H
+#ifndef XCOLL_GEOM_SEG_HALFOPENLINE_H
+#define XCOLL_GEOM_SEG_HALFOPENLINE_H
 #define XC_HALFOPENLINE_CROSSINGS 2
 
 
@@ -69,4 +69,4 @@ void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, 
 void HalfOpenLineSegment_crossing_mcs(HalfOpenLineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo){
    return grid_search_and_newton()
 }  
-#endif /* XCOLL_COLL_GEOM_HALFOPENLINESEG_H */
+#endif /* XCOLL_GEOM_SEG_HALFOPENLINE_H */

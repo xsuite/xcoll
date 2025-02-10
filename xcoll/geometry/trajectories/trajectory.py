@@ -1,46 +1,47 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import xobjects as xo
 
-from ..c_init import xo_to_ctypes
+from ..c_init import xo_to_ctypes, GeomCInit, PyMethod
 from .drift import DriftTrajectory
+from .mcs import MultipleCoulombTrajectory
+from .circular import CircularTrajectory
 
 
-all_trajectories = [DriftTrajectory]
+all_trajectories = [DriftTrajectory, MultipleCoulombTrajectory, CircularTrajectory]
 
 
-args_cross_h = [
-    xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
-    xo.Arg(xo.Float64, pointer=True, name="s"),
-]
-args_cross_v = [
-    xo.Arg(xo.Float64, pointer=True, name="restrict_s"),
-]
-args_vlimit = [
-    xo.Arg(xo.Float64, pointer=False, name="ymin"),
-    xo.Arg(xo.Float64, pointer=False, name="ymax")
-]
-args_length = [
-    xo.Arg(xo.Float64, pointer=False, name="s1"),
-    xo.Arg(xo.Float64, pointer=False, name="s2")
-]
+trajectory_methods = {
+    's': xo.Method(
+        c_name=f"func_s",
+        args=[xo.Arg(xo.Float64, name="lambda")],
+        ret=xo.Arg(xo.Float64, name="s")),
+    'x': xo.Method(
+        c_name=f"func_x",
+        args=[xo.Arg(xo.Float64, name="lambda")],
+        ret=xo.Arg(xo.Float64, name="x")),
+    'xp': xo.Method(
+        c_name=f"func_xp",
+        args=[xo.Arg(xo.Float64, name="lambda")],
+        ret=xo.Arg(xo.Float64, name="theta")),
+    'deriv_s': xo.Method(
+        c_name=f"deriv_s",
+        args=[xo.Arg(xo.Float64, name="lambda")],
+        ret=xo.Arg(xo.Float64, name="s")),
+    'deriv_x': xo.Method(
+        c_name=f"deriv_x",
+        args=[xo.Arg(xo.Float64, name="lambda")],
+        ret=xo.Arg(xo.Float64, name="x"))
+}
 
 
 class LocalTrajectory(xo.UnionRef):
     """General trajectory, acting as a xobject-style parent class for all trajectory types"""
     _reftypes = all_trajectories
-    _methods = [xo.Method(
-                    c_name=f"func",
-                    args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x")),
-                xo.Method(
-                    c_name=f"deriv",
-                    args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x"))
-                ]
+    _methods = list(trajectory_methods.values())
 
     def __init__(self, *args, **kwargs):
         raise ValueError("LocalTrajectory is an abstract class and should not be instantiated")
@@ -60,13 +61,73 @@ class LocalTrajectory(xo.UnionRef):
         return cls(**this_dct, **kwargs)
 
 
-# Sanity check to assert all segment types have crossing functions for all trajectories
-def assert_localtrajectory_sources(seg):
-    for tra in all_trajectories:
-        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
-               + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
+# Add kernels for func_ and deriv_ functions to all trajectories
+def traj__getattr__(self, attr):
+    if attr in self._kernels:
+        return PyMethod(kernel_name=attr, element=self, element_name='shape')
+    raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
+
+for traj in all_trajectories:
+    _kernels = {key: xo.Kernel(c_name=val.c_name, ret=val.ret,
+                               args=[xo.Arg(xo.ThisClass, name="traj"), *val.args])
+                for key, val in trajectory_methods.items()}
+    traj._kernels = getattr(traj, '_kernels', {}).update(_kernels)
+    traj.__getattr__ = traj__getattr__
+
+
+# Define common methods for all trajectories
+def traj__eq__(self, other):
+    """Check if two trajectories are equal"""
+    return self.to_dict() == other.to_dict()
+
+def traj__repr__(self):
+    """Return repr(self)."""
+    return f"<{str(self)} at {hex(id(self))}>"
+
+def to_dict(self):
+    """Returns a dictionary in the same style as a HybridClass"""
+    return {'__class__': self.__class__.__name__, **self._to_json()}
+
+@classmethod
+def from_dict(cls, dct, **kwargs):
+    """Returns the object from a dictionary in the same style as a HybridClass"""
+    this_dct = dct.copy()
+    this_cls = this_dct.pop('__class__')
+    if this_cls != cls.__name__:
+        raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
+    return cls(**this_dct, **kwargs)
+
+def traj_copy(self):
+    """Returns a copy of the trajectory"""
+    return self.from_dict(self.to_dict())
+
+def traj_round(self, val):
+    """Built-in to provide rounding to Xcoll precision"""
+    return round(val, -int(np.log10(XC_EPSILON)))
+
+for traj in all_trajectories:
+    if not hasattr(traj, '_depends_on'):
+        traj._depends_on = [GeomCInit]
+    traj.name = traj.__name__.lower()[:-10]
+    traj.__eq__ = traj__eq__
+    if not hasattr(traj, '__repr__'):
+        traj.__repr__ = traj__repr__
+    if not hasattr(traj, '__str__'):
+        traj.__str__ = traj__repr__
+    traj.to_dict = to_dict
+    traj.from_dict = from_dict
+    traj.copy = traj_copy
+    traj.round = traj_round
+
+
+# Sanity check to assert all trajectories have C code for func_ and deriv_ functions
+def assert_trajectory_sources(tra):
+    assert tra in all_trajectories
+    name = tra.__name__
+    for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
+        header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double lambda)"
         header_found = False
-        for src in seg._extra_c_sources:
+        for src in tra._extra_c_sources:
             if isinstance(src, str):
                 if header in src:
                     header_found = True
@@ -77,7 +138,32 @@ def assert_localtrajectory_sources(seg):
                         header_found = True
                         break
         if not header_found:
-            raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
+            raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
+                            + f"({name} traj, double lambda).")
+
+for tra in all_trajectories:
+    assert_trajectory_sources(tra)
+
+
+
+
+# OLD
+args_cross_h = [
+    xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
+    xo.Arg(xo.Float64, pointer=True, name="s"),
+]
+args_cross_v = [
+    xo.Arg(xo.Float64, pointer=True, name="restrict_s"),
+]
+args_vlimit = [
+    xo.Arg(xo.Float64, pointer=False, name="ymin"),
+    xo.Arg(xo.Float64, pointer=False, name="ymax")
+]
+args_length = [
+    xo.Arg(xo.Float64, pointer=False, name="s1"),
+    xo.Arg(xo.Float64, pointer=False, name="s2")
+]
+
 
 
 
@@ -131,11 +217,3 @@ def assert_localtrajectory_sources(seg):
 #                     break
 #     if not header_found:
 #         raise SystemError(f"Missing or corrupt C length function for {tra.__name__}.")
-
-
-# for tra in all_trajectories:
-#     assert_trajectory_sources(tra)
-#     assert hasattr(tra, 'args_hv')
-#     assert hasattr(tra, 'args_h')
-#     assert hasattr(tra, 'args_v')
-#     tra.name = tra.__name__.lower()[:-10]

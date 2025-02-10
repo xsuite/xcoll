@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_CIRCULARSEG_H
-#define XCOLL_COLL_GEOM_CIRCULARSEG_H
+#ifndef XCOLL_GEOM__SEG_CIRCULAR_H
+#define XCOLL_GEOM__SEG_CIRCULAR_H
 #define XC_CIRCULARSEG_CROSSINGS 2
 
 
@@ -94,4 +94,4 @@ void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* 
 void CircularSegment_crossing_mcs(CircularSegment seg, int8_t* n_hit, double* s, double x, const double* Ax, const double Xo){
     return grid_search_and_newton()
 }
-#endif /* XCOLL_COLL_GEOM_CIRCULARSEG_H */
+#endif /* XCOLL_GEOM__SEG_CIRCULAR_H */

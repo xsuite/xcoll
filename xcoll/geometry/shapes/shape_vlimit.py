@@ -26,25 +26,25 @@ class Shape2DV(xo.Struct):
     _depends_on = [Shape2D]
     _extra_c_sources = shape_v_source
 
-    _kernels = {**{
-                f"Shape2DV_crossing_{tra.name}": xo.Kernel(
-                    c_name=f"Shape2DV_crossing_{tra.name}",
-                    args=[
-                        xo.Arg(xo.ThisClass, name="shape"),
-                        *args_cross_h, *tra.args_hv, *tra.args_h, *tra.args_v
-                    ],
-                    ret=None)
-                for tra in all_trajectories},
-                **{
-                f"Shape2DV_crossing_{tra.name}_{s_pos}": xo.Kernel(
-                    c_name=f"Shape2DV_crossing_{tra.name}_{s_pos}",
-                    args=[
-                        xo.Arg(xo.ThisClass, name="shape"),
-                        *tra.args_hv, *tra.args_h, *tra.args_v, *s_vals["args"]
-                    ],
-                    ret=xo.Arg(xo.Float64, pointer=False, name='s'))
-                for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
-                }
+    # _kernels = {**{
+    #             f"Shape2DV_crossing_{tra.name}": xo.Kernel(
+    #                 c_name=f"Shape2DV_crossing_{tra.name}",
+    #                 args=[
+    #                     xo.Arg(xo.ThisClass, name="shape"),
+    #                     *args_cross_h, *tra.args_hv, *tra.args_h, *tra.args_v
+    #                 ],
+    #                 ret=None)
+    #             for tra in all_trajectories},
+    #             **{
+    #             f"Shape2DV_crossing_{tra.name}_{s_pos}": xo.Kernel(
+    #                 c_name=f"Shape2DV_crossing_{tra.name}_{s_pos}",
+    #                 args=[
+    #                     xo.Arg(xo.ThisClass, name="shape"),
+    #                     *tra.args_hv, *tra.args_h, *tra.args_v, *s_vals["args"]
+    #                 ],
+    #                 ret=xo.Arg(xo.Float64, pointer=False, name='s'))
+    #             for s_pos, s_vals in all_s_positions.items() for tra in all_trajectories}
+    #             }
 
     def __init__(self, segments=None, vlimit=None, **kwargs):
         if not segments:

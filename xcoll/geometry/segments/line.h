@@ -3,8 +3,9 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_LINESEG_H
-#define XCOLL_COLL_GEOM_LINESEG_H
+#ifndef XCOLL_GEOM_SEG_LINE_H
+#define XCOLL_GEOM_SEG_LINE_H
+
 #define XC_LINE_CROSSINGS 2
 // #include "../trajectories/mcs.h"
 // #include "../c_init/simpson.h" // this is just for me to avoid squiggles
@@ -66,4 +67,4 @@ void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, doubl
 void LineSegment_crossing_mcs(LineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo, void* params){
     return grid_search_and_newton()
 }
-#endif /* XCOLL_COLL_GEOM_LINESEG_H */
+#endif /* XCOLL_GEOM_SEG_LINE_H */

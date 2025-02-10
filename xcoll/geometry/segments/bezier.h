@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_BEZIERSEG_H
-#define XCOLL_COLL_GEOM_BEZIERSEG_H
+#ifndef XCOLL_GEOM_TRAJ_BEZIER_H
+#define XCOLL_GEOM_TRAJ_BEZIER_H
 
 /*gpufun*/
 void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
@@ -123,4 +123,4 @@ void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, d
     }
 }
 
-#endif /* XCOLL_COLL_GEOM_BEZIERSEG_H */
+#endif /* XCOLL_GEOM_TRAJ_BEZIER_H */
