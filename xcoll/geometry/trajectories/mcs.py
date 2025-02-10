@@ -8,6 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
+from ..c_init import GeomCInit
 
 
 class MultipleCoulombTrajectory(xo.Struct):
@@ -22,7 +23,7 @@ class MultipleCoulombTrajectory(xo.Struct):
     𝜆 represents the travelled distance projected along the direction 𝜃0, and
     𝜉1 and 𝜉2 are two random normal variables. Finally, 𝛺(𝜆) represented the
     expected average scattering angle and is estimated by
-        𝛺(𝜆) = (13.6 MeV) / (pc) sqrt(𝜆 q^2 / (X0 𝛽^2)) (1 + 0.038 ln (𝜆 q^2 / (X0 𝛽^2)))
+        𝛺(𝜆) = (13.6 MeV) / (𝛽 pc) sqrt(𝜆 q^2 / (X0 𝛽^2)) (1 + 0.038 ln (𝜆 q^2 / (X0 𝛽^2)))
 
     where X0 is the material's radiation length, and q, 𝛽, and pc are the particle's charge,
     relativistic 𝛽, and momentum.
@@ -36,15 +37,15 @@ class MultipleCoulombTrajectory(xo.Struct):
     cos_t0 = xo.Float64
     tan_t0 = xo.Float64
     Xt0 = xo.Float64  #  X0 𝛽^2 / q^2
-    A0 = xo.Float64   # (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
-    B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (pc)
+    A0 = xo.Float64   # (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (𝛽 pc)
+    B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (𝛽 pc)
 
+    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'mcs.h']
 
     _kernels = {'set_params': xo.Kernel(
                                 c_name='MultipleCoulombTrajectory_set_params',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
-                                      xo.Arg(xo.Float64, name="sR"),
                                       xo.Arg(xo.Float64, name="X0"),
                                       xo.Arg(xo.Float64, name="ran_1"),
                                       xo.Arg(xo.Float64, name="ran_2"),
@@ -54,15 +55,24 @@ class MultipleCoulombTrajectory(xo.Struct):
                                       xo.Arg(xo.Float64, name="pc"),
                                       xo.Arg(xo.Float64, name="beta"),
                                       xo.Arg(xo.Float64, name="q")],
-                                ret=xo.Float64)}
+                                ret=None)}
 
     def __init__(self, *args, **kwargs):
-        to_assign = {}
-        if 'xp' in kwargs:
-            to_assign['xp'] = kwargs.pop('xp')
+        X0 = kwargs.pop('X0', False)
+        ran_1 = kwargs.pop('ran_1', False)
+        ran_2 = kwargs.pop('ran_2', False)
+        xp = kwargs.pop('xp', False)
+        theta0 = kwargs.pop('theta0', False)
+        pc = kwargs.pop('pc', False)
+        beta = kwargs.pop('beta', False)
+        q = kwargs.pop('q', False)
         super().__init__(*args, **kwargs)
-        for key, val in to_assign.items():
-            setattr(self, key, val)
+        if xp is not False and pc is not False and beta is not False and q is not False:
+            self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, pc=pc,
+                            beta=beta, q=q)
+        elif theta0 is not False and pc is not False and beta is not False and q is not False:
+            self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, pc=pc,
+                            beta=beta, q=q)
 
     def __str__(self):
         return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp}, " \
@@ -70,13 +80,12 @@ class MultipleCoulombTrajectory(xo.Struct):
 
     @property
     def xp(self):
-        return self.round(np.arctan2(self.tan_t0))
+        return self.tan_t0
 
-    @xp.setter
-    def xp(self, val):
-        self.tan_t0 = val
-        self.sin_t0 = np.sin(self.xp)
-        self.cos_t0 = np.cos(self.xp)
+    @property
+    def theta0(self):
+        return self.round(np.arctan2(self.sin_t0, self.cos_t0))
+
 
 #     args_hv = [
 #             # The arguments that define the particle trajectory, common to both planes

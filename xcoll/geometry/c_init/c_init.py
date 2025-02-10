@@ -65,8 +65,7 @@ class PyMethod:
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         if self.element_name:
-            kwargs[element_name] = instance
-
+            kwargs[self.element_name] = instance
         return kernel(**kwargs)
 
 
