@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <math.h>
 
+
 #define MCS_AVERAGE_MOMENTUM 13.6e6
 #define MCS_LOG_SCALE 3.821791440748616e-2
 #define MCS_DERIV_LOG_SCALE 1.910895720374308e-2
@@ -16,24 +17,39 @@
 #define MCS_RAN1_SCALE 2.886751345948129e-1  // 1/sqrt(12)
 #define MCS_RAN1_SCALE 0.5
 
+
+// /*gpufun*/
+// double MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
+//                                         double ran_1, double ran_2, LocalParticle part){
+//     MultipleCoulombTrajectory_set_s0(traj, LocalParticle_get_s(part));
+//     MultipleCoulombTrajectory_set_x0(traj, LocalParticle_get_s(part));
+//     double xp = LocalParticle_get_exact_xp(part)
+//     MultipleCoulombTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));
+//     MultipleCoulombTrajectory_set_cos_t0(traj, 1. / sqrt(1+xp*xp));
+//     MultipleCoulombTrajectory_set_tan_t0(traj, xp);
+//     double beta = LocalParticle_get_rvv(part)*LocalParticle_get_beta0(part);
+//     double q = LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);
+//     MultipleCoulombTrajectory_set_Xt0(traj, X0*beta*beta / (q*q));
+//     double pc = LocalParticle_get_p0c(part) * LocalParticle_get_charge_ratio(part) \
+//                 / LocalParticle_get_chi(part) / LocalParticle_get_rpp(part); 
+//     MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN1_SCALE) * MCS_AVERAGE_MOMENTUM / pc);
+//     MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / pc);
+// }
+
+
 /*gpufun*/
 double MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
-                                        double ran_1, double ran_2, LocalParticle part){
-    MultipleCoulombTrajectory_set_s0(traj, LocalParticle_get_s(part));
-    MultipleCoulombTrajectory_set_x0(traj, LocalParticle_get_s(part));
-    double xp = LocalParticle_get_exact_xp(part)
+                                            double ran_1, double ran_2, double s0, double x0,
+                                            double xp, double pc, double beta, double q){
+    MultipleCoulombTrajectory_set_s0(traj, s0);
+    MultipleCoulombTrajectory_set_x0(traj, x0);
     MultipleCoulombTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));
     MultipleCoulombTrajectory_set_cos_t0(traj, 1. / sqrt(1+xp*xp));
     MultipleCoulombTrajectory_set_tan_t0(traj, xp);
-    double beta = LocalParticle_get_rvv(part)*LocalParticle_get_beta0(part);
-    double q = LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);
     MultipleCoulombTrajectory_set_Xt0(traj, X0*beta*beta / (q*q));
-    double pc = LocalParticle_get_p0c(part) * LocalParticle_get_charge_ratio(part) \
-                / LocalParticle_get_chi(part) / LocalParticle_get_rpp(part); 
     MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN1_SCALE) * MCS_AVERAGE_MOMENTUM / pc);
     MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / pc);
 }
-
 
 /*gpufun*/
 double MultipleCoulombTrajectory_get_normalised_omega(MultipleCoulombTrajectory traj, double lambda){

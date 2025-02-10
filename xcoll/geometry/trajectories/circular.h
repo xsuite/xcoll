@@ -10,13 +10,26 @@
 #include <math.h>
 
 
+// /*gpufun*/
+// double CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
+//                                         LocalParticle part){
+//     CircularTrajectory_set_sR(traj, sR);
+//     CircularTrajectory_set_xR(traj, xR);
+//     double s0 = LocalParticle_get_s(part);
+//     double x0 = LocalParticle_get_x(part);
+//     double R = sqrt((s0-sR)*(s0-sR) + (x0-xR)*(x0-xR));
+//     CircularTrajectory_set_R(traj, R);
+//     CircularTrajectory_set_sin_tI(traj, (x0-xR)/R);
+//     CircularTrajectory_set_cos_tI(traj, (s0-sR)/R);
+//     CircularTrajectory_set_tan_tI(traj, (x0-xR)/(s0-sR));
+// }
+
+
 /*gpufun*/
 double CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
-                                        LocalParticle part){
+                                     double s0, double x0){
     CircularTrajectory_set_sR(traj, sR);
     CircularTrajectory_set_xR(traj, xR);
-    double s0 = LocalParticle_get_s(part);
-    double x0 = LocalParticle_get_x(part);
     double R = sqrt((s0-sR)*(s0-sR) + (x0-xR)*(x0-xR));
     CircularTrajectory_set_R(traj, R);
     CircularTrajectory_set_sin_tI(traj, (x0-xR)/R);

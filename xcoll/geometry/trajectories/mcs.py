@@ -8,7 +8,6 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
 
 
 class MultipleCoulombTrajectory(xo.Struct):
@@ -27,6 +26,8 @@ class MultipleCoulombTrajectory(xo.Struct):
 
     where X0 is the material's radiation length, and q, 𝛽, and pc are the particle's charge,
     relativistic 𝛽, and momentum.
+
+    In practice, we do not provide 𝜃0 but xp = tan(𝜃0).
     """
 
     s0 = xo.Float64
@@ -38,8 +39,44 @@ class MultipleCoulombTrajectory(xo.Struct):
     A0 = xo.Float64   # (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
     B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (pc)
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'mcs.h']
+
+    _kernels = {'set_params': xo.Kernel(
+                                c_name='MultipleCoulombTrajectory_set_params',
+                                args=[xo.Arg(xo.ThisClass, name="traj"),
+                                      xo.Arg(xo.Float64, name="sR"),
+                                      xo.Arg(xo.Float64, name="X0"),
+                                      xo.Arg(xo.Float64, name="ran_1"),
+                                      xo.Arg(xo.Float64, name="ran_2"),
+                                      xo.Arg(xo.Float64, name="s0"),
+                                      xo.Arg(xo.Float64, name="x0"),
+                                      xo.Arg(xo.Float64, name="xp"),
+                                      xo.Arg(xo.Float64, name="pc"),
+                                      xo.Arg(xo.Float64, name="beta"),
+                                      xo.Arg(xo.Float64, name="q")],
+                                ret=xo.Float64)}
+
+    def __init__(self, *args, **kwargs):
+        to_assign = {}
+        if 'xp' in kwargs:
+            to_assign['xp'] = kwargs.pop('xp')
+        super().__init__(*args, **kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+
+    def __str__(self):
+        return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp}, " \
+             + f"q={self.q}, beta={self.beta}, pc= {self.pc}, X0={self.X0}, xi={self.xi})"
+
+    @property
+    def xp(self):
+        return self.round(np.arctan2(self.tan_t0))
+
+    @xp.setter
+    def xp(self, val):
+        self.tan_t0 = val
+        self.sin_t0 = np.sin(self.xp)
+        self.cos_t0 = np.cos(self.xp)
 
 #     args_hv = [
 #             # The arguments that define the particle trajectory, common to both planes

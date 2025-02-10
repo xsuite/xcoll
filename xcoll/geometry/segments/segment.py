@@ -22,21 +22,21 @@ all_segments = (LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment
 class LocalSegment(xo.UnionRef):
     """General segment, acting as a xobject-style parent class for all segment types"""
     _reftypes = all_segments
-    _methods = [xo.Method(
-                    c_name=f"func",
-                    args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x"))
-                for tra in all_trajectories] + [
-                xo.Method(
-                    c_name=f"deriv",
-                    args=[xo.Arg(xo.Float64, name="s")],
-                    ret=xo.Arg(xo.Float64, name="x"))
-                for tra in all_trajectories] + [
-                xo.Method(
-                    c_name=f"crossing_{tra.name}",
-                    args=[*args_cross_h, *tra.args_hv, *tra.args_h],
-                    ret=None)
-                for tra in all_trajectories]
+    # _methods = [xo.Method(
+    #                 c_name=f"func",
+    #                 args=[xo.Arg(xo.Float64, name="s")],
+    #                 ret=xo.Arg(xo.Float64, name="x"))
+    #             for tra in all_trajectories] + [
+    #             xo.Method(
+    #                 c_name=f"deriv",
+    #                 args=[xo.Arg(xo.Float64, name="s")],
+    #                 ret=xo.Arg(xo.Float64, name="x"))
+    #             for tra in all_trajectories] + [
+    #             xo.Method(
+    #                 c_name=f"crossing_{tra.name}",
+    #                 args=[*args_cross_h, *tra.args_hv, *tra.args_h],
+    #                 ret=None)
+    #             for tra in all_trajectories]
 
     def __init__(self, *args, **kwargs):
         raise ValueError("LocalSegment is an abstract class and should not be instantiated")
@@ -57,23 +57,23 @@ class LocalSegment(xo.UnionRef):
 
 
 # Sanity check to assert all segment types have crossing functions for all trajectories
-def assert_localsegment_sources(seg):
-    for tra in all_trajectories:
-        header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
-               + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
-        header_found = False
-        for src in seg._extra_c_sources:
-            if isinstance(src, str):
-                if header in src:
-                    header_found = True
-                    break
-            else:
-                with open(src) as f:
-                    if header in f.read():
-                        header_found = True
-                        break
-        if not header_found:
-            raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
+# def assert_localsegment_sources(seg):
+#     for tra in all_trajectories:
+#         header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
+#                + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
+#         header_found = False
+#         for src in seg._extra_c_sources:
+#             if isinstance(src, str):
+#                 if header in src:
+#                     header_found = True
+#                     break
+#             else:
+#                 with open(src) as f:
+#                     if header in f.read():
+#                         header_found = True
+#                         break
+#         if not header_found:
+#             raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
 
 
 for seg in all_segments:
@@ -162,6 +162,7 @@ for seg in all_segments:
     seg.is_connected_to = is_connected_to
     seg.translate = translate
     seg.rotate = rotate
+    seg.name = seg.__name__.lower()[:-7]
 
 
 # Add some missing docstrings
