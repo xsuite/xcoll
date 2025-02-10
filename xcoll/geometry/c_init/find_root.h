@@ -58,99 +58,106 @@
 
 // // --------------------------------------------------------------------------------------------
 
-// so this struct is not needed as the parameters will come from traj and seg. 
+// Dont actually need this, just to make it easier to read. l and t need to be passed. 
 typedef struct {
     double s0;
     double x0;
     double theta;
     double s1;
     double x1;
-    // double R;
-    // double theta;
     double s2;
     double x2;
+    double l;
+    double t;
 } Params;
 
 
-double F_G(double t, Params* p){
+void F_G(double FG[2], Params* p){
     // return p->x1 + p->R*sin(t) - p->x0-(p->s1 - p->s0 + p->R*cos(t))*tan(p->theta);
-    return (1-t)*p->x1+t*p->x2 - p->x0-((1-t)*p->s1+t*p->s2 - p->s0)*tan(p->theta);
+    printf("The t and l are,t = %f, l = %f\n", p->t, p->l);
+    FG[0] = (1-p->t)*p->s1+p->t*p->s2 - (p->s0+p->l*cos(p->theta));
+    FG[1] = (1-p->t)*p->x1+p->t*p->x2 - (p->x0+p->l*sin(p->theta));
+    // Here we get the expr from segment and traj, and we connect them to create F1 and F2
+    // F1 = sS(t) - sT(l) 
+    // F2 = xS(t) - xT(l)
+
+
+    // double sS = (1-p->t)*p->s1+p->t*p->s2;
+    // double sT = (p->s0+p->l*cos(p->theta));
+    // double xS =  (1-p->t)*p->x1+p->t*p->x2;
+    // double xT = (p->x0+p->l*sin(p->theta));
+    // printf("The functions are, sS = %f, sT = %f\n", sS, sT);
+    // printf("The functions are, xS = %f, xT = %f\n", xS, xT);
+    // printf("The functions are, f1 = %f, f2 = %f\n", FG[0], FG[1]);
+    // return (1-t)*p->x1+t*p->x2 - p->x0-((1-t)*p->s1+t*p->s2 - p->s0)*tan(p->theta);
 }
 
-double deriv_FG(double t, Params* p){
-    // return p->R*cos(t) + p->R*sin(t)*tan(p->theta);
-    return -p->x1+p->x2 + (p->s1-p->s2)*tan(p->theta);
-}
-
-double newton(double (*F_G)(double,Params*),double (*deriv_FG)(double,Params*), 
-             double guess_t, Params* p) {
-    for (int i = 0; i < 5000; i++) {
-        double f = F_G(guess_t, p);
-        double f_prime = deriv_FG(guess_t, p);
-        if (fabs(f_prime) < 1e-10){
-            return guess_t;
-        } 
-        double guess_new = guess_t - f / f_prime;
-        if (fabs(guess_new - guess_t) < 1e-14){
-            return guess_new;
-        }
-        guess_t = guess_new;
+void get_inv_J(double J_inv[2][2], int8_t* no_crossing, Params* p){
+    double J[2][2];
+    // get derivatives
+    J[0][0] = -p->s1 + p->s2; // get deriv. sS
+    J[0][1] = -cos(p->theta); // get deriv. sT
+    J[1][0] = -p->x1 + p->x2; // get deriv. xS
+    J[1][1] = -sin(p->theta); // get deriv. xT
+    
+    // printf("Jacobian matrix:\n");
+    // printf("[ %f, %f ]\n", J[0][0], J[0][1]);
+    // printf("[ %f, %f ]\n", J[1][0], J[1][1]);
+    double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
+    if (det < XC_NEWTON_DERIVATIVE_TOL){
+        printf("Determinant = 0! There is no crossing. \n");
+        *no_crossing = 1;
+        return;
     }
-    return guess_t;
+    J_inv[0][0] =  J[1][1] / det;
+    J_inv[0][1] = -J[0][1] / det;
+    J_inv[1][0] = -J[1][0] / det;
+    J_inv[1][1] =  J[0][0] / det;
 }
 
-void grid_search_and_newton(double (*F_G)(double,Params*), double (*deriv_FG)(double,Params*), double t_min, double t_max, double* roots, double max_crossings, int8_t* number_of_roots, Params* p) {
-    /// Find the intervals where the function changes sign within the range [s_min, s_max]
-    //  in which later Newton's method can be applied to find the root(s) for each interval
-    double grid_step = (t_max - t_min) / 1000;
-    int interval_count = 0;
+// needs rewrite but works
+void newton(double guess_t, double guess_l, Params* p) {
+    double J_inv[2][2];
+    double FG[2];
+    p->l = guess_l;
+    p->t = guess_t;
+    int8_t* no_crossing = 0;
 
-    double prev_t   = t_min;
-    double prev_val = F_G(prev_t, p);
+    for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
+        F_G(FG, p);
+        get_inv_J(J_inv, no_crossing, p); 
+        if (no_crossing){
 
-    for (int i = 1; i <= 5000 - 1; i++) {
-        if (interval_count >= max_crossings) break; // you cannot have more intervals than roots
-        double curr_t = t_min + i * grid_step;
-        double curr_val = F_G(curr_t, p);
-        if (prev_val * curr_val < 0) {
-            double initial_guess = 0.5 * (prev_t + curr_t);      // initial guess is midpoint
-            roots[interval_count] = newton(F_G,deriv_FG, initial_guess, p);
-            interval_count++;
+            return;
         }
-        prev_t = curr_t;
-        prev_val = curr_val;
+        double new_t = p->t - (J_inv[0][0]*FG[0] + J_inv[0][1]*FG[1]);
+        double new_l = p->l - (J_inv[1][0]*FG[0] + J_inv[1][1]*FG[1]);
+
+    // Check for convergence
+        if ((fabs(new_t -  p->t) < XC_NEWTON_DERIVATIVE_TOL) && (fabs(new_l - p->l) < XC_NEWTON_DERIVATIVE_TOL)){
+            return;
+        }
+        // Update the guesses for the next iteration
+        p->t = new_t;  // Keep p->t updated
+        p->l = new_l;  // Keep p->l updated
     }
-    *number_of_roots = interval_count;
 }
 
-// // for testing
-// int main(){
-//     double s0 = 0.0;
-//     double x0 = 1.5;
+// int main() {
+//     double s0 = 1.5;
+//     double x0 = 0.0;
+//     double theta = 20.0*M_PI/180.0;
 //     double s1 = 1.0;
-//     double x1 = -1.0;
-//     double s2 = 2.0;
-//     double x2 = 2.0;
-//     // double R = 3.0;
-//     double theta = 20.0*3.14/180.0;
-//     Params params = {s0, x0, theta, s1, x1, s2, x2};
-//     double roots[1];
-// //     // Define roots array and parameters
-// //     Params_Line params = {Xo, *Ax, x2, s2, x1, s1};
-// //     double roots[XC_LINE_CROSSINGS];
-//     int8_t number_of_roots = 0;
-//     grid_search_and_newton(F_G,deriv_FG, -3, 3, roots, 2, &number_of_roots, &params);
-
-//     for (int i = 0; i < 1; ++i) {
-//         if (roots[i] >= -3 && roots[i] <= 3) {
-//             printf("The root t is %f\n", roots[i]);
-//             printf("the other root g(t) is %f\n", ((1-roots[i])*s1+roots[i]*s2-s0)/cos(theta));
-//             printf("xS: %f\n", (1-roots[i])*x1 + roots[i]*x2);
-//             printf("xT: %f\n", x0 +sin(theta)*((1-roots[i])*s1+roots[i]*s2-s0)/cos(theta));
-//             printf("sS: %f\n", (1-roots[i])*s1 + roots[i]*s2);
-//             printf("sT: %f\n", s0 +((1-roots[i])*s1+roots[i]*s2-s0));
-//         }
-//     }
+//     double x1 =-1.0;
+//     double s2 =2.0;
+//     double x2 =2.0;
+//     double l = -1.0;
+//     double t = -1.0;
+//     Params p = {s0, x0, theta, s1, x1, s2, x2, l, t};
+//     double guess_t = 0.5;
+//     double guess_l = 0.5;
+//     newton(&guess_t, &guess_l, &p);
+//     return 0;
 // }
 
 #endif /* XCOLL_GEOM_FIND_ROOT_H */
