@@ -31,31 +31,31 @@ double DriftTrajectory_set_params(DriftTrajectory traj, double s0, double x0, do
 }
 
 /*gpufun*/
-double DriftTrajectory_func_s(DriftTrajectory traj, double lambda){
+double DriftTrajectory_func_s(DriftTrajectory traj, double l){
     double s0 = DriftTrajectory_get_s0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
-    return s0 + lambda*cos_t0;
+    return s0 + l*cos_t0;
 }
 
 /*gpufun*/
-double DriftTrajectory_func_x(DriftTrajectory traj, double lambda){
+double DriftTrajectory_func_x(DriftTrajectory traj, double l){
     double x0 = DriftTrajectory_get_x0(traj);
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
-    return x0 + lambda*sin_t0;
+    return x0 + l*sin_t0;
 }
 
 /*gpufun*/
-double DriftTrajectory_func_xp(DriftTrajectory traj, double lambda){
+double DriftTrajectory_func_xp(DriftTrajectory traj, double l){
     return DriftTrajectory_get_tan_t0(traj);
 }
 
 /*gpufun*/
-double DriftTrajectory_deriv_s(DriftTrajectory traj, double lambda){
+double DriftTrajectory_deriv_s(DriftTrajectory traj, double l){
     return DriftTrajectory_get_cos_t0(traj);
 }
 
 /*gpufun*/
-double DriftTrajectory_deriv_x(DriftTrajectory traj, double lambda){
+double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
     return DriftTrajectory_get_sin_t0(traj);
 }
 
