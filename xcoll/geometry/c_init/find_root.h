@@ -58,54 +58,25 @@
 
 // // --------------------------------------------------------------------------------------------
 
-// Dont actually need this, just to make it easier to read. l and t need to be passed. 
-typedef struct {
-    double s0;
-    double x0;
-    double theta;
-    double s1;
-    double x1;
-    double s2;
-    double x2;
-    double l;
-    double t;
-} Params;
-
-
-void F_G(double FG[2], Params* p){
-    // return p->x1 + p->R*sin(t) - p->x0-(p->s1 - p->s0 + p->R*cos(t))*tan(p->theta);
-    printf("The t and l are,t = %f, l = %f\n", p->t, p->l);
-    FG[0] = (1-p->t)*p->s1+p->t*p->s2 - (p->s0+p->l*cos(p->theta));
-    FG[1] = (1-p->t)*p->x1+p->t*p->x2 - (p->x0+p->l*sin(p->theta));
+void F_G(LocalTrajectory traj, LocalSegment seg, double FG[2], double l, double t){
     // Here we get the expr from segment and traj, and we connect them to create F1 and F2
     // F1 = sS(t) - sT(l) 
     // F2 = xS(t) - xT(l)
-
-
-    // double sS = (1-p->t)*p->s1+p->t*p->s2;
-    // double sT = (p->s0+p->l*cos(p->theta));
-    // double xS =  (1-p->t)*p->x1+p->t*p->x2;
-    // double xT = (p->x0+p->l*sin(p->theta));
-    // printf("The functions are, sS = %f, sT = %f\n", sS, sT);
-    // printf("The functions are, xS = %f, xT = %f\n", xS, xT);
-    // printf("The functions are, f1 = %f, f2 = %f\n", FG[0], FG[1]);
-    // return (1-t)*p->x1+t*p->x2 - p->x0-((1-t)*p->s1+t*p->s2 - p->s0)*tan(p->theta);
+    FG[0] = LocalSegment_func_s(seg, t) - LocalTrajectory_func_s(traj, l);
+    FG[1] = LocalSegment_func_x(seg, t) - LocalTrajectory_func_x(traj, l);
 }
 
-void get_inv_J(double J_inv[2][2], int8_t* no_crossing, Params* p){
+void get_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], int8_t* no_crossing, double l, double t){
     double J[2][2];
     // get derivatives
-    J[0][0] = -p->s1 + p->s2; // get deriv. sS
-    J[0][1] = -cos(p->theta); // get deriv. sT
-    J[1][0] = -p->x1 + p->x2; // get deriv. xS
-    J[1][1] = -sin(p->theta); // get deriv. xT
+    J[0][0] = LocalSegment_deriv_s(seg, t);     // get deriv. dsS/dt LocalSegment_deriv_s 
+    J[0][1] = -LocalTrajectory_deriv_s(traj,l); // get deriv. dsT/dl LocalTrajectory_deriv_s
+    J[1][0] = LocalSegment_deriv_x(seg, t);     // get deriv. dxS/dt LocalSegment_deriv_x
+    J[1][1] = -LocalTrajectory_deriv_x(traj,l); // get deriv. dxT/dl LocalTrajectory_deriv_x
     
-    // printf("Jacobian matrix:\n");
-    // printf("[ %f, %f ]\n", J[0][0], J[0][1]);
-    // printf("[ %f, %f ]\n", J[1][0], J[1][1]);
     double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
     if (det < XC_NEWTON_DERIVATIVE_TOL){
-        printf("Determinant = 0! There is no crossing. \n");
+        printf("There is no crossing. \n");
         *no_crossing = 1;
         return;
     }
@@ -115,33 +86,86 @@ void get_inv_J(double J_inv[2][2], int8_t* no_crossing, Params* p){
     J_inv[1][1] =  J[0][0] / det;
 }
 
-// needs rewrite but works
-void newton(double guess_t, double guess_l, Params* p) {
+double newton(LocalTrajectory traj, LocalSegment seg, double* t, double* l, int8_t* no_crossing) {
     double J_inv[2][2];
     double FG[2];
-    p->l = guess_l;
-    p->t = guess_t;
-    int8_t* no_crossing = 0;
+    
 
     for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
-        F_G(FG, p);
-        get_inv_J(J_inv, no_crossing, p); 
+        F_G(traj, seg, FG, *l, *t);
+        get_inv_J(traj, seg, J_inv, no_crossing, *l, *t);
         if (no_crossing){
-
-            return;
+            return; 
         }
-        double new_t = p->t - (J_inv[0][0]*FG[0] + J_inv[0][1]*FG[1]);
-        double new_l = p->l - (J_inv[1][0]*FG[0] + J_inv[1][1]*FG[1]);
+        double new_t = *t - (J_inv[0][0]*FG[0] + J_inv[0][1]*FG[1]);
+        double new_l = *l - (J_inv[1][0]*FG[0] + J_inv[1][1]*FG[1]);
 
     // Check for convergence
-        if ((fabs(new_t -  p->t) < XC_NEWTON_DERIVATIVE_TOL) && (fabs(new_l - p->l) < XC_NEWTON_DERIVATIVE_TOL)){
+        if ((fabs(new_t -  *t) < XC_NEWTON_DERIVATIVE_TOL) && (fabs(new_l - *l) < XC_NEWTON_DERIVATIVE_TOL)){
             return;
         }
         // Update the guesses for the next iteration
-        p->t = new_t;  // Keep p->t updated
-        p->l = new_l;  // Keep p->l updated
+        *t = new_t;  // Keep *t updated
+        *l = new_l;  // Keep *l updated
     }
 }
+
+void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg, double* l, double* t, double t_min, 
+                            double t_max, double l_min, double l_max, double* roots_t, double* roots_l, 
+                            int max_crossings, int* number_of_roots) {
+    double grid_step_t = (t_max - t_min) / 100;  // this is just for now. We need to get interval for t and l.
+    double grid_step_l = (l_max - l_min) / 100;
+    double FG_prev[2];
+    double FG_curr[2]; 
+    int interval_count = 0;
+    double prev_t = t_min;  
+    double prev_l = l_min;
+    double curr_t;
+    double curr_l;
+    int8_t* no_crossing = 0;
+    
+    F_G(traj, seg, FG_prev, prev_t, prev_l);
+
+    for (double t_step = t_min; t_step <= t_max; t_step += grid_step_t) {
+        for (double l_step = l_min; l_step <= l_max; l_step += grid_step_l) {
+            if (interval_count >= max_crossings) {
+                return;                                // you cannot have more intervals than roots
+            }
+            curr_t = t_min + t_step;
+            curr_l = l_min + l_step;
+            F_G(traj, seg, FG_curr, curr_t, curr_l);
+            
+            if ((FG_prev[0] * FG_curr[0] < 0) || (FG_prev[1] * FG_curr[1] < 0)) {
+                double initial_guess_t = 0.5*(curr_t - prev_t);
+                double initial_guess_l = 0.5*(curr_l - prev_l);
+                newton(traj, seg, &initial_guess_t, &initial_guess_l, no_crossing);
+                if (no_crossing){
+                    printf("No crossing found with Newton's method. \n");
+                } else{
+                    roots_t[interval_count] = initial_guess_t;
+                    roots_l[interval_count] = initial_guess_l;
+                    interval_count++;
+                }
+            }
+        }
+    }
+}
+
+//  double prev_s   = s_min;
+//     double prev_val = LocalTrajectory_func(traj, prev_s) - LocalSegment_func(seg, prev_s);
+
+//     for (int i = 1; i <= XC_GRID_POINTS - 1; i++) {
+//         if (interval_count >= max_crossings) break; // you cannot have more intervals than roots
+//         double curr_s = s_min + i * grid_step;
+//         double curr_val = LocalTrajectory_func(traj, curr_s) - LocalSegment_func(seg, curr_s);
+//         if (prev_val * curr_val < 0) {
+//             double initial_guess = 0.5 * (prev_s + curr_s);      // initial guess is midpoint
+//             roots[interval_count] = newton(traj, seg, initial_guess);
+//             interval_count++;
+//         }
+//         prev_s = curr_s;
+//         prev_val = curr_val;
+
 
 // int main() {
 //     double s0 = 1.5;
