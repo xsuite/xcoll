@@ -86,27 +86,27 @@ void get_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], int8_
     J_inv[1][1] =  J[0][0] / det;
 }
 
-double newton(LocalTrajectory traj, LocalSegment seg, double* t, double* l, int8_t* no_crossing) {
+void newton(LocalTrajectory traj, LocalSegment seg, double* guess_t, double* guess_l, int8_t* no_crossing) {
     double J_inv[2][2];
     double FG[2];
     
 
     for (int i = 0; i < XC_NEWTON_MAX_ITER; i++) {
-        F_G(traj, seg, FG, *l, *t);
-        get_inv_J(traj, seg, J_inv, no_crossing, *l, *t);
+        F_G(traj, seg, FG, *guess_l, *guess_t);
+        get_inv_J(traj, seg, J_inv, no_crossing, *guess_l, *guess_t);
         if (no_crossing){
             return; 
         }
-        double new_t = *t - (J_inv[0][0]*FG[0] + J_inv[0][1]*FG[1]);
-        double new_l = *l - (J_inv[1][0]*FG[0] + J_inv[1][1]*FG[1]);
+        double new_t = *guess_t - (J_inv[0][0]*FG[0] + J_inv[0][1]*FG[1]);
+        double new_l = *guess_l - (J_inv[1][0]*FG[0] + J_inv[1][1]*FG[1]);
 
     // Check for convergence
-        if ((fabs(new_t -  *t) < XC_NEWTON_DERIVATIVE_TOL) && (fabs(new_l - *l) < XC_NEWTON_DERIVATIVE_TOL)){
+        if ((fabs(new_t -  *guess_t) < XC_NEWTON_DERIVATIVE_TOL) && (fabs(new_l - *guess_l) < XC_NEWTON_DERIVATIVE_TOL)){
             return;
         }
         // Update the guesses for the next iteration
-        *t = new_t;  // Keep *t updated
-        *l = new_l;  // Keep *l updated
+        *guess_t = new_t;  // Keep *t updated
+        *guess_l = new_l;  // Keep *l updated
     }
 }
 
