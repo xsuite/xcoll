@@ -2,9 +2,9 @@
 #include <cstring>
 #include <cmath>
 #include <BDSSamplerCustom.hh>
-#include <getopt.h>
-#include <BDSGlobalConstants.hh>
-
+#include <iostream>
+#include <vector>
+#include <string>
 
 BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
                                                   double kineticEnergyIn, double ionChargeIn)
@@ -56,7 +56,6 @@ BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double 
     return particleDefinition;
 }
 
-
 XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
                                  long long int       referencePdgIdIn,
                                  double              referenceEkIn,
@@ -70,15 +69,21 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     stp = new BDSBunchSixTrackLink();
     bds = new BDSIMLink(stp);
 
+	for (char* arg : argv) {
+		free(arg);  // Free dynamically allocated memory
+	}
+	argv.clear();  // Clear the vector
+
+
     std::string seedStr = std::to_string(seed);
-    std::vector<std::string> arguments = {"bdsim", // First cli argument is ignored
+    std::vector<std::string> arguments = {"--verbose",
                                           "--file=" + bdsimConfigFile,
+                                          //"--file=" + bdsimConfigFile,
                                           //"--vis_debug",
                                           "--output=none",
                                           "--seed=" + seedStr,
                                           "--outfile=output_" + seedStr};
-    optind = 1; // Global variable from getopt.h - need to reset it to 1 every time the interface is initialised
-                // as in principle options are meant to be parsed once only (and hence have state)
+
     for(auto & argument : arguments)
     {
         argv.push_back(strdup(argument.c_str()));
@@ -87,7 +92,12 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     {
         std::string batch_flag = "--batch";
         argv.push_back(strdup(batch_flag.c_str()));
+        argv.push_back(strdup(batch_flag.c_str()));
+        argv.push_back(strdup(batch_flag.c_str()));
+        argv.push_back(strdup(batch_flag.c_str()));
+        argv.push_back(strdup(batch_flag.c_str()));
     }
+    // argv.push_back(nullptr);
 
     double referenceEk = referenceEkIn * CLHEP::GeV;
 
@@ -98,6 +108,21 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     double minimumEK = relEKCut * (referenceEk);
 
     G4cout << "Minimum kinetic energy " << minimumEK << " MeV" << G4endl;
+    auto data = argv.data();
+
+	// Print arguments
+	std::cout << "Initialise called with arguments: " << std::endl;
+	std::cout << "hejsan" << std::endl;
+	std::cout << "argc: " << argv.size() - 1 << std::endl;
+	for (size_t i = 0; i < argv.size(); i++) {
+		std::cout << "argv[" << i << "]: " << argv[i] << std::endl;
+	}
+	G4cout << "minimumEK / CLHEP::GeV: " << minimumEK / CLHEP::GeV << G4endl;
+	std::cout.flush();
+	std::cout << "hejsan" << std::endl;
+	std::cout << "hejsan" << std::endl;
+	std::cout.flush();
+
     try
     { bds->Initialise(argv.size(), &argv[0], true, minimumEK / CLHEP::GeV, false); } // minimumEk in GeV
     catch (const std::exception &e)
@@ -113,9 +138,17 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 
 XtrackInterface::~XtrackInterface()
 {
-    delete stp;
-    delete bds;
 
+	// Clean up dynamically allocated memory in argv
+	for (char* arg : argv) {
+		free(arg);
+	}
+	argv.clear();  // Clear the vector
+    //std::system("reset"); // spawn new c++ process
+    //std::cout << "reset" << std::endl;
+	// Clean up other resources
+    delete bds;
+    delete stp;
     delete refParticleDefinition;
 }
 
@@ -197,6 +230,17 @@ void XtrackInterface::addParticle(double xIn,
     G4double xp = px / oneplusdelta;
     G4double yp = py / oneplusdelta;
 
+    // Check if xp or yp is greater than pi
+    if (std::abs(xp) > 0.49 || std::abs(yp) > 0.49) {
+        std::cout << "xp: " << xp << std::endl;
+        std::cout << "yp: " << yp << std::endl;
+        std::cout << "px: " << px << std::endl;
+        std::cout << "py: " << py << std::endl;
+        std::cout << "oneplusdelta: " << oneplusdelta << std::endl;
+        xp = 0.49;
+        yp = 0.49;
+    }
+
     // Zp0 is 1 as here we assume no back-scatterd particles, e.g p>0
     G4double zp = BDSBunch::CalculateZp(xp, yp, 1);
 
@@ -216,7 +260,7 @@ void XtrackInterface::addParticle(double xIn,
 
 
 void XtrackInterface::addParticles(const py::list& coordinates)
-{   
+{
     //TODO get the charge and mass ratios
     // Obtain the arrays from the list and cast them to the correct array type
     py::array_t<double> x = py::cast<py::array>(coordinates[0]);
@@ -459,7 +503,8 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
     }
 
     // The output arrays has slots for all primary particles, regardless if lost or not, and for secondary particles
-    size_t output_size = secondaryCount;
+    // size_t output_size = secondaryCount;
+    size_t output_size = x.size();
 
     // TODO: this is mostly default buffers, so there are probably simpler constructors to use
     // Prepare the numpy array that will be returned
@@ -619,15 +664,40 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
     auto *massratio_prod_ptr = (double *) massratio_prod_buf.ptr;
     auto *chargeratio_prod_ptr = (double *) chargeratio_prod_buf.ptr;
 
+    long n = 1;
+    for (auto r: x_buff.shape) {
+        n *= r;
+    }
+
+    for (int i=0; i<n; i++) {
+        x_prod_ptr[i] = x_ptr[i];
+        y_prod_ptr[i] = y_ptr[i];
+        px_prod_ptr[i] = px_ptr[i];
+        py_prod_ptr[i] = py_ptr[i];
+        zeta_prod_ptr[i] = zeta_ptr[i];
+        delta_prod_ptr[i] = delta_ptr[i];
+        s_prod_ptr[i] = s_ptr[i];
+        pdgid_prod_ptr[i] = pdgid_ptr[i];
+        trackid_prod_ptr[i] = trackid_ptr[i];
+        state_prod_ptr[i] = state_ptr[i];
+
+        at_element_prod_ptr[i] = at_element_ptr[i];
+        at_turn_prod_ptr[i] = at_turn_ptr[i];
+        massratio_prod_ptr[i] = charge_ratio_ptr[i]/chi_ptr[i];
+        chargeratio_prod_ptr[i] = charge_ratio_ptr[i];
+    }
+
     // Loop through the particles in the *original* bunch - the primaries
     size_t hits_index = 0;
     bool prim_survied = false;
     // double sum_deltaplusone_sec = 0.0;
     double sum_secondary_energy = 0.0;
 
-    size_t prod_write_index = 0;
-
+    size_t prod_write_index = particleActiveState.size();
     for (size_t i=0; i < particleActiveState.size(); i++){
+
+
+
         if (!particleActiveState.at(i)){
             continue; // This was an inactive particle that hasn't been processed, do not change it
         }
@@ -673,15 +743,22 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
                 // This is a primary particle as its parent is itself
                 prim_survied = true;
 
-                x_ptr[i] = coords.x / CLHEP::m;
-                y_ptr[i] = coords.y / CLHEP::m;
-                px_ptr[i] = coords.xp * oneplusdelta; // convert back to px proper
-                py_ptr[i] = coords.yp * oneplusdelta;
-                zeta_ptr[i] = zt / CLHEP::m;
-                delta_ptr[i] = dp;
-                s_ptr[i] = xtrack_part->s + collLength / CLHEP::m;
+                x_prod_ptr[i] = coords.x / CLHEP::m;
+                y_prod_ptr[i] = coords.y / CLHEP::m;
+                px_prod_ptr[i] = coords.xp * oneplusdelta; // convert back to px proper
+                py_prod_ptr[i] = coords.yp * oneplusdelta;
+                zeta_prod_ptr[i] = zt / CLHEP::m;
+                delta_prod_ptr[i] = dp;
+                s_prod_ptr[i] = xtrack_part->s + collLength / CLHEP::m;
+                pdgid_prod_ptr[i] = pdg_id;
                 //trackid_ptr[i] = track_id; // Don't touch the primary particle id
-                state_ptr[i] = 1; // active
+                trackid_prod_ptr[i] = track_id;
+                state_prod_ptr[i] = 1; // active
+
+                at_element_prod_ptr[i] = xtrack_part->at_element; // active
+                at_turn_prod_ptr[i] = xtrack_part->at_turn; // active
+                massratio_prod_ptr[i] = mratio;
+                chargeratio_prod_ptr[i] = qratio;
             }
             else
             {
@@ -710,7 +787,7 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
 
         if (!prim_survied) // Primary didn't survive - set inactive
         {
-            state_ptr[i] = -333; // inactive
+            state_prod_ptr[i] = -333; // inactive
 
             // Correct the energy of the lost primary particle to account for the production of secondaries
             // The effective delta is such that the lost particle has the effective delta
@@ -729,7 +806,7 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
             G4double squared_energy_mass_diff = std::pow(energy_diff, 2) - std::pow(mass_prim, 2);
             if (squared_energy_mass_diff < 0){
                 // This means that the total energy escaping includes part of the rest mass of 
-                // the primary. Tolerate the error for now, as otherwise need to adjust also the 
+                // the primary. Tolerate the error for now, as otherwise need to adjust also the
                 // mass and PDG id of the lost primary particle
                 p_eff = 0;
             }
@@ -738,7 +815,7 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
                 p_eff = std::sqrt(squared_energy_mass_diff);
             }
             G4double delta_eff = (p_eff / mass_ratio_prim - refParticleDefinition->Momentum()) / refParticleDefinition->Momentum();
-            delta_ptr[i] = delta_eff;
+            delta_prod_ptr[i] = delta_eff;
         }
         prim_survied = false; // reset for next particle
         sum_secondary_energy = 0.0;
@@ -759,6 +836,7 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
     result["mass_ratio"] = massratio_out;
     result["charge_ratio"] = chargeratio_out;
     result["parent_particle_id"] = trackid_out;
+    result["state"] = state_out;
 
     return result;
 }
