@@ -129,7 +129,7 @@ class Geant4Engine(xo.HybridClass):
         import rpyc
         port = get_open_port()
         this.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
-        time.sleep(5) # ping to check when open
+        time.sleep(0.1) # ping to check when open
         this.conn = rpyc.classic.connect('localhost', port=port)
         this.conn.execute('import sys')
         this.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')

@@ -40,6 +40,8 @@ class BDSIMServer:
                    particles_pdg_id,particles_particle_id, particles_state,
                    particles_at_element, particles_at_turn]
         self.g4link.addParticles(coordinates)
+    def addParticles2(self, coordinates):
+        self.g4link.addParticles(list(coordinates))
 
     def collimateReturn(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                         particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
@@ -47,7 +49,7 @@ class BDSIMServer:
                         secondaries_y,secondaries_px,secondaries_py,secondaries_zeta,
                         secondaries_delta,secondaries_charge_ratio,secondaries_s,
                         secondaries_pdg_id,secondaries_parent_particle_id,secondaries_at_element,
-                        secondaries_at_turn,secondaries_mass_ratio):
+                        secondaries_at_turn,secondaries_mass_ratio,secondaries_state):
         coordinates = [particles_x, particles_y, particles_px, particles_py,
                        particles_zeta, delta_temp, particles_chi,
                        particles_charge_ratio, particles_s,
@@ -80,7 +82,8 @@ class BDSIMServer:
             secondaries_at_turn[i] = x
         for i,x in enumerate(products['mass_ratio']):
             secondaries_mass_ratio[i] = x
-
+        for i,x in enumerate(products['state']):
+            secondaries_state[i] = x
         #return products
 
     def selectCollimator(self,geant4_id):
