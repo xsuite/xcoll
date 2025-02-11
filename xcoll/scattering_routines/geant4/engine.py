@@ -76,9 +76,6 @@ class Geant4Engine(xo.HybridClass):
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
-        # TODO: the original Geant4 coupling had -11 for electrons and 11 for positrons. This is wrong. Was this an error in the original code, or is this wrong in BDSIM?
-        if abs(pdg_id) == 11:
-            pdg_id = -pdg_id
 
         if seed is None:
             if this._seed is None:
