@@ -78,7 +78,6 @@ class XcollCollimatorAPI:
 
         # Verify elements
         for el in elements:
-            print(el.__class__)
             assert isinstance(el, block_classes)
             el._tracking = False
 

@@ -10,10 +10,10 @@
 #define  XC_LOST_ON_EVEREST_COLL    -331
 #define  XC_LOST_ON_EVEREST_CRYSTAL -332
 #define  XC_LOST_ON_FLUKA_BLOCK     -333
-#define  XC_LOST_ON_FLUKA           -334
+#define  XC_LOST_ON_FLUKA_COLL      -334
 #define  XC_LOST_ON_FLUKA_CRYSTAL   -335
 #define  XC_LOST_ON_GEANT4_BLOCK    -336
-#define  XC_LOST_ON_GEANT4          -337
+#define  XC_LOST_ON_GEANT4_COLL     -337
 #define  XC_LOST_ON_GEANT4_CRYSTAL  -338
 #define  XC_LOST_ON_K2              -339
 #define  XC_LOST_ON_ABSORBER        -340
