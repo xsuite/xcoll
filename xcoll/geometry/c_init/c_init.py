@@ -66,6 +66,7 @@ class PyMethod:
         kernel = context.kernels[self.kernel_name]
         if self.element_name:
             kwargs[self.element_name] = instance
+        print(f"In kernel call : {kwargs}")
         return kernel(**kwargs)
 
 
