@@ -225,21 +225,10 @@ void XtrackInterface::addParticle(double xIn,
 
     G4double t = - ct * CLHEP::m / (refParticleDefinition->Beta() * CLHEP::c_light); // this is time difference in ns
 
-    G4double oneplusdelta = (1 + deltap) * mass_ratio;
+    G4double oneplusdelta = (1 + deltap);
     // G4double pz = std::sqrt(oneplusdelta*oneplusdelta - px*px - py*py);
     G4double xp = px / oneplusdelta;
     G4double yp = py / oneplusdelta;
-
-    // Check if xp or yp is greater than pi
-    if (std::abs(xp) > 0.49 || std::abs(yp) > 0.49) {
-        std::cout << "xp: " << xp << std::endl;
-        std::cout << "yp: " << yp << std::endl;
-        std::cout << "px: " << px << std::endl;
-        std::cout << "py: " << py << std::endl;
-        std::cout << "oneplusdelta: " << oneplusdelta << std::endl;
-        xp = 0.49;
-        yp = 0.49;
-    }
 
     // Zp0 is 1 as here we assume no back-scatterd particles, e.g p>0
     G4double zp = BDSBunch::CalculateZp(xp, yp, 1);
@@ -696,8 +685,6 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
     size_t prod_write_index = particleActiveState.size();
     for (size_t i=0; i < particleActiveState.size(); i++){
 
-
-
         if (!particleActiveState.at(i)){
             continue; // This was an inactive particle that hasn't been processed, do not change it
         }
@@ -715,7 +702,6 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
         while (hits_index < hitsCount)
         {
             BDSHitSamplerLink* hit = (*hits)[hits_index];
-
             if (hit->externalParentID != prim_part_id) { // The hits corresponding to the current primary are exhausted
                 break;
             }
@@ -762,6 +748,29 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
             }
             else
             {
+				if (dp > 1.01 ) {
+				std::cout << "in secondary particles" << std::endl;
+				std::cout << hits_index << std::endl;
+				std::cout << hitsCount << std::endl;
+				std::cout << particleActiveState.size() << std::endl;
+				std::cout << particleActiveState.at(hits_index) << std::endl;
+				std::cout << prod_write_index << std::endl;
+std::cout << "coords.x = " << coords.x / CLHEP::m << std::endl;
+std::cout << "coords.y = " << coords.y / CLHEP::m << std::endl;
+std::cout << "coords.xp = " << coords.xp << std::endl;
+std::cout << "coords.yp = " << coords.yp << std::endl;
+std::cout << "oneplusdelta = " << oneplusdelta << std::endl;
+std::cout << "zt = " << zt / CLHEP::m << std::endl;
+std::cout << "dp = " << dp << std::endl;
+std::cout << "xtrack_part->s = " << xtrack_part->s << std::endl;
+std::cout << "collLength = " << collLength / CLHEP::m << std::endl;
+std::cout << "pdg_id = " << pdg_id << std::endl;
+std::cout << "parent_id = " << parent_id << std::endl;
+std::cout << "at_element = " << xtrack_part->at_element << std::endl;
+std::cout << "at_turn = " << xtrack_part->at_turn << std::endl;
+std::cout << "massratio = " << mratio << std::endl;
+std::cout << "chargeratio = " << qratio << std::endl;
+};
                 // Secondary particles are populated in newly allocated arrays
                 x_prod_ptr[prod_write_index] = coords.x / CLHEP::m;
                 y_prod_ptr[prod_write_index] = coords.y / CLHEP::m;
@@ -788,7 +797,6 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
         if (!prim_survied) // Primary didn't survive - set inactive
         {
             state_prod_ptr[i] = -333; // inactive
-
             // Correct the energy of the lost primary particle to account for the production of secondaries
             // The effective delta is such that the lost particle has the effective delta
             // which corresponds to the energy in - energy out for this primary

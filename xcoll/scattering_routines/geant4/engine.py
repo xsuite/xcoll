@@ -90,9 +90,6 @@ class Geant4Engine(xo.HybridClass):
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
         Ekin = this.particle_ref.energy0 - this.particle_ref.mass0
         pdg_id = this.particle_ref.pdg_id
-        # TODO: the original Geant4 coupling had -11 for electrons and 11 for positrons. This is wrong. Was this an error in the original code, or is this wrong in BDSIM?
-        if abs(pdg_id) == 11:
-            pdg_id = -pdg_id
 
         if seed is None:
             if this._seed is None:
@@ -121,6 +118,8 @@ class Geant4Engine(xo.HybridClass):
         Geant4Engine.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
         time.sleep(0.1) # ping to check when open
         Geant4Engine.conn = rpyc.classic.connect('localhost', port=port)
+        Geant4Engine.conn._config['sync_request_timeout'] = 240 # Set timeout to 240 seconds
+        # rconn._config['sync_request_timeout'] = None # No timeout
         Geant4Engine.conn.execute('import sys')
         Geant4Engine.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
         Geant4Engine.conn.execute('import engine_server')

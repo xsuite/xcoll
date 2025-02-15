@@ -1,5 +1,6 @@
 beam, particle="proton", momentum=7*TeV;
 option, physicsList = "g4FTFP_BERT";
+! option, stopSecondaries = 1;
 
 ! Material defintions for collimation (matching materials used in FLUKA)
 INERM180 : matdef, density=18.0, components=["W", "Ni", "Cu"], componentsFractions={0.95, 0.035, 0.015};
