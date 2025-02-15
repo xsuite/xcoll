@@ -1,1 +1,4 @@
-../../fedb_coupling/regions/hilumi_TCPCHB2.regions
+TCPCHB2R    5 | +TCPCHB2 +TCPCHB21 -TCPCHB22 +TCPCHB23
+TCPCHB2B    5 | +TCPCHB2 +TCPCHB22
+              | +TCPCHB2 -TCPCHB23
+              | +TCPCHB2 -TCPCHB21
