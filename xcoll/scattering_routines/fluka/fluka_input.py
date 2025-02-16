@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import json
@@ -60,7 +60,7 @@ def _coll_dict(elements, names, dump=False):
             tilt_1 = np.round(ee.tilt_L, 9)
             tilt_2 = np.round(ee.tilt_R, 9)
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
-            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported!")
+            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
         if nsig is None:
             nsig = 1
@@ -71,7 +71,7 @@ def _coll_dict(elements, names, dump=False):
             'bety': 1,
             'material': 'stub',
             'length': ee.length,
-            'angle': np.deg2rad(ee.angle),
+            'angle': np.round(np.deg2rad(ee.angle) - ee.assembly.angle, 9),
             'sigma_x': 1,
             'sigma_y': 1,
             'offset': offset,

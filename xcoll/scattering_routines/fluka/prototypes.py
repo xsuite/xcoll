@@ -3,9 +3,11 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
 from pathlib import Path
 
 from .paths import fedb
+from ...beam_elements.base import BaseCollimator
 
 
 class FlukaPrototype:
@@ -35,7 +37,8 @@ class FlukaPrototype:
         FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, info=None, extra_commands=None):
+    def __init__(self, fedb_series=None, fedb_tag=None, length=None, angle=0,
+                 side=None, material=None, info=None, extra_commands=None):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -47,6 +50,10 @@ class FlukaPrototype:
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
+        self._length = length
+        self._angle = angle
+        self._side = side
+        self._material = material
         self._info = info
         self._extra_commands = extra_commands
         self._id = None
@@ -118,6 +125,34 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._fedb_tag
+
+    @property
+    def length(self):
+        if self._is_null:
+            return None
+        return self._length
+
+    @property
+    def angle(self):
+        if self._is_null:
+            return None
+        return self._angle
+
+    @property
+    def side(self):
+        if self._is_null:
+            return None
+        return BaseCollimator.side.fget(self)
+
+    @side.setter
+    def side(self, val):
+        BaseCollimator.side.fset(self)
+
+    @property
+    def material(self):
+        if self._is_null:
+            return None
+        return self._material
 
     @property
     def info(self):
@@ -203,16 +238,17 @@ class FlukaPrototype:
         if element in self._elements:
             self._elements.remove(element)
         if len(self._elements) == 0:
-            # Remove the prototype from the registry of active prototypes
-            self._active_registry.pop(self.name)
-            # Update the IDs of the remaining prototypes and assemblies
-            for this_prototype in FlukaPrototype._active_registry.values():
-                if this_prototype._id > self._id:
-                    this_prototype._id -= 1
-            for this_prototype in FlukaAssembly._active_registry.values():
-                if this_prototype._id > self._id:
-                    this_prototype._id -= 1
-            self._id = None
+            if self.name in self._active_registry:
+                # Remove the prototype from the registry of active prototypes
+                self._active_registry.pop(self.name)
+                # Update the IDs of the remaining prototypes and assemblies
+                for this_prototype in FlukaPrototype._active_registry.values():
+                    if this_prototype._id > self._id:
+                        this_prototype._id -= 1
+                for this_prototype in FlukaAssembly._active_registry.values():
+                    if this_prototype._id > self._id:
+                        this_prototype._id -= 1
+                self._id = None
 
     def generate_code(self):
         if self.active:
@@ -315,42 +351,46 @@ assemblies = {
     'sps_tcsm':      FlukaAssembly(fedb_series='sps',    fedb_tag='TCSM',     info="test collimator (hollow jaw)"),
     # LHC assemblies
     'lhc_tcp':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCP',      info="primary with jaw in CFC"),
-    'lhc_tcpm':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCPM',     info="primary with jaw in MoGr coated ??"),
     'lhc_tcsg':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSG',     info="secondary with jaw in CFC"),
     'lhc_tcsp':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSP',     info="secondary with jaw in CFC and in-jaw BPMs (IR6)"),
     'lhc_tcla':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLA',     info="shower absorber"),
     'lhc_tct':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCT',      info="tertiary"),
     'lhc_tcl':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TCL',      info="physics debris absorber"),
+    'lhc_tdi':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      angle=np.deg2rad(90.), info="injection protection"),
     'lhc_tclia':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIA',    info="injection protection"),
     'lhc_tclib':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIB',    info="injection protection"),
-    'lhc_tcdqaa':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAA',  info="dump protection"),
-    'lhc_tcdqab':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAB',  info="dump protection"),
-    'lhc_tcdqac':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAC',  info="dump protection"),
+    'lhc_tcdqaa':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAA',  side='left',  info="dump protection"),
+    'lhc_tcdqab':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAB',  side='left',  info="dump protection"),
+    'lhc_tcdqac':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAC',  side='left',  info="dump protection"),
     # HL-LHC assemblies
+    'hilumi_tcppm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCPPM',    info="primary with jaw in MoGr coated"),
+    'hilumi_tcspm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated (6um)"),
+    'hilumi_tcsg':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPGRC',  info="secondary with jaw in CFC with Cu coating layer (3um)"),
     'hilumi_tcld':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLD',     info="shower absorber"),
     'hilumi_tctx':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTx',     info="tertiary"),
     'hilumi_tcty':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTy',     info="tertiary"),
-    'hilumi_tctpx':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPX',    info="alternative tertiary"),
     'hilumi_tclx':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLX',     info="physics debris absorber"),
+    # 'hilumi_tcpc':   FlukaPrototype(fedb_series='hilumi',fedb_tag='TCPCHB1',  info="crystal"),
     # FCC assemblies
     'fcc_tcp':       FlukaAssembly(fedb_series='fcc',    fedb_tag='TCP',      info="primary"),
     'fcc_tcsg':      FlukaAssembly(fedb_series='fcc',    fedb_tag='TCSG',     info="secondary"),
+    'fcc_tcdq':      FlukaAssembly(fedb_series='fcc',    fedb_tag='TCDQ',     side='right',  info="dump protection"),
+    # Only for testing
+    'test_donadon':  FlukaAssembly(fedb_series='test',   fedb_tag='DONADON',  info="mesh to test child particle ids"),
+    # Old assemblies - not to be used
+    'lhc_tcpm':      FlukaAssembly(fedb_series='lhc',    fedb_tag='TCPM',     info="primary with jaw in MoGr coated ??"),
+    'lhc_tcspm':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated"),
+    'lhc_tcspmc':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMC',   info="secondary with jaw in MoGr coated (5um)"),
+    'lhc_tcspmp':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMP',   info="secondary with jaw in MoGr coated (prototype)"),
+    'hilumi_tctpx':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPX',    info="alternative tertiary"),
+    'hilumi_tctpxv': FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   angle=np.deg2rad(90), info="alternative tertiary"),
 }
 
 # The following assemblies give wrong results with the jaw test:
 assemblies_wrong_jaw = {
-    'lhc_tcspm':     FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated"),
-    'lhc_tcspmc':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMC',   info="secondary with jaw in MoGr coated (5um)"),
-    'lhc_tcspmp':    FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMP',   info="secondary with jaw in MoGr coated (prototype ??)"),
-    'lhc_tdi':       FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      info="injection protection"),
     'lhc_tcdqaa_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAA',   info="dump protection"),
     'lhc_tcdqab_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAB',   info="dump protection"),
     'lhc_tcdqac_':   FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAC',   info="dump protection"),
-    'hilumi_tcppm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCPPM',    info="primary with jaw in MoGr coated"),
-    'hilumi_tcspm':  FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated (6um)"),
-    'hilumi_tcsg':   FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPGRC',  info="secondary with jaw in CFC with Cu coating layer (3um)"),
-    'hilumi_tctpxv': FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   info="alternative tertiary"),
-    'fcc_tcdq':      FlukaAssembly(fedb_series='fcc',    fedb_tag='TCDQ',     info="dump protection"),
 }
 
 # The following assemblies have errors in the prototype code:

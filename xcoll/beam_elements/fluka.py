@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 from contextlib import contextmanager
@@ -106,6 +106,10 @@ class FlukaCollimator(BaseCollimator):
             self.assembly.remove_element(self.name, force=False)
             assembly.add_element(self.name, force=False)
         self._assembly = assembly
+        if self.assembly.side is not None and self.assembly.side != self.side:
+            self.side = self.assembly.side
+            print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
+                + f"to match the assembly '{self.assembly.name}'.")
 
     def track(self, part):
         track(self, part)

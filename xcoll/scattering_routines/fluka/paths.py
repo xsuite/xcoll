@@ -1,10 +1,12 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import time
 from xaux import FsPath
+
+from ...general import _pkg_root
 
 
 _fluka_coupling = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
@@ -14,7 +16,7 @@ flukaserver = (_fluka_coupling / 'fluka_coupling' / 'fluka' / 'flukaserver').res
 # linebuilder = (_fluka_coupling / 'linebuilder').resolve()
 # TODO if MR on gitlab accepted, update path
 linebuilder = FsPath("/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite").resolve()
-fedb = (_fluka_coupling / 'fedb_coupling').resolve()
+fedb = (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
 # Trying to find fluka and flukaserver executables
