@@ -1066,8 +1066,8 @@ class BaseCrystal(BaseBlock):
         # Crystal specific
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
-        'width':              xo.Float64,
-        'height':             xo.Float64
+        '_width':              xo.Float64,
+        '_height':             xo.Float64
         # 'thick':              xo.Float64
     }
 
@@ -1079,8 +1079,8 @@ class BaseCrystal(BaseBlock):
     allow_double_sided = False
 
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
-                         'bending_radius', 'bending_angle']
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
+                         'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
 
@@ -1153,8 +1153,8 @@ class BaseCrystal(BaseBlock):
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
             else:
                 to_assign['bending_radius'] = kwargs.pop('bending_radius', 1)
-            kwargs.setdefault('width', 0)
-            kwargs.setdefault('height', 0)
+            to_assign['width'] = kwargs.pop('width', 1)
+            to_assign['height'] = kwargs.pop('height', 1)
 
         xt.BeamElement.__init__(self, **kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
@@ -1408,6 +1408,26 @@ class BaseCrystal(BaseBlock):
             raise ValueError("Bending angle cannot be larger than 90 degrees!")
         self._bending_angle = bending_angle
         self._bending_radius = self.length / np.sin(bending_angle)
+
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `width` should be positive, but got {val}.")
+        self._width = val
+
+    @property
+    def height(self):
+        return self._height
+
+    @height.setter
+    def height(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `height` should be positive, but got {val}.")
+        self._height = val
 
     @property
     def side(self):
