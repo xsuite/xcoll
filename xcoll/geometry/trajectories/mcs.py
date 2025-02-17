@@ -67,16 +67,17 @@ class MultipleCoulombTrajectory(xo.Struct):
         beta = kwargs.pop('beta', False)
         q = kwargs.pop('q', False)
         super().__init__(*args, **kwargs)
-        if xp is not False and pc is not False and beta is not False and q is not False:
-            self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, pc=pc,
-                            beta=beta, q=q)
-        elif theta0 is not False and pc is not False and beta is not False and q is not False:
-            self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, pc=pc,
-                            beta=beta, q=q)
+        if pc is not False and beta is not False and q is not False and X0 is not False\
+        and ran_1 is not False and ran_2 is not False:
+            if xp is not False:
+                self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, 
+                                pc=pc, beta=beta, q=q)
+            elif theta0 is not False:
+                self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0, xp=xp, pc=pc,
+                                beta=beta, q=q)
 
     def __str__(self):
-        return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp}, " \
-             + f"q={self.q}, beta={self.beta}, pc= {self.pc}, X0={self.X0}, xi={self.xi})"
+        return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
 
     @property
     def xp(self):
@@ -85,20 +86,3 @@ class MultipleCoulombTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
-
-
-#     args_hv = [
-#             # The arguments that define the particle trajectory, common to both planes
-#             xo.Arg(xo.Float64, pointer=False, name="s0"),  # Particle s
-#     ]
-#     args_h = [
-#             # The arguments that define the horizontal (after rotation) particle trajectory
-#             xo.Arg(xo.Float64, pointer=False, name="x0"),  # Particle x
-#             xo.Arg(xo.Float64, pointer=False, name="xm")   # Particle slope in the x direction (= xp = tan(theta_x))
-#     ]
-#     args_v = [
-#             # The arguments that define the vertical (after rotation) particle trajectory
-#             xo.Arg(xo.Float64, pointer=False, name="y0"),  # Particle y
-#             xo.Arg(xo.Float64, pointer=False, name="ym")   # Particle slope in the y direction (= yp = tan(theta_y))
-#     ]
-

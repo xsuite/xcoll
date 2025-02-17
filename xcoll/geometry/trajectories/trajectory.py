@@ -65,16 +65,20 @@ class LocalTrajectory(xo.UnionRef):
 
 # Add kernels for func_ and deriv_ functions to all trajectories
 def traj__getattr__(self, attr):
-    if attr in self._kernels:
-        return PyMethod(kernel_name=attr, element=self, element_name='traj')
+    # Prepend the trajectory name to the kernel names to avoid duplication conflicts
+    kernel_name = f"{self.__class__.__name__}_{attr}"
+    if kernel_name in self._kernels:
+        return PyMethod(kernel_name=kernel_name, element=self, element_name='traj')
     raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
 for traj in all_trajectories:
-    _kernels = {key: xo.Kernel(c_name=f"{traj.__name__}_{val.c_name}", ret=val.ret,
-                               args=[xo.Arg(xo.ThisClass, name="traj"), *val.args])
-                for key, val in trajectory_methods.items()}
     this_kernels = getattr(traj, '_kernels', {})
+    _kernels = {key: xo.Kernel(c_name=f"{traj.__name__}_{val.c_name}",
+                               ret=val.ret, args=[xo.Arg(xo.ThisClass, name="traj"), *val.args])
+                for key, val in trajectory_methods.items()}
     this_kernels.update(_kernels)
+    # Prepend the trajectory name to the kernel names to avoid duplication conflicts
+    this_kernels = {f"{traj.__name__}_{key}": val for key, val in this_kernels.items()}
     traj._kernels = this_kernels
     traj.__getattr__ = traj__getattr__
     traj._needs_compilation = True

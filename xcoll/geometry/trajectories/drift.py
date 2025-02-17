@@ -47,11 +47,9 @@ class DriftTrajectory(xo.Struct):
         theta0 = kwargs.pop('theta0', False)
         super().__init__(*args, **kwargs)
         if xp is not False:
-            self.set_params(s0=self.s0, x0=self.x0, xp=xp)
+            self.xp = xp
         elif theta0 is not False:
-            self.sin_t0 = np.sin(theta0)
-            self.cos_t0 = np.cos(theta0)
-            self.tan_t0 = np.tan(theta0)
+            self.theta0 = theta0
 
     def __str__(self):
         return f"DriftTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
@@ -63,18 +61,3 @@ class DriftTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
-
-#     args_hv = [
-#             # The arguments that define the particle trajectory, common to both planes
-#             xo.Arg(xo.Float64, pointer=False, name="s0")  # Particle s
-#     ]
-#     args_h = [
-#             # The arguments that define the horizontal (after rotation) particle trajectory
-#             xo.Arg(xo.Float64, pointer=False, name="x0"),  # Particle x
-#             xo.Arg(xo.Float64, pointer=False, name="xm")   # Particle slope in the x direction (= xp = tan(theta_x))
-#     ]
-#     args_v = [
-#             # The arguments that define the vertical (after rotation) particle trajectory
-#             xo.Arg(xo.Float64, pointer=False, name="y0"),  # Particle y
-#             xo.Arg(xo.Float64, pointer=False, name="ym")   # Particle slope in the y direction (= yp = tan(theta_y))
-#     ]
