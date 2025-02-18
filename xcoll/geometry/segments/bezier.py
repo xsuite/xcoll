@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -8,7 +8,8 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..trajectories import all_trajectories, DriftTrajectory
+from ..c_init import GeomCInit
+from ..trajectories import DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory
 
 
 class BezierSegment(xo.Struct):
@@ -22,28 +23,14 @@ class BezierSegment(xo.Struct):
     cs2 = xo.Float64
     cx2 = xo.Float64
 
-    _depends_on = all_trajectories
+    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
-    max_crossings = {DriftTrajectory: 3}
+    max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
 
-    def __repr__(self):
+    def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
              + f"({self.cs2:.3}, {self.cx2:.3})-c-({self.s2:.3}, {self.x2:.3}))"
-
-    def evaluate(self, t):
-        s1  = self.s1
-        x1  = self.x1
-        s2  = self.s2
-        x2  = self.x2
-        cs1 = self.cs1
-        cx1 = self.cx1
-        cs2 = self.cs2
-        cx2 = self.cx2
-        t = np.array(t)
-        mask = (t >= 0) & (t <= 1)
-        return (1-t[mask])**3 * s1 + 3*t[mask]*(1-t[mask])**2 * cs1 + 3*(1-t[mask])*t[mask]**2 * cs2 + t[mask]**3 * s2, \
-               (1-t[mask])**3 * x1 + 3*t[mask]*(1-t[mask])**2 * cx1 + 3*(1-t[mask])*t[mask]**2 * cx2 + t[mask]**3 * x2
 
     def get_vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2)
@@ -79,4 +66,3 @@ class BezierSegment(xo.Struct):
         self.cs2 = new_cs2
         self.cx2 = new_cx2
         self._translate_inplace(ps, px)
-

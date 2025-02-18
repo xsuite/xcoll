@@ -1,14 +1,13 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
 
 import xobjects as xo
 
-from ..c_init import  XC_EPSILON, xo_to_ctypes
-from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h, args_cross_v, args_vlimit
+from ..c_init import GeomCInit, PyMethod, XC_EPSILON
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -19,24 +18,30 @@ from .bezier import BezierSegment
 all_segments = (LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment)
 
 
+segment_methods = {
+    'func_s': xo.Method(
+        c_name=f"func_s",
+        args=[xo.Arg(xo.Float64, name="t")],
+        ret=xo.Arg(xo.Float64, name="s")),
+    'func_x': xo.Method(
+        c_name=f"func_x",
+        args=[xo.Arg(xo.Float64, name="t")],
+        ret=xo.Arg(xo.Float64, name="x")),
+    'deriv_s': xo.Method(
+        c_name=f"deriv_s",
+        args=[xo.Arg(xo.Float64, name="t")],
+        ret=xo.Arg(xo.Float64, name="s")),
+    'deriv_x': xo.Method(
+        c_name=f"deriv_x",
+        args=[xo.Arg(xo.Float64, name="t")],
+        ret=xo.Arg(xo.Float64, name="x"))
+}
+
+
 class LocalSegment(xo.UnionRef):
     """General segment, acting as a xobject-style parent class for all segment types"""
     _reftypes = all_segments
-    # _methods = [xo.Method(
-    #                 c_name=f"func",
-    #                 args=[xo.Arg(xo.Float64, name="s")],
-    #                 ret=xo.Arg(xo.Float64, name="x"))
-    #             for tra in all_trajectories] + [
-    #             xo.Method(
-    #                 c_name=f"deriv",
-    #                 args=[xo.Arg(xo.Float64, name="s")],
-    #                 ret=xo.Arg(xo.Float64, name="x"))
-    #             for tra in all_trajectories] + [
-    #             xo.Method(
-    #                 c_name=f"crossing_{tra.name}",
-    #                 args=[*args_cross_h, *tra.args_hv, *tra.args_h],
-    #                 ret=None)
-    #             for tra in all_trajectories]
+    _methods = list(segment_methods.values())
 
     def __init__(self, *args, **kwargs):
         raise ValueError("LocalSegment is an abstract class and should not be instantiated")
@@ -56,60 +61,29 @@ class LocalSegment(xo.UnionRef):
         return cls(**this_dct, **kwargs)
 
 
-# Sanity check to assert all segment types have crossing functions for all trajectories
-# def assert_localsegment_sources(seg):
-#     for tra in all_trajectories:
-#         header = f"/*gpufun*/\nvoid {seg.__name__}_crossing_{tra.name}({seg.__name__} seg, {xo_to_ctypes(args_cross_h)}, " \
-#                + f"{xo_to_ctypes(tra.args_hv)}, {xo_to_ctypes(tra.args_h)})"
-#         header_found = False
-#         for src in seg._extra_c_sources:
-#             if isinstance(src, str):
-#                 if header in src:
-#                     header_found = True
-#                     break
-#             else:
-#                 with open(src) as f:
-#                     if header in f.read():
-#                         header_found = True
-#                         break
-#         if not header_found:
-#             raise SystemError(f"Missing or corrupt C crossing function for {tra.__name__} in {seg.__name__}.")
-
+# Add kernels for func_ and deriv_ functions to all segments
+def __getattr(self, attr):
+    # Prepend the segment name to the kernel names to avoid duplication conflicts
+    kernel_name = f"{self.__class__.__name__}_{attr}"
+    if kernel_name in self._kernels:
+        return PyMethod(kernel_name=kernel_name, element=self, element_name='seg')
+    raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
 for seg in all_segments:
-    # assert_localsegment_sources(seg)
-    assert hasattr(seg, 'evaluate')
-    assert hasattr(seg, 'get_vertices')
-    assert hasattr(seg, 'max_crossings')
-    assert hasattr(seg, '_translate_inplace')
-    assert hasattr(seg, '_rotate_inplace')
+    this_kernels = getattr(seg, '_kernels', {})
+    _kernels = {key: xo.Kernel(c_name=f"{seg.__name__}_{val.c_name}",
+                               ret=val.ret, args=[xo.Arg(xo.ThisClass, name="seg"), *val.args])
+                for key, val in segment_methods.items()}
+    this_kernels.update(_kernels)
+    # Prepend the segment name to the kernel names to avoid duplication conflicts
+    this_kernels = {f"{seg.__name__}_{key}": val for key, val in this_kernels.items()}
+    seg._kernels = this_kernels
+    seg.__getattr__ = __getattr
+    seg._needs_compilation = True
 
 
 # Define common methods for all segments
-def seg__eq__(self, other):
-    """Check if two segments are equal"""
-    return self.to_dict() == other.to_dict()
-
-def to_dict(self):
-    """Returns a dictionary in the same style as a HybridClass"""
-    return {'__class__': self.__class__.__name__, **self._to_json()}
-
-@classmethod
-def from_dict(cls, dct, **kwargs):
-    """Returns the object from a dictionary in the same style as a HybridClass"""
-    this_dct = dct.copy()
-    this_cls = this_dct.pop('__class__')
-    if this_cls != cls.__name__:
-        raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
-    return cls(**this_dct, **kwargs)
-
-def seg_copy(self):
-    """Returns a copy of the segment"""
-    return self.from_dict(self.to_dict())
-
-def seg_round(self, val):
-    """Built-in to provide rounding to Xcoll precision"""
-    return round(val, -int(np.log10(XC_EPSILON)))
+from ..trajectories.trajectory import __eq, __repr, to_dict, from_dict, __copy, __round
 
 def is_open(self):
     """Check if the segment is an open segment"""
@@ -127,8 +101,7 @@ def is_connected_to(self, other):
     return len(self.connection_to(other)) > 0
 
 def translate(self, ds, dx, *, inplace=False):
-    """
-    Translate the segment by (ds, dx). If `inplace` is False, the method returns a
+    """Translate the segment by (ds, dx). If `inplace` is False, the method returns a
     new segment, otherwise the segment is modified in place and nothing is returned.
     """
     if inplace:
@@ -139,8 +112,7 @@ def translate(self, ds, dx, *, inplace=False):
         return new_seg
 
 def rotate(self, ps, px, angle, *, inplace=False):
-    """
-    Rotates the segment over an angle at a pivot point (ps, px). If `inplace` is False,
+    """Rotates the segment over an angle at a pivot point (ps, px). If `inplace` is False,
     the method returns a new segment, otherwise the segment is modified in place and
     nothing is returned.
     """
@@ -152,31 +124,64 @@ def rotate(self, ps, px, angle, *, inplace=False):
         return new_seg
 
 for seg in all_segments:
-    seg.__eq__ = seg__eq__
+    seg.name = seg.__name__.lower()[:-7]
+    seg.__eq__ = __eq
+    if not '__repr__' in seg.__dict__:
+        seg.__repr__ = __repr
+    if not '__str__' in seg.__dict__:
+        seg.__str__ = __repr
     seg.to_dict = to_dict
     seg.from_dict = from_dict
-    seg.copy = seg_copy
-    seg.round = seg_round
+    seg.copy = __copy
+    seg.round = __round
     seg.is_open = is_open
     seg.connection_to = connection_to
     seg.is_connected_to = is_connected_to
     seg.translate = translate
     seg.rotate = rotate
-    seg.name = seg.__name__.lower()[:-7]
 
+
+# Sanity check to assert all segments have C code for func_ and deriv_ functions
+def assert_segment_sources(tra):
+    assert seg in all_segments
+    name = seg.__name__
+    for func in ['func_s', 'func_x', 'deriv_s', 'deriv_x']:
+        header = f"/*gpufun*/\ndouble {name}_{func}({name} seg, double t)"
+        header_found = False
+        for src in seg._extra_c_sources:
+            if isinstance(src, str):
+                if header in src:
+                    header_found = True
+                    break
+            else:
+                with open(src) as f:
+                    if header in f.read():
+                        header_found = True
+                        break
+        if not header_found:
+            raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
+                            + f"({name} seg, double t).")
+
+for seg in all_segments:
+    assert_segment_sources(seg)
+    assert hasattr(seg, 'get_vertices')
+    assert hasattr(seg, '_translate_inplace')
+    assert hasattr(seg, '_rotate_inplace')
 
 # Add some missing docstrings
 for seg in all_segments:
-    seg.evaluate.__doc__ = """Evaluate the segment over t using the parametric equation"""
     seg.get_vertices.__doc__ = """Get the vertices of the segment"""
 
 
 # Function to get the maximum number of crossings for a given object type
-def get_max_crossings(segments, trajectory=DriftTrajectory):
+def get_max_crossings(segments, trajectory):
     if hasattr(segments, '__iter__') and all(isinstance(seg, all_segments) for seg in segments):
         max_crossings = 0
         for seg in segments:
-            max_crossings += seg.max_crossings[trajectory]
+            if hasattr(seg, 'max_crossings') and trajectory in seg.max_crossings:
+                max_crossings += seg.max_crossings[trajectory]
+            else:
+                max_crossings += 2
         return max_crossings
     elif isinstance(segments, all_segments):
         return segments.max_crossings[trajectory]
