@@ -9,7 +9,6 @@ import xobjects as xo
 
 from ...general import _pkg_root
 from ..c_init import GeomCInit
-from ..trajectories import DriftTrajectory, MultipleCoulombTrajectory
 
 
 class HalfOpenLineSegment(xo.Struct):
@@ -21,8 +20,6 @@ class HalfOpenLineSegment(xo.Struct):
 
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
-
-    max_crossings = {DriftTrajectory: 2, MultipleCoulombTrajectory: 2}
 
     def __init__(self, *args, **kwargs):
         theta1 = kwargs.pop('theta1', None)

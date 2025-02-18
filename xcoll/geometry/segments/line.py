@@ -9,7 +9,6 @@ import xobjects as xo
 
 from ...general import _pkg_root
 from ..c_init import GeomCInit
-from ..trajectories import DriftTrajectory, MultipleCoulombTrajectory
 
 
 class LineSegment(xo.Struct):
@@ -21,8 +20,6 @@ class LineSegment(xo.Struct):
 
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
-
-    max_crossings = {DriftTrajectory: 2, MultipleCoulombTrajectory: 2}
 
     def __str__(self):
         return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"

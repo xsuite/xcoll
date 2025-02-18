@@ -62,7 +62,7 @@ class LocalSegment(xo.UnionRef):
 
 
 # Add kernels for func_ and deriv_ functions to all segments
-def __getattr__(self, attr):
+def __getattr(self, attr):
     # Prepend the segment name to the kernel names to avoid duplication conflicts
     kernel_name = f"{self.__class__.__name__}_{attr}"
     if kernel_name in self._kernels:
@@ -78,12 +78,12 @@ for seg in all_segments:
     # Prepend the segment name to the kernel names to avoid duplication conflicts
     this_kernels = {f"{seg.__name__}_{key}": val for key, val in this_kernels.items()}
     seg._kernels = this_kernels
-    seg.__getattr__ = __getattr__
+    seg.__getattr__ = __getattr
     seg._needs_compilation = True
 
 
 # Define common methods for all segments
-from ..trajectories.trajectory import __eq__, __repr__, to_dict, from_dict, __copy__, __round__
+from ..trajectories.trajectory import __eq, __repr, to_dict, from_dict, __copy, __round
 
 def is_open(self):
     """Check if the segment is an open segment"""
@@ -125,15 +125,15 @@ def rotate(self, ps, px, angle, *, inplace=False):
 
 for seg in all_segments:
     seg.name = seg.__name__.lower()[:-7]
-    seg.__eq__ = __eq__
+    seg.__eq__ = __eq
     if not '__repr__' in seg.__dict__:
-        seg.__repr__ = __repr__
+        seg.__repr__ = __repr
     if not '__str__' in seg.__dict__:
-        seg.__str__ = __repr__
+        seg.__str__ = __repr
     seg.to_dict = to_dict
     seg.from_dict = from_dict
-    seg.copy = __copy__
-    seg.round = __round__
+    seg.copy = __copy
+    seg.round = __round
     seg.is_open = is_open
     seg.connection_to = connection_to
     seg.is_connected_to = is_connected_to
@@ -165,12 +165,8 @@ def assert_segment_sources(tra):
 for seg in all_segments:
     assert_segment_sources(seg)
     assert hasattr(seg, 'get_vertices')
-    assert hasattr(seg, 'max_crossings')
     assert hasattr(seg, '_translate_inplace')
     assert hasattr(seg, '_rotate_inplace')
-
-
-
 
 # Add some missing docstrings
 for seg in all_segments:
@@ -178,17 +174,16 @@ for seg in all_segments:
 
 
 # Function to get the maximum number of crossings for a given object type
-def get_max_crossings(segments, trajectory=DriftTrajectory):
+def get_max_crossings(segments, trajectory):
     if hasattr(segments, '__iter__') and all(isinstance(seg, all_segments) for seg in segments):
         max_crossings = 0
         for seg in segments:
-            max_crossings += seg.max_crossings[trajectory]
+            if hasattr(seg, 'max_crossings') and trajectory in seg.max_crossings:
+                max_crossings += seg.max_crossings[trajectory]
+            else:
+                max_crossings += 2
         return max_crossings
     elif isinstance(segments, all_segments):
         return segments.max_crossings[trajectory]
     else:
         raise ValueError(f"Unexpected type for segments: {type(segments)}")
-
-
-# OLD ========================================================================================================
-from ..c_init import xo_to_ctypes

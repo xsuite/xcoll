@@ -64,7 +64,7 @@ class LocalTrajectory(xo.UnionRef):
 
 
 # Add kernels for func_ and deriv_ functions to all trajectories
-def __getattr__(self, attr):
+def __getattr(self, attr):
     # Prepend the trajectory name to the kernel names to avoid duplication conflicts
     kernel_name = f"{self.__class__.__name__}_{attr}"
     if kernel_name in self._kernels:
@@ -80,16 +80,16 @@ for traj in all_trajectories:
     # Prepend the trajectory name to the kernel names to avoid duplication conflicts
     this_kernels = {f"{traj.__name__}_{key}": val for key, val in this_kernels.items()}
     traj._kernels = this_kernels
-    traj.__getattr__ = __getattr__
+    traj.__getattr__ = __getattr
     traj._needs_compilation = True
 
 
 # Define common methods for all trajectories
-def __eq__(self, other):
+def __eq(self, other):
     """Check if two objects are equal"""
     return self.to_dict() == other.to_dict()
 
-def __repr__(self):
+def __repr(self):
     """Return repr(self)."""
     return f"<{str(self)} at {hex(id(self))}>"
 
@@ -106,25 +106,25 @@ def from_dict(cls, dct, **kwargs):
         raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
     return cls(**this_dct, **kwargs)
 
-def __copy__(self):
+def __copy(self):
     """Returns a copy of the object"""
     return self.from_dict(self.to_dict())
 
-def __round__(self, val):
+def __round(self, val):
     """Built-in to provide rounding to Xcoll precision"""
     return round(val, -int(np.log10(XC_EPSILON)))
 
 for traj in all_trajectories:
     traj.name = traj.__name__.lower()[:-10]
-    traj.__eq__ = __eq__
+    traj.__eq__ = __eq
     if not '__repr__' in traj.__dict__:
-        traj.__repr__ = __repr__
+        traj.__repr__ = __repr
     if not '__str__' in traj.__dict__:
         traj.__str__ = traj__repr__
     traj.to_dict = to_dict
     traj.from_dict = from_dict
-    traj.copy = __copy__
-    traj.round = __round__
+    traj.copy = __copy
+    traj.round = __round
 
 
 # Sanity check to assert all trajectories have C code for func_ and deriv_ functions
