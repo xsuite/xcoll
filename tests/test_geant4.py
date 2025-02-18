@@ -79,10 +79,9 @@ def test_simple_track(num_part):
     if xc.Geant4Engine.is_running():
         xc.Geant4Engine.stop(clean=True)
 
-    # Define collimator and start the FLUKA server
-    coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='cu')
-    coll_name = 'tcp.c6l7.b1'
-    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993, particle_ref='proton', p0c=7e12,
+    # Define Geant4 collimator and start Geant4 engine
+    coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=0.001)
+    xc.Geant4Engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution
@@ -142,10 +141,9 @@ def test_jaw(jaw, angle): #, tilt):
     if xc.Geant4Engine.is_running():
         xc.Geant4Engine.stop(clean=True)
 
-    # Define collimator and start the FLUKA server
-    coll = xc.Geant4Collimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt, material='Ti', geant4_id=f'g4coll_0')
-    coll_name = 'tcp.c6l7.b1'
-    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993, particle_ref='proton', p0c=7.e12,
+    # Define Geant4 collimator and start Geant4 engine
+    coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=jaw, angle=angle, tilt=tilt)
+    xc.Geant4Engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution (x and y are in the frame of the collimator)
