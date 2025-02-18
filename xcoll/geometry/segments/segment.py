@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -62,7 +62,7 @@ class LocalSegment(xo.UnionRef):
 
 
 # Add kernels for func_ and deriv_ functions to all segments
-def seg__getattr__(self, attr):
+def __getattr__(self, attr):
     # Prepend the segment name to the kernel names to avoid duplication conflicts
     kernel_name = f"{self.__class__.__name__}_{attr}"
     if kernel_name in self._kernels:
@@ -78,7 +78,7 @@ for seg in all_segments:
     # Prepend the segment name to the kernel names to avoid duplication conflicts
     this_kernels = {f"{seg.__name__}_{key}": val for key, val in this_kernels.items()}
     seg._kernels = this_kernels
-    seg.__getattr__ = seg__getattr__
+    seg.__getattr__ = __getattr__
     seg._needs_compilation = True
 
 

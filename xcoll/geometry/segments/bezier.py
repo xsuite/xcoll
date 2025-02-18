@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -66,4 +66,3 @@ class BezierSegment(xo.Struct):
         self.cs2 = new_cs2
         self.cx2 = new_cx2
         self._translate_inplace(ps, px)
-

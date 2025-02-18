@@ -64,7 +64,7 @@ class LocalTrajectory(xo.UnionRef):
 
 
 # Add kernels for func_ and deriv_ functions to all trajectories
-def traj__getattr__(self, attr):
+def __getattr__(self, attr):
     # Prepend the trajectory name to the kernel names to avoid duplication conflicts
     kernel_name = f"{self.__class__.__name__}_{attr}"
     if kernel_name in self._kernels:
@@ -80,7 +80,7 @@ for traj in all_trajectories:
     # Prepend the trajectory name to the kernel names to avoid duplication conflicts
     this_kernels = {f"{traj.__name__}_{key}": val for key, val in this_kernels.items()}
     traj._kernels = this_kernels
-    traj.__getattr__ = traj__getattr__
+    traj.__getattr__ = __getattr__
     traj._needs_compilation = True
 
 

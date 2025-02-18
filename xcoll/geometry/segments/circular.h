@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM__SEG_CIRCULAR_H
@@ -31,10 +31,11 @@ double CircularSegment_deriv_s(CircularSegment seg, double t){
 /*gpufun*/
 double CircularSegment_deriv_x(CircularSegment seg, double t){
     double R = CircularSegment_get_R(seg);
-    double xR = CircularSegment_get_xR(seg);
     return R*cos(t);
 }
 
+// TODO: implement this correctly! If given [0, 3/2pi] this gets changed into [0, -pi/2]
+//       but it should still represent the same segment
 /*gpufun*/
 int8_t CircularSegment_func_in_domain(CircularSegment seg, double t){
     double t1 = CircularSegment_get_t1(seg);

@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM_TRAJ_BEZIER_H
@@ -9,36 +9,43 @@
 
 /*gpufun*/
 double BezierSegment_func_s(BezierSegment seg, double t){
-    double R = BezierSegment_get_R(seg);
-    double sR = BezierSegment_get_sR(seg);
-    return (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2;
+    double s1  = BezierSegment_get_s1(seg);
+    double s2  = BezierSegment_get_s2(seg);
+    double cs1 = BezierSegment_get_cs1(seg);
+    double cs2 = BezierSegment_get_cs2(seg);
+    return (1-t)*(1-t)*(1-t)*s1 + 3*(1-t)*(1-t)*t*cs1 + 3*(1-t)*t*t*cs2 + t*t*t*s2;
 }
 
 /*gpufun*/
 double BezierSegment_func_x(BezierSegment seg, double t){
-    double R = BezierSegment_get_R(seg);
-    double xR = BezierSegment_get_xR(seg);
-    return xR + R*sin(t);
+    double x1  = BezierSegment_get_x1(seg);
+    double x2  = BezierSegment_get_x2(seg);
+    double cx1 = BezierSegment_get_cx1(seg);
+    double cx2 = BezierSegment_get_cx2(seg);
+    return (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*cx1 + 3*(1-t)*t*t*cx2 + t*t*t*x2;
 }
 
 /*gpufun*/
 double BezierSegment_deriv_s(BezierSegment seg, double t){
-    double R = BezierSegment_get_R(seg);
-    return - R*sin(t);
+    double s1  = BezierSegment_get_s1(seg);
+    double s2  = BezierSegment_get_s2(seg);
+    double cs1 = BezierSegment_get_cs1(seg);
+    double cs2 = BezierSegment_get_cs2(seg);
+    return -3*(1-t)*(1-t)*s1 + (1-t)*(1-3*t)*cs1 + (2-3*t)*t*cs2 + 3*t*t*s2;
 }
 
 /*gpufun*/
 double BezierSegment_deriv_x(BezierSegment seg, double t){
-    double R = BezierSegment_get_R(seg);
-    double xR = BezierSegment_get_xR(seg);
-    return R*cos(t);
+    double x1  = BezierSegment_get_x1(seg);
+    double x2  = BezierSegment_get_x2(seg);
+    double cx1 = BezierSegment_get_cx1(seg);
+    double cx2 = BezierSegment_get_cx2(seg);
+    return -3*(1-t)*(1-t)*x1 + (1-t)*(1-3*t)*cx1 + (2-3*t)*t*cx2 + 3*t*t*x2;
 }
 
 /*gpufun*/
 int8_t BezierSegment_func_in_domain(BezierSegment seg, double t){
-    double t1 = BezierSegment_get_t1(seg);
-    double t2 = BezierSegment_get_t2(seg);
-    return t1 <= t && t <= t2;
+    return t >= 0 && t <= 1;
 }
 
 
