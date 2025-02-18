@@ -36,7 +36,7 @@ def test_black_absorbers(test_context):
         shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
         g4coll = xc.Geant4Collimator(length=L, angle=angle, jaw=jaws+shift,
                                      _context=test_context, material='cu',
-                                     collimator_id=f'g4coll_{ii}')
+                                     geant4_id=f'g4coll_{ii}')
         g4_collimators.append(g4coll)
         bacoll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws+shift,
                                   _context=test_context)
@@ -77,10 +77,9 @@ def test_simple_track(num_part):
     if xc.Geant4Engine.is_running():
         xc.Geant4Engine.stop(clean=True)
 
-    # Define collimator and start the FLUKA server
-    coll = xc.Geant4Collimator(length=0.6, jaw=0.001)
-    coll_name = 'tcp.c6l7.b1'
-    xc.Geant4Engine.start(elements=coll, names=coll_name, seed=1993,
+    # Define Geant4 collimator and start Geant4 engine
+    coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=0.001)
+    xc.Geant4Engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution
@@ -140,10 +139,9 @@ def test_jaw(jaw, angle): #, tilt):
     if xc.Geant4Engine.is_running():
         xc.Geant4Engine.stop(clean=True)
 
-    # Define collimator and start the FLUKA server
-    coll = xc.Geant4Collimator(length=0.6, jaw=jaw, angle=angle, tilt=tilt)
-    coll_name = 'tcp.c6l7.b1'
-    xc.Geant4Engine.start(elements=coll, names=coll_name, random_seed=1993,
+    # Define Geant4 collimator and start Geant4 engine
+    coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=jaw, angle=angle, tilt=tilt)
+    xc.Geant4Engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
     particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 
