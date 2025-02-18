@@ -15,11 +15,11 @@
 #define MCS_DERIV_LOG_SCALE 1.910895720374308e-2
 #define MCS_DERIV_LOG_SHIFT 5.382179144074862e-1
 #define MCS_RAN1_SCALE 2.886751345948129e-1  // 1/sqrt(12)
-#define MCS_RAN1_SCALE 0.5
+#define MCS_RAN2_SCALE 0.5
 
 
 // /*gpufun*/
-// double MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
+// void MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
 //                                         double ran_1, double ran_2, LocalParticle part){
 //     MultipleCoulombTrajectory_set_s0(traj, LocalParticle_get_s(part));
 //     MultipleCoulombTrajectory_set_x0(traj, LocalParticle_get_s(part));
@@ -38,7 +38,7 @@
 
 
 /*gpufun*/
-double MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
+void MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
                                             double ran_1, double ran_2, double s0, double x0,
                                             double xp, double pc, double beta, double q){
     MultipleCoulombTrajectory_set_s0(traj, s0);
@@ -47,68 +47,68 @@ double MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, doub
     MultipleCoulombTrajectory_set_cos_t0(traj, 1. / sqrt(1+xp*xp));
     MultipleCoulombTrajectory_set_tan_t0(traj, xp);
     MultipleCoulombTrajectory_set_Xt0(traj, X0*beta*beta / (q*q));
-    MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN1_SCALE) * MCS_AVERAGE_MOMENTUM / pc);
-    MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / pc);
+    MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN2_SCALE) * MCS_AVERAGE_MOMENTUM / (beta*pc));
+    MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / (beta*pc));
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_get_normalised_omega(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_get_normalised_omega(MultipleCoulombTrajectory traj, double l){
     double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
-    return sqrt(lambda/Xt0) * (1 + MCS_LOG_SCALE * log(lambda/Xt0));
+    return sqrt(l/Xt0) * (1 + MCS_LOG_SCALE * log(l/Xt0));
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_get_normalised_omega_deriv(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_get_normalised_omega_deriv(MultipleCoulombTrajectory traj, double l){
     double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
-    return sqrt(lambda/Xt0) * (MCS_DERIV_LOG_SHIFT + MCS_DERIV_LOG_SCALE * log(lambda/Xt0)) / lambda;
+    return sqrt(l/Xt0) * (MCS_DERIV_LOG_SHIFT + MCS_DERIV_LOG_SCALE * log(l/Xt0)) / l;
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_func_s(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_func_s(MultipleCoulombTrajectory traj, double l){
     double s0 = MultipleCoulombTrajectory_get_s0(traj);
     double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
     double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
-    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, lambda);
-    return s0 + lambda*cos_t0 - lambda*A0*omega_norm*sin_t0;
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    return s0 + l*cos_t0 - l*A0*omega_norm*sin_t0;
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_func_x(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_func_x(MultipleCoulombTrajectory traj, double l){
     double x0 = MultipleCoulombTrajectory_get_x0(traj);
     double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
     double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
-    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, lambda);
-    return x0 + lambda*sin_t0 + lambda*A0*omega_norm*cos_t0;
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    return x0 + l*sin_t0 + l*A0*omega_norm*cos_t0;
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_func_xp(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_func_xp(MultipleCoulombTrajectory traj, double l){
     double tan_t0 = MultipleCoulombTrajectory_get_tan_t0(traj);
     double B0 = MultipleCoulombTrajectory_get_B0(traj);    // 𝜉2 (13.6 MeV) / (pc)
-    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, lambda);
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
     return (tan_t0 + tan(B0*omega_norm)) / (1 - tan_t0*tan(B0*omega_norm));
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_deriv_s(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_deriv_s(MultipleCoulombTrajectory traj, double l){
     double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
     double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
-    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, lambda);
-    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, lambda);
-    return cos_t0 - A0*omega_norm*sin_t0 - lambda*A0*omega_norm_deriv*sin_t0;
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, l);
+    return cos_t0 - A0*omega_norm*sin_t0 - l*A0*omega_norm_deriv*sin_t0;
 }
 
 /*gpufun*/
-double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double lambda){
+double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double l){
     double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
     double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
-    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, lambda);
-    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, lambda);
-    return sin_t0 + A0*omega_norm*cos_t0 + lambda*A0*omega_norm_deriv*cos_t0;
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, l);
+    return sin_t0 + A0*omega_norm*cos_t0 + l*A0*omega_norm_deriv*cos_t0;
 }
 
 

@@ -3,37 +3,39 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
+
 import xobjects as xo
 
-from ..c_init import xo_to_ctypes, GeomCInit, PyMethod
+from ..c_init import xo_to_ctypes, GeomCInit, PyMethod, XC_EPSILON
 from .drift import DriftTrajectory
-from .mcs import MultipleCoulombTrajectory
 from .circular import CircularTrajectory
+from .mcs import MultipleCoulombTrajectory
 
 
-all_trajectories = [DriftTrajectory, MultipleCoulombTrajectory, CircularTrajectory]
+all_trajectories = [DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory]
 
 
 trajectory_methods = {
-    's': xo.Method(
+    'func_s': xo.Method(
         c_name=f"func_s",
-        args=[xo.Arg(xo.Float64, name="lambda")],
+        args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="s")),
-    'x': xo.Method(
+    'func_x': xo.Method(
         c_name=f"func_x",
-        args=[xo.Arg(xo.Float64, name="lambda")],
+        args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'xp': xo.Method(
+    'func_xp': xo.Method(
         c_name=f"func_xp",
-        args=[xo.Arg(xo.Float64, name="lambda")],
+        args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="theta")),
     'deriv_s': xo.Method(
         c_name=f"deriv_s",
-        args=[xo.Arg(xo.Float64, name="lambda")],
+        args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="s")),
     'deriv_x': xo.Method(
         c_name=f"deriv_x",
-        args=[xo.Arg(xo.Float64, name="lambda")],
+        args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="x"))
 }
 
@@ -63,16 +65,23 @@ class LocalTrajectory(xo.UnionRef):
 
 # Add kernels for func_ and deriv_ functions to all trajectories
 def traj__getattr__(self, attr):
-    if attr in self._kernels:
-        return PyMethod(kernel_name=attr, element=self, element_name='shape')
+    # Prepend the trajectory name to the kernel names to avoid duplication conflicts
+    kernel_name = f"{self.__class__.__name__}_{attr}"
+    if kernel_name in self._kernels:
+        return PyMethod(kernel_name=kernel_name, element=self, element_name='traj')
     raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
 for traj in all_trajectories:
-    _kernels = {key: xo.Kernel(c_name=val.c_name, ret=val.ret,
-                               args=[xo.Arg(xo.ThisClass, name="traj"), *val.args])
+    this_kernels = getattr(traj, '_kernels', {})
+    _kernels = {key: xo.Kernel(c_name=f"{traj.__name__}_{val.c_name}",
+                               ret=val.ret, args=[xo.Arg(xo.ThisClass, name="traj"), *val.args])
                 for key, val in trajectory_methods.items()}
-    traj._kernels = getattr(traj, '_kernels', {}).update(_kernels)
+    this_kernels.update(_kernels)
+    # Prepend the trajectory name to the kernel names to avoid duplication conflicts
+    this_kernels = {f"{traj.__name__}_{key}": val for key, val in this_kernels.items()}
+    traj._kernels = this_kernels
     traj.__getattr__ = traj__getattr__
+    traj._needs_compilation = True
 
 
 # Define common methods for all trajectories
@@ -106,13 +115,11 @@ def traj_round(self, val):
     return round(val, -int(np.log10(XC_EPSILON)))
 
 for traj in all_trajectories:
-    if not hasattr(traj, '_depends_on'):
-        traj._depends_on = [GeomCInit]
     traj.name = traj.__name__.lower()[:-10]
     traj.__eq__ = traj__eq__
-    if not hasattr(traj, '__repr__'):
+    if not '__repr__' in traj.__dict__:
         traj.__repr__ = traj__repr__
-    if not hasattr(traj, '__str__'):
+    if not '__str__' in traj.__dict__:
         traj.__str__ = traj__repr__
     traj.to_dict = to_dict
     traj.from_dict = from_dict
@@ -125,7 +132,7 @@ def assert_trajectory_sources(tra):
     assert tra in all_trajectories
     name = tra.__name__
     for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
-        header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double lambda)"
+        header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double l)"
         header_found = False
         for src in tra._extra_c_sources:
             if isinstance(src, str):
@@ -139,7 +146,7 @@ def assert_trajectory_sources(tra):
                         break
         if not header_found:
             raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
-                            + f"({name} traj, double lambda).")
+                            + f"({name} traj, double l).")
 
 for tra in all_trajectories:
     assert_trajectory_sources(tra)

@@ -50,7 +50,9 @@ class PyMethod:
         self.element = element
         self.element_name = element_name
 
-    def __call__(self, **kwargs):
+    def __call__(self, *args, **kwargs):
+        if len(args) > 0:
+            raise ValueError("Kernel calling should be done with keyword arguments only!")
         instance = self.element
         context = instance._context
         # import pdb; pdb.set_trace()
@@ -65,8 +67,7 @@ class PyMethod:
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         if self.element_name:
-            kwargs[element_name] = instance
-
+            kwargs[self.element_name] = instance
         return kernel(**kwargs)
 
 
@@ -75,34 +76,8 @@ class GeomCInit(xo.Struct):
         define_src,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
-        # _pkg_root / 'geometry' / 'segments' / 'line.h',     # remove after testing is done, add the others as well
-        # _pkg_root / 'geometry' / 'segments' / 'halfopen_line.h',
-        # _pkg_root / 'geometry' / 'segments' / 'circular.h',
         # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
 
     # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
     _depends_on = [xo.Float64]
-
-    # _needs_compilation = True
-
-    # _kernels = {"grid_search_and_newton":
-    #             xo.Kernel(
-    #                 c_name="grid_search_and_newton",
-    #                 args=[
-    #                     xo.Arg(xo.Int8, "traj_id"),
-    #                     xo.Arg(xo.Int8, "seg_id"),
-    #                     xo.Arg(xo.Float64, "s_min"),
-    #                     xo.Arg(xo.Float64, "s_max"),
-    #                     xo.Arg(xo.Float64, name="roots", pointer=True),
-    #                     xo.Arg(xo.Float64, "max_crossings"),
-    #                     xo.Arg(McsLineParams, name="params"),
-    #                     xo.Arg(xo.Int8, name="number_of_roots", pointer=True)
-    #                 ],
-    #                 ret=None)
-    #             }
-    # def __getattr__(self, attr):
-    #     if attr in self._kernels:
-    #         return PyMethod(kernel_name=attr, element=self, element_name='shape')
-    #     raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
-

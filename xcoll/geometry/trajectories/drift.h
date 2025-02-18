@@ -11,7 +11,7 @@
 
 
 // /*gpufun*/
-// double DriftTrajectory_set_params(DriftTrajectory traj, LocalParticle part){
+// void DriftTrajectory_set_params(DriftTrajectory traj, LocalParticle part){
 //     DriftTrajectory_set_s0(traj, LocalParticle_get_s(part));
 //     DriftTrajectory_set_x0(traj, LocalParticle_get_x(part));
 //     double xp = LocalParticle_get_exact_xp(part);
@@ -22,7 +22,7 @@
 
 
 /*gpufun*/
-double DriftTrajectory_set_params(DriftTrajectory traj, double s0, double x0, double xp){
+void DriftTrajectory_set_params(DriftTrajectory traj, double s0, double x0, double xp){
     DriftTrajectory_set_s0(traj, s0);
     DriftTrajectory_set_x0(traj, x0);
     DriftTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));

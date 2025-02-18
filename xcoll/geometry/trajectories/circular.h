@@ -11,7 +11,7 @@
 
 
 // /*gpufun*/
-// double CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
+// void CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
 //                                         LocalParticle part){
 //     CircularTrajectory_set_sR(traj, sR);
 //     CircularTrajectory_set_xR(traj, xR);
@@ -25,8 +25,10 @@
 // }
 
 
+// TODO: maybe for this trajectory it is faster to use tI directly instead of sin_tI and cos_tI
+
 /*gpufun*/
-double CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
+void CircularTrajectory_set_params(CircularTrajectory traj, double sR, double xR,
                                      double s0, double x0){
     CircularTrajectory_set_sR(traj, sR);
     CircularTrajectory_set_xR(traj, xR);
@@ -38,45 +40,45 @@ double CircularTrajectory_set_params(CircularTrajectory traj, double sR, double 
 }
 
 /*gpufun*/
-double CircularTrajectory_func_s(CircularTrajectory traj, double lambda){
+double CircularTrajectory_func_s(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
     double sR = CircularTrajectory_get_sR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
-    return sR + R*cos(lambda)*cos_tI - R*sin(lambda)*sin_tI; // s(𝜆) = sR + R cos(𝜆 + 𝜃I)
+    return sR + R*cos(l)*cos_tI - R*sin(l)*sin_tI; // s(𝜆) = sR + R cos(𝜆 + 𝜃I)
 }
 
 /*gpufun*/
-double CircularTrajectory_func_x(CircularTrajectory traj, double lambda){
+double CircularTrajectory_func_x(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
     double xR = CircularTrajectory_get_xR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
-    return xR + R*sin(lambda)*cos_tI + R*cos(lambda)*sin_tI; // s(𝜆) = sR + R sin(𝜆 + 𝜃I)
+    return xR + R*sin(l)*cos_tI + R*cos(l)*sin_tI; // s(𝜆) = sR + R sin(𝜆 + 𝜃I)
 }
 
 /*gpufun*/
-double CircularTrajectory_func_xp(CircularTrajectory traj, double lambda){
+double CircularTrajectory_func_xp(CircularTrajectory traj, double l){
     double tan_tI = CircularTrajectory_get_tan_tI(traj);
-    return (tan_tI + tan(lambda)) / (1 - tan_tI*tan(lambda)); // 𝜃(𝜆) = 𝜃I + 𝜆 + chan. effects
+    return (tan_tI + tan(l)) / (1 - tan_tI*tan(l)); // 𝜃(𝜆) = 𝜃I + 𝜆 + chan. effects
 }
 
 /*gpufun*/
-double CircularTrajectory_deriv_s(CircularTrajectory traj, double lambda){
+double CircularTrajectory_deriv_s(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
     double sR = CircularTrajectory_get_sR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
-    return -R*sin(lambda)*cos_tI - R*cos(lambda)*sin_tI; // s(𝜆) = sR + R cos(𝜆 + 𝜃I)
+    return -R*sin(l)*cos_tI - R*cos(l)*sin_tI; // s(𝜆) = sR + R cos(𝜆 + 𝜃I)
 }
 
 /*gpufun*/
-double CircularTrajectory_deriv_x(CircularTrajectory traj, double lambda){
+double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
     double xR = CircularTrajectory_get_xR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
-    return R*cos(lambda)*cos_tI - R*sin(lambda)*sin_tI; // s(𝜆) = sR + R sin(𝜆 + 𝜃I)
+    return R*cos(l)*cos_tI - R*sin(l)*sin_tI; // s(𝜆) = sR + R sin(𝜆 + 𝜃I)
 }
 
 #endif /* XCOLL_GEOM_TRAJ_CIRCULAR_H */
