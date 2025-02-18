@@ -8,40 +8,44 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..trajectories import all_trajectories, DriftTrajectory, MultipleCoulombTrajectory
+from ..c_init import GeomCInit
+from ..trajectories import DriftTrajectory, MultipleCoulombTrajectory
 
 
 class HalfOpenLineSegment(xo.Struct):
     """Half-open line segment from a point (s, x) to +/-infinity along an angle t"""
-    s = xo.Float64
-    x = xo.Float64
-    t = xo.Float64 # angle (wrt s-axis) towards inf
+    s1 = xo.Float64
+    x1 = xo.Float64
+    sin_t1 = xo.Float64 # angle (wrt s-axis) towards inf
+    cos_t1 = xo.Float64
 
-    _depends_on = all_trajectories
+    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
 
     max_crossings = {DriftTrajectory: 2, MultipleCoulombTrajectory: 2}
 
     def __init__(self, *args, **kwargs):
-        if 't' in kwargs:
-            while kwargs['t'] < -np.pi:
-                kwargs['t'] += 2*np.pi
-            while kwargs['t'] > np.pi:
-                kwargs['t'] -= 2*np.pi
+        theta1 = kwargs.pop('theta1', None)
         super().__init__(*args, **kwargs)
+        if theta1 is not None:
+            self.theta1 = theta1
 
-    def __repr__(self):
+    def __str__(self):
         return f"HalfOpenLineSegment(({self.s:.3}, {self.x:.3}) -- " \
             + f"{np.rad2deg(self.t):.0f}" + u'\xb0' + " * inf)"
 
-    def evaluate(self, t):
-        s1 = self.s
-        x1 = self.x
-        s2 = s1 + np.cos(self.t)
-        x2 = x1 + np.sin(self.t)
-        t = np.array(t)
-        mask = t >= 0
-        return s1*(1-t[mask]) + s2*t[mask], x1*(1-t[mask]) + x2*t[mask]
+    @property
+    def theta1(self):
+        return self.round(np.arctan2(self.sin_t1, self.cos_t1))
+
+    @theta1.setter
+    def theta1(self, value):
+        while value < -np.pi:
+            value += 2*np.pi
+        while value > np.pi:
+            value -= 2*np.pi
+        self.sin_t1 = np.sin(value)
+        self.cos_t1 = np.cos(value)
 
     def get_vertices(self):
         return ((self.s, self.x),)

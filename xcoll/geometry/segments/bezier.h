@@ -6,6 +6,43 @@
 #ifndef XCOLL_GEOM_TRAJ_BEZIER_H
 #define XCOLL_GEOM_TRAJ_BEZIER_H
 
+
+/*gpufun*/
+double BezierSegment_func_s(BezierSegment seg, double t){
+    double R = BezierSegment_get_R(seg);
+    double sR = BezierSegment_get_sR(seg);
+    return (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2;
+}
+
+/*gpufun*/
+double BezierSegment_func_x(BezierSegment seg, double t){
+    double R = BezierSegment_get_R(seg);
+    double xR = BezierSegment_get_xR(seg);
+    return xR + R*sin(t);
+}
+
+/*gpufun*/
+double BezierSegment_deriv_s(BezierSegment seg, double t){
+    double R = BezierSegment_get_R(seg);
+    return - R*sin(t);
+}
+
+/*gpufun*/
+double BezierSegment_deriv_x(BezierSegment seg, double t){
+    double R = BezierSegment_get_R(seg);
+    double xR = BezierSegment_get_xR(seg);
+    return R*cos(t);
+}
+
+/*gpufun*/
+int8_t BezierSegment_func_in_domain(BezierSegment seg, double t){
+    double t1 = BezierSegment_get_t1(seg);
+    double t2 = BezierSegment_get_t2(seg);
+    return t1 <= t && t <= t2;
+}
+
+
+
 /*gpufun*/
 void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
     double s1  = BezierSegment_get_s1(seg);

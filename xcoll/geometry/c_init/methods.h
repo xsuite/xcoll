@@ -6,6 +6,14 @@
 #ifndef XCOLL_GEOM_METHODS_H
 #define XCOLL_GEOM_METHODS_H
 
+
+// This is a quick macro to use inside a function body on a parameter that is not
+// used inside the function (this avoids throwing warnings at compilation time).
+#ifndef UNUSED
+#define UNUSED(expr) (void)(expr)
+#endif
+
+
 // This function calculates the overlap between an array and a given interval.
 // The array comes in pairs of points, e.g. in-out-in-out... or out-in-out-in...
 // IMPORTANT:

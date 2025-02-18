@@ -8,30 +8,39 @@
 #define XC_HALFOPENLINE_CROSSINGS 2
 
 
-
 /*gpufun*/
-double HalfOpenLineSegment_func(HalfOpenLineSegment seg, double s){
-    // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
-    const double Ax = HalfOpenLine_get_Ax(seg);
-    const double Xo = HalfOpenLine_get_Xo(seg);
-    double s2       = HalfOpenLine_get_s2(seg);
-    double x2       = HalfOpenLine_get_x2(seg);
-    double s1       = HalfOpenLine_get_s1(seg);
-    double x1       = HalfOpenLine_get_x1(seg);
-    return x2 + (x2 - x1) / (s2 - s1) * (s - s1);
+double HalfOpenLineSegment_func_s(HalfOpenLineSegment seg, double t){
+    double s1 = HalfOpenLineSegment_get_s1(seg);
+    double cos_t1 = HalfOpenLineSegment_get_cos_t1(seg);
+    return s1 + t*cos_t1;
 }
 
 /*gpufun*/
-double HalfOpenLineSegment_deriv(HalfOpenLineSegment seg, double s){
-    // MCS trajectory derivative wrt s
-    const double Ax = HalfOpenLine_get_Ax(seg);
-    const double Xo = HalfOpenLine_get_Xo(seg);
-    double s2       = HalfOpenLine_get_s2(seg);
-    double x2       = HalfOpenLine_get_x2(seg);
-    double s1       = HalfOpenLine_get_s1(seg);
-    double x1       = HalfOpenLine_get_x1(seg);
-    return (x2 - x1) / (s2 - s1);
+double HalfOpenLineSegment_func_x(HalfOpenLineSegment seg, double t){
+    double x1 = HalfOpenLineSegment_get_x1(seg);
+    double sin_t1 = HalfOpenLineSegment_get_sin_t1(seg);
+    return x1 + t*sin_t1;
 }
+
+/*gpufun*/
+double HalfOpenLineSegment_deriv_s(HalfOpenLineSegment seg, double t){
+    UNUSED(t);
+    return HalfOpenLineSegment_get_cos_t1(seg);
+}
+
+/*gpufun*/
+double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
+    UNUSED(t);
+    return HalfOpenLineSegment_get_sin_t1(seg);
+}
+
+/*gpufun*/
+int8_t HalfOpenLineSegment_func_in_domain(HalfOpenLineSegment seg, double t){
+    return t >= 0;
+}
+
+
+
 
 
 /*gpufun*/

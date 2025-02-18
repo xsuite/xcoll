@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import xo_to_ctypes, GeomCInit, PyMethod, XC_EPSILON
+from ..c_init import GeomCInit, PyMethod, XC_EPSILON
 from .drift import DriftTrajectory
 from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
@@ -85,11 +85,11 @@ for traj in all_trajectories:
 
 
 # Define common methods for all trajectories
-def traj__eq__(self, other):
-    """Check if two trajectories are equal"""
+def __eq__(self, other):
+    """Check if two objects are equal"""
     return self.to_dict() == other.to_dict()
 
-def traj__repr__(self):
+def __repr__(self):
     """Return repr(self)."""
     return f"<{str(self)} at {hex(id(self))}>"
 
@@ -106,35 +106,35 @@ def from_dict(cls, dct, **kwargs):
         raise ValueError(f"Expected class {cls.__name__}, got {this_cls}")
     return cls(**this_dct, **kwargs)
 
-def traj_copy(self):
-    """Returns a copy of the trajectory"""
+def __copy__(self):
+    """Returns a copy of the object"""
     return self.from_dict(self.to_dict())
 
-def traj_round(self, val):
+def __round__(self, val):
     """Built-in to provide rounding to Xcoll precision"""
     return round(val, -int(np.log10(XC_EPSILON)))
 
 for traj in all_trajectories:
     traj.name = traj.__name__.lower()[:-10]
-    traj.__eq__ = traj__eq__
+    traj.__eq__ = __eq__
     if not '__repr__' in traj.__dict__:
-        traj.__repr__ = traj__repr__
+        traj.__repr__ = __repr__
     if not '__str__' in traj.__dict__:
         traj.__str__ = traj__repr__
     traj.to_dict = to_dict
     traj.from_dict = from_dict
-    traj.copy = traj_copy
-    traj.round = traj_round
+    traj.copy = __copy__
+    traj.round = __round__
 
 
 # Sanity check to assert all trajectories have C code for func_ and deriv_ functions
 def assert_trajectory_sources(tra):
-    assert tra in all_trajectories
-    name = tra.__name__
+    assert traj in all_trajectories
+    name = traj.__name__
     for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
         header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double l)"
         header_found = False
-        for src in tra._extra_c_sources:
+        for src in traj._extra_c_sources:
             if isinstance(src, str):
                 if header in src:
                     header_found = True
@@ -148,13 +148,15 @@ def assert_trajectory_sources(tra):
             raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
                             + f"({name} traj, double l).")
 
-for tra in all_trajectories:
-    assert_trajectory_sources(tra)
+for traj in all_trajectories:
+    assert_trajectory_sources(traj)
 
 
 
 
-# OLD
+# OLD ========================================================================================================
+from ..c_init import xo_to_ctypes
+
 args_cross_h = [
     xo.Arg(xo.Int8,    pointer=True, name="n_hit"),
     xo.Arg(xo.Float64, pointer=True, name="s"),

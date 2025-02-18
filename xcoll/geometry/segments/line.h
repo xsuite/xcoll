@@ -7,28 +7,41 @@
 #define XCOLL_GEOM_SEG_LINE_H
 
 #define XC_LINE_CROSSINGS 2
-// #include "../trajectories/mcs.h"
-// #include "../c_init/simpson.h" // this is just for me to avoid squiggles
 
 
 /*gpufun*/
-double LineSegment_func(LineSegment seg, double s){
-    double x1 = LineSegment_get_x1(seg);
+double LineSegment_func_s(LineSegment seg, double t){
     double s1 = LineSegment_get_s1(seg);
-    double x2 = LineSegment_get_x2(seg);
     double s2 = LineSegment_get_s2(seg);
-    return x1 + (x2 - x1) / (s2 - s1) * (s - s1);
+    return (1-t)*s1 + t*s2;
 }
-
 
 /*gpufun*/
-double LineSegment_deriv(LineSegment seg, double s){
+double LineSegment_func_x(LineSegment seg, double t){
     double x1 = LineSegment_get_x1(seg);
-    double s1 = LineSegment_get_s1(seg);
     double x2 = LineSegment_get_x2(seg);
-    double s2 = LineSegment_get_s2(seg);
-    return (x2 - x1) / (s2 - s1);
+    return (1-t)*x1 + t*x2;
 }
+
+/*gpufun*/
+double LineSegment_deriv_s(LineSegment seg, double t){
+    UNUSED(t);
+    return LineSegment_get_s2(seg) - LineSegment_get_s1(seg);
+}
+
+/*gpufun*/
+double LineSegment_deriv_x(LineSegment seg, double t){
+    UNUSED(t);
+    return LineSegment_get_x2(seg) - LineSegment_get_x1(seg);
+}
+
+/*gpufun*/
+int8_t LineSegment_func_in_domain(LineSegment seg, double t){
+    return t >= 0 && t <= 1;
+}
+
+
+
 
 
 /*gpufun*/

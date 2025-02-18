@@ -9,26 +9,42 @@
 
 
 /*gpufun*/
-double CircularSegment_func(CircularSegment seg, double s){
-    // MCS trajectory form PDG rewritted in terms of A, B and s/Xo and with circular equation. Note: s is particle s.
-    double R        = CircularSegment_get_R(seg);
-    double sC       = CircularSegment_get_sC(seg);
-    double xC       = CircularSegment_get_xC(seg);
-    const double Ax = CircularSegment_get_Ax(seg);
-    const double Xo = CircularSegment_get_Xo(seg);
-    double x        = CircularSegment_get_x(seg);
-    return pow(x - xC, 2.0) + pow(s - sC, 2.0) - pow(R, 2.0);
+double CircularSegment_func_s(CircularSegment seg, double t){
+    double R = CircularSegment_get_R(seg);
+    double sR = CircularSegment_get_sR(seg);
+    return sR + R*cos(t);
 }
 
 /*gpufun*/
-double CircularSegment_deriv(CirclularSegment seg, double s){
-    // MCS trajectory derivative wrt s. Note: s is particle s.
-    double R        = CircularSegment_get_R(seg);
-    double sC       = CircularSegment_get_sC(seg);
-    const double Ax = CircularSegment_get_Ax(seg);
-    const double Xo = CircularSegment_get_Xo(seg);
-    return 2*(s - sC);
+double CircularSegment_func_x(CircularSegment seg, double t){
+    double R = CircularSegment_get_R(seg);
+    double xR = CircularSegment_get_xR(seg);
+    return xR + R*sin(t);
 }
+
+/*gpufun*/
+double CircularSegment_deriv_s(CircularSegment seg, double t){
+    double R = CircularSegment_get_R(seg);
+    return - R*sin(t);
+}
+
+/*gpufun*/
+double CircularSegment_deriv_x(CircularSegment seg, double t){
+    double R = CircularSegment_get_R(seg);
+    double xR = CircularSegment_get_xR(seg);
+    return R*cos(t);
+}
+
+/*gpufun*/
+int8_t CircularSegment_func_in_domain(CircularSegment seg, double t){
+    double t1 = CircularSegment_get_t1(seg);
+    double t2 = CircularSegment_get_t2(seg);
+    return t1 <= t && t <= t2;
+}
+
+
+
+
 
 /*gpufun*/
 void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){

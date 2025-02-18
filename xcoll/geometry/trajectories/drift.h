@@ -46,18 +46,22 @@ double DriftTrajectory_func_x(DriftTrajectory traj, double l){
 
 /*gpufun*/
 double DriftTrajectory_func_xp(DriftTrajectory traj, double l){
+    UNUSED(l);
     return DriftTrajectory_get_tan_t0(traj);
 }
 
 /*gpufun*/
 double DriftTrajectory_deriv_s(DriftTrajectory traj, double l){
+    UNUSED(l);
     return DriftTrajectory_get_cos_t0(traj);
 }
 
 /*gpufun*/
 double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
+    UNUSED(l);
     return DriftTrajectory_get_sin_t0(traj);
 }
+
 
 
 /*gpufun*/
