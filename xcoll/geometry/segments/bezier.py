@@ -26,7 +26,7 @@ class BezierSegment(xo.Struct):
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
-    max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
+    _max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
 
     def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \

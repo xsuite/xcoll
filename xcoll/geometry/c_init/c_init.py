@@ -1,14 +1,19 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import xobjects as xo
 from ...general import _pkg_root
 
 
-XC_EPSILON = 1.e-15
-XC_S_MAX = 1.e21
+XC_GEOM_EPSILON = 1.e-15
+XC_GEOM_S_MAX = 1.e21
+XC_GEOM_ROOT_NEWTON_EPSILON = 1.e-10
+XC_GEOM_ROOT_NEWTON_MAX_ITER = 100         # Maximum number of iterations in Newton's method
+XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL = 1e-10 # Threshold for small derivative
+XC_GEOM_ROOT_GRID_MAX_INTER = 10           # Maximum number of intervals for grid search
+XC_GEOM_ROOT_GRID_POINTS = 1000            # Number of points to search in grid
 
 
 def xo_to_ctypes(args):
@@ -22,7 +27,8 @@ def xo_to_cnames(args):
     return ", ".join([f"{arg.name}" for arg in args])
 
 
-define_src = f"""
+class GeomCInit(xo.Struct):
+    _extra_c_sources = [f"""
 #ifndef XCOLL_GEOM_DEFINES_H
 #define XCOLL_GEOM_DEFINES_H
 #include <math.h>
@@ -30,16 +36,44 @@ define_src = f"""
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef XC_EPSILON
-#define XC_EPSILON {XC_EPSILON}
+#ifndef XC_GEOM_EPSILON
+#define XC_GEOM_EPSILON {XC_GEOM_EPSILON}
 #endif
 
-#ifndef XC_S_MAX
-#define XC_S_MAX {XC_S_MAX}
+#ifndef XC_GEOM_S_MAX
+#define XC_GEOM_S_MAX {XC_GEOM_S_MAX}
 #endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_EPSILON
+#defin XC_GEOM_ROOT_NEWTON_EPSILON {XC_GEOM_ROOT_NEWTON_EPSILON}
+#endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_MAX_ITER
+#defin XC_GEOM_ROOT_NEWTON_MAX_ITER {XC_GEOM_ROOT_NEWTON_MAX_ITER}
+#endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL
+#defin XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL {XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL}
+#endif
+
+#ifndef XC_GEOM_ROOT_GRID_MAX_INTER
+#defin XC_GEOM_ROOT_GRID_MAX_INTER {XC_GEOM_ROOT_GRID_MAX_INTER}
+#endif
+
+#ifndef XC_GEOM_ROOT_GRID_POINTS
+#defin XC_GEOM_ROOT_GRID_POINTS {XC_GEOM_ROOT_GRID_POINTS}
+#endif
+
 
 #endif /* XCOLL_GEOM_DEFINES_H */
-"""
+""",
+        _pkg_root / 'geometry' / 'c_init' / 'sort.h',
+        _pkg_root / 'geometry' / 'c_init' / 'methods.h',
+        # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
+    ]
+
+    # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
+    _depends_on = [xo.Float64]
 
 
 class PyMethod:
@@ -69,15 +103,3 @@ class PyMethod:
         if self.element_name:
             kwargs[self.element_name] = instance
         return kernel(**kwargs)
-
-
-class GeomCInit(xo.Struct):
-    _extra_c_sources = [
-        define_src,
-        _pkg_root / 'geometry' / 'c_init' / 'sort.h',
-        _pkg_root / 'geometry' / 'c_init' / 'methods.h',
-        # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
-    ]
-
-    # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
-    _depends_on = [xo.Float64]

@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit, PyMethod, XC_EPSILON
+from ..c_init import GeomCInit, PyMethod, XC_GEOM_EPSILON
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -92,7 +92,7 @@ def is_open(self):
 def connection_to(self, other):
     """Get the point(s) at which the segment is connected to another segment"""
     overlap = [vert1 for vert1 in self.get_vertices()
-                if np.any([np.allclose(vert1, vert2, atol=XC_EPSILON)
+                if np.any([np.allclose(vert1, vert2, atol=XC_GEOM_EPSILON)
                             for vert2 in other.get_vertices()])]
     return overlap
 
@@ -178,8 +178,8 @@ def get_max_crossings(segments, trajectory):
     if hasattr(segments, '__iter__') and all(isinstance(seg, all_segments) for seg in segments):
         max_crossings = 0
         for seg in segments:
-            if hasattr(seg, 'max_crossings') and trajectory in seg.max_crossings:
-                max_crossings += seg.max_crossings[trajectory]
+            if hasattr(seg, '_max_crossings') and trajectory in seg._max_crossings:
+                max_crossings += seg._max_crossings[trajectory]
             else:
                 max_crossings += 2
         return max_crossings

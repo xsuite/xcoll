@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit, PyMethod, XC_EPSILON
+from ..c_init import GeomCInit, PyMethod, XC_GEOM_EPSILON
 from .drift import DriftTrajectory
 from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
@@ -112,7 +112,7 @@ def __copy(self):
 
 def __round(self, val):
     """Built-in to provide rounding to Xcoll precision"""
-    return round(val, -int(np.log10(XC_EPSILON)))
+    return round(val, -int(np.log10(XC_GEOM_EPSILON)))
 
 for traj in all_trajectories:
     traj.name = traj.__name__.lower()[:-10]

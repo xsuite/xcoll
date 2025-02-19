@@ -60,7 +60,7 @@ double CircularTrajectory_func_x(CircularTrajectory traj, double l){
 /*gpufun*/
 double CircularTrajectory_func_xp(CircularTrajectory traj, double l){
     double tan_tI = CircularTrajectory_get_tan_tI(traj);
-    return (tan_tI + tan(l)) / (1 - tan_tI*tan(l)); // 𝜃(𝜆) = 𝜃I + 𝜆 + chan. effects
+    return (tan_tI + tan(l)) / (1. - tan_tI*tan(l)); // 𝜃(𝜆) = 𝜃I + 𝜆 + chan. effects
 }
 
 /*gpufun*/

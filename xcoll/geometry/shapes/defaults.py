@@ -1,13 +1,13 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
 
 import xobjects as xo
 
-from ..c_init import XC_EPSILON
+from ..c_init import XC_GEOM_EPSILON
 from ..segments import *
 from .shape import Shape2D
 from .shape_vlimit import Shape2DV
@@ -49,7 +49,7 @@ def create_crystal(R, *, width, height, length, jaw_U, tilt):
     R_short  = sgnR*(abs(R) - width)
     sin_a = length/abs(R)
     cos_a = np.sqrt(1 - length*length/R/R)
-    if (abs(R) < XC_EPSILON):
+    if (abs(R) < XC_GEOM_EPSILON):
         raise ValueError("Straight crystal not yet implemented!")
 
     elif (R < 0):

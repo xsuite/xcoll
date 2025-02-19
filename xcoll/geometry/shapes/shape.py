@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import xobjects as xo
 
-from ..c_init import XC_EPSILON, PyMethod
+from ..c_init import XC_GEOM_EPSILON, PyMethod
 from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment, get_max_crossings
 from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
@@ -130,7 +130,7 @@ class Shape2D(xo.Struct):
                     # Small hack to find the vertex up to numerical precision
                     vert_found = False
                     for vert_key in vertices.keys():
-                        if np.allclose(vert, vert_key, atol=XC_EPSILON):
+                        if np.allclose(vert, vert_key, atol=XC_GEOM_EPSILON):
                             vert_found = True
                             break
                     if vert_found:
@@ -356,7 +356,7 @@ def _interpolate(segment, coords, smooth_points):
             t = np.linspace(0, 1, smooth_points)
         s, x = segment.evaluate(t)
         interp = [(ss,xx) for ss,xx in zip(s,x)]
-        if np.allclose(interp[0], coords[-1], atol=XC_EPSILON):
+        if np.allclose(interp[0], coords[-1], atol=XC_GEOM_EPSILON):
             coords.extend(interp[1:-1])
         else:
             coords.extend(list(reversed(interp[1:-1])))
