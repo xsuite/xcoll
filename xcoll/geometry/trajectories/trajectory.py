@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import xobjects as xo
 
@@ -36,7 +37,21 @@ trajectory_methods = {
     'deriv_x': xo.Method(
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="l")],
-        ret=xo.Arg(xo.Float64, name="x"))
+        ret=xo.Arg(xo.Float64, name="x")),
+    'bounding_box_s': xo.Method(    # Gives the min/max s over the interval [t1, t2]
+        c_name=f"bounding_box_s",
+        args=[xo.Arg(xo.Float64, name="l1"),
+              xo.Arg(xo.Float64, name="l2"),
+              xo.Arg(xo.Float64, pointer=True, name="extrema"),
+        ],
+        ret=None),
+    'bounding_box_x': xo.Method(    # Gives the min/max x over the interval [t1, t2]
+        c_name=f"bounding_box_x",
+        args=[xo.Arg(xo.Float64, name="l1"),
+              xo.Arg(xo.Float64, name="l2"),
+              xo.Arg(xo.Float64, pointer=True, name="extrema"),
+        ],
+        ret=None)
 }
 
 
@@ -85,6 +100,36 @@ for traj in all_trajectories:
 
 
 # Define common methods for all trajectories
+def plot(self, l1=0, l2=1):
+    fig, ax  = plt.subplots()
+
+    l_values = np.linspace(l1, l2, 100)
+    s_values = np.array([self.func_s(l=l) for l in l_values])
+    x_values = np.array([self.func_x(l=l) for l in l_values])
+
+    # Plot the seg
+    ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
+
+    # Plot the endpoints
+    s_start, x_start = self.func_s(l=l1), self.func_x(l=l1)
+    s_end, x_end = self.func_s(l=l2), self.func_x(l=l2)
+    ax.plot([s_start, s_end], [x_start, x_end], 'go', label='Endpoints')
+
+    # Get and plot the bounding box
+    extrema_s = np.zeros(2)
+    extrema_x = np.zeros(2)
+    self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
+    self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
+    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
+            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]], 'k--', label='Bounding Box')
+
+    # Set plot labels and show the plot
+    ax.set_xlabel('s')
+    ax.set_ylabel('x')
+    ax.legend()
+
+    return ax.figure, ax
+
 def __eq(self, other):
     """Check if two objects are equal"""
     return self.to_dict() == other.to_dict()
@@ -125,14 +170,13 @@ for traj in all_trajectories:
     traj.from_dict = from_dict
     traj.copy = __copy
     traj.round = __round
+    traj.plot = plot
 
 
 # Sanity check to assert all trajectories have C code for func_ and deriv_ functions
 def assert_trajectory_sources(tra):
     assert traj in all_trajectories
-    name = traj.__name__
-    for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
-        header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double l)"
+    def _check_source(header, traj):
         header_found = False
         for src in traj._extra_c_sources:
             if isinstance(src, str):
@@ -145,9 +189,14 @@ def assert_trajectory_sources(tra):
                         header_found = True
                         break
         if not header_found:
-            raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
-                            + f"({name} traj, double l).")
-
+            raise SystemError(f"Missing or corrupt C function in trajectory {traj.__name__}:  {header}.")
+    name = traj.__name__
+    for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
+        header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double l)"
+        _check_source(header, traj)
+    for func in ['bounding_box_s', 'bounding_box_x']:
+        header = f"/*gpufun*/\nvoid {name}_{func}({name} traj, double l1, double l2, double extrema[2])"
+        _check_source(header, traj)
 for traj in all_trajectories:
     assert_trajectory_sources(traj)
 
