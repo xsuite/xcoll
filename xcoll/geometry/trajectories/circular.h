@@ -66,7 +66,6 @@ double CircularTrajectory_func_xp(CircularTrajectory traj, double l){
 /*gpufun*/
 double CircularTrajectory_deriv_s(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
-    double sR = CircularTrajectory_get_sR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
     return -R*sin(l)*cos_tI - R*cos(l)*sin_tI; // s(𝜆) = sR + R cos(𝜆 + 𝜃I)
@@ -75,10 +74,41 @@ double CircularTrajectory_deriv_s(CircularTrajectory traj, double l){
 /*gpufun*/
 double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
     double R = CircularTrajectory_get_R(traj);
-    double xR = CircularTrajectory_get_xR(traj);
     double sin_tI = CircularTrajectory_get_sin_tI(traj);
     double cos_tI = CircularTrajectory_get_cos_tI(traj);
     return R*cos(l)*cos_tI - R*sin(l)*sin_tI; // s(𝜆) = sR + R sin(𝜆 + 𝜃I)
+}
+
+/*gpufun*/
+void CircularTrajectory_bounding_box_s(CircularTrajectory traj, double l1, double l2, double extrema[2]){
+    double s1 = CircularTrajectory_func_s(traj, l1);
+    double s2 = CircularTrajectory_func_s(traj, l2);
+    double sR = CircularTrajectroy_get_sR(traj);
+    double R  = CircularTrajectory_get_R(traj);
+    extrema[0] = MIN(s1, s2);
+    if (l1 <= 0. && 0. <= l2){
+        extrema[1] = sR + R;
+    } else {
+        extrema[1] = MAX(s1, s2);
+    }
+}
+
+/*gpufun*/
+void CircularTrajectory_bounding_box_x(CircularTrajectory traj, double l1, double l2, double extrema[2]){
+    double x1 = CircularTrajectory_func_x(traj, l1);
+    double x2 = CircularTrajectory_func_x(traj, l2);
+    double R  = CircularTrajectory_get_R(traj);
+    double xR = CircularTrajectory_get_xR(traj);
+    if (l1 <= -M_PI/2. && -M_PI/2. <= l2){
+        extrema[0] = xR - R;
+    } else {
+        extrema[0] = MIN(x1, x2);
+    }
+    if (l1 <= M_PI/2. && M_PI/2. <= l2){
+        extrema[1] = xR + R;
+    } else {
+        extrema[1] = MAX(x1, x2);
+    }
 }
 
 #endif /* XCOLL_GEOM_TRAJ_CIRCULAR_H */
