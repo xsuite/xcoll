@@ -83,7 +83,7 @@ double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
 void CircularTrajectory_bounding_box_s(CircularTrajectory traj, double l1, double l2, double extrema[2]){
     double s1 = CircularTrajectory_func_s(traj, l1);
     double s2 = CircularTrajectory_func_s(traj, l2);
-    double sR = CircularTrajectroy_get_sR(traj);
+    double sR = CircularTrajectory_get_sR(traj);
     double R  = CircularTrajectory_get_R(traj);
     extrema[0] = MIN(s1, s2);
     if (l1 <= 0. && 0. <= l2){
