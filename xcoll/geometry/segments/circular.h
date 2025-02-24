@@ -51,6 +51,7 @@ double CircularSegment_deriv_x(CircularSegment seg, double t){
 void CircularSegment_bounding_box_s(CircularSegment seg, double t1, double t2, double extrema[2]){
     double s1 = CircularSegment_func_s(seg, t1);
     double s2 = CircularSegment_func_s(seg, t2);
+    double sR = CircularSegment_get_sR(seg);
     double R  = CircularSegment_get_R(seg);
     double theta1 = CircularSegment_get__theta1(seg);
     double theta2 = CircularSegment_get__theta2(seg);
@@ -69,6 +70,7 @@ void CircularSegment_bounding_box_x(CircularSegment seg, double t1, double t2, d
     double x1 = CircularSegment_func_x(seg, t1);
     double x2 = CircularSegment_func_x(seg, t2);
     double R  = CircularSegment_get_R(seg);
+    double xR = CircularSegment_get_xR(seg);
     double theta1 = CircularSegment_get__theta1(seg);
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1 = theta1 + t1*(theta2 - theta1); // rescale

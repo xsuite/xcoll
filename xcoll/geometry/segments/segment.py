@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import xobjects as xo
 
@@ -102,6 +103,35 @@ for seg in all_segments:
 
 # Define common methods for all segments
 from ..trajectories.trajectory import __eq, __repr, to_dict, from_dict, __copy, __round
+def plot(self, t1=0, t2=1):
+    fig, ax  = plt.subplots()
+
+    t_values = np.linspace(t1, t2, 100)
+    s_values = np.array([self.func_s(t=t) for t in t_values])
+    x_values = np.array([self.func_x(t=t) for t in t_values])
+
+    # Plot the seg
+    ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
+
+    # Plot the endpoints
+    s_start, x_start = self.func_s(t=t1), self.func_x(t=t1)
+    s_end, x_end = self.func_s(t=t2), self.func_x(t=t2)
+    ax.plot([s_start, s_end], [x_start, x_end], 'go', label='Endpoints')
+
+    # Get and plot the bounding box
+    extrema_s = np.zeros(2)
+    extrema_x = np.zeros(2)
+    self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
+    self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
+    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
+            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]], 'k--', label='Bounding Box')
+
+    # Set plot labels and show the plot
+    ax.set_xlabel('s')
+    ax.set_ylabel('x')
+    ax.legend()
+
+    return ax.figure, ax
 
 def is_open(self):
     """Check if the segment is an open segment"""
@@ -157,6 +187,7 @@ for seg in all_segments:
     seg.is_connected_to = is_connected_to
     seg.translate = translate
     seg.rotate = rotate
+    seg.plot  = plot
 
 
 # Sanity check to assert all segments have C code for func_ and deriv_ functions
