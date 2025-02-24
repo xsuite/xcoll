@@ -111,7 +111,21 @@ double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double 
     return sin_t0 + A0*omega_norm*cos_t0 + l*A0*omega_norm_deriv*cos_t0;
 }
 
+/*gpufun*/
+void MultipleCoulombTrajectory_bounding_box_s(MultipleCoulombTrajectory traj, double l1, double l2, double extrema[2]){
+    double s1 = MultipleCoulombTrajectory_func_s(traj, l1);
+    double s2 = MultipleCoulombTrajectory_func_s(traj, l2);
+    extrema[0] = MIN(s1, s2);
+    extrema[1] = MAX(s1, s2);
+}
 
+/*gpufun*/
+void MultipleCoulombTrajectory_bounding_box_x(MultipleCoulombTrajectory traj, double l1, double l2, double extrema[2]){
+    double x1 = MultipleCoulombTrajectory_func_x(traj, l1);
+    double x2 = MultipleCoulombTrajectory_func_x(traj, l2);
+    extrema[0] = MIN(x1, x2);
+    extrema[1] = MAX(x1, x2);
+}
 
 
 // // MULTIPLE COULOMB SCATTERING VLIMIT ----------------------------------------------------------------------
