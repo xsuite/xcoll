@@ -29,7 +29,7 @@ void calculate_overlap_array_interval(double* arr, int8_t* length, double* inter
     if ((*length)%2 == 1){
         // Special case: last interval of array is open until infinity,
         // so we add an extra point at the end to represent infinity.
-        arr[*length] = XC_S_MAX*0.1;
+        arr[*length] = XC_GEOM_S_MAX*0.1;
         (*length)++;
     } else if (arr[*length-1] < interval[0]){
         // No overlap

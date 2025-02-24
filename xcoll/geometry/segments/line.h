@@ -6,8 +6,11 @@
 #ifndef XCOLL_GEOM_SEG_LINE_H
 #define XCOLL_GEOM_SEG_LINE_H
 
-#define XC_LINE_CROSSINGS 2
 
+/*gpufun*/
+int8_t LineSegment_is_open(LineSegment seg){
+    return 0;  // closed segment
+}
 
 /*gpufun*/
 double LineSegment_func_s(LineSegment seg, double t){
@@ -36,8 +39,19 @@ double LineSegment_deriv_x(LineSegment seg, double t){
 }
 
 /*gpufun*/
-int8_t LineSegment_func_in_domain(LineSegment seg, double t){
-    return t >= 0 && t <= 1;
+void LineSegment_bounding_box_s(LineSegment seg, double t1, double t2, double extrema[2]){
+    double s1 = LineSegment_func_s(seg, t1);
+    double s2 = LineSegment_func_s(seg, t2);
+    extrema[0] = MIN(s1, s2);
+    extrema[1] = MAX(s1, s2);
+}
+
+/*gpufun*/
+void LineSegment_bounding_box_x(LineSegment seg, double t1, double t2, double extrema[2]){
+    double x1 = LineSegment_func_x(seg, t1);
+    double x2 = LineSegment_func_x(seg, t2);
+    extrema[0] = MIN(x1, x2);
+    extrema[1] = MAX(x1, x2);
 }
 
 

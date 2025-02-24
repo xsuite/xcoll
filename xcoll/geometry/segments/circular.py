@@ -16,24 +16,20 @@ class CircularSegment(xo.Struct):
     R  = xo.Float64
     sR = xo.Float64  # s-coordinate of the centre
     xR = xo.Float64  # x-coordinate of the centre
-    theta1 = xo.Float64  # Starting angle
-    theta2 = xo.Float64  # Ending angle
+    _theta1 = xo.Float64  # Starting angle
+    _theta2 = xo.Float64  # Ending angle
 
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
     def __init__(self, *args, **kwargs):
-        if 'theta1' in kwargs:
-            while kwargs['theta1'] < -np.pi:
-                kwargs['theta1'] += 2*np.pi
-            while kwargs['theta1'] > np.pi:
-                kwargs['theta1'] -= 2*np.pi
-        if 'theta2' in kwargs:
-            while kwargs['theta2'] < -np.pi:
-                kwargs['theta2'] += 2*np.pi
-            while kwargs['theta2'] > np.pi:
-                kwargs['theta2'] -= 2*np.pi
+        if kwargs['R'] < 0:
+            raise ValueError("Radius must be positive")
+        theta1 = kwargs.pop('theta1', -np.pi)
+        theta2 = kwargs.pop('theta2', np.pi)
         super().__init__(*args, **kwargs)
+        self.theta1 = theta1
+        self.theta2 = theta2
 
     def __str__(self):
         p1, p2 = self.get_vertices()
@@ -71,3 +67,26 @@ class CircularSegment(xo.Struct):
             self.theta2 += 2*np.pi
         self._translate_inplace(ps, px)
 
+    @property
+    def theta1(self):
+        return self._theta1
+
+    @theta1.setter
+    def theta1(self, value):
+        while value < -np.pi:
+            value += 2*np.pi
+        while value > np.pi:
+            value -= 2*np.pi
+        self._theta1 = value
+
+    @property
+    def theta2(self):
+        return self._theta2
+
+    @theta2.setter
+    def theta2(self, value):
+        while value < -np.pi:
+            value += 2*np.pi
+        while value > np.pi:
+            value -= 2*np.pi
+        self._theta2 = value

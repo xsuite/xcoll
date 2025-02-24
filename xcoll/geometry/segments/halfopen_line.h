@@ -5,8 +5,12 @@
 
 #ifndef XCOLL_GEOM_SEG_HALFOPENLINE_H
 #define XCOLL_GEOM_SEG_HALFOPENLINE_H
-#define XC_HALFOPENLINE_CROSSINGS 2
 
+
+/*gpufun*/
+int8_t HalfOpenLineSegment_is_open(HalfOpenLineSegment seg){
+    return 1;  // open on the positive side
+}
 
 /*gpufun*/
 double HalfOpenLineSegment_func_s(HalfOpenLineSegment seg, double t){
@@ -35,8 +39,19 @@ double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
 }
 
 /*gpufun*/
-int8_t HalfOpenLineSegment_func_in_domain(HalfOpenLineSegment seg, double t){
-    return t >= 0;
+void HalfOpenLineSegment_bounding_box_s(HalfOpenLineSegment seg, double t1, double t2, double extrema[2]){
+    double s1 = HalfOpenLineSegment_func_s(seg, t1);
+    double s2 = HalfOpenLineSegment_func_s(seg, t2);
+    extrema[0] = MIN(s1, s2);
+    extrema[1] = MAX(s1, s2);
+}
+
+/*gpufun*/
+void HalfOpenLineSegment_bounding_box_x(HalfOpenLineSegment seg, double t1, double t2, double extrema[2]){
+    double x1 = HalfOpenLineSegment_func_x(seg, t1);
+    double x2 = HalfOpenLineSegment_func_x(seg, t2);
+    extrema[0] = MIN(x1, x2);
+    extrema[1] = MAX(x1, x2);
 }
 
 

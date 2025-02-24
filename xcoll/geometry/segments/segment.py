@@ -34,7 +34,25 @@ segment_methods = {
     'deriv_x': xo.Method(
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="t")],
-        ret=xo.Arg(xo.Float64, name="x"))
+        ret=xo.Arg(xo.Float64, name="x")),
+    'bounding_box_s': xo.Method(    # Gives the min/max s over the interval [t1, t2]
+        c_name=f"bounding_box_s",
+        args=[xo.Arg(xo.Float64, name="t1"),
+              xo.Arg(xo.Float64, name="t2"),
+              xo.Arg(xo.Float64, pointer=True, name="extrema"),
+        ],
+        ret=None),
+    'bounding_box_x': xo.Method(    # Gives the min/max x over the interval [t1, t2]
+        c_name=f"bounding_box_x",
+        args=[xo.Arg(xo.Float64, name="t1"),
+              xo.Arg(xo.Float64, name="t2"),
+              xo.Arg(xo.Float64, pointer=True, name="extrema"),
+        ],
+        ret=None),
+    'is_open': xo.Method(
+        c_name=f"is_open",
+        args=[],
+        ret=xo.Arg(xo.Int8, name="is_open"))
 }
 
 
@@ -144,9 +162,7 @@ for seg in all_segments:
 # Sanity check to assert all segments have C code for func_ and deriv_ functions
 def assert_segment_sources(tra):
     assert seg in all_segments
-    name = seg.__name__
-    for func in ['func_s', 'func_x', 'deriv_s', 'deriv_x']:
-        header = f"/*gpufun*/\ndouble {name}_{func}({name} seg, double t)"
+    def _check_source(header, seg):
         header_found = False
         for src in seg._extra_c_sources:
             if isinstance(src, str):
@@ -159,8 +175,16 @@ def assert_segment_sources(tra):
                         header_found = True
                         break
         if not header_found:
-            raise SystemError(f"Missing or corrupt C function:  double {name}_{func}"
-                            + f"({name} seg, double t).")
+            raise SystemError(f"Missing or corrupt C function in segment {seg.__name__}:  {header}.")
+    name = seg.__name__
+    header = f"/*gpufun*/\nint8_t {name}_is_open({name} seg)"
+    _check_source(header, seg)
+    for func in ['func_s', 'func_x', 'deriv_s', 'deriv_x']:
+        header = f"/*gpufun*/\ndouble {name}_{func}({name} seg, double t)"
+        _check_source(header, seg)
+    for func in ['bounding_box_s', 'bounding_box_x']:
+        header = f"/*gpufun*/\nvoid {name}_{func}({name} seg, double t1, double t2, double extrema[2])"
+        _check_source(header, seg)
 
 for seg in all_segments:
     assert_segment_sources(seg)

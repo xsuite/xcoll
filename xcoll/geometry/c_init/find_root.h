@@ -130,7 +130,7 @@ void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg, double* l, d
     double grid_step_l = (l_max - l_min) / N_l; // this is just for now. We need to get interval for t and l.
     double grid_step_t = (t_max - t_min) / N_t;
     int n_roots = 0;
-    double TS_prev, TS_curr
+    double TS_prev, TS_curr;
     double prev_t = t_min;
     double prev_l = l_min;
     double curr_t;

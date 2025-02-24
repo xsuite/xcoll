@@ -11,22 +11,48 @@ from ...general import _pkg_root
 from ..c_init import GeomCInit
 from ..trajectories import DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory
 
+# Quartic vs Cubic Bezier
 
 class BezierSegment(xo.Struct):
     """Bézier segment, defined by a start and end point P1 and P2, and two control points that define the curve"""
-    s1 = xo.Float64
-    x1 = xo.Float64
-    s2 = xo.Float64
-    x2 = xo.Float64
-    cs1 = xo.Float64
-    cx1 = xo.Float64
-    cs2 = xo.Float64
-    cx2 = xo.Float64
+    _s1 = xo.Float64
+    _x1 = xo.Float64
+    _s2 = xo.Float64
+    _x2 = xo.Float64
+    _cs1 = xo.Float64
+    _cx1 = xo.Float64
+    _cs2 = xo.Float64
+    _cx2 = xo.Float64
+    _ts1 = xo.Float64 # First extremum in s
+    _ts2 = xo.Float64 # Second extremum in s
+    _tx1 = xo.Float64 # First extremum in x
+    _tx2 = xo.Float64 # Second extremum in x
+    _es1 = xo.Float64  # Value of first extremum in s
+    _es2 = xo.Float64  # Value of second extremum in s
+    _ex1 = xo.Float64  # Value of first extremum in x
+    _ex2 = xo.Float64  # Value of second extremum in x
 
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
+    _kernels = {'calculate_extrema': xo.Kernel(
+                                c_name='BezierSegment_calculate_extrema',
+                                args=[xo.Arg(xo.ThisClass, name="seg")],
+                                ret=None)}
+
     _max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
+
+    def __init__(self, *, s1, x1, s2, x2, cs1, cx1, cs2, cx2, **kwargs):
+        kwargs['_s1'] = s1
+        kwargs['_x1'] = x1
+        kwargs['_s2'] = s2
+        kwargs['_x2'] = x2
+        kwargs['_cs1'] = cs1
+        kwargs['_cx1'] = cx1
+        kwargs['_cs2'] = cs2
+        kwargs['_cx2'] = cx2
+        super().__init__(**kwargs)
+        self.calculate_extrema()
 
     def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
@@ -66,3 +92,75 @@ class BezierSegment(xo.Struct):
         self.cs2 = new_cs2
         self.cx2 = new_cx2
         self._translate_inplace(ps, px)
+
+    @property
+    def s1(self):
+        return self._s1
+
+    @s1.setter
+    def s1(self, value):
+        self._s1 = value
+        self.calculate_extrema()
+
+    @property
+    def x1(self):
+        return self._x1
+
+    @x1.setter
+    def x1(self, value):
+        self._x1 = value
+        self.calculate_extrema()
+
+    @property
+    def s2(self):
+        return self._s2
+
+    @s2.setter
+    def s2(self, value):
+        self._s2 = value
+        self.calculate_extrema()
+
+    @property
+    def x2(self):
+        return self._x2
+
+    @x2.setter
+    def x2(self, value):
+        self._x2 = value
+        self.calculate_extrema()
+
+    @property
+    def cs1(self):
+        return self._cs1
+
+    @cs1.setter
+    def cs1(self, value):
+        self._cs1 = value
+        self.calculate_extrema()
+
+    @property
+    def cx1(self):
+        return self._cx1
+
+    @cx1.setter
+    def cx1(self, value):
+        self._cx1 = value
+        self.calculate_extrema()
+
+    @property
+    def cs2(self):
+        return self._cs2
+
+    @cs2.setter
+    def cs2(self, value):
+        self._cs2 = value
+        self.calculate_extrema()
+
+    @property
+    def cx2(self):
+        return self._cx2
+
+    @cx2.setter
+    def cx2(self, value):
+        self._cx2 = value
+        self.calculate_extrema()
