@@ -1,6 +1,7 @@
 import subprocess as _subprocess
 import rpyc as _rpyc
 import collimasim as cs
+import time
 
 class BDSIMServer:
     def __init__(self):
@@ -40,48 +41,74 @@ class BDSIMServer:
                    particles_pdg_id,particles_particle_id, particles_state,
                    particles_at_element, particles_at_turn]
         self.g4link.addParticles(coordinates)
+    def addParticles2(self, coordinates):
+        self.g4link.addParticles(list(coordinates))
 
+    #def collimateReturn(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
+    #                    particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
+    #                    particles_state,particles_at_element, particles_at_turn, secondaries_x,
+    #                    secondaries_y,secondaries_px,secondaries_py,secondaries_zeta,
+    #                    secondaries_delta,secondaries_charge_ratio,secondaries_s,
+    #                    secondaries_pdg_id,secondaries_parent_particle_id,secondaries_at_element,
+    #                    secondaries_at_turn,secondaries_mass_ratio,secondaries_state):
     def collimateReturn(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                         particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
-                        particles_state,particles_at_element, particles_at_turn, secondaries_x,
-                        secondaries_y,secondaries_px,secondaries_py,secondaries_zeta,
-                        secondaries_delta,secondaries_charge_ratio,secondaries_s,
-                        secondaries_pdg_id,secondaries_parent_particle_id,secondaries_at_element,
-                        secondaries_at_turn,secondaries_mass_ratio):
+                        particles_state,particles_at_element, particles_at_turn):
         coordinates = [particles_x, particles_y, particles_px, particles_py,
                        particles_zeta, delta_temp, particles_chi,
                        particles_charge_ratio, particles_s,
                        particles_pdg_id,particles_particle_id, particles_state,
                        particles_at_element, particles_at_turn]
         products = self.g4link.collimateReturn(coordinates)
-        for i,x in enumerate(products['x']):
-            secondaries_x[i] = x
-        for i,x in enumerate(products['y']):
-            secondaries_y[i] = x
-        for i,x in enumerate(products['px']):
-            secondaries_px[i] = x
-        for i,x in enumerate(products['py']):
-            secondaries_py[i] = x
-        for i,x in enumerate(products['zeta']):
-            secondaries_zeta[i] = x
-        for i,x in enumerate(products['delta']):
-            secondaries_delta[i] = x
-        for i,x in enumerate(products['charge_ratio']):
-            secondaries_charge_ratio[i] = x
-        for i,x in enumerate(products['s']):
-            secondaries_s[i] = x
-        for i,x in enumerate(products['pdg_id']):
-            secondaries_pdg_id[i] = x
-        for i,x in enumerate(products['parent_particle_id']):
-            secondaries_parent_particle_id[i] = x
-        for i,x in enumerate(products['at_element']):
-            secondaries_at_element[i] = x
-        for i,x in enumerate(products['at_turn']):
-            secondaries_at_turn[i] = x
-        for i,x in enumerate(products['mass_ratio']):
-            secondaries_mass_ratio[i] = x
-
+        return products['x'], products['y'], products['px'], products['py'], \
+               products['zeta'], products['delta'], products['charge_ratio'], \
+               products['s'], products['pdg_id'], products['parent_particle_id'], \
+               products['at_element'], products['at_turn'], products['mass_ratio'], products['state']
+        secondaries_x[:] = products['x']
+        secondaries_y[:] = products['y']
+        secondaries_px[:] = products['px']
+        secondaries_py[:] = products['py']
+        secondaries_zeta[:] = products['zeta']
+        secondaries_delta[:] = products['delta']
+        secondaries_charge_ratio[:] = products['charge_ratio']
+        secondaries_s[:] = products['s']
+        secondaries_pdg_id[:] = products['pdg_id']
+        secondaries_parent_particle_id[:] = products['parent_particle_id']
+        secondaries_at_element[:] = products['at_element']
+        secondaries_at_turn[:] = products['at_turn']
+        secondaries_mass_ratio[:] = products['mass_ratio']
+        secondaries_state[:] = products['state']
+        #for i,x in enumerate(products['x']):
+        #    secondaries_x[i] = x
+        #for i,x in enumerate(products['y']):
+        #    secondaries_y[i] = x
+        #for i,x in enumerate(products['px']):
+        #    secondaries_px[i] = x
+        #for i,x in enumerate(products['py']):
+        #    secondaries_py[i] = x
+        #for i,x in enumerate(products['zeta']):
+        #    secondaries_zeta[i] = x
+        #for i,x in enumerate(products['delta']):
+        #    secondaries_delta[i] = x
+        #for i,x in enumerate(products['charge_ratio']):
+        #    secondaries_charge_ratio[i] = x
+        #for i,x in enumerate(products['s']):
+        #    secondaries_s[i] = x
+        #for i,x in enumerate(products['pdg_id']):
+        #    secondaries_pdg_id[i] = x
+        #for i,x in enumerate(products['parent_particle_id']):
+        #    secondaries_parent_particle_id[i] = x
+        #for i,x in enumerate(products['at_element']):
+        #    secondaries_at_element[i] = x
+        #for i,x in enumerate(products['at_turn']):
+        #    secondaries_at_turn[i] = x
+        #for i,x in enumerate(products['mass_ratio']):
+        #    secondaries_mass_ratio[i] = x
+        #for i,x in enumerate(products['state']):
+        #    secondaries_state[i] = x
         #return products
+        t22 = time.time()
+        print(f'time on server for collimate return2: {t22-t11}')
 
     def selectCollimator(self,geant4_id):
         self.g4link.selectCollimator(geant4_id)
@@ -90,4 +117,4 @@ class BDSIMServer:
         self.g4link.collimate()
 
     def clearData(self):
-        pass
+        self.g4link.clearData()
