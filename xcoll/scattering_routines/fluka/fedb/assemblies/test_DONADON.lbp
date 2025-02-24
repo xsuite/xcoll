@@ -1,0 +1,38 @@
+#------------------------------------------------------------------------------
+PROTOTYPE	DONADONT
+#------------------------------------------------------------------------------
+# prototype of the collimator tank:
+FEDB_SERIES	test
+FEDB_TAG	DONADONT
+ROT-DEFI         0.0       0.0       0.0       0.0   -3000.0    1000.0 proto
+#
+#------------------------------------------------------------------------------
+PROTOTYPE	DONADONJ
+#------------------------------------------------------------------------------
+FEDB_SERIES	test
+FEDB_TAG	DONADONJ
+ROT-DEFI         0.0       0.0       0.0     200.0   -3000.0    1000.0 proto
+#
+#------------------------------------------------------------------------------
+ASSEMBLY	DONADON
+#------------------------------------------------------------------------------
+# needed bodies:
+#               rename		rotname		name_in_file	fedb_series	fedb_tag	index
+BODY		TNKQA		QATANK		DONADONT	test		DONADONT	1
+BODY		TESTQA		QABLOCK		DONADONJ	test		DONADONJ	1
+#
+# define regions:
+#		rename		material	rotbody		defition
+REGION		*		EXTERNAL	*		-TNKQA
+# tank TCDQ
+REGION		TANKQA		VACUUM		TNKQA		+TNKQA -TESTQA
+# jaw TCDQ
+REGION		TESTQA		LATTICE		TESTQA		+TESTQA
+#
+#-rv-REGION		LATTICE		RPHa		+RPHa
+#-rv-ZONE						+RPHb
+#
+ROT-DEFI         0.0       0.0       0.0       0.0       0.0	   0.0	QATANK
+ROT-DEFI         0.0       0.0       0.0       0.0       0.0	   0.0	QABLOCK
+
+

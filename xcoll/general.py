@@ -12,5 +12,5 @@ citation = "F.F. Van der Veken, et al.: Recent Developments with the New Tools f
 # ======================
 # Do not change
 # ======================
-__version__ = '0.5.11.dev0+fluka'
+__version__ = '0.6.0rc0.dev0+fluka'
 # ======================

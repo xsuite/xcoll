@@ -77,10 +77,11 @@ class XcollCollimatorAPI:
         assert len(apertures) == len(names)
 
         # Verify elements
-        for el in elements:
-            print(el.__class__)
+        for name, el in zip(names, elements):
             assert isinstance(el, block_classes)
             el._tracking = False
+            if el.name is None:
+                el.name = name
 
         # Get positions
         tab = self.line.get_table()

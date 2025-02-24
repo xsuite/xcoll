@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import json
@@ -14,9 +14,12 @@ try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except ImportError:
     from ...xaux import FsPath
-from .paths import fedb, linebuilder, flukafile_resolve
-from ...beam_elements.base import OPEN_JAW
+
+from ...beam_elements import FlukaCollimator
+from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
+from .paths import fedb, linebuilder, flukafile_resolve
+from .prototypes import FlukaAssembly
 
 
 _header_start = "*  XCOLL START  **"
@@ -27,7 +30,7 @@ _header_stop  = "*  XCOLL END  **"
 def _element_dict_to_fluka(element_dict, dump=False):
     collimator_dict = {}
     for name, ee in element_dict.items():
-        nsig = 1
+        nsig = 1 # TODO can remove?
         if ee.side == 'left':
             if ee.jaw_L is None:
                 half_gap = OPEN_JAW
@@ -57,8 +60,13 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     nsig = ee.gap_R
                 half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
-            tilt_1 = ee.tilt_L
-            tilt_2 = ee.tilt_R
+            tilt_1 = np.round(ee.tilt_L, 9)
+            tilt_2 = np.round(ee.tilt_R, 9)
+        if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
+            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
+
+        if nsig is None:
+            nsig = 1
 
         collimator_dict[name] = {
             'name': name,
@@ -66,7 +74,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
             'bety': 1,
             'material': 'stub',
             'length': ee.length,
-            'angle': np.deg2rad(ee.angle),
+            'angle': np.round(np.deg2rad(ee.angle) - ee.assembly.angle, 9),
             'sigma_x': 1,
             'sigma_y': 1,
             'offset': offset,
@@ -82,11 +90,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
     return collimator_dict
 
 
-def _fluka_builder(element_dict):
-    # Save system state
-    old_sys_path = sys.path.copy()
-    old_os_env = os.environ.copy()
-
+def _brute_force_environment():
+    # Add the paths to the environment
     this_fedb = flukafile_resolve(fedb)
     if this_fedb is not None:
         os.environ['FEDB_PATH'] = this_fedb.as_posix()
@@ -97,29 +102,38 @@ def _fluka_builder(element_dict):
         os.environ['LB_PATH'] = this_linebuilder.as_posix()
     else:
         raise ValueError(f"Could not find linebuilder folder {linebuilder}!")
-
-    lb_src = flukafile_resolve(this_linebuilder / "src")
-    if lb_src is None:
-        raise FileNotFoundError(f"Linebuilder src folder not found.")
-    lb_lib = flukafile_resolve(this_linebuilder / "lib")
-    if lb_lib is None:
-        raise FileNotFoundError(f"Linebuilder lib folder not found.")
-    lb_db = flukafile_resolve(this_linebuilder / "db")
-    if lb_db is None:
-        raise FileNotFoundError(f"Linebuilder db folder not found.")
-    lb_souce_files = [
-        this_fedb / "tools" / "expand.sh",
-        this_fedb / "structure.py",
-        *list(lb_src.glob('*.py')),
-        *list(lb_lib.glob('*.py')),
-        *list(lb_db.glob('*.py')),
-    ]
-    for f in lb_souce_files:
-        # This forces syncing of the files
-        if flukafile_resolve(f) is None:
-            raise FileNotFoundError(f"Linebuilder source file not found: {f}.")
-
+    # Brute-force the system paths
+    sys.path.append(fedb.as_posix())
+    sys.path.append((fedb / "tools").as_posix())
+    sys.path.append((fedb / "tools" / "tools").as_posix())
+    sys.path.append((fedb / "tools" / "materials" / "cables").as_posix())
     sys.path.append((linebuilder / "src").as_posix())
+    sys.path.append((linebuilder / "lib").as_posix())
+    # Force-resolve all dependent files
+    flukafile_resolve(fedb / "structure.py")
+    flukafile_resolve(fedb / "tools")
+    for ff in (fedb / "tools").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(fedb / "tools" / "tools")
+    for ff in (fedb / "tools" / "tools").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(fedb / "tools" / "materials" / "cables")
+    for ff in (fedb / "tools" / "materials" / "cables").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(linebuilder / "lib")
+    for ff in (linebuilder / "lib").glob("*.py"):
+        flukafile_resolve(ff)
+    flukafile_resolve(linebuilder / "additionals" / "generic_frame.fluka")
+    flukafile_resolve(linebuilder / "src")
+    for ff in (linebuilder / "src").glob("*.py"):
+        flukafile_resolve(linebuilder / "src" / ff)
+
+
+def _fluka_builder(element_dict):
+    # Save system state
+    old_sys_path = sys.path.copy()
+    old_os_env = os.environ.copy()
+    _brute_force_environment()
     file_path = linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
@@ -127,7 +141,7 @@ def _fluka_builder(element_dict):
         except ImportError as e:
             raise EnvironmentError(f"Cannot import FLUKA_builder: {e}")
     else:
-        raise EnvironmentError("FLUKA_builder.py not found at:", file_path)
+        raise EnvironmentError(f"FLUKA_builder.py not found at: {file_path.as_posix()}")
 
     collimator_dict = _element_dict_to_fluka(element_dict)
     collimatorList = fb.CollimatorList()
@@ -162,6 +176,23 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         fp.write("\n".join(header) + "\n*\n" + data)
 
 
+def _select_active_collimators(elements, names):
+    this_names = []
+    this_elements = []
+    for name, ee in zip(names, elements):
+        if (ee.jaw_L is None and ee.jaw_R is None):
+            print(f"Collimator {name} is fully open. Deactivated.")
+            ee.active = False
+            ee.assembly.remove_element(name)
+        elif not ee.active:
+            ee.assembly.remove_element(name)
+        else:
+            this_names.append(name)
+            this_elements.append(ee)
+    return this_elements, this_names
+
+
+
 def create_fluka_input(element_dict, prototypes_file, include_files, *, filename=None,
                        cwd=None, verbose=False):
     prototypes_file = FsPath(prototypes_file).resolve()
@@ -179,7 +210,6 @@ def create_fluka_input(element_dict, prototypes_file, include_files, *, filename
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in include_files]:
             include_files.append(ff)
-
     # Change to the directory of the input file
     if filename is not None:
         filename = FsPath(filename).expanduser().resolve().with_suffix('.inp')
@@ -190,9 +220,20 @@ def create_fluka_input(element_dict, prototypes_file, include_files, *, filename
     cwd.mkdir(parents=True, exist_ok=True)
     prev_cwd = FsPath.cwd()
     os.chdir(cwd)
-    shutil.copy(prototypes_file, FsPath.cwd() / 'prototypes.lbp')
+    # Prototypes
+    if prototypes_file is None:
+        for name, el in zip(names, elements):
+            el.assembly.add_element(name)
+        FlukaAssembly.make_prototypes()
+    else:
+        prototypes_file = FsPath(prototypes_file).resolve()
+        shutil.copy(prototypes_file, FsPath.cwd() / 'prototypes.lbp')
     for ff in include_files:
-        shutil.copy(ff, FsPath.cwd() / ff.name)
+        shutil.copy(ff, Path.cwd() / ff.name)
+    for name, el in zip(names, elements):
+        if not el.assembly.in_file(prototypes_file):
+            raise ValueError(f"Prototype {el.assembly.name} for {name} not found "
+                           + f"in prototypes file!")
     # Call FLUKA_builder
     input_file, fluka_dict = _fluka_builder(element_dict)
     input_file = FsPath(input_file).resolve()
@@ -217,9 +258,10 @@ def create_fluka_input(element_dict, prototypes_file, include_files, *, filename
         fluka_dict[name]['angle'] = ee.angle
         fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
         fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
-    # Delete prototypes and include files to avoid confusion
-    if prototypes_file.parent != FsPath.cwd():
+    # If a prototypes file was provided (instead of generated), delete it
+    if prototypes_file is not None and prototypes_file.parent != FsPath.cwd():
         (FsPath.cwd() / 'prototypes.lbp').unlink()
+    # Delete include files
     for ff in include_files:
         if ff.parent != FsPath.cwd():
             (FsPath.cwd() / ff.name).unlink()

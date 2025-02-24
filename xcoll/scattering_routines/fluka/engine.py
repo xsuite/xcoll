@@ -65,6 +65,20 @@ class FlukaEngine(BaseEngine):
             kwargs.setdefault('flukaserver', default_flukaserver_path)
         super().__init__(**kwargs)
 
+    def __del__(self, *args, **kwargs):
+        self.stop(warn=False)
+        try:
+            super().__del__()
+        except AttributeError:
+            pass
+
+    def _warn_pyfluka(self, error):
+        if not self._warning_given:
+            print("Warning: Failed to import pyfluka (did you compile?). " \
+                + "FlukaCollimators will be installed but are not trackable.\n", flush=True)
+            print(error, flush=True)
+            self._warning_given = True
+
 
     # ======================
     # === New Properties ===
@@ -252,10 +266,33 @@ class FlukaEngine(BaseEngine):
         if self._network_nfo is not None and self._network_nfo.exists():
             self._network_nfo.unlink()
             self._network_nfo = None
-        self._gfortran_installed = False
         self._network_port = 0
         self._max_particle_id = 0
         super().stop(clean=clean, **kwargs)
+#        if this._old_cwd is not None:
+#            os.chdir(this._old_cwd)
+#            this._old_cwd = None
+#        if clean:
+#            this.clean_output_files(clean_all=True)
+#        # Unassign the prototypes
+#        for name, ee in this._collimator_dict.items():
+#            ee.assembly.remove_element(name, force=False)
+#        this._cwd = None
+#        this._network_nfo = None
+#        this._log = None
+#        this._log_fid = None
+#        this._server_process = None
+#        this._input_file = None
+#        this.server_pid = None
+#        this._gfortran_installed = False
+#        this._flukaio_connected = False
+#        this._warning_given = False
+#        this._tracking_initialised = False
+#        this._insertion = {}
+#        this._collimator_dict = {}
+#        this.network_port = 0
+#        this.max_particle_id =  0
+#        this.seed = -1
 
 
     @classmethod
@@ -314,6 +351,7 @@ class FlukaEngine(BaseEngine):
             input_file = FsPath(input_file)
             if cwd is None:
                 cwd = input_file.parent
+# TODO check this logic
         if isinstance(cwd, FsPath):
             files_to_delete = [cwd / f for f in [network_file, fluka_log, server_log, 'fluka_isotope.log',
                                                  'fort.208', 'fort.251']]
@@ -417,25 +455,28 @@ class FlukaEngine(BaseEngine):
                 jaw = [jaw, -jaw]
             if jaw[0] is None and jaw[1] is None:
                 el.jaw = None
-            if jaw[0] is None:
-                if el.side != 'right':
-                    print(f"Warning: {name} is right-sided in the input file, but not "
-                         + "in the line! Overwritten by the former.")
-                    el.side = 'right'
-            elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
-                print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
-                    + f"vs {jaw[0]})! Overwritten.")
-                el.jaw_L = jaw[0]
-            if jaw[1] is None:
-                if el.side != 'left':
-                    print(f"Warning: {name} is left-sided in the input file, but not "
-                         + "in the line! Overwritten by the former.")
-                    el.side = 'left'
-            elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
-                print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
-                    + f"vs {jaw[1]})! Overwritten.")
-                el.jaw_R = jaw[1]
-            # TODO: tilts!!
+            else:
+                if jaw[0] is None:
+                    if el.side != 'right':
+                        print(f"Warning: {name} is right-sided in the input file, but not "
+                            + "in the line! Overwritten by the former.")
+                        el.side = 'right'
+                elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
+                    print(f"Warning: Jaw_L of {name} differs from input file ({el.jaw_L} "
+                        + f"vs {jaw[0]})! Overwritten.")
+                    el.jaw_L = jaw[0]
+                if jaw[1] is None:
+                    if el.side != 'left':
+                        print(f"Warning: {name} is left-sided in the input file, but not "
+                            + "in the line! Overwritten by the former.")
+                        el.side = 'left'
+                elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
+                    print(f"Warning: Jaw_R of {name} differs from input file ({el.jaw_R} "
+                        + f"vs {jaw[1]})! Overwritten.")
+                    el.jaw_R = jaw[1]
+            self._collimator_dict[name] = el
+# TODO: check if self._collimator_dict is correct
+        # TODO: tilts!!
 
 
     def _create_touches(self, touches):

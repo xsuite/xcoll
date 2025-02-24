@@ -14,14 +14,13 @@ import time
 import matplotlib.pyplot as plt
 
 
-num_part = int(10000)
+num_part = int(10_000)
 _capacity = num_part*2
 
 # Create a FLUKA collimator
-coll = xc.FlukaCollimator(length=0.6)
+coll = xc.FlukaCollimator(length=0.6, assembly='lhc_tcp')
 coll_name = 'tcp.c6l7.b1'
 coll.jaw = 0.001
-coll.gap = 1  # STUB, needed to make FLUKAbuilder succeed but so far no clue why
 
 # The same collimator in Everest
 coll2 = xc.EverestCollimator(length=0.6, material=xc.materials.MolybdenumGraphite)
