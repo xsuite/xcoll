@@ -100,14 +100,15 @@ for traj in all_trajectories:
 
 
 # Define common methods for all trajectories
-def plot(self, l1=0, l2=1):
+def plot(self, l1=0.00001, l2=1):  # fix this
+    """Plot the trajectory and its bounding box"""
     fig, ax  = plt.subplots()
 
     l_values = np.linspace(l1, l2, 100)
     s_values = np.array([self.func_s(l=l) for l in l_values])
     x_values = np.array([self.func_x(l=l) for l in l_values])
 
-    # Plot the seg
+    # Plot the trajectory 
     ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
 
     # Plot the endpoints
