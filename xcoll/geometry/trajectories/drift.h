@@ -62,6 +62,21 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
     return DriftTrajectory_get_sin_t0(traj);
 }
 
+/*gpufun*/
+void DriftTrajectory_bounding_box_s(DriftTrajectory traj, double l1, double l2, double extrema[2]){
+    double s1 = DriftTrajectory_func_s(traj, l1);
+    double s2 = DriftTrajectory_func_s(traj, l2);
+    extrema[0] = MIN(s1, s2);
+    extrema[1] = MAX(s1, s2);
+}
+
+/*gpufun*/
+void DriftTrajectory_bounding_box_x(DriftTrajectory traj, double l1, double l2, double extrema[2]){
+    double x1 = DriftTrajectory_func_x(traj, l1);
+    double x2 = DriftTrajectory_func_x(traj, l2);
+    extrema[0] = MIN(x1, x2);
+    extrema[1] = MAX(x1, x2);
+}
 
 
 /*gpufun*/
