@@ -8,17 +8,21 @@ import numpy as np
 import shutil
 
 import xobjects as xo
+from xobjects.hybrid_class import MetaHybridClass
 import xpart as xp
 import xtrack as xt
 try:
     # TODO: once xaux is in Xsuite keep only this
-    from xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton
+    from xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton, ranID
 except ImportError:
-    from ..xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton
+    from ..xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton, ranID
 
 
-class BaseEngineMeta(xo.hybrid_class.MetaHybridClass, ClassPropertyMeta):
-    pass
+class BaseEngineMeta(MetaHybridClass, ClassPropertyMeta):
+    def __new__(cls, name, bases, data):
+        new_class = MetaHybridClass.__new__(cls, name, bases, data)
+        return ClassPropertyMeta.__new__(cls, name, bases, data, new_class)
+
 
 @singleton
 class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
@@ -29,13 +33,13 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     }
 
     _int32 = False
-    _element_classes = None
     _only_protons = False
+    _element_classes = None
     _uses_input_file = False
     _uses_run_folder = False
 
     def __init__(self, **kwargs):
-        if not self._initialised:
+        if not self._initialised:  # singleton attribute
             if np.any([key[0] != '_' for key in self._xofields.keys()]):
                 raise ValueError(f"All fields in `{self.__class__.__name__}._xofields` have "
                                + f"to start with an underscore! This is to ensure to work "
@@ -52,6 +56,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 kwargs.setdefault('_particle_ref', xp.Particles())
                 kwargs.setdefault('_seed', 0)
                 kwargs.setdefault('_capacity', 0)
+            # Need to separate the kwargs which need to be sent to the HybridClass
+            # constructor from the ones which will be set by properties
             filtered_kwargs = {}
             remaining_kwargs = {}
             for key, value in kwargs.items():
@@ -61,22 +67,17 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                     remaining_kwargs[key] = value
             super().__init__(**filtered_kwargs)
             kwargs = remaining_kwargs
-            self._initialised = True
-        # Apply kwargs
-        for kk, vv in kwargs.items():
-            if not hasattr(self.__class__, kk):
-                raise ValueError(f"Invalid attribute {kk} for {self.__class__.__name__}!")
-            setattr(self, kk, vv)
+        # We need to call the constructor again to set the properties
+        super().__init__(**kwargs)
 
     def __del__(self, *args, **kwargs):
         self.stop(warn=False)
 
-
     def _warn(self, error=None):
         if not self._warning_given:
             print(f"Warning: Failed to import {self.__class__.__name__} environment "
-                + f" (did you compile?).\n{self.__class__.__name__.replace('Engine', '')} "
-                + f"elements will be installed but are not trackable.\n", flush=True)
+                + f"(did you compile?).\n{self.name.capitalize()} elements will be installed "
+                + f"but are not trackable.", flush=True)
             if error:
                 print(error, flush=True)
             self._warning_given = True
@@ -85,7 +86,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     # ==================
     # === Properties ===
     # ==================
-
 
     @ClassProperty
     def name(cls):
@@ -137,14 +137,16 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 if cls._only_protons:
                     val.pdg_id[0] = xp.get_pdg_id_from_name('proton')
                 else:
-                    raise ValueError("`particle_ref` needs to have a valid pdg_id")
+                    raise ValueError(f"{cls.__name__} allows the use of particles "
+                                   + f"different than protons. Hence, `particle_ref` "
+                                   + f"needs to have a valid pdg_id.")
             elif cls._only_protons and val.pdg_id[0] != xp.get_pdg_id_from_name('proton'):
                 raise ValueError("{cls.__name__} only supports protons!")
             self._particle_ref = val
 
     @particle_ref.deleter
     def particle_ref(cls):
-        cls.get_self()._particle_ref = xp.Particles()
+        cls.particle_ref = None
 
     @ClassProperty
     def capacity(cls):
@@ -162,7 +164,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     @capacity.deleter
     def capacity(cls):
-        raise ValueError("Not allowed.")
+        self.capacity = None
 
     @ClassProperty
     def seed(cls):
@@ -187,17 +189,17 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     @seed.deleter
     def seed(cls):
-        cls.get_self()._seed = 0
+        cls.seed = None
 
     @ClassProperty
     def input_file(cls):
-        return cls.get_self()._input_file
+        if cls._uses_input_file:
+            return cls.get_self()._input_file
 
 
     # ======================
     # === Public Methods ===
     # ======================
-
 
     @classmethod
     def start(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
@@ -214,7 +216,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._use_seed(seed)
         self._use_line(line)
         self._use_particle_ref(particle_ref)
-        self._sync_line_particle_ref()
         self._get_elements(line=line, elements=elements, names=names)
         self._set_cwd(cwd=cwd)
         self._use_input_file(input_file=input_file, **kwargs)
@@ -225,22 +226,12 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     @classmethod
     def stop(cls, clean=False, **kwargs):
         self = cls.get_self(**kwargs)
-        if hasattr(self, '_old_seed'):
-            self.seed = self._old_seed
-            del self._old_seed
-        if hasattr(self, '_old_line'):
-            self.line = self._old_line
-            del self._old_line
-        if hasattr(self, '_old_particle_ref'):
-            self.particle_ref = self._old_particle_ref
-            del self._old_particle_ref
-            self._sync_line_particle_ref()
-        if hasattr(self, '_old_cwd') and self._old_cwd is not None:
-            os.chdir(self._old_cwd)
-            del self._old_cwd
+        self._reset_line()
+        self._reset_seed()
+        self._reset_particle_ref()
+        self._reset_cwd()
         if clean:
             self.clean_output_files(clean_all=True)
-        self._cwd = None
         self._input_file = None
         self._element_dict = {}
         self._warning_given = False
@@ -262,35 +253,59 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     # are temporary and the original will be restored when the engine is stopped.
 
     def _use_line(self, line=None):
-        self._old_line = self.line
-        self.line = line
+        if line is not None:
+            self._old_line = self.line
+            self.line = line
+        elif self.line is None:
+            raise ValueError("Need to provide a line!")
+
+    def _reset_line(self):
+        if hasattr(self, '_old_line'):
+            self.line = self._old_line
+            del self._old_line
 
     def _use_seed(self, seed=None):
-        self._old_seed = self.seed
-        if seed is not None:
-            self.seed = seed
-        else:
+        if seed is None:
             if self.seed is None:
                 if self._int32:
                     self.seed = np.random.randint(0, int(2**32))
                 else:
                     self.seed = np.random.randint(0, int(2**64))
+        else:
+            self._old_seed = self.seed
+            self.seed = seed
         if self.verbose:
             print(f"Using seed {self.seed}.")
 
+    def _reset_seed(self):
+        if hasattr(self, '_old_seed'):
+            self.seed = self._old_seed
+            del self._old_seed
+
     def _use_particle_ref(self, particle_ref=None):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
-        self._old_particle_ref = self.particle_ref
         if particle_ref is not None:
+            self._old_particle_ref = self.particle_ref
             self.particle_ref = particle_ref
         elif self.particle_ref is None:
             if self.line is None or not hasattr(self.line, 'particle_ref') \
             or self.line.particle_ref is None:
                 raise ValueError("Need to provide either a line with a reference "
                                + "particle, or `particle_ref`.")
+            self._old_particle_ref = self.particle_ref
             self.particle_ref = self.line.particle_ref
         if self.verbose:
-            print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])}.")
+            print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
+                + f"with momentum {self.particle_ref.p0c/1.e9:.1}GeV.")
+        self._sync_line_particle_ref()
+
+    def _reset_particle_ref(self):
+        if hasattr(self, '_old_particle_ref'):
+            self.particle_ref = self._old_particle_ref
+            del self._old_particle_ref
+        if hasattr(self, '_old_line_particle_ref'):
+            self.line.particle_ref = self._old_line_particle_ref
+            del self._old_line_particle_ref
 
     def _sync_line_particle_ref(self):
         if self.line is None:
@@ -298,9 +313,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if self.line.particle_ref is not None \
         and not xt.line._dicts_equal(self.line.particle_ref.to_dict(),
                                      self.particle_ref.to_dict()):
-            overwrite_particle_ref_in_line = True
-        if overwrite_particle_ref_in_line:
             print("Warning: Found different reference particle in line! Temporarily overwritten.")
+            self._old_line_particle_ref = self.line.particle_ref
             self.line.particle_ref = self.particle_ref
 
     def _get_elements(self, line=None, elements=None, names=None):
@@ -312,7 +326,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if not hasattr(elements, '__iter__') or isinstance(elements, str):
                 elements = [elements]
             if names is None:
-                names = [f"{self.__class__.name}_el_{i}" for i, _ in enumerate(elements)]
+                names = [f"{self.name}_el_{i}" for i, _ in enumerate(elements)]
             else:
                 if not hasattr(names, '__iter__') or isinstance(names, str):
                     names = [names]
@@ -327,8 +341,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 if not hasattr(names, '__iter__') or isinstance(names, str):
                     names = [names]
                 elements = [line[name] for name in names]
-        elements = [el for el in elements if el.active and el.jaw is not None]
         names    = [name for el, name in zip(elements,names) if el.active and el.jaw is not None]
+        elements = [el for el in elements if el.active and el.jaw is not None]
         for el in elements:
             if not isinstance(el, self._element_classes):
                 raise ValueError(f"Element {el} is not a "
@@ -343,22 +357,23 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if cwd is not None:
                 cwd = FsPath(cwd).expanduser().resolve()
             else:
-                # TODO: use xaux.ranID here
-                import base64
-                ran = base64.urlsafe_b64encode(os.urandom(8)).decode('utf-8')
-                ran_str = ''.join(c if c.isalnum() else 'X' for c in ran)
+                ran_str = ranID(only_alphanumeric=True)
                 cwd = FsPath.cwd() / f'{self.name}_run_{ran_str}'
             self._cwd = cwd
             cwd.mkdir(parents=True, exist_ok=True)
             self._old_cwd = FsPath.cwd()
             os.chdir(cwd)
 
+    def _reset_cwd(self):
+        if hasattr(self, '_old_cwd'):
+            if self._old_cwd is not None:
+                os.chdir(self._old_cwd)
+            del self._old_cwd
+        self._cwd = None
+
     def _use_input_file(self, input_file=None, **kwargs):
         if self._uses_input_file:
             if input_file is None:
-                if not hasattr(self, 'generate_input_file'):
-                    raise NotImplementedError("Need to implement `generate_input_file`"
-                                              "for {cls.__name__}!")
                 input_file = self.generate_input_file(**kwargs)
             if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
                 # Some engines might need multiple input files (like Fluka)
@@ -396,8 +411,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         pass
 
     def _match_input_file(self, **kwargs):
-        raise NotImplementedError("Need to implement `_match_input_file` for {cls.__name__}!")
+        if self._uses_input_file:
+            raise NotImplementedError("Need to implement `_match_input_file` for {cls.__name__}!")
 
     @classmethod
     def generate_input_file(cls, **kwargs):
-        raise NotImplementedError("Need to implement `generate_input_file` for {cls.__name__}!")
+        if self._uses_input_file:
+            raise NotImplementedError("Need to implement `generate_input_file` for {cls.__name__}!")

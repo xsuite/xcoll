@@ -6,7 +6,7 @@
 import numpy as np
 from subprocess import run, PIPE, Popen
 from time import sleep
-
+ 
 import xobjects as xo
 import xpart as xp
 import xpart.pdg as pdg
@@ -44,18 +44,18 @@ class FlukaEngine(BaseEngine):
     _extra_c_sources = [source]
 
     def __init__(self, **kwargs):
-        if not self._initialised and '_xobject' not in kwargs:
+        if not self._initialised :
             # Set element classes dynamically
             from ...beam_elements import FlukaCollimator
             self.__class__._element_classes = (FlukaCollimator,)
             # Initialise fluka-only defaults
-            self._network_nfo = None
             self._log = None
             self._log_fid = None
-            self._server_process = None
             self.server_pid = None
-            self._gfortran_installed = False
+            self._network_nfo = None
+            self._server_process = None
             self._flukaio_connected = False
+            self._gfortran_installed = None
             kwargs.setdefault('_network_port', 0)
             kwargs.setdefault('_timeout_sec', 36000) # 10 hours
             kwargs.setdefault('_max_particle_id', 0)
@@ -65,19 +65,12 @@ class FlukaEngine(BaseEngine):
             kwargs.setdefault('flukaserver', default_flukaserver_path)
         super().__init__(**kwargs)
 
-    def __del__(self, *args, **kwargs):
-        self.stop(warn=False)
-        try:
-            super().__del__()
-        except AttributeError:
-            pass
-
-    def _warn_pyfluka(self, error):
-        if not self._warning_given:
-            print("Warning: Failed to import pyfluka (did you compile?). " \
-                + "FlukaCollimators will be installed but are not trackable.\n", flush=True)
-            print(error, flush=True)
-            self._warning_given = True
+    # def __del__(self, *args, **kwargs):
+    #     self.stop(warn=False)
+    #     try:
+    #         super().__del__()
+    #     except AttributeError:
+    #         pass
 
 
     # ======================
@@ -136,7 +129,7 @@ class FlukaEngine(BaseEngine):
     @classmethod
     def test_gfortran(cls, **kwargs):
         self = cls.get_self(**kwargs)
-        if not self._gfortran_installed:
+        if self._gfortran_installed is None:
             try:
                 cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
             except FileNotFoundError:
@@ -198,11 +191,11 @@ class FlukaEngine(BaseEngine):
                input_file=None, prototypes_file=None, include_files=None, touches=True, **kwargs):
         self = cls.get_self(**kwargs)
         cls.test_gfortran()
+
         if self.verbose:
             print("Starting FLUKA engine...", flush=True)
         super().start(line=line, elements=elements, names=names, cwd=cwd, seed=seed,
-                      particle_ref=particle_ref, input_file=input_file,
-                      prototypes_file=prototypes_file, include_files=include_files, **kwargs)
+                      particle_ref=particle_ref, input_file=input_file, **kwargs)
 
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
@@ -214,7 +207,7 @@ class FlukaEngine(BaseEngine):
             debug_level = 2 if self.verbose else 0
             pyfluka_init(n_alloc=self._capacity, debug_level=debug_level)
         except ImportError as error:
-            self._warn_pyfluka(error)
+            self._warn(error)
             self.stop()
             return
 
@@ -226,7 +219,7 @@ class FlukaEngine(BaseEngine):
             pyfluka_connect(self.timeout_sec)
             self._flukaio_connected = True
         except ImportError as error:
-            self._warn_pyfluka(error)
+            self._warn(error)
             self.stop()
             return
 
@@ -245,7 +238,7 @@ class FlukaEngine(BaseEngine):
                 from .pyflukaf import pyfluka_close
                 pyfluka_close()
             except ImportError as error:
-                self._warn_pyfluka(error)
+                self._warn(error)
             self._flukaio_connected = False
             if self.verbose:
                 print(f"done.", flush=True)
@@ -383,7 +376,7 @@ class FlukaEngine(BaseEngine):
             try:
                 from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
             except ImportError as error:
-                self._warn_pyfluka(error)
+                self._warn(error)
                 return
             if self.verbose:
                 print(f"Setting max_particle_id to {max_particle_id}, "

@@ -73,3 +73,4 @@ def test_simple_track(num_part):
 
 def test_prototypes():
     raise ValueError("Need to write test for FlukaAssembly to check registry works as expected")
+
