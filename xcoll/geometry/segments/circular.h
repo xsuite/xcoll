@@ -62,7 +62,7 @@ void CircularSegment_bounding_box_s(CircularSegment seg, double t1, double t2, d
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1 = theta1 + t1*(theta2 - theta1); // rescale
     double tt2 = theta1 + t2*(theta2 - theta1); // rescale
-    if (tt1 <= 0.5*M_PI && 0.5*M_PI <= tt2){
+    if (tt1 <= M_PI && M_PI <= tt2){
         extrema[0] = sR - R;
     } else {
         extrema[0] = MIN(s1, s2);
