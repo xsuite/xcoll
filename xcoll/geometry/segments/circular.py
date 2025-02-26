@@ -28,8 +28,7 @@ class CircularSegment(xo.Struct):
         theta1 = kwargs.pop('theta1', -np.pi)
         theta2 = kwargs.pop('theta2', np.pi)
         super().__init__(*args, **kwargs)
-        self.theta1 = theta1
-        self.theta2 = theta2
+        self.set_angles(theta1, theta2)
 
     def __str__(self):
         p1, p2 = self.get_vertices()
@@ -37,56 +36,54 @@ class CircularSegment(xo.Struct):
              + f":{np.rad2deg(self.theta2):.0f}" + u'\xb0' + f":{self.R:.3})-b-({p2[0]:.3}, {p2[1]:.3}))"
 
     def get_vertices(self):
-        s1 = self.round(self.s + self.R*np.cos(self.theta1))
-        x1 = self.round(self.x + self.R*np.sin(self.theta1))
-        s2 = self.round(self.s + self.R*np.cos(self.theta2))
-        x2 = self.round(self.x + self.R*np.sin(self.theta2))
+        s1 = self.round(self.sR + self.R*np.cos(self.theta1))
+        x1 = self.round(self.xR + self.R*np.sin(self.theta1))
+        s2 = self.round(self.sR + self.R*np.cos(self.theta2))
+        x2 = self.round(self.xR + self.R*np.sin(self.theta2))
         return (s1, x1), (s2, x2)
 
+    def get_control_points(self):
+        return (self.sR, self.xR),
+
     def _translate_inplace(self, ds, dx):
-        self.sC += ds
-        self.xC += dx
+        self.sR += ds
+        self.xR += dx
 
     def _rotate_inplace(self, ps, px, angle):
         c = np.cos(angle)
         s = np.sin(angle)
         self._translate_inplace(-ps, -px)
-        new_sC = self.s * c - self.x * s
-        new_xC = self.s * s + self.x * c
-        self.s = new_sC
-        self.x = new_xC
-        self.theta1 += angle
-        self.theta2 += angle
-        while self.theta1 < -np.pi:
-            self.theta1 += 2*np.pi
-        while self.theta1 < -np.pi:
-            self.theta1 += 2*np.pi
-        while self.theta2 < -np.pi:
-            self.theta2 += 2*np.pi
-        while self.theta2 < -np.pi:
-            self.theta2 += 2*np.pi
+        new_sR = self.sR * c - self.xR * s
+        new_xR = self.sR * s + self.xR * c
+        self.sR = new_sR
+        self.xR = new_xR
+        self.set_angles(self.theta1 + angle, self.theta2 + angle)
         self._translate_inplace(ps, px)
 
     @property
     def theta1(self):
         return self._theta1
 
-    @theta1.setter
-    def theta1(self, value):
-        while value < -np.pi:
-            value += 2*np.pi
-        while value > np.pi:
-            value -= 2*np.pi
-        self._theta1 = value
-
     @property
     def theta2(self):
-        return self._theta2
-
-    @theta2.setter
-    def theta2(self, value):
-        while value < -np.pi:
-            value += 2*np.pi
+        # We want to represent angles in [-pi, pi]
+        value = self._theta2
         while value > np.pi:
             value -= 2*np.pi
-        self._theta2 = value
+        return value
+
+    def set_angles(self, theta1, theta2):
+        while theta1 < -np.pi:
+            theta1 += 2*np.pi
+        while theta1 > np.pi:
+            theta1 -= 2*np.pi
+        while theta2 < -np.pi:
+            theta2 += 2*np.pi
+        while theta2 > np.pi:
+            theta2 -= 2*np.pi
+        self._theta1 = theta1
+        if theta2 >= theta1:
+            self._theta2 = theta2
+        else:
+            # If theta2 is smaller than theta1, it means we have done a full turn
+            self._theta2 = theta2 + 2*np.pi

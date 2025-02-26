@@ -53,14 +53,22 @@ void MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double
 
 /*gpufun*/
 double MultipleCoulombTrajectory_get_normalised_omega(MultipleCoulombTrajectory traj, double l){
-    double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
-    return sqrt(l/Xt0) * (1. + MCS_LOG_SCALE * log(l/Xt0));
+    if (l < XC_GEOM_EPSILON){
+        return 0.;
+    } else {
+        double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
+        return sqrt(l/Xt0) * (1. + MCS_LOG_SCALE * log(l/Xt0));
+    }
 }
 
 /*gpufun*/
 double MultipleCoulombTrajectory_get_normalised_omega_deriv(MultipleCoulombTrajectory traj, double l){
-    double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
-    return sqrt(l/Xt0) * (MCS_DERIV_LOG_SHIFT + MCS_DERIV_LOG_SCALE * log(l/Xt0)) / l;
+    if (l < XC_GEOM_EPSILON){
+        return 0.;
+    } else {
+        double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
+        return sqrt(l/Xt0) * (MCS_DERIV_LOG_SHIFT + MCS_DERIV_LOG_SCALE * log(l/Xt0)) / l;
+    }
 }
 
 /*gpufun*/

@@ -8,8 +8,13 @@
 
 
 /*gpufun*/
-int8_t LineSegment_is_open(LineSegment seg){
-    return 0;  // closed segment
+int8_t LineSegment_bounded_below(LineSegment seg){
+    return 1;  // closed segment
+}
+
+/*gpufun*/
+int8_t LineSegment_bounded_above(LineSegment seg){
+    return 1;  // closed segment
 }
 
 /*gpufun*/

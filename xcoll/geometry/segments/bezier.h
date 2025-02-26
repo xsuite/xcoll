@@ -8,8 +8,13 @@
 
 
 /*gpufun*/
-int8_t BezierSegment_is_open(BezierSegment seg){
-    return 0;  // closed segment
+int8_t BezierSegment_bounded_below(BezierSegment seg){
+    return 1;  // closed segment
+}
+
+/*gpufun*/
+int8_t BezierSegment_bounded_above(BezierSegment seg){
+    return 1;  // closed segment
 }
 
 /*gpufun*/

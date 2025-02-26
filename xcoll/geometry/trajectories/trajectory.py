@@ -100,7 +100,7 @@ for traj in all_trajectories:
 
 
 # Define common methods for all trajectories
-def plot(self, l1=0.00001, l2=1):  # fix this
+def plot(self, l1=0, l2=1):
     """Plot the trajectory and its bounding box"""
     fig, ax  = plt.subplots()
 
@@ -109,12 +109,7 @@ def plot(self, l1=0.00001, l2=1):  # fix this
     x_values = np.array([self.func_x(l=l) for l in l_values])
 
     # Plot the trajectory 
-    ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
-
-    # Plot the endpoints
-    s_start, x_start = self.func_s(l=l1), self.func_x(l=l1)
-    s_end, x_end = self.func_s(l=l2), self.func_x(l=l2)
-    ax.plot([s_start, s_end], [x_start, x_end], 'go', label='Endpoints')
+    ax.plot(s_values, x_values, 'b-', label=self.__class__.__name__)
 
     # Get and plot the bounding box
     extrema_s = np.zeros(2)
@@ -122,13 +117,12 @@ def plot(self, l1=0.00001, l2=1):  # fix this
     self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
     self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
     ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]], 'k--', label='Bounding Box')
+            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+            'k--', label='Bounding Box')
 
-    # Set plot labels and show the plot
     ax.set_xlabel('s')
     ax.set_ylabel('x')
-    ax.legend()
-
+    ax.set_aspect('equal', 'box')
     return ax.figure, ax
 
 def __eq(self, other):

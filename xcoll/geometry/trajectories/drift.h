@@ -81,7 +81,7 @@ void DriftTrajectory_bounding_box_x(DriftTrajectory traj, double l1, double l2, 
 
 /*gpufun*/
 int8_t DriftTrajectory_vlimit(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){
-    if (fabs(ym) < XC_EPSILON){
+    if (fabs(ym) < XC_GEOM_EPSILON){
         // Trajectory parallel to s axis
         if (y0 < ymin || y0 > ymax){
             return 0;  // Completely outside - no crossing possible
@@ -115,7 +115,7 @@ double Trajectory_get_first(int8_t n_hit, double* s){
     if (n_hit>0){
         return s[0];
     }
-    return XC_S_MAX;
+    return XC_GEOM_S_MAX;
 }
 
 /*gpufun*/
@@ -125,7 +125,7 @@ double Trajectory_get_before_s(int8_t n_hit, double* s, double before_s){
             return s[i];
         }
     }
-    return XC_S_MAX;
+    return XC_GEOM_S_MAX;
 }
 
 /*gpufun*/
@@ -135,7 +135,7 @@ double Trajectory_get_after_s(int8_t n_hit, double* s, double after_s){
             return s[i];
         }
     }
-    return XC_S_MAX;
+    return XC_GEOM_S_MAX;
 }
 
 /*gpufun*/
@@ -143,7 +143,7 @@ double Trajectory_get_last(int8_t n_hit, double* s){
     if (n_hit>0){
         return s[n_hit-1];
     }
-    return XC_S_MAX;
+    return XC_GEOM_S_MAX;
 }
 
 #endif /* XCOLL_GEOM_TRAJ_DRIFT_H */

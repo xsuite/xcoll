@@ -8,8 +8,13 @@
 
 
 /*gpufun*/
-int8_t CircularSegment_is_open(CircularSegment seg){
-    return 0;  // closed segment
+int8_t CircularSegment_bounded_below(CircularSegment seg){
+    return 1;  // closed segment
+}
+
+/*gpufun*/
+int8_t CircularSegment_bounded_above(CircularSegment seg){
+    return 1;  // closed segment
 }
 
 /*gpufun*/
@@ -57,8 +62,12 @@ void CircularSegment_bounding_box_s(CircularSegment seg, double t1, double t2, d
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1 = theta1 + t1*(theta2 - theta1); // rescale
     double tt2 = theta1 + t2*(theta2 - theta1); // rescale
-    extrema[0] = MIN(s1, s2);
-    if (tt1 <= 0. && 0. <= tt2){
+    if (tt1 <= 0.5*M_PI && 0.5*M_PI <= tt2){
+        extrema[0] = sR - R;
+    } else {
+        extrema[0] = MIN(s1, s2);
+    }
+    if ((tt1 <= 0. && 0. <= tt2) || (tt1 <= 2*M_PI && 2*M_PI <= tt2)){
         extrema[1] = sR + R;
     } else {
         extrema[1] = MAX(s1, s2);
@@ -75,7 +84,7 @@ void CircularSegment_bounding_box_x(CircularSegment seg, double t1, double t2, d
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1 = theta1 + t1*(theta2 - theta1); // rescale
     double tt2 = theta1 + t2*(theta2 - theta1); // rescale
-    if (tt1 <= -M_PI/2. && -M_PI/2. <= tt2){
+    if ((tt1 <= -M_PI/2. && -M_PI/2. <= tt2) || (tt1 <= 3*M_PI/2. && 3*M_PI/2. <= tt2)){
         extrema[0] = xR - R;
     } else {
         extrema[0] = MIN(x1, x2);

@@ -28,8 +28,30 @@ class HalfOpenLineSegment(xo.Struct):
             self.theta1 = theta1
 
     def __str__(self):
-        return f"HalfOpenLineSegment(({self.s:.3}, {self.x:.3}) -- " \
-            + f"{np.rad2deg(self.t):.0f}" + u'\xb0' + " * inf)"
+        return f"HalfOpenLineSegment(({self.s1:.3}, {self.x1:.3}) -- " \
+            + f"{np.rad2deg(self.theta1):.0f}" + u'\xb0' + " * inf)"
+
+    def get_vertices(self):
+        return ((self.s1, self.x1),)
+
+    def _translate_inplace(self, ds, dx):
+        self.s1 += ds
+        self.x1 += dx
+
+    def _rotate_inplace(self, ps, px, angle):
+        c = np.cos(angle)
+        s = np.sin(angle)
+        self._translate_inplace(-ps, -px)
+        new_s = self.s1 * c - self.x1 * s
+        new_x = self.s1 * s + self.x1 * c
+        self.s1 = new_s
+        self.x1 = new_x
+        self.t += angle
+        while self.t < -np.pi:
+            self.t += 2*np.pi
+        while self.t < -np.pi:
+            self.t += 2*np.pi
+        self._translate_inplace(ps, px)
 
     @property
     def theta1(self):
@@ -43,25 +65,3 @@ class HalfOpenLineSegment(xo.Struct):
             value -= 2*np.pi
         self.sin_t1 = np.sin(value)
         self.cos_t1 = np.cos(value)
-
-    def get_vertices(self):
-        return ((self.s, self.x),)
-
-    def _translate_inplace(self, ds, dx):
-        self.s += ds
-        self.x += dx
-
-    def _rotate_inplace(self, ps, px, angle):
-        c = np.cos(angle)
-        s = np.sin(angle)
-        self._translate_inplace(-ps, -px)
-        new_s = self.s * c - self.x * s
-        new_x = self.s * s + self.x * c
-        self.s = new_s
-        self.x = new_x
-        self.t += angle
-        while self.t < -np.pi:
-            self.t += 2*np.pi
-        while self.t < -np.pi:
-            self.t += 2*np.pi
-        self._translate_inplace(ps, px)

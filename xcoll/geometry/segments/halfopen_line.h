@@ -8,8 +8,13 @@
 
 
 /*gpufun*/
-int8_t HalfOpenLineSegment_is_open(HalfOpenLineSegment seg){
-    return 1;  // open on the positive side
+int8_t HalfOpenLineSegment_bounded_below(HalfOpenLineSegment seg){
+    return 1;  // halfopen segment
+}
+
+/*gpufun*/
+int8_t HalfOpenLineSegment_bounded_above(HalfOpenLineSegment seg){
+    return 0;  // halfopen segment
 }
 
 /*gpufun*/

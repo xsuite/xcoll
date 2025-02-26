@@ -47,9 +47,9 @@ class DriftTrajectory(xo.Struct):
         theta0 = kwargs.pop('theta0', False)
         super().__init__(*args, **kwargs)
         if xp is not False:
-            self.xp = xp
+            self.set_params(s0=self.s0, x0=self.x0, xp=xp)
         elif theta0 is not False:
-            self.theta0 = theta0
+            self.set_params(s0=self.s0, x0=self.x0, xp=np.tan(theta0))
 
     def __str__(self):
         return f"DriftTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"

@@ -50,10 +50,14 @@ segment_methods = {
               xo.Arg(xo.Float64, pointer=True, name="extrema"),
         ],
         ret=None),
-    'is_open': xo.Method(
-        c_name=f"is_open",
+    'bounded_below': xo.Method(
+        c_name=f"bounded_below",
         args=[],
-        ret=xo.Arg(xo.Int8, name="is_open"))
+        ret=xo.Arg(xo.Int8, name="bounded_below")),
+    'bounded_above': xo.Method(
+        c_name=f"bounded_above",
+        args=[],
+        ret=xo.Arg(xo.Int8, name="bounded_above"))
 }
 
 
@@ -103,39 +107,22 @@ for seg in all_segments:
 
 # Define common methods for all segments
 from ..trajectories.trajectory import __eq, __repr, to_dict, from_dict, __copy, __round
-def plot(self, t1=0, t2=1):
-    fig, ax  = plt.subplots()
+for seg in all_segments:
+    seg.name = seg.__name__.lower()[:-7]
+    seg.__eq__ = __eq
+    if not '__repr__' in seg.__dict__:
+        seg.__repr__ = __repr
+    if not '__str__' in seg.__dict__:
+        seg.__str__ = __repr
+    seg.to_dict = to_dict
+    seg.from_dict = from_dict
+    seg.copy = __copy
+    seg.round = __round
 
-    t_values = np.linspace(t1, t2, 100)
-    s_values = np.array([self.func_s(t=t) for t in t_values])
-    x_values = np.array([self.func_x(t=t) for t in t_values])
-
-    # Plot the seg
-    ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
-
-    # Plot the endpoints
-    s_start, x_start = self.func_s(t=t1), self.func_x(t=t1)
-    s_end, x_end = self.func_s(t=t2), self.func_x(t=t2)
-    ax.plot([s_start, s_end], [x_start, x_end], 'go', label='Endpoints')
-
-    # Get and plot the bounding box
-    extrema_s = np.zeros(2)
-    extrema_x = np.zeros(2)
-    self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
-    self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
-    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]], 'k--', label='Bounding Box')
-
-    # Set plot labels and show the plot
-    ax.set_xlabel('s')
-    ax.set_ylabel('x')
-    ax.legend()
-
-    return ax.figure, ax
 
 def is_open(self):
     """Check if the segment is an open segment"""
-    return len(self.get_vertices()) == 1
+    return not bool(self.bounded_above()) or not bool(self.bounded_below())
 
 def connection_to(self, other):
     """Get the point(s) at which the segment is connected to another segment"""
@@ -171,23 +158,77 @@ def rotate(self, ps, px, angle, *, inplace=False):
         new_seg._rotate_inplace(ps, px, angle)
         return new_seg
 
+def plot(self, t1=0, t2=1, ax=None):
+    if ax is None:
+        fig, ax  = plt.subplots()
+    else:
+        fig = ax.figure
+
+    t_values = np.linspace(0, 1, 100)
+    s_values = np.array([self.func_s(t=t) for t in t_values])
+    x_values = np.array([self.func_x(t=t) for t in t_values])
+
+    # Plot the seg
+    ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
+
+    # Get and plot the bounding box
+    t1 = max(t1, 0)
+    if not self.is_open():
+        t2 = min(t2, 1)
+    extrema_s = np.zeros(2)
+    extrema_x = np.zeros(2)
+    self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
+    self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
+    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
+            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+            'k--', label='Bounding Box')
+
+    # Get vertices and control points
+    s_start, x_start = self.func_s(t=0), self.func_x(t=0)
+    if not self.is_open():
+        s_end, x_end = self.func_s(t=1), self.func_x(t=1)
+    cp = self.get_control_points()
+
+    # Plot the control lines
+    if cp:
+        ax.plot([s_start, cp[0][0]], [x_start, cp[0][1]], c='lightgray', lw=1)
+        if not self.is_open():
+            ax.plot([cp[0][0], s_end], [cp[-1][1], x_end], c='lightgray', lw=1)
+
+    # Plot the vertices and control points
+    ax.plot([s_start], [x_start], 'go', label='Endpoints')
+    if not self.is_open():
+        ax.plot([s_end], [x_end], 'go', label='Endpoints')
+    for s, x in cp:
+        ax.plot([s], [x], 'ro', label='Control Points')
+
+    ax.set_xlabel('s')
+    ax.set_ylabel('x')
+    ax.set_aspect('equal', 'box')
+    return fig, ax
+
 for seg in all_segments:
-    seg.name = seg.__name__.lower()[:-7]
-    seg.__eq__ = __eq
-    if not '__repr__' in seg.__dict__:
-        seg.__repr__ = __repr
-    if not '__str__' in seg.__dict__:
-        seg.__str__ = __repr
-    seg.to_dict = to_dict
-    seg.from_dict = from_dict
-    seg.copy = __copy
-    seg.round = __round
+    # old_init = seg.__dict__.get('__init__', None)
+    # def __init(self, *args, **kwargs):
+    #     if old_init:
+    #         old_init(self, *args, **kwargs)
+    #     else:
+    #         super().__init__(*args, **kwargs)
+    #     if self.is_open():
+    #         assert len(self.get_vertices()) == 1
+    #     else:
+    #         assert len(self.get_vertices()) == 2
+    # seg.__init__ = __init
     seg.is_open = is_open
     seg.connection_to = connection_to
     seg.is_connected_to = is_connected_to
     seg.translate = translate
     seg.rotate = rotate
-    seg.plot  = plot
+    seg.plot = plot
+
+# Add some missing docstrings
+for seg in all_segments:
+    seg.get_vertices.__doc__ = """Get the vertices of the segment"""
 
 
 # Sanity check to assert all segments have C code for func_ and deriv_ functions
@@ -208,8 +249,9 @@ def assert_segment_sources(tra):
         if not header_found:
             raise SystemError(f"Missing or corrupt C function in segment {seg.__name__}:  {header}.")
     name = seg.__name__
-    header = f"/*gpufun*/\nint8_t {name}_is_open({name} seg)"
-    _check_source(header, seg)
+    for func in ['bounded_above', 'bounded_below']:
+        header = f"/*gpufun*/\nint8_t {name}_{func}({name} seg)"
+        _check_source(header, seg)
     for func in ['func_s', 'func_x', 'deriv_s', 'deriv_x']:
         header = f"/*gpufun*/\ndouble {name}_{func}({name} seg, double t)"
         _check_source(header, seg)
@@ -217,15 +259,16 @@ def assert_segment_sources(tra):
         header = f"/*gpufun*/\nvoid {name}_{func}({name} seg, double t1, double t2, double extrema[2])"
         _check_source(header, seg)
 
+def get_control_points(self):
+    return ()
+
 for seg in all_segments:
     assert_segment_sources(seg)
     assert hasattr(seg, 'get_vertices')
     assert hasattr(seg, '_translate_inplace')
     assert hasattr(seg, '_rotate_inplace')
-
-# Add some missing docstrings
-for seg in all_segments:
-    seg.get_vertices.__doc__ = """Get the vertices of the segment"""
+    if not hasattr(seg, 'get_control_points'):
+        seg.get_control_points = get_control_points
 
 
 # Function to get the maximum number of crossings for a given object type

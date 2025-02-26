@@ -61,6 +61,9 @@ class BezierSegment(xo.Struct):
     def get_vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2)
 
+    def get_control_points(self):
+        return (self.cs1, self.cx1), (self.cs2, self.cx2)
+
     def _translate_inplace(self, ds, dx):
         self.s1 += ds
         self.x1 += dx
