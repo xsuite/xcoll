@@ -4,7 +4,6 @@
 # ######################################### #
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import xobjects as xo
 
@@ -159,16 +158,17 @@ def rotate(self, ps, px, angle, *, inplace=False):
         return new_seg
 
 def plot(self, t1=0, t2=1, ax=None):
+    """Plot the segment and its bounding box"""
+    import matplotlib.pyplot as plt
     if ax is None:
-        fig, ax  = plt.subplots()
+        fig, ax  = plt.subplots(figsize=(8, 8))
     else:
         fig = ax.figure
 
+    # Plot the seg
     t_values = np.linspace(0, 1, 100)
     s_values = np.array([self.func_s(t=t) for t in t_values])
     x_values = np.array([self.func_x(t=t) for t in t_values])
-
-    # Plot the seg
     ax.plot(s_values, x_values, 'b-', label=f"{self.name} segment")
 
     # Get and plot the bounding box
@@ -185,8 +185,10 @@ def plot(self, t1=0, t2=1, ax=None):
 
     # Get vertices and control points
     s_start, x_start = self.func_s(t=0), self.func_x(t=0)
+    s_t1, x_t1 = self.func_s(t=t1), self.func_x(t=t1)
     if not self.is_open():
         s_end, x_end = self.func_s(t=1), self.func_x(t=1)
+    s_t2, x_t2 = self.func_s(t=t2), self.func_x(t=t2)
     cp = self.get_control_points()
 
     # Plot the control lines
@@ -196,6 +198,7 @@ def plot(self, t1=0, t2=1, ax=None):
             ax.plot([cp[0][0], s_end], [cp[-1][1], x_end], c='lightgray', lw=1)
 
     # Plot the vertices and control points
+    ax.plot([s_t1, s_t2], [x_t1, x_t2], 'bo')
     ax.plot([s_start], [x_start], 'go', label='Endpoints')
     if not self.is_open():
         ax.plot([s_end], [x_end], 'go', label='Endpoints')
@@ -206,6 +209,38 @@ def plot(self, t1=0, t2=1, ax=None):
     ax.set_ylabel('x')
     ax.set_aspect('equal', 'box')
     return fig, ax
+
+@classmethod
+def _inspect(cls, **kwargs):
+    # Quick method to plot the segment and its bounding box in an interactive way, for testing
+    # kwargs needs to have all arguments as keys, and val should be [min, max, initial_value]
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import Slider
+    plt.ion()  # Enable interactive mode
+    fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot()
+    plt.subplots_adjust(left=0.1, bottom=0.1+0.025*len(kwargs))  # Space for the sliders
+
+    state = {'ax': ax} # Use a mutable object to store the axis (ax)
+
+    def update_plot(val):
+        this_kwargs = {arg: sliders[arg].val for arg in kwargs}
+        # Clear the existing plot and redraw
+        state['ax'].clear()
+        fig, state['ax'] = cls(**this_kwargs).plot(t1=sliders['t1'].val, t2=sliders['t2'].val, ax=state['ax'])
+        plt.draw()
+
+    all_kwargs = kwargs
+    all_kwargs['t1'] = [0, 1, 0]
+    all_kwargs['t2'] = [0, 1, 1]
+    ax_sliders = {arg: plt.axes([0.1, 0.025*(len(all_kwargs)-i-1), 0.8, 0.03], facecolor='lightgrey')
+                  for i, arg in enumerate(all_kwargs)}
+    sliders = {arg: Slider(ax_sliders[arg], arg, val[0], val[1], valinit=val[2])
+               for arg, val in all_kwargs.items()}
+    for slider in sliders.values():
+        slider.on_changed(update_plot)
+    plt.show(block=False)  # Make plt.show() non-blocking
+    while plt.fignum_exists(fig.number):
+        plt.pause(0.1) # Keep the plot alive and responsive
 
 for seg in all_segments:
     # old_init = seg.__dict__.get('__init__', None)
@@ -225,6 +260,7 @@ for seg in all_segments:
     seg.translate = translate
     seg.rotate = rotate
     seg.plot = plot
+    seg._inspect = _inspect
 
 # Add some missing docstrings
 for seg in all_segments:
