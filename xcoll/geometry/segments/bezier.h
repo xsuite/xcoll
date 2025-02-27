@@ -133,27 +133,21 @@ void BezierSegment_calculate_extrema(BezierSegment seg){
     double t1 = -1;
     double t2 = -1;
     if (fabs(a) < XC_GEOM_EPSILON){
-        if (fabs(b) < XC_GEOM_EPSILON){
-            // No extrema
-            return;
-        } else {
+        if (fabs(b) >= XC_GEOM_EPSILON){
             // Linear equation
             t1 = -c/b;
-        }
+        } // else no extrema
     } else {
         // Quadratic equation
         double disc = b*b - 4*a*c;
-        if (disc < -XC_GEOM_EPSILON){
-            // No extrema
-            return;
-        } else if (disc < XC_GEOM_EPSILON){
+        if (fabs(disc) < XC_GEOM_EPSILON){
             // One extremum
             t1 = -b/(2*a);
-        } else {
+        } else if (disc >= XC_GEOM_EPSILON){
             // Two extrema
             t1 = (-b + sqrt(disc))/(2*a);
             t2 = (-b - sqrt(disc))/(2*a);
-        }
+        } // else no extrema
     }
     BezierSegment_set__ts1(seg, t1);
     BezierSegment_set__ts2(seg, t2);
@@ -165,30 +159,24 @@ void BezierSegment_calculate_extrema(BezierSegment seg){
     t1 = -1;
     t2 = -1;
     if (fabs(a) < XC_GEOM_EPSILON){
-        if (fabs(b) < XC_GEOM_EPSILON){
-            // No extrema
-            return;
-        } else {
+        if (fabs(b) >= XC_GEOM_EPSILON){
             // Linear equation
             t1 = -c/b;
-        }
+        } // else no extrema
     } else {
         // Quadratic equation
         double disc = b*b - 4*a*c;
-        if (disc < -XC_GEOM_EPSILON){
-            // No extrema
-            return;
-        } else if (disc < XC_GEOM_EPSILON){
+        if (fabs(disc) < XC_GEOM_EPSILON){
             // One extremum
             t1 = -b/(2*a);
-        } else {
+        } else if (disc >= XC_GEOM_EPSILON){
             // Two extrema
             t1 = (-b + sqrt(disc))/(2*a);
             t2 = (-b - sqrt(disc))/(2*a);
-        }
+        } // else no extrema
     }
     BezierSegment_set__tx1(seg, t1);
-    BezierSegment_set__tx1(seg, t2);
+    BezierSegment_set__tx2(seg, t2);
     BezierSegment_set__ex1(seg, BezierSegment_func_x(seg, t1));
     BezierSegment_set__ex2(seg, BezierSegment_func_x(seg, t2));
 }

@@ -195,7 +195,7 @@ def plot(self, t1=0, t2=1, ax=None):
     if cp:
         ax.plot([s_start, cp[0][0]], [x_start, cp[0][1]], c='lightgray', lw=1)
         if not self.is_open():
-            ax.plot([cp[0][0], s_end], [cp[-1][1], x_end], c='lightgray', lw=1)
+            ax.plot([cp[-1][0], s_end], [cp[-1][1], x_end], c='lightgray', lw=1)
 
     # Plot the vertices and control points
     ax.plot([s_t1, s_t2], [x_t1, x_t2], 'bo')

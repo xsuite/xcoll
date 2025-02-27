@@ -23,6 +23,8 @@ class CircularSegment(xo.Struct):
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
     def __init__(self, *args, **kwargs):
+        if 'R' not in kwargs:
+            raise ValueError("Radius must be provided")
         if kwargs['R'] < 0:
             raise ValueError("Radius must be positive")
         theta1 = kwargs.pop('theta1', -np.pi)
@@ -36,11 +38,7 @@ class CircularSegment(xo.Struct):
              + f":{np.rad2deg(self.theta2):.0f}" + u'\xb0' + f":{self.R:.3})-b-({p2[0]:.3}, {p2[1]:.3}))"
 
     def get_vertices(self):
-        s1 = self.round(self.sR + self.R*np.cos(self.theta1))
-        x1 = self.round(self.xR + self.R*np.sin(self.theta1))
-        s2 = self.round(self.sR + self.R*np.cos(self.theta2))
-        x2 = self.round(self.xR + self.R*np.sin(self.theta2))
-        return (s1, x1), (s2, x2)
+        return (self.s1, self.x1), (self.s2, self.x2)
 
     def get_control_points(self):
         return (self.sR, self.xR),
@@ -59,6 +57,22 @@ class CircularSegment(xo.Struct):
         self.xR = new_xR
         self.set_angles(self.theta1 + angle, self.theta2 + angle)
         self._translate_inplace(ps, px)
+
+    @property
+    def s1(self):
+        return self.round(self.sR + self.R*np.cos(self.theta1))
+
+    @property
+    def x1(self):
+        return self.round(self.xR + self.R*np.sin(self.theta1))
+
+    @property
+    def s2(self):
+        return self.round(self.sR + self.R*np.cos(self.theta2))
+
+    @property
+    def x2(self):
+        return self.round(self.xR + self.R*np.sin(self.theta2))
 
     @property
     def theta1(self):
