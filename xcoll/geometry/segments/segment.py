@@ -157,7 +157,7 @@ def rotate(self, ps, px, angle, *, inplace=False):
         new_seg._rotate_inplace(ps, px, angle)
         return new_seg
 
-def plot(self, t1=0, t2=1, ax=None):
+def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=True):
     """Plot the segment and its bounding box"""
     import matplotlib.pyplot as plt
     if ax is None:
@@ -177,11 +177,12 @@ def plot(self, t1=0, t2=1, ax=None):
         t2 = min(t2, 1)
     extrema_s = np.zeros(2)
     extrema_x = np.zeros(2)
-    self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
-    self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
-    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
-            'k--', label='Bounding Box')
+    if plot_bounding_box:
+        self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
+        self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
+        ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
+                [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+                'k--', label='Bounding Box')
 
     # Get vertices and control points
     s_start, x_start = self.func_s(t=0), self.func_x(t=0)
@@ -192,7 +193,7 @@ def plot(self, t1=0, t2=1, ax=None):
     cp = self.get_control_points()
 
     # Plot the control lines
-    if cp:
+    if cp and plot_control_points:
         ax.plot([s_start, cp[0][0]], [x_start, cp[0][1]], c='lightgray', lw=1)
         if not self.is_open():
             ax.plot([cp[-1][0], s_end], [cp[-1][1], x_end], c='lightgray', lw=1)
@@ -202,8 +203,9 @@ def plot(self, t1=0, t2=1, ax=None):
     ax.plot([s_start], [x_start], 'go', label='Endpoints')
     if not self.is_open():
         ax.plot([s_end], [x_end], 'go', label='Endpoints')
-    for s, x in cp:
-        ax.plot([s], [x], 'ro', label='Control Points')
+    if plot_control_points:
+        for s, x in cp:
+            ax.plot([s], [x], 'ro', label='Control Points')
 
     ax.set_xlabel('s')
     ax.set_ylabel('x')
@@ -211,13 +213,15 @@ def plot(self, t1=0, t2=1, ax=None):
     return fig, ax
 
 @classmethod
-def _inspect(cls, **kwargs):
+def _inspect(cls, plot_bounding_box=True, plot_control_points=True, **kwargs):
     # Quick method to plot the segment and its bounding box in an interactive way, for testing
     # kwargs needs to have all arguments as keys, and val should be [min, max, initial_value]
     import matplotlib.pyplot as plt
     from matplotlib.widgets import Slider
     plt.ion()  # Enable interactive mode
-    fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot()
+    fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot(
+                        plot_bounding_box=plot_bounding_box,
+                        plot_control_points=plot_control_points)
     plt.subplots_adjust(left=0.1, bottom=0.1+0.025*len(kwargs))  # Space for the sliders
 
     state = {'ax': ax} # Use a mutable object to store the axis (ax)
@@ -226,7 +230,9 @@ def _inspect(cls, **kwargs):
         this_kwargs = {arg: sliders[arg].val for arg in kwargs}
         # Clear the existing plot and redraw
         state['ax'].clear()
-        fig, state['ax'] = cls(**this_kwargs).plot(t1=sliders['t1'].val, t2=sliders['t2'].val, ax=state['ax'])
+        fig, state['ax'] = cls(**this_kwargs).plot(t1=sliders['t1'].val, t2=sliders['t2'].val, ax=state['ax'],
+                        plot_bounding_box=plot_bounding_box,
+                        plot_control_points=plot_control_points)
         plt.draw()
 
     all_kwargs = kwargs

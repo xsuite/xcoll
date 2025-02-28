@@ -22,14 +22,100 @@ class CircularSegment(xo.Struct):
     _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
-    def __init__(self, *args, **kwargs):
-        if 'R' not in kwargs:
-            raise ValueError("Radius must be provided")
-        if kwargs['R'] < 0:
-            raise ValueError("Radius must be positive")
-        theta1 = kwargs.pop('theta1', -np.pi)
-        theta2 = kwargs.pop('theta2', np.pi)
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        # Different ways to initialise a CircularSegment:
+        # 1. Centre, radius, and angles: CircularSegment(R=..., sR=..., xR=..., theta1=..., theta2=...)
+        # 2. Start point, radius, and angles: CircularSegment(R=..., s1=..., x1=..., theta1=..., theta2=...)
+        # 3. End point, radius, and angles: CircularSegment(R=..., s2=..., x2=..., theta1=..., theta2=...)
+        # 4. Start and end point, and the (possibly negative) curvature: CircularSegment(k=..., s1=..., x1=..., s2=..., x2=...)
+        # 5. Centre, start point, and an angular shift: CircularSegment(sR=..., xR=..., s1=..., x1=..., delta_theta=...)
+        # 6. Centre, end point, and an angular shift: CircularSegment(sR=..., xR=..., s2=..., x2=..., delta_theta=...)
+        if 's1' in kwargs and 'x1' in kwargs and 's2' in kwargs and 'x2' in kwargs:
+            if 'sR' in kwargs or 'xR' in kwargs:
+                raise ValueError("Cannot provide start point, end point, and centre!")
+            if 'theta1' in kwargs or 'theta2' in kwargs or 'delta_theta' in kwargs:
+                raise ValueError("Cannot provide angles when providing start and end point!")
+            if 'R' in kwargs:
+                raise ValueError("Cannot provide radius when providing start and end point! "
+                               + "Please use curvature 'k' = 1/R instead.")
+            if 'k' not in kwargs:
+                raise ValueError("Curvature 'k' must be provided when providing start and end point!")
+            s1 = kwargs.pop('s1')
+            x1 = kwargs.pop('x1')
+            s2 = kwargs.pop('s2')
+            x2 = kwargs.pop('x2')
+            k = kwargs.pop('k')
+            if np.isclose(k, 0.):
+                raise ValueError("Curvature 'k' must be non-zero!")
+            elif abs(k) > 1.:
+                raise ValueError("Curvature 'k' must be in [-1, 1]!")
+            m = np.sqrt((s1-s2)**2 + (x1-x2)**2)
+            R = abs(1/k*m/2)
+            ang_m = np.arctan2(x2-x1, s2-s1)
+            gamma = np.arccos(1 - 2*k*k)
+            if k > 0:
+                theta1 = ang_m - np.pi/2 - gamma/2
+                theta2 = ang_m - np.pi/2 + gamma/2
+                kwargs['sR'] = s1 - R*np.cos(theta1)
+                kwargs['xR'] = x1 - R*np.sin(theta1)
+            else:
+                theta1 = ang_m + np.pi/2 - gamma/2
+                theta2 = ang_m + np.pi/2 + gamma/2
+                kwargs['sR'] = s2 - R*np.cos(theta1)
+                kwargs['xR'] = x2 - R*np.sin(theta1)
+            kwargs['R'] = R
+        elif 'delta_theta' in kwargs:
+            if 'sR' not in kwargs or 'xR' not in kwargs:
+                raise ValueError("Centre must be provided when providing angular shift!")
+            sR = kwargs['sR']
+            xR = kwargs['xR']
+            if 's1' in kwargs or 'x1' in kwargs:
+                if 's1' not in kwargs or 'x1' not in kwargs:
+                    raise ValueError("If the start point is provided, both 's1' and 'x1' must be provided!")
+                s1 = kwargs.pop('s1')
+                x1 = kwargs.pop('x1')
+                kwargs['R'] = np.sqrt((s1-sR)**2 + (x1-xR)**2)
+                theta1 = np.arctan2(x1-xR, s1-sR)
+                theta2 = theta1 + kwargs.pop('delta_theta')
+            elif 's2' in kwargs or 'x2' in kwargs:
+                if 's2' not in kwargs or 'x2' not in kwargs:
+                    raise ValueError("If the end point is provided, both 's2' and 'x2' must be provided!")
+                s2 = kwargs.pop('s2')
+                x2 = kwargs.pop('x2')
+                kwargs['R'] = np.sqrt((s2-sR)**2 + (x2-xR)**2)
+                theta2 = np.arctan2(x2-xR, s2-sR)
+                theta1 = theta2 - kwargs.pop('delta_theta')
+        else:
+            if 'R' not in kwargs:
+                raise ValueError("Must provide radius, curvature, or 'delta_theta'!")
+            if kwargs['R'] <= 0:
+                raise ValueError("Radius must be strictly positive!")
+            theta1 = kwargs.pop('theta1', -np.pi)
+            theta2 = kwargs.pop('theta2', np.pi)
+            if 'sR' in kwargs or 'xR' in kwargs:
+                if 'sR' not in kwargs or 'xR' not in kwargs:
+                    raise ValueError("If the centre is provided, both 'sR' and 'xR' must be provided!")
+                if 's1' in kwargs or 'x1' in kwargs or 's2' in kwargs or 'x2' in kwargs:
+                    raise ValueError("Centre and start/end points cannot be provided together!")
+            elif 's1' in kwargs or 'x1' in kwargs:
+                if 's1' not in kwargs or 'x1' not in kwargs:
+                    raise ValueError("If the start point is provided, both 's1' and 'x1' must be provided!")
+                if 's2' in kwargs or 'x2' in kwargs:
+                    raise ValueError("Start and end points cannot be provided together when 'R' is provided!")
+                s1 = kwargs.pop('s1')
+                x1 = kwargs.pop('x1')
+                kwargs['sR'] = s1 - kwargs['R']*np.cos(theta1)
+                kwargs['xR'] = x1 - kwargs['R']*np.sin(theta1)
+            elif 's2' in kwargs or 'x2' in kwargs:
+                if 's2' not in kwargs or 'x2' not in kwargs:
+                    raise ValueError("If the end point is provided, both 's2' and 'x2' must be provided!")
+                s2 = kwargs.pop('s2')
+                x2 = kwargs.pop('x2')
+                kwargs['sR'] = s2 - kwargs['R']*np.cos(theta2)
+                kwargs['xR'] = x2 - kwargs['R']*np.sin(theta2)
+            else:
+                raise ValueError("Must provide centre, start point, or end point when providing radius!")
+        super().__init__(**kwargs)
         self.set_angles(theta1, theta2)
 
     def __str__(self):
