@@ -40,6 +40,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     def __init__(self, **kwargs):
         if not self._initialised:  # singleton attribute
+            if self._element_classes is None:
+                raise NotImplementedError(f"{self.__class__.__name__} needs to define `_element_classes`!")
             if np.any([key[0] != '_' for key in self._xofields.keys()]):
                 raise ValueError(f"All fields in `{self.__class__.__name__}._xofields` have "
                                + f"to start with an underscore! This is to ensure to work "
@@ -48,7 +50,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 # Initialise defaults
                 self._cwd = None
                 self._line = None
-                self._verbose = False
+                self._verbose = True
                 self._input_file = None
                 self._element_dict = {}
                 self._warning_given = False
@@ -81,6 +83,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if error:
                 print(error, flush=True)
             self._warning_given = True
+
+    def _print(self, *args, **kwargs):
+        if self.verbose:
+            print(*args, **kwargs,)
 
 
     # ==================
@@ -184,7 +190,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         else:
             new_val = np.uint64(val)
         if new_val != val:
-            print(f"Warning: type change for seed {val}. Using {new_val}.")
+            self._print(f"Warning: type change for seed {val}. Using {new_val}.")
         cls.get_self()._seed = new_val
 
     @seed.deleter
@@ -205,18 +211,18 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def start(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
               particle_ref=None, input_file=None, **kwargs):
         self = cls.get_self(**kwargs)
-        if self.is_running() is None:
+        is_running = self.is_running()
+        if is_running is None:
             raise NotImplementedError(f"Need to implement `is_running` for {cls.__name__}!")
-        elif self.is_running() is True:
-            if self.verbose:
-                print("Engine already running.", flush=True)
+        elif is_running is True:
+            self._print("Engine already running.", flush=True)
             return
 
         self._starting_engine = True  # We need this to allow changing the element settings which otherwise are locked
         self._use_seed(seed)
         self._use_line(line)
         self._use_particle_ref(particle_ref)
-        self._get_elements(line=line, elements=elements, names=names)
+        self._get_elements(elements=elements, names=names)
         self._set_cwd(cwd=cwd)
         self._use_input_file(input_file=input_file, **kwargs)
         self.clean_output_files()
@@ -226,9 +232,9 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     @classmethod
     def stop(cls, clean=False, **kwargs):
         self = cls.get_self(**kwargs)
-        self._reset_line()
         self._reset_seed()
-        self._reset_particle_ref()
+        self._reset_particle_ref() # This has to be done before resetting the line
+        self._reset_line()
         self._reset_cwd()
         if clean:
             self.clean_output_files(clean_all=True)
@@ -252,18 +258,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     # or they can be set when the engine is started. In the latter case, the values
     # are temporary and the original will be restored when the engine is stopped.
 
-    def _use_line(self, line=None):
-        if line is not None:
-            self._old_line = self.line
-            self.line = line
-        elif self.line is None:
-            raise ValueError("Need to provide a line!")
-
-    def _reset_line(self):
-        if hasattr(self, '_old_line'):
-            self.line = self._old_line
-            del self._old_line
-
     def _use_seed(self, seed=None):
         if seed is None:
             if self.seed is None:
@@ -274,13 +268,22 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         else:
             self._old_seed = self.seed
             self.seed = seed
-        if self.verbose:
-            print(f"Using seed {self.seed}.")
+        self._print(f"Using seed {self.seed}.")
 
     def _reset_seed(self):
         if hasattr(self, '_old_seed'):
             self.seed = self._old_seed
             del self._old_seed
+
+    def _use_line(self, line=None):
+        if line is not None:
+            self._old_line = self.line
+            self.line = line
+
+    def _reset_line(self):
+        if hasattr(self, '_old_line'):
+            self.line = self._old_line
+            del self._old_line
 
     def _use_particle_ref(self, particle_ref=None):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
@@ -294,9 +297,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                                + "particle, or `particle_ref`.")
             self._old_particle_ref = self.particle_ref
             self.particle_ref = self.line.particle_ref
-        if self.verbose:
-            print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
-                + f"with momentum {self.particle_ref.p0c/1.e9:.1}GeV.")
+        self._print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
+                  + f"with momentum {self.particle_ref.p0c/1.e9:.1}GeV.")
         self._sync_line_particle_ref()
 
     def _reset_particle_ref(self):
@@ -313,44 +315,48 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if self.line.particle_ref is not None \
         and not xt.line._dicts_equal(self.line.particle_ref.to_dict(),
                                      self.particle_ref.to_dict()):
-            print("Warning: Found different reference particle in line! Temporarily overwritten.")
+            self._print("Found different reference particle in line. Temporarily overwritten.")
             self._old_line_particle_ref = self.line.particle_ref
             self.line.particle_ref = self.particle_ref
 
-    def _get_elements(self, line=None, elements=None, names=None):
-        if self._element_classes is None:
-            raise NotImplementedError(f"{self.__class__.__name__} needs to define `_element_classes`!")
-        if line is None:
+    def _get_elements(self, elements=None, names=None):
+        if elements is not None and (not hasattr(elements, '__iter__') or isinstance(elements, str)):
+            elements = [elements]
+        if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
+            names = [names]
+        if self.line is None:
             if elements is None:
                 raise ValueError("Need to provide either `line` or `elements`.")
-            if not hasattr(elements, '__iter__') or isinstance(elements, str):
-                elements = [elements]
             if names is None:
                 names = [f"{self.name}_el_{i}" for i, _ in enumerate(elements)]
             else:
-                if not hasattr(names, '__iter__') or isinstance(names, str):
-                    names = [names]
                 if len(names) != len(elements):
                     raise ValueError("Length of `elements` and `names` doesn't match.")
         else:
             if elements is not None:
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
-                elements, names = line.get_elements_of_type(self._element_classes)
+                elements, names = self.line.get_elements_of_type(self._element_classes)
             else:
-                if not hasattr(names, '__iter__') or isinstance(names, str):
-                    names = [names]
                 elements = [line[name] for name in names]
-        names    = [name for el, name in zip(elements,names) if el.active and el.jaw is not None]
-        elements = [el for el in elements if el.active and el.jaw is not None]
-        for el in elements:
+        this_names = []
+        this_elements = []
+        for el, name in zip(elements, names):
             if not isinstance(el, self._element_classes):
                 raise ValueError(f"Element {el} is not a "
                                 + ", or a ".join([c.__name__ for c in self._element_classes])
                                 + ".")
-        if len(elements) == 0:
+            if el.jaw is None:
+                self._print(f"Warning: Jaw not set for {name}. Ignoring.", flush=True)
+                continue
+            if not el.active:
+                self._print(f"Warning: Element {name} is not active. Ignoring.", flush=True)
+                continue
+            this_names.append(name)
+            this_elements.append(el)
+        if len(this_elements) == 0:
             raise ValueError(f"No active {self.name} elements found!")
-        self._element_dict = dict(zip(names, elements))
+        self._element_dict = dict(zip(this_names, this_elements))
 
     def _set_cwd(self, cwd):
         if self._uses_run_folder:
