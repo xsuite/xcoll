@@ -9,6 +9,47 @@
 #include <math.h>
 #include <stdio.h>
 
+
+typedef struct {
+    double rC;     // length of position vector to first vertex
+    double sin_tC; // angle of position vector to first vertex
+    double cos_tC;
+    double proj_l; // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    double proj_w; // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    double l;      // length of the box
+    double w;      // width of the box
+    double sin_tb; // orientation of the box (angle of length wrt horizontal)
+    double cos_tb;
+} BoundingBox;
+
+
+/*gpufun*/
+int8_t  bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
+    // v1-v4 are the four vertices of the first box in counterclockwise order
+    // w1-w4 are the four vertices of the second box in counterclockwise order
+    // e1-e2 are the two axes of the first box
+    // f1-f2 are the two axes of the second box
+    double projs[4];
+    double cos_tb1_tb2 = b1->cos_tb * b2->cos_tb + b1->sin_tb * b2->sin_tb;  // cos (tb1 - tb2)
+    double sin_tb1_tb2 = b1->sin_tb * b2->cos_tb - b1->cos_tb * b2->sin_tb;  // sin (tb1 - tb2)
+
+    // Projection of vector W on E is given by: |W| cos(theta) where theta is the angle between W and E
+    // projection of vertices of box 2 on the length axis of box 1
+    projs[0] = b2->rC * (b1->cos_tb * b2->cos_tC + b1->sin_tb * b2->sin_tC);  // first vertex w1
+    projs[1] = projs[0] + b2->l * cos_tb1_tb2; // second vertex w2 = w1 + l
+    projs[2] = projs[1] + b2->w * sin_tb1_tb2; // third vertex w3 = w1 + l + w
+    projs[2] = projs[0] + b2->w * sin_tb1_tb2; // fourth vertex w4 = w1 + w
+
+    if (!INTERVALS_OVERLAP(b1->proj_l, b1->proj_l + b1->l, projs[0], projs[3])){ return false;}
+
+    double proj_w1_e2 = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC);
+    double proj_w2_e2 = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC);
+    double proj_w3_e1 = b2->rC * (b1->cos_tb * b2->cos_tC + b1->sin_tb * b2->sin_tC - b2->e1);
+    double proj_w3_e2 = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC - b2->e2);
+}
+
+
+
 /*gpufun*/
 // void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg,
 //                             double s_min, double s_max, double* roots, double max_crossings,

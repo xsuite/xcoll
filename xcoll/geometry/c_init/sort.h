@@ -29,6 +29,11 @@
 #define SWAP(d,x,y) ({const __typeof__(*d) _x = MIN(d[x], d[y]); \
                       const __typeof__(*d) _y = MAX(d[x], d[y]); \
                       d[x] = _x; d[y] = _y; })
+#ifdef INTERVALS_OVERLAP
+#undef INTERVALS_OVERLAP
+#pragma message ("Xcoll geometry: Compiler macro INTERVALS_OVERLAP redefined")
+#endif
+#define INTERVALS_OVERLAP(minA, maxA, minB, maxB) (((maxA) \geq(minB)) && ((maxB) \geq(minA)))
 
 
 // Fast methods
