@@ -184,6 +184,47 @@ def _select_active_collimators(elements, names):
             this_elements.append(ee)
     return this_elements, this_names
 
+def _beam_include_file(ref_particle):
+    if ref_particle == 2212: # Proton pdg_id
+        beam = "BEAM           7001.                                                  PROTON"
+        hi_prope = "*"
+    # for heavyion
+    elif ref_particle == 1000822080: # lead pdg_id
+        beam = "*BEAM           8000.                                                  HEAVYION"
+        hi_prope = "HI-PROPE         82.      208."
+    else:
+        raise ValueError(f"Reference particle {ref_particle} not supported for the moment.")
+
+    template = f"""\
+******************************************************************************
+*                          BEAM SETTINGS                                     *
+******************************************************************************
+*
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+*============================================================================*
+*                        common to all cases                                 *
+*============================================================================*
+*
+*
+* maximum momentum per nucleon (3000 for 3.5Z TeV, 6000 for 6.37Z TeV)
+{beam}
+{hi_prope}
+*
+BEAMPOS
+*
+*
+* Only asking for loss map and touches map as in Sixtrack
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+SOURCE                                         87.       88.        1.
+SOURCE           89.       90.       91.        0.       -1.       10.&
+*SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
+"""
+    with open("include_settings_beam.inp", "w") as file:
+        file.write(template)
+    # return full path to the file
+    return Path("include_settings_beam.inp").resolve()
+
 
 def create_fluka_input(include_files, *, line=None, elements=None, names=None,
                        prototypes_file=None, filename=None, cwd=None):
@@ -235,7 +276,8 @@ def create_fluka_input(include_files, *, line=None, elements=None, names=None,
         prototypes_file = Path(prototypes_file).resolve()
         shutil.copy(prototypes_file, Path.cwd() / 'prototypes.lbp')
     for ff in include_files:
-        shutil.copy(ff, Path.cwd() / ff.name)
+        if ff != Path.cwd() / ff.name:
+            shutil.copy(ff, Path.cwd() / ff.name)
     for name, el in zip(names, elements):
         if not el.assembly.in_file(prototypes_file):
             raise ValueError(f"Prototype {el.assembly.name} for {name} not found "
