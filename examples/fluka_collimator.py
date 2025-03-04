@@ -28,9 +28,9 @@ coll2.jaw = 0.001
 
 
 # Connect to FLUKA
-xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
 particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=_capacity)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the

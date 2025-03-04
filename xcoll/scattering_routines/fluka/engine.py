@@ -153,10 +153,10 @@ class FlukaEngine(xo.HybridClass):
 
     @classmethod
     def start(cls, *, input_file=None, line=None, elements=None, names=None, cwd=None,
-              prototypes_file=None, include_files=None, debug_level=0, touches=True,
+              prototypes_file=None, include_files=[], debug_level=0, touches=True,
               reference_particle=None, p0c=None, **kwargs):
         from .fluka_input import create_fluka_input, get_collimators_from_input_file, \
-                                 verify_insertion_file
+                                 verify_insertion_file, _beam_include_file
         cls(**kwargs)
         this = cls.instance
         if this.is_running():
@@ -199,13 +199,13 @@ class FlukaEngine(xo.HybridClass):
 
         # Create input file
         if input_file is None:
-            if include_files is None:
-                print("Using default include files.")
-                include_files = [
-                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_beam.inp',
-                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
-                    _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
-                ]
+            if not include_files:
+                include_files.append(_beam_include_file(this.particle_ref.pdg_id[0]))
+            print("Using default include files.")
+
+            include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp')
+            include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp')
+
             input_file, elements, names = create_fluka_input(line=line, elements=elements, names=names,
                                             prototypes_file=prototypes_file,
                                             include_files=include_files)
