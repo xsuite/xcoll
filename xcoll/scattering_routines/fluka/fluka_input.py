@@ -235,3 +235,46 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         data = fp.read()
     with open(input_file, 'w') as fp:
         fp.write("\n".join(header) + "\n*\n" + data)
+
+
+def _beam_include_file(ref_particle):
+    if ref_particle == 2212: # Proton pdg_id
+        beam = "BEAM           7001.                                                  PROTON"
+        hi_prope = "*"
+    # for heavyion
+    elif ref_particle == 1000822080: # lead pdg_id
+        beam = "*BEAM           8000.                                                  HEAVYION"
+        hi_prope = "HI-PROPE         82.      208."
+    else:
+        raise ValueError(f"Reference particle {ref_particle} not supported for the moment.")
+
+    template = f"""\
+******************************************************************************
+*                          BEAM SETTINGS                                     *
+******************************************************************************
+*
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+*============================================================================*
+*                        common to all cases                                 *
+*============================================================================*
+*
+*
+* maximum momentum per nucleon (3000 for 3.5Z TeV, 6000 for 6.37Z TeV)
+{beam}
+{hi_prope}
+*
+BEAMPOS
+*
+*
+* Only asking for loss map and touches map as in Sixtrack
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+SOURCE                                         87.       88.        1.
+SOURCE           89.       90.       91.        0.       -1.       10.&
+*SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
+"""
+    with open("include_settings_beam.inp", "w") as file:
+        file.write(template)
+    # return full path to the file
+    return Path("include_settings_beam.inp").resolve()
+
