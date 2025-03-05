@@ -1,9 +1,0 @@
-[submodule "xcoll/scattering_routines/fluka/flukaio"]
-	path = xcoll/scattering_routines/fluka/flukaio
-	url = https://gitlab.cern.ch/bmi/fedb/coupling/flukaio.git
-[submodule "xcoll/scattering_routines/fluka/fedb/tools"]
-	path = xcoll/scattering_routines/fluka/fedb/tools
-	url = https://gitlab.cern.ch/bmi/fedb/coupling/fedb_tools.git
-[submodule "xcoll/scattering_routines/fluka/fedb/fedb_coupling"]
-	path = xcoll/scattering_routines/fluka/fedb/fedb_coupling
-	url = https://gitlab.cern.ch/bmi/fedb/coupling/fedb_coupling.git
