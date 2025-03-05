@@ -19,6 +19,7 @@ from ...general import _pkg_root
 from .environment import FlukaEnvironment
 from .paths import fedb, linebuilder
 from .prototypes import FlukaAssembly
+from .includes import get_include_files
 
 
 _header_start = "*  XCOLL START  **"
@@ -27,7 +28,7 @@ _header_stop  = "*  XCOLL END  **"
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[], verbose=True):
     _create_prototypes_file(element_dict, prototypes_file)
-    include_files = _get_include_files(particle_ref, include_files)
+    include_files = get_include_files(particle_ref, include_files)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
     input_file, fluka_dict = _fluka_builder(collimator_dict)
@@ -100,29 +101,6 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
         if not ee.assembly.in_file(prototypes_file):
             raise ValueError(f"Prototype {ee.assembly.name} for {name} not found "
                            + f"in prototypes file!")
-
-
-def _get_include_files(particle_ref, include_files=[]):
-    # Required default include files
-    required_includes = ['include_settings_beam.inp', 'include_settings_physics.inp',
-                        'include_custom_scoring.inp']
-    for ff in required_includes:
-        if ff not in [file.name for file in include_files]:
-            if ff == 'include_settings_beam.inp':
-                include_files.append(_beam_include_file(particle_ref.pdg_id[0]))
-            else:
-                include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / ff)
-    # Add any additional include files
-    for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
-        if ff.name not in [file.name for file in include_files]:
-            include_files.append(ff)
-    include_files = [FsPath(ff).resolve() for ff in include_files]
-    for ff in include_files:
-        if not ff.exists():
-            raise FileNotFoundError(f"Include file not found: {ff}.")
-        elif ff.parent != FsPath.cwd():
-            ff.copy_to(FsPath.cwd())
-    return include_files
 
 
 # TODO check that prototype is valid and its sides
@@ -232,46 +210,3 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
         data = fp.read()
     with open(input_file, 'w') as fp:
         fp.write("\n".join(header) + "\n*\n" + data)
-
-
-def _beam_include_file(ref_particle):
-    filename = FsPath("include_settings_beam.inp").resolve()
-    if ref_particle == 2212: # Proton pdg_id
-        beam = "BEAM           7001.                                                  PROTON"
-        hi_prope = "*"
-    # for heavyion
-    elif ref_particle == 1000822080: # lead pdg_id
-        beam = "*BEAM           8000.                                                  HEAVYION"
-        hi_prope = "HI-PROPE         82.      208."
-    else:
-        raise ValueError(f"Reference particle {ref_particle} not supported for the moment.")
-
-    template = f"""\
-******************************************************************************
-*                          BEAM SETTINGS                                     *
-******************************************************************************
-*
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*
-*============================================================================*
-*                        common to all cases                                 *
-*============================================================================*
-*
-*
-* maximum momentum per nucleon (3000 for 3.5Z TeV, 6000 for 6.37Z TeV)
-{beam}
-{hi_prope}
-*
-BEAMPOS
-*
-*
-* Only asking for loss map and touches map as in Sixtrack
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-SOURCE                                         87.       88.        1.
-SOURCE           89.       90.       91.        0.       -1.       10.&
-*SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
-"""
-    with filename.open('w') as fp:
-        fp.write(template)
-
-    return filename
