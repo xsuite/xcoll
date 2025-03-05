@@ -53,7 +53,7 @@ class Geant4Engine(xo.HybridClass):
     def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
               relative_energy_cut=0.15, seed=1993, batch_mode=True,
               particle_ref=None, p0c=None, **kwargs):
-        from ...beam_elements.geant4 import Geant4Collimator
+        from ...beam_elements.geant4 import Geant4Collimator, Geant4CollimatorTip
 
         cls(**kwargs)
         this = cls.instance
@@ -102,17 +102,37 @@ class Geant4Engine(xo.HybridClass):
             if elements is None:
                 raise ValueError("Need to provide either `line` or `elements`.")
         elif elements is None:
-            elements, _ = line.get_elements_of_type(Geant4Collimator)
+            elements, _ = line.get_elements_of_type([Geant4Collimator])
         if not hasattr(elements, '__iter__') or isinstance(elements, str):
             elements = [elements]
+        # Validate elements to ensure they are only of allowed types
+        for el in elements:
+            if not isinstance(el, (Geant4Collimator)):
+                raise ValueError(f"Invalid element type {type(el).__name__} for Geant4Engine.start!" \
+                                 + " Only Geant4Collimator and Geant4CollimatorTip are allowed.")
         elements = [el for el in elements if el.jaw is not None and el.active]
         for el in elements:
+            if isinstance(el, Geant4CollimatorTip):
+                # Geant4CollimatorTip is a subclass of Geant4Collimator.
+                # An instance of Geant4CollimatorTip is also an instance of Geant4Collimator,
+                # but an instance of Geant4Collimator is NOT an instance of Geant4CollimatorTip.
+                # Therefore, we check for the more specific subclass (Geant4CollimatorTip) first
+                # to avoid incorrectly matching a Geant4CollimatorTip instance as a Geant4Collimator.
+                tip_material = el.tip_material
+                tip_thickness = el.tip_thickness
+            elif isinstance(el, Geant4Collimator):
+                tip_material = ""
+                tip_thickness = -1.0
             side = 2 if el._side == -1 else el._side
             jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            this.g4link.addCollimator(el.geant4_id, el.material, el.length,
+            this.g4link.addCollimator(name=el.geant4_id,
+                                      material=el.material,
+                                      tipMaterial=tip_material,
+                                      tipThickness=tip_thickness,
+                                      length=el.length,
                                       apertureLeft=jaw_L,
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),

@@ -13,7 +13,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           Geant4Collimator, BaseCollimator, BaseCrystal, collimator_classes
+                           Geant4Collimator, Geant4CollimatorTip, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 from .scattering_routines.geant4 import Geant4Engine
 
@@ -21,6 +21,7 @@ from .scattering_routines.geant4 import Geant4Engine
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
     fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
+    fields.update({'tip_material': None, 'tip_thickness': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
     for f, val in fields.items():
@@ -584,8 +585,12 @@ class CollimatorDatabase:
         for name in names:
             if self[name]['bending_radius'] is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
-            self._create_collimator(Geant4Collimator, line, name, verbose=verbose,
-                                    material=self[name]['material'], geant4_id=name)
+            if self[name]['tip_material'] is None:
+                self._create_collimator(Geant4Collimator, line, name, verbose=verbose,
+                                        material=self[name]['material'], geant4_id=name)
+            else:
+                self._create_collimator(Geant4CollimatorTip, line, name, verbose=verbose,
+                                        material=self[name]['material'], geant4_id=name)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 

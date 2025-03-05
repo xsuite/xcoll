@@ -6,7 +6,7 @@
 from .general import _pkg_root, __version__, citation
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, \
-                           Geant4Collimator, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, element_classes
+                           Geant4Collimator, Geant4CollimatorTip, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, element_classes
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
