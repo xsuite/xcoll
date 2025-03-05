@@ -218,7 +218,7 @@ class Geant4Engine(xo.HybridClass):
             # TODO: this should be updated in xpart: antiparticle not correctly recognised (missing positron and antimuon etc)
             q0, _, _, _ = xp.pdg.get_properties_from_pdg_id(particle_ref.pdg_id)
             if particle_ref.q0 == -q0:
-                pdg_id = -pdg_id
+                particle_ref.pdg_id = -particle_ref.pdg_id
 
         # TODO: test PDG ID consistent with mass and charge
 
