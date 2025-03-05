@@ -58,7 +58,6 @@ class FlukaEnvironment:
         # Brute-force the system paths
         sys.path.append(fedb.as_posix())
         sys.path.append((fedb / "tools").as_posix())
-        sys.path.append((fedb / "tools" / "tools").as_posix())
         sys.path.append((fedb / "tools" / "materials" / "cables").as_posix())
         sys.path.append((linebuilder / "src").as_posix())
         sys.path.append((linebuilder / "lib").as_posix())
@@ -66,9 +65,6 @@ class FlukaEnvironment:
         flukafile_resolve(fedb / "structure.py")
         flukafile_resolve(fedb / "tools")
         for ff in (fedb / "tools").glob("*.py"):
-            flukafile_resolve(ff)
-        flukafile_resolve(fedb / "tools" / "tools")
-        for ff in (fedb / "tools" / "tools").glob("*.py"):
             flukafile_resolve(ff)
         flukafile_resolve(fedb / "tools" / "materials" / "cables")
         for ff in (fedb / "tools" / "materials" / "cables").glob("*.py"):

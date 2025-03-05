@@ -25,9 +25,9 @@ _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
-def create_fluka_input(element_dict, prototypes_file=None, include_files=None, verbose=True):
+def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=None, verbose=True):
     _create_prototypes_file(element_dict, prototypes_file)
-    include_files = _get_include_files(include_files)
+    include_files = _get_include_files(particle_ref, include_files)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
     input_file, fluka_dict = _fluka_builder(collimator_dict)
@@ -102,19 +102,16 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
                            + f"in prototypes file!")
 
 
-def _get_include_files(include_files=None):
+def _get_include_files(particle_ref, include_files=[]):
     # Required default include files
-    if include_files is None:
-        include_files = [
-            _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_beam.inp',
-            _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_settings_physics.inp',
-            _pkg_root / 'scattering_routines' / 'fluka' / 'data' / 'include_custom_scoring.inp'
-        ]
     required_includes = ['include_settings_beam.inp', 'include_settings_physics.inp',
                         'include_custom_scoring.inp']
     for ff in required_includes:
         if ff not in [file.name for file in include_files]:
-            raise ValueError(f"Missing include file {ff}.")
+            if ff == 'include_settings_physics.inp':
+                include_files.append(_beam_include_file(particle_ref.pdg_id[0]))
+            else:
+                include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / ff)
     # Add any additional include files
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in include_files]:
@@ -238,6 +235,7 @@ def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
 
 
 def _beam_include_file(ref_particle):
+    filename = FsPath("include_settings_beam.inp").resolve()
     if ref_particle == 2212: # Proton pdg_id
         beam = "BEAM           7001.                                                  PROTON"
         hi_prope = "*"
@@ -273,8 +271,7 @@ SOURCE                                         87.       88.        1.
 SOURCE           89.       90.       91.        0.       -1.       10.&
 *SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 """
-    with open("include_settings_beam.inp", "w") as file:
-        file.write(template)
-    # return full path to the file
-    return Path("include_settings_beam.inp").resolve()
+    with filename.open('w') as fp:
+        fp.write(template)
 
+    return filename
