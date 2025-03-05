@@ -6,11 +6,15 @@
 # Tenporary file that defines xaux tools - to be used until xaux is in main Xsuite release cycle
 
 import base64
+import shutil
 import inspect
 import functools
-from pathlib import Path
+from pathlib import PosixPath
 
-FsPath = Path
+class FsPath(PosixPath):
+    def copy_to(self, other):
+        shutil.copy(self, other)
+
 
 def ranID(*, length=12, size=1, only_alphanumeric=False):
     """Base64 encoded random ID.
