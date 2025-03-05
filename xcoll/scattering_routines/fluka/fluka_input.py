@@ -108,7 +108,7 @@ def _get_include_files(particle_ref, include_files=[]):
                         'include_custom_scoring.inp']
     for ff in required_includes:
         if ff not in [file.name for file in include_files]:
-            if ff == 'include_settings_physics.inp':
+            if ff == 'include_settings_beam.inp':
                 include_files.append(_beam_include_file(particle_ref.pdg_id[0]))
             else:
                 include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / ff)

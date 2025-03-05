@@ -128,13 +128,32 @@ class FlukaEngine(BaseEngine):
         cls.flukaserver = None
 
 
+    # ============================
+    # === Overwrite Properties ===
+    # ============================
+
+    @ClassProperty
+    def seed(cls):
+        return BaseEngine.classproperty.seed.fget(cls)
+
+    @seed.setter
+    def seed(cls, val):
+        BaseEngine.classproperty.seed.fset(cls, val)
+        self = cls.get_self()
+        self._seed = int(self._seed / 5)
+
+    @seed.deleter
+    def seed(cls):
+        return BaseEngine.classproperty.seed.fdel(cls)
+
+
     # ======================
     # === Public methods ===
     # ======================
 
     @classmethod
     def init_tracking(cls, max_particle_id, **kwargs):
-        self = cls.get_self(**kwargs)
+        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
         if self._tracking_initialised == False:
             self.assert_particle_ref()
             _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0])
@@ -165,9 +184,11 @@ class FlukaEngine(BaseEngine):
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
-        return create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
+        input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
                                   prototypes_file=prototypes_file, include_files=include_files,
                                   verbose=self.verbose)
+        self._set_seed_in_input_file(input_file)
+        return input_file
 
 
     def _pre_start(self, **kwargs):
@@ -175,15 +196,14 @@ class FlukaEngine(BaseEngine):
         self._print("Starting FLUKA engine...", flush=True)
 
 
-    def _start_engine(self, touches=True, **kwargs):
+    def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
         self._create_touches(touches)
 
         try:
             from .pyflukaf import pyfluka_init
-            debug_level = 2 if self.verbose else 0
-            pyfluka_init(n_alloc=self._capacity, debug_level=debug_level)
+            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
         except ImportError as error:
             self._warn(error)
             self.stop()
@@ -314,40 +334,57 @@ class FlukaEngine(BaseEngine):
         # TODO: tilts!!
 
 
-    def _clean_output_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
-        # Get the input file and the cwd
-        if input_file is None:
-            if self.input_file is not None:
-                input_file = self.input_file[0]
-            if cwd is None and self._cwd is not None:
-                cwd = self._cwd
-        else:
-            if hasattr(input_file, '__iter__'):
-                if len(input_file) == 1:
-                    input_file = input_file[0]
-                else:
-                    raise ValueError("Only one input file can be given!")
-            input_file = FsPath(input_file)
-            if cwd is None:
-                cwd = input_file.parent
-        # Delete the files
-        files_to_delete = [network_file, fluka_log, server_log, 'prototypes.lbp'
-                           'fluka_isotope.log', 'fort.208', 'fort.251']
-        if isinstance(cwd, FsPath):
+    def _clean_input_files(self, input_file, cwd, clean_all=False, _only_list=False, **kwargs):
+        if cwd is not None:
+            files_to_delete = ['prototypes.lbp', 'assignmat.inp']
             files_to_delete = [cwd / f for f in files_to_delete]
+            files_to_delete += list(cwd.glob(f'include_*.inp'))
             if input_file is not None:
-                files_to_delete += list(cwd.glob(f'ran{input_file.stem}*'))
-                files_to_delete += list(cwd.glob(f'{input_file.stem}*'))
-            if not clean_all:
-                # do not delete the input file itself
-                files_to_delete  = [file for file in files_to_delete
-                                    if FsPath(file).resolve() != input_file.resolve()]
-            if clean_all:
-                files_to_delete += [cwd / f for f in ['insertion.txt', 'new_collgaps.dat',
-                                                      'relcol.dat']]
+                if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
+                    input_file = [input_file]
+                files_to_delete += list(cwd.glob(f'{input_file[0].stem}_orig.inp'))
+                if clean_all and not _only_list:
+                    files_to_delete += self._all_input_files(input_file)
+            if _only_list:
+                return files_to_delete
             for f in files_to_delete:
                 if f is not None and f.exists():
                     f.unlink()
+
+    def _clean_output_files(self, input_file, cwd, clean_all=False, **kwargs):
+        if cwd is not None:
+            files_to_delete = [network_file, fluka_log, server_log, 'new_collgaps.dat',
+                            'fluka_isotope.log', 'fort.208', 'fort.251']
+            files_to_delete = [cwd / f for f in files_to_delete]
+            if input_file is not None:
+                if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
+                    input_file = [input_file]
+                files_to_delete += list(cwd.glob(f'ran{input_file[0].stem}*'))
+                files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
+
+            # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
+            _input_files = self._clean_input_files(input_file, cwd, clean_all=False,
+                                                   _only_list=True)
+            files_to_delete  = [file for file in files_to_delete
+                                if FsPath(file).resolve() not in _input_files]
+
+            if not clean_all and input_file is not None:
+                # Do not delete the input file itself
+                files_to_delete  = [file for file in files_to_delete
+                                    if FsPath(file).resolve() != input_file[0].resolve()]
+            if clean_all and input_file is not None:
+                files_to_delete += self._all_input_files(input_file)
+            for f in files_to_delete:
+                if f is not None and f.exists():
+                    f.unlink()
+
+    def _all_input_files(self, input_file):
+        if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
+            input_file = [input_file]
+        for ff in ['insertion.txt','relcol.dat']:
+            if ff not in [fff.name for fff in input_file]:
+                input_file.append(input_file[0].parent / ff)
+        return input_file
 
 
     def _remove_element(self, name=None, el=None, **kwargs):
@@ -388,34 +425,6 @@ class FlukaEngine(BaseEngine):
     # === Private Methods ===
     # =======================
 
-
-    def _create_touches(self, touches):
-        # Create touches file (relcol.dat)
-        # First line is the number of collimators, second line is the IDs (no newline at end)
-        if touches is True:
-            touches = FsPath('relcol.dat').resolve()
-            with touches.open('w') as fid:
-                fid.write(f'{len(self._element_dict.keys())}\n')
-                for _, el in self._element_dict.items():
-                    fid.write(f'{el.fluka_id} ')
-            self._input_file.append(touches)
-        # Check if touches is a list of collimator names
-        elif touches is not None and isinstance(touches, list):
-            relcol = FsPath('relcol.dat').resolve()
-            with relcol.open('w') as fid:
-                fid.write(f'{len(touches)}\n')
-                for touch in touches:
-                    if touch not in self._element_dict:
-                        raise ValueError(f"Collimator {touch} not in collimator dict!")
-                    else:
-                        fid.write(f'{self._element_dict[touch].fluka_id} ')
-            self._input_file.append(relcol)
-        # Check if touches is not wrongly set
-        elif touches is not None and not touches is False:
-            raise NotImplementedError("Only True/False or a list of collimators is allowed "
-                                    + "for `touches` for now.")
-
-
     def _declare_network(self):
         self._network_nfo = self._cwd / network_file
         cmd = run(["hostname"], cwd=self._cwd, stdout=PIPE, stderr=PIPE)
@@ -429,15 +438,19 @@ class FlukaEngine(BaseEngine):
 
 
     def _start_server(self):
-        self._log = self._cwd / server_log
+        log = self._cwd / server_log
+        self._log = log
         self._log_fid = self._log.open('w')
-        self._server_process = Popen([self.fluka.as_posix(), self.input_file[0], '-e',
+        # print([self.fluka.as_posix(), self.input_file[0], '-e',
+        #                               self.flukaserver.as_posix(), '-M', "1"])
+        # print(self._cwd)
+        self._server_process = Popen([self.fluka.as_posix(), self.input_file[0].as_posix(), '-e',
                                       self.flukaserver.as_posix(), '-M', "1"],
                                      cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)
         if not self.is_running():
-            raise RuntimeError(f"Could not start fluka server! See logfile {self._log}.")
+            raise RuntimeError(f"Could not start fluka server! See logfile {log}.")
         i = 0
         while True:
             sleep(2)
@@ -454,3 +467,39 @@ class FlukaEngine(BaseEngine):
                     raise RuntimeError("The flukaserver died. Please check the FLUKA output.")
         self._print(f"Started fluka server on network port {self.network_port}. "
                   + f"Connecting (timeout: {self.timeout_sec})... ", flush=True, end='')
+
+
+    def _set_seed_in_input_file(self, input_file):
+        input_file = FsPath(input_file[0])
+        with input_file.open('r') as fid:
+            lines = fid.readlines()
+        for i, line in enumerate(lines):
+            if 'RANDOMIZ' in line:
+                lines[i] = f"RANDOMIZe        1.0{self.seed:9}.\n"
+                break
+        with input_file.open('w') as fid:
+            fid.writelines(lines)
+
+
+    def _create_touches(self, touches=None):
+        # Create touches file (relcol.dat)
+        # First line is the number of collimators, second line is the IDs (no newline at end)
+        if touches is True:
+            touches = list(self._element_dict.keys())
+        # Check if touches is a list of collimator names
+        if touches is not None and hasattr(touches, '__iter__') \
+        and not isinstance(touches, str):
+            relcol = FsPath('relcol.dat').resolve()
+            with relcol.open('w') as fid:
+                fid.write(f'{len(touches)}\n')
+                for touch in touches:
+                    if touch not in self._element_dict:
+                        raise ValueError(f"Collimator {touch} not in collimator dict, "
+                                        + "but asked to write FLUKA touches!")
+                    else:
+                        fid.write(f'{self._element_dict[touch].fluka_id} ')
+            self._input_file.append(relcol)
+        # Check if touches is not wrongly set
+        elif touches is not None and not touches is False:
+            raise NotImplementedError("Only True/False or a list of collimator names "
+                                    + "is allowed for `touches` for now.")

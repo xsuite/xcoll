@@ -78,7 +78,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     def _print(self, *args, **kwargs):
         if self.verbose:
-            print(*args, **kwargs,)
+            kwargs.setdefault('flush', True)
+            print(*args, **kwargs)
 
 
     # ==================
@@ -202,36 +203,41 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     @classmethod
     def start(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
-              particle_ref=None, input_file=None, **kwargs):
-        self = cls.get_self(**kwargs)
-        self._pre_start(**kwargs)
+              particle_ref=None, input_file=None, clean=True, **kwargs):
+        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
+
         if self.is_running():
             self._print("Engine already running.", flush=True)
             return
 
+        self._pre_start(**kwargs)
+
+        # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
+        self._tracking_initialised = False
+
         self._prepare_input(line=line, elements=elements, names=names, cwd=cwd, seed=seed,
                             particle_ref=particle_ref, **kwargs)
         self._use_input_file(input_file, **kwargs)
-        self.clean_input_files()
+        if clean:
+            self.clean_input_files(clean_all=False)
         self._preparing_input = False
         self._start_engine(**kwargs)
-        self._tracking_initialised = True
 
 
     @classmethod
     def stop(cls, clean=False, **kwargs):
-        self = cls.get_self(**kwargs)
+        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
         self._stop_engine(**kwargs)
         if clean:
-            self.clean(**kwargs)
+            self.clean(clean_all=True, **kwargs)
         self._restore_input(clean=clean)
         self._warning_given = False
         self._tracking_initialised = False
 
 
     @classmethod
-    def assert_particle_ref(cls, **kwargs):
-        if cls.get_self(**kwargs).particle_ref is None:
+    def assert_particle_ref(cls):
+        if cls.get_self().particle_ref is None:
             raise ValueError(f"{cls.__name__} reference particle not set!")
 
 
@@ -239,7 +245,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def generate_input_file(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
                             particle_ref=None, filename=None, **kwargs):
         # This method manually generates an input file without starting the engine
-        self = cls.get_self(**kwargs)
+        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
         if not self._uses_input_file:
             raise ValueError(f"{cls.__name__} does not use input files!")
         if self._element_dict:
@@ -248,15 +254,18 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._prepare_input(line=line, elements=elements, names=names, cwd=cwd, seed=seed,
                             particle_ref=particle_ref, **kwargs)
         input_file = self._generate_input_file(**kwargs)
+        if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
+            # Some engines might need multiple input files (like Fluka)
+            input_file = [input_file]
         if filename is not None:
-            if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
-                # Some engines might need multiple input files (like Fluka)
-                input_file = [input_file]
+            if hasattr(self, '_old_cwd') and self._old_cwd is not None:
+                input_file[0] = input_file[0].rename(self._old_cwd / input_file[0].name)
+        else:
             input_file[0] = input_file[0].rename(filename)
-            for i, file in enumerate(input_file[1:]):
-                input_file[i+1] = file.rename(filename.parent / file.name)
-            if len(input_file) == 1:
-                input_file = input_file[0]
+        for i, file in enumerate(input_file[1:]):
+            input_file[i+1] = file.rename(input_file[0].parent / file.name)
+        if len(input_file) == 1:
+            input_file = input_file[0]
         self.clean(clean_all=True)
         self._restore_input(clean=True)
         return input_file
@@ -264,7 +273,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     @classmethod
     def is_running(cls, **kwargs):
-        self = cls.get_self(**kwargs)
+        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
         if hasattr(self, '_preparing_input') and self._preparing_input:
             # We need this to allow changing the element settings which otherwise are locked
             return False
@@ -280,11 +289,15 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
 
     @classmethod
     def clean_input_files(cls, **kwargs):
-        cls.get_self(**kwargs)._clean_input_files(**kwargs)
+        self = cls.get_self()
+        kwargs = self._get_input_cwd_for_cleaning(**kwargs)
+        self._clean_input_files(**kwargs)
 
     @classmethod
     def clean_output_files(cls, **kwargs):
-        cls.get_self(**kwargs)._clean_output_files(**kwargs)
+        self = cls.get_self()
+        kwargs = self._get_input_cwd_for_cleaning(**kwargs)
+        self._clean_output_files(**kwargs)
 
 
     # =======================
@@ -384,9 +397,8 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 raise ValueError("Need to provide either `line` or `elements`.")
             if names is None:
                 names = [f"{self.name}_el_{i}" for i, _ in enumerate(elements)]
-            else:
-                if len(names) != len(elements):
-                    raise ValueError("Length of `elements` and `names` doesn't match.")
+            if len(names) != len(elements):
+                raise ValueError("Length of `elements` and `names` doesn't match.")
         else:
             if elements is not None:
                 raise ValueError("Cannot provide both `line` and `elements`.")
@@ -404,7 +416,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.", flush=True)
                 self._remove_element(name, ee)
-            if not ee.active:
+            elif not ee.active:
                 self._print(f"Warning: Element {name} is not active. Ignoring.", flush=True)
                 self._remove_element(name, ee)
             else:
@@ -431,7 +443,11 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if self._old_cwd is not None:
                 os.chdir(self._old_cwd)
                 if clean and self._cwd is not None and self._cwd != FsPath.cwd():
-                    self._cwd.rmdir()
+                    try:
+                        self._cwd.rmdir()
+                    except:
+                        self._print(f"Warning: Failed to remove temporary folder "
+                                  + f"{self._cwd}.")
             del self._old_cwd
         self._cwd = None
 
@@ -454,6 +470,31 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                     new_files.append(file)
             self._input_file = new_files[0] if len(new_files)==1 else new_files
             self._match_input_file()
+
+
+    def _get_input_cwd_for_cleaning(self, **kwargs):
+        # Get the input file and the cwd
+        input_file = kwargs.get('input_file', None)
+        cwd = kwargs.get('cwd', None)
+        if input_file is None:
+            if self.input_file is not None:
+                input_file = self.input_file
+            if cwd is None and self._cwd is not None:
+                cwd = self._cwd
+        else:
+            if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
+                input_file = [input_file]
+            input_file = [FsPath(ff) for ff in input_file]
+            if cwd is None:
+                cwd = input_file[0].parent
+            if len(input_file) == 1:
+                input_file = input_file[0]
+        kwargs['input_file'] = input_file
+        if self._uses_run_folder:
+            kwargs['cwd'] = cwd
+        else:
+            kwargs['cwd'] = FsPath.cwd()
+        return kwargs
 
 
     # =================================================
@@ -487,10 +528,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     # === Methods to be optionally overwritten by child engine ===
     # ============================================================
 
-    def _clean_input_files(self, **kwargs):
+    def _clean_input_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
         pass
 
-    def _clean_output_files(self, **kwargs):
+    def _clean_output_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
         pass
 
     def _remove_element(self, name=None, el=None, **kwargs):

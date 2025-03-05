@@ -13,9 +13,11 @@ import time
 
 import matplotlib.pyplot as plt
 
-
 num_part = int(10_000)
 _capacity = num_part*2
+
+if xc.FlukaEngine.is_running():
+    xc.FlukaEngine.stop()
 
 # Create a FLUKA collimator
 coll = xc.FlukaCollimator(length=0.6, assembly='lhc_tcp')
@@ -29,7 +31,8 @@ coll2.jaw = 0.001
 
 # Connect to FLUKA
 xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-xc.FlukaEngine.start(elements=coll, names=coll_name, capacity=_capacity)
+xc.FlukaEngine.capacity = _capacity
+xc.FlukaEngine.start(elements=coll, names=coll_name, clean=True, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -58,7 +61,7 @@ print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")
 
 
 # Stop the FLUKA server
-xc.FlukaEngine.stop()
+xc.FlukaEngine.stop(clean=True)
 
 
 # Make some plots
