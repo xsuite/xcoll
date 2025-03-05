@@ -163,7 +163,7 @@ class FlukaEngine(BaseEngine):
     # =================================
 
 
-    def _generate_input_file(self, *, prototypes_file=None, include_files=None, **kwargs):
+    def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
         return create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
                                   prototypes_file=prototypes_file, include_files=include_files,

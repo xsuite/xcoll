@@ -25,7 +25,7 @@ _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
-def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=None, verbose=True):
+def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[], verbose=True):
     _create_prototypes_file(element_dict, prototypes_file)
     include_files = _get_include_files(particle_ref, include_files)
     # Call FLUKA_builder
@@ -120,7 +120,7 @@ def _get_include_files(particle_ref, include_files=[]):
     for ff in include_files:
         if not ff.exists():
             raise FileNotFoundError(f"Include file not found: {ff}.")
-        else:
+        elif ff.parent != FsPath.cwd():
             ff.copy_to(FsPath.cwd())
     return include_files
 
