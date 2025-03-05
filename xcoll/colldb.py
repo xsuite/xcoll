@@ -585,7 +585,7 @@ class CollimatorDatabase:
             if self[name]['bending_radius'] is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
             self._create_collimator(Geant4Collimator, line, name, verbose=verbose,
-                                    material=self[name]['material'])
+                                    material=self[name]['material'], geant4_id=name)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
