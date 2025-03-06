@@ -169,9 +169,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
 
 def _fluka_builder(collimator_dict):
     # Save system state
-    old_sys_path = sys.path.copy()
-    old_os_env = os.environ.copy()
-    FlukaEnvironment().brute_force_fedb_environment()
+    FlukaEnvironment().set_fedb_environment()
     file_path = linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
@@ -192,8 +190,7 @@ def _fluka_builder(collimator_dict):
     input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
-    sys.path = old_sys_path
-    os.environ = old_os_env
+    FlukaEnvironment().unset_fedb_environment()
 
     return input_file, coll_dict
 
