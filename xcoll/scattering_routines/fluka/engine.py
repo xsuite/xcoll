@@ -123,10 +123,9 @@ class FlukaEngine(BaseEngine):
             except ImportError as error:
                 self._warn(error)
                 return
-            if self.verbose:
-                print(f"Setting max_particle_id to {max_particle_id}, "
-                    + f"and reference particle to {name} with mass {m0}MeV "
-                    + f"and energy {E0}MeV.", flush=True)
+            self._print(f"Setting max_particle_id to {max_particle_id}, "
+                      + f"and reference particle to {name} with mass {m0} MeV "
+                      + f"and momentum {p0c} MeV.")
             pyfluka_init_max_uid(max_particle_id)
             pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
             self._max_particle_id = max_particle_id
@@ -150,49 +149,20 @@ class FlukaEngine(BaseEngine):
     def _pre_start(self, **kwargs):
         FlukaEnvironment().test_gfortran()
         FlukaEnvironment().set_fluka_environment()
-        self._print("Starting FLUKA engine...", flush=True)
 
 
     def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
         self._create_touches(touches)
-
-        try:
-            from .pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
-        except ImportError as error:
-            self._warn(error)
-            self.stop()
-            return
-
+        self._init_fortran(fortran_debug_level)
         self._declare_network()
         self._start_server()
-
-        try:
-            from .pyflukaf import pyfluka_connect
-            pyfluka_connect(self.timeout_sec)
-            self._flukaio_connected = True
-        except ImportError as error:
-            self._warn(error)
-            self.stop()
-            return
-
-        self._print(f"done.", flush=True)
 
 
     def _stop_engine(cls, clean=False, **kwargs):
         self = cls.get_self(**kwargs)
-        # Stop flukaio connection
-        if self._flukaio_connected:
-            self._print(f"Closing fluka server connection... ", flush=True)
-            try:
-                from .pyflukaf import pyfluka_close
-                pyfluka_close()
-            except ImportError as error:
-                self._warn(error)
-            self._flukaio_connected = False
-            self._print(f"done.", flush=True)
+        self._stop_fortran()
         # If the Popen process is still running, terminate it
         if self._server_process is not None:
             while self._server_process.poll() is None:
@@ -237,10 +207,10 @@ class FlukaEngine(BaseEngine):
         elif len(processes) == 1 and str(self.server_pid) in processes[0] and 'defunct' not in processes[0]:
             return True
         elif np.any([str(self.server_pid) in proc for proc in processes if 'defunct' not in proc]):
-            self._print("Warning: Found other instances of rfluka besides the current one!", flush=True)
+            self._print("Warning: Found other instances of rfluka besides the current one!")
             return True
         else:
-            self._print("Warning: Found other instances of rfluka but not the current one!", flush=True)
+            self._print("Warning: Found other instances of rfluka but not the current one!")
             self.stop()
             return False
 
@@ -293,7 +263,7 @@ class FlukaEngine(BaseEngine):
 
     def _clean_input_files(self, input_file, cwd, clean_all=False, _only_list=False, **kwargs):
         if cwd is not None:
-            files_to_delete = ['prototypes.lbp', 'assignmat.inp']
+            files_to_delete = ['prototypes.lbp', 'assignmat.inp', 'linebuilder.log']
             files_to_delete = [cwd / f for f in files_to_delete]
             files_to_delete += list(cwd.glob(f'include_*.inp'))
             if input_file is not None:
@@ -365,14 +335,14 @@ class FlukaEngine(BaseEngine):
                     part._update_refs(energy0=old_energy0)
                 assert np.isclose(part.energy0[0]**2, part.p0c[0]**2 + part.mass0**2)
                 assert np.isclose(part.mass0, mass_fluka)
-                self._print(f"Warning: given mass of {mass}eV for "
+                self._print(f"Warning: given mass of {mass} eV for "
                           + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from FLUKA "
-                          + f"mass of {mass_fluka}eV.\nReference particle mass is "
+                          + f"mass of {mass_fluka} eV.\nReference particle mass is "
                           + f"overwritten by the latter.")
         else:
             self._print(f"Warning: No FLUKA reference mass known for particle "
                       + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the reference mass "
-                      + f"provided ({mass}eV) differs from the one used internally "
+                      + f"provided ({mass} eV) differs from the one used internally "
                       + f"by FLUKA, differences in energy might be observed.\nOnce "
                       + f"the FLUKA reference mass is known, contact the devs to "
                       + f"input it in the code.")
@@ -381,6 +351,15 @@ class FlukaEngine(BaseEngine):
     # =======================
     # === Private Methods ===
     # =======================
+
+    def _init_fortran(self, fortran_debug_level=0):
+        try:
+            from .pyflukaf import pyfluka_init
+            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
+        except ImportError as error:
+            self._warn(error)
+            self.stop()
+            return
 
     def _declare_network(self):
         self._network_nfo = self._cwd / network_file
@@ -412,7 +391,7 @@ class FlukaEngine(BaseEngine):
             i += 2
             if i%30 == 0:
                 self._print("Network port not yet established (or missing executable "
-                          + "permission on flukaserver). Waiting 30s.", flush=True)
+                          + "permission on flukaserver). Waiting 30s.")
             with self._network_nfo.open('r') as fid:
                 lines = fid.readlines()
                 if len(lines) > 1:
@@ -421,7 +400,28 @@ class FlukaEngine(BaseEngine):
                 if self._server_process.poll() is not None:
                     raise RuntimeError("The flukaserver died. Please check the FLUKA output.")
         self._print(f"Started fluka server on network port {self.network_port}. "
-                  + f"Connecting (timeout: {self.timeout_sec})... ", flush=True, end='')
+                  + f"Connecting (timeout: {self.timeout_sec})...   ", end='')
+        try:
+            from .pyflukaf import pyfluka_connect
+            pyfluka_connect(self.timeout_sec)
+            self._flukaio_connected = True
+        except ImportError as error:
+            self._warn(error)
+            self.stop()
+            return
+        self._print(f"Done.")
+
+
+    def _stop_fortran(self):
+        if self._flukaio_connected:
+            self._print(f"Closing fluka server connection...   ", end='')
+            try:
+                from .pyflukaf import pyfluka_close
+                pyfluka_close()
+            except ImportError as error:
+                self._warn(error)
+            self._flukaio_connected = False
+            self._print(f"Done.")
 
 
     def _set_seed_in_input_file(self, input_file):

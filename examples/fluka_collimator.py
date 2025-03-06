@@ -1,8 +1,4 @@
-# This is a script to test the preliminary FLUKA integration into xtrack.
-# The FORTRAN source code is in xcoll/scattering_routines/fluka/FORTRAN_src/
-#     (wrapper in pyfluka.f90, original SixTrack code in mod_fluka.f90 and others)
-# The FlukaIO code is in xcoll/scattering_routines/fluka/flukaio/
-#
+# This is a script to test the FLUKA integration into xtrack.
 # Before running the script, the source code needs to be compiled. In the root
 # package folder, run ./compile_fluka.sh to do so.
 
@@ -46,15 +42,22 @@ part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                _capacity=xc.FlukaEngine.capacity)
 part = part_init.copy()
 part2 = part_init.copy()
+part_test = part_init.copy()
 
 
-# Do the tracking
+# Do the tracking in FLUKA
+coll.track(part_test)  # pre-track to compile the code for a fair comparison
+print(f"Tracking {num_part} particles (FLUKA)...     ", end='')
 start = time.time()
 coll.track(part)
-print(f"Tracking {num_part} particles (FLUKA) took {round(time.time()-start, 3)}s")
+print(f"Done in {round(time.time()-start, 3)}s.")
+
+# Do the tracking in Everest
+coll2.track(part_test)  # pre-track to compile the code for a fair comparison
+print(f"Tracking {num_part} particles (Everest)...   ", end='')
 start = time.time()
 coll2.track(part2)
-print(f"Tracking {num_part} particles (Everest) took {round(time.time()-start, 3)}s")
+print(f"Done in {round(1000*(time.time()-start), 3)}ms")
 
 print(f"Survived in FLUKA: {len(part.state[part.state>0])}/{num_part}")
 print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")

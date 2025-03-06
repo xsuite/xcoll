@@ -8,6 +8,7 @@ import numpy as np
 import sys
 import os
 from subprocess import run, PIPE
+from contextlib import redirect_stdout
 
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -186,7 +187,9 @@ def _fluka_builder(collimator_dict):
     args_fb.prototype_file = 'prototypes.lbp'
     args_fb.output_name = 'fluka_input'
 
-    input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
+    with open('linebuilder.log', 'w') as f:
+        with redirect_stdout(f):
+            input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
     FlukaEnvironment().unset_fedb_environment()

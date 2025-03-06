@@ -53,7 +53,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         # Initialise defaults
         self._cwd = None
         self._line = None
-        self._verbose = True
+        self._verbose = False
         self._input_file = None
         self._element_dict = {}
         self._warning_given = False
@@ -207,9 +207,13 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self = cls.get_self(**kwargs)
 
         if self.is_running():
-            self._print("Engine already running.", flush=True)
+            self._print("Engine already running.")
             return
 
+        if self.verbose:
+            print(f"Starting {cls.__name__}...", flush=True)
+        else:
+            print(f"Starting {cls.__name__}...   ", flush=True, end='')
         self._pre_start(**kwargs)
 
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
@@ -222,6 +226,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             self.clean_input_files(clean_all=False)
         self._preparing_input = False
         self._start_engine(**kwargs)
+        if self.verbose:
+            print(f"{cls.__name__} started.", flush=True)
+        else:
+            print(f"Done.", flush=True)
 
 
     @classmethod
@@ -367,7 +375,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             self._old_particle_ref = self.particle_ref
             self.particle_ref = self.line.particle_ref
         self._print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
-                  + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1}GeV.")
+                  + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
 
     def _reset_particle_ref(self):
         if hasattr(self, '_old_particle_ref'):
@@ -414,10 +422,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                                 + ", or a ".join([c.__name__ for c in self._element_classes])
                                 + ".")
             if ee.jaw is None:
-                self._print(f"Warning: Jaw not set for {name}. Ignoring.", flush=True)
+                self._print(f"Warning: Jaw not set for {name}. Ignoring.")
                 self._remove_element(name, ee)
             elif not ee.active:
-                self._print(f"Warning: Element {name} is not active. Ignoring.", flush=True)
+                self._print(f"Warning: Element {name} is not active. Ignoring.")
                 self._remove_element(name, ee)
             else:
                 this_names.append(name)
