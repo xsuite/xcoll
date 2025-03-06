@@ -1,0 +1,96 @@
+* Element: DONADONT [Bodies]
+* Parking: DONADONT
+* Infos:   Target Collimator Dump Quadruple Tank
+* **************************************
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+RPP DONADONT   -2.0 2.0 -2.0 2.0 -0.005 0.005
+*
+RPP TCQJWCT    -1.9 8.5 -6.5 7.5 -151.7 151.7
+*
+XZP yzero      0.0
+*
+* Main Tank (including flanges)
+* From LHCTCDQV0001 and LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* M-ain T-ank Cyl-inder O-uter (I-nner)
+ZCC MTCylO     0.0 0.0 12.8
+ZCC MTCylI     0.0 0.0 12.5
+* M-ain T-ank F-lange E-xternal R-adius
+ZCC MTFER      0.0 0.0 15.3
+* M-ain T-ank Z R-ight (L-eft)
+XYP MTZR       151.7
+XYP MTZL       -151.7
+* M-ain T-ank F-lange R-ight (L-eft) O-uter (I-nner)
+XYP MTFRO      153.0
+XYP MTFRI      150.4
+XYP MTFLI      -150.4
+XYP MTFLO      -153.0
+*
+* TCDS Vacuum Devices (one left one right)
+* From LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* v-acuum d-evice C-ylinder R-ight (Left) O-uter (I-nner) (F-lange)
+YCC vdCRO      101.655 0.0 7.95
+YCC vdCRI      101.655 0.0 7.75
+YCC vdCRF      101.655 0.0 10.45
+YCC vdCLO      -101.655 0.0 7.95
+YCC vdCLI      -101.655 0.0 7.75
+YCC vdCLF      -101.655 0.0 10.45
+* v-acuum d-evice T-op
+* v-acuum d-evice T-op F-lange (Cap) T-op (B-ottom)
+XZP vdT        15.95
+XZP vdTFT      17.20
+XZP vdTFB      14.70
+XZP vdB        -19.95
+XZP vdBFT      -18.70
+*
+* TCDS Cooling connection
+* From LHCTCDSV0005
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* c-ooling c-onnection C-ylinder O-uter (I-nner) (F-lange)
+YCC ccCO       0.0 0.0 10.2
+YCC ccCI       0.0 0.0 10.0
+YCC ccCF       0.0 0.0 12.7
+*
+* TCDS End Flanges
+* From LHCTCDSV0005, LHCTCDQV0003, LHCTCDQV0005 and LHCTCDQV0007
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* DN250 (DN150) R-ight (L-eft) O-uter (I-nner)
+XYP DN250RO    156.025
+XYP DN150RI    163.245
+XYP DN150RO    165.0
+XYP DN250LO    -156.025
+XYP DN150LI    -163.245
+XYP DN150LO    -165.0
+* DN-250 (DN-150) C-onnection T-op (B-ottom) O-uter (I-nner)
+XZP DNCTO      4.15
+XZP DNCTI      3.95
+XZP DNCBI      -3.95
+XZP DNCBO      -4.15
+* DN-250 (DN-150) C-onnection C-urve 1 (2) O-uter (I-nner) Radius
+ZCC DNCC1OR    0.45 0.0 4.15
+ZCC DNCC1IR    0.45 0.0 3.95
+ZCC DNCC2OR    -5.35 0.0 4.15
+ZCC DNCC2IR    -5.35 0.0 3.95
+* DN-250 (DN-150) C-onnection C-urve 1 (2) X C-enter P-lane
+YZP DNCC1XCP   0.45
+YZP DNCC2XCP   -5.35
+* DN150 Cyl-inder
+ZCC DN150Cyl   -2.45 0.0 10.1
+*
+* TCDQ Beam Screen
+* From LHCTCDQA0005, LHCTCDQA0006, LHCTCDQA0001
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* Be-am Scr-een T-op (B-ottom) T-op (B-ottom)
+XZP BeScrTT    2.76
+XZP BeScrTB    2.60
+XZP BeScrBT    -2.60
+XZP BeScrBB    -2.76
+* Be-am Scr-een R-ight (L-eft) R-adius I-nner (O-uter) (P-lane)
+ZCC BeScrRRI   -5.3 0.0 2.60
+ZCC BeScrRRO   -5.3 0.0 2.76
+YZP BeScrRRP   -5.3
+YZP BeScrLRP   -0.3
+* cut off of beam screen
+YZP BeScrCO    -1.90001
+*

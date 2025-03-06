@@ -1,4 +1,1 @@
-RPP TCPCVB1      0.0 0.3 -4.0 4.0 0.0 0.6
-RCC TCPCVB11     8639. -2.5 0. 0.0 5.0 0. 8639.
-RCC TCPCVB12     8639. -3.0 0. 0.0 6. 0. 8638.8
-PLA TCPCVB13     1.0 0.0 21597.499984584578 8639. 0. 0.
+../fedb_xcoll/bodies/hilumi_TCPCVB1.bodies

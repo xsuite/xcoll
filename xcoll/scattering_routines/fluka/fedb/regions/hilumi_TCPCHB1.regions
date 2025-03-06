@@ -1,4 +1,1 @@
-TCPCHB1R    5 | +TCPCHB1 +TCPCHB11 -TCPCHB12 +TCPCHB13
-TCPCHB1B    5 | +TCPCHB1 +TCPCHB12
-              | +TCPCHB1 -TCPCHB13
-              | +TCPCHB1 -TCPCHB11
+../fedb_xcoll/regions/hilumi_TCPCHB1.regions
