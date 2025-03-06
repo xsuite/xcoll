@@ -22,17 +22,17 @@ class FlukaEnvironment:
     def __init__(self):
         if not self._initialised:
             self._gfortran_installed = False
+            self._old_sys_path = None
+            self._old_os_env = None
+            self._overwritten_paths = {}
             self.fluka = None
             self.flukaserver = None
             self.flair = None
             self.fedb = None
             self.linebuilder = None
-            self._old_sys_path = None
-            self._old_os_env = None
-            self._overwritten_paths = {}
 
     def __del__(self):
-        self._restore_base_fedb()
+        self._restore_fedb_base()
         if self._old_sys_path:
             sys.path = self._old_sys_path
         if self._old_os_env:
@@ -121,7 +121,7 @@ class FlukaEnvironment:
     @fedb.setter
     def fedb(self, val):
         if val is None:
-            self._restore_base_fedb()
+            self._restore_fedb_base()
             self._fedb = None
         else:
             val = FsPath(val)
@@ -231,7 +231,7 @@ class FlukaEnvironment:
                         path.unlink()
                     path.symlink_to(file)
 
-    def _restore_base_fedb(self):
+    def _restore_fedb_base(self):
         for path, target in self._overwritten_paths.items():
             path.unlink()
             path.symlink_to(target)

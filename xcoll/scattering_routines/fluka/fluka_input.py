@@ -38,7 +38,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     # Expand using include files
     if verbose:
         print(f"Expanding {input_file} using {include_files}.")
-    cmd = run([(FlukaEnvironment().base_fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    cmd = run([(FlukaEnvironment().fedb_base / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:

@@ -204,7 +204,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     @classmethod
     def start(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
               particle_ref=None, input_file=None, clean=True, **kwargs):
-        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
+        self = cls.get_self(**kwargs)
 
         if self.is_running():
             self._print("Engine already running.", flush=True)
@@ -245,7 +245,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def generate_input_file(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
                             particle_ref=None, filename=None, **kwargs):
         # This method manually generates an input file without starting the engine
-        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
+        self = cls.get_self(**kwargs)
         if not self._uses_input_file:
             raise ValueError(f"{cls.__name__} does not use input files!")
         if self._element_dict:

@@ -150,7 +150,7 @@ class FlukaPrototype:
     def exists(self):
         if self._is_null:
             return False
-        return np.all([ff.exists() for ff in self.files.values()])
+        return np.all([ff.exists() for ff in self.files])
 
     @property
     def angle(self):
