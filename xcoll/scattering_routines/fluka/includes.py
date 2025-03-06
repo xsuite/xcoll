@@ -47,7 +47,7 @@ def _beam_include_file(particle_ref):
         name = fluka_names[pdg_id]
     elif pdg_id >= 1000000000: # heavy ion
         _, A, Z, _ = get_properties_from_pdg_id
-        momentum_cut *= 3.2  # Upper limit (scaling is slightly arbitrary)
+        momentum_cut *= 3.2 / A # Upper limit (scaling is slightly arbitrary)
         name = "HEAVYION"
         hi_prope = "HI-PROPE  {Z:8}.0{A:8}.0"
     else:
