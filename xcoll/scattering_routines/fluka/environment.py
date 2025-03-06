@@ -20,15 +20,16 @@ class FlukaEnvironment:
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 
     def __init__(self):
-        self._gfortran_installed = False
-        self.fluka = None
-        self.flukaserver = None
-        self.flair = None
-        self.fedb = None
-        self.linebuilder = None
-        self._old_sys_path = None
-        self._old_os_env = None
-        self._overwritten_paths = {}
+        if not self._initialised:
+            self._gfortran_installed = False
+            self.fluka = None
+            self.flukaserver = None
+            self.flair = None
+            self.fedb = None
+            self.linebuilder = None
+            self._old_sys_path = None
+            self._old_os_env = None
+            self._overwritten_paths = {}
 
     def __del__(self):
         self._restore_base_fedb()
@@ -114,18 +115,23 @@ class FlukaEnvironment:
 
     @property
     def fedb(self):
+        # This is the user fedb path, only for user-defined assemblies
         return self._fedb
 
     @fedb.setter
     def fedb(self, val):
-        # This is the user fedb path, only for user-defined assemblies
         if val is None:
+            self._restore_base_fedb()
             self._fedb = None
         else:
             val = FsPath(val)
             self._brute_force_path(val)
             self._fedb = val
             self._sync_user_fedb()
+
+    @fedb.deleter
+    def fedb(self):
+        self.fedb = None
 
     @property
     def fedb_base(self):
@@ -229,3 +235,4 @@ class FlukaEnvironment:
         for path, target in self._overwritten_paths.items():
             path.unlink()
             path.symlink_to(target)
+        self._overwritten_paths = {}

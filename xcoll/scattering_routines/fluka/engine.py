@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import ClassProperty, FsPath
 
 from .reference_masses import source, masses
-from .paths import flukafile_resolve, default_fluka_path, default_flukaserver_path
 from .environment import FlukaEnvironment
 from ..engine import BaseEngine
 from ...general import _pkg_root
@@ -59,9 +58,6 @@ class FlukaEngine(BaseEngine):
             # Call the BaseEngine constructor. Only pass the xofields defaults at this
             # stage to avoid issues with the HybridClass constructor.
             super().__init__(_network_port=0, _timeout_sec=36000, _max_particle_id=0)
-            # Set defaults for the non-xofields attributes.
-            kwargs.setdefault('fluka', None)
-            kwargs.setdefault('flukaserver', None)
         # The only super that will be called from here is the Singleton, which will
         # set all attributes.
         super().__init__(**kwargs)
@@ -86,46 +82,6 @@ class FlukaEngine(BaseEngine):
     @ClassProperty
     def max_particle_id(cls):
         return cls.get_self()._max_particle_id
-
-    @ClassProperty
-    def fluka(cls):
-        return cls.get_self()._fluka
-
-    @fluka.setter
-    def fluka(cls, val):
-        if val is None:
-            # Do not resolve default path in case FLUKA is not accessible
-            cls.get_self()._fluka = default_fluka_path
-        else:
-            _fluka = flukafile_resolve(val)
-            if _fluka is not None:
-                cls.get_self()._fluka = _fluka
-            else:
-                raise ValueError(f"Could not find fluka executable {val}!")
-
-    @fluka.deleter
-    def fluka(cls):
-        cls.fluka = None
-
-    @ClassProperty
-    def flukaserver(cls):
-        return cls.get_self()._flukaserver
-
-    @flukaserver.setter
-    def flukaserver(cls, val):
-        if val is None:
-            # Do not resolve default path in case FLUKA is not accessible
-            cls.get_self()._flukaserver = default_flukaserver_path
-        else:
-            _flukaserver = flukafile_resolve(val)
-            if _flukaserver is not None:
-                cls.get_self()._flukaserver = _flukaserver
-            else:
-                raise ValueError(f"Could not find fluka executable {val}!")
-
-    @flukaserver.deleter
-    def flukaserver(cls):
-        cls.flukaserver = None
 
 
     # ============================
@@ -193,6 +149,7 @@ class FlukaEngine(BaseEngine):
 
     def _pre_start(self, **kwargs):
         FlukaEnvironment().test_gfortran()
+        FlukaEnvironment().set_fluka_environment()
         self._print("Starting FLUKA engine...", flush=True)
 
 
@@ -441,11 +398,9 @@ class FlukaEngine(BaseEngine):
         log = self._cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        # print([self.fluka.as_posix(), self.input_file[0], '-e',
-        #                               self.flukaserver.as_posix(), '-M', "1"])
-        # print(self._cwd)
-        self._server_process = Popen([self.fluka.as_posix(), self.input_file[0].as_posix(), '-e',
-                                      self.flukaserver.as_posix(), '-M', "1"],
+        self._server_process = Popen([FlukaEnvironment().fluka.as_posix(),
+                                      self.input_file[0].as_posix(), '-e',
+                                      FlukaEnvironment().flukaserver.as_posix(), '-M', "1"],
                                      cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)

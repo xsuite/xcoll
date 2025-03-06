@@ -17,7 +17,6 @@ except (ImportError, ModuleNotFoundError):
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
 from .environment import FlukaEnvironment
-from .paths import fedb, linebuilder
 from .prototypes import FlukaAssembly
 from .includes import get_include_files
 
@@ -39,7 +38,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     # Expand using include files
     if verbose:
         print(f"Expanding {input_file} using {include_files}.")
-    cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    cmd = run([(FlukaEnvironment().base_fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:
@@ -170,7 +169,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
 def _fluka_builder(collimator_dict):
     # Save system state
     FlukaEnvironment().set_fedb_environment()
-    file_path = linebuilder / "src" / "FLUKA_builder.py"
+    file_path = FlukaEnvironment().linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
             import FLUKA_builder as fb
