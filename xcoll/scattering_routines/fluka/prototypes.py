@@ -6,7 +6,7 @@
 import numpy as np
 from pathlib import Path
 
-from .paths import fedb
+from .environment import FlukaEnvironment
 from ...beam_elements.base import BaseCollimator
 
 
@@ -37,8 +37,8 @@ class FlukaPrototype:
         FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, length=None, angle=0,
-                 side=None, material=None, info=None, extra_commands=None):
+    def __init__(self, fedb_series=None, fedb_tag=None, angle=0, side=None, material=None,
+                 info=None, extra_commands=None):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -50,7 +50,6 @@ class FlukaPrototype:
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
-        self._length = length
         self._angle = angle
         self._side = side
         self._material = material
@@ -127,10 +126,31 @@ class FlukaPrototype:
         return self._fedb_tag
 
     @property
-    def length(self):
+    def body_file(self):
+        file = FlukaEnvironment().fedb_base / "bodies" \
+                    / f"{self.fedb_series}_{self.fedb_tag}.bodies"
+        return file.resolve()
+
+    @property
+    def material_file(self):
+        file = FlukaEnvironment().fedb_base / "materials" \
+                    / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
+        return file.resolve()
+
+    @property
+    def region_file(self):
+        file = FlukaEnvironment().fedb_base / "regions" \
+                    / f"{self.fedb_series}_{self.fedb_tag}.regions"
+        return file.resolve()
+
+    @property
+    def files(self):
+        return [self.body_file, self.material_file, self.region_file]
+
+    def exists(self):
         if self._is_null:
-            return None
-        return self._length
+            return False
+        return np.all([ff.exists() for ff in self.files.values()])
 
     @property
     def angle(self):
@@ -202,6 +222,9 @@ class FlukaPrototype:
             if element in prototype.elements:
                 raise ValueError(f"Element '{element}' already assigned {prototype.name} "
                                + f"{prototype._type}!")
+        if not self.exists():
+            raise ValueError(f"{self._type.capitalize()} '{self.name}' "
+                            + f"does not exist in the FEDB!")
         # Add the prototype to the registry of active prototypes if not yet present
         if len(self._elements) == 0:
             if not self.exists():
@@ -280,11 +303,6 @@ class FlukaPrototype:
         else:
             return '#'
 
-    def exists(self):
-        if self._is_null:
-            return False
-        return (fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies").exists()
-
     def in_file(self, file=None):
         if self._is_null:
             return False
@@ -305,6 +323,9 @@ class FlukaPrototype:
                 if self.fedb_tag in line and "FEDB_TAG" in line:
                     found_tag = True
         return found_name and found_series and found_tag
+
+    def plot(self):
+        pass
 
 
     @classmethod
@@ -342,8 +363,60 @@ class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies
     _active_registry = {}
 
-    def exists(self):
-        return (fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp").exists()
+    @property
+    def assembly_file(self):
+        file = FlukaEnvironment().fedb_base / "assemblies" \
+                    / f"{self.fedb_series}_{self.fedb_tag}.lbp"
+        return file.resolve()
+
+    @property
+    def body_file(self):
+        pass
+
+    @property
+    def material_file(self):
+        pass
+
+    @property
+    def region_file(self):
+        pass
+
+    @property
+    def prototypes(self):
+        if not self.assembly_file.exists():
+            raise FileNotFoundError(f"Assembly file {self.assembly_file} not found!")
+        prototypes = []
+        prototype_found = False
+        fedb_series = None
+        fedb_tag = None
+        with self.assembly_file.open('r') as fid:
+            for line in fid:
+                if line.upper().startswith('PROTOTYPE'):
+                    prototype_found = True
+                    continue
+                if line.upper().startswith('FEDB_SERIES'):
+                    if not prototype_found:
+                        raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
+                    fedb_series = line.split()[1]
+                if line.upper().startswith('FEDB_TAG'):
+                    if not prototype_found:
+                        raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
+                    fedb_tag = line.split()[1]
+                if fedb_series is not None and fedb_tag is not None:
+                    prototypes.append(FlukaPrototype(fedb_series=fedb_series, fedb_tag=fedb_tag))
+                    fedb_series = None
+                    fedb_tag = None
+                    prototype_found = False
+        if prototype_found:
+            raise ValueError("Corrupt assembly file: incomplete prototype definition.")
+        return prototypes
+
+    @property
+    def files(self):
+        files = [self.assembly_file]
+        for prot in self.prototypes:
+            files += prot.files
+        return files
 
 
 assemblies = {
