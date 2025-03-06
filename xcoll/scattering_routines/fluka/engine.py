@@ -17,7 +17,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import ClassProperty, FsPath
 
-from .reference_masses import source, masses
+from .reference_masses import source, fluka_masses
 from .environment import FlukaEnvironment
 from ..engine import BaseEngine
 from ...general import _pkg_root
@@ -354,8 +354,8 @@ class FlukaEngine(BaseEngine):
         part = self.particle_ref
         mass = part.mass0
         pdg_id = part.pdg_id[0]
-        if pdg_id in masses:
-            mass_fluka = masses[pdg_id][-1]
+        if pdg_id in fluka_masses:
+            mass_fluka = fluka_masses[pdg_id][-1]
             if abs(mass-mass_fluka) > 1.:    # The mass differs more than 1eV from the FLUKA reference mass
                 old_energy0 = part.energy0[0]
                 part.mass0  = mass_fluka

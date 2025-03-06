@@ -224,7 +224,7 @@ class FlukaPrototype:
                                + f"{prototype._type}!")
         if not self.exists():
             raise ValueError(f"{self._type.capitalize()} '{self.name}' "
-                            + f"does not exist in the FEDB!")
+                           + f"does not exist in the FEDB!")
         # Add the prototype to the registry of active prototypes if not yet present
         if len(self._elements) == 0:
             if not self.exists():

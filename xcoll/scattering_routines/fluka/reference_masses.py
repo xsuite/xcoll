@@ -37,7 +37,7 @@ define  Na24_MASS_EV_FLUKA       22341829488.0393     1000110240   //
 endif /* XCOLL_FLUKA_MASSES_H */
 '''
 
-masses = {
+fluka_masses = {
     int(line.split()[3]): [line.split()[1].split('_')[0], float(line.split()[2])]
     for line in source.split('\n')
     if len(line.split()) > 1 and len(line.split()[1]) > 6 and line.split()[1][-6:] == '_FLUKA'

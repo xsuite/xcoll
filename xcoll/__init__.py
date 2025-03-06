@@ -6,10 +6,11 @@
 from .general import _pkg_root, __version__, citation
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, \
-                           FlukaCollimator, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, element_classes
+                           FlukaCollimator, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, \
+                           element_classes
 from .scattering_routines.everest import materials, Material, CrystalMaterial
-from .scattering_routines.fluka import FlukaEngine, FlukaPrototype, FlukaAssembly
-from .scattering_routines.fluka import masses as fluka_masses
+from .scattering_routines.fluka import FlukaEngine, FlukaPrototype, FlukaAssembly, FlukaEnvironment, \
+                                       fluka_masses, fluka_names
 from .scattering_routines.fluka import assemblies as fluka_assemblies
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
