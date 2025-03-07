@@ -150,10 +150,11 @@ class Geant4CollimatorTip(Geant4Collimator):
         _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
     ]
 
-    _depends_on = [*Geant4Collimator._depends_on, Geant4Collimator]
+    _depends_on = [*Geant4Collimator._depends_on]
 
     _skip_in_to_dict = [*Geant4Collimator._skip_in_to_dict, '_tip_material']
     _store_in_to_dict = [*Geant4Collimator._store_in_to_dict, 'tip_material']
+    _internal_record_class = BaseCollimator._internal_record_class
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
