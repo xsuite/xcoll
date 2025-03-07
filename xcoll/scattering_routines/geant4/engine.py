@@ -54,7 +54,7 @@ class Geant4Engine(xo.HybridClass):
         if self._initialised:
             for kk, vv in kwargs.items():
                 if not hasattr(self, kk):
-                    raise ValueError(f"Invalid attribute {kk} for FlukaEngine!")
+                    raise ValueError(f"Invalid attribute {kk} for Geant4Engine!")
                 setattr(self, kk, vv)
             return
         if '_xobject' not in kwargs:
@@ -70,8 +70,8 @@ class Geant4Engine(xo.HybridClass):
 
 
     @classmethod
-    def start(cls, *, bdsim_config_file=None, line=None, elements=None, names=None, cwd=None,
-              relative_energy_cut=0.15, seed=None, batch_mode=True, geant4_path=None, bdsim_path=None,
+    def start(cls, *, bdsim_config_file=None, line=None, elements=None, cwd=None,
+              relative_energy_cut=0.15, seed=1993, batch_mode=True,
               particle_ref=None, p0c=None, **kwargs):
         from ...beam_elements.geant4 import Geant4Collimator
 
@@ -218,7 +218,7 @@ class Geant4Engine(xo.HybridClass):
             # TODO: this should be updated in xpart: antiparticle not correctly recognised (missing positron and antimuon etc)
             q0, _, _, _ = xp.pdg.get_properties_from_pdg_id(particle_ref.pdg_id)
             if particle_ref.q0 == -q0:
-                pdg_id = -pdg_id
+                particle_ref.pdg_id = -particle_ref.pdg_id
 
         # TODO: test PDG ID consistent with mass and charge
 

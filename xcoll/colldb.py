@@ -576,8 +576,7 @@ class CollimatorDatabase:
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
-    def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
-                                   bdsim_config_file=None, relative_energy_cut=0.15, random_seed=None):
+    def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         if Geant4Engine.is_running():
             print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
             Geant4Engine.stop()
