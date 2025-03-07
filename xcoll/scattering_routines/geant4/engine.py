@@ -214,13 +214,7 @@ class Geant4Engine(xo.HybridClass):
                              "provide `p0c` as well.")
 
         if particle_ref.pdg_id == 0:
-            particle_ref.pdg_id = xp.pdg.get_pdg_id_from_mass_charge(particle_ref.mass0, particle_ref.q0)
-            # TODO: this should be updated in xpart: antiparticle not correctly recognised (missing positron and antimuon etc)
-            q0, _, _, _ = xp.pdg.get_properties_from_pdg_id(particle_ref.pdg_id)
-            if particle_ref.q0 == -q0:
-                particle_ref.pdg_id = -particle_ref.pdg_id
-
-        # TODO: test PDG ID consistent with mass and charge
+            raise ValueError("The `particle_ref` must have a valid pdg_id!")
 
         this.particle_ref = particle_ref
         if line is not None and line.particle_ref is not None \
