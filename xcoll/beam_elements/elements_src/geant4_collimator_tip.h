@@ -120,4 +120,4 @@ void Geant4CollimatorTip_track_local_particle(Geant4CollimatorTipData el, LocalP
     Geant4CollimatorTip_free(cg, active);
 }
 
-#endif /* XCOLL_GEANT4_H */
+#endif /* XCOLL_GEANT4_TIP_H */
