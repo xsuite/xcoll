@@ -16,26 +16,27 @@ from ...general import _pkg_root
 
 
 def get_include_files(particle_ref, include_files=[]):
+    this_include_files = include_files.copy()
     # Required default include files
     required_includes = ['include_settings_beam.inp', 'include_settings_physics.inp',
                         'include_custom_scoring.inp']
     for ff in required_includes:
         if ff not in [file.name for file in include_files]:
             if ff == 'include_settings_beam.inp':
-                include_files.append(_beam_include_file(particle_ref))
+                this_include_files.append(_beam_include_file(particle_ref))
             else:
-                include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / ff)
+                this_include_files.append(_pkg_root / 'scattering_routines' / 'fluka' / 'data' / ff)
     # Add any additional include files
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in include_files]:
-            include_files.append(ff)
-    include_files = [FsPath(ff).resolve() for ff in include_files]
-    for ff in include_files:
+            this_include_files.append(ff)
+    this_include_files = [FsPath(ff).resolve() for ff in this_include_files]
+    for ff in this_include_files:
         if not ff.exists():
             raise FileNotFoundError(f"Include file not found: {ff}.")
         elif ff.parent != FsPath.cwd():
             ff.copy_to(FsPath.cwd())
-    return include_files
+    return this_include_files
 
 
 def _beam_include_file(particle_ref):

@@ -15,7 +15,7 @@ except (ImportError, ModuleNotFoundError):
 from ...general import _pkg_root
 
 
-@singleton
+@singleton(allow_underscore_vars_in_init=False)
 class FlukaEnvironment(metaclass=ClassPropertyMeta):
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 

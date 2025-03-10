@@ -29,7 +29,7 @@ def test_simple_track(num_part):
     coll = xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
     coll_name = 'tcp.c6l7.b1'
     xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.start(elements=coll, names=coll_name, capacity=_capacity, verbose=True)
+    xc.FlukaEngine.start(elements=coll, names=coll_name, capacity=_capacity, clean=False, verbose=True)
 
     # Particle distribution
     x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)

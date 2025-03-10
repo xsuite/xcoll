@@ -42,22 +42,22 @@ class FlukaEngine(BaseEngine):
     _extra_c_sources = [source]
 
     def __init__(self, **kwargs):
-        if not self._initialised:
-            # Set element classes dynamically
-            from ...beam_elements import FlukaCollimator
-            self.__class__._element_classes = (FlukaCollimator,)
-            # Initialise fluka-only defaults
-            self._log = None
-            self._log_fid = None
-            self.server_pid = None
-            self._network_nfo = None
-            self._server_process = None
-            self._flukaio_connected = False
-            self._fluka = None
-            self._flukaserver = None
-            # Call the BaseEngine constructor. Only pass the xofields defaults at this
-            # stage to avoid issues with the HybridClass constructor.
-            super().__init__(_network_port=0, _timeout_sec=36000, _max_particle_id=0)
+        # Set element classes dynamically
+        from ...beam_elements import FlukaCollimator
+        self.__class__._element_classes = (FlukaCollimator,)
+        # Call the BaseEngine constructor, first without any argutments to avoid
+        # issues with the HybridClass constructor.
+        super().__init__()
+        # Initialise fluka-only defaults
+        self._timeout_sec = 36000
+        self._log = None
+        self._log_fid = None
+        self.server_pid = None
+        self._network_nfo = None
+        self._server_process = None
+        self._flukaio_connected = False
+        self._fluka = None
+        self._flukaserver = None
         # The only super that will be called from here is the Singleton, which will
         # set all attributes.
         super().__init__(**kwargs)
@@ -146,7 +146,6 @@ class FlukaEngine(BaseEngine):
     # === Base methods to overwrite ===
     # =================================
 
-
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
         input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
@@ -170,8 +169,7 @@ class FlukaEngine(BaseEngine):
         self._start_server()
 
 
-    def _stop_engine(cls, clean=False, **kwargs):
-        self = cls.get_self(**kwargs)
+    def _stop_engine(self, **kwargs):
         self._stop_fortran()
         # If the Popen process is still running, terminate it
         if self._server_process is not None:
@@ -225,7 +223,7 @@ class FlukaEngine(BaseEngine):
             return False
 
 
-    def _match_input_file(self, *, line=None, elements=None, names=None):
+    def _match_input_file(self):
         # Read the elements in the input file and compare to the elements in the engine,
         # overwriting parameters where necessary
         from .fluka_input import get_collimators_from_input_file

@@ -23,7 +23,7 @@ class BaseEngineMeta(MetaHybridClass, ClassPropertyMeta):
         return ClassPropertyMeta.__new__(cls, name, bases, data, new_class)
 
 
-@singleton
+@singleton(allow_underscore_vars_in_init=False)
 class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     _xofields = {
         '_particle_ref': xp.Particles._XoStruct,
@@ -38,12 +38,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     _uses_run_folder = False
 
     def __init__(self, **kwargs):
-        # Careful with the order of initialisation!
-        # First init:
-        #     ChildEngine init -> (Singleton) -> BaseEngine init -> HybridClass init -> Singleton init sets all attributes
-        # All other inits:
-        #     ChildEngine init -> Singleton init sets all attributes
-        #     (BaseEngine and its parents are no longer called)
         if self._element_classes is None:
             raise NotImplementedError(f"{self.__class__.__name__} needs to define `_element_classes`!")
         if np.any([key[0] != '_' for key in self._xofields.keys()]):
@@ -132,16 +126,18 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 raise ValueError("`particle_ref` has to be an xp.Particles object!")
             if val._capacity > 1:
                 raise ValueError("`particle_ref` has to be a single particle!")
-            if val.pdg_id[0] == 0:
+            pdg_id = val.pdg_id[0]
+            if pdg_id == 0:
                 if cls._only_protons:
-                    val.pdg_id[0] = xp.get_pdg_id_from_name('proton')
+                    pdg_id = xp.get_pdg_id_from_name('proton')
                 else:
                     raise ValueError(f"{cls.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
-            elif cls._only_protons and val.pdg_id[0] != xp.get_pdg_id_from_name('proton'):
+            elif cls._only_protons and pdg_id != xp.get_pdg_id_from_name('proton'):
                 raise ValueError("{cls.__name__} only supports protons!")
             self._particle_ref = val
+            self._particle_ref.pdg_id[0] = pdg_id
 
     @particle_ref.deleter
     def particle_ref(cls):
