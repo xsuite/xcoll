@@ -360,6 +360,21 @@ class FlukaPrototype:
                 fp.write(prototypes)
         return prototypes
 
+    @classmethod
+    def reset(cls):
+        # First the prototypes
+        for prototype in list(FlukaPrototype._active_registry.values()):
+            if prototype.active:
+                for element in prototype.elements:
+                    prototype.remove_element(element)
+        assert FlukaPrototype._active_registry == {}
+        # Then the assemblies
+        for prototype in list(FlukaAssembly._active_registry.values()):
+            if prototype.active:
+                for element in prototype.elements:
+                    prototype.remove_element(element)
+        assert FlukaAssembly._active_registry == {}
+
 
 class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies

@@ -19,6 +19,7 @@ except (ImportError, ModuleNotFoundError):
 
 from .reference_masses import source, fluka_masses
 from .environment import FlukaEnvironment
+from .prototypes import FlukaPrototype
 from ..engine import BaseEngine
 from ...general import _pkg_root
 
@@ -109,7 +110,8 @@ class FlukaEngine(BaseEngine):
 
     @classmethod
     def init_tracking(cls, max_particle_id, **kwargs):
-        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
+        self = cls.get_self(**kwargs)
+        kwargs, _ = cls.filter_kwargs(**kwargs)
         if self._tracking_initialised == False:
             self.assert_particle_ref()
             _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0])
@@ -171,6 +173,8 @@ class FlukaEngine(BaseEngine):
 
     def _stop_engine(self, **kwargs):
         self._stop_fortran()
+        # Deactivate all assemblies
+        FlukaPrototype.reset()
         # If the Popen process is still running, terminate it
         if self._server_process is not None:
             while self._server_process.poll() is None:

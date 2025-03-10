@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
 jaw_ids = ['symmetric', 'asymmetric', 'negative', 'positive']
+angles = [0, 90, 127.5]
 tilts = [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]]
 tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 
@@ -25,7 +26,7 @@ particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 
 
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
-@pytest.mark.parametrize('angle', [0, 90, 127.5])
+@pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_everest(jaw, angle, tilt):
     coll = xc.EverestCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material=xc.materials.MolybdenumGraphite)
@@ -43,7 +44,7 @@ def test_everest(jaw, angle, tilt):
                                       'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcsg',
                                       'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
                                       'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
-@pytest.mark.parametrize('angle', [0, 90, 127.5])
+@pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_fluka(jaw, angle, assembly):
     tilt = 0
@@ -54,12 +55,11 @@ def test_fluka(jaw, angle, assembly):
 
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
-    coll_name = 'tcp.c6l7.b1'
-    xc.FlukaEngine.start(elements=coll, names=coll_name, debug_level=1, _capacity=10_000)
-    xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+    xc.FlukaEngine.particle_ref = particle_ref
+    xc.FlukaEngine.start(elements=coll, capacity=10_000)
 
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=5000, dim=0.015,
-                            _capacity=xc.FlukaEngine()._capacity, particle_ref=xc.FlukaEngine().particle_ref)
+                            _capacity=xc.FlukaEngine.capacity, particle_ref=xc.FlukaEngine().particle_ref)
     part = part_init.copy()
     coll.track(part)
     _assert_valid_positions(part, hit_ids, not_hit_ids)
