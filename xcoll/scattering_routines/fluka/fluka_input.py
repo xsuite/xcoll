@@ -39,7 +39,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     # Expand using include files
     if verbose:
         print(f"Expanding {input_file} using {include_files}.")
-    cmd = run([(FlukaEnvironment().fedb_base / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    cmd = run([(FlukaEnvironment.fedb_base / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:
@@ -169,8 +169,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
 
 def _fluka_builder(collimator_dict):
     # Save system state
-    FlukaEnvironment().set_fedb_environment()
-    file_path = FlukaEnvironment().linebuilder / "src" / "FLUKA_builder.py"
+    FlukaEnvironment.set_fedb_environment()
+    file_path = FlukaEnvironment.linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
             import FLUKA_builder as fb
@@ -192,7 +192,7 @@ def _fluka_builder(collimator_dict):
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
-    FlukaEnvironment().unset_fedb_environment()
+    FlukaEnvironment.unset_fedb_environment()
 
     return input_file, coll_dict
 

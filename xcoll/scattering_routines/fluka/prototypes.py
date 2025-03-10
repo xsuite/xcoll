@@ -324,8 +324,10 @@ class FlukaPrototype:
                     found_tag = True
         return found_name and found_series and found_tag
 
-    def plot(self):
-        pass
+
+    def view(self, show=True, keep_files=False):
+        FlukaEnvironment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
+                                       keep_files=keep_files)
 
 
     @classmethod

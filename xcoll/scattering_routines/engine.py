@@ -265,7 +265,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
             # Some engines might need multiple input files (like Fluka)
             input_file = [input_file]
-        if filename is not None:
+        if filename is None:
             if hasattr(self, '_old_cwd') and self._old_cwd is not None:
                 input_file[0] = input_file[0].rename(self._old_cwd / input_file[0].name)
         else:

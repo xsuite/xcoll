@@ -131,6 +131,16 @@ class FlukaEngine(BaseEngine):
             self._max_particle_id = max_particle_id
             self._tracking_initialised = True
 
+    @classmethod
+    def view(cls, input_file=None):
+        self = cls.get_self()
+        if input_file is None:
+            if self.input_file is None:
+                return
+            else:
+                input_file = self.input_file[0]
+        FlukaEnvironment.run_flair(input_file)
+
 
     # =================================
     # === Base methods to overwrite ===
@@ -140,15 +150,15 @@ class FlukaEngine(BaseEngine):
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
         input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
-                                  prototypes_file=prototypes_file, include_files=include_files,
-                                  verbose=self.verbose)
+                                        prototypes_file=prototypes_file, include_files=include_files,
+                                        verbose=self.verbose)
         self._set_seed_in_input_file(input_file)
         return input_file
 
 
     def _pre_start(self, **kwargs):
-        FlukaEnvironment().test_gfortran()
-        FlukaEnvironment().set_fluka_environment()
+        FlukaEnvironment.test_gfortran()
+        FlukaEnvironment.set_fluka_environment()
 
 
     def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
@@ -377,9 +387,9 @@ class FlukaEngine(BaseEngine):
         log = self._cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        self._server_process = Popen([FlukaEnvironment().fluka.as_posix(),
+        self._server_process = Popen([FlukaEnvironment.fluka.as_posix(),
                                       self.input_file[0].as_posix(), '-e',
-                                      FlukaEnvironment().flukaserver.as_posix(), '-M', "1"],
+                                      FlukaEnvironment.flukaserver.as_posix(), '-M', "1"],
                                      cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)

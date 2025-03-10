@@ -8,28 +8,27 @@ import os
 from subprocess import run, PIPE
 
 try:
-    from xaux import singleton, FsPath  # TODO: once xaux is in Xsuite keep only this
+    from xaux import ClassProperty, ClassPropertyMeta, singleton, FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ...xaux import singleton, FsPath
+    from ...xaux import ClassProperty, ClassPropertyMeta, singleton, FsPath
 
 from ...general import _pkg_root
 
 
 @singleton
-class FlukaEnvironment:
+class FlukaEnvironment(metaclass=ClassPropertyMeta):
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 
-    def __init__(self):
-        if not self._initialised:
-            self._gfortran_installed = False
-            self._old_sys_path = None
-            self._old_os_env = None
-            self._overwritten_paths = {}
-            self.fluka = None
-            self.flukaserver = None
-            self.flair = None
-            self.fedb = None
-            self.linebuilder = None
+    def __init__(self, *args, **kwargs):
+        self._gfortran_installed = False
+        self._old_sys_path = None
+        self._old_os_env = None
+        self._overwritten_paths = {}
+        self.fluka = kwargs.pop('fluka', None)
+        self.flukaserver = kwargs.pop('flukaserver', None)
+        self.flair = kwargs.pop('flair', None)
+        self.fedb = kwargs.pop('fedb', None)
+        self.linebuilder = kwargs.pop('linebuilder', None)
 
     def __del__(self):
         self._restore_fedb_base()
@@ -43,12 +42,13 @@ class FlukaEnvironment:
     # === Paths ===
     # =============
 
-    @property
-    def fluka(self):
-        return self._fluka
+    @ClassProperty
+    def fluka(cls):
+        return cls.get_self()._fluka
 
     @fluka.setter
-    def fluka(self, val):
+    def fluka(cls, val):
+        self = cls.get_self()
         if val is None:
             self._fluka = (self._default_fluka_eos_path / 'fluka4-4.1' / 'bin' / 'rfluka').resolve()
         else:
@@ -57,15 +57,16 @@ class FlukaEnvironment:
             self._fluka = val
 
     @fluka.deleter
-    def fluka(self):
-        self.fluka = None
+    def fluka(cls):
+        cls.fluka = None
 
-    @property
-    def flukaserver(self):
-        return self._flukaserver
+    @ClassProperty
+    def flukaserver(cls):
+        return cls.get_self()._flukaserver
 
     @flukaserver.setter
-    def flukaserver(self, val):
+    def flukaserver(cls, val):
+        self = cls.get_self()
         if val is None:
             self._flukaserver = (self._default_fluka_eos_path / 'fluka_coupling' / 'fluka' / 'flukaserver').resolve()
         else:
@@ -74,15 +75,16 @@ class FlukaEnvironment:
             self._flukaserver = val
 
     @flukaserver.deleter
-    def flukaserver(self):
-        self.flukaserver = None
+    def flukaserver(cls):
+        cls.flukaserver = None
 
-    @property
-    def flair(self):
-        return self._flair
+    @ClassProperty
+    def flair(cls):
+        return cls.get_self()._flair
 
     @flair.setter
-    def flair(self, val):
+    def flair(cls, val):
+        self = cls.get_self()
         if val is None:
             self._flair = (self._default_fluka_eos_path / 'flair-3.3' /  'flair').resolve()
         else:
@@ -91,15 +93,16 @@ class FlukaEnvironment:
             self._flair = val
 
     @flair.deleter
-    def flair(self):
-        self.flair = None
+    def flair(cls):
+        cls.flair = None
 
-    @property
-    def linebuilder(self):
-        return self._linebuilder
+    @ClassProperty
+    def linebuilder(cls):
+        return cls.get_self()._linebuilder
 
     @linebuilder.setter
-    def linebuilder(self, val):
+    def linebuilder(cls, val):
+        self = cls.get_self()
         if val is None:
             # linebuilder = (_linebuilder_coupling / 'linebuilder').resolve()
             # TODO if MR on gitlab accepted, update path
@@ -110,16 +113,17 @@ class FlukaEnvironment:
             self._linebuilder = val
 
     @linebuilder.deleter
-    def linebuilder(self):
-        self.linebuilder = None
+    def linebuilder(cls):
+        cls.linebuilder = None
 
-    @property
-    def fedb(self):
+    @ClassProperty
+    def fedb(cls):
         # This is the user fedb path, only for user-defined assemblies
-        return self._fedb
+        return cls.get_self()._fedb
 
     @fedb.setter
-    def fedb(self, val):
+    def fedb(cls, val):
+        self = cls.get_self()
         if val is None:
             self._restore_fedb_base()
             self._fedb = None
@@ -130,26 +134,28 @@ class FlukaEnvironment:
             self._sync_user_fedb()
 
     @fedb.deleter
-    def fedb(self):
-        self.fedb = None
+    def fedb(cls):
+        cls.fedb = None
 
-    @property
-    def fedb_base(self):
+    @ClassProperty
+    def fedb_base(cls):
         return (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
-    @property
-    def fedb_xcoll(self):
-        return (self.fedb_base / 'fedb_xcoll').resolve()
+    @ClassProperty
+    def fedb_xcoll(cls):
+        return (cls.fedb_base / 'fedb_xcoll').resolve()
 
-    @property
-    def fedb_coupling(self):
-        return (self.fedb_base / 'fedb_coupling').resolve()
+    @ClassProperty
+    def fedb_coupling(cls):
+        return (cls.fedb_base / 'fedb_coupling').resolve()
 
     # ======================
     # === Public Methods ===
     # ======================
 
-    def test_gfortran(self, verbose=False):
+    @classmethod
+    def test_gfortran(cls, verbose=False):
+        self = cls.get_self()
         try:
             cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
@@ -174,14 +180,20 @@ class FlukaEnvironment:
             self._gfortran_installed = False
             raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
 
-    def set_fluka_environment(self):
+    @classmethod
+    def set_fluka_environment(cls):
+        self = cls.get_self()
         self._brute_force_path(self.fluka.parents[1])
         self._brute_force_path(self.flukaserver.parent)
 
-    def set_flair_environment(self):
+    @classmethod
+    def set_flair_environment(cls):
+        self = cls.get_self()
         self._brute_force_path(self.flair.parent)
 
-    def set_fedb_environment(self):
+    @classmethod
+    def set_fedb_environment(cls):
+        self = cls.get_self()
         self._old_sys_path = sys.path.copy()
         self._old_os_env = os.environ.copy()
         self._brute_force_path(self.fedb_coupling)
@@ -195,11 +207,62 @@ class FlukaEnvironment:
         sys.path.append((self.linebuilder / "src").as_posix())
         sys.path.append((self.linebuilder / "lib").as_posix())
 
-    def unset_fedb_environment(self):
+    @classmethod
+    def unset_fedb_environment(cls):
+        self = cls.get_self()
         sys.path = self._old_sys_path
         self._old_sys_path = None
         os.environ = self._old_os_env
         self._old_os_env = None
+
+    @classmethod
+    def run_flair(cls, input_file=None):
+        self = cls.get_self()
+        if input_file is None:
+            return
+        input_file = FsPath(input_file)
+        try:
+            self.set_flair_environment()
+        except FileNotFoundError:
+            print("Flair not found. Cannot view input file.")
+            return
+        cmd = run([FlukaEnvironment().flair.as_posix(), input_file.as_posix()],
+                  stdout=PIPE, stderr=PIPE)
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            raise RuntimeError(f"Failed to run flair on input file {input_file}!\n"
+                             + f"Error given is:\n{stderr}")
+
+    @classmethod
+    def test_assembly(cls, fedb_series, fedb_tag, *, show=True, keep_files=False):
+        if show:
+            try:
+                cls.set_flair_environment()
+            except FileNotFoundError:
+                print("Flair not found. Cannot view assembly.")
+                return
+        else:
+            keep_files=True
+        self = cls.get_self()
+        self.set_fedb_environment()
+        cmd = run(['python', self.fedb_base / 'tools' / 'test_assembly.py', fedb_series,
+                   fedb_tag], stdout=PIPE, stderr=PIPE)
+        self.unset_fedb_environment()
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            raise RuntimeError(f"Failed to run flair on input file {input_file}!\n"
+                             + f"Error given is:\n{stderr}")
+        file = FsPath.cwd() / f"{fedb_series}_{fedb_tag}.inp"
+        if not file.exists():
+            raise FileNotFoundError(f"Temporary input file {file} not generated!")
+        logfile = file.with_suffix('.log')
+        if not logfile.exists():
+            raise FileNotFoundError(f"Temporary log file {logfile} not generated!")
+        self.run_flair(file)
+        if not keep_files:
+            file.unlink()
+            logfile.unlink()
+
 
     # =======================
     # === Private Methods ===
