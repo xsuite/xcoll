@@ -109,6 +109,9 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
 def _element_dict_to_fluka(element_dict, dump=False):
     collimator_dict = {}
     for name, ee in element_dict.items():
+        if ee.length < 1.e-12:
+            raise ValueError(f"Collimator {name} has zero length!")
+
         nsig = 1 # TODO can remove?
         if ee.side == 'left':
             if ee.jaw_L is None:
