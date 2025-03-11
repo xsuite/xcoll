@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import sys
 import os
+import sys
+from math import floor, log10
 from subprocess import run, PIPE
 
 try:
@@ -299,3 +300,43 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             path.unlink()
             path.symlink_to(target)
         self._overwritten_paths = {}
+
+
+def format_fluka_float(value):
+    if abs(value) > 9.99e99:
+        raise ValueError(f"Value {value} is too large for FLUKA.")
+    elif abs(value) < 1e-99:
+        return f"{'0.0':>10}"
+    if 1.e-4 <= value <= 999999999. or -1.e-4 >= value >= -99999999.:
+        max_digits = 8 if value > 0 else 7
+        n_decimal_digits = int(max_digits - max(floor(log10(abs(value))), 0))
+        value_string = f"{value:10.{n_decimal_digits}f}"
+        value_splitted = value_string.split('.')
+        if len(value_splitted) == 1:
+            return f"{value_string[1:]}."
+        else:
+            decimals = value_splitted[1]
+            while decimals[-1] == '0':
+                decimals = decimals[:-1]
+                if decimals == '':
+                    decimals = '0'
+                    break
+            value_string = f"{value_splitted[0]}.{decimals}"
+            return f"{value_string:>10}"
+    else:
+        max_digits = 4 if value > 0 else 3
+        value_string = f"{value:.{max_digits}E}"
+        value_splitted = value_string.split('E')
+        value_splitted_mant = value_splitted[0].split('.')
+        if len(value_splitted_mant) == 1:
+            return value_string
+        else:
+            decimals = value_splitted_mant[1]
+            dot = '.'
+            while decimals[-1] == '0':
+                decimals = decimals[:-1]
+                if decimals == '':
+                    dot = ''
+                    break
+            value_string = f"{value_splitted_mant[0]}{dot}{decimals}E{value_splitted[1]}"
+            return f"{value_string:>10}"
