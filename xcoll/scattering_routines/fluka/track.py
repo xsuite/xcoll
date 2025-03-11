@@ -175,13 +175,14 @@ def track_core(coll, part):
 
     new_pid  = data['pid'][:npart] - 1   # return to python 0-index
     new_ppid = data['ppid'][:npart] - 1  # return to python 0-index
-    # Restore the parent IDs: if ppid != pid an interaction occurred and nothing needs to be done
-    # (the real parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
-    mask_to_restore = new_pid == new_ppid
-    idx_to_restore  = np.array([np.where(old_pid==idx)[0][0] for idx in new_pid[mask_to_restore]])
-    new_ppid[mask_to_restore] = old_ppid[idx_to_restore]
-    # When the parent changed (interaction), the parent ID must have been an alive particle at entry
-    assert np.all([ppid in old_pid for ppid in new_ppid[~mask_to_restore]])
+    if len(new_pid) > 0:
+        # Restore the parent IDs: if ppid != pid an interaction occurred and nothing needs to be done
+        # (the real parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
+        mask_to_restore = new_pid == new_ppid
+        idx_to_restore  = np.array([np.where(old_pid==idx)[0][0] for idx in new_pid[mask_to_restore]])
+        new_ppid[mask_to_restore] = old_ppid[idx_to_restore]
+        # When the parent changed (interaction), the parent ID must have been an alive particle at entry
+        assert np.all([ppid in old_pid for ppid in new_ppid[~mask_to_restore]])
 
     # TODO: Impact Table
     #     Absorbed: trivial
