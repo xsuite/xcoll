@@ -292,7 +292,7 @@ def track_core(coll, part):
         # Add new particles
         new_part._init_random_number_generator()
         part.add_particles(new_part)
-        max_particle_id = part.particle_id.max()
+        max_particle_id = part.particle_id[part.state > 0].max()
         if max_particle_id <= FlukaEngine.max_particle_id:
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
                            + f"lower than the highest ID known ({FlukaEngine.max_particle_id}).\n"
