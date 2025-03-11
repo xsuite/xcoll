@@ -87,25 +87,26 @@ void CircularTrajectory_bounding_box_s(CircularTrajectory traj, double l1, doubl
     double sR = CircularTrajectory_get_sR(traj);
     double R  = CircularTrajectory_get_R(traj);
     extrema[0] = MIN(s1, s2);
-    double theta = atan(CircularTrajectory_get_tan_tI(traj));
-    if ((s1_l0 < sR)) {
-        if (theta < 0){
-            theta = M_PI + theta;
-        } else {
-            theta = -(M_PI/2 + (M_PI/2 - theta));
-        }
+    double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
+
+    while (theta < -M_PI){
+        theta += 2*M_PI;
+    } while (theta > M_PI){
+        theta -= 2*M_PI;
     }
     double l1_rescaled = theta + l1;
-    double l2_rescaled = l1_rescaled + fabs(l1-l2);
-    if ((l1_rescaled <= M_PI && M_PI <= l2_rescaled) || (l1_rescaled <= 3*M_PI && 3*M_PI <= l2_rescaled)){
-        extrema[0] = sR - R;
-    } else {
-        extrema[0] = MIN(s1, s2);
+    double l2_rescaled = l1_rescaled + (l2-l1);
+    if ((l2_rescaled > M_PI) && (l1_rescaled >= M_PI)){
+        l2_rescaled -= 2*M_PI;
+        l1_rescaled -= 2*M_PI;
     }
+    extrema[0] = MIN(s1, s2);   
+    extrema[1] = MAX(s1, s2);
     if ((l1_rescaled <= 0. && 0. <= l2_rescaled) || (l1_rescaled <= 2*M_PI && 2*M_PI <= l2_rescaled)){
         extrema[1] = sR + R;
-    } else {
-        extrema[1] = MAX(s1, s2);
+    }
+    if ((l1_rescaled <= M_PI && M_PI <= l2_rescaled)){
+        extrema[0] = sR - R;
     }
 }
 
@@ -115,22 +116,25 @@ void CircularTrajectory_bounding_box_x(CircularTrajectory traj, double l1, doubl
     double x2 = CircularTrajectory_func_x(traj, l2);
     double R  = CircularTrajectory_get_R(traj);
     double xR = CircularTrajectory_get_xR(traj);
-    double theta = atan(CircularTrajectory_get_tan_tI(traj));
-    if ((CircularTrajectory_func_s(traj, 0.0) < CircularTrajectory_get_sR(traj))){
-        if (theta < 0){
-            theta = M_PI + theta;
-        } else {
-            theta = -(M_PI/2 + (M_PI/2 - theta));;
-        }
+    double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
+    while (theta < -M_PI){
+        theta += 2*M_PI;
+    }
+    while (theta > M_PI){
+        theta -= 2*M_PI;
     }
     double l1_rescaled = theta + l1;
-    double l2_rescaled = l1_rescaled + fabs(l1-l2);
+    double l2_rescaled = l1_rescaled + (l2-l1);
+    if ((l2_rescaled > M_PI) && (l1_rescaled >= M_PI)){
+        l2_rescaled -= 2*M_PI;
+        l1_rescaled -= 2*M_PI;
+    }
     extrema[0] = MIN(x1, x2);
     extrema[1] = MAX(x1, x2);
-    if ((l1_rescaled <= 3*M_PI/2. && 3*M_PI/2. <= (l2_rescaled)) || (l1_rescaled <= -M_PI/2. && -M_PI/2. <= (l2_rescaled))){
+    if ( (l1_rescaled <= -M_PI/2. && -M_PI/2. <= l2_rescaled) || (l1_rescaled <= 3*M_PI/2. && 3*M_PI/2. <= l2_rescaled)){
         extrema[0] = xR - R;
     } 
-    if ((l1_rescaled <= M_PI/2. && M_PI/2. <= (l2_rescaled)) || (l1_rescaled <= 5*M_PI/2. && 5*M_PI/2. <= (l2_rescaled))){
+    if ((l1_rescaled <= M_PI/2. && M_PI/2. <= l2_rescaled)){
         extrema[1] = xR + R;
     }
 }
