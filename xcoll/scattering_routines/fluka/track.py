@@ -9,6 +9,9 @@ import xpart.pdg as pdg
 import xobjects as xo
 
 
+LOST_ON_FLUKA_COLL = -334
+
+
 def _drift(coll, particles, length):
     old_length = coll._equivalent_drift.length
     coll._equivalent_drift.length = length
@@ -230,7 +233,7 @@ def track_core(coll, part):
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
-    part.state[alive_at_entry]     = -334  # XC_LOST_ON_FLUKA
+    part.state[alive_at_entry]     = LOST_ON_FLUKA_COLL
     if np.any(mask_existing):
         part.state[idx_old]        = 1     # These actually survived
 
@@ -254,7 +257,7 @@ def track_core(coll, part):
 
         # # Sanity check: all parents should be dead - not the case for ionisation radiation etc
         idx_parents = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_ppid[mask_new]])
-        # assert np.all(part.state[idx_parents] == -334)  # XC_LOST_ON_FLUKA
+        # assert np.all(part.state[idx_parents] == LOST_ON_FLUKA_COLL)
 
         # Create new particles
         # TODO: FLUKA uses pc; then calculate delta from p
@@ -263,6 +266,8 @@ def track_core(coll, part):
         E0    = part.energy0[0]
         b0    = part.beta0[0]
         m0    = part.mass0
+        # TODO: we set massless particles to -m0 to avoid division by zero errors. To update when Xsuite is updated.
+        m[np.abs(m) < 1.e-12] = -part.mass0
         delta = np.sqrt(1./(b0**2) * E**2/(E0**2) * m0**2/(m**2) - 1./(b0**2) + 1.) - 1.
         rpp   = 1. / (1. + delta)
         new_part = xp.Particles(_context=part._buffer.context,
@@ -281,6 +286,7 @@ def track_core(coll, part):
                 at_element = ele_in,
                 at_turn = turn_in,
                 pdg_id = data['pdg_id'][:npart][mask_new],
+                particle_id = new_pid[mask_new],
                 parent_particle_id = new_ppid[mask_new],
                 weight = data['weight'][:npart][mask_new],
                 start_tracking_at_element = part.start_tracking_at_element)
@@ -289,13 +295,15 @@ def track_core(coll, part):
         # TODO: in principle FLUKA uses pc, not energy!!
         E_diff = np.bincount(idx_parents, weights=-new_part.energy, minlength=len(part.x))
         part.add_to_energy(E_diff)   # TODO: need to correct for weight
-        # TODO: if parent survived, this should not be done but the energy should be subtracted
+        # TODO: if parent survived, this should not be done but thee energy should be subtracted
         #       from the accumulated ionisation loss (as it is accounted for by the child)
 
         # Add new particles
         new_part._init_random_number_generator()
         part.add_particles(new_part)
-        max_particle_id = part.particle_id[part.state > 0].max()
+        # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
+        part.state[np.isin(part.particle_id, new_pid) & (part.charge_ratio < 1.e-12)] = LOST_ON_FLUKA_COLL
+        max_particle_id = new_pid.max()
         if max_particle_id <= FlukaEngine.max_particle_id:
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
                            + f"lower than the highest ID known ({FlukaEngine.max_particle_id}).\n"
