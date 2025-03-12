@@ -34,8 +34,8 @@ class EverestBlock(BaseBlock):
     behaves_like_drift = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = ['_material']
-    _store_in_to_dict      = ['material']
+    _skip_in_to_dict       = [*BaseBlock._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
 
     _depends_on = [BaseBlock, EverestEngine]
