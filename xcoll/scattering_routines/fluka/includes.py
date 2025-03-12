@@ -35,12 +35,12 @@ def _is_lepton(pdg_id):
     return 11 <= abs(pdg_id) <= 19
 
 
-def get_include_files(particle_ref, include_files=[], verbose=True, lower_momentum_cut=None,
+def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_momentum_cut=None,
                       photon_lower_momentum_cut=None, electron_lower_momentum_cut=None,
-                      include_showers=None, return_electrons=None, return_leptons=None,
-                      return_neutrinos=None, return_protons=None, return_neutrons=None,
-                      return_ions=None, return_exotics=None, return_all=None,
-                      return_neutral=None, use_crystals=False):
+                      include_showers=None, return_photons=None, return_electrons=None,
+                      return_leptons=None, return_neutrinos=None, return_protons=None,
+                      return_neutrons=None, return_ions=None, return_exotics=None,
+                      return_all=None, return_neutral=None, use_crystals=False):
     this_include_files = include_files.copy()
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
@@ -91,6 +91,9 @@ def get_include_files(particle_ref, include_files=[], verbose=True, lower_moment
                                              include_showers=include_showers)
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' in [file.name for file in this_include_files]:
+        if return_photons is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_photons`.")
         if return_electrons is not None:
             raise ValueError("Custom scoring include file already provided. Cannot change "
                            + "`return_electrons`.")
@@ -119,6 +122,8 @@ def get_include_files(particle_ref, include_files=[], verbose=True, lower_moment
             raise ValueError("Custom scoring include file already provided. Cannot change "
                            + "`return_neutral`.")
     else:
+        if return_photons is None:
+            return_photons = False
         if return_electrons is None:
             return_electrons = _is_lepton(particle_ref)
         if return_leptons is None:
@@ -137,7 +142,8 @@ def get_include_files(particle_ref, include_files=[], verbose=True, lower_moment
             return_all = False
         if return_neutral is None:
             return_neutral = False
-        scoring_file = _scoring_include_file(return_electrons=return_electrons, return_leptons=return_leptons,
+        scoring_file = _scoring_include_file(verbose=verbose, return_photons=return_photons,
+                                             return_electrons=return_electrons, return_leptons=return_leptons,
                                              return_neutrinos=return_neutrinos, return_protons=return_protons,
                                              return_neutrons=return_neutrons, return_ions=return_ions,
                                              return_exotics=return_exotics, return_all=return_all,
@@ -210,9 +216,11 @@ def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_
         print(f"Physics include file created with:\n"
              + f"  - Hadron and muon lower momentum cut: {lower_momentum_cut} GeV")
         if include_showers:
-            print(f"\n  - EM showers: ON\n"
+            print(f"  - EM showers: ON\n"
                 + f"  - Photon lower momentum cut: {photon_lower_momentum_cut} GeV\n"
-                + f"  - Electron lower momentum cut: {electron_lower_momentum_cut} GeV")
+                + f"  - Electron lower momentum cut: {electron_lower_energy_cut} GeV")
+        else:
+            print(f"\n  - EM showers: ON")
 
     template = f"""\
 ******************************************************************************
@@ -258,9 +266,9 @@ PHYSICS           2.                                                  EM-DISSO
     return filename
 
 
-def _scoring_include_file(*, return_electrons, return_leptons, return_neutrinos, return_protons,
-                          return_neutrons, return_ions, return_exotics, return_all, return_neutral,
-                          use_crystals=False):
+def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_neutrinos,
+                          return_protons, return_neutrons, return_ions, return_exotics,
+                          return_all, return_neutral, return_photons, use_crystals=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
     electrons = 'USRBDX' if return_electrons or return_leptons else '*USRBDX'
     leptons = 'USRBDX' if return_leptons else '*USRBDX'
@@ -270,14 +278,32 @@ def _scoring_include_file(*, return_electrons, return_leptons, return_neutrinos,
     ions = 'USRBDX' if return_ions else '*USRBDX'
     exotics = 'USRBDX' if return_exotics else '*USRBDX'
     neutral_exotics = 'USRBDX' if return_exotics and return_neutral else '*USRBDX'
+    photons = 'USRBDX' if return_photons else '*USRBDX'
     if return_all:
         all_charged = 'USRBDX' if not return_neutral else '*USRBDX'
         all_particles = 'USRBDX' if return_neutral else '*USRBDX'
         electrons = leptons = neutrinos = protons = neutrons = ions = exotics \
-                  = neutral_exotics = '*USRBDX'
+                  = photons = neutral_exotics = '*USRBDX'
     else:
         all_charged = all_particles = '*USRBDX'
     crystal = 'USRICALL' if use_crystals else '*USRICALL'
+    if verbose:
+        print(f"Scoring include file created with:")
+        if all_particles[0] != '*':
+            print(f"  - Return all particles: True")
+        elif all_charged[0] != '*':
+            print(f"  - Return all charged particles: True")
+        else:
+            print(f"  - Return photons: {photons[0] != '*'}\n"
+                + f"  - Return electrons: {electrons[0] != '*'}\n"
+                + f"  - Return muons and tau: {leptons[0] != '*'}\n"
+                + f"  - Return neutrinos: {neutrinos[0] != '*'}\n"
+                + f"  - Return protons: {protons[0] != '*'}\n"
+                + f"  - Return neutrons: {neutrons[0] != '*'}\n"
+                + f"  - Return ions: {ions[0] != '*'}\n"
+                + f"  - Return exotics: {exotics[0] != '*'}\n"
+                + f"  - Return neutral exotics: {neutral_exotics[0] != '*'}")
+        print(f"  - Use crystals: {crystal[0] != '*'}")
 
     template = f"""\
 * Original Pascal
@@ -303,6 +329,9 @@ USERWEIG                             3.0
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
 {all_charged}          99.0  ALL-CHAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {all_particles}          99.0  ALL-PART     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photons}          99.0    PHOTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photons}          99.0  OPTIPHOT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{photons}          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {electrons}          99.0  ELECTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {electrons}          99.0  POSITRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {leptons}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
@@ -325,9 +354,10 @@ USERWEIG                             3.0
 {neutral_exotics}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutral_exotics}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{protons}        8000.0   1.0E-04     210.0
+*{protons}        8000.0   1.0E-04     210.0
 {protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {ions}          99.0  DEUTERON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {ions}          99.0    TRITON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {ions}          99.0  3-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO

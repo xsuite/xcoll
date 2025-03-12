@@ -130,7 +130,7 @@ class FlukaEngine(BaseEngine):
                       + f"and momentum {p0c} MeV.")
             pyfluka_init_max_uid(max_particle_id)
             pyfluka_set_synch_part(E0, p0c, m0, A0, Z0, q0)
-            self._max_particle_id = max_particle_id
+            self._max_particle_id = max_particle_id - 1 # FLUKA starts counting from 1, Python from 0
             self._tracking_initialised = True
 
     @classmethod

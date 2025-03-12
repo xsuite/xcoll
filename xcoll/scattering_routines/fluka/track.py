@@ -175,14 +175,15 @@ def track_core(coll, part):
 
     new_pid  = data['pid'][:npart] - 1   # return to python 0-index
     new_ppid = data['ppid'][:npart] - 1  # return to python 0-index
-    if len(new_pid) > 0:
-        # Restore the parent IDs: if ppid != pid an interaction occurred and nothing needs to be done
-        # (the real parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
-        mask_to_restore = new_pid == new_ppid
-        idx_to_restore  = np.array([np.where(old_pid==idx)[0][0] for idx in new_pid[mask_to_restore]])
+    # if len(new_pid) > 0:
+    # Restore the parent IDs: if ppid != pid an interaction occurred and nothing needs to be done
+    # (the real parent ID is the primary ID in this case). Otherwise, we restore the original parent ID
+    mask_to_restore = new_pid == new_ppid
+    idx_to_restore  = np.array([np.where(old_pid==idx)[0][0] for idx in new_pid[mask_to_restore]])
+    if len(idx_to_restore) > 0:
         new_ppid[mask_to_restore] = old_ppid[idx_to_restore]
-        # When the parent changed (interaction), the parent ID must have been an alive particle at entry
-        assert np.all([ppid in old_pid for ppid in new_ppid[~mask_to_restore]])
+    # When the parent changed (interaction), the parent ID must have been an alive particle at entry
+    assert np.all([ppid in old_pid for ppid in new_ppid[~mask_to_restore]])
 
     # TODO: Impact Table
     #     Absorbed: trivial
@@ -251,9 +252,9 @@ def track_core(coll, part):
             # # TODO: this does not work!!
             # part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
 
-        # Sanity check
+        # # Sanity check: all parents should be dead - not the case for ionisation radiation etc
         idx_parents = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_ppid[mask_new]])
-        assert np.all(part.state[idx_parents] == -334)  # XC_LOST_ON_FLUKA
+        # assert np.all(part.state[idx_parents] == -334)  # XC_LOST_ON_FLUKA
 
         # Create new particles
         # TODO: FLUKA uses pc; then calculate delta from p
@@ -288,6 +289,8 @@ def track_core(coll, part):
         # TODO: in principle FLUKA uses pc, not energy!!
         E_diff = np.bincount(idx_parents, weights=-new_part.energy, minlength=len(part.x))
         part.add_to_energy(E_diff)   # TODO: need to correct for weight
+        # TODO: if parent survived, this should not be done but the energy should be subtracted
+        #       from the accumulated ionisation loss (as it is accounted for by the child)
 
         # Add new particles
         new_part._init_random_number_generator()

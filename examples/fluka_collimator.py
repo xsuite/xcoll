@@ -9,15 +9,14 @@ import time
 
 import matplotlib.pyplot as plt
 
-num_part = int(10_000)
-_capacity = num_part*2
+num_part = int(10)
+_capacity = num_part*1000
 
 if xc.FlukaEngine.is_running():
     xc.FlukaEngine.stop()
 
 # Create a FLUKA collimator
-coll = xc.FlukaCollimator(length=0.6, assembly='lhc_tcp')
-coll_name = 'tcp.c6l7.b1'
+coll = xc.FlukaCollimator(length=0.4, assembly='fcc_tcp')
 coll.jaw = 0.001
 
 # The same collimator in Everest
@@ -26,14 +25,14 @@ coll2.jaw = 0.001
 
 
 # Connect to FLUKA
-xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='electron', p0c=200e9)
 xc.FlukaEngine.capacity = _capacity
-xc.FlukaEngine.start(elements=coll, names=coll_name, clean=True, verbose=False)
+xc.FlukaEngine.start(elements=coll, clean=False, verbose=True, return_all=True, return_neutral=True)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
 # longitudinal coordinates set to zero)
-x_init   = np.random.normal(loc=0.001, scale=0.2e-3, size=num_part)
+x_init   = np.random.normal(loc=0.01, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
@@ -64,7 +63,7 @@ print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")
 
 
 # Stop the FLUKA server
-xc.FlukaEngine.stop(clean=True)
+xc.FlukaEngine.stop(clean=False)
 
 
 # Make some plots
