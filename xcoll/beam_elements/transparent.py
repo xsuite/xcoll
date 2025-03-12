@@ -16,8 +16,12 @@ class TransparentCollimator(BaseCollimator):
     }
 
     isthick = True
+    needs_rng = False
     allow_track = True
+    allow_double_sided = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
@@ -47,8 +51,12 @@ class TransparentCrystal(BaseCrystal):
     }
 
     isthick = True
+    needs_rng = False
     allow_track = True
+    allow_double_sided = False
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict

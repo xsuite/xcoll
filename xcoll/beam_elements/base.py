@@ -22,10 +22,12 @@ class InvalidXcoll(xt.BeamElement):
     }
 
     isthick = True
-    behaves_like_drift = True
+    needs_rng = False
     allow_track = False
-    skip_in_loss_location_refinement = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
     allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
@@ -51,8 +53,12 @@ class BaseBlock(xt.BeamElement):
     }
 
     isthick = True
+    needs_rng = False
     allow_track = False
+    allow_double_sided = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
@@ -161,11 +167,14 @@ class BaseCollimator(BaseBlock):
         '_nemitt_y':      xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+    isthick = True
+    needs_rng = False
+    allow_track = False
     allow_double_sided = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
@@ -1044,11 +1053,15 @@ class BaseCrystal(BaseBlock):
         # 'thick':              xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+
+    isthick = True
+    needs_rng = False
+    allow_track = False
     allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
