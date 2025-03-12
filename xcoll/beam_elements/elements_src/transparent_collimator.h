@@ -91,10 +91,8 @@ void TransparentCollimator_track_local_particle(TransparentCollimatorData el, Lo
 
     // Get geometry
     CollimatorGeometry cg;
-    int8_t record_scatterings;
     if (active){
         cg = TransparentCollimator_init_geometry(el, part0);
-        record_scatterings = TransparentCollimatorData_get_record_scatterings(el);
     }
 
     //start_per_particle_block (part0->part)
