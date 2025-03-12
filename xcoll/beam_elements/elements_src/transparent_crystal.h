@@ -80,11 +80,8 @@ void TransparentCrystal_track_local_particle(TransparentCrystalData el, LocalPar
 
     // Get geometry
     CrystalGeometry cg;
-    int8_t record_scatterings;
     if (active){
         cg = TransparentCrystal_init_geometry(el, part0);
-        record_scatterings = TransparentCrystalData_get_record_scatterings(el);
-
         if (cg->width==0 || cg->height==0 || cg->bending_radius==0){
             kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
         }
