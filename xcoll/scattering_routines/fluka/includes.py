@@ -17,6 +17,11 @@ from .environment import format_fluka_float
 from ...general import _pkg_root
 
 
+def _is_proton(pdg_id):
+    if isinstance(pdg_id, xt.Particles):
+        pdg_id = pdg_id.pdg_id[0]
+    return pdg_id >= 2212
+
 
 def _is_ion(pdg_id):
     if isinstance(pdg_id, xt.Particles):
@@ -32,7 +37,10 @@ def _is_lepton(pdg_id):
 
 def get_include_files(particle_ref, include_files=[], verbose=True, lower_momentum_cut=None,
                       photon_lower_momentum_cut=None, electron_lower_momentum_cut=None,
-                      include_showers=None):
+                      include_showers=None, return_electrons=None, return_leptons=None,
+                      return_neutrinos=None, return_protons=None, return_neutrons=None,
+                      return_ions=None, return_exotics=None, return_all=None,
+                      return_neutral=None, use_crystals=False):
     this_include_files = include_files.copy()
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
@@ -82,8 +90,59 @@ def get_include_files(particle_ref, include_files=[], verbose=True, lower_moment
                                              electron_lower_momentum_cut=electron_lower_momentum_cut,
                                              include_showers=include_showers)
         this_include_files.append(physics_file)
-    if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
-        this_include_files.append(_scoring_include_file(particle_ref))
+    if 'include_custom_scoring.inp' in [file.name for file in this_include_files]:
+        if return_electrons is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_electrons`.")
+        if return_leptons is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_leptons`.")
+        if return_neutrinos is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_neutrinos`.")
+        if return_protons is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_protons`.")
+        if return_neutrons is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_neutrons`.")
+        if return_ions is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_ions`.")
+        if return_exotics is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_exotics`.")
+        if return_all is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_all`.")
+        if return_neutral is not None:
+            raise ValueError("Custom scoring include file already provided. Cannot change "
+                           + "`return_neutral`.")
+    else:
+        if return_electrons is None:
+            return_electrons = _is_lepton(particle_ref)
+        if return_leptons is None:
+            return_leptons = _is_lepton(particle_ref)
+        if return_neutrinos is None:
+            return_neutrinos = False
+        if return_protons is None:
+            return_protons = _is_proton(particle_ref)
+        if return_neutrons is None:
+            return_neutrons = False
+        if return_ions is None:
+            return_ions = _is_ion(particle_ref)
+        if return_exotics is None:
+            return_exotics = False
+        if return_all is None:
+            return_all = False
+        if return_neutral is None:
+            return_neutral = False
+        scoring_file = _scoring_include_file(return_electrons=return_electrons, return_leptons=return_leptons,
+                                             return_neutrinos=return_neutrinos, return_protons=return_protons,
+                                             return_neutrons=return_neutrons, return_ions=return_ions,
+                                             return_exotics=return_exotics, return_all=return_all,
+                                             return_neutral=return_neutral, use_crystals=use_crystals)
+        this_include_files.append(scoring_file)
     # Add any additional include files
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in this_include_files]:
@@ -200,7 +259,7 @@ PHYSICS           2.                                                  EM-DISSO
 
 
 def _scoring_include_file(*, return_electrons, return_leptons, return_neutrinos, return_protons,
-                          return_neutrons, return_ions, return_exotic, return_all, return_neutral,
+                          return_neutrons, return_ions, return_exotics, return_all, return_neutral,
                           use_crystals=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
     electrons = 'USRBDX' if return_electrons or return_leptons else '*USRBDX'
@@ -216,6 +275,8 @@ def _scoring_include_file(*, return_electrons, return_leptons, return_neutrinos,
         all_particles = 'USRBDX' if return_neutral else '*USRBDX'
         electrons = leptons = neutrinos = protons = neutrons = ions = exotics \
                   = neutral_exotics = '*USRBDX'
+    else:
+        all_charged = all_particles = '*USRBDX'
     crystal = 'USRICALL' if use_crystals else '*USRICALL'
 
     template = f"""\
