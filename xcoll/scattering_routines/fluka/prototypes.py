@@ -6,7 +6,7 @@
 import numpy as np
 from pathlib import Path
 
-from .environment import FlukaEnvironment
+from .environment import FlukaEnvironment, format_fluka_float
 from ...beam_elements.base import BaseCollimator
 
 
@@ -280,7 +280,7 @@ class FlukaPrototype:
             prot += f"FEDB_TAG      {self.fedb_tag}\n"
             prot += f"ROT-DEFI  "
             for value in self.fluka_position:
-                prot += f"{value:>10.1f}"
+                prot += format_fluka_float(value)
             prot += " proto\n"
             if self._extra_commands:
                 if hasattr(self._extra_commands, "__iter__") \

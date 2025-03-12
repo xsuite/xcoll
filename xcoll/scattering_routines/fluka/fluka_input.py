@@ -3,10 +3,10 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import os
+import sys
 import json
 import numpy as np
-import sys
-import os
 from subprocess import run, PIPE
 from contextlib import redirect_stdout
 
@@ -26,9 +26,10 @@ _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
-def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[], verbose=True):
+def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[],
+                       verbose=True, **kwargs):
     _create_prototypes_file(element_dict, prototypes_file)
-    include_files = get_include_files(particle_ref, include_files)
+    include_files = get_include_files(particle_ref, include_files, verbose=verbose, **kwargs)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
     input_file, fluka_dict = _fluka_builder(collimator_dict)
@@ -142,8 +143,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     nsig = ee.gap_R
                 half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
                 offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
-            tilt_1 = np.round(ee.tilt_L, 9)
-            tilt_2 = np.round(ee.tilt_R, 9)
+            tilt_1 = round(ee.tilt_L, 9)
+            tilt_2 = round(ee.tilt_R, 9)
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
             raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
@@ -156,7 +157,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
             'bety': 1,
             'material': 'stub',
             'length': ee.length,
-            'angle': np.round(np.deg2rad(ee.angle) - ee.assembly.angle, 9),
+            'angle': round(np.deg2rad(ee.angle) - ee.assembly.angle, 9),
             'sigma_x': 1,
             'sigma_y': 1,
             'offset': offset,

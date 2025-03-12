@@ -202,6 +202,9 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
               particle_ref=None, input_file=None, clean=True, **kwargs):
         self = cls.get_self(**kwargs)
         kwargs, _ = cls.filter_kwargs(**kwargs)
+        for key in kwargs.keys():
+            if key.startswith('_'):
+                raise ValueError(f"Unknown keyword argument '{key}'!")
 
         if self.is_running():
             self._print("Engine already running.")

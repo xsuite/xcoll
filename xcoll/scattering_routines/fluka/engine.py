@@ -57,8 +57,8 @@ class FlukaEngine(BaseEngine):
         self._network_nfo = None
         self._server_process = None
         self._flukaio_connected = False
-        self._fluka = None
-        self._flukaserver = None
+        self._network_port = -1
+        self._max_particle_id = -1
         # The only super that will be called from here is the Singleton, which will
         # set all attributes.
         super().__init__(**kwargs)
@@ -152,7 +152,7 @@ class FlukaEngine(BaseEngine):
         from .fluka_input import create_fluka_input
         input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
                                         prototypes_file=prototypes_file, include_files=include_files,
-                                        verbose=self.verbose)
+                                        verbose=self.verbose, **kwargs)
         self._set_seed_in_input_file(input_file)
         return input_file
 
@@ -188,8 +188,8 @@ class FlukaEngine(BaseEngine):
                 self._log_fid.close()
             self._log_fid = None
         self._log = None
-        self._network_port = 0
-        self._max_particle_id = 0
+        self._network_port = -1
+        self._max_particle_id = -1
 
 
     def _is_running(self, **kwargs):
