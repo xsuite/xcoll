@@ -81,31 +81,22 @@ double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
 
 /*gpufun*/
 void CircularTrajectory_bounding_box_s(CircularTrajectory traj, double l1, double l2, double extrema[2]){
+    // Take note that these functions, bounding boxes, expect l1 and l2 in radians! 
+    // The plot function will automatically change [0,1] to [0,2pi] for you.
     double s1 = CircularTrajectory_func_s(traj, l1);
-    double s1_l0 = CircularTrajectory_func_s(traj, 0.0); 
     double s2 = CircularTrajectory_func_s(traj, l2);
     double sR = CircularTrajectory_get_sR(traj);
     double R  = CircularTrajectory_get_R(traj);
-    extrema[0] = MIN(s1, s2);
     double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
-
-    while (theta < -M_PI){
-        theta += 2*M_PI;
-    } while (theta > M_PI){
-        theta -= 2*M_PI;
-    }
+    theta = fmod(theta + M_PI, 2 * M_PI) - M_PI;
     double l1_rescaled = theta + l1;
     double l2_rescaled = l1_rescaled + (l2-l1);
-    if ((l2_rescaled > M_PI) && (l1_rescaled >= M_PI)){
-        l2_rescaled -= 2*M_PI;
-        l1_rescaled -= 2*M_PI;
-    }
     extrema[0] = MIN(s1, s2);   
     extrema[1] = MAX(s1, s2);
     if ((l1_rescaled <= 0. && 0. <= l2_rescaled) || (l1_rescaled <= 2*M_PI && 2*M_PI <= l2_rescaled)){
         extrema[1] = sR + R;
     }
-    if ((l1_rescaled <= M_PI && M_PI <= l2_rescaled)){
+    if ((l1_rescaled <= M_PI && M_PI <= l2_rescaled) || (l1_rescaled <= 3*M_PI && 3*M_PI <= l2_rescaled)){
         extrema[0] = sR - R;
     }
 }
@@ -117,24 +108,15 @@ void CircularTrajectory_bounding_box_x(CircularTrajectory traj, double l1, doubl
     double R  = CircularTrajectory_get_R(traj);
     double xR = CircularTrajectory_get_xR(traj);
     double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
-    while (theta < -M_PI){
-        theta += 2*M_PI;
-    }
-    while (theta > M_PI){
-        theta -= 2*M_PI;
-    }
+    theta = fmod(theta + M_PI, 2 * M_PI) - M_PI;
     double l1_rescaled = theta + l1;
     double l2_rescaled = l1_rescaled + (l2-l1);
-    if ((l2_rescaled > M_PI) && (l1_rescaled >= M_PI)){
-        l2_rescaled -= 2*M_PI;
-        l1_rescaled -= 2*M_PI;
-    }
     extrema[0] = MIN(x1, x2);
     extrema[1] = MAX(x1, x2);
     if ( (l1_rescaled <= -M_PI/2. && -M_PI/2. <= l2_rescaled) || (l1_rescaled <= 3*M_PI/2. && 3*M_PI/2. <= l2_rescaled)){
         extrema[0] = xR - R;
     } 
-    if ((l1_rescaled <= M_PI/2. && M_PI/2. <= l2_rescaled)){
+    if ((l1_rescaled <= M_PI/2. && M_PI/2. <= l2_rescaled) || (l1_rescaled <= 5*M_PI/2. && 5*M_PI/2. <= l2_rescaled)){
         extrema[1] = xR + R;
     }
 }
