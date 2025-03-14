@@ -56,8 +56,6 @@ def check_env():
 
 
 def geant4_env(geant4_path=None, bdsim_path=None):
-    geant4_path = _get_geant4_path(geant4_path)
-    bdsim_path = _get_bdsim_path(bdsim_path)
     os_environ = {}
     if geant4_path:
         os_environ.update({kk: list(geant4_path.glob(vv)) for kk, vv in _geant4_environ.items()})
