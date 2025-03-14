@@ -78,7 +78,7 @@ def geant4_env(geant4_path=None, bdsim_path=None):
     for kk, vv in os_environ.items():
         if kk.endswith('PATH'):
             for vvv in vv:
-            os_environ[kk] = ':'.join([v.as_posix() if isinstance(v, Path) else v
+                os_environ[kk] = ':'.join([v.as_posix() if isinstance(v, Path) else v
                                        for v in vv])
         else:
             os_environ[kk] = vv[0].as_posix()
