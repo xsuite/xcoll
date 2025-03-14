@@ -11,44 +11,76 @@ from subprocess import run
 from ...general import _pkg_root
 
 
+_geant4_environ = {
+    'G4NEUTRONHPDATA': 'G4NDL*',
+    'G4LEDATA': 'G4EMLOW*',
+    'G4LEVELGAMMADATA': 'PhotonEvaporation*',
+    'G4RADIOACTIVEDATA': 'RadioactiveDecay*',
+    'G4NEUTRONXSDATA': 'G4NEUTRONXS*',
+    'G4PIIDATA': 'G4PII*',
+    'G4REALSURFACEDATA': 'RealSurface*',
+    'G4SAIDXSDATA': 'G4SAIDDATA*',
+    'G4ABLADATA': 'G4ABLA*',
+    'G4ENSDFSTATEDATA': 'G4ENSDFSTATE*'
+}
+_bdsim_environ = {
+    'ROOT_INCLUDE_PATH': ['include/bdsim',
+                          'include/bdsim/analysis',
+                          'include/bdsim/parser'],
+}
+
+
+def check_env():
+    os_environ = dict(os.environ)
+    for kk, vv in _geant4_environ.items():
+        if kk not in os_environ:
+            raise ValueError(f"Geant4 environment variable {kk} not found! "
+                              "Please source the Geant4 environment script.")
+        if not Path(os_environ[kk]).exists():
+            raise ValueError(f"Geant4 data path {vv} (for environment variable {kk}) "
+                           + f"not found! Please source the Geant4 environment script.")
+        if not Path(os_environ[kk]).name.startswith(vv[-1]):
+            print(f"Warning: Geant4 data path {vv} (for environment variable {kk}) "
+                + f"does not match the expected pattern {vv[-1]}!")
+    for kk, vv in _bdsim_environ.items():
+        if kk not in os_environ:
+            raise ValueError(f"BDSIM environment variable {kk} not found! "
+                              "Please source the BDSIM environment script.")
+        for path in os_environ[kk].split(':'):
+            if not Path(path).exists():
+                raise ValueError(f"BDSIM data path {vv} (for environment variable {kk}) "
+                               + f"not found! Please source the BDSIM environment script.")
+            if not Path(path).as_posix().endswith(vv):
+                print(f"Warning: BDSIM data path {vv} (for environment variable {kk}) "
+                    + f"does not match the expected pattern {vv}!")
+
+
 def geant4_env(geant4_path=None, bdsim_path=None):
     geant4_path = _get_geant4_path(geant4_path)
     bdsim_path = _get_bdsim_path(bdsim_path)
-    os_environ = {
-        'G4NEUTRONHPDATA': list(geant4_path.glob('G4NDL*')),
-        'G4LEDATA': list(geant4_path.glob('G4EMLOW*')),
-        'G4LEVELGAMMADATA': list(geant4_path.glob('PhotonEvaporation*')),
-        'G4RADIOACTIVEDATA': list(geant4_path.glob('RadioactiveDecay*')),
-        'G4NEUTRONXSDATA': list(geant4_path.glob('G4NEUTRONXS*')),
-        'G4PIIDATA': list(geant4_path.glob('G4PII*')),
-        'G4REALSURFACEDATA': list(geant4_path.glob('RealSurface*')),
-        'G4SAIDXSDATA': list(geant4_path.glob('G4SAIDDATA*')),
-        'G4ABLADATA': list(geant4_path.glob('G4ABLA*')),
-        'G4ENSDFSTATEDATA': list(geant4_path.glob('G4ENSDFSTATE*')),
-        'ROOT_INCLUDE_PATH': [bdsim_path / 'include' / 'bdsim',
-                                bdsim_path / 'include' / 'bdsim' / 'analysis',
-                                bdsim_path / 'include' / 'bdsim' / 'parser'],
-    }
+    os_environ = {}
+    if geant4_path:
+        os_environ.update({kk: list(geant4_path.glob(vv)) for kk, vv in _geant4_environ.items()})
+    if bdsim_path:
+        os_environ.update({kk: [bdsim_path / vvv for vvv in vv] for kk, vv in _bdsim_environ.items()})
     path = os.environ.get('PATH', None)
-    if path is not None:
-        os_environ['PATH'] = [bdsim_path / 'bin', geant4_path / 'bin', path]
-    else:
-        os_environ['PATH'] = [bdsim_path / 'bin', geant4_path / 'bin']
+    path = [path] if path is not None else []
+    if geant4_path:
+        path = [geant4_path / 'bin', *path]
+    if bdsim_path:
+        path = [bdsim_path / 'bin', *path]
+    if path:
+        os_environ['PATH'] = path
     ld_library_path = os.environ.get('LD_LIBRARY_PATH', None)
-    if ld_library_path is not None:
-        os_environ['LD_LIBRARY_PATH'] = [bdsim_path / 'lib', ld_library_path]
-    else:
-        os_environ['LD_LIBRARY_PATH'] = [bdsim_path / 'lib']
+    ld_library_path = [ld_library_path] if ld_library_path is not None else []
+    if bdsim_path:
+        os_environ['LD_LIBRARY_PATH'] = [bdsim_path / 'lib', *ld_library_path]
     for kk, vv in os_environ.items():
         if kk.endswith('PATH'):
             for vvv in vv:
-                if isinstance(vvv, Path) and not vvv.exists():
-                    raise ValueError(f"Geant4/BDSIM path {vvv} not found!")
             os_environ[kk] = ':'.join([v.as_posix() if isinstance(v, Path) else v
                                        for v in vv])
         else:
-            if not vv or not vv[0].exists():
-                raise ValueError(f"Geant4 environment variable {kk} not found!")
             os_environ[kk] = vv[0].as_posix()
     return os_environ
 
@@ -57,6 +89,7 @@ def set_geant4_env(geant4_path=None, bdsim_path=None):
     old_os_environ = dict(os.environ)
     for kk, vv in geant4_env(geant4_path, bdsim_path).items():
        os.environ[kk] = vv
+    check_env()
     return old_os_environ
 
 
@@ -73,8 +106,6 @@ def compare_environs(geant4_path=None, bdsim_path=None):
     old_os_environ.update(_get_environ(geant4_env(geant4_path, bdsim_path)))
 
     # Source the environment scripts manually
-    geant4_path = _get_geant4_path(geant4_path)
-    bdsim_path = _get_bdsim_path(bdsim_path)
     if geant4_path is None:
         geant4_path = list((_pkg_root / "scattering_routines" / "geant4" / "lib").glob("geant4*"))
         if not geant4_path:
@@ -109,31 +140,6 @@ def compare_environs(geant4_path=None, bdsim_path=None):
     difference = old_os_environ ^ new_os_environ
     return difference#[[diff[0], diff[1].split(':')] for diff in difference]
 
-
-def _get_geant4_path(geant4_path=None):
-    if geant4_path is None:
-        geant4_path = list((_pkg_root / "scattering_routines" / "geant4" / "lib").glob("geant4*"))
-        if not geant4_path:
-            raise ValueError("Geant4 installation not found! Please provide " \
-                           + "'geant4_path' explicitly.")
-        elif len(geant4_path) > 1:
-            raise ValueError("Multiple Geant4 installations found! Please provide " \
-                           + "'geant4_path' explicitly.")
-        return geant4_path[0]
-    return geant4_path
-
-
-def _get_bdsim_path(bdsim_path=None):
-    if bdsim_path is None:
-        bdsim_path = list((_pkg_root / "scattering_routines" / "geant4" / "lib").glob("bdsim*"))
-        if not bdsim_path:
-            raise ValueError("BDSIM installation not found! Please provide " \
-                           + "'bdsim_path' explicitly.")
-        elif len(bdsim_path) > 1:
-            raise ValueError("Multiple BDSIM installations found! Please provide " \
-                           + "'bdsim_path' explicitly.")
-        return bdsim_path[0]
-    return bdsim_path
 
 
 def _get_environ(os_environ=None, extra_dict={}):

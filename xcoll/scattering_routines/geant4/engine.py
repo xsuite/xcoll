@@ -16,9 +16,6 @@ import xpart as xp
 from .environment import set_geant4_env, unset_geant4_env
 from ...general import _pkg_root
 
-default_geant4_path = Path("/eos/project-c/collimation-team/software/geant4_coupling/v10.4.3/")
-default_bdsim_path = None
-
 
 def get_open_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,10 +82,6 @@ class Geant4Engine(xo.HybridClass):
         if bdsim_config_file is None:
             raise NotImplementedError
 
-        if geant4_path is None:
-            geant4_path = default_geant4_path
-        if bdsim_path is None:
-            bdsim_path = default_bdsim_path
         this._old_os_environ = set_geant4_env(geant4_path, bdsim_path)
 
         this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
