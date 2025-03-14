@@ -18,7 +18,7 @@ GOTO 'colors'
 
 :start:
 echo -e "${LIMEGREEN}This script will download, build and install geant4 and bdsim,"
-echo -e " which are necessary for using the geant4 scattering module.\n"
+echo -e "which are necessary for using the geant4 scattering module.\n"
 echo -e "The recommended way is to set up a new environment using mamba or conda.\n${RESET}"
 
 GOTO 'fundefs'
@@ -72,7 +72,7 @@ echo -e "${YELLOW}downloading latest version of bdsim...${RESET}"
 git clone --recursive https://github.com/bdsim-collaboration/bdsim.git
 
 # edit bdsim/CMakeLists.txt to change CMAKE_CXX_STANDARD to 17
-sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMakeLists.txt
+# sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMakeLists.txt
 mkdir -p bdsim/build
 cd ${geant4_path}/geant4-v${geant4_ver}/bin
 source geant4.sh
@@ -81,7 +81,8 @@ cmake ${geant4_path}/bdsim \
     -DCMAKE_INSTALL_PREFIX=${geant4_path}/bdsim \
     -DUSE_SIXTRACKLINK=ON \
     -DBDSIM_BUILD_STATIC_LIBS=ON \
-    -DGEANT4_CONFIG=${geant4_path}/geant4-v${geant4_ver}/bin/geant4-config
+    -DGEANT4_CONFIG=$(which geant4-config)
+    # -DGEANT4_CONFIG=${geant4_path}/geant4-v${geant4_ver}/bin/geant4-config
 make -j $(nproc) 
 make install
 unset LD_LIBRARY_PATH

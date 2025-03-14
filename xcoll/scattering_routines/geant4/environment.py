@@ -37,10 +37,10 @@ def check_env():
             raise ValueError(f"Geant4 environment variable {kk} not found! "
                               "Please source the Geant4 environment script.")
         if not Path(os_environ[kk]).exists():
-            raise ValueError(f"Geant4 data path {vv} (for environment variable {kk}) "
+            raise ValueError(f"Geant4 data path {os_environ[kk]} (for environment variable {kk}) "
                            + f"not found! Please source the Geant4 environment script.")
-        if not Path(os_environ[kk]).name.startswith(vv[-1]):
-            print(f"Warning: Geant4 data path {vv} (for environment variable {kk}) "
+        if not Path(os_environ[kk]).name.startswith(vv[:-1]):
+            print(f"Warning: Geant4 data path {os_environ[kk]} (for environment variable {kk}) "
                 + f"does not match the expected pattern {vv[-1]}!")
     for kk, vv in _bdsim_environ.items():
         if kk not in os_environ:
@@ -50,12 +50,23 @@ def check_env():
             if not Path(path).exists():
                 raise ValueError(f"BDSIM data path {vv} (for environment variable {kk}) "
                                + f"not found! Please source the BDSIM environment script.")
-            if not Path(path).as_posix().endswith(vv):
+            if not any([Path(path).as_posix().endswith(vvv) for vvv in vv]):
                 print(f"Warning: BDSIM data path {vv} (for environment variable {kk}) "
                     + f"does not match the expected pattern {vv}!")
 
 
+def geant4_installed():
+    cmd = run(['which', 'geant4-config'])
+    if cmd.returncode != 0:
+        return False
+    else:
+        return True
+
+
 def geant4_env(geant4_path=None, bdsim_path=None):
+    if not geant4_installed():
+        geant4_path, version = _get_geant4_path(geant4_path)
+        bdsim_path = _get_bdsim_path(bdsim_path, version)
     os_environ = {}
     if geant4_path:
         os_environ.update({kk: list(geant4_path.glob(vv)) for kk, vv in _geant4_environ.items()})
@@ -88,6 +99,8 @@ def set_geant4_env(geant4_path=None, bdsim_path=None):
     for kk, vv in geant4_env(geant4_path, bdsim_path).items():
        os.environ[kk] = vv
     check_env()
+    if not geant4_installed():
+        raise ValueError("Geant4 sourcing failed!")
     return old_os_environ
 
 
@@ -96,65 +109,33 @@ def unset_geant4_env(old_os_environ):
     os.environ.update(old_os_environ)
 
 
-# Use this when using a new version of Geant4 or BDSIM, to check that 'set_geant4_env'
-# is doing the same as the sourcing scripts. Then adapt 'set_geant4_env' if necessary.
-def compare_environs(geant4_path=None, bdsim_path=None):
-    # Get the existing environment, updated with the paths as we know them
-    old_os_environ = _get_environ()#extra_dict=geant4_env(geant4_path, bdsim_path))
-    old_os_environ.update(_get_environ(geant4_env(geant4_path, bdsim_path)))
-
-    # Source the environment scripts manually
+def _get_geant4_path(geant4_path):
+    version = None
     if geant4_path is None:
-        geant4_path = list((_pkg_root / "scattering_routines" / "geant4" / "lib").glob("geant4*"))
+        geant4_path = list((_pkg_root / "scattering_routines" / "geant4" ).glob("v*/geant4*"))
         if not geant4_path:
             raise ValueError("Geant4 installation not found! Please provide " \
                            + "'geant4_path' explicitly.")
         elif len(geant4_path) > 1:
-            raise ValueError("Multiple Geant4 installations found! Please provide " \
-                           + "'geant4_path' explicitly.")
-        geant4_path = geant4_path[0]
+            versions = [vv.parent.name for vv in geant4_path]
+            vals = [1000_000*vv.split('.')[0] + 1000*vv.split('.')[1] + vv.split('.')[2]
+                    for vv in versions]
+            idx_max = max(range(len(vals)), key=vals.__getitem__)
+            return geant4_path[idx_max], versions[idx_max]
+        else:
+            return geant4_path[0], None
+    return geant4_path, version
+
+
+def _get_bdsim_path(bdsim_path, version):
+    version = version or 'v*'
     if bdsim_path is None:
-        bdsim_path = list((_pkg_root / "scattering_routines" / "geant4" / "lib").glob("bdsim*"))
+        bdsim_path = list((_pkg_root / "scattering_routines" / "geant4" ).glob(f"{version}/bdsim*"))
         if not bdsim_path:
             raise ValueError("BDSIM installation not found! Please provide " \
                            + "'bdsim_path' explicitly.")
         elif len(bdsim_path) > 1:
             raise ValueError("Multiple BDSIM installations found! Please provide " \
-                           + "'bdsim_path' explicitly.")
-        bdsim_path = bdsim_path[0]
-    new_os_environ = Path('new_os_environ.json').resolve()
-    run(f"source ./geant4.sh; unset LD_LIBRARY_PATH; source {bdsim_path}/bin/bdsim.sh; "\
-      + "python -c 'import os, json; fp = open(\"new_os_environ.json\", \"w\"); "\
-      + "json.dump(dict(os.environ), fp); fp.close();' ",
-      shell=True, cwd=(geant4_path / 'bin').as_posix())
-    file = Path(geant4_path / 'bin' / 'new_os_environ.json')
-    with file.resolve().open('r') as f:
-        new_os_environ = _get_environ(json.load(f))
-    file.unlink()
-
-    # Compare the two environments
-    old_os_environ = set(old_os_environ.items())
-    new_os_environ = set(new_os_environ.items())
-    difference = old_os_environ ^ new_os_environ
-    return difference#[[diff[0], diff[1].split(':')] for diff in difference]
-
-
-
-def _get_environ(os_environ=None, extra_dict={}):
-    if os_environ is None:
-        os_environ = dict(os.environ)
-    os_environ.pop('_', None)
-    os_environ.pop('PWD', None)
-    os_environ.pop('OLDPWD', None)
-    os_environ.pop('DISPLAY', None)
-    os_environ.pop('SSH_TTY', None)
-    os_environ.pop('SSH_CLIENT', None)
-    os_environ.pop('SSH_CONNECTION', None)
-    os_environ.pop('XDG_SESSION_ID', None)
-    os_environ.update(extra_dict)
-    for kk, vv in os_environ.items():
-        if kk.endswith('PATH'):
-            os_environ[kk] = tuple(Path(vvv).resolve().as_posix() for vvv in vv.split(':'))
-        elif kk.startswith('G4'):
-            os_environ[kk] = Path(vv).resolve().as_posix()
-    return os_environ
+                          + f"'bdsim_path' explicitly.\n{bdsim_path}")
+        return bdsim_path[0]
+    return bdsim_path
