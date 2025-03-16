@@ -18,7 +18,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import ClassProperty, FsPath
 
 from .reference_masses import source, fluka_masses
-from .environment import FlukaEnvironment
+from .environment import FlukaEnvironment, format_fluka_float
 from .prototypes import FlukaPrototype
 from ..engine import BaseEngine
 from ...general import _pkg_root
@@ -336,8 +336,8 @@ class FlukaEngine(BaseEngine):
         part = self.particle_ref
         mass = part.mass0
         pdg_id = part.pdg_id[0]
-        if pdg_id in fluka_masses:
-            mass_fluka = fluka_masses[pdg_id][-1]
+        if abs(pdg_id) in fluka_masses:
+            mass_fluka = fluka_masses[abs(pdg_id)][-1]
             if abs(mass-mass_fluka) > 1.:    # The mass differs more than 1eV from the FLUKA reference mass
                 old_energy0 = part.energy0[0]
                 part.mass0  = mass_fluka
@@ -442,7 +442,7 @@ class FlukaEngine(BaseEngine):
             lines = fid.readlines()
         for i, line in enumerate(lines):
             if 'RANDOMIZ' in line:
-                lines[i] = f"RANDOMIZe        1.0{self.seed:9}.\n"
+                lines[i] = f"RANDOMIZe        1.0{format_fluka_float(self.seed)}\n"
                 break
         with input_file.open('w') as fid:
             fid.writelines(lines)
