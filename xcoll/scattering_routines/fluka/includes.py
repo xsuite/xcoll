@@ -173,7 +173,7 @@ def _beam_include_file(particle_ref):
         _, A, Z, _ = get_properties_from_pdg_id(pdg_id)
         momentum_cut *= 3.2 / A # Upper limit (scaling is slightly arbitrary)
         name = "HEAVYION"
-        hi_prope = "HI-PROPE  {Z:8}.0{A:8}.0"
+        hi_prope = f"HI-PROPE  {Z:8}.0{A:8}.0"
     else:
         raise ValueError(f"Reference particle {get_name_from_pdg_id(pdg_id)} not "
                         + "supported by FLUKA.")
