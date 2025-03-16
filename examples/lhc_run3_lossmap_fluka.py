@@ -27,38 +27,29 @@ path_out = Path.cwd()
 # Load from json
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
-
 # Initialise colldb
 colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', beam=beam)
 
-
 # Install collimators into line
 colldb.install_fluka_collimators(line=line, verbose=True)
-
 
 # Aperture model check
 print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
-
 # Build the tracker
 line.build_tracker()
-
 
 # Assign the optics to deduce the gap settings
 line.collimators.assign_optics()
 
-
 # Connect to FLUKA
-xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', clean=True, verbose=True)
-
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 part = line[tcp].generate_pencil(num_particles)
-
 
 # Track!
 line.scattering.enable()
@@ -66,10 +57,8 @@ line.track(part, num_turns=num_turns, time=True, with_progress=1)
 line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
-
 # Stop the FLUKA connection (and return to the previous directory)
 xc.FlukaEngine.stop()
-
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package

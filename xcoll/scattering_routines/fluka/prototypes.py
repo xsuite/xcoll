@@ -34,7 +34,8 @@ class FlukaPrototype:
                     return prototype
         # Register the new prototype
         self = object.__new__(cls)
-        FlukaPrototype._registry.append(self)
+        if fedb_series is not None and fedb_tag is not None:
+            FlukaPrototype._registry.append(self)
         return self
 
     def __init__(self, fedb_series=None, fedb_tag=None, angle=0, side=None, material=None,
@@ -61,7 +62,7 @@ class FlukaPrototype:
 
     def __repr__(self):
         if self._is_null:
-            return None
+            return ''
         if self.active:
             if len(self.elements) == 1:
                 elements = f"{len(self.elements)} element"
