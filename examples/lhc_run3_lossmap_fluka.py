@@ -58,7 +58,7 @@ line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Stop the FLUKA connection (and return to the previous directory)
-xc.FlukaEngine.stop()
+xc.FlukaEngine.stop(clean=True)
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
