@@ -100,10 +100,15 @@ for traj in all_trajectories:
 
 
 # Define common methods for all trajectories
-def plot(self, l1=0, l2=1):
+def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
     """Plot the trajectory and its bounding box"""
-    fig, ax  = plt.subplots()
-
+    if ax is None:
+        fig, ax  = plt.subplots(figsize=(8, 8))
+    else:
+        fig = ax.figure
+    if self.__class__.__name__ == 'CircularTrajectory':
+        l1 = l1*2*np.pi
+        l2 = l2*2*np.pi
     l_values = np.linspace(l1, l2, 100)
     s_values = np.array([self.func_s(l=l) for l in l_values])
     x_values = np.array([self.func_x(l=l) for l in l_values])
@@ -114,16 +119,51 @@ def plot(self, l1=0, l2=1):
     # Get and plot the bounding box
     extrema_s = np.zeros(2)
     extrema_x = np.zeros(2)
-    self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
-    self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
-    ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-            [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
-            'k--', label='Bounding Box')
-
+    if plot_bounding_box:
+        self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
+        self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
+        ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
+                [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+                'k--', label='Bounding Box')
     ax.set_xlabel('s')
     ax.set_ylabel('x')
     ax.set_aspect('equal', 'box')
     return ax.figure, ax
+
+@classmethod 
+def _inspect(cls, plot_bounding_box=True, **kwargs):
+    '''
+    Quick method to plot the segment and its bounding box in an interactive way. 
+    Useful for testing. Kwargs needs to have all arguments as keys, and val should be
+    [min, max, initial_value].
+    '''''
+    from matplotlib.widgets import Slider
+    plt.ion()  # This enables interactive mode
+    fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot(
+                        plot_bounding_box=plot_bounding_box)
+    plt.subplots_adjust(left=0.1, bottom=0.1+0.025*len(kwargs)) # slider space
+
+    state = {'ax': ax} # store the axis 
+
+    def update_plot(val):
+        these_kwargs = {arg: sliders[arg].val for arg in kwargs}
+        state['ax'].clear()
+        fig, state['ax'] = cls(**these_kwargs).plot(l1=sliders['l1'].val, l2=sliders['l2'].val, ax=state['ax'],
+                        plot_bounding_box=plot_bounding_box)
+        plt.draw()
+    all_kwargs = kwargs
+    all_kwargs['l1'] = [0, 1, 0]
+    all_kwargs['l2'] = [0, 1, 1]
+    ax_sliders = {arg: plt.axes([0.1, 0.025*(len(all_kwargs)-i-1), 0.8, 0.03], facecolor='lightgrey')
+                  for i, arg in enumerate(all_kwargs)}
+    sliders = {arg: Slider(ax_sliders[arg], arg, val[0], val[1], valinit=val[2])
+               for arg, val in all_kwargs.items()}
+    for slider in sliders.values():
+        slider.on_changed(update_plot)
+    plt.show(block=False)  # Make plt.show() non-blocking
+    while plt.fignum_exists(fig.number):
+        plt.pause(0.1) # Keep the plot alive and responsive
+
 
 def __eq(self, other):
     """Check if two objects are equal"""
@@ -166,6 +206,7 @@ for traj in all_trajectories:
     traj.copy = __copy
     traj.round = __round
     traj.plot = plot
+    traj._inspect = _inspect
 
 
 # Sanity check to assert all trajectories have C code for func_ and deriv_ functions
