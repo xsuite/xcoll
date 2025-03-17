@@ -54,68 +54,75 @@ double BezierSegment_deriv_x(BezierSegment seg, double t){
 }
 
 /*gpufun*/
-void BezierSegment_bounding_box_s(BezierSegment seg, double t1, double t2, double extrema[2]){
+void BezierSegment_bounding_box(BezierSegment seg, double t1, double t2, BoundingBox* box){
     double ts1 = BezierSegment_get__ts1(seg);
     double ts2 = BezierSegment_get__ts2(seg);
     double s1  = BezierSegment_func_s(seg, t1);
     double s2  = BezierSegment_func_s(seg, t2);
+    double tx1 = BezierSegment_get__tx1(seg);
+    double tx2 = BezierSegment_get__tx2(seg);
+    double x1  = BezierSegment_func_x(seg, t1);
+    double x2  = BezierSegment_func_x(seg, t2);
+    double smin, smax, xmin, xmax;
     if (t1 <= ts1 && ts1 <= t2){
         double es1 = BezierSegment_get__es1(seg);
         if (t1 <= ts2 && ts2 <= t2){
             double es2 = BezierSegment_get__es2(seg);
             double s[4] = {s1, s2, es1, es2};
             sort_array_of_4_double(s);
-            extrema[0] = s[0];
-            extrema[1] = s[3];
+            smin = s[0];
+            smax = s[3];
         } else {
             double s[3] = {s1, s2, es1};
             sort_array_of_3_double(s);
-            extrema[0] = s[0];
-            extrema[1] = s[2];
+            smin = s[0];
+            smax = s[2];
         }
     } else if (t1 <= ts2 && ts2 <= t2){
         double es2 = BezierSegment_get__es2(seg);
         double s[3] = {s1, s2, es2};
         sort_array_of_3_double(s);
-        extrema[0] = s[0];
-        extrema[1] = s[2];
+        smin = s[0];
+        smax = s[2];
     } else {
-        extrema[0] = MIN(s1, s2);
-        extrema[1] = MAX(s1, s2);
+        smin = MIN(s1, s2);
+        smax = MAX(s1, s2);
     }
-}
-
-/*gpufun*/
-void BezierSegment_bounding_box_x(BezierSegment seg, double t1, double t2, double extrema[2]){
-    double tx1 = BezierSegment_get__tx1(seg);
-    double tx2 = BezierSegment_get__tx2(seg);
-    double x1  = BezierSegment_func_x(seg, t1);
-    double x2  = BezierSegment_func_x(seg, t2);
     if (t1 <= tx1 && tx1 <= t2){
         double ex1 = BezierSegment_get__ex1(seg);
         if (t1 <= tx2 && tx2 <= t2){
             double ex2 = BezierSegment_get__ex2(seg);
             double s[4] = {x1, x2, ex1, ex2};
             sort_array_of_4_double(s);
-            extrema[0] = s[0];
-            extrema[1] = s[3];
+            xmin = s[0];
+            xmax = s[3];
         } else {
             double s[3] = {x1, x2, ex1};
             sort_array_of_3_double(s);
-            extrema[0] = s[0];
-            extrema[1] = s[2];
+            xmin = s[0];
+            xmax = s[2];
         }
     } else if (t1 <= tx2 && tx2 <= t2){
         double ex2 = BezierSegment_get__ex2(seg);
         double s[3] = {x1, x2, ex2};
         sort_array_of_3_double(s);
-        extrema[0] = s[0];
-        extrema[1] = s[2];
+        xmin = s[0];
+        xmax = s[2];
     } else {
-        extrema[0] = MIN(x1, x2);
-        extrema[1] = MAX(x1, x2);
+        xmin = MIN(x1, x2);
+        xmax = MAX(x1, x2);
     }
+    box->rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
+    box->sin_tC = xmin / box->rC; // angle of position vector to first vertex
+    box->cos_tC = smin / box->rC;
+    box->proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    box->proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    box->l = smax - smin;  // length of the box
+    box->w = xmax - xmin;  // width of the box
+    box->sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
+    box->cos_tb = 1;
 }
+
 
 /*gpufun*/
 void BezierSegment_calculate_extrema(BezierSegment seg){

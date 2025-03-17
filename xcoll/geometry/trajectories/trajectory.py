@@ -152,8 +152,8 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
                         plot_bounding_box=plot_bounding_box)
         plt.draw()
     all_kwargs = kwargs
-    all_kwargs['l1'] = [0, 1, 0]
-    all_kwargs['l2'] = [0, 1, 1]
+    all_kwargs['l1'] = [0, 1, 0] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 0]
+    all_kwargs['l2'] = [0, 1, 1] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 1]
     ax_sliders = {arg: plt.axes([0.1, 0.025*(len(all_kwargs)-i-1), 0.8, 0.03], facecolor='lightgrey')
                   for i, arg in enumerate(all_kwargs)}
     sliders = {arg: Slider(ax_sliders[arg], arg, val[0], val[1], valinit=val[2])
