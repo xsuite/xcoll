@@ -51,18 +51,18 @@ int8_t bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
     if (!INTERVALS_OVERLAP(b1->proj_w, b1->proj_w + b1->w, projs[0], projs[3])){ return false;}
 
     // length of projection of vertices of box 1 on the length axis of box 2 (f1)
-    projs[0] = b2->rC * (b1->cos_tb * b2->cos_tC + b1->sin_tb * b2->sin_tC);  // first vertex w1:  |w1| cos (tb1 - tc2)
-    projs[1] = projs[0] + b2->l * cos_tb1_tb2; // second vertex w2 = w1 + f1
-    projs[2] = projs[1] + b2->w * sin_tb1_tb2; // third vertex w3 = w1 + f1 + f2
-    projs[3] = projs[0] + b2->w * sin_tb1_tb2; // fourth vertex w4 = w1 + f2
+    projs[0] = b1->rC * (b2->cos_tb * b1->cos_tC + b2->sin_tb * b1->sin_tC);  // first vertex v1:  |v1| cos (tb1 - tc2)
+    projs[1] = projs[0] + b1->l * cos_tb1_tb2; // second vertex v2 = v1 + e1
+    projs[2] = projs[1] + b1->w * sin_tb1_tb2; // third vertex v3 = v1 + e1 + e2
+    projs[3] = projs[0] + b1->w * sin_tb1_tb2; // fourth vertex v4 = v1 + e2
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b2->proj_l, b2->proj_l + b2->l, projs[0], projs[3])){ return false;}
 
     // length of projection of vertices of box 1 on the width axis of box 2 (f2)
-    projs[0] = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC);  // first vertex w1:  |w1| cos(tb1 + pi/2 - tc2)
-    projs[1] = projs[0] + b2->l * sin_tb1_tb2; // second vertex w2 = w1 + f1
-    projs[2] = projs[1] + b2->w * cos_tb1_tb2; // third vertex w3 = w1 + f1 + f2
-    projs[3] = projs[0] + b2->w * cos_tb1_tb2; // fourth vertex w4 = w1 + f2 
+    projs[0] = b1->rC * (b2->cos_tb * b1->sin_tC - b2->sin_tb * b1->cos_tC);  // first vertex v1:  |v1| cos(tb1 + pi/2 - tc2)
+    projs[1] = projs[0] + b1->l * sin_tb1_tb2; // second vertex v2 = v1 + e1
+    projs[2] = projs[1] + b1->w * cos_tb1_tb2; // third vertex v3 = v1 + e1 + e2
+    projs[3] = projs[0] + b1->w * cos_tb1_tb2; // fourth vertex v4 = v1 + e2 
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b2->proj_w, b2->proj_w + b2->w, projs[0], projs[3])){ return false;}
 
