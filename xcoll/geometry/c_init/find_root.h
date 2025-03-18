@@ -33,7 +33,7 @@ int8_t bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
     double cos_tb1_tb2 = b1->cos_tb * b2->cos_tb + b1->sin_tb * b2->sin_tb;  // cos (tb1 - tb2)
     double sin_tb1_tb2 = b1->sin_tb * b2->cos_tb - b1->cos_tb * b2->sin_tb;  // sin (tb1 - tb2)
 
-    // Projection of vector W on E is given by: |W| cos(theta) where theta is the angle between W and E
+    // The length of the projection of vector W on E is given by: |W| cos(theta) where theta is the angle between W and E
     // projection of vertices of box 2 on the length axis of box 1 (e1)
     projs[0] = b2->rC * (b1->cos_tb * b2->cos_tC + b1->sin_tb * b2->sin_tC);  // first vertex w1:  |w1| cos (tb1 - tc2)
     projs[1] = projs[0] + b2->l * cos_tb1_tb2; // second vertex w2 = w1 + f1
@@ -42,27 +42,27 @@ int8_t bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b1->proj_l, b1->proj_l + b1->l, projs[0], projs[3])){ return false;}
 
-    // projection of vertices of box 2 on the width axis of box 1 (e2)
-    projs[0] = 
-    projs[1] = 
-    projs[2] = 
-    projs[3] = 
+    // length of projection of vertices of box 2 on the width axis of box 1 (e2)
+    projs[0] = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC);  // first vertex w1:  |w1| cos(tb1 + pi/2 - tc2)
+    projs[1] = projs[0] + b2->l * sin_tb1_tb2; // second vertex w2 = w1 + f1
+    projs[2] = projs[1] + b2->w * cos_tb1_tb2; // third vertex w3 = w1 + f1 + f2
+    projs[3] = projs[0] + b2->w * cos_tb1_tb2; // fourth vertex w4 = w1 + f2
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b1->proj_w, b1->proj_w + b1->w, projs[0], projs[3])){ return false;}
 
-    // projection of vertices of box 1 on the length axis of box 2 (f1)
-    projs[0] = 
-    projs[1] = 
-    projs[2] = 
-    projs[3] = 
+    // length of projection of vertices of box 1 on the length axis of box 2 (f1)
+    projs[0] = b2->rC * (b1->cos_tb * b2->cos_tC + b1->sin_tb * b2->sin_tC);  // first vertex w1:  |w1| cos (tb1 - tc2)
+    projs[1] = projs[0] + b2->l * cos_tb1_tb2; // second vertex w2 = w1 + f1
+    projs[2] = projs[1] + b2->w * sin_tb1_tb2; // third vertex w3 = w1 + f1 + f2
+    projs[3] = projs[0] + b2->w * sin_tb1_tb2; // fourth vertex w4 = w1 + f2
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b2->proj_l, b2->proj_l + b2->l, projs[0], projs[3])){ return false;}
 
-    // projection of vertices of box 1 on the width axis of box 2 (f2)
-    projs[0] = 
-    projs[1] = 
-    projs[2] = 
-    projs[3] = 
+    // length of projection of vertices of box 1 on the width axis of box 2 (f2)
+    projs[0] = b2->rC * (b1->cos_tb * b2->sin_tC - b1->sin_tb * b2->cos_tC);  // first vertex w1:  |w1| cos(tb1 + pi/2 - tc2)
+    projs[1] = projs[0] + b2->l * sin_tb1_tb2; // second vertex w2 = w1 + f1
+    projs[2] = projs[1] + b2->w * cos_tb1_tb2; // third vertex w3 = w1 + f1 + f2
+    projs[3] = projs[0] + b2->w * cos_tb1_tb2; // fourth vertex w4 = w1 + f2 
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(b2->proj_w, b2->proj_w + b2->w, projs[0], projs[3])){ return false;}
 
