@@ -134,7 +134,7 @@ class LossMap:
                         part.state[idx] = -332
                     elif what_type == 'FlukaCollimator':
                         part.state[idx] = -334   # TODO: what if crystal?
-                    elif what_type == 'Geant4Collimator':
+                    elif what_type == 'Geant4Collimator' or what_type == 'Geant4CollimatorTip':
                         part.state[idx] = -337   # TODO: what if crystal?
                     elif what_type == 'BlackAbsorber':
                         part.state[idx] = -340
