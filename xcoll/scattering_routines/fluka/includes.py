@@ -20,7 +20,7 @@ from ...general import _pkg_root
 def _is_proton(pdg_id):
     if isinstance(pdg_id, xt.Particles):
         pdg_id = pdg_id.pdg_id[0]
-    return pdg_id >= 2212
+    return pdg_id == 2212
 
 
 def _is_ion(pdg_id):
@@ -131,7 +131,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         if return_neutrinos is None:
             return_neutrinos = False
         if return_protons is None:
-            return_protons = _is_proton(particle_ref)
+            return_protons = _is_proton(particle_ref) or _is_ion(particle_ref)
         if return_neutrons is None:
             return_neutrons = False
         if return_ions is None:
@@ -220,7 +220,7 @@ def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_
                 + f"  - Photon lower momentum cut: {photon_lower_momentum_cut} GeV\n"
                 + f"  - Electron lower momentum cut: {electron_lower_energy_cut} GeV")
         else:
-            print(f"\n  - EM showers: ON")
+            print(f"  - EM showers: OFF")
 
     template = f"""\
 ******************************************************************************
