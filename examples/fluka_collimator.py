@@ -30,11 +30,13 @@ coll2.jaw = 0.001
 # Connect to FLUKA
 xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine.capacity = _capacity
+xc.FlukaEngine.seed = 5656565
 xc.FlukaEngine.start(elements=coll, clean=True, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
 # longitudinal coordinates set to zero)
+np.random.seed(seed=23823842)
 x_init   = np.random.normal(loc=0.001, scale=0.2e-3, size=num_part)
 px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)

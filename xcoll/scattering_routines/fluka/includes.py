@@ -198,7 +198,6 @@ SOURCE           89.       90.       91.        0.       -1.       10.&
 """
     with filename.open('w') as fp:
         fp.write(template)
-
     return filename
 
 
@@ -240,11 +239,11 @@ DEFAULTS                                                              PRECISIO
 *
 * All particle transport thresholds up to 1 TeV
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-PART-THR  {format_fluka_float(-lower_momentum_cut)}            @LASTPAR                 0.0
-PART-THR  {format_fluka_float(-2*lower_momentum_cut)}  DEUTERON                           0.0
-PART-THR  {format_fluka_float(-3*lower_momentum_cut)}    TRITON                           0.0
-PART-THR  {format_fluka_float(-3*lower_momentum_cut)}  3-HELIUM                           0.0
-PART-THR  {format_fluka_float(-4*lower_momentum_cut)}  4-HELIUM                           0.0
+PART-THR  {format_fluka_float(lower_momentum_cut)}            @LASTPAR                 0.0
+PART-THR  {format_fluka_float(2*lower_momentum_cut)}  DEUTERON                           0.0
+PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                           0.0
+PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
+PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
 *
 *
 * Activate single scattering
@@ -260,9 +259,6 @@ PHYSICS           2.                                                  EM-DISSO
 """
     with filename.open('w') as fp:
         fp.write(template)
-    print("TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO ")
-    print("PART-THR does not work with positive numbers (momentum cut), only with negative numbers (kinetic energy cut). Whyyy?")
-    print("TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO ")
     return filename
 
 
@@ -354,7 +350,6 @@ USERWEIG                             3.0
 {neutral_exotics}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutral_exotics}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-*{protons}        8000.0   1.0E-04     210.0
 {protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
@@ -405,7 +400,4 @@ USERDUMP       100.0
 """
     with filename.open('w') as fp:
         fp.write(template)
-    print("TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO ")
-    print("What about the second USRBDX with energy cut and number of energy bins?")
-    print("TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO ")
     return filename
