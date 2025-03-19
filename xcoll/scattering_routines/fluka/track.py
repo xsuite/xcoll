@@ -27,7 +27,7 @@ def track(coll, particles):
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
 
-    if not coll.active or not coll._tracking:
+    if not coll.active or not coll._tracking or not coll.fluka_id or not coll.jaw:
         _drift(coll, particles, coll.length)
         return
 

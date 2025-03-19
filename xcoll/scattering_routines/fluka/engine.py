@@ -114,7 +114,7 @@ class FlukaEngine(BaseEngine):
         kwargs, _ = cls.filter_kwargs(**kwargs)
         if self._tracking_initialised == False:
             self.assert_particle_ref()
-            _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0])
+            _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0], long_name=True)
             # FLUKA expects units of MeV
             E0 = self.particle_ref.energy0[0] / 1.e6
             p0c = self.particle_ref.p0c[0] / 1.e6
