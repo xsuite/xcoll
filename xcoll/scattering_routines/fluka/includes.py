@@ -6,7 +6,8 @@
 from math import sqrt
 
 import xtrack as xt
-from xpart.pdg import get_name_from_pdg_id, get_properties_from_pdg_id
+from xpart.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, \
+                      is_proton, is_ion, is_lepton
 try:
     from xaux import singleton, FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
@@ -20,19 +21,19 @@ from ...general import _pkg_root
 def _is_proton(pdg_id):
     if isinstance(pdg_id, xt.Particles):
         pdg_id = pdg_id.pdg_id[0]
-    return pdg_id == 2212
+    return is_proton(pdg_id)
 
 
 def _is_ion(pdg_id):
     if isinstance(pdg_id, xt.Particles):
         pdg_id = pdg_id.pdg_id[0]
-    return pdg_id >= 1000000000
+    return is_ion(pdg_id)
 
 
 def _is_lepton(pdg_id):
     if isinstance(pdg_id, xt.Particles):
         pdg_id = pdg_id.pdg_id[0]
-    return 11 <= abs(pdg_id) <= 19
+    return is_lepton(pdg_id)
 
 
 def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_momentum_cut=None,

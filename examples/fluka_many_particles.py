@@ -96,9 +96,9 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     #                             i -= 1
     #                             break
     #                         break
-    #             contents.insert(i, new_line + '\n')
     #             if not element_exists_in_table:
     #                 contents.insert(i, '\n')
+    #             contents.insert(i, new_line + '\n')
     #             with db_file.open('w') as fp:
     #                 contents = "".join(contents)
     #                 fp.write(contents)
@@ -140,6 +140,6 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
         plt.show()
 
 
-run_many_particles(xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
+# run_many_particles(xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
 run_many_particles(xp.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=100_000)
-run_many_particles(xp.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
+# run_many_particles(xp.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
