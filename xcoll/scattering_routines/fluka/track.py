@@ -4,8 +4,10 @@
 # ######################################### #
 
 import numpy as np
-import xtrack.particles.pdg as pdg
+
 import xobjects as xo
+import xtrack as xt
+import xtrack.particles.pdg as pdg
 
 
 LOST_ON_FLUKA_COLL = -334
