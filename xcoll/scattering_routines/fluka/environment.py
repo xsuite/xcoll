@@ -51,7 +51,7 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
     def fluka(cls, val):
         self = cls.get_self()
         if val is None:
-            self._fluka = (self._default_fluka_eos_path / 'fluka4-4.1' / 'bin' / 'rfluka').resolve()
+            self._fluka = (self._default_fluka_eos_path / 'fluka4-5.0' / 'bin' / 'rfluka').resolve()
         else:
             val = FsPath(val)
             self._brute_force_path(val.parents[1])
@@ -87,7 +87,7 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
     def flair(cls, val):
         self = cls.get_self()
         if val is None:
-            self._flair = (self._default_fluka_eos_path / 'flair-3.3' /  'flair').resolve()
+            self._flair = (self._default_fluka_eos_path / 'flair-3.4' /  'flair').resolve()
         else:
             val = FsPath(val)
             self._brute_force_path(val.parent)
