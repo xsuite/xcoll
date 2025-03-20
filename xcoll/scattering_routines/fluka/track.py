@@ -265,8 +265,9 @@ def track_core(coll, part):
         E0    = part.energy0[0]
         b0    = part.beta0[0]
         m0    = part.mass0
-        # TODO: we set massless particles to -m0 to avoid division by zero errors. To update when Xsuite is updated.
-        m[np.abs(m) < 1.e-12] = -part.mass0
+        # TODO: we set massless particles to a very small negative mass to avoid division by zero errors.
+        # To be adapted when Xsuite is updated.
+        m[np.abs(m) < 1.e-12] = -1.e-10
         delta = np.sqrt(1./(b0**2) * E**2/(E0**2) * m0**2/(m**2) - 1./(b0**2) + 1.) - 1.
         rpp   = 1. / (1. + delta)
         new_part = xt.Particles(_context=part._buffer.context,

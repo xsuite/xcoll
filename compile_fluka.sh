@@ -13,7 +13,7 @@ path=xcoll/scattering_routines/fluka
 git submodule update --init --recursive
 
 cd $path
-rm pyflukaf.*.so
+rm pyflukaf.*so
 
 cd flukaio
 make libs BUILD64=Y
