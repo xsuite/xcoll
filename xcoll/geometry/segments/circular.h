@@ -64,8 +64,11 @@ void CircularSegment_bounding_box(CircularSegment seg, double t1, double t2, Bou
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1 = theta1 + t1*(theta2 - theta1); // rescale
     double tt2 = theta1 + t2*(theta2 - theta1); // rescale
-    double sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1)); // box angle
-    double cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    double dx = x2 - x1;
+    double ds = s2 - s1;
+    double euclidean_length = sqrt(dx*dx + ds*ds);
+    double sin_t = dx / euclidean_length; // box angle
+    double cos_t = ds / euclidean_length;
     double sin_p, cos_p;
     if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
         sin_t = -sin_t;
@@ -78,8 +81,8 @@ void CircularSegment_bounding_box(CircularSegment seg, double t1, double t2, Bou
         sin_p = -cos_t;
         cos_p = sin_t;
     }
-    if ( (tt2 - tt1) < 180){ // delta theta of box less than 180.
-        box->l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
+    if ( (tt2 - tt1) < M_PI){ // delta theta of box less than 180.
+        box->l  = euclidean_length;   // length of the box
         box->w  = R - sqrt(R*R - box->l*box->l/4.);                  // width of the box, Sagitta
         // finding the first vertex. 
         if (x1 < x2){
@@ -98,47 +101,40 @@ void CircularSegment_bounding_box(CircularSegment seg, double t1, double t2, Bou
             }
         }
     } else {
-        double minimum, maximum;
-        if (tt1 <= M_PI && M_PI <= tt2){
-            minimum = sR - R;
+        box->l = 2*R;
+        box->w = R + sqrt(R*R - box->l*box->l/4.); 
+        double chord_side_p1_x, chord_side_p1_s, chord_side_p2_x, chord_side_p2_s;
+        if (x1 < x2){
+            chord_side_p1_x = x1 - (2*R - box->l)/2.*sin_t;
+            chord_side_p1_s = s1 - (2*R - box->l)/2.*cos_t;
+            chord_side_p2_x = x2 + (2*R - box->l)/2.*sin_t;
+            chord_side_p2_s = s2 + (2*R - box->l)/2.*cos_t;
         } else {
-            minimum = MIN(s1, s2);
+            chord_side_p1_x = x2 - (2*R - box->l)/2.*sin_t;
+            chord_side_p1_s = s2 - (2*R - box->l)/2.*cos_t;
+            chord_side_p2_x = x1 + (2*R - box->l)/2.*sin_t;
+            chord_side_p2_s = s1 + (2*R - box->l)/2.*cos_t;
         }
-        if ((tt1 <= 0. && 0. <= tt2) || (tt1 <= 2*M_PI && 2*M_PI <= tt2)){
-            maximum = sR + R;
-        } else {
-            maximum = MAX(s1, s2);
-        }
-        box->rC = sqrt(
+        double p3_x = chord_side_p1_x + box->w*sin_t;
+        double p3_s = chord_side_p1_s + box->w*cos_t;
+        double p4_x = chord_side_p2_x + box->w*sin_t;
+        double p4_s = chord_side_p2_s + box->w*cos_t;
+        // Compare with the other three points
+        double min_x = chord_side_p1_x;
+        double min_s = chord_side_p1_s;
+        if (chord_side_p2_x < min_x) { min_x = chord_side_p2_x; min_s = chord_side_p2_s; }
+        if (p3_x < min_x) { min_x = p3_x; min_s = p3_s; }
+        if (p4_x < min_x) { min_x = p4_x; min_s = p4_s; }
 
-}
-
-/*gpufun*/
-void CircularSegment_bounding_box_x(CircularSegment seg, double t1, double t2, double extrema[2]){
-    double x1 = CircularSegment_func_x(seg, t1);
-    double x2 = CircularSegment_func_x(seg, t2);
-    double R  = CircularSegment_get_R(seg);
-    double xR = CircularSegment_get_xR(seg);
-    double theta1 = CircularSegment_get__theta1(seg);
-    double theta2 = CircularSegment_get__theta2(seg);
-    double tt1 = theta1 + t1*(theta2 - theta1); // rescale
-    double tt2 = theta1 + t2*(theta2 - theta1); // rescale
-    if ((tt1 <= -M_PI/2. && -M_PI/2. <= tt2) || (tt1 <= 3*M_PI/2. && 3*M_PI/2. <= tt2)){
-        extrema[0] = xR - R;
-    } else {
-        extrema[0] = MIN(x1, x2);
+        box->rC = sqrt(min_s*min_s + min_x*min_x); // length of position vector to first vertex
     }
-    if (tt1 <= M_PI/2. && M_PI/2. <= tt2){
-        extrema[1] = xR + R;
-    } else {
-        extrema[1] = MAX(x1, x2);
-    }
+    box->sin_tC = x1 / box->rC;    // angle of position vector to first vertex
+    box->cos_tC = s1 / box->rC;
+    box->sin_tb = sin_t;           // orientation of the box (angle of length wrt horizontal)
+    box->cos_tb = cos_t;
+    box->proj_l = box->rC * (cos_t*box->cos_tC + sin_t*box->sin_tC); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    box->proj_w = box->rC * (cos_t*box->sin_tC - sin_t*box->cos_tC); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
-
-
-}
-
-
 // /*gpufun*/
 // void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
 //     // Get segment data
