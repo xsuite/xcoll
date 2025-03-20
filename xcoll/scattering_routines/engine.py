@@ -447,6 +447,14 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if self._uses_run_folder:
             if cwd is not None:
                 cwd = FsPath(cwd).expanduser().resolve()
+                if cwd.exists():
+                    i = 0
+                    while (cwd.parent / f'{cwd.name}_{i:0>4}').exists():
+                        i += 1
+                        if i > 9999:
+                            raise ValueError(f"Too many folders with the same "
+                                           + f"name {cwd}!")
+                    cwd = cwd.parent / f'{cwd.name}_{i:0>4}'
             else:
                 ran_str = ranID(only_alphanumeric=True)
                 cwd = FsPath.cwd() / f'{self.name}_run_{ran_str}'
