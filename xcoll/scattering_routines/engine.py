@@ -433,6 +433,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.")
                 self._remove_element(name, ee)
+                ee.active = False
             elif not ee.active:
                 self._print(f"Warning: Element {name} is not active. Ignoring.")
                 self._remove_element(name, ee)
