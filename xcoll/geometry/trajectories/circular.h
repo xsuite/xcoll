@@ -80,45 +80,90 @@ double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
 }
 
 /*gpufun*/
-void CircularTrajectory_bounding_box_s(CircularTrajectory traj, double l1, double l2, double extrema[2]){
+void CircularTrajectory_bounding_box(CircularTrajectory traj, double l1, double l2, BoundingBox* box){
     // Take note that these functions, bounding boxes, expect l1 and l2 in radians! 
     // The plot function will automatically change [0,1] to [0,2pi] for you.
     double s1 = CircularTrajectory_func_s(traj, l1);
     double s2 = CircularTrajectory_func_s(traj, l2);
-    double sR = CircularTrajectory_get_sR(traj);
-    double R  = CircularTrajectory_get_R(traj);
-    double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
-    theta = fmod(theta + M_PI, 2 * M_PI) - M_PI;
-    double l1_rescaled = theta + l1;
-    double l2_rescaled = l1_rescaled + (l2-l1);
-    extrema[0] = MIN(s1, s2);   
-    extrema[1] = MAX(s1, s2);
-    if ((l1_rescaled <= 0. && 0. <= l2_rescaled) || (l1_rescaled <= 2*M_PI && 2*M_PI <= l2_rescaled)){
-        extrema[1] = sR + R;
-    }
-    if ((l1_rescaled <= M_PI && M_PI <= l2_rescaled) || (l1_rescaled <= 3*M_PI && 3*M_PI <= l2_rescaled)){
-        extrema[0] = sR - R;
-    }
-}
-
-/*gpufun*/
-void CircularTrajectory_bounding_box_x(CircularTrajectory traj, double l1, double l2, double extrema[2]){
     double x1 = CircularTrajectory_func_x(traj, l1);
     double x2 = CircularTrajectory_func_x(traj, l2);
+    double sR = CircularTrajectory_get_sR(traj);
     double R  = CircularTrajectory_get_R(traj);
-    double xR = CircularTrajectory_get_xR(traj);
-    double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
-    theta = fmod(theta + M_PI, 2 * M_PI) - M_PI;
+    double sin_t = CircularTrajectory_get_sin_tI(traj);
+    double cos_t = CircularTrajectory_get_cos_tI(traj);
     double l1_rescaled = theta + l1;
     double l2_rescaled = l1_rescaled + (l2-l1);
-    extrema[0] = MIN(x1, x2);
-    extrema[1] = MAX(x1, x2);
-    if ( (l1_rescaled <= -M_PI/2. && -M_PI/2. <= l2_rescaled) || (l1_rescaled <= 3*M_PI/2. && 3*M_PI/2. <= l2_rescaled)){
-        extrema[0] = xR - R;
-    } 
-    if ((l1_rescaled <= M_PI/2. && M_PI/2. <= l2_rescaled) || (l1_rescaled <= 5*M_PI/2. && 5*M_PI/2. <= l2_rescaled)){
-        extrema[1] = xR + R;
+    double dx = x2 - x1;
+    double ds = s2 - s1;
+    double euclidean_length = sqrt(dx*dx + ds*ds);
+    double sin_p, cos_p;
+
+    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
+        sin_t = -sin_t;
+        cos_t = -cos_t;
     }
+    if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
+        sin_p = cos_t;
+        cos_p = -sin_t;
+    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
+        sin_p = -cos_t;
+        cos_p = sin_t;
+    }
+    if ((l2-l1) < 180){ // delta theta of box less than 180.
+        box->l  = euclidean_length;   // length of the box
+        box->w  = R - sqrt(R*R - box->l*box->l/4.);                  // width of the box, Sagitta
+        // finding the first vertex. 
+        if (x1 < x2){
+            if (((t1 < M_PI && t2 > M_PI) && (cos_t < 0)) || ((-M_PI < t1 < 0.) && (-M_PI < t2 < 0.)) || ((t1 < 0 && t2 > 0) && (cos_t > 0))){                // t1 or t2 is lower vertex
+                box->rC = sqrt( (s1+box->w*cos_p)*(s1+box->w*cos_p) +    // length of the position vector to the first vertex
+                                (x1+box->w*sin_p)*(x1+box->w*sin_p) );
+            } else {
+                box->rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
+            }
+        } else {
+            if (((t1 < M_PI && t2 > M_PI) && (cos_t < 0)) || ((-M_PI < t1 < 0.) && (-M_PI < t2 < 0.)) || ((t1 < 0 && t2 > 0) && (cos_t > 0))){                // t1 or t2 is lower vertex
+                box->rC = sqrt( (s2+box->w*cos_p)*(s2+box->w*cos_p) +    // length of the position vector to the first vertex
+                                (x2+box->w*sin_p)*(x2+box->w*sin_p) );
+            } else {
+                box->rC = sqrt(s2*s2 + x2*x2); // length of position vector to first vertex
+            }
+        }
+    } else {
+        box->l = 2*R;
+        box->w = R + sqrt(R*R - box->l*box->l/4.); 
+        double chord_side_p1_x, chord_side_p1_s, chord_side_p2_x, chord_side_p2_s;
+        if (x1 < x2){
+            chord_side_p1_x = x1 - (2*R - box->l)/2.*sin_t;
+            chord_side_p1_s = s1 - (2*R - box->l)/2.*cos_t;
+            chord_side_p2_x = x2 + (2*R - box->l)/2.*sin_t;
+            chord_side_p2_s = s2 + (2*R - box->l)/2.*cos_t;
+        } else {
+            chord_side_p1_x = x2 - (2*R - box->l)/2.*sin_t;
+            chord_side_p1_s = s2 - (2*R - box->l)/2.*cos_t;
+            chord_side_p2_x = x1 + (2*R - box->l)/2.*sin_t;
+            chord_side_p2_s = s1 + (2*R - box->l)/2.*cos_t;
+        }
+        double p3_x = chord_side_p1_x + box->w*sin_t;
+        double p3_s = chord_side_p1_s + box->w*cos_t;
+        double p4_x = chord_side_p2_x + box->w*sin_t;
+        double p4_s = chord_side_p2_s + box->w*cos_t;
+        // Compare with the other three points
+        double min_x = chord_side_p1_x;
+        double min_s = chord_side_p1_s;
+        if (chord_side_p2_x < min_x) { min_x = chord_side_p2_x; min_s = chord_side_p2_s; }
+        if (p3_x < min_x) { min_x = p3_x; min_s = p3_s; }
+        if (p4_x < min_x) { min_x = p4_x; min_s = p4_s; }
+
+        box->rC = sqrt(min_s*min_s + min_x*min_x); // length of position vector to first vertex
+    }
+    box->sin_tC = x1 / box->rC;    // angle of position vector to first vertex
+    box->cos_tC = s1 / box->rC;
+    box->sin_tb = sin_t;           // orientation of the box (angle of length wrt horizontal)
+    box->cos_tb = cos_t;
+    box->proj_l = box->rC * (cos_t*box->cos_tC + sin_t*box->sin_tC); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    box->proj_w = box->rC * (cos_t*box->sin_tC - sin_t*box->cos_tC); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+
 }
+
 
 #endif /* XCOLL_GEOM_TRAJ_CIRCULAR_H */
