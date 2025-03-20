@@ -81,7 +81,7 @@ void CircularSegment_bounding_box(CircularSegment seg, double t1, double t2, Bou
         sin_p = -cos_t;
         cos_p = sin_t;
     }
-    if ( (tt2 - tt1) < M_PI){ // delta theta of box less than 180.
+    if ((tt2 - tt1) < M_PI){ // delta theta of box less than 180.
         box->l  = euclidean_length;   // length of the box
         box->w  = R - sqrt(R*R - box->l*box->l/4.);                  // width of the box, Sagitta
         // finding the first vertex. 
