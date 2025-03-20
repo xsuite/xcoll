@@ -122,7 +122,6 @@ class FlukaEngine(BaseEngine):
                 from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
             except ImportError as error:
                 self._warn(error)
-                return
             self._print(f"Setting max_particle_id to {max_particle_id}, "
                       + f"and reference particle to {name} with mass {m0} MeV "
                       + f"and momentum {p0c} MeV.")
@@ -368,8 +367,6 @@ class FlukaEngine(BaseEngine):
             pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
         except ImportError as error:
             self._warn(error)
-            self.stop()
-            return
 
     def _declare_network(self):
         self._network_nfo = self._cwd / network_file
@@ -417,20 +414,18 @@ class FlukaEngine(BaseEngine):
             self._flukaio_connected = True
         except ImportError as error:
             self._warn(error)
-            self.stop()
-            return
         self._print(f"Done.")
 
 
     def _stop_fortran(self):
         if self._flukaio_connected:
+            self._flukaio_connected = False
             self._print(f"Closing fluka server connection...   ", end='')
             try:
                 from .pyflukaf import pyfluka_close
                 pyfluka_close()
             except ImportError as error:
                 self._warn(error)
-            self._flukaio_connected = False
             self._print(f"Done.")
 
 

@@ -65,11 +65,14 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def _warn(self, error=None):
         if not self._warning_given:
             print(f"Warning: Failed to import {self.__class__.__name__} environment "
-                + f"(did you compile?).\n{self.name.capitalize()} elements will be installed "
+                + f"(did you compile?).\n{self.name.capitalize()} elements can be installed "
                 + f"but are not trackable.", flush=True)
             if error:
-                print(error, flush=True)
+                print(f"Error: {error}", flush=True)
             self._warning_given = True
+        self.stop()
+        if error:
+            raise error
 
     def _print(self, *args, **kwargs):
         if self.verbose:
