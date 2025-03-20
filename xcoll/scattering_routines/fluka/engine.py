@@ -8,9 +8,7 @@ from subprocess import run, PIPE, Popen
 from time import sleep
  
 import xobjects as xo
-import xpart as xp
-import xpart.pdg as pdg
-import xtrack as xt
+import xtrack.particles.pdg as pdg
 
 try:
     from xaux import ClassProperty, FsPath  # TODO: once xaux is in Xsuite keep only this

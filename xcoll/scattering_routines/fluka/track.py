@@ -1,11 +1,10 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
-import xpart as xp
-import xpart.pdg as pdg
+import xtrack.particles.pdg as pdg
 import xobjects as xo
 
 
@@ -253,7 +252,7 @@ def track_core(coll, part):
                              + f"but only {num_free} free in particles object)!")
             # extra_capacity = int(1.2*(num_needed - num_free))  # 20% margin
             # # TODO: this does not work!!
-            # part = xp.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
+            # part = xt.Particles.from_dict(part.to_dict(), _capacity=part._capacity+extra_capacity)
 
         # # Sanity check: all parents should be dead - not the case for ionisation radiation etc
         idx_parents = np.array([np.where(part.particle_id==idx)[0][0] for idx in new_ppid[mask_new]])
@@ -270,7 +269,7 @@ def track_core(coll, part):
         m[np.abs(m) < 1.e-12] = -part.mass0
         delta = np.sqrt(1./(b0**2) * E**2/(E0**2) * m0**2/(m**2) - 1./(b0**2) + 1.) - 1.
         rpp   = 1. / (1. + delta)
-        new_part = xp.Particles(_context=part._buffer.context,
+        new_part = xt.Particles(_context=part._buffer.context,
                 p0c = part.p0c[0],
                 mass0 = part.mass0,
                 q0 = part.q0,

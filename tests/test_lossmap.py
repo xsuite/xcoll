@@ -8,7 +8,6 @@ import numpy as np
 from pathlib import Path
 import xtrack as xt
 import xcoll as xc
-import xpart as xp
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
@@ -70,7 +69,7 @@ def test_lossmap_fluka():
     for coll in colldb.collimator_names:
         line[coll].tilt = 0
 
-    xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.FlukaEngine.start(line=line, capacity=2*npart, cwd='run_fluka_temp', verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"

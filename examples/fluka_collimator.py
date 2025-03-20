@@ -28,7 +28,7 @@ coll2.jaw = 0.001
 
 
 # Connect to FLUKA
-xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.FlukaEngine.capacity = _capacity
 xc.FlukaEngine.seed = 5656565
 xc.FlukaEngine.start(elements=coll, clean=True, verbose=False)

@@ -17,7 +17,6 @@ import xcoll as xc
 from xcoll.scattering_routines.fluka.environment import format_fluka_float
 
 
-
 @pytest.mark.parametrize('num_part', [1000, 5000])
 def test_simple_track(num_part):
     print(f"Running test_simple_track with {num_part} particles")
@@ -29,7 +28,7 @@ def test_simple_track(num_part):
 
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
-    xc.FlukaEngine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.FlukaEngine.start(elements=coll, capacity=_capacity, clean=False, verbose=True)
 
     # Particle distribution
@@ -70,6 +69,7 @@ def test_simple_track(num_part):
 
     # Stop the FLUKA server
     xc.FlukaEngine.stop(clean=True)
+
 
 def test_fluka_format_float():
     for i in [0.0000000000011229964381065508,
@@ -124,6 +124,25 @@ def test_fluka_format_float():
               1.12299643810655078125e+12]:
         assert len(format_fluka_float(i)) == 10
         assert len(format_fluka_float(-i)) == 10
+
+
+def test_particle_ids():
+    if xc.FlukaEngine.is_running():
+        xc.FlukaEngine.stop(clean=True)
+    coll = xc.FlukaCollimator(length=0.0001, assembly='test_donadon', jaw=0.001)
+    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=6.8e12)
+    xc.FlukaEngine.capacity = 100_000
+    xc.FlukaEngine.seed = 7856231
+    xc.FlukaEngine.start(elements=coll, clean=False, verbose=True)
+    x_init, y_init = np.array(np.meshgrid(np.linspace(-0.01, 0.01, 21), np.linspace(-0.01, 0.01, 21))).reshape(2,-1)
+    px_init = 0
+    py_init = 0
+    part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
+                                   particle_ref=xc.FlukaEngine.particle_ref,
+                                   _capacity=xc.FlukaEngine.capacity)
+
+    part = part_init.copy()
+    xc.FlukaEngine.stop(clean=True)
 
 
 def test_prototypes():

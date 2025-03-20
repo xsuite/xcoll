@@ -8,8 +8,9 @@ import numpy as np
 
 import xobjects as xo
 from xobjects.hybrid_class import MetaHybridClass
-import xpart as xp
 import xtrack as xt
+import xtrack.particles.pdg as pdg
+
 try:
     # TODO: once xaux is in Xsuite keep only this
     from xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton, ranID
@@ -26,7 +27,7 @@ class BaseEngineMeta(MetaHybridClass, ClassPropertyMeta):
 @singleton(allow_underscore_vars_in_init=False)
 class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     _xofields = {
-        '_particle_ref': xp.Particles._XoStruct,
+        '_particle_ref': xt.Particles._XoStruct,
         '_seed':         xo.UInt64,
         '_capacity':     xo.Int64,
     }
@@ -52,7 +53,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._element_dict = {}
         self._warning_given = False
         self._tracking_initialised = False
-        kwargs.setdefault('_particle_ref', xp.Particles())
+        kwargs.setdefault('_particle_ref', xt.Particles())
         kwargs.setdefault('_seed', 0)
         kwargs.setdefault('_capacity', 0)
         super().__init__(**{key: value for key, value in kwargs.items()
@@ -109,7 +110,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     @ClassProperty
     def particle_ref(cls):
         self = cls.get_self()
-        initial = xp.Particles().to_dict()
+        initial = xt.Particles().to_dict()
         current = self._particle_ref.to_dict()
         if xt.line._dicts_equal(initial, current):
             return None
@@ -120,21 +121,21 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def particle_ref(cls, val):
         self = cls.get_self()
         if val is None:
-            self._particle_ref = xp.Particles()
+            self._particle_ref = xt.Particles()
         else:
-            if not isinstance(val, xp.Particles):
-                raise ValueError("`particle_ref` has to be an xp.Particles object!")
+            if not isinstance(val, xt.Particles):
+                raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
                 raise ValueError("`particle_ref` has to be a single particle!")
             pdg_id = val.pdg_id[0]
             if pdg_id == 0:
                 if cls._only_protons:
-                    pdg_id = xp.get_pdg_id_from_name('proton')
+                    pdg_id = pdg.get_pdg_id_from_name('proton')
                 else:
                     raise ValueError(f"{cls.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
-            elif cls._only_protons and pdg_id != xp.get_pdg_id_from_name('proton'):
+            elif cls._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
                 raise ValueError("{cls.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
@@ -379,7 +380,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                                + "particle, or `particle_ref`.")
             self._old_particle_ref = self.particle_ref
             self.particle_ref = self.line.particle_ref
-        self._print(f"Using {xp.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
+        self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
 
     def _reset_particle_ref(self):

@@ -22,7 +22,7 @@ angles = [0, 90, 127.5]
 tilts = [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]]
 tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 
-particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 
 
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
