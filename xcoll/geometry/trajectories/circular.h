@@ -91,8 +91,6 @@ void CircularTrajectory_bounding_box(CircularTrajectory traj, double l1, double 
     double R  = CircularTrajectory_get_R(traj);
     double sin_t = CircularTrajectory_get_sin_tI(traj);
     double cos_t = CircularTrajectory_get_cos_tI(traj);
-    double l1_rescaled = theta + l1;
-    double l2_rescaled = l1_rescaled + (l2-l1);
     double dx = x2 - x1;
     double ds = s2 - s1;
     double euclidean_length = sqrt(dx*dx + ds*ds);
@@ -109,19 +107,19 @@ void CircularTrajectory_bounding_box(CircularTrajectory traj, double l1, double 
         sin_p = -cos_t;
         cos_p = sin_t;
     }
-    if ((l2-l1) < 180){ // delta theta of box less than 180.
+    if ((l2-l1) < M_PI){ // delta theta of box less than 180.
         box->l  = euclidean_length;   // length of the box
         box->w  = R - sqrt(R*R - box->l*box->l/4.);                  // width of the box, Sagitta
         // finding the first vertex. 
         if (x1 < x2){
-            if (((t1 < M_PI && t2 > M_PI) && (cos_t < 0)) || ((-M_PI < t1 < 0.) && (-M_PI < t2 < 0.)) || ((t1 < 0 && t2 > 0) && (cos_t > 0))){                // t1 or t2 is lower vertex
+            if (((l1 < M_PI && l2 > M_PI) && (cos_t < 0)) || ((-M_PI < l1 < 0.) && (-M_PI < l2 < 0.)) || ((l1 < 0 && l2 > 0) && (cos_t > 0))){                // l1 or l2 is lower vertex
                 box->rC = sqrt( (s1+box->w*cos_p)*(s1+box->w*cos_p) +    // length of the position vector to the first vertex
                                 (x1+box->w*sin_p)*(x1+box->w*sin_p) );
             } else {
                 box->rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
             }
         } else {
-            if (((t1 < M_PI && t2 > M_PI) && (cos_t < 0)) || ((-M_PI < t1 < 0.) && (-M_PI < t2 < 0.)) || ((t1 < 0 && t2 > 0) && (cos_t > 0))){                // t1 or t2 is lower vertex
+            if (((l1 < M_PI && l2 > M_PI) && (cos_t < 0)) || ((-M_PI < l1 < 0.) && (-M_PI < l2 < 0.)) || ((l1 < 0 && l2 > 0) && (cos_t > 0))){                // l1 or l2 is lower vertex
                 box->rC = sqrt( (s2+box->w*cos_p)*(s2+box->w*cos_p) +    // length of the position vector to the first vertex
                                 (x2+box->w*sin_p)*(x2+box->w*sin_p) );
             } else {
