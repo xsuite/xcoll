@@ -63,20 +63,38 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 }
 
 /*gpufun*/
-void DriftTrajectory_bounding_box_s(DriftTrajectory traj, double l1, double l2, double extrema[2]){
+void DriftTrajectory_bounding_box(DriftTrajectory traj, double l1, double l2, BoundingBox* box){
     double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
-    extrema[0] = MIN(s1, s2);
-    extrema[1] = MAX(s1, s2);
-}
-
-/*gpufun*/
-void DriftTrajectory_bounding_box_x(DriftTrajectory traj, double l1, double l2, double extrema[2]){
     double x1 = DriftTrajectory_func_x(traj, l1);
     double x2 = DriftTrajectory_func_x(traj, l2);
-    extrema[0] = MIN(x1, x2);
-    extrema[1] = MAX(x1, x2);
+    double sin_t0 = DriftTrajectory_get_sin_t0(traj);
+    double cos_t0 = DriftTrajectory_get_cos_t0(traj);
+    double sin_p, cos_p;
+    double sin_p, cos_p; 
+    if (sin_t0 < 0){   // if theta is larger than 180 degrees, theta = theta - 180
+        sin_t0 = -sin_t0;
+        cos_t0 = -cos_t0;
+    }
+    if (cos_t0 < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
+        sin_p = cos_t0;
+        cos_p = -sin_t0;
+    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
+        sin_p = -cos_t0;
+        cos_p = sin_t0;
+    }
+    box->l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
+    box->w  = box->l/3.;                                         // width of the box 
+    box->rC = sqrt( (s1+box->w/2.*cos_p)*(s1+box->w/2.*cos_p) + // length of the position vector to the first vertex
+                    (x1+box->w/2.*sin_p)*(x1+box->w/2.*sin_p) );
+    box->sin_tb = sin_t0;  // orientation of the box (angle of length wrt horizontal)
+    box->cos_tb = cos_t0;
+    box->sin_tC = x1 / box->rC;  // angle of the position vector to the first vertex
+    box->cos_tC = s1 / box->rC;
+    box->proj_l = box->rC * (box->cos_tb*box->cos_tC + box->sin_t*box->sin_tC); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    box->proj_w = box->rC * (box->cos_tb*box->sin_tC - box->sin_t*box->cos_tC); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
+
 
 
 /*gpufun*/

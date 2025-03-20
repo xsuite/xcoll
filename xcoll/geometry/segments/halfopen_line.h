@@ -44,19 +44,35 @@ double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
 }
 
 /*gpufun*/
-void HalfOpenLineSegment_bounding_box_s(HalfOpenLineSegment seg, double t1, double t2, double extrema[2]){
+void HalfOpenLineSegment_bounding_box(HalfOpenLineSegment seg, double t1, double t2, BoundingBox* box){
     double s1 = HalfOpenLineSegment_func_s(seg, t1);
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
-    extrema[0] = MIN(s1, s2);
-    extrema[1] = MAX(s1, s2);
-}
-
-/*gpufun*/
-void HalfOpenLineSegment_bounding_box_x(HalfOpenLineSegment seg, double t1, double t2, double extrema[2]){
     double x1 = HalfOpenLineSegment_func_x(seg, t1);
     double x2 = HalfOpenLineSegment_func_x(seg, t2);
-    extrema[0] = MIN(x1, x2);
-    extrema[1] = MAX(x1, x2);
+    double sin_t = HalfOpenLineSegment_get_sin_t1(seg); // angle of the line wrt horizontal
+    double cos_t = HalfOpenLineSegment_get_cos_t1(seg);
+    double sin_p, cos_p; 
+    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
+        sin_t = -sin_t;
+        cos_t = -cos_t;
+    }
+    if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
+        sin_p = cos_t;
+        cos_p = -sin_t;
+    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
+        sin_p = -cos_t;
+        cos_p = sin_t;
+    }
+    box->l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
+    box->w  = box->l/3.;                                         // width of the box 
+    box->rC = sqrt( (s1+box->w/2.*cos_p)*(s1+box->w/2.*cos_p) + // length of the position vector to the first vertex
+                    (x1+box->w/2.*sin_p)*(x1+box->w/2.*sin_p) );
+    box->sin_tb = sin_t;  // orientation of the box (angle of length wrt horizontal)
+    box->cos_tb = cos_t;
+    box->sin_tC = x1 / box->rC;  // angle of the position vector to the first vertex
+    box->cos_tC = s1 / box->rC;
+    box->proj_l = box->rC * (box->cos_tb*box->cos_tC + box->sin_t*box->sin_tC); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    box->proj_w = box->rC * (box->cos_tb*box->sin_tC - box->sin_t*box->cos_tC); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
 
 
