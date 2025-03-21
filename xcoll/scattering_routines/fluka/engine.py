@@ -193,7 +193,7 @@ class FlukaEngine(BaseEngine):
         # Is the Popen process still running?
         if self._server_process is None:
             return False
-        elif self._server_process.poll() is None:
+        elif self._server_process.poll() is not None:
             self.stop()
             return False
         # Get username (need a whoami for the next command)
@@ -407,6 +407,7 @@ class FlukaEngine(BaseEngine):
                     self._network_port = int(lines[1].strip())
                     break
                 if self._server_process.poll() is not None:
+                    self.stop()
                     raise RuntimeError("The flukaserver died. Please check the FLUKA output.")
         self._print(f"Started fluka server on network port {self.network_port}. "
                   + f"Connecting (timeout: {self.timeout_sec})...   ", end='')
