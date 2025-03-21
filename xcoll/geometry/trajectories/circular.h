@@ -148,9 +148,15 @@ void CircularTrajectory_bounding_box(CircularTrajectory traj, double l1, double 
         // Compare with the other three points
         double min_x = chord_side_p1_x;
         double min_s = chord_side_p1_s;
-        if (chord_side_p2_x < min_x) { min_x = chord_side_p2_x; min_s = chord_side_p2_s; }
-        if (p3_x < min_x) { min_x = p3_x; min_s = p3_s; }
-        if (p4_x < min_x) { min_x = p4_x; min_s = p4_s; }
+        if (chord_side_p2_x < min_x) { 
+            min_x = chord_side_p2_x; min_s = chord_side_p2_s;  
+        }
+        if (p3_x < min_x) {
+            min_x = p3_x; min_s = p3_s;
+        }
+        if (p4_x < min_x) {
+            min_x = p4_x; min_s = p4_s; 
+        }
 
         box->rC = sqrt(min_s*min_s + min_x*min_x); // length of position vector to first vertex
     }
