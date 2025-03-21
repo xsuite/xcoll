@@ -191,7 +191,9 @@ class FlukaEngine(BaseEngine):
 
     def _is_running(self, **kwargs):
         # Is the Popen process still running?
-        if self._server_process is None or self._server_process.poll() is not None:
+        if self._server_process is None:
+            return False
+        elif self._server_process.poll() is None:
             self.stop()
             return False
         # Get username (need a whoami for the next command)
