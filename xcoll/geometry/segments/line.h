@@ -44,7 +44,7 @@ double LineSegment_deriv_x(LineSegment seg, double t){
 }
 
 /*gpufun*/
-void LineSegment_bounding_box(LineSegment seg, double t1, double t2, Bounding_box* box){
+void LineSegment_bounding_box(LineSegment seg, double t1, double t2, BoundingBox* box){
     //Calculate the bounding box of a line segment.
     //Theta is the angle of the line wrt the horizontal. 
     //Phi is the angle from s1 to the first vertex (in the frame of the box).
