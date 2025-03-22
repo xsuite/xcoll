@@ -9,7 +9,8 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator
-from ..scattering_routines.fluka import track, FlukaEngine, assemblies, FlukaPrototype
+from ..scattering_routines.fluka import track, FlukaEngine, assemblies, \
+                                        FlukaPrototype, FlukaAssembly
 from ..scattering_routines.fluka.prototypes import assemblies_wrong_jaw
 
 
@@ -20,7 +21,6 @@ class FlukaCollimator(BaseCollimator):
         'length_back':           xo.Float64,
         '_tracking':             xo.Int8,
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
-        '_assembly':             FlukaPrototype
     }
 
     isthick = True
@@ -49,6 +49,7 @@ class FlukaCollimator(BaseCollimator):
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
+                to_assign['name'] = FlukaEngine()._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
             super().__init__(**kwargs)
             for key, val in to_assign.items():
@@ -69,27 +70,17 @@ class FlukaCollimator(BaseCollimator):
         return obj
 
     @property
-    def name(self):
-        return BaseCollimator.name.fget(self)
-
-    @name.setter
-    def name(self, val):
-        if self.name is not None:
-            self.assembly.remove_element(self.name, force=False)
-        BaseCollimator.name.fset(self, val)
-        if self.name is not None:
-            self.assembly.add_element(self.name, force=False)
-
-    @property
     def assembly(self):
-        if not hasattr(self, '_assembly'):
-            self._assembly = FlukaPrototype()
-        return self._assembly
+        for prototype in FlukaPrototype._assigned_registry.values():
+            if self in prototype.elements:
+                return prototype
+        for prototype in FlukaAssembly._assigned_registry.values():
+            if self in prototype.elements:
+                return prototype
+        return None
 
     @assembly.setter
     def assembly(self, assembly):
-        if assembly is None:
-            assembly = FlukaPrototype()
         if isinstance(assembly, str):
             if assembly in assemblies:
                 assembly = assemblies[assembly]
@@ -99,17 +90,24 @@ class FlukaCollimator(BaseCollimator):
             else:
                 raise ValueError(f"Assembly (or prototype) '{assembly}' not present "
                                + f"in internal database. Please define it yourself.")
-        elif not isinstance(assembly, FlukaPrototype):
+        elif not isinstance(assembly, FlukaPrototype) and assembly is not None:
             raise ValueError('Invalid assembly or prototype!')
-        if self.name is not None:
-            # Remove the element from the old assembly and add it to the new one
-            self.assembly.remove_element(self.name, force=False)
-            assembly.add_element(self.name, force=False)
-        self._assembly = assembly
+        # Remove the element from the old assembly and add it to the new one
+        if self.assembly:
+            self.assembly.remove_element(self, force=False)
+        if assembly:
+            assembly.add_element(self, force=False)
         if self.assembly.side is not None and self.assembly.side != self.side:
             self.side = self.assembly.side
             print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
                 + f"to match the assembly '{self.assembly.name}'.")
+        if self.assembly.material is not None and self.assembly.material != self.material:
+            self.material = self.assembly.material
+            print(f"Warning: Material of collimator '{self.name}' was changed to '{self.material}' "
+                + f"to match the assembly '{self.assembly.name}'.")
+        if self.assembly.length is not None:
+            self.length_front = (self.assembly.length - self.length) / 2
+            self.length_back = self.assembly.length - self.length - self.length_front
 
     def track(self, part):
         track(self, part)

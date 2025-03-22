@@ -17,7 +17,7 @@ except (ImportError, ModuleNotFoundError):
 
 from .reference_masses import source, fluka_masses
 from .environment import FlukaEnvironment, format_fluka_float
-from .prototypes import FlukaPrototype
+from .prototypes import FlukaPrototype, FlukaAssembly
 from ..engine import BaseEngine
 from ...general import _pkg_root
 
@@ -130,6 +130,7 @@ class FlukaEngine(BaseEngine):
             self._max_particle_id = max_particle_id - 1 # FLUKA starts counting from 1, Python from 0
             self._tracking_initialised = True
 
+
     @classmethod
     def view(cls, input_file=None):
         self = cls.get_self()
@@ -146,6 +147,7 @@ class FlukaEngine(BaseEngine):
     # =================================
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
+        self._deactivate_unused_assemblies()
         from .fluka_input import create_fluka_input
         input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
                                         prototypes_file=prototypes_file, include_files=include_files,
@@ -170,8 +172,6 @@ class FlukaEngine(BaseEngine):
 
     def _stop_engine(self, **kwargs):
         self._stop_fortran()
-        # Deactivate all assemblies
-        FlukaPrototype.reset()
         # If the Popen process is still running, terminate it
         if self._server_process is not None:
             while self._server_process.poll() is None:
@@ -238,7 +238,7 @@ class FlukaEngine(BaseEngine):
             if name not in input_dict:
                 self._print(f"Warning: FlukaCollimator {name} not in FLUKA input file! "
                           + f"Maybe it was fully open. Deactivated")
-                el.active = False
+                self._deactivate_element(el)
                 continue
             if not isinstance(el, self._element_classes):
                 raise ValueError("Element {name} is not a FLUKA element!")
@@ -316,6 +316,7 @@ class FlukaEngine(BaseEngine):
                 if f is not None and f.exists():
                     f.unlink()
 
+
     def _all_input_files(self, input_file):
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
             input_file = [input_file]
@@ -323,10 +324,6 @@ class FlukaEngine(BaseEngine):
             if ff not in [fff.name for fff in input_file]:
                 input_file.append(input_file[0].parent / ff)
         return input_file
-
-
-    def _remove_element(self, name=None, el=None, **kwargs):
-        el.assembly.remove_element(name)
 
 
     # Expand the Base method to include the FLUKA reference mass check
@@ -363,12 +360,21 @@ class FlukaEngine(BaseEngine):
     # === Private Methods ===
     # =======================
 
+    def _deactivate_unused_assemblies(self):
+        # Deactivate all assemblies that are not used in the input file
+        for prototype in [*FlukaPrototype._assigned_registry.values(),
+                          *FlukaAssembly._assigned_registry.values()]:
+            for ee in prototype.elements:
+                if ee.name not in self._element_dict:
+                    self._deactivate_element(ee)
+
     def _init_fortran(self, fortran_debug_level=0):
         try:
             from .pyflukaf import pyfluka_init
             pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
         except ImportError as error:
             self._warn(error)
+
 
     def _declare_network(self):
         self._network_nfo = self._cwd / network_file

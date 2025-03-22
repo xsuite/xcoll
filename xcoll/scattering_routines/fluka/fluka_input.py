@@ -89,21 +89,16 @@ def verify_insertion_file(insertion_file, element_dict):
             raise ValueError(f'FlukaCollimator {name} not found in insertion file!')
 
 
-
 def _create_prototypes_file(element_dict, prototypes_file=None):
+    for name, ee in element_dict.items():
+        if ee.assembly is None:
+            raise ValueError(f"Collimator {name} has no assembly!")
     if prototypes_file is None:
-        for name, ee in element_dict.items():
-            ee.assembly.add_element(name)
         FlukaAssembly.make_prototypes()
     else:
         prototypes_file = FsPath(prototypes_file).resolve()
         prototypes_file.copy_to(FsPath.cwd() / 'prototypes.lbp')
-    for name, ee in element_dict.items():
-        if ee.assembly.in_file(prototypes_file):
-            ee.assembly.add_element(name)
-        else:
-            raise ValueError(f"Prototype {ee.assembly.name} for {name} not found "
-                           + f"in prototypes file!")
+    FlukaAssembly.inspect_prototypes_file(prototypes_file)
 
 
 # TODO check that prototype is valid and its sides

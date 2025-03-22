@@ -52,7 +52,9 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._input_file = None
         self._element_dict = {}
         self._warning_given = False
+        self._element_index = 0
         self._tracking_initialised = False
+        self._deactivated_elements = {}
         kwargs.setdefault('_particle_ref', xt.Particles())
         kwargs.setdefault('_seed', 0)
         kwargs.setdefault('_capacity', 0)
@@ -336,6 +338,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._reset_seed()
         self._reset_particle_ref() # This has to be done before resetting the line
         self._reset_line()
+        self._reactivate_elements()
         self._reset_cwd(clean=clean)
         self._input_file = None
         self._element_dict = {}
@@ -404,6 +407,17 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             self._old_line_particle_ref = self.line.particle_ref
             self.line.particle_ref = self.particle_ref
 
+    def _get_new_element_name(self):
+        name = f"{self.name}_el_{self._element_index}"
+        self._element_index += 1
+        return name
+
+    def _deactivate_element(self, el):
+        self._deactivated_elements[el.name] = [el, el.active or True]
+        if hasattr(el, 'active'):
+            el.active = False
+        self._remove_element(el)
+
     def _get_elements(self,elements=None, names=None):
         if elements is not None and (not hasattr(elements, '__iter__') or isinstance(elements, str)):
             elements = [elements]
@@ -413,8 +427,19 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             if elements is None:
                 raise ValueError("Need to provide either `line` or `elements`.")
             if names is None:
-                names = [f"{self.name}_el_{i}" for i, _ in enumerate(elements)]
-            if len(names) != len(elements):
+                names = []
+                for ee in elements:
+                    if hasattr(ee, 'name'):
+                        names.append(ee.name)
+                    else:
+                        names.append(self._get_new_element_name())
+            elif len(names) == len(elements):
+                for ee, name in zip(elements, names):
+                    if hasattr(ee, 'name'):
+                        if ee.name != name:
+                            self._print(f"Warning: Element name {ee.name} changed to {name}.")
+                            ee.name = name
+            else:
                 raise ValueError("Length of `elements` and `names` doesn't match.")
         else:
             if elements is not None:
@@ -432,17 +457,24 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                                 + ".")
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.")
-                self._remove_element(name, ee)
-                ee.active = False
+                self._deactivate_element(ee)
             elif not ee.active:
                 self._print(f"Warning: Element {name} is not active. Ignoring.")
-                self._remove_element(name, ee)
+                self._deactivate_element(ee)
             else:
                 this_names.append(name)
                 this_elements.append(ee)
         if len(this_elements) == 0:
             raise ValueError(f"No active {self.name} elements found!")
         self._element_dict = dict(zip(this_names, this_elements))
+
+    def _reactivate_elements(self):
+        names = list(self._deactivated_elements.keys())
+        for name in names:
+            ee, was_active = self._deactivated_elements.pop(name)
+            self._restore_element(ee)
+            if hasattr(ee, 'active'):
+                ee.active = was_active
 
     def _set_cwd(self, cwd=None):
         if self._uses_run_folder:
@@ -496,7 +528,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                     new_files.append(file)
             self._input_file = new_files[0] if len(new_files)==1 else new_files
             self._match_input_file()
-
 
     def _get_input_cwd_for_cleaning(self, **kwargs):
         # Get the input file and the cwd
@@ -560,7 +591,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def _clean_output_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
         pass
 
-    def _remove_element(self, name=None, el=None, **kwargs):
+    def _remove_element(self, el):
+        pass
+
+    def _restore_element(self, el):
         pass
 
     def _pre_start(self, **kwargs):

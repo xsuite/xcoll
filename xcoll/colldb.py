@@ -553,6 +553,8 @@ class CollimatorDatabase:
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
         self._elements[name] = el
+        el.name = name
+        return el
 
     def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)

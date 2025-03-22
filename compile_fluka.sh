@@ -9,6 +9,7 @@ fi
 
 path=xcoll/scattering_routines/fluka
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
+# mamba install compilers make cmake
 
 git submodule update --init --recursive
 
