@@ -4,6 +4,7 @@
 
 import numpy as np
 import xpart as xp
+import xtrack as xt
 import xcoll as xc
 import time
 
