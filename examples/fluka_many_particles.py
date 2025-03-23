@@ -86,7 +86,12 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     #             element_exists_in_table = False
     #             for i, line in enumerate(contents):
     #                 parts = line.split()
-    #                 if len(parts) > 3 and parts[0] == '#define':
+    #                 if line.startswith('#endif /* XCOLL_FLUKA_MASSES_H */'):
+    #                     if element_exists_in_table:
+    #                         i -= 1
+    #                         break
+    #                     break
+    #                 elif len(parts) > 3 and parts[0] == '#define':
     #                     _, this_A, this_Z, _ = pdg.get_properties_from_pdg_id(parts[4])
     #                     if this_Z == Z:
     #                         element_exists_in_table = True
