@@ -10,21 +10,8 @@
 #include <stdio.h>
 
 
-typedef struct {
-    double rC;     // length of position vector to first vertex
-    double sin_tC; // angle of position vector to first vertex
-    double cos_tC;
-    double proj_l; // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    double proj_w; // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-    double l;      // length of the box
-    double w;      // width of the box
-    double sin_tb; // orientation of the box (angle of length wrt horizontal)
-    double cos_tb;
-} BoundingBox;
-
-
 /*gpufun*/
-int8_t bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
+int8_t BoundingBox_boxes_overlap(BoundingBox b1, BoundingBox b2){
     // v1-v4 are the four vertices of the first box in counterclockwise order
     // w1-w4 are the four vertices of the second box in counterclockwise order
     // e1-e2 are the two axes of the first box
@@ -114,128 +101,128 @@ int8_t bounding_boxes_overlap(BoundingBox* b1, BoundingBox* b2){
 
 // // --------------------------------------------------------------------------------------------
 
-void LocalCrossing_func(LocalTrajectory traj, LocalSegment seg, double TS[2], double l, double t){
-    // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
-    // TSs = Ts(l) - Ss(t)
-    // TSx = Tx(l) - Sx(t)
-    TS[0] = LocalTrajectory_func_s(traj, l) - LocalSegment_func_s(seg, t);
-    TS[1] = LocalTrajectory_func_x(traj, l) - LocalSegment_func_x(seg, t);
-}
+// void LocalCrossing_func(LocalTrajectory traj, LocalSegment seg, double TS[2], double l, double t){
+//     // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
+//     // TSs = Ts(l) - Ss(t)
+//     // TSx = Tx(l) - Sx(t)
+//     TS[0] = LocalTrajectory_func_s(traj, l) - LocalSegment_func_s(seg, t);
+//     TS[1] = LocalTrajectory_func_x(traj, l) - LocalSegment_func_x(seg, t);
+// }
 
-void LocalCrossing_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], int8_t* no_crossing, double l, double t){
-    double J[2][2];
-    // get derivatives
-    J[0][0] = LocalTrajectory_deriv_s(traj,l); // get deriv. dsT/dl LocalTrajectory_deriv_s
-    J[0][1] = -LocalSegment_deriv_s(seg, t);     // get deriv. dsS/dt LocalSegment_deriv_s
-    J[1][0] = LocalTrajectory_deriv_x(traj,l); // get deriv. dxT/dl LocalTrajectory_deriv_x
-    J[1][1] = -LocalSegment_deriv_x(seg, t);     // get deriv. dxS/dt LocalSegment_deriv_x
+// void LocalCrossing_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], int8_t* no_crossing, double l, double t){
+//     double J[2][2];
+//     // get derivatives
+//     J[0][0] = LocalTrajectory_deriv_s(traj,l); // get deriv. dsT/dl LocalTrajectory_deriv_s
+//     J[0][1] = -LocalSegment_deriv_s(seg, t);     // get deriv. dsS/dt LocalSegment_deriv_s
+//     J[1][0] = LocalTrajectory_deriv_x(traj,l); // get deriv. dxT/dl LocalTrajectory_deriv_x
+//     J[1][1] = -LocalSegment_deriv_x(seg, t);     // get deriv. dxS/dt LocalSegment_deriv_x
 
-    double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
-    if (fabs(det) < XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL){
-        printf("There is no crossing. \n");
-        *no_crossing = 1;
-        return;
-    }
-    J_inv[0][0] =  J[1][1] / det;
-    J_inv[0][1] = -J[0][1] / det;
-    J_inv[1][0] = -J[1][0] / det;
-    J_inv[1][1] =  J[0][0] / det;
-}
+//     double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
+//     if (fabs(det) < XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL){
+//         printf("There is no crossing. \n");
+//         *no_crossing = 1;
+//         return;
+//     }
+//     J_inv[0][0] =  J[1][1] / det;
+//     J_inv[0][1] = -J[0][1] / det;
+//     J_inv[1][0] = -J[1][0] / det;
+//     J_inv[1][1] =  J[0][0] / det;
+// }
 
-void newton(LocalTrajectory traj, LocalSegment seg, double* guess_l, double* guess_t, int8_t* no_crossing){
-    double J_inv[2][2];
-    double TS[2];
+// void newton(LocalTrajectory traj, LocalSegment seg, double* guess_l, double* guess_t, int8_t* no_crossing){
+//     double J_inv[2][2];
+//     double TS[2];
 
-    for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
-        F_G(traj, seg, TS, *guess_l, *guess_t);
-        get_inv_J(traj, seg, J_inv, no_crossing, *guess_l, *guess_t);
-        if (*no_crossing){
-            return;
-        }
-        double new_t = *guess_t - (J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]);
-        double new_l = *guess_l - (J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]);
+//     for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
+//         F_G(traj, seg, TS, *guess_l, *guess_t);
+//         get_inv_J(traj, seg, J_inv, no_crossing, *guess_l, *guess_t);
+//         if (*no_crossing){
+//             return;
+//         }
+//         double new_t = *guess_t - (J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]);
+//         double new_l = *guess_l - (J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]);
 
-        // Check for convergence
-        if ((fabs(new_t -  *guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - *guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
-            return;
-        }
-        // Update the guesses for the next iteration
-        *guess_t = new_t;  // Keep *t updated
-        *guess_l = new_l;  // Keep *l updated
-    }
-    *no_crossing = 1;
-}
+//         // Check for convergence
+//         if ((fabs(new_t -  *guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - *guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
+//             return;
+//         }
+//         // Update the guesses for the next iteration
+//         *guess_t = new_t;  // Keep *t updated
+//         *guess_l = new_l;  // Keep *l updated
+//     }
+//     *no_crossing = 1;
+// }
 
-int8_t LocalCrossing_box_has_root(double TS_UL[2], double TS_UR[2], double TS_DL[2], double TS_DR[2]){
+// int8_t LocalCrossing_box_has_root(double TS_UL[2], double TS_UR[2], double TS_DL[2], double TS_DR[2]){
 
-    // Evaluate F at corners
-    evaluate_traj_seg(traj, seg, TS_DL, l1, t1);
-    evaluate_traj_seg(traj, seg, TS_DR, l2, t1);
-    evaluate_traj_seg(traj, seg, TS_UL, l1, t2);
-    evaluate_traj_seg(traj, seg, TS_UR, l2, t2);
+//     // Evaluate F at corners
+//     evaluate_traj_seg(traj, seg, TS_DL, l1, t1);
+//     evaluate_traj_seg(traj, seg, TS_DR, l2, t1);
+//     evaluate_traj_seg(traj, seg, TS_UL, l1, t2);
+//     evaluate_traj_seg(traj, seg, TS_UR, l2, t2);
 
-    // Check for sign changes for each component across the corners.
-    // (For simplicity, here we check if the min and max differ in sign.)
-    int8_t f1_has_sign_change = (min(TS_DL[0], TS_DR[0], TS_UL[0], TS_UR[0]) < 0 &&
-                                max(TS_DL[0], TS_DR[0], TS_UL[0], TS_UR[0]) > 0);
-    int8_t f2_has_sign_change = (min(TS_DL[1], TS_DR[1], TS_UL[1], TS_UR[1]) < 0 &&
-                                max(TS_DL[1], TS_DR[1], TS_UL[1], TS_UR[1]) > 0);
-    return (l1 < 0 && l2 > 0) || (l1 > 0 && l2 < 0) || (t1 < 0 && t2 > 0) || (t1 > 0 && t2 < 0);
-}
-
-
-void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg, double* l, double* t, double l_min,
-                            double l_max, double t_min, double t_max, double* roots_l, double* roots_t,
-                            int max_crossings, int* number_of_roots){
-    int N_l = 100;
-    int N_t = 100;
-    double grid_step_l = (l_max - l_min) / N_l; // this is just for now. We need to get interval for t and l.
-    double grid_step_t = (t_max - t_min) / N_t;
-    int n_roots = 0;
-    double TS_prev, TS_curr;
-    double prev_t = t_min;
-    double prev_l = l_min;
-    double curr_t;
-    double curr_l;
-    int8_t no_crossing = 0;
-
-    LocalCrossing_func(traj, seg, TS_prev, prev_t, prev_l);
-
-    // Stage 1: Coarse grid search over (l, t)
-    for (int i=0; i < N_l-1; i++){
-        double l1 = l_min + i * grid_step_l;
-        double l2 = l_min + (i+1) * grid_step_l;
-        for (int j=0; j < N_t-1; j++){
-            double t1 = t_min + j * grid_step_t;
-            double t2 = t_min + (j+1) * grid_step_t;
-            F_G(traj, seg, FG_curr, curr_t, curr_l);
+//     // Check for sign changes for each component across the corners.
+//     // (For simplicity, here we check if the min and max differ in sign.)
+//     int8_t f1_has_sign_change = (min(TS_DL[0], TS_DR[0], TS_UL[0], TS_UR[0]) < 0 &&
+//                                 max(TS_DL[0], TS_DR[0], TS_UL[0], TS_UR[0]) > 0);
+//     int8_t f2_has_sign_change = (min(TS_DL[1], TS_DR[1], TS_UL[1], TS_UR[1]) < 0 &&
+//                                 max(TS_DL[1], TS_DR[1], TS_UL[1], TS_UR[1]) > 0);
+//     return (l1 < 0 && l2 > 0) || (l1 > 0 && l2 < 0) || (t1 < 0 && t2 > 0) || (t1 > 0 && t2 < 0);
+// }
 
 
+// void grid_search_and_newton(LocalTrajectory traj, LocalSegment seg, double* l, double* t, double l_min,
+//                             double l_max, double t_min, double t_max, double* roots_l, double* roots_t,
+//                             int max_crossings, int* number_of_roots){
+//     int N_l = 100;
+//     int N_t = 100;
+//     double grid_step_l = (l_max - l_min) / N_l; // this is just for now. We need to get interval for t and l.
+//     double grid_step_t = (t_max - t_min) / N_t;
+//     int n_roots = 0;
+//     double TS_prev, TS_curr;
+//     double prev_t = t_min;
+//     double prev_l = l_min;
+//     double curr_t;
+//     double curr_l;
+//     int8_t no_crossing = 0;
+
+//     LocalCrossing_func(traj, seg, TS_prev, prev_t, prev_l);
+
+//     // Stage 1: Coarse grid search over (l, t)
+//     for (int i=0; i < N_l-1; i++){
+//         double l1 = l_min + i * grid_step_l;
+//         double l2 = l_min + (i+1) * grid_step_l;
+//         for (int j=0; j < N_t-1; j++){
+//             double t1 = t_min + j * grid_step_t;
+//             double t2 = t_min + (j+1) * grid_step_t;
+//             F_G(traj, seg, FG_curr, curr_t, curr_l);
 
 
 
-            if (n_roots >= max_crossings) {
-                return;  // all possible roots have been found
-            }
-            curr_t = t_min + t_step;
-            curr_l = l_min + l_step;
-            F_G(traj, seg, FG_curr, curr_t, curr_l);
 
-            if ((FG_prev[0] * FG_curr[0] < 0) || (FG_prev[1] * FG_curr[1] < 0)) {
-                double initial_guess_t = 0.5*(curr_t - prev_t);
-                double initial_guess_l = 0.5*(curr_l - prev_l);
-                newton(traj, seg, &initial_guess_l, &initial_guess_t, &no_crossing);
-                if (no_crossing){
-                    printf("No crossing found with Newton's method. \n");
-                } else{
-                    roots_t[n_roots] = initial_guess_t;
-                    roots_l[n_roots] = initial_guess_l;
-                    n_roots++;
-                }
-            }
-        }
-    }
-}
+
+//             if (n_roots >= max_crossings) {
+//                 return;  // all possible roots have been found
+//             }
+//             curr_t = t_min + t_step;
+//             curr_l = l_min + l_step;
+//             F_G(traj, seg, FG_curr, curr_t, curr_l);
+
+//             if ((FG_prev[0] * FG_curr[0] < 0) || (FG_prev[1] * FG_curr[1] < 0)) {
+//                 double initial_guess_t = 0.5*(curr_t - prev_t);
+//                 double initial_guess_l = 0.5*(curr_l - prev_l);
+//                 newton(traj, seg, &initial_guess_l, &initial_guess_t, &no_crossing);
+//                 if (no_crossing){
+//                     printf("No crossing found with Newton's method. \n");
+//                 } else{
+//                     roots_t[n_roots] = initial_guess_t;
+//                     roots_l[n_roots] = initial_guess_l;
+//                     n_roots++;
+//                 }
+//             }
+//         }
+//     }
+// }
 
 //  double prev_s   = s_min;
 //     double prev_val = LocalTrajectory_func(traj, prev_s) - LocalSegment_func(seg, prev_s);

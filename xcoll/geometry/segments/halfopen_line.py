@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class HalfOpenLineSegment(xo.Struct):
@@ -17,8 +17,8 @@ class HalfOpenLineSegment(xo.Struct):
     x1 = xo.Float64
     sin_t1 = xo.Float64 # angle (wrt s-axis) towards inf
     cos_t1 = xo.Float64
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
 
     def __init__(self, *args, **kwargs):

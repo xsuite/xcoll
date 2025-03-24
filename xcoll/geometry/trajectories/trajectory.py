@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import xobjects as xo
 
-from ..c_init import GeomCInit, PyMethod, XC_GEOM_EPSILON
+from ..c_init import PyMethod, XC_GEOM_EPSILON
 from .drift import DriftTrajectory
 from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory

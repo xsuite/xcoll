@@ -27,7 +27,17 @@ def xo_to_cnames(args):
     return ", ".join([f"{arg.name}" for arg in args])
 
 
-class GeomCInit(xo.Struct):
+class BoundingBox(xo.Struct):
+    rC = xo.Float64        # length of position vector to first vertex
+    sin_tC = xo.Float64    # angle of position vector to first vertex
+    cos_tC = xo.Float64
+    proj_l = xo.Float64    # projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    proj_w = xo.Float64    # projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    l = xo.Float64         # length of the box
+    w = xo.Float64         # width of the box
+    sin_tb = xo.Float64    # orientation of the box (angle of length wrt horizontal)
+    cos_tb = xo.Float64
+
     _extra_c_sources = [f"""
 #ifndef XCOLL_GEOM_DEFINES_H
 #define XCOLL_GEOM_DEFINES_H
@@ -71,9 +81,6 @@ class GeomCInit(xo.Struct):
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
         # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
-
-    # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
-    _depends_on = [xo.Float64]
 
 
 class PyMethod:

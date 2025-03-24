@@ -120,7 +120,7 @@ double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double 
 }
 
 /*gpufun*/
-void MultipleCoulombTrajectory_bounding_box(MultipleCoulombTrajectory traj, double l1, double l2, BoundingBox* box){
+void MultipleCoulombTrajectory_set_bounding_box(MultipleCoulombTrajectory traj, double l1, double l2){
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
     double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
     double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
