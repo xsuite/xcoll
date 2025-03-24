@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import GeomCInit, PyMethod, XC_GEOM_EPSILON
+from ..c_init import PyMethod, XC_GEOM_EPSILON
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment

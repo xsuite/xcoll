@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class CircularTrajectory(xo.Struct):
@@ -32,8 +32,8 @@ class CircularTrajectory(xo.Struct):
     sin_tI = xo.Float64
     cos_tI = xo.Float64
     tan_tI = xo.Float64
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'circular.h']
 
     _kernels = {'set_params': xo.Kernel(

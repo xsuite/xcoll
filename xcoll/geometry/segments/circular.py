@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class CircularSegment(xo.Struct):
@@ -18,8 +18,8 @@ class CircularSegment(xo.Struct):
     xR = xo.Float64  # x-coordinate of the centre
     _theta1 = xo.Float64  # Starting angle
     _theta2 = xo.Float64  # Ending angle
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
 
     def __init__(self, **kwargs):

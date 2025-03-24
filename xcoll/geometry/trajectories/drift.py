@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class DriftTrajectory(xo.Struct):
@@ -30,8 +30,8 @@ class DriftTrajectory(xo.Struct):
     sin_t0 = xo.Float64
     cos_t0 = xo.Float64
     tan_t0 = xo.Float64
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'drift.h']
 
     _kernels = {'set_params': xo.Kernel(

@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class LineSegment(xo.Struct):
@@ -17,8 +17,8 @@ class LineSegment(xo.Struct):
     x1 = xo.Float64
     s2 = xo.Float64
     x2 = xo.Float64
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
 
     def __str__(self):

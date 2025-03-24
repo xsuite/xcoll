@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
+
 import xobjects as xo
 from ...general import _pkg_root
 
@@ -27,7 +29,23 @@ def xo_to_cnames(args):
     return ", ".join([f"{arg.name}" for arg in args])
 
 
-class GeomCInit(xo.Struct):
+class BoundingBox(xo.Struct):
+    rC = xo.Float64        # length of position vector to first vertex
+    sin_tC = xo.Float64    # angle of position vector to first vertex
+    cos_tC = xo.Float64
+    proj_l = xo.Float64    # projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    proj_w = xo.Float64    # projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    l = xo.Float64         # length of the box
+    w = xo.Float64         # width of the box
+    sin_tb = xo.Float64    # orientation of the box (angle of length wrt horizontal)
+    cos_tb = xo.Float64
+
+    _kernels = {'overlaps': xo.Kernel(
+                                c_name='BoundingBox_overlaps',
+                                args=[xo.Arg(xo.ThisClass, name="b1"),
+                                      xo.Arg(xo.ThisClass, name="b2")],
+                                ret=xo.Int8)}
+
     _extra_c_sources = [f"""
 #ifndef XCOLL_GEOM_DEFINES_H
 #define XCOLL_GEOM_DEFINES_H
@@ -69,11 +87,27 @@ class GeomCInit(xo.Struct):
 """,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
-        # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
+        _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
 
-    # A Struct needs something to depend on, otherwise the class is added twice in the cdefs during compilation
-    _depends_on = [xo.Float64]
+    def __init__(self, *, s1, x1, s2, x2, theta, **kwargs):
+        kwargs['rc'] = np.sqrt(s1**2 + x1**2)
+        kwargs['sin_tC'] = x1 / kwargs['rc']
+        kwargs['cos_tC'] = s1 / kwargs['rc']
+        kwargs['proj_l'] = 
+        kwargs['proj_w'] = 
+        kwargs['l'] = 
+        kwargs['w'] = 
+        kwargs['sin_tb'] = np.sin(theta)
+        kwargs['cos_tb'] = np.cos(theta)
+        super().__init__(**kwargs)
+
+    # Add kernel
+    def __getattr__(self, attr):
+        kernel_name = attr
+        if kernel_name in self._kernels:
+            return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
+        raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
 
 class PyMethod:
@@ -97,7 +131,7 @@ class PyMethod:
                 for arg in ker.args:
                     if arg.atype == xo.ThisClass:
                         arg.atype = instance.__class__
-            instance.__class__.compile_kernels(instance, save_source_as="temp.c")
+            instance.__class__.compile_kernels(instance)#, save_source_as="temp.c")
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         if self.element_name:

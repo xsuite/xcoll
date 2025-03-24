@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 
 
 class MultipleCoulombTrajectory(xo.Struct):
@@ -39,8 +39,8 @@ class MultipleCoulombTrajectory(xo.Struct):
     Xt0 = xo.Float64  #  X0 𝛽^2 / q^2
     A0 = xo.Float64   # (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (𝛽 pc)
     B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (𝛽 pc)
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'mcs.h']
 
     _kernels = {'set_params': xo.Kernel(

@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import GeomCInit
+from ..c_init import BoundingBox
 from ..trajectories import DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory
 
 # Quartic vs Cubic Bezier
@@ -31,8 +31,8 @@ class BezierSegment(xo.Struct):
     _es2 = xo.Float64  # Value of second extremum in s
     _ex1 = xo.Float64  # Value of first extremum in x
     _ex2 = xo.Float64  # Value of second extremum in x
+    box = BoundingBox
 
-    _depends_on = [GeomCInit]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
     _kernels = {'calculate_extrema': xo.Kernel(
