@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
+
 import xobjects as xo
 from ...general import _pkg_root
 
@@ -37,6 +39,12 @@ class BoundingBox(xo.Struct):
     w = xo.Float64         # width of the box
     sin_tb = xo.Float64    # orientation of the box (angle of length wrt horizontal)
     cos_tb = xo.Float64
+
+    _kernels = {'overlaps': xo.Kernel(
+                                c_name='BoundingBox_overlaps',
+                                args=[xo.Arg(xo.ThisClass, name="b1"),
+                                      xo.Arg(xo.ThisClass, name="b2")],
+                                ret=xo.Int8)}
 
     _extra_c_sources = [f"""
 #ifndef XCOLL_GEOM_DEFINES_H
@@ -79,8 +87,27 @@ class BoundingBox(xo.Struct):
 """,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
-        # _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
+        _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
+
+    def __init__(self, *, s1, x1, s2, x2, theta, **kwargs):
+        kwargs['rc'] = np.sqrt(s1**2 + x1**2)
+        kwargs['sin_tC'] = x1 / kwargs['rc']
+        kwargs['cos_tC'] = s1 / kwargs['rc']
+        kwargs['proj_l'] = 
+        kwargs['proj_w'] = 
+        kwargs['l'] = 
+        kwargs['w'] = 
+        kwargs['sin_tb'] = np.sin(theta)
+        kwargs['cos_tb'] = np.cos(theta)
+        super().__init__(**kwargs)
+
+    # Add kernel
+    def __getattr__(self, attr):
+        kernel_name = attr
+        if kernel_name in self._kernels:
+            return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
+        raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
 
 class PyMethod:
@@ -104,7 +131,7 @@ class PyMethod:
                 for arg in ker.args:
                     if arg.atype == xo.ThisClass:
                         arg.atype = instance.__class__
-            instance.__class__.compile_kernels(instance, save_source_as="temp.c")
+            instance.__class__.compile_kernels(instance)#, save_source_as="temp.c")
             instance.__class__._needs_compilation = False
         kernel = context.kernels[self.kernel_name]
         if self.element_name:

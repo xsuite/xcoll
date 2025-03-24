@@ -11,7 +11,7 @@
 
 
 /*gpufun*/
-int8_t BoundingBox_boxes_overlap(BoundingBox b1, BoundingBox b2){
+int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
     // v1-v4 are the four vertices of the first box in counterclockwise order
     // w1-w4 are the four vertices of the second box in counterclockwise order
     // e1-e2 are the two axes of the first box
