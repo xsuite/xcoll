@@ -67,6 +67,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     # # Some checks on the FLUKA reference masses for ions. This is useful for the devs.
     # if any([pdg.is_ion(pdg_id) and pdg_id not in xc.fluka_masses for pdg_id in pdg_ids[0]]):
     #     print("New FLUKA reference masses for in database:")
+    # from xaux import ProtectFile
     # for pdg_id in pdg_ids[0]:
     #     if pdg.is_ion(pdg_id):
     #         if pdg_id in xc.fluka_masses:
@@ -81,32 +82,33 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     #             # Update the reference masses in the database
     #             _ , A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     #             db_file = xc._pkg_root / 'scattering_routines' / 'fluka' / 'reference_masses.py'
-    #             with db_file.open('r') as fp:
+    #             with ProtectFile(db_file, 'r+') as fp:
     #                 contents = fp.readlines()
-    #             element_exists_in_table = False
-    #             for i, line in enumerate(contents):
-    #                 parts = line.split()
-    #                 if line.startswith('#endif /* XCOLL_FLUKA_MASSES_H */'):
-    #                     if element_exists_in_table:
-    #                         i -= 1
-    #                         break
-    #                     break
-    #                 elif len(parts) > 3 and parts[0] == '#define':
-    #                     _, this_A, this_Z, _ = pdg.get_properties_from_pdg_id(parts[4])
-    #                     if this_Z == Z:
-    #                         element_exists_in_table = True
-    #                         if this_A > A:
-    #                             break
-    #                     elif this_Z > Z:
+    #                 element_exists_in_table = False
+    #                 for i, line in enumerate(contents):
+    #                     parts = line.split()
+    #                     if line.startswith('#endif /* XCOLL_FLUKA_MASSES_H */'):
     #                         if element_exists_in_table:
     #                             i -= 1
     #                             break
     #                         break
-    #             if not element_exists_in_table:
-    #                 contents.insert(i, '\n')
-    #             contents.insert(i, new_line + '\n')
-    #             with db_file.open('w') as fp:
+    #                     elif len(parts) > 3 and parts[0] == '#define':
+    #                         _, this_A, this_Z, _ = pdg.get_properties_from_pdg_id(parts[4])
+    #                         if this_Z == Z:
+    #                             element_exists_in_table = True
+    #                             if this_A > A:
+    #                                 break
+    #                         elif this_Z > Z:
+    #                             if element_exists_in_table:
+    #                                 i -= 1
+    #                                 break
+    #                             break
+    #                 if not element_exists_in_table:
+    #                     contents.insert(i, '\n')
+    #                 contents.insert(i, new_line + '\n')
     #                 contents = "".join(contents)
+    #                 fp.truncate(0)
+    #                 fp.seek(0)
     #                 fp.write(contents)
     print()
 
@@ -149,3 +151,16 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=100_000)
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
+
+
+# # Verify reference masses file
+# pdg_id = 0
+# path = xc._pkg_root / 'scattering_routines' / 'fluka' / 'reference_masses.py'
+# with path.open('r') as fid:
+#     for line in fid.readlines():
+#         if line.startswith('#define') and len(line.split()) > 4:
+#             new_pdg_id = int(line.split()[4])
+#             assert new_pdg_id > pdg_id
+#             # pdg_id = new_pdg_id
+#             # mass = pdg.get_mass_from_pdg_id(pdg_id, verbose=False)
+#             # print(f"{pdg_id} {(float(line.split()[2]) - mass)/mass*100:.3}%")
