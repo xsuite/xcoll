@@ -32,11 +32,11 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
     } else if (transition == XC_VOLUME_REFLECTION_TRANS_MCS){
         // We are in transition from VR to MCS
-//         double t_c = everest->t_c;
-//         double t_P = everest->t_P;
-//         double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
-//         // TODO: where does 3 come from
-//         Ang_rms *= -3.*(xp_rel-t_P)/(2.*t_c); // TODO: why no random number?
+        double t_c = everest->t_c;
+        double t_P = everest->t_P;
+        double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
+        // TODO: where does 3 come from
+        Ang_rms *= -3.*(xp_rel-t_P)/(2.*t_c); // TODO: why no random number?
         Ang_rms *= RandomNormal_generate(part);
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_VOLUME_REFLECTION_TRANS_MCS);
 
@@ -69,10 +69,10 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
         // Transition MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
-//         double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
-//         double t_P = everest->t_P;
-//         double t_c = everest->t_c;
-//         dya *= 1 - (xp_rel-t_P)/(2.*t_c);
+        double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
+        double t_P = everest->t_P;
+        double t_c = everest->t_c;
+        dya *= 1 - (xp_rel-t_P)/(2.*t_c);
     } else {
         // Normal MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
@@ -84,8 +84,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     Drift_single_particle_4d(part, length);
 
     // Energy lost because of ionisation process[GeV]
-    double energy_loss = calcionloss(everest, part, length);
-    pc  = pc - energy_loss*length;
+    pc = calcionloss(everest, part, length, pc, 1);
 
     // Store new angles
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);

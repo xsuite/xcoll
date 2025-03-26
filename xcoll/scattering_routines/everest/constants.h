@@ -50,7 +50,7 @@
     #define   XC_THERMAL_VIBRATIONS ( 0.075e-10 )
 #endif 
 
-// No idea what this represents physically...
+// Classical radius of electron [m]
 #if !defined( XC_CRADE )
     #define   XC_CRADE ( 2.817940285e-15 )
 #endif 

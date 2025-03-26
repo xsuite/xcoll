@@ -48,6 +48,7 @@ typedef struct EverestData_ {
     double prob_tail_c3;
     double prob_tail_c4;
     double energy_loss;
+    double straggling;
     double energy_loss_tail;
     // Crystal data
     double rescale_scattering;

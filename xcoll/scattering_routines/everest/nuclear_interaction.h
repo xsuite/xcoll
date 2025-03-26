@@ -56,8 +56,16 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
             }
             double pc_in = pc;
             pc = pc*(1 - xm2/everest->ecmsq);
-            // Corrected 1/p into 1/sqrt(pp')
-            teta = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+            if (pc <= 1.e-9 || pc != pc) {
+                // Very small (<1eV) or NaN
+                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+                pc = 1.e-9;
+                teta = 0;
+            } else {
+                // Corrected 1/p into 1/sqrt(pp')
+                teta = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+            }
 
         } else { // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
