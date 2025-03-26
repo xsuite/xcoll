@@ -35,14 +35,14 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
             // length, then put it to the remaining length, do mcs and return.
             if (length_step > rlen) {
                 mcs(everest, part, rlen, p, edge_check);
-                double ionisation_length = s0 - LocalParticle_get_s(part);
+                double ionisation_length = LocalParticle_get_s(part) - s0;
                 p = p - calcionloss(everest, part, ionisation_length)*ionisation_length;
                 break;
             }
 
             // Otherwise do multi-coulomb scattering.
             mcs(everest, part, length_step, p, edge_check);
-            double ionisation_length = s0 - LocalParticle_get_s(part);
+            double ionisation_length = LocalParticle_get_s(part) - s0;
             p = p - calcionloss(everest, part, ionisation_length)*ionisation_length;
             s0 = LocalParticle_get_s(part);
 
