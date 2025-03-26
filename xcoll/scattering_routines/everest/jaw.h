@@ -21,6 +21,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
     p /= 1e9;   // Energy (not momentum) in GeV
 
     if (everest->coll->only_mcs) {
+        // TODO: ionisation loss should also be calculated when only_mcs
         mcs(everest, part, rlen, p, edge_check);
 
     } else {
@@ -34,11 +35,16 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
             // length, then put it to the remaining length, do mcs and return.
             if (length_step > rlen) {
                 mcs(everest, part, rlen, p, edge_check);
+                double ionisation_length = s0 - LocalParticle_get_s(part);
+                p = p - calcionloss(everest, part, ionisation_length)*ionisation_length;
                 break;
             }
 
             // Otherwise do multi-coulomb scattering.
             mcs(everest, part, length_step, p, edge_check);
+            double ionisation_length = s0 - LocalParticle_get_s(part);
+            p = p - calcionloss(everest, part, ionisation_length)*ionisation_length;
+            s0 = LocalParticle_get_s(part);
 
             if(LocalParticle_get_x(part) <= 0) {
                 // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
@@ -54,10 +60,6 @@ double jaw(EverestData restrict everest, LocalParticle* part, double p, double l
             // Calculate the remaining interaction length and close the iteration loop.
             rlen = rlen - length_step;
         }
-        // TODO: ionisation loss should also be calculated when only_mcs
-        double m_dpodx = calcionloss(everest, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
-        double s = LocalParticle_get_s(part) - s0;
-        p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
     }
     return p*1e9;  // Back to eV
 }

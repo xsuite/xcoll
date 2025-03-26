@@ -113,6 +113,7 @@ void calculate_ionisation_properties(EverestData restrict everest, double pc) {
     double mep      = XC_ELECTRON_MASS/XC_PROTON_MASS;  // Electron/proton
 
     // tmax is max energy loss from kinematics
+    // mep = mass_electron / mass_beam
     double tmax = 2.*XC_ELECTRON_MASS*pow(bgr, 2.)/ (1. + 2.*gammar*mep + pow(mep, 2.));  // [MeV]
     double plen = sqrt(rho*zatom/anuc)*28.816e-6; // [MeV]
 
