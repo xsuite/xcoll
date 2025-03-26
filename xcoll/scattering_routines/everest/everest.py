@@ -29,5 +29,5 @@ class EverestEngine(xt.BeamElement):
         _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),
         _pkg_root.joinpath('scattering_routines','everest','amorphous.h'),
         _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
-        _pkg_root.joinpath('scattering_routines','everest','channeling.h')
+        _pkg_root.joinpath('scattering_routines','everest','channelling.h')
     ]
