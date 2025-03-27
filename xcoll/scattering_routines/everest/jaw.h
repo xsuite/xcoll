@@ -16,16 +16,15 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
         return pc;
     }
 
-    double rlen = length;
-    double ionisation_length;
-    double s0 = LocalParticle_get_s(part);
     pc /= 1.e9; // [GeV]
 
     if (everest->coll->only_mcs) {
         // TODO: ionisation loss should also be calculated when only_mcs
-        mcs(everest, part, rlen, pc, edge_check);
+        mcs(everest, part, length, pc, edge_check);
 
     } else {
+        double rlen = length;
+        double s0 = LocalParticle_get_s(part);
         while (1) {
             calculate_ionisation_properties(everest, pc);
             // Length of the step until nuclear interaction
@@ -52,7 +51,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
             // Calculate the remaining interaction length and close the iteration loop.
             rlen = rlen - length_step;
         }
-        ionisation_length = LocalParticle_get_s(part) - s0;
+        double ionisation_length = LocalParticle_get_s(part) - s0;
         pc = calcionloss(everest, part, ionisation_length, pc, 1);
     }
     return pc*1e9;  // Back to eV

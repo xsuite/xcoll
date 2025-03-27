@@ -27,21 +27,22 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
         ichoix += 1;
     }
 
-    //Do the interaction
+    // Do the interaction
+    // Scattered angle is 2(cos theta -1) = t / P^2  (from Mandelstam t = (p1-p3)^2)
     int64_t i_slot = -1;
     if (ichoix==1) {
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
         LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
 
     } else {
-        double teta;
+        double sqrt_t_p;
         if (ichoix==2) { // p-n elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            teta  = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
 
         } else if (ichoix==3) { // p-p elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-            teta  = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
 
         } else if (ichoix==4) { // Single diffractive
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
@@ -61,28 +62,27 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
                 if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
                 LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
                 pc = 1.e-9;
-                teta = 0;
+                sqrt_t_p = 0;
             } else {
                 // Corrected 1/p into 1/sqrt(pp')
-                teta = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
+                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             }
 
         } else { // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
-            teta = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
+            sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
         }
 
-        // TODO: I am not convinced that we can just sample two independent random numbers
-        // I believe it should be tan(tx) = cos(phi) * tan(teta)    and    tan(ty) = sin(phi) * tan(teta)
-        // with phi uniformly sampled between 0 and 2 pi
-        double tx = teta*RandomNormal_generate(part);
-        double tz = teta*RandomNormal_generate(part);
+        double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+        double phi = 2*M_PI*RandomUniform_generate(part);
+        double tan_theta_x = tan_theta*sin(phi);
+        double tan_theta_y = tan_theta*cos(phi);
 
         //Change the angles
 #ifdef XCOLL_USE_EXACT
-        LocalParticle_add_to_exact_xp_yp(part, tx, tz);
+        LocalParticle_add_to_exact_xp_yp(part, tan_theta_x, tan_theta_y);
 #else
-        LocalParticle_add_to_xp_yp(part, tx, tz);
+        LocalParticle_add_to_xp_yp(part, tan_theta_x, tan_theta_y);
 #endif
 
         if (sc) InteractionRecordData_log_child(record, i_slot, part);
