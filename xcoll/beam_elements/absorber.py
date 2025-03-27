@@ -24,7 +24,8 @@ class BlackAbsorber(BaseCollimator):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _depends_on = [BaseCollimator, XcollGeometry]
+    _noexpr_fields = BaseCollimator._noexpr_fields
+    _depends_on    = [BaseCollimator, XcollGeometry]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','black_absorber.h')
@@ -59,7 +60,8 @@ class BlackCrystal(BaseCrystal):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _depends_on = [BaseCrystal, XcollGeometry]
+    _noexpr_fields = BaseCrystal._noexpr_fields
+    _depends_on    = [BaseCrystal, XcollGeometry]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','black_crystal.h')

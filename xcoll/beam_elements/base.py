@@ -176,6 +176,7 @@ class BaseCollimator(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
@@ -1063,6 +1064,7 @@ class BaseCrystal(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
                          'emittance', 'width', 'height', 'bending_radius', 'bending_angle']

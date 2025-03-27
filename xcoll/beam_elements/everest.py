@@ -37,6 +37,7 @@ class EverestBlock(BaseBlock):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields         = {'material'}
     _skip_in_to_dict       = [*BaseBlock._skip_in_to_dict, '_material']
     _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
@@ -104,8 +105,9 @@ class EverestCollimator(BaseCollimator):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [ *BaseCollimator._skip_in_to_dict, '_material' ]
-    _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'material' ]
+    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, EverestEngine]
@@ -175,6 +177,7 @@ class EverestCrystal(BaseCrystal):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'lattice'}
     _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_orient', '_material']
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
     _internal_record_class = BaseCrystal._internal_record_class

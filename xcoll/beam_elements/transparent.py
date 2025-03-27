@@ -24,6 +24,7 @@ class TransparentCollimator(BaseCollimator):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields         = BaseCollimator._noexpr_fields
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
@@ -59,6 +60,7 @@ class TransparentCrystal(BaseCrystal):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields         = BaseCrystal._noexpr_fields
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
     _store_in_to_dict      = BaseCrystal._store_in_to_dict
     _internal_record_class = BaseCrystal._internal_record_class
