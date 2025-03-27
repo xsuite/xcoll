@@ -34,14 +34,10 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
             if (length_step > rlen) {
                 // Length to nuclear interaction is longer than remaining: MCS to end and exit collimator
                 mcs(everest, part, rlen, pc, edge_check);
-                ionisation_length = LocalParticle_get_s(part) - s0;
-                pc = calcionloss(everest, part, ionisation_length, pc, 1);
                 break;
             }
 
             mcs(everest, part, length_step, pc, edge_check);
-            ionisation_length = LocalParticle_get_s(part) - s0;
-            pc = calcionloss(everest, part, ionisation_length, pc, 1);
             if (LocalParticle_get_state(part) < 1 || (edge_check && LocalParticle_get_x(part) <= 0)){
                 // Particle lost all energy due to ionisation, or left the collimator
                 break;
@@ -55,8 +51,9 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
 
             // Calculate the remaining interaction length and close the iteration loop.
             rlen = rlen - length_step;
-            s0 = LocalParticle_get_s(part);
         }
+        ionisation_length = LocalParticle_get_s(part) - s0;
+        pc = calcionloss(everest, part, ionisation_length, pc, 1);
     }
     return pc*1e9;  // Back to eV
 }
