@@ -480,7 +480,9 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if self._uses_run_folder:
             if cwd is not None:
                 cwd = FsPath(cwd).expanduser().resolve()
-                if cwd.exists():
+                if cwd.exists() and cwd != FsPath.cwd():
+                    # Check if the folder already exists
+                    # If the specified folder is the current one, we do not need to rename
                     i = 0
                     while (cwd.parent / f'{cwd.name}_{i:0>4}').exists():
                         i += 1
