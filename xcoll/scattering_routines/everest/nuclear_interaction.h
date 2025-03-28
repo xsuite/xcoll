@@ -75,8 +75,8 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
 
         double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         double phi = 2*M_PI*RandomUniform_generate(part);
-        double tan_theta_x = tan_theta*sin(phi);
-        double tan_theta_y = tan_theta*cos(phi);
+        double tan_theta_x = tan_theta*cos(phi);
+        double tan_theta_y = tan_theta*sin(phi);
 
         //Change the angles
 #ifdef XCOLL_USE_EXACT
