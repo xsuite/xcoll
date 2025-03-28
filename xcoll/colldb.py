@@ -579,10 +579,10 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             if self[name]['bending_radius'] is None:
-                self._create_collimator(line, _K2Collimator, name, material=self[name]['material'],
+                self._create_collimator(_K2Collimator, line, name, material=self[name]['material'],
                                         verbose=verbose)
             else:
-                self._create_crystal(line, _K2Crystal, name, material=self[name]['material'],
+                self._create_crystal(_K2Crystal, line, name, material=self[name]['material'],
                                      lattice=self[name]['crystal'], verbose=verbose,
                                      miscut=self[name]['miscut'])
         elements = [self._elements[name] for name in names]
