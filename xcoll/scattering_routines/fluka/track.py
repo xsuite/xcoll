@@ -22,7 +22,7 @@ def _drift(coll, particles, length):
 
 def track(coll, particles):
     from .engine import FlukaEngine
-    FlukaEngine._assert_element(coll)
+    FlukaEngine()._assert_element(coll)
 
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
@@ -87,7 +87,7 @@ def track_core(coll, part):
     from .engine import FlukaEngine
     try:
         from .pyflukaf import track_fluka
-    except ImportError as error:
+    except ModuleNotFoundError, ImportError as error:
         FlukaEngine()._warn_pyfluka(error)
         return
 
