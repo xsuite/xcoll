@@ -11,6 +11,7 @@ import xtrack.particles.pdg as pdg
 
 
 TO_BE_KILLED = 334
+MASSLESS_OR_NEUTRAL = 350
 LOST_ON_FLUKA_COLL = -334
 XC_VIRTUAL_ENERGY = -350
 
@@ -305,10 +306,11 @@ def track_core(coll, part):
 
         # Add new particles
         new_part._init_random_number_generator()
+        new_part.state[mask_massless | mask_neutral] = MASSLESS_OR_NEUTRAL
         part.add_particles(new_part)
         # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
-        part.state[np.isin(part.particle_id, new_pid) & (mask_massless | mask_neutral)] = LOST_ON_FLUKA_COLL
-        part.charge_ratio[np.isin(part.particle_id, new_pid) & (mask_massless | mask_neutral)] = 0.
+        part.state[part.state==MASSLESS_OR_NEUTRAL] = LOST_ON_FLUKA_COLL
+        part.charge_ratio[part.state==MASSLESS_OR_NEUTRAL] = 0.
         max_particle_id = new_pid.max()
         if max_particle_id <= FlukaEngine.max_particle_id:
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
