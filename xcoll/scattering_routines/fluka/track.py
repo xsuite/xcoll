@@ -12,7 +12,7 @@ import xtrack.particles.pdg as pdg
 
 TO_BE_KILLED = 334
 LOST_ON_FLUKA_COLL = -334
-
+XC_VIRTUAL_ENERGY = -350
 
 def _drift(coll, particles, length):
     old_length = coll._equivalent_drift.length
@@ -288,11 +288,15 @@ def track_core(coll, part):
                 weight = data['weight'][:npart][mask_new],
                 start_tracking_at_element = start)
 
-        # Correct energy of parent particles: not everything was lost there
-        E_diff = np.bincount(idx_parents, weights=-new_part.energy, minlength=part._capacity)
-        # TODO: part.add_to_energy does not work as it tries to update the non-assigned particles (ptau = -999999999)
-        part.add_to_energy(E_diff)
-        # part.ptau[:num_assigned] += E_diff / p0c * part.mass_ratio[:num_assigned]
+        # Correct the deposited energy of parent particles: not everything was lost there.
+        E_diff = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
+        # If the deposited energy is lower than the rest mass, it cannot be represented by the original
+        # particle. We make a virtual particle with fake mass to avoid negative square roots.
+        mask_virtual = part.energy - E_diff < part.mass
+        part.state[mask_virtual] = XC_VIRTUAL_ENERGY
+        part.mass[mask_virtual] = 0.5*(part.energy - E_diff)[mask_virtual]
+        # Now update the parent energies
+        part.add_to_energy(-E_diff)
         # TODO: if parent survived, this should not be done but the energy should be subtracted
         #       from the accumulated ionisation loss (as it is accounted for by the child)
 
