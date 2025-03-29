@@ -294,7 +294,8 @@ def track_core(coll, part):
         # particle. We make a virtual particle with fake mass to avoid negative square roots.
         mask_virtual = part.energy - E_diff < part.mass
         part.state[mask_virtual] = XC_VIRTUAL_ENERGY
-        part.mass[mask_virtual] = 0.5*(part.energy - E_diff)[mask_virtual]
+        virtual_mass = 0.5*(part.energy - E_diff)[mask_virtual]
+        part.chi[virtual_mass] = m0 / virtual_mass * part.charge_ratio[virtual_mass]
         # Now update the parent energies
         part.add_to_energy(-E_diff)
         # TODO: if parent survived, this should not be done but the energy should be subtracted
