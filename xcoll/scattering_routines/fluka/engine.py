@@ -120,7 +120,7 @@ class FlukaEngine(BaseEngine):
             q0 = self.particle_ref.q0
             try:
                 from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
-            except ModuleNotFoundError, ImportError as error:
+            except (ModuleNotFoundError, ImportError) as error:
                 self._warn(error)
             self._print(f"Setting max_particle_id to {max_particle_id}, "
                       + f"and reference particle to {name} with mass {m0} MeV "
@@ -371,7 +371,7 @@ class FlukaEngine(BaseEngine):
         try:
             from .pyflukaf import pyfluka_init
             pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
-        except ModuleNotFoundError, ImportError as error:
+        except (ModuleNotFoundError, ImportError) as error:
             self._warn(error)
 
 
@@ -420,7 +420,7 @@ class FlukaEngine(BaseEngine):
             from .pyflukaf import pyfluka_connect
             pyfluka_connect(self.timeout_sec)
             self._flukaio_connected = True
-        except ModuleNotFoundError, ImportError as error:
+        except (ModuleNotFoundError, ImportError) as error:
             self._warn(error)
         self._print(f"Done.")
 
@@ -432,7 +432,7 @@ class FlukaEngine(BaseEngine):
             try:
                 from .pyflukaf import pyfluka_close
                 pyfluka_close()
-            except ModuleNotFoundError, ImportError as error:
+            except (ModuleNotFoundError, ImportError) as error:
                 self._warn(error)
             self._print(f"Done.")
 

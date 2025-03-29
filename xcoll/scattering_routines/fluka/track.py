@@ -87,7 +87,7 @@ def track_core(coll, part):
     from .engine import FlukaEngine
     try:
         from .pyflukaf import track_fluka
-    except ModuleNotFoundError, ImportError as error:
+    except (ModuleNotFoundError, ImportError) as error:
         FlukaEngine()._warn_pyfluka(error)
         return
 
