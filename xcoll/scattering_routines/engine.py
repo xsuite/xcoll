@@ -451,10 +451,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         this_names = []
         this_elements = []
         for ee, name in zip(elements, names):
-            if not isinstance(ee, self._element_classes):
-                raise ValueError(f"Element {ee} is not a "
-                                + ", or a ".join([c.__name__ for c in self._element_classes])
-                                + ".")
+            self._assert_element(ee)
             if ee.jaw is None:
                 self._print(f"Warning: Jaw not set for {name}. Ignoring.")
                 self._deactivate_element(ee)
@@ -554,6 +551,12 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         else:
             kwargs['cwd'] = FsPath.cwd()
         return kwargs
+
+    def _assert_element(self, element):
+        if not isinstance(element, self._element_classes):
+            raise ValueError(f"Element {element.name} is not a "
+                            + ", or a ".join([c.__name__ for c in self._element_classes])
+                            + ".")
 
 
     # =================================================

@@ -234,41 +234,40 @@ class FlukaEngine(BaseEngine):
         for name in input_dict:
             if name not in self._element_dict:
                 raise ValueError(f"Element {name} in input file not found in engine!")
-        for name, el in self._element_dict.items():
+        for name, ee in self._element_dict.items():
             if name not in input_dict:
                 self._print(f"Warning: FlukaCollimator {name} not in FLUKA input file! "
                           + f"Maybe it was fully open. Deactivated")
-                self._deactivate_element(el)
+                self._deactivate_element(ee)
                 continue
-            if not isinstance(el, self._element_classes):
-                raise ValueError("Element {name} is not a FLUKA element!")
-            el.fluka_id = input_dict[name]['fluka_id']
-            el.length_front = (input_dict[name]['length'] - el.length)/2
-            el.length_back = (input_dict[name]['length'] - el.length)/2
+            self._assert_element(ee)
+            ee.fluka_id = input_dict[name]['fluka_id']
+            ee.length_front = (input_dict[name]['length'] - ee.length)/2
+            ee.length_back = (input_dict[name]['length'] - ee.length)/2
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]
             if jaw is None or (jaw[0] is None and jaw[1] is None):
-                el.jaw = None
+                ee.jaw = None
             else:
                 if jaw[0] is None:
-                    if el.side != 'right':
+                    if ee.side != 'right':
                         self._print(f"Warning: {name} is right-sided in the input file, "
                                    + "but not in the line! Overwritten by the former.")
-                        el.side = 'right'
-                elif el.jaw_L is None or not np.isclose(el.jaw_L, jaw[0], atol=1e-9):
+                        ee.side = 'right'
+                elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
                     self._print(f"Warning: Jaw_L of {name} differs from input file "
-                              + f"({el.jaw_L} vs {jaw[0]})! Overwritten.")
-                    el.jaw_L = jaw[0]
+                              + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
+                    ee.jaw_L = jaw[0]
                 if jaw[1] is None:
-                    if el.side != 'left':
+                    if ee.side != 'left':
                         self._print(f"Warning: {name} is left-sided in the input file, "
                                   + f"but not in the line! Overwritten by the former.")
-                        el.side = 'left'
-                elif el.jaw_R is None or not np.isclose(el.jaw_R, jaw[1], atol=1e-9):
+                        ee.side = 'left'
+                elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
                     self._print(f"Warning: Jaw_R of {name} differs from input file "
-                              + f"({el.jaw_R} vs {jaw[1]})! Overwritten.")
-                    el.jaw_R = jaw[1]
+                              + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
+                    ee.jaw_R = jaw[1]
         # TODO: tilts!!
 
 
