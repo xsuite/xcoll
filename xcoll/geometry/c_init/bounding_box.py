@@ -79,12 +79,12 @@ class BoundingBox(xo.Struct):
         return self.rC * self.sin_tC + self.w * self.cos_tb
 
     @property
-    def vertices(self):
-        return (self.s1, self.x1), (self.s2, self.x2), (self.s3, self.x3), (self.s4, self.x4)
+    def theta(self):
+        return np.arctan2(self.sin_tb, self.cos_tb)
 
     @property
-    def theta(self):
-        return np.atan2(self.sin_tb, self.cos_tb)
+    def vertices(self):
+        return (self.s1, self.x1), (self.s2, self.x2), (self.s3, self.x3), (self.s4, self.x4)
 
     # Add kernel
     def __getattr__(self, attr):
