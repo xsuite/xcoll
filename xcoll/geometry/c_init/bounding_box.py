@@ -40,11 +40,18 @@ class BoundingBox(xo.Struct):
 
     def __str__(self):
         """Return str(self)."""
-        return f"BoundingBox([{self.l} x {self.w}], {self.theta} rad, ({self.s1:.3}, {self.x1:.3})"
+        return f"BoundingBox([{self.l:.3} x {self.w:.3}], {self.theta:.3} rad, ({self.s1:.3}, {self.x1:.3})"
 
     def __repr__(self):
         """Return repr(self)."""
         return f"<{str(self)} at {hex(id(self))}>"
+
+    # Add kernel
+    def __getattr__(self, attr):
+        kernel_name = attr
+        if kernel_name in self._kernels:
+            return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
+        raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
 
     @property
     def s1(self):
@@ -85,10 +92,3 @@ class BoundingBox(xo.Struct):
     @property
     def vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2), (self.s3, self.x3), (self.s4, self.x4)
-
-    # Add kernel
-    def __getattr__(self, attr):
-        kernel_name = attr
-        if kernel_name in self._kernels:
-            return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
-        raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
