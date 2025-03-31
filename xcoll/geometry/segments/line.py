@@ -27,13 +27,14 @@ class LineSegment(xo.Struct):
                                                 xo.Arg(xo.Float64, name="t1"),
                                                 xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                                         ret=None)}
-    
+
     def __init__(self, *args, **kwargs):
         t1 = kwargs.pop('t1', 0.)
         t2 = kwargs.pop('t2', 1.)
         super().__init__(*args, **kwargs)
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=t1, t2=t2)
+
     def __str__(self):
         return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"
 
