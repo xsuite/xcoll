@@ -70,20 +70,10 @@ void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, do
     double x2 = DriftTrajectory_func_x(traj, l2);
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
-    double sin_p, cos_p;
-    if (sin_t0 < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-        sin_t0 = -sin_t0;
-        cos_t0 = -cos_t0;
-    }
-    if (cos_t0 < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
-        sin_p = cos_t0;
-        cos_p = -sin_t0;
-    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
-        sin_p = -cos_t0;
-        cos_p = sin_t0;
-    }
+    double sin_p  = -cos_t0;  // phi = theta - 90 deg.
+    double cos_p  = sin_t0;
     BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));   // length of the box
-    BoundingBox_set_w(box, BoundingBox_get_l(box)/3.);       // width of the box 
+    BoundingBox_set_w(box, 0.);       // width of the box 
     BoundingBox_set_rC(box, sqrt( (s1+BoundingBox_get_w(box)/2.*cos_p) * (s1+BoundingBox_get_w(box)/2.*cos_p) +  // length of the position vector to the first vertex
                                    (x1+BoundingBox_get_w(box)/2.*sin_p) * (x1+BoundingBox_get_w(box)/2.*sin_p) ));
     BoundingBox_set_sin_tb(box, sin_t0);  // orientation of the box (angle of length wrt horizontal)

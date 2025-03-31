@@ -16,7 +16,7 @@ class DriftTrajectory(xo.Struct):
 
     In parametrised form, it is given by:
         s(𝜆) = s0 + 𝜆 cos(𝜃0)     𝜆  = 0..∞
-        x(𝜆) = x0 + 𝜆 sin(𝜃0)     𝜃0 = -π..π
+        x(𝜆) = x0 + 𝜆 sin(𝜃0)     𝜃0 = -π/2..π/2
         𝜃(𝜆) = 𝜃0
 
     where (s0, x0) and 𝜃0 are the initial particle coordinates resp. angle, and
@@ -52,7 +52,7 @@ class DriftTrajectory(xo.Struct):
     def __init__(self, *args, **kwargs):
         xp = kwargs.pop('xp', False)
         theta0 = kwargs.pop('theta0', False)
-        l1 = kwargs.pop('l1', -10.)
+        l1 = kwargs.pop('l1', 0.)
         l2 = kwargs.pop('l2', 10.)
         super().__init__(*args, **kwargs)
         if xp is not False:
