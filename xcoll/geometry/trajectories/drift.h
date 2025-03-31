@@ -63,15 +63,14 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 }
 
 /*gpufun*/
-void DriftTrajectory_bounding_box(DriftTrajectory traj, double l1, double l2, BoundingBox* box){
-    double s1 = DriftTrajectory_func_s(traj, l1);
+void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, double l1, double l2){
+    double s1 = DriftTrajectory_get_s0(traj);
     double s2 = DriftTrajectory_func_s(traj, l2);
-    double x1 = DriftTrajectory_func_x(traj, l1);
+    double x1 = DriftTrajectory_get_x0(traj);
     double x2 = DriftTrajectory_func_x(traj, l2);
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
     double sin_p, cos_p;
-    double sin_p, cos_p; 
     if (sin_t0 < 0){   // if theta is larger than 180 degrees, theta = theta - 180
         sin_t0 = -sin_t0;
         cos_t0 = -cos_t0;
@@ -83,16 +82,18 @@ void DriftTrajectory_bounding_box(DriftTrajectory traj, double l1, double l2, Bo
         sin_p = -cos_t0;
         cos_p = sin_t0;
     }
-    box->l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    box->w  = box->l/3.;                                         // width of the box 
-    box->rC = sqrt( (s1+box->w/2.*cos_p)*(s1+box->w/2.*cos_p) + // length of the position vector to the first vertex
-                    (x1+box->w/2.*sin_p)*(x1+box->w/2.*sin_p) );
-    box->sin_tb = sin_t0;  // orientation of the box (angle of length wrt horizontal)
-    box->cos_tb = cos_t0;
-    box->sin_tC = x1 / box->rC;  // angle of the position vector to the first vertex
-    box->cos_tC = s1 / box->rC;
-    box->proj_l = box->rC * (box->cos_tb*box->cos_tC + box->sin_t*box->sin_tC); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    box->proj_w = box->rC * (box->cos_tb*box->sin_tC - box->sin_t*box->cos_tC); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
+    BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));   // length of the box
+    BoundingBox_set_w(box, BoundingBox_get_l(box)/3.);       // width of the box 
+    BoundingBox_set_rC(box, sqrt( (s1+BoundingBox_get_w(box)/2.*cos_p) * (s1+BoundingBox_get_w(box)/2.*cos_p) +  // length of the position vector to the first vertex
+                                   (x1+BoundingBox_get_w(box)/2.*sin_p) * (x1+BoundingBox_get_w(box)/2.*sin_p) ));
+    BoundingBox_set_sin_tb(box, sin_t0);  // orientation of the box (angle of length wrt horizontal)
+    BoundingBox_set_cos_tb(box, cos_t0);
+    BoundingBox_set_sin_tC(box, x1 / BoundingBox_get_rC(box));  // angle of the position vector to the first vertex
+    BoundingBox_set_cos_tC(box, s1 / BoundingBox_get_rC(box));
+    double sin_tC = BoundingBox_get_sin_tC(box);
+    double cos_tC = BoundingBox_get_cos_tC(box);
+    BoundingBox_set_proj_l(box, BoundingBox_get_rC(box) * (cos_t0*cos_tC + sin_t0*sin_tC)); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    BoundingBox_set_proj_w(box, BoundingBox_get_rC(box) * (cos_t0*sin_tC - sin_t0*cos_tC)); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
 
 

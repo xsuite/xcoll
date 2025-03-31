@@ -80,93 +80,133 @@ double CircularTrajectory_deriv_x(CircularTrajectory traj, double l){
 }
 
 /*gpufun*/
-void CircularTrajectory_bounding_box(CircularTrajectory traj, double l1, double l2, BoundingBox* box){
-    // Take note that these functions, bounding boxes, expect l1 and l2 in radians! 
-    // The plot function will automatically change [0,1] to [0,2pi] for you.
+void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox box, double l1, double l2){
+    double theta = atan2(CircularTrajectory_get_sin_tI(traj), CircularTrajectory_get_cos_tI(traj));
+    double ll1 = theta + l1;
+    double ll2 = ll1 + (l2-l1);
     double s1 = CircularTrajectory_func_s(traj, l1);
-    double s2 = CircularTrajectory_func_s(traj, l2);
     double x1 = CircularTrajectory_func_x(traj, l1);
+    printf("s1 = %f, x1 = %f\n", s1, x1);
+    double s2 = CircularTrajectory_func_s(traj, l2);
     double x2 = CircularTrajectory_func_x(traj, l2);
     double sR = CircularTrajectory_get_sR(traj);
-    double R  = CircularTrajectory_get_R(traj);
-    double sin_t = CircularTrajectory_get_sin_tI(traj);
-    double cos_t = CircularTrajectory_get_cos_tI(traj);
+    double R  = CircularTrajectory_get_R(traj); 
     double dx = x2 - x1;
     double ds = s2 - s1;
-    double euclidean_length = sqrt(dx*dx + ds*ds);
-    double sin_p, cos_p;
+    double chord_length = sqrt(dx*dx + ds*ds);
+    double sin_chord = dx / chord_length;
+    double cos_chord = ds / chord_length;
+    double sin_t, cos_t;   // angle of the box wrt horizontal
+    int8_t sign = 1;
+    if ((cos_chord > 0.) && (sin_chord > 0.)){    // if 0 < chord angle < 90 deg, then chord angle = box angle
+        sin_t = sin_chord;
+        cos_t = cos_chord;
+    } else {
+        if (sin_chord < 0) {   // if theta is larger than 180 degrees, theta = theta - 180
+            sin_chord = -sin_chord;
+            cos_chord = -cos_chord;
+        }
+        if ((cos_chord > 0.) && (sin_chord > 0.)){    // if 0 < chord angle < 90 deg, then chord angle = box angle
+            sin_t = sin_chord;
+            cos_t = cos_chord;
+        } else {
+            sin_t = - cos_chord;   // box angle is 90 degrees less than chord angle
+            cos_t = sin_chord;
+            sign = -1;
+        }
+    }
 
-    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-        sin_t = -sin_t;
-        cos_t = -cos_t;
-    }
-    if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
-        sin_p = cos_t;
-        cos_p = -sin_t;
-    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
-        sin_p = -cos_t;
-        cos_p = sin_t;
-    }
-    if ((l2-l1) < M_PI){ // delta theta of box less than 180.
-        box->l  = euclidean_length;   // length of the box
-        box->w  = R - sqrt(R*R - box->l*box->l/4.);                  // width of the box, Sagitta
+    if ((ll2 - ll1) < M_PI){ // delta theta of box less than 180.
+        BoundingBox_set_l(box, chord_length);   // length of the box
+        BoundingBox_set_w(box, R - sqrt(R*R - chord_length*chord_length/4.));                  // width of the box, Sagitta
+        double w = BoundingBox_get_w(box);
         // finding the first vertex. 
         if (x1 < x2){
-            if (((l1 < M_PI && l2 > M_PI) && (cos_t < 0)) || ((-M_PI < l1 < 0.) && (-M_PI < l2 < 0.)) || ((l1 < 0 && l2 > 0) && (cos_t > 0))){                // l1 or l2 is lower vertex
-                box->rC = sqrt( (s1+box->w*cos_p)*(s1+box->w*cos_p) +    // length of the position vector to the first vertex
-                                (x1+box->w*sin_p)*(x1+box->w*sin_p) );
+            if (((l1 < M_PI && l2 > M_PI) && (cos_chord < 0)) || (( (-M_PI < l1) && (l1 < 0.) ) && ( (-M_PI < l2) && (l2 < 0.))) || ((l1 < 0 && l2 > 0) && (cos_chord > 0))){                // l1 or l2 is lower vertex
+                BoundingBox_set_rC(box, sqrt( (s1+w*cos_t)*(s1+w*cos_t) +    // length of the position vector to the first vertex
+                                              (x1+w*sin_t)*(x1+w*sin_t)) );
             } else {
-                box->rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
+                BoundingBox_set_rC(box, sqrt(s1*s1 + x1*x1)); // length of position vector to first vertex
             }
         } else {
-            if (((l1 < M_PI && l2 > M_PI) && (cos_t < 0)) || ((-M_PI < l1 < 0.) && (-M_PI < l2 < 0.)) || ((l1 < 0 && l2 > 0) && (cos_t > 0))){                // l1 or l2 is lower vertex
-                box->rC = sqrt( (s2+box->w*cos_p)*(s2+box->w*cos_p) +    // length of the position vector to the first vertex
-                                (x2+box->w*sin_p)*(x2+box->w*sin_p) );
+            if (((l1 < M_PI && l2 > M_PI) && (cos_chord < 0)) || (( (-M_PI < l1) && (l1 < 0.) ) && ( (-M_PI < l2) && (l2 < 0.))) || ((l1 < 0 && l2 > 0) && (cos_chord > 0))){                // l1 or l2 is lower vertex
+                BoundingBox_set_rC(box, sqrt( (s2+w*cos_t)*(s2+w*cos_t) +    // length of the position vector to the first vertex
+                                              (x2+w*sin_t)*(x2+w*sin_t)) );
             } else {
-                box->rC = sqrt(s2*s2 + x2*x2); // length of position vector to first vertex
+                BoundingBox_set_rC(box, sqrt(s2*s2 + x2*x2)); // length of position vector to first vertex
             }
         }
     } else {
-        box->l = 2*R;
-        box->w = R + sqrt(R*R - box->l*box->l/4.); 
-        double chord_side_p1_x, chord_side_p1_s, chord_side_p2_x, chord_side_p2_s;
+        BoundingBox_set_l(box, 2*R);                               // L is always on the side of the chord
+        BoundingBox_set_w(box, R + sqrt(R*R - (chord_length*chord_length/4.))); // 2R - sagitta
+        printf("2 r = %f\n", 2*R);
+        printf("sagitta = %f\n", R - sqrt(R*R - chord_length*chord_length/4.));
+        double chord_side_w1_x, chord_side_w1_s, chord_side_w2_x, chord_side_w2_s;
+        double w3_x, w3_s, w4_x, w4_s;
+        printf("w = %f\n", BoundingBox_get_w(box));
+        printf("l = %f\n", BoundingBox_get_l(box));
+        printf("\nchord length = %f\n", chord_length);
+        printf("sin_chord = %f, cos_chord = %f\n", sin_chord, cos_chord);
+        printf("x1 = %f, x2 = %f\n", x1, x2);
+        // determining the (s,x) of the vertices on the chord side of box
         if (x1 < x2){
-            chord_side_p1_x = x1 - (2*R - box->l)/2.*sin_t;
-            chord_side_p1_s = s1 - (2*R - box->l)/2.*cos_t;
-            chord_side_p2_x = x2 + (2*R - box->l)/2.*sin_t;
-            chord_side_p2_s = s2 + (2*R - box->l)/2.*cos_t;
+            chord_side_w1_x = x1 - (2*R - chord_length)/2.*sin_t;
+            chord_side_w1_s = s1 - sign*(2*R - chord_length)/2.*cos_t;
+            chord_side_w2_x = x2 + (2*R - chord_length)/2.*sin_t;
+            chord_side_w2_s = s2 + sign*(2*R - chord_length)/2.*cos_t;
+            w3_x = chord_side_w1_x - sign*BoundingBox_get_w(box)*sin_t; // sign because of the orientation of the box
+            w3_s = chord_side_w1_s + BoundingBox_get_w(box)*cos_t;
+            w4_x = chord_side_w2_x - sign*BoundingBox_get_w(box)*sin_t;
+            w4_s = chord_side_w2_s + BoundingBox_get_w(box)*cos_t;
         } else {
-            chord_side_p1_x = x2 - (2*R - box->l)/2.*sin_t;
-            chord_side_p1_s = s2 - (2*R - box->l)/2.*cos_t;
-            chord_side_p2_x = x1 + (2*R - box->l)/2.*sin_t;
-            chord_side_p2_s = s1 + (2*R - box->l)/2.*cos_t;
+            printf("x1 = %f, x2 = %f\n", x1, x2);
+            printf("s1 = %f, s2 = %f\n", s1, s2);
+            printf("chord_length = %f\n", chord_length);
+            printf("2r - chord_length = %f\n", 2*R - chord_length);
+            printf("2r - chord_length /2 = %f\n", (2*R - chord_length)/2.);
+            printf("sint = %f, cost = %f\n", sin_t, cos_t);
+            printf("L = %f\n", (2*R - chord_length)/2.*sin_t);
+            printf("L = %f\n", (2*R - chord_length)/2.*cos_t);
+            chord_side_w2_x = x2 - (2*R - chord_length)/2.*cos_t;
+            chord_side_w2_s = s2 - sign*(2*R - chord_length)/2.*sin_t;
+            chord_side_w1_x = x1 + (2*R - chord_length)/2.*cos_t;
+            chord_side_w1_s = s1 + sign*(2*R - chord_length)/2.*sin_t;
+            w3_x = chord_side_w1_x + sign*BoundingBox_get_w(box)*sin_t; 
+            w3_s = chord_side_w1_s - BoundingBox_get_w(box)*cos_t;
+            w4_x = chord_side_w2_x + sign*BoundingBox_get_w(box)*sin_t;
+            w4_s = chord_side_w2_s - BoundingBox_get_w(box)*cos_t;
+            printf("cos_ti = %f, sin_ti = %f\n", cos_t, sin_t);
+            printf("chord_side_w1_x = %f, chord_side_w1_s = %f\n", chord_side_w1_x, chord_side_w1_s);
         }
-        double p3_x = chord_side_p1_x + box->w*sin_t;
-        double p3_s = chord_side_p1_s + box->w*cos_t;
-        double p4_x = chord_side_p2_x + box->w*sin_t;
-        double p4_s = chord_side_p2_s + box->w*cos_t;
+        printf("sign = %d\n", sign);
+        printf("w3_x = %f, w3_s = %f\n", w3_x, w3_s);
+        printf("w4_x = %f, w4_s = %f\n", w4_x, w4_s);
+        printf("chord_side_w2_x = %f, chord_side_w2_s = %f\n", chord_side_w2_x, chord_side_w2_s);
         // Compare with the other three points
-        double min_x = chord_side_p1_x;
-        double min_s = chord_side_p1_s;
-        if (chord_side_p2_x < min_x) { 
-            min_x = chord_side_p2_x; min_s = chord_side_p2_s;  
+        double min_x = chord_side_w1_x;
+        double min_s = chord_side_w1_s;
+        if (chord_side_w2_x < min_x) { 
+            min_x = chord_side_w2_x; 
+            min_s = chord_side_w2_s;  
         }
-        if (p3_x < min_x) {
-            min_x = p3_x; min_s = p3_s;
+        if (w3_x < min_x) {
+            min_x = w3_x; 
+            min_s = w3_s;
         }
-        if (p4_x < min_x) {
-            min_x = p4_x; min_s = p4_s; 
+        if (w4_x < min_x) {
+            min_x = w4_x; 
+            min_s = w4_s; 
         }
-
-        box->rC = sqrt(min_s*min_s + min_x*min_x); // length of position vector to first vertex
+        BoundingBox_set_rC(box, sqrt(min_s*min_s + min_x*min_x)); // length of position vector to first vertex
     }
-    box->sin_tC = x1 / box->rC;    // angle of position vector to first vertex
-    box->cos_tC = s1 / box->rC;
-    box->sin_tb = sin_t;           // orientation of the box (angle of length wrt horizontal)
-    box->cos_tb = cos_t;
-    box->proj_l = box->rC * (cos_t*box->cos_tC + sin_t*box->sin_tC); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    box->proj_w = box->rC * (cos_t*box->sin_tC - sin_t*box->cos_tC); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-
+    printf("BoundingBox_get_rC(box) = %f\n", BoundingBox_get_rC(box));
+    double rC = BoundingBox_get_rC(box);
+    BoundingBox_set_sin_tC(box, x1 / rC);   // angle of position vector to first vertex
+    BoundingBox_set_cos_tC(box, s1 / rC);
+    BoundingBox_set_sin_tb(box, sin_t);           // orientation of the box (angle of length wrt horizontal)
+    BoundingBox_set_cos_tb(box, cos_t);
+    BoundingBox_set_proj_l(box, rC * (cos_t*s1/rC + sin_t*x1/rC)); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    BoundingBox_set_proj_w(box, rC * (cos_t*x1/rC - sin_t*s1/rC)); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
 
 

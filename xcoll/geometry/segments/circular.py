@@ -21,7 +21,13 @@ class CircularSegment(xo.Struct):
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'circular.h']
-
+    _kernels = {'init_bounding_box': xo.Kernel(
+                                        c_name='CircularSegment_init_bounding_box',
+                                        args=[xo.Arg(xo.ThisClass, name="seg"),
+                                              xo.Arg(xo.ThisClass, name="box"),
+                                              xo.Arg(xo.Float64, name="t1"),
+                                              xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
+                                        ret=None)}
     def __init__(self, **kwargs):
         # Different ways to initialise a CircularSegment:
         # 1. Centre, radius, and angles: CircularSegment(R=..., sR=..., xR=..., theta1=..., theta2=...)
@@ -115,8 +121,12 @@ class CircularSegment(xo.Struct):
                 kwargs['xR'] = x2 - kwargs['R']*np.sin(theta2)
             else:
                 raise ValueError("Must provide centre, start point, or end point when providing radius!")
+        t1 = kwargs.pop('t1', 0.)
+        t2 = kwargs.pop('t2', 2*np.pi)
         super().__init__(**kwargs)
         self.set_angles(theta1, theta2)
+        self.box = BoundingBox()
+        self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
     def __str__(self):
         p1, p2 = self.get_vertices()

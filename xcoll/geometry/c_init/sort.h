@@ -33,7 +33,7 @@
 #undef INTERVALS_OVERLAP
 #pragma message ("Xcoll geometry: Compiler macro INTERVALS_OVERLAP redefined")
 #endif
-#define INTERVALS_OVERLAP(minA, maxA, minB, maxB) (((maxA) \geq(minB)) && ((maxB) \geq(minA)))
+#define INTERVALS_OVERLAP(minA, maxA, minB, maxB) (((maxA) >= (minB)) && ((maxB) >= (minA)))
 
 
 // Fast methods

@@ -20,12 +20,29 @@ class HalfOpenLineSegment(xo.Struct):
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
-
+    _kernels = {'init_bounding_box': xo.Kernel(
+                                        c_name='HalfOpenLineSegment_init_bounding_box',
+                                        args=[xo.Arg(xo.ThisClass, name="seg"),
+                                              xo.Arg(xo.ThisClass, name="box"),
+                                              xo.Arg(xo.Float64, name="t1"),
+                                              xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
+                                        ret=None)}
     def __init__(self, *args, **kwargs):
-        theta1 = kwargs.pop('theta1', None)
+        if not ('theta1' in kwargs or 'sin_t1' in kwargs or 'cos_t1' in kwargs):
+            raise ValueError("At least one of 'theta1', 'sin_t1', or 'cos_t1' must be provided!")
+        if 'theta1' in kwargs:
+            theta1 = kwargs.pop('theta1')
+            kwargs['sin_t1'] = np.sin(theta1)
+            kwargs['cos_t1'] = np.cos(theta1)
+        elif 'sin_t1' in kwargs and 'cos_t1' not in kwargs:
+            kwargs['cos_t1'] = np.sqrt(1 - kwargs['sin_t1']**2)
+        elif 'cos_t1' in kwargs and 'sin_t1' not in kwargs:
+            kwargs['sin_t1'] = np.sqrt(1 - kwargs['cos_t1']**2)
+        t1     = kwargs.pop('t1', 0.)
+        t2     = kwargs.pop('t2', 10.)
         super().__init__(*args, **kwargs)
-        if theta1 is not None:
-            self.theta1 = theta1
+        self.box = BoundingBox()
+        self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
     def __str__(self):
         return f"HalfOpenLineSegment(({self.s1:.3}, {self.x1:.3}) -- " \

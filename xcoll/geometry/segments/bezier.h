@@ -54,7 +54,7 @@ double BezierSegment_deriv_x(BezierSegment seg, double t){
 }
 
 /*gpufun*/
-void BezierSegment_bounding_box(BezierSegment seg, double t1, double t2, BoundingBox* box){
+void BezierSegment_init_bounding_box(BezierSegment seg, BoundingBox box, double t1, double t2){
     double ts1 = BezierSegment_get__ts1(seg);
     double ts2 = BezierSegment_get__ts2(seg);
     double s1  = BezierSegment_func_s(seg, t1);
@@ -112,15 +112,15 @@ void BezierSegment_bounding_box(BezierSegment seg, double t1, double t2, Boundin
         xmin = MIN(x1, x2);
         xmax = MAX(x1, x2);
     }
-    box->rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
-    box->sin_tC = xmin / box->rC; // angle of position vector to first vertex
-    box->cos_tC = smin / box->rC;
-    box->proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    box->proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-    box->l = smax - smin;  // length of the box
-    box->w = xmax - xmin;  // width of the box
-    box->sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
-    box->cos_tb = 1;
+    BoundingBox_set_rC(box, sqrt(smin*smin + smax*smax)); // length of position vector to first vertex
+    BoundingBox_set_sin_tC(box, xmin / BoundingBox_get_rC(box)); // angle of position vector to first vertex
+    BoundingBox_set_cos_tC(box, smin / BoundingBox_get_rC(box));
+    BoundingBox_set_proj_l(box, smin);    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    BoundingBox_set_proj_w(box, xmin);    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    BoundingBox_set_l(box, smax - smin);  // length of the box
+    BoundingBox_set_w(box, xmax - xmin);  // width of the box
+    BoundingBox_set_sin_tb(box, 0);       // orientation of the box (angle of length wrt horizontal)
+    BoundingBox_set_cos_tb(box, 1);
 }
 
 

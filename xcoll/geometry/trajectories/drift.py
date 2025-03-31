@@ -40,16 +40,27 @@ class DriftTrajectory(xo.Struct):
                                       xo.Arg(xo.Float64, name="s0"),
                                       xo.Arg(xo.Float64, name="x0"),
                                       xo.Arg(xo.Float64, name="xp")],
+                                ret=None),
+                'init_bounding_box': xo.Kernel(
+                                c_name='DriftTrajectory_init_bounding_box',
+                                args=[xo.Arg(xo.ThisClass, name="traj"),
+                                      xo.Arg(xo.ThisClass, name="box"),
+                                      xo.Arg(xo.Float64, name="l1"),
+                                      xo.Arg(xo.Float64, name="l2")], # this is not parameters of mcs??
                                 ret=None)}
 
     def __init__(self, *args, **kwargs):
         xp = kwargs.pop('xp', False)
         theta0 = kwargs.pop('theta0', False)
+        l1 = kwargs.pop('l1', -10.)
+        l2 = kwargs.pop('l2', 10.)
         super().__init__(*args, **kwargs)
         if xp is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=xp)
         elif theta0 is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=np.tan(theta0))
+        self.box = BoundingBox()
+        self.init_bounding_box(box=self.box, l1=l1, l2=l2)
 
     def __str__(self):
         return f"DriftTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"

@@ -38,7 +38,15 @@ class BezierSegment(xo.Struct):
     _kernels = {'calculate_extrema': xo.Kernel(
                                 c_name='BezierSegment_calculate_extrema',
                                 args=[xo.Arg(xo.ThisClass, name="seg")],
-                                ret=None)}
+                                ret=None),
+                'init_bounding_box': xo.Kernel(
+                        c_name='BezierSegment_init_bounding_box',
+                        args=[xo.Arg(xo.ThisClass, name="seg"),
+                              xo.Arg(xo.ThisClass,  name="box"),
+                              xo.Arg(xo.Float64, name="t1"),
+                              xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
+                        ret=None)
+                }   
 
     _max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
 
@@ -52,6 +60,8 @@ class BezierSegment(xo.Struct):
         kwargs['_cs2'] = cs2
         kwargs['_cx2'] = cx2
         super().__init__(**kwargs)
+        self.box = BoundingBox()
+        self.init_bounding_box(box=self.box, t1=0., t2=1.)
         self.calculate_extrema()
 
     def __str__(self):

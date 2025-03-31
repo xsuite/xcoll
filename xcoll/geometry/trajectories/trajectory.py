@@ -37,21 +37,7 @@ trajectory_methods = {
     'deriv_x': xo.Method(
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="l")],
-        ret=xo.Arg(xo.Float64, name="x")),
-    'bounding_box_s': xo.Method(    # Gives the min/max s over the interval [t1, t2]
-        c_name=f"bounding_box_s",
-        args=[xo.Arg(xo.Float64, name="l1"),
-              xo.Arg(xo.Float64, name="l2"),
-              xo.Arg(xo.Float64, pointer=True, name="extrema"),
-        ],
-        ret=None),
-    'bounding_box_x': xo.Method(    # Gives the min/max x over the interval [t1, t2]
-        c_name=f"bounding_box_x",
-        args=[xo.Arg(xo.Float64, name="l1"),
-              xo.Arg(xo.Float64, name="l2"),
-              xo.Arg(xo.Float64, pointer=True, name="extrema"),
-        ],
-        ret=None)
+        ret=xo.Arg(xo.Float64, name="x"))
 }
 
 
@@ -200,7 +186,7 @@ for traj in all_trajectories:
     if not '__repr__' in traj.__dict__:
         traj.__repr__ = __repr
     if not '__str__' in traj.__dict__:
-        traj.__str__ = traj__repr__
+        traj.__str__ = __repr
     traj.to_dict = to_dict
     traj.from_dict = from_dict
     traj.copy = __copy
@@ -229,9 +215,6 @@ def assert_trajectory_sources(tra):
     name = traj.__name__
     for func in ['func_s', 'func_x', 'func_xp', 'deriv_s', 'deriv_x']:
         header = f"/*gpufun*/\ndouble {name}_{func}({name} traj, double l)"
-        _check_source(header, traj)
-    for func in ['bounding_box_s', 'bounding_box_x']:
-        header = f"/*gpufun*/\nvoid {name}_{func}({name} traj, double l1, double l2, double extrema[2])"
         _check_source(header, traj)
 for traj in all_trajectories:
     assert_trajectory_sources(traj)

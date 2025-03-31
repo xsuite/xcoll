@@ -31,7 +31,7 @@ def xo_to_cnames(args):
 
 class BoundingBox(xo.Struct):
     rC = xo.Float64        # length of position vector to first vertex
-    sin_tC = xo.Float64    # angle of position vector to first vertex
+    sin_tC = xo.Float64    # angle of position vector to first vertex, [radians]
     cos_tC = xo.Float64
     proj_l = xo.Float64    # projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
     proj_w = xo.Float64    # projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
@@ -44,8 +44,8 @@ class BoundingBox(xo.Struct):
                                 c_name='BoundingBox_overlaps',
                                 args=[xo.Arg(xo.ThisClass, name="b1"),
                                       xo.Arg(xo.ThisClass, name="b2")],
-                                ret=xo.Int8)}
-
+                                ret=xo.Arg(xo.Int8, name="overlaps"))}
+    _needs_compilation = True
     _extra_c_sources = [f"""
 #ifndef XCOLL_GEOM_DEFINES_H
 #define XCOLL_GEOM_DEFINES_H
@@ -89,26 +89,17 @@ class BoundingBox(xo.Struct):
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
         _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
     ]
-
-    def __init__(self, *, s1, x1, s2, x2, theta, **kwargs):
-        kwargs['rc'] = np.sqrt(s1**2 + x1**2)
-        kwargs['sin_tC'] = x1 / kwargs['rc']
-        kwargs['cos_tC'] = s1 / kwargs['rc']
-        kwargs['proj_l'] = 
-        kwargs['proj_w'] = 
-        kwargs['l'] = 
-        kwargs['w'] = 
-        kwargs['sin_tb'] = np.sin(theta)
-        kwargs['cos_tb'] = np.cos(theta)
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # Add kernel
-    def __getattr__(self, attr):
-        kernel_name = attr
-        if kernel_name in self._kernels:
-            return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
-        raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
-
+# Add kernel
+def __getattr(self, attr):
+    kernel_name = attr
+    if kernel_name in self._kernels:
+        return PyMethod(kernel_name=kernel_name, element=self, element_name='b1')
+    raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
+ 
+BoundingBox.__getattr__ = __getattr
 
 class PyMethod:
     # Similar class as for the xt.BeamElement, but without the Metaclass magic

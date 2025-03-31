@@ -35,20 +35,6 @@ segment_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="t")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'bounding_box_s': xo.Method(    # Gives the min/max s over the interval [t1, t2]
-        c_name=f"bounding_box_s",
-        args=[xo.Arg(xo.Float64, name="t1"),
-              xo.Arg(xo.Float64, name="t2"),
-              xo.Arg(xo.Float64, pointer=True, name="extrema"),
-        ],
-        ret=None),
-    'bounding_box_x': xo.Method(    # Gives the min/max x over the interval [t1, t2]
-        c_name=f"bounding_box_x",
-        args=[xo.Arg(xo.Float64, name="t1"),
-              xo.Arg(xo.Float64, name="t2"),
-              xo.Arg(xo.Float64, pointer=True, name="extrema"),
-        ],
-        ret=None),
     'bounded_below': xo.Method(
         c_name=f"bounded_below",
         args=[],
@@ -296,9 +282,6 @@ def assert_segment_sources(tra):
         _check_source(header, seg)
     for func in ['func_s', 'func_x', 'deriv_s', 'deriv_x']:
         header = f"/*gpufun*/\ndouble {name}_{func}({name} seg, double t)"
-        _check_source(header, seg)
-    for func in ['bounding_box_s', 'bounding_box_x']:
-        header = f"/*gpufun*/\nvoid {name}_{func}({name} seg, double t1, double t2, double extrema[2])"
         _check_source(header, seg)
 
 def get_control_points(self):

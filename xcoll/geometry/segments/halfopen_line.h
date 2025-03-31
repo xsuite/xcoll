@@ -44,7 +44,7 @@ double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
 }
 
 /*gpufun*/
-void HalfOpenLineSegment_bounding_box(HalfOpenLineSegment seg, double t1, double t2, BoundingBox* box){
+void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox box, double t1, double t2){
     double s1 = HalfOpenLineSegment_func_s(seg, t1);
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
     double x1 = HalfOpenLineSegment_func_x(seg, t1);
@@ -63,16 +63,18 @@ void HalfOpenLineSegment_bounding_box(HalfOpenLineSegment seg, double t1, double
         sin_p = -cos_t;
         cos_p = sin_t;
     }
-    box->l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    box->w  = box->l/3.;                                         // width of the box 
-    box->rC = sqrt( (s1+box->w/2.*cos_p)*(s1+box->w/2.*cos_p) + // length of the position vector to the first vertex
-                    (x1+box->w/2.*sin_p)*(x1+box->w/2.*sin_p) );
-    box->sin_tb = sin_t;  // orientation of the box (angle of length wrt horizontal)
-    box->cos_tb = cos_t;
-    box->sin_tC = x1 / box->rC;  // angle of the position vector to the first vertex
-    box->cos_tC = s1 / box->rC;
-    box->proj_l = box->rC * (box->cos_tb*box->cos_tC + box->sin_t*box->sin_tC); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    box->proj_w = box->rC * (box->cos_tb*box->sin_tC - box->sin_t*box->cos_tC); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
+    BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));    // length of the box
+    BoundingBox_set_w(box, BoundingBox_get_l(box)/3.);     // width of the box 
+    double w = BoundingBox_get_w(box);                                     
+    BoundingBox_set_rC(box, sqrt( (s1+w/2.*cos_p)*(s1+w/2.*cos_p) + // length of the position vector to the first vertex
+                                  (x1+w/2.*sin_p)*(x1+w/2.*sin_p) ));
+    double rC = BoundingBox_get_rC(box);
+    BoundingBox_set_sin_tb(box, sin_t);  // orientation of the box (angle of length wrt horizontal)
+    BoundingBox_set_cos_tb(box, cos_t);
+    BoundingBox_set_sin_tC(box, x1 / rC);  // angle of the position vector to the first vertex
+    BoundingBox_set_cos_tC(box, s1 / rC);
+    BoundingBox_set_proj_l(box, rC * (cos_t*s1/rC + sin_t*x1/rC)); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    BoundingBox_set_proj_w(box, rC * (cos_t*x1/rC - sin_t*s1/rC)); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
 }
 
 
