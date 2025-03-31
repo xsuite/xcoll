@@ -23,12 +23,16 @@ class LineSegment(xo.Struct):
     _kernels = {'init_bounding_box': xo.Kernel(
                                         c_name='LineSegment_init_bounding_box',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                                xo.Arg(xo.ThisClass,  name="box"),
+                                                xo.Arg(BoundingBox, name="box"),
                                                 xo.Arg(xo.Float64, name="t1"),
                                                 xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                                         ret=None)}
 
     def __init__(self, *args, **kwargs):
+        if ((kwargs['s2'] < kwargs['s1']) and (kwargs['x2'] < kwargs['x1'])) or (
+            (kwargs['s2'] > kwargs['s1']) and (kwargs['x2'] < kwargs['x1']) ):
+            kwargs['s1'], kwargs['s2'] = kwargs['s2'], kwargs['s1']
+            kwargs['x1'], kwargs['x2'] = kwargs['x2'], kwargs['x1']
         t1 = kwargs.pop('t1', 0.)
         t2 = kwargs.pop('t2', 1.)
         super().__init__(*args, **kwargs)
