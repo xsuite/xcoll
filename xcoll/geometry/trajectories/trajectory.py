@@ -103,13 +103,8 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
     ax.plot(s_values, x_values, 'b-', label=self.__class__.__name__)
 
     # Get and plot the bounding box
-    extrema_s = np.zeros(2)
-    extrema_x = np.zeros(2)
     if plot_bounding_box:
-        self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
-        self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
-        ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-                [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+        ax.plot(*np.array([self.box.vertices]).T,
                 'k--', label='Bounding Box')
     ax.set_xlabel('s')
     ax.set_ylabel('x')

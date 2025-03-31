@@ -161,13 +161,8 @@ def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=
     t1 = max(t1, 0)
     if not self.is_open():
         t2 = min(t2, 1)
-    extrema_s = np.zeros(2)
-    extrema_x = np.zeros(2)
     if plot_bounding_box:
-        self.bounding_box_s(t1=t1, t2=t2, extrema=extrema_s)
-        self.bounding_box_x(t1=t1, t2=t2, extrema=extrema_x)
-        ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-                [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
+        ax.plot(*np.array([self.box.vertices]).T,
                 'k--', label='Bounding Box')
 
     # Get vertices and control points
