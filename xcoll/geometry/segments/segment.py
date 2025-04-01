@@ -162,8 +162,9 @@ def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=
     if not self.is_open():
         t2 = min(t2, 1)
     if plot_bounding_box:
-        ax.plot(*np.array([self.box.vertices]).T,
-                'k--', label='Bounding Box')
+        vertices = np.vstack([np.array(self.box.vertices), 
+                              np.array(self.box.vertices)[0]])
+        ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
 
     # Get vertices and control points
     s_start, x_start = self.func_s(t=0), self.func_x(t=0)
