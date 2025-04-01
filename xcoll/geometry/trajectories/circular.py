@@ -47,7 +47,7 @@ class CircularTrajectory(xo.Struct):
                 'init_bounding_box': xo.Kernel(
                                 c_name='CircularTrajectory_init_bounding_box',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
-                                      xo.Arg(xo.ThisClass, name="box"), 
+                                      xo.Arg(BoundingBox, name="box"), 
                                       xo.Arg(xo.Float64, name="l1"),
                                       xo.Arg(xo.Float64, name="l2")], # this is not parameters of mcs??
                                 ret=None)}
@@ -55,7 +55,7 @@ class CircularTrajectory(xo.Struct):
     def __init__(self, *args, **kwargs):
         s0 = kwargs.pop('s0', False)
         x0 = kwargs.pop('x0', False)
-        l1 = kwargs.pop('l1', -np.pi)
+        l1 = kwargs.pop('l1', 0)
         l2 = kwargs.pop('l2', np.pi)
         super().__init__(*args, **kwargs)
         if s0 is not False and x0 is not False:
