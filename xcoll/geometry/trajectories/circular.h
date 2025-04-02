@@ -86,11 +86,6 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
     double ll2 = ll1 + (l2-l1);
     double s1 = CircularTrajectory_func_s(traj, l1);
     double x1 = CircularTrajectory_func_x(traj, l1);
-    printf("\n\n\nNEW BOX\n");
-    printf("s1 = %f, x1 = %f\n", s1, x1);
-    printf("l1 = %f, l2 = %f\n", l1, l2);
-    printf("theta = %f\n", theta);
-    printf("ll1 = %f, ll2 = %f\n", ll1, ll2);
     double s2 = CircularTrajectory_func_s(traj, l2);
     double x2 = CircularTrajectory_func_x(traj, l2);
     double sR = CircularTrajectory_get_sR(traj);
@@ -108,7 +103,6 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
     double l, w;
     double chord_side = 1.;
     int8_t sign = 1;
-    printf("cos_chord = %.10f, sin_chord = %f\n", cos_chord, sin_chord);
     if ((cos_chord > 1e-10) && (sin_chord > 1e-10)){    // if 0 < chord angle < 90 deg, then chord angle = box angle
         sin_t = sin_chord;
         cos_t = cos_chord;
@@ -150,91 +144,37 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
         w = R - sqrt(R*R - chord_length*chord_length/4.);    // sagitta
         l = chord_length;
         if (cos_chord > 0){
-            printf("cos_chord > 0\n");
-            chord_side = 1; //  SIMONE HER MÅ DU FIKSE AVG AV VINKELO
+            chord_side = 1;
         } else {
-            printf("cos_chord < 0\n");
-            chord_side = -1; //  SIMONE HER MÅ DU FIKSE AVG AV VINKELO
+            chord_side = -1;
         }
-        printf("length of chord = %f\n", chord_length);
-        printf("width of box = %f\n", w);
-        printf("s1 = %f, s2 = %f\n", s1, s2);
-        printf("x1 = %f, x2 = %f\n", x1, x2);
-        printf("sR = %f, xR = %f\n", sR, xR);
         // finding the first vertex. 
         if (x1 < x2){
-            printf("x1 < x2\n");
             if (((ll1 < M_PI && ll2 > M_PI) && (cos_chord < 0)) || (( (-M_PI < ll1) && (ll1 < 0.) ) && ( (-M_PI < ll2) && (ll2 < 0.))) || ((ll1 < 0 && ll2 > 0) && (cos_chord > 0))){                // l1 or l2 is lower vertex
-                BoundingBox_set_rC(box,( sqrt( ((s1-sR)+w*cos_rot)*((s1-sR)+w*cos_rot) +    // length of the position vector to the first vertex
-                                               ((x1-xR)+w*sin_rot)*((x1-xR)+w*sin_rot)) ));
+                BoundingBox_set_rC(box,( sqrt( ((s1)+w*cos_rot)*((s1)+w*cos_rot) +    // length of the position vector to the first vertex
+                                               ((x1)+w*sin_rot)*((x1)+w*sin_rot)) ));
                 double rC = BoundingBox_get_rC(box);
-                printf("im in the weird one\n");
-                printf("theta chord, sin = %f, cos = %f\n", sin_chord, cos_chord);
-                BoundingBox_set_sin_tC(box,((x1-xR)+w*sin_rot) / rC);   // angle of position vector to first vertex
-                BoundingBox_set_cos_tC(box,((s1-sR)+w*cos_rot) / rC);
-                printf("s: rC * cos_tC = %f\n", rC * BoundingBox_get_cos_tC(box));
-                printf("x: rC * sin_tC = %f\n", rC * BoundingBox_get_sin_tC(box));
-                printf("rC_x: x1-xr - w*sin_rot = %f\n", (x1-xR)-w*sin_rot);
-                printf("rC_x: x1-xR + w*sin_rot = %f\n", (x1-xR)+w*sin_rot);
-                printf("rC_x: x2-xR - l*sin_rot = %f\n", (x2-xR)-l*sin_rot);
-                printf("rC_x: x2-xR + l*sin_rot = %f\n", (x2-xR)+l*sin_rot);
-                printf("next s: rC * cos_tC  + l * cos_tb= %f\n", rC * BoundingBox_get_cos_tC(box) + l*cos_t);
-                printf("next x: rC * sin_tC + l * sin_tb = %f\n", rC * BoundingBox_get_sin_tC(box) + l*sin_t);
-                printf("Je suis ici 5\n");
-                printf("BoundingBox_get_rC(box) = %f\n", rC);
-                printf("BoundingBox_get_sin_tC(box)  in heere= %f\n", BoundingBox_get_sin_tC(box));
-                printf("BoundingBox_get_cos_tC(box) = %f\n", BoundingBox_get_cos_tC(box));
+                BoundingBox_set_sin_tC(box,((x1)+w*sin_rot) / rC);   // angle of position vector to first vertex
+                BoundingBox_set_cos_tC(box,((s1)+w*cos_rot) / rC);
             } else {
-                printf("im in the else\n");
-                double rC = (sqrt((s1-sR)*(s1-sR) + (x1-xR)*(x1-xR))); // length of position vector to first vertex
+                double rC = (sqrt((s1)*(s1) + (x1)*(x1))); // length of position vector to first vertex
                 BoundingBox_set_rC(box, rC); // length of position vector to first vertex
-                BoundingBox_set_sin_tC(box, (x1-xR) /rC);   // angle of position vector to first vertex
-                BoundingBox_set_cos_tC(box, (s1-sR) /rC);
-                printf("s: rC * cos_tC = %f\n", rC * BoundingBox_get_cos_tC(box));
-                printf("x: rC * sin_tC = %f\n", rC * BoundingBox_get_sin_tC(box));
-                printf("Je suis ici 6\n");
-                printf("BoundingBox_get_rC(box) = %f\n",rC);
-                printf("sin_tc = %f\n", sin_tc);
-                printf("sintc calculated = %f\n", (x1-xR) /rC);
-                printf("costc calculated = %f\n", (s1-sR) /rC);
+                BoundingBox_set_sin_tC(box, (x1) /rC);   // angle of position vector to first vertex
+                BoundingBox_set_cos_tC(box, (s1) /rC);;
             }
         } else {
-            printf("!!!!!!!!! X1 > X2\n");
             if (((ll1 < M_PI && ll2 > M_PI) && (cos_chord < 0)) || (( (-M_PI < ll1) && (ll1 < 0.) ) && ( (-M_PI < ll2) && (ll2 < 0.))) || ((ll1 < 0 && ll2 > 0) && (cos_chord > 0))){                // l1 or l2 is lower vertex
-                BoundingBox_set_rC(box, (sqrt( ((s2-sR)-w*cos_rot)*((s2-sR)-w*cos_rot) +    // length of the position vector to the first vertex
-                                              ((x2-xR)-w*sin_rot)*((x2-xR)-w*sin_rot)) ));
-                BoundingBox_set_sin_tC(box, (((x2-xR)-w*sin_rot)) / BoundingBox_get_rC(box));   // angle of position vector to first vertex
-                BoundingBox_set_cos_tC(box, ((s2-sR)-w*cos_rot) / BoundingBox_get_rC(box));
-                printf("je suis ici 7\n");
-                printf("s: rC * cos_tC = %f\n", BoundingBox_get_rC(box) * BoundingBox_get_cos_tC(box));
-                printf("x: rC * sin_tC = %f\n", BoundingBox_get_rC(box)* BoundingBox_get_sin_tC(box));
-                printf("rC_x: x1-xr - w*sin_rot = %f\n", (x1-xR)-w*sin_rot);
-                printf("rC_x: x1-xR + w*sin_rot = %f\n", (x1-xR)+w*sin_rot);
-                printf("rC_x: x2-xR - l*sin_rot = %f\n", (x2-xR)-l*sin_rot);
-                printf("rC_x: x2-xR + l*sin_rot = %f\n", (x2-xR)+l*sin_rot);
-                printf("next s: rC * cos_tC  + l * cos_tb= %f\n", BoundingBox_get_rC(box) * BoundingBox_get_cos_tC(box) + l*cos_t);
-                printf("next x: rC * sin_tC + l * sin_tb = %f\n", BoundingBox_get_rC(box) * BoundingBox_get_sin_tC(box) + l*sin_t);
+                BoundingBox_set_rC(box, (sqrt( ((s2)-w*cos_rot)*((s2)-w*cos_rot) +    // length of the position vector to the first vertex
+                                              ((x2)-w*sin_rot)*((x2)-w*sin_rot)) ));
+                BoundingBox_set_sin_tC(box, (((x2)-w*sin_rot)) / BoundingBox_get_rC(box));   // angle of position vector to first vertex
+                BoundingBox_set_cos_tC(box, ((s2)-w*cos_rot) / BoundingBox_get_rC(box));
 
             } else {
-                BoundingBox_set_rC(box, sqrt((s2-sR)*(s2-sR) + (x2-xR)*(x2-xR))); // length of position vector to first vertex
-                BoundingBox_set_sin_tC(box, (x2-xR) / BoundingBox_get_rC(box));   // angle of position vector to first vertex
-                BoundingBox_set_cos_tC(box, (s2-sR) / BoundingBox_get_rC(box));
-                printf("je suis ici 8\n");
-                printf("s: rC * cos_tC = %f\n", BoundingBox_get_rC(box) * BoundingBox_get_cos_tC(box));
-                printf("x: rC * sin_tC = %f\n", BoundingBox_get_rC(box) * BoundingBox_get_sin_tC(box));
-                printf("rC_x: x1-xr - w*sin_rot = %f\n", (x1-xR)-w*sin_rot);
-                printf("rC_x: x1-xR + w*sin_rot = %f\n", (x1-xR)+w*sin_rot);
-                printf("rC_x: x2-xR - l*sin_rot = %f\n", (x2-xR)-l*sin_rot);
-                printf("rC_x: x2-xR + l*sin_rot = %f\n", (x2-xR)+l*sin_rot);
-                printf("next s: rC * cos_tC  + l * cos_tb= %f\n", BoundingBox_get_rC(box) * BoundingBox_get_cos_tC(box) + l*cos_t);
-                printf("next x: rC * sin_tC + l * sin_tb = %f\n", BoundingBox_get_rC(box) * BoundingBox_get_sin_tC(box) + l*sin_t);
+                BoundingBox_set_rC(box, sqrt((s2)*(s2) + (x2)*(x2))); // length of position vector to first vertex
+                BoundingBox_set_sin_tC(box, (x2) / BoundingBox_get_rC(box));   // angle of position vector to first vertex
+                BoundingBox_set_cos_tC(box, (s2) / BoundingBox_get_rC(box));
             }
         }
-        printf("outside now!!!\n");
-        printf("chord_side = %f\n", chord_side);
-        printf("BoundingBox_get_rC(box) = %f\n", BoundingBox_get_rC(box));
-        printf("BoundingBox_get_sin_tC(box) = %f\n", BoundingBox_get_sin_tC(box));
-        printf("BoundingBox_get_cos_tC(box) = %f\n", BoundingBox_get_cos_tC(box));
     } else {
         chord_side = 1;
         l = (2*R);                               // L is always on the side of the chord
