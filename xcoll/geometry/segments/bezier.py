@@ -42,7 +42,7 @@ class BezierSegment(xo.Struct):
                 'init_bounding_box': xo.Kernel(
                         c_name='BezierSegment_init_bounding_box',
                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                              xo.Arg(xo.ThisClass,  name="box"),
+                              xo.Arg(BoundingBox,  name="box"),
                               xo.Arg(xo.Float64, name="t1"),
                               xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                         ret=None)
@@ -60,9 +60,9 @@ class BezierSegment(xo.Struct):
         kwargs['_cs2'] = cs2
         kwargs['_cx2'] = cx2
         super().__init__(**kwargs)
+        self.calculate_extrema()
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=0., t2=1.)
-        self.calculate_extrema()
 
     def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
