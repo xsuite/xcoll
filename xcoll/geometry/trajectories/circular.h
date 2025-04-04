@@ -230,7 +230,6 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
     BoundingBox_set_cos_tb(box, cos_t);
     BoundingBox_set_proj_l(box, rC * (cos_t*s1/rC + sin_t*x1/rC)); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
     BoundingBox_set_proj_w(box, rC * (cos_t*x1/rC - sin_t*s1/rC)); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-
 }
 
 

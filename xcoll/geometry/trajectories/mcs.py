@@ -73,8 +73,8 @@ class MultipleCoulombTrajectory(xo.Struct):
         pc = kwargs.pop('pc', False)
         beta = kwargs.pop('beta', False)
         q = kwargs.pop('q', False)
-        l1 = kwargs.pop('l1', 0.)
-        l2 = kwargs.pop('l2', 10.)
+        l1 = kwargs.pop('l1', -5.)
+        l2 = kwargs.pop('l2', 5.)
         super().__init__(*args, **kwargs)
         if pc is not False and beta is not False and q is not False and X0 is not False\
         and ran_1 is not False and ran_2 is not False:

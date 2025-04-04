@@ -55,8 +55,8 @@ class CircularTrajectory(xo.Struct):
     def __init__(self, *args, **kwargs):
         s0 = kwargs.pop('s0', False)
         x0 = kwargs.pop('x0', False)
-        l1 = kwargs.pop('l1', 0)
-        l2 = kwargs.pop('l2', np.pi)
+        l1 = kwargs.pop('l1', 0.)
+        l2 = kwargs.pop('l2', 2*np.pi)
         super().__init__(*args, **kwargs)
         if s0 is not False and x0 is not False:
             self.set_params(s0=s0, x0=x0, sR=self.sR, xR=self.xR)
