@@ -28,7 +28,9 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
     }
 
     // Do the interaction
-    // Scattered angle is 2(cos theta -1) = t / P^2  (from Mandelstam t = (p1-p3)^2)
+    // Scattered angle is cos theta = 1 + t / (2p^2) for elastic scattering
+    //    from Mandelstam t = (p1-p3)^2) = 2m^2 - 2E1E3 + 2p1.p3
+    //    if elastic, p1 = p3, and hence t = 2m^2 - 2(m^2 + p^2) + 2p^2 cos(theta)
     int64_t i_slot = -1;
     if (ichoix==1) {
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
@@ -36,15 +38,18 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
 
     } else {
         double sqrt_t_p;
-        if (ichoix==2) { // p-n elastic
+        if (ichoix==2) {
+            // p-n elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bn)/pc;
 
-        } else if (ichoix==3) { // p-p elastic
+        } else if (ichoix==3) {
+            // p-p elastic
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/everest->bpp)/pc;
 
-        } else if (ichoix==4) { // Single diffractive
+        } else if (ichoix==4) {
+            // Single diffractive
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
             double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             double bsd;
@@ -68,17 +73,20 @@ double nuclear_interaction(EverestData restrict everest, LocalParticle* part, do
                 sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             }
 
-        } else { // Coulomb
+        } else {
+            // Coulomb
             if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
         }
 
+        // theta = arccos(1 + t/(2p^2))  =>  tan(theta) = sqrt( -t/p^2 * (1 + t/(4p^2)) ) / (1 + t/(2p^2))
+        // Note that in elastic scattering, t < 0, but we sampled t > 0 so we need to flip the sign
         double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-        double phi = 2*M_PI*RandomUniform_generate(part);
-        double tan_theta_x = tan_theta*cos(phi);
-        double tan_theta_y = tan_theta*sin(phi);
+        double alpha = 2*M_PI*RandomUniform_generate(part);
+        double tan_theta_x = tan_theta*cos(alpha);
+        double tan_theta_y = tan_theta*sin(alpha);
 
-        //Change the angles
+        // Change the angles
 #ifdef XCOLL_USE_EXACT
         LocalParticle_add_to_exact_xp_yp(part, tan_theta_x, tan_theta_y);
 #else
