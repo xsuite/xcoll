@@ -52,10 +52,10 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
     double sin_t = HalfOpenLineSegment_get_sin_t1(seg); // angle of the line wrt horizontal
     double cos_t = HalfOpenLineSegment_get_cos_t1(seg);
     double sin_p, cos_p; 
-    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-        sin_t = -sin_t;
-        cos_t = -cos_t;
-    }
+    //if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
+    //    sin_t = -sin_t;
+    //    cos_t = -cos_t;
+   // }
     if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
         sin_p = cos_t;
         cos_p = -sin_t;
@@ -64,7 +64,7 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
         cos_p = sin_t;
     }
     BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));    // length of the box
-    BoundingBox_set_w(box, BoundingBox_get_l(box)/3.);     // width of the box 
+    BoundingBox_set_w(box, 0.001);      // width of the box 
     double w = BoundingBox_get_w(box);                                     
     BoundingBox_set_rC(box, sqrt( (s1+w/2.*cos_p)*(s1+w/2.*cos_p) + // length of the position vector to the first vertex
                                   (x1+w/2.*sin_p)*(x1+w/2.*sin_p) ));

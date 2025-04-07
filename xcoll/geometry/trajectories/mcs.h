@@ -137,18 +137,18 @@ void MultipleCoulombTrajectory_init_bounding_box(MultipleCoulombTrajectory traj,
         s1 = s0 + l1*cos_t0 - l2*A0*omega_norm*sin_t0;
         x1 = x0 + l1*sin_t0 + l2*A0*omega_norm*cos_t0;
     }
-    Boundingbox_set_rC(box, sqrt(s1*s1 + x1*x1)); // length of position vector to first vertex
+    BoundingBox_set_rC(box, sqrt(s1*s1 + x1*x1)); // length of position vector to first vertex
     double rC = BoundingBox_get_rC(box);
-    Boundingbox_set_sin_tC(box, x1 / rC);    // angle of position vector to first vertex
-    Boundingbox_set_cos_tC(box, s1 / rC);
+    BoundingBox_set_sin_tC(box, x1 / rC);    // angle of position vector to first vertex
+    BoundingBox_set_cos_tC(box, s1 / rC);
     double sin_tC = BoundingBox_get_sin_tC(box);
     double cos_tC = BoundingBox_get_cos_tC(box);
-    Boundingbox_set_proj_l(box, rC * (cos_t0*cos_tC + sin_t0*sin_tC)); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    Boundingbox_set_proj_w(box, rC * (cos_t0*sin_tC - sin_t0*cos_tC)); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-    Boundingbox_set_l(box, l2 - l1);       // length of the box
-    Boundingbox_set_w(box, fabs(shift_x)); // width of the box
-    Boundingbox_set_sin_tb(box, sin_t0);   // orientation of the box (angle of length wrt horizontal)
-    Boundingbox_set_cos_tb(box, cos_t0);
+    BoundingBox_set_proj_l(box, rC * (cos_t0*cos_tC + sin_t0*sin_tC)); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    BoundingBox_set_proj_w(box, rC * (cos_t0*sin_tC - sin_t0*cos_tC)); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    BoundingBox_set_l(box, l2 - l1);       // length of the box
+    BoundingBox_set_w(box, fabs(shift_x)); // width of the box
+    BoundingBox_set_sin_tb(box, sin_t0);   // orientation of the box (angle of length wrt horizontal)
+    BoundingBox_set_cos_tb(box, cos_t0);
 }
 
 

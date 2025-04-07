@@ -59,7 +59,7 @@ class MultipleCoulombTrajectory(xo.Struct):
                 'init_bounding_box': xo.Kernel(
                                 c_name='MultipleCoulombTrajectory_init_bounding_box',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
-                                      xo.Arg(xo.ThisClass, name="box"),
+                                      xo.Arg(BoundingBox, name="box"),
                                       xo.Arg(xo.Float64, name="l1"),
                                       xo.Arg(xo.Float64, name="l2")], # this is not parameters of mcs??
                                 ret=None)}
@@ -73,11 +73,9 @@ class MultipleCoulombTrajectory(xo.Struct):
         pc = kwargs.pop('pc', False)
         beta = kwargs.pop('beta', False)
         q = kwargs.pop('q', False)
-        l1 = kwargs.pop('l1', 0.)
-        l2 = kwargs.pop('l2', 10.)
+        l1 = kwargs.pop('l1', -5.)
+        l2 = kwargs.pop('l2', 5.)
         super().__init__(*args, **kwargs)
-        self.box = BoundingBox()
-        self.init_bounding_box(box=self.box, l1=l1, l2=l2)
         if pc is not False and beta is not False and q is not False and X0 is not False\
         and ran_1 is not False and ran_2 is not False:
             if xp is not False:
@@ -86,7 +84,8 @@ class MultipleCoulombTrajectory(xo.Struct):
             elif theta0 is not False:
                 self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0,
                                 xp=np.tan(theta0), pc=pc, beta=beta, q=q)
-
+        self.box = BoundingBox()
+        self.init_bounding_box(box=self.box, l1=l1, l2=l2)
     def __str__(self):
         return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
 

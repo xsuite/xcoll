@@ -23,7 +23,7 @@ class HalfOpenLineSegment(xo.Struct):
     _kernels = {'init_bounding_box': xo.Kernel(
                                         c_name='HalfOpenLineSegment_init_bounding_box',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                              xo.Arg(xo.ThisClass, name="box"),
+                                              xo.Arg(BoundingBox, name="box"),
                                               xo.Arg(xo.Float64, name="t1"),
                                               xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                                         ret=None)}

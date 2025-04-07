@@ -93,8 +93,9 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
     else:
         fig = ax.figure
     if self.__class__.__name__ == 'CircularTrajectory':
-        l1 = l1*2*np.pi
-        l2 = l2*2*np.pi
+        ax.scatter(self.sR, self.xR, c='r', label='Center of Circle')
+    if (self.__class__.__name__ == 'DriftTrajectory') or (self.__class__.__name__ == 'MultipleCoulombTrajectory'):
+        ax.scatter(self.s0, self.x0, c='r', label='Start')
     l_values = np.linspace(l1, l2, 100)
     s_values = np.array([self.func_s(l=l) for l in l_values])
     x_values = np.array([self.func_x(l=l) for l in l_values])
@@ -103,14 +104,10 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
     ax.plot(s_values, x_values, 'b-', label=self.__class__.__name__)
 
     # Get and plot the bounding box
-    extrema_s = np.zeros(2)
-    extrema_x = np.zeros(2)
     if plot_bounding_box:
-        self.bounding_box_s(l1=l1, l2=l2, extrema=extrema_s)
-        self.bounding_box_x(l1=l1, l2=l2, extrema=extrema_x)
-        ax.plot([extrema_s[0], extrema_s[1], extrema_s[1], extrema_s[0], extrema_s[0]],
-                [extrema_x[0], extrema_x[0], extrema_x[1], extrema_x[1], extrema_x[0]],
-                'k--', label='Bounding Box')
+        vertices = np.vstack([np.array(self.box.vertices), 
+                              np.array(self.box.vertices)[0]])
+        ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
     ax.set_xlabel('s')
     ax.set_ylabel('x')
     ax.set_aspect('equal', 'box')
@@ -125,8 +122,13 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
     '''''
     from matplotlib.widgets import Slider
     plt.ion()  # This enables interactive mode
+    all_kwargs = kwargs
+    all_kwargs['l1'] = [0, 1, 0] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 0]
+    all_kwargs['l2'] = [0, 1, 1] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 1]
+    all_kwargs['l1'] = [0, 2*np.pi, 0.] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l1']
+    all_kwargs['l2'] = [0, 2*np.pi, np.pi] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l2']
     fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot(
-                        plot_bounding_box=plot_bounding_box)
+                        plot_bounding_box=plot_bounding_box, l1=all_kwargs['l1'][2], l2=all_kwargs['l2'][2])
     plt.subplots_adjust(left=0.1, bottom=0.1+0.025*len(kwargs)) # slider space
 
     state = {'ax': ax} # store the axis 
@@ -137,9 +139,7 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
         fig, state['ax'] = cls(**these_kwargs).plot(l1=sliders['l1'].val, l2=sliders['l2'].val, ax=state['ax'],
                         plot_bounding_box=plot_bounding_box)
         plt.draw()
-    all_kwargs = kwargs
-    all_kwargs['l1'] = [0, 1, 0] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 0]
-    all_kwargs['l2'] = [0, 1, 1] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 1]
+    
     ax_sliders = {arg: plt.axes([0.1, 0.025*(len(all_kwargs)-i-1), 0.8, 0.03], facecolor='lightgrey')
                   for i, arg in enumerate(all_kwargs)}
     sliders = {arg: Slider(ax_sliders[arg], arg, val[0], val[1], valinit=val[2])

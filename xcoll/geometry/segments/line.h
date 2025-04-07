@@ -67,7 +67,7 @@ void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, 
         cos_p = sin_t;
     }
     BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));   // length of the box
-    BoundingBox_set_w(box, BoundingBox_get_l(box)/3.);       // width of the box 
+    BoundingBox_set_w(box, 0.001);       // width of the box cannot be 0 for (0,0)
     BoundingBox_set_rC(box, sqrt( (s1+BoundingBox_get_w(box)/2.*cos_p) * (s1+BoundingBox_get_w(box)/2.*cos_p) +  // length of the position vector to the first vertex
                                   (x1+BoundingBox_get_w(box)/2.*sin_p) * (x1+BoundingBox_get_w(box)/2.*sin_p) ));
     BoundingBox_set_sin_tb(box, sin_t);  // orientation of the box (angle of length wrt horizontal)
