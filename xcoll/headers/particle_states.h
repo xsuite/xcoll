@@ -16,6 +16,7 @@
 #define  XC_LOST_ON_GEANT4_COLL     -337
 #define  XC_LOST_ON_GEANT4_CRYSTAL  -338
 #define  XC_LOST_ON_ABSORBER        -340
+#define  XC_VIRTUAL_ENERGY          -350  // Not a real particle, but energy that is deposited
 
 #define  XC_ERR_INVALID_TRACK       -390
 #define  XC_ERR_NOT_IMPLEMENTED     -391

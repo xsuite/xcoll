@@ -63,7 +63,7 @@ subroutine pyfluka_close()
     call fluka_close
 
 end subroutine
-      
+
 
 subroutine pyfluka_init_max_uid(npart)
     use crcoall
@@ -110,7 +110,7 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
     implicit none
     integer fluka_con
 
-    real(kind=8),        intent(in) :: part_e0, part_pc0, part_mass0
+    real(kind=8),    intent(in) :: part_e0, part_pc0, part_mass0
     integer(kind=4), intent(in) :: part_a0, part_z0, part_q0
 
     ! A.Mereghetti and D.Sinuela Pastor, for the FLUKA Team
@@ -153,7 +153,7 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
 end subroutine
 
 
-subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, max_part, x_part, xp_part, y_part, yp_part, &
+subroutine track_fluka(turn, fluka_id, length, alive_part, max_part, x_part, xp_part, y_part, yp_part, &
                        zeta_part, e_part, m_part, q_part, A_part, Z_part, pdg_id_part, part_id, parent_id, &
                        part_weight, spin_x_part, spin_y_part, spin_z_part)
 
@@ -197,8 +197,6 @@ subroutine track_fluka(turn, fluka_id, length, part_p0c, part_e0, alive_part, ma
 
     npart = max_part
     napx = alive_part
-    fluka_pc0 = part_p0c
-    fluka_e0 = part_e0
 
     ret = fluka_send_receive(turn, fluka_id, length, alive_part, max_part, x_part, y_part, xp_part, yp_part, &
                            zeta_part, e_part, A_part, Z_part, m_part, q_part, pdg_id_part, &

@@ -423,11 +423,12 @@ contains
         flyp  = yv2(j) * c1m3 ! from [1.0E-03] to [1.0]
         ! director cosines:
         ! full transformation:
-        flzp  = sqrt( one / ( flxp**2 + flyp**2 + one ) )
+        flzp = sqrt(one - flxp**2 - flyp**2)
+        ! flzp  = sqrt( one / ( flxp**2 + flyp**2 + one ) )
         !      ! taylor expansion, for consistency with drifts in SixTrack:
         !      flzp  = 1d0 / ( 1d0 + ( flxp**2+flyp**2 )/2d0 )
-        flxp  = flxp * flzp
-        flyp  = flyp * flzp
+        !flxp  = flxp * flzp
+        !flyp  = flyp * flzp
 
         ! total energy:
         flet  = etot(j) * c1m3 ! from [MeV] to [GeV]
@@ -611,8 +612,8 @@ contains
             partWeight(fluka_nrecv)  = flwgt
             xv1(fluka_nrecv)         = flx * c1e1   ! from [cm]  to [mm]
             xv2(fluka_nrecv)         = fly * c1e1   ! from [cm]  to [mm]
-            yv1(fluka_nrecv)         = flxp / flzp * c1e3 ! from director cosine to x' [1.0E-03]
-            yv2(fluka_nrecv)         = flyp / flzp * c1e3 ! from director cosine to x' [1.0E-03]
+            yv1(fluka_nrecv)         = flxp * c1e3 ! from director cosine to x' [1.0E-03]
+            yv2(fluka_nrecv)         = flyp * c1e3 ! from director cosine to x' [1.0E-03]
             etot(fluka_nrecv)         = flet * c1e3  ! from [GeV] to [MeV]
             s(fluka_nrecv)            = ( el - (fluka_pc0/fluka_e0)*(flt*fluka_clight) ) * c1e3 ! from [s] to [mm]
             aa(fluka_nrecv)           = flaa          !PH for hiSix

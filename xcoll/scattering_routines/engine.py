@@ -198,6 +198,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         if cls._uses_input_file:
             return cls.get_self()._input_file
 
+    @ClassProperty
+    def element_dict(cls):
+        return cls.get_self()._element_dict
+
 
     # ======================
     # === Public Methods ===
