@@ -100,11 +100,11 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
     double cos_chord = ds / chord_length;
     double sin_t, cos_t;                                       // angle of the box wrt horizontal
     double min_x, min_s;   
-    double sin_rot, cos_rot;
+    double sin_rot, cos_rot;                                   // angle of rotation
     double l, w;
     double rotate_box = -1.;
     int8_t sign = 1;                                           // The orientation of the box can impact calculations
-    if ((cos_chord > 1e-10) && (sin_chord > 1e-10)){           // if 0 < chord angle < 90 deg, then chord angle = box angle
+    if (((cos_chord > 1e-10) && (sin_chord > 1e-10))){           // if 0 < chord angle < 90 deg, then chord angle = box angle
         sin_t = sin_chord;
         cos_t = cos_chord;
         sin_rot = -cos_t;
@@ -115,7 +115,14 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
             sin_chord = -sin_chord;
             cos_chord = -cos_chord;
         }
-        if ((cos_chord > 1e-10) && (sin_chord > 1e-10)){       // if 0 < chord angle < 90 deg, then chord angle = box angle
+        if ( ((cos_chord > 1e-10) && (sin_chord > 1e-10))){       // if 0 < chord angle < 90 deg, then chord angle = box angle
+            sin_t = sin_chord;
+            cos_t = cos_chord;
+            sin_rot = -cos_t;
+            cos_rot = sin_t;
+            sign = -1;
+        } else if (((((cos_chord - 1.) < 1e-10) || ((cos_chord + 1.) > -1e-10)) && (sin_chord < 1e-10)) ||
+                     ((cos_chord < 1e-10) && (((sin_chord-1.) < 1e-10) || ((sin_chord+1) > -1e-10)))){
             sin_t = sin_chord;
             cos_t = cos_chord;
             sin_rot = -cos_t;
@@ -171,7 +178,7 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
         double chord_side_w1_x, chord_side_w1_s, chord_side_w2_x, chord_side_w2_s;
         double w3_x, w3_s, w4_x, w4_s;
         // determining the (s,x) of the vertices on the chord side of box
-        if (x1 < x2){
+        if ((x2-x1) > 1e-10){
             rotate_box = 1;
             chord_side_w1_x = x1 - (2*R - chord_length)/2.*sin_chord;
             chord_side_w1_s = s1 - (2*R - chord_length)/2.*cos_chord;
@@ -195,7 +202,7 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
         // Compare with the other three points to find the first vertex. Also taking into account if the box is horiztonal
         min_x = chord_side_w1_x;
         min_s = chord_side_w1_s;
-        if ((chord_side_w2_x < min_x) || (chord_side_w2_x == min_x && chord_side_w2_s < min_s)) {
+        if ((chord_side_w2_x < min_x) || (((chord_side_w2_x - min_x) < 1e-10) && (chord_side_w2_s < min_s))) {
             if ((chord_side_w2_x < min_x) && (chord_side_w2_s > min_s)) {
                 rotate_box = 1;
             } else {
@@ -204,12 +211,12 @@ void CircularTrajectory_init_bounding_box(CircularTrajectory traj, BoundingBox b
             min_x = chord_side_w2_x; 
             min_s = chord_side_w2_s;
         }
-        if (w3_x < min_x || (w3_x == min_x && w3_s < min_s)) {
+        if (w3_x < min_x || (((w3_x - min_x) < 1e-10) && (w3_s < min_s))) {
             min_x = w3_x; 
             min_s = w3_s;   
             rotate_box = -1;
         }
-        if (w4_x < min_x || (((w4_x - min_x)<1e-10) && w4_s <= min_s)) {
+        if (w4_x < min_x || (((w4_x - min_x)<1e-10) && (w4_s <= min_s))) {
             min_x = w4_x; 
             min_s = w4_s;
             rotate_box = 1;

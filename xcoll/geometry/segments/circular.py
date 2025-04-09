@@ -125,6 +125,8 @@ class CircularSegment(xo.Struct):
         t2 = kwargs.pop('t2', 2*np.pi)
         super().__init__(**kwargs)
         self.set_angles(theta1, theta2)
+        print("theta1", self._theta1)
+        print("theta2", self._theta2)
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
