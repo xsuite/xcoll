@@ -51,11 +51,7 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
     double x2 = HalfOpenLineSegment_func_x(seg, t2);
     double sin_t = HalfOpenLineSegment_get_sin_t1(seg); // angle of the line wrt horizontal
     double cos_t = HalfOpenLineSegment_get_cos_t1(seg);
-    double sin_p, cos_p; 
-    //if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-    //    sin_t = -sin_t;
-    //    cos_t = -cos_t;
-   // }
+    double sin_p, cos_p;
     if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
         sin_p = cos_t;
         cos_p = -sin_t;
