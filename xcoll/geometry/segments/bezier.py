@@ -59,10 +59,12 @@ class BezierSegment(xo.Struct):
         kwargs['_cx1'] = cx1
         kwargs['_cs2'] = cs2
         kwargs['_cx2'] = cx2
+        t1 = kwargs.pop('t1', 0.)
+        t2 = kwargs.pop('t2', 1.)
         super().__init__(**kwargs)
         self.calculate_extrema()
         self.box = BoundingBox()
-        self.init_bounding_box(box=self.box, t1=0., t2=1.)
+        self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
     def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
