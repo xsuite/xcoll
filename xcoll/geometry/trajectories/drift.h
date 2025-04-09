@@ -64,9 +64,9 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 
 /*gpufun*/
 void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, double l1, double l2){
-    double s1 = DriftTrajectory_get_s0(traj);
+    double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
-    double x1 = DriftTrajectory_get_x0(traj);
+    double x1 = DriftTrajectory_func_x(traj, l1);
     double x2 = DriftTrajectory_func_x(traj, l2);
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
