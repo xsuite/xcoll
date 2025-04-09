@@ -48,17 +48,13 @@ void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, 
     //Calculate the bounding box of a line segment.
     //Theta is the angle of the line wrt the horizontal. 
     //Phi is the angle from s1 to the first vertex (in the frame of the box).
-    double s1 = LineSegment_get_s1(seg);
-    double s2 = LineSegment_get_s2(seg);
-    double x1 = LineSegment_get_x1(seg);
-    double x2 = LineSegment_get_x2(seg);
+    double s1 = LineSegment_func_s(seg, t1);
+    double s2 = LineSegment_func_s(seg, t2);
+    double x1 = LineSegment_func_x(seg, t1);
+    double x2 = LineSegment_func_x(seg, t2);
     double sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
     double cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    double sin_p, cos_p; 
-    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-        sin_t = -sin_t;
-        cos_t = -cos_t;
-    }
+    double sin_p, cos_p;
     if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
         sin_p = cos_t;
         cos_p = -sin_t;
