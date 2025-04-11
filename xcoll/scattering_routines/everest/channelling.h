@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
-#ifndef XCOLL_EVEREST_CHANNELING_H
-#define XCOLL_EVEREST_CHANNELING_H
+#ifndef XCOLL_EVEREST_CHANNELLING_H
+#define XCOLL_EVEREST_CHANNELLING_H
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 
 
 /*gpufun*/
-double channeling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
+double channelling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
     double const anuc = everest->coll->anuc;
@@ -179,7 +179,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         // -----------------------------------------------------
         // Nuclear interaction length is rescaled in this case, because channeling
         double collnt = everest->coll->collnt;
-        double avrrho = channeling_average_density(everest, cg, part, pc);
+        double avrrho = channelling_average_density(everest, cg, part, pc);
         if (avrrho == 0) {
             collnt = 1.e10;  // very large because essentially 1/0
         } else {
@@ -235,4 +235,4 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
     return pc;
 }
 
-#endif /* XCOLL_EVEREST_CHANNELING_H */
+#endif /* XCOLL_EVEREST_CHANNELLING_H */

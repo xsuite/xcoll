@@ -26,7 +26,6 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
         double rlen = length;
         double s0 = LocalParticle_get_s(part);
         while (1) {
-            calculate_ionisation_properties(everest, pc);
             // Length of the step until nuclear interaction
             double length_step = everest->xintl*RandomExponential_generate(part);
 
@@ -51,6 +50,7 @@ double jaw(EverestData restrict everest, LocalParticle* part, double pc, double 
             // Calculate the remaining interaction length and close the iteration loop.
             rlen = rlen - length_step;
         }
+        calculate_ionisation_properties(everest, pc);
         double ionisation_length = LocalParticle_get_s(part) - s0;
         pc = calcionloss(everest, part, ionisation_length, pc, 1);
     }

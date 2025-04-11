@@ -69,10 +69,6 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
         // Transition MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
-        double xp_rel = LocalParticle_get_xp(part) - everest->t_I;
-        double t_P = everest->t_P;
-        double t_c = everest->t_c;
-        dya *= 1 - (xp_rel-t_P)/(2.*t_c);
     } else {
         // Normal MCS
         if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
