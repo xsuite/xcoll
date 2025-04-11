@@ -156,7 +156,6 @@ class EverestCollimator(BaseCollimator):
                             _buffer=_buffer, _offset=_offset)
 
 
-
 class EverestCrystal(BaseCrystal):
     _xofields = {**BaseCrystal._xofields,
         'miscut':             xo.Float64,

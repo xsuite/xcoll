@@ -76,9 +76,16 @@ class BaseBlock(xt.BeamElement):
         return instance
 
     def __init__(self, **kwargs):
+        to_assign = {}
         if '_xobject' not in kwargs:
             kwargs.setdefault('active', True)
+            to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
+            to_assign['record_exits'] = kwargs.pop('record_exits', False)
+            to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
         super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+        BaseBlock._verify_consistency(self)
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -99,6 +106,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_impacts.setter
     def record_impacts(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_impacts` must be a boolean value.")
         if val and not self.record_impacts:
             self._record_interactions += 1
         elif not val and self.record_impacts:
@@ -110,6 +119,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_exits.setter
     def record_exits(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_exits` must be a boolean value.")
         if val and not self.record_exits:
             self._record_interactions += 2
         elif not val and self.record_exits:
@@ -121,6 +132,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_scatterings.setter
     def record_scatterings(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_scatterings` must be a boolean value.")
         if val and not self.record_scatterings:
             self._record_interactions += 4
         elif not val and self.record_scatterings:
@@ -273,7 +286,7 @@ class BaseCollimator(BaseBlock):
             self._optics = None
         for key, val in to_assign.items():
             setattr(self, key, val)
-        self._verify_consistency()
+        BaseCollimator._verify_consistency(self)
 
 
     # Main collimator angle
@@ -1143,7 +1156,7 @@ class BaseCrystal(BaseBlock):
             to_assign['width'] = kwargs.pop('width', 1)
             to_assign['height'] = kwargs.pop('height', 1)
 
-        xt.BeamElement.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
         if not hasattr(self, '_optics'):
@@ -1155,7 +1168,7 @@ class BaseCrystal(BaseBlock):
                 self._jaw_U *= -1
             if np.isclose(self._gap, OPEN_GAP):
                 self._gap *= -1
-        self._verify_consistency()
+        BaseCrystal._verify_consistency(self)
 
 
     # Main crystal angle
