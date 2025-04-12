@@ -7,6 +7,11 @@ import time
 
 import matplotlib.pyplot as plt
 
+# # Treat warnings as errors to debug
+# np.set_printoptions(threshold=np.inf)
+# import warnings
+# warnings.filterwarnings("error")
+
 
 if xc.FlukaEngine.is_running():
     xc.FlukaEngine.stop()
@@ -38,7 +43,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     part = part_init.copy()
 
     # Do the tracking in FLUKA
-    print(f"Tracking {num_part} {pdg.get_name_from_pdg_id(particle_ref.pdg_id[0])}s  (FLUKA)...     ", end='', flush=True)
+    print(f"Tracking {num_part} {pdg.get_name_from_pdg_id(particle_ref.pdg_id[0])}s...     ", end='', flush=True)
     start = time.time()
     coll.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.", flush=True)

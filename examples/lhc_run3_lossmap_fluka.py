@@ -51,6 +51,11 @@ xc.FlukaEngine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', 
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 part = line[tcp].generate_pencil(num_particles)
 
+# # Treat warnings as errors to debug
+# np.set_printoptions(threshold=np.inf)
+# import warnings
+# warnings.filterwarnings("error")
+
 # Track!
 line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)

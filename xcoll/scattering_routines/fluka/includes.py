@@ -258,6 +258,7 @@ PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
 PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
 PHYSICS           2.                                                  EM-DISSO
+*THRESHOL         0.0       0.0    8000.0    8000.0       0.0       0.0
 """
     with filename.open('w') as fp:
         fp.write(template)

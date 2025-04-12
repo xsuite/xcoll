@@ -11,10 +11,16 @@ path=xcoll/scattering_routines/fluka
 # source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos8-gcc11-opt/setup.sh
 # mamba install compilers make cmake
 
-git submodule update --init --recursive
+# git submodule update --init --recursive
 
 cd $path
 rm pyflukaf.*so
+
+if [ ! -d flukaio ]
+then
+  echo "No FlukaIO directory found! Please git submodule init first."
+  exit 1
+fi
 
 cd flukaio
 make libs BUILD64=Y
