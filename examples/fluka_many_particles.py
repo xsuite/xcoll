@@ -3,6 +3,7 @@ import xpart as xp
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 import xcoll as xc
+from  xcoll import particle_states as xps
 import time
 
 import matplotlib.pyplot as plt
@@ -57,16 +58,12 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
             name = pdg.get_name_from_pdg_id(pdg_id, long_name=False)
         except ValueError:
             name = 'unknown'
-        mass = part.mass[part.pdg_id==pdg_id][0]
-        if np.isnan(mass):
-            # Need to be careful to avoid NaNs from m0 / m with m = 0
-            E = (part.beta0[0]*part.ptau[mask & (part.pdg_id==pdg_id)] + 1)*part.energy0[0]
+        if part.state[part.pdg_id==pdg_id][0] == xps.MASSLESS_OR_NEUTRAL:
+            mass = 0
         else:
-            E = part.energy[mask & (part.pdg_id==pdg_id)]
-        if len(E[~np.isnan(E)]) > 0:
-            en = f"{E[~np.isnan(E)].mean():.1e} ± {E[~np.isnan(E)].std():.1e} eV"
-        else:
-            en = "NaN"
+            mass = part.mass[part.pdg_id==pdg_id][0]
+        E = part.energy[mask & (part.pdg_id==pdg_id)]
+        en = f"{E[~np.isnan(E)].mean():.1e} ± {E[~np.isnan(E)].std():.1e} eV"
         print(f"  {num:6} {name:12}{en:21}  (PDG ID: {pdg_id}, mass: {mass} eV)")
 
     # # Some checks on the FLUKA reference masses for ions. This is useful for the devs.
@@ -154,7 +151,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
 
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=100_000)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=500_000)
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
 
 

@@ -9,7 +9,7 @@ import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ...headers.particle_states import XC_LOST_ON_FLUKA_COLL, XC_MASSLESS_OR_NEUTRAL, XC_VIRTUAL_ENERGY
+from ...headers.particle_states import LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY
 
 
 def _drift(coll, particles, length):
@@ -229,7 +229,7 @@ def track_core(coll, part):
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
-    part.state[alive_at_entry]     = -XC_LOST_ON_FLUKA_COLL # Do not kill yet to avoid issues with energy updating
+    part.state[alive_at_entry]     = -LOST_ON_FLUKA_COLL # Do not kill yet to avoid issues with energy updating
     if np.any(mask_existing):
         part.state[idx_old]        = 1     # These actually survived
 
@@ -309,14 +309,14 @@ def track_core(coll, part):
             part.chi[mask_virtual] = m0 / virtual_mass * part.charge_ratio[mask_virtual]
             new_ptau[mask_virtual] = (1/beta0 + old_ptau)*old_mass/virtual_mass - 1/beta0
             part.update_ptau(new_ptau)
-            part.state[mask_virtual] = -XC_VIRTUAL_ENERGY
+            part.state[mask_virtual] = -VIRTUAL_ENERGY
         # Now update the parent energies
         part.add_to_energy(-E_children)
 
         # Add new particles
         new_part._init_random_number_generator()
         # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
-        new_part.state[mask_massless | mask_neutral] = -XC_MASSLESS_OR_NEUTRAL
+        new_part.state[mask_massless | mask_neutral] = -MASSLESS_OR_NEUTRAL
         part.add_particles(new_part)
         max_particle_id = new_pid.max()
         if max_particle_id <= FlukaEngine.max_particle_id:
@@ -326,10 +326,10 @@ def track_core(coll, part):
         FlukaEngine._max_particle_id = max_particle_id
 
     # Kill all flagged particles
-    part.state[part.state==-XC_LOST_ON_FLUKA_COLL] = XC_LOST_ON_FLUKA_COLL
-    part.state[part.state==-XC_VIRTUAL_ENERGY] = XC_VIRTUAL_ENERGY
+    part.state[part.state==-LOST_ON_FLUKA_COLL] = LOST_ON_FLUKA_COLL
+    part.state[part.state==-VIRTUAL_ENERGY] = VIRTUAL_ENERGY
     # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
-    part.state[part.state==-XC_MASSLESS_OR_NEUTRAL] = XC_MASSLESS_OR_NEUTRAL
+    part.state[part.state==-MASSLESS_OR_NEUTRAL] = MASSLESS_OR_NEUTRAL
 
     # Reshuffle
     part.reorganize()

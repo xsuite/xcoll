@@ -16,6 +16,7 @@ from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .lossmap import LossMap
+from .headers import particle_states
 
 # Deprecated
 from ._manager import CollimatorManager
