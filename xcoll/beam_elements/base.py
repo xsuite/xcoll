@@ -10,6 +10,7 @@ import xtrack as xt
 
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
+from ..headers.particle_states import particle_states_src
 
 
 OPEN_JAW = 3
@@ -29,7 +30,7 @@ class InvalidXcoll(xt.BeamElement):
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
-        _pkg_root.joinpath('headers','particle_states.h'),
+        particle_states_src,
         _pkg_root.joinpath('headers','checks.h')
     ]
 
