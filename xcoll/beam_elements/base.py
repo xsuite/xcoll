@@ -70,7 +70,7 @@ class BaseBlock(xt.BeamElement):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseBlock:
+        if cls is BaseBlock:
             raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -200,7 +200,7 @@ class BaseCollimator(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCollimator:
+        if cls is BaseCollimator:
             raise Exception("Abstract class `BaseCollimator` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -256,9 +256,11 @@ class BaseCollimator(BaseBlock):
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `tilt` and `{key}`!")
                 to_assign['tilt'] = kwargs.pop('tilt')
-            else:
-                to_assign['tilt_L'] = kwargs.pop('tilt_L', 0)
-                to_assign['tilt_R'] = kwargs.pop('tilt_R', 0)
+            elif 'tilt_L' in kwargs or 'tilt_R' in kwargs:
+                if 'tilt_L' in kwargs:
+                    to_assign['tilt_L'] = kwargs.pop('tilt_L')
+                if 'tilt_R' in kwargs:
+                    to_assign['tilt_R'] = kwargs.pop('tilt_R')
 
             # Set gap
             if 'gap' in kwargs:
@@ -286,6 +288,7 @@ class BaseCollimator(BaseBlock):
             self._optics = None
         for key, val in to_assign.items():
             setattr(self, key, val)
+        self._update_tilts()
         BaseCollimator._verify_consistency(self)
 
 
@@ -431,7 +434,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LU(self):
-        if not self.jaw_L is None:
+        if not np.isclose(self._jaw_LU, OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LU
 
     @jaw_LU.setter   # This assumes jaw_LD remains fixed, hence both jaw_L and the tilt change
@@ -448,7 +451,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LD(self):
-        if not self.jaw_L is None:
+        if not np.isclose(self._jaw_LD, OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LD
 
     @jaw_LD.setter   # This assumes jaw_LU remains fixed, hence both jaw_L and the tilt change
@@ -465,7 +468,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RU(self):
-        if not self.jaw_R is None:
+        if not np.isclose(self._jaw_RU, -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RU
 
     @jaw_RU.setter   # This assumes jaw_RD remains fixed, hence both jaw_R and the tilt change
@@ -482,7 +485,7 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RD(self):
-        if not self.jaw_R is None:
+        if not np.isclose(self._jaw_RD, -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RD
 
     @jaw_RD.setter   # This assumes jaw_RU remains fixed, hence both jaw_R and the tilt change
@@ -521,13 +524,23 @@ class BaseCollimator(BaseBlock):
 
     def _update_tilts(self):
         if self.side != 'right':
-            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
-            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-            self._tan_yL = self._sin_yL / self._cos_yL
+            if self.jaw_LD is not None and self.jaw_LU is not None:
+                self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
+                self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+                self._tan_yL = self._sin_yL / self._cos_yL
+            else:
+                self._sin_yL = 0.
+                self._cos_yL = 1.
+                self._tan_yL = 0.
         if self.side != 'left':
-            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
-            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-            self._tan_yR = self._sin_yR / self._cos_yR
+            if self.jaw_RD is not None and self.jaw_RU is not None:
+                self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
+                self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+                self._tan_yR = self._sin_yR / self._cos_yR
+            else:
+                self._sin_yR = 0.
+                self._cos_yR = 1.
+                self._tan_yR = 0.
 
     def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
@@ -1088,7 +1101,7 @@ class BaseCrystal(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCrystal:
+        if cls is BaseCrystal:
             raise Exception("Abstract class `BaseCrystal` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -1138,8 +1151,8 @@ class BaseCrystal(BaseBlock):
             kwargs.setdefault('_gap', OPEN_GAP)
 
             # Set tilt
-            if 'jaw_D' not in kwargs:
-                to_assign['tilt'] = kwargs.pop('tilt', 0)
+            if 'tilt' in kwargs:
+                to_assign['tilt'] = kwargs.pop('tilt')
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
