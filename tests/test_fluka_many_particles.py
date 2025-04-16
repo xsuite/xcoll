@@ -13,6 +13,7 @@ from xcoll import fluka_masses as xflm
 
 FLUKA_PROTON_MASS_EV = xflm[2212][1]
 FLUKA_ELECTRON_MASS_EV = xflm[11][1]
+FLUKA_MUON_MASS_EV = xflm[13][1]
 FLUKA_PION_MASS_EV = xflm[211][1]
 FLUKA_LEAD_MASS_EV = xflm[1000822080][1]
 
@@ -52,7 +53,7 @@ def test_antiprotons(proton_ref, hit):
     if proton_ref:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
         kwargs_ref.update({'mass_ratio': 1, 'charge_ratio': -1,
-                           'pdg_id': 'antiproton', 'ptau': 0})
+                           'pdg_id': -2212, 'ptau': 0})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antiproton', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)
@@ -82,7 +83,7 @@ def test_electrons(proton_ref, hit):
         mratio = FLUKA_ELECTRON_MASS_EV/FLUKA_PROTON_MASS_EV
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
-                           'pdg_id': 'electron', 'ptau': ptau})
+                           'pdg_id': 11, 'ptau': ptau})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='electron', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)
@@ -96,7 +97,7 @@ def test_electrons(proton_ref, hit):
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
-@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'self_ref'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'positron_ref'])
 def test_positrons(proton_ref, hit):
     print(f"Testing positrons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -112,7 +113,7 @@ def test_positrons(proton_ref, hit):
         mratio = FLUKA_ELECTRON_MASS_EV/FLUKA_PROTON_MASS_EV
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
-                           'pdg_id': 'positron', 'ptau': ptau})
+                           'pdg_id': -11, 'ptau': ptau})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)
@@ -126,7 +127,66 @@ def test_positrons(proton_ref, hit):
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
-@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'self_ref'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'muon_ref'])
+def test_muons(proton_ref, hit):
+    print(f"Testing muons with hit={hit} and proton_ref={proton_ref}")
+    num_part = 500
+    p0c = 200e9
+    capacity = num_part*100
+    _stop_engine()
+    if hit:
+        kwargs_ref = {}
+    else:
+        kwargs_ref = {'x': 0, 'px': 0}
+    if proton_ref:
+        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
+        mratio = FLUKA_MUON_MASS_EV/FLUKA_PROTON_MASS_EV
+        ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
+        kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
+                           'pdg_id': 13, 'ptau': ptau})
+    else:
+        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='muon', p0c=p0c)
+    coll = _init_fluka(particle_ref, capacity)
+    part, part_init = _init_particles(num_part, **kwargs_ref)
+    _track_particles(coll, part)
+    if hit:
+        _assert_hit(part, part_init, coll)
+    else:
+        _assert_missed(part, part_init, coll)
+    _stop_engine()
+
+
+@pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'antimuon_ref'])
+def test_antimuons(proton_ref, hit):
+    print(f"Testing antimuons with hit={hit} and proton_ref={proton_ref}")
+    num_part = 500
+    p0c = 200e9
+    capacity = num_part*100
+    _stop_engine()
+    if hit:
+        kwargs_ref = {}
+    else:
+        kwargs_ref = {'x': 0, 'px': 0}
+    if proton_ref:
+        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
+        mratio = FLUKA_MUON_MASS_EV/FLUKA_PROTON_MASS_EV
+        ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
+        kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
+                           'pdg_id': -13, 'ptau': ptau})
+    else:
+        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antimuon', p0c=p0c)
+    coll = _init_fluka(particle_ref, capacity)
+    part, part_init = _init_particles(num_part, **kwargs_ref)
+    _track_particles(coll, part)
+    if hit:
+        _assert_hit(part, part_init, coll)
+    else:
+        _assert_missed(part, part_init, coll)
+    _stop_engine()
+
+@pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
 def test_positive_pions(proton_ref, hit):
     print(f"Testing positive pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -142,7 +202,7 @@ def test_positive_pions(proton_ref, hit):
         mratio = FLUKA_PION_MASS_EV/FLUKA_PROTON_MASS_EV
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
-                           'pdg_id': 'pi+', 'ptau': ptau})
+                           'pdg_id': 211, 'ptau': ptau})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi+', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)
@@ -156,7 +216,7 @@ def test_positive_pions(proton_ref, hit):
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
-@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'self_ref'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
 def test_negative_pions(proton_ref, hit):
     print(f"Testing negative pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -172,7 +232,7 @@ def test_negative_pions(proton_ref, hit):
         mratio = FLUKA_PION_MASS_EV/FLUKA_PROTON_MASS_EV
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
-                           'pdg_id': 'pi-', 'ptau': ptau})
+                           'pdg_id': -211, 'ptau': ptau})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi-', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)
@@ -186,7 +246,7 @@ def test_negative_pions(proton_ref, hit):
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
-@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'self_ref'])
+@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'lead_ref'])
 def test_lead(proton_ref, hit):
     print(f"Testing lead with hit={hit} and proton_ref={proton_ref}")
     num_part = 100
@@ -202,7 +262,7 @@ def test_lead(proton_ref, hit):
         mratio = FLUKA_LEAD_MASS_EV/FLUKA_PROTON_MASS_EV
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 82,
-                           'pdg_id': 'Pb208', 'ptau': ptau})
+                           'pdg_id': 1000822080, 'ptau': ptau})
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=p0c)
     coll = _init_fluka(particle_ref, capacity)

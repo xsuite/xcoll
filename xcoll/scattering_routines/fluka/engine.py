@@ -117,7 +117,7 @@ class FlukaEngine(BaseEngine):
             E0 = self.particle_ref.energy0[0] / 1.e6
             p0c = self.particle_ref.p0c[0] / 1.e6
             m0 = self.particle_ref.mass0 / 1.e6
-            q0 = self.particle_ref.q0
+            q0 = abs(self.particle_ref.q0)
             try:
                 from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
             except (ModuleNotFoundError, ImportError) as error:
