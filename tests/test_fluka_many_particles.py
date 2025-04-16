@@ -13,6 +13,7 @@ from xcoll import fluka_masses as xflm
 
 FLUKA_PROTON_MASS_EV = xflm[2212][1]
 FLUKA_ELECTRON_MASS_EV = xflm[11][1]
+FLUKA_MUON_MASS_EV = xflm[13][1]
 FLUKA_PION_MASS_EV = xflm[211][1]
 FLUKA_LEAD_MASS_EV = xflm[1000822080][1]
 
