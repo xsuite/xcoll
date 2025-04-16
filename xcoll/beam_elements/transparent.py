@@ -10,7 +10,7 @@ from ..scattering_routines.geometry import XcollGeometry
 from ..general import _pkg_root
 
 
-class BlackAbsorber(BaseCollimator):
+class TransparentCollimator(BaseCollimator):
     _xofields = { **BaseCollimator._xofields,
         '_tracking':        xo.Int8
     }
@@ -24,29 +24,29 @@ class BlackAbsorber(BaseCollimator):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _noexpr_fields = BaseCollimator._noexpr_fields
-    _depends_on    = [BaseCollimator, XcollGeometry]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','black_absorber.h')
-    ]
-
+    _noexpr_fields         = BaseCollimator._noexpr_fields
     _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
     _store_in_to_dict      = BaseCollimator._store_in_to_dict
     _internal_record_class = BaseCollimator._internal_record_class
+
+    _depends_on = [BaseCollimator, XcollGeometry]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','transparent_collimator.h')
+    ]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
-            raise ValueError('BlackAbsorber is currently not supported on GPU.')
+            raise ValueError('TransparentCollimator is currently not supported on GPU.')
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-class BlackCrystal(BaseCrystal):
+class TransparentCrystal(BaseCrystal):
     _xofields = { **BaseCrystal._xofields,
         '_tracking':        xo.Int8
     }
@@ -60,23 +60,23 @@ class BlackCrystal(BaseCrystal):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _noexpr_fields = BaseCrystal._noexpr_fields
-    _depends_on    = [BaseCrystal, XcollGeometry]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','black_crystal.h')
-    ]
-
+    _noexpr_fields         = BaseCrystal._noexpr_fields
     _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
     _store_in_to_dict      = BaseCrystal._store_in_to_dict
     _internal_record_class = BaseCrystal._internal_record_class
+
+    _depends_on = [BaseCrystal, XcollGeometry]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','transparent_crystal.h')
+    ]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
-            raise ValueError('BlackCrystal is currently not supported on GPU.')
+            raise ValueError('TransparentCrystal is currently not supported on GPU.')
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)

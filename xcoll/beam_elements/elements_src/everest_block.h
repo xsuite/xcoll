@@ -101,28 +101,38 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 LocalParticle_set_s(part, 0);
 
                 // Store initial coordinates for updating later
-                double const rvv_in     = LocalParticle_get_rvv(part);
+                double const rvv_in  = LocalParticle_get_rvv(part);
 #ifdef XCOLL_USE_EXACT
-                double const xp_in      = LocalParticle_get_exact_xp(part);
-                double const yp_in      = LocalParticle_get_exact_yp(part);
+                double const xp_in   = LocalParticle_get_exact_xp(part);
+                double const yp_in   = LocalParticle_get_exact_yp(part);
 #else
-                double const xp_in      = LocalParticle_get_xp(part);
-                double const yp_in      = LocalParticle_get_yp(part);
+                double const xp_in   = LocalParticle_get_xp(part);
+                double const yp_in   = LocalParticle_get_yp(part);
 #endif
-                double const zeta_in    = LocalParticle_get_zeta(part);
-                double const energy_in  = LocalParticle_get_energy(part);
-                double energy_out;
+                double const zeta_in = LocalParticle_get_zeta(part);
+                double const p0c     = LocalParticle_get_p0c(part);
+                double const delta   = LocalParticle_get_delta(part);
+                double const qq0     = LocalParticle_get_charge_ratio(part);
+                double const chi     = LocalParticle_get_chi(part);
+                double const pc_in   = (1 + delta)*p0c*qq0/chi;
+                double pc_out;
 
                 EverestData everest = EverestBlock_init_data(part, coll);
-                energy_out = jaw(everest, part, energy_in, length, 0);
+                pc_out = jaw(everest, part, pc_in, length, 0);
                 free(everest);
                 LocalParticle_add_to_s(part, s_block);
 
                 LocalParticle_set_zeta(part, zeta_in);
+
                 // Survived particles need correcting:
                 if (LocalParticle_get_state(part)>0){
-                    // Update energy; the last flag keeps angles constant (even valid for exact angles!)
-                    LocalParticle_add_to_energy(part, energy_out - energy_in, 0);
+                    double const rpp_old  = LocalParticle_get_rpp(part);
+                    LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
+                    // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)
+                    double const scale = rpp_old / LocalParticle_get_rpp(part);
+                    LocalParticle_scale_px(part, scale);
+                    LocalParticle_scale_py(part, scale);
+
                     // Update zeta
 #ifdef XCOLL_USE_EXACT
                     double xp  = LocalParticle_get_exact_xp(part);

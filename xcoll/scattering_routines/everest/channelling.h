@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2023.                 #
 // ######################################### #
 
-#ifndef XCOLL_EVEREST_CHANNELING_H
-#define XCOLL_EVEREST_CHANNELING_H
+#ifndef XCOLL_EVEREST_CHANNELLING_H
+#define XCOLL_EVEREST_CHANNELLING_H
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 
 
 /*gpufun*/
-double channeling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
+double channelling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
     double const anuc = everest->coll->anuc;
@@ -107,12 +107,11 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channeling
 
     // Apply energy loss along trajectory
-    double energy_loss = 0.5*calcionloss(everest, part, L_chan);
-    // TODO: LocalParticle_add_to_energy(part, - energy_loss*L_chan*1.e9, change_angle);
+    pc = calcionloss(everest, part, L_chan, pc, 0.5);
+    // TODO: LocalParticle_add_to_energy(part, - energy_loss*1.e9, change_angle);
     // if change_angle = 0  => LocalParticle_scale_px(part, old_rpp / new_rpp) such that xp remains the same
     // It is done in K2, so we should do it. Though, it seems that with the current implementation in xtrack
     // this is no longer correct with exact drifts...?
-    pc = pc - energy_loss*L_chan; //energy loss to ionization [GeV]
 
     // Finally log particle at end of channeling
     if (sc) InteractionRecordData_log_child(record, i_slot, part);
@@ -124,7 +123,6 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
 
 
 double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
-
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return pc;
@@ -172,7 +170,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
         double N_atom = 1.0e-1;
         if(RandomUniform_generate(part) <= N_atom) {
-            TLdech1 /= 200.;   // Updated dechanneling length (m)      
+            TLdech1 /= 200.;   // Updated dechanneling length (m)
         }
         double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length
 
@@ -181,7 +179,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         // -----------------------------------------------------
         // Nuclear interaction length is rescaled in this case, because channeling
         double collnt = everest->coll->collnt;
-        double avrrho = channeling_average_density(everest, cg, part, pc);
+        double avrrho = channelling_average_density(everest, cg, part, pc);
         if (avrrho == 0) {
             collnt = 1.e10;  // very large because essentially 1/0
         } else {
@@ -197,14 +195,14 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
             // Channel full length
             double* result_chan = channel_transport(everest, part, pc, L_chan, t_I, t_P);
             // double channeled_length = result_chan[0];
-            pc               = result_chan[1];
+            pc = result_chan[1];
             free(result_chan);
 
         } else if (L_dechan < L_nucl) {
             // Channel up to L_dechan, then amorphous
             double* result_chan = channel_transport(everest, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan);
             double channeled_length = result_chan[0];
-            pc               = result_chan[1];
+            pc = result_chan[1];
             free(result_chan);
             if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
             pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
@@ -213,7 +211,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
             // Channel up to L_nucl, then scatter, then amorphous
             double* result_chan = channel_transport(everest, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan);
             double channeled_length = result_chan[0];
-            pc               = result_chan[1];
+            pc = result_chan[1];
             free(result_chan);
             // Rescale nuclear interaction parameters
             everest->rescale_scattering = avrrho;
@@ -237,4 +235,4 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
     return pc;
 }
 
-#endif /* XCOLL_EVEREST_CHANNELING_H */
+#endif /* XCOLL_EVEREST_CHANNELLING_H */

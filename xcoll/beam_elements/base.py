@@ -22,10 +22,12 @@ class InvalidXcoll(xt.BeamElement):
     }
 
     isthick = True
-    behaves_like_drift = True
+    needs_rng = False
     allow_track = False
-    skip_in_loss_location_refinement = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
     allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
@@ -51,8 +53,12 @@ class BaseBlock(xt.BeamElement):
     }
 
     isthick = True
+    needs_rng = False
     allow_track = False
+    allow_double_sided = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
@@ -64,15 +70,22 @@ class BaseBlock(xt.BeamElement):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseBlock:
+        if cls is BaseBlock:
             raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
 
     def __init__(self, **kwargs):
+        to_assign = {}
         if '_xobject' not in kwargs:
             kwargs.setdefault('active', True)
+            to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
+            to_assign['record_exits'] = kwargs.pop('record_exits', False)
+            to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
         super().__init__(**kwargs)
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+        BaseBlock._verify_consistency(self)
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -93,6 +106,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_impacts.setter
     def record_impacts(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_impacts` must be a boolean value.")
         if val and not self.record_impacts:
             self._record_interactions += 1
         elif not val and self.record_impacts:
@@ -104,6 +119,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_exits.setter
     def record_exits(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_exits` must be a boolean value.")
         if val and not self.record_exits:
             self._record_interactions += 2
         elif not val and self.record_exits:
@@ -115,6 +132,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_scatterings.setter
     def record_scatterings(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_scatterings` must be a boolean value.")
         if val and not self.record_scatterings:
             self._record_interactions += 4
         elif not val and self.record_scatterings:
@@ -161,12 +180,16 @@ class BaseCollimator(BaseBlock):
         '_nemitt_y':      xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+    isthick = True
+    needs_rng = False
+    allow_track = False
     allow_double_sided = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
+    _noexpr_fields = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
     _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
@@ -177,7 +200,7 @@ class BaseCollimator(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCollimator:
+        if cls is BaseCollimator:
             raise Exception("Abstract class `BaseCollimator` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -229,14 +252,11 @@ class BaseCollimator(BaseBlock):
 
             # Set tilt
             if 'tilt' in kwargs:
-                for key in ['tilt_L', 'tilt_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD']:
+                for key in ['tilt_L', 'tilt_R']:
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `tilt` and `{key}`!")
                 to_assign['tilt'] = kwargs.pop('tilt')
             elif 'tilt_L' in kwargs or 'tilt_R' in kwargs:
-                for key in ['jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD']:
-                    if key in kwargs:
-                        raise ValueError(f"Cannot use both `tilt_L` or `tilt_R` and `{key}`!")
                 if 'tilt_L' in kwargs:
                     to_assign['tilt_L'] = kwargs.pop('tilt_L')
                 if 'tilt_R' in kwargs:
@@ -269,7 +289,7 @@ class BaseCollimator(BaseBlock):
         for key, val in to_assign.items():
             setattr(self, key, val)
         self._update_tilts()
-        self._verify_consistency()
+        BaseCollimator._verify_consistency(self)
 
 
     # Main collimator angle
@@ -1055,20 +1075,25 @@ class BaseCrystal(BaseBlock):
         # Crystal specific
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
-        'width':              xo.Float64,
-        'height':             xo.Float64
+        '_width':              xo.Float64,
+        '_height':             xo.Float64
         # 'thick':              xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
-    allow_double_sided = False
 
+    isthick = True
+    needs_rng = False
+    allow_track = False
+    allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
+    _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
-                         'bending_radius', 'bending_angle']
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
+                         'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
 
@@ -1076,7 +1101,7 @@ class BaseCrystal(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCrystal:
+        if cls is BaseCrystal:
             raise Exception("Abstract class `BaseCrystal` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -1126,8 +1151,8 @@ class BaseCrystal(BaseBlock):
             kwargs.setdefault('_gap', OPEN_GAP)
 
             # Set tilt
-            if 'jaw_D' not in kwargs:
-                to_assign['tilt'] = kwargs.pop('tilt', 0)
+            if 'tilt' in kwargs:
+                to_assign['tilt'] = kwargs.pop('tilt')
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
@@ -1141,10 +1166,10 @@ class BaseCrystal(BaseBlock):
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
             else:
                 to_assign['bending_radius'] = kwargs.pop('bending_radius', 1)
-            kwargs.setdefault('width', 0)
-            kwargs.setdefault('height', 0)
+            to_assign['width'] = kwargs.pop('width', 1)
+            to_assign['height'] = kwargs.pop('height', 1)
 
-        xt.BeamElement.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
         if not hasattr(self, '_optics'):
@@ -1156,7 +1181,7 @@ class BaseCrystal(BaseBlock):
                 self._jaw_U *= -1
             if np.isclose(self._gap, OPEN_GAP):
                 self._gap *= -1
-        self._verify_consistency()
+        BaseCrystal._verify_consistency(self)
 
 
     # Main crystal angle
@@ -1396,6 +1421,26 @@ class BaseCrystal(BaseBlock):
             raise ValueError("Bending angle cannot be larger than 90 degrees!")
         self._bending_angle = bending_angle
         self._bending_radius = self.length / np.sin(bending_angle)
+
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `width` should be positive, but got {val}.")
+        self._width = val
+
+    @property
+    def height(self):
+        return self._height
+
+    @height.setter
+    def height(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `height` should be positive, but got {val}.")
+        self._height = val
 
     @property
     def side(self):
