@@ -10,10 +10,8 @@ source = r'''
 #ifndef XCOLL_FLUKA_MASSES_H
 #define XCOLL_FLUKA_MASSES_H
 
-// 1u = 931494102.42(28)    2018 CODATA
-
 //       name                            mass [eV]                      PDG ID
-#define  ELECTRON_MASS_EV_FLUKA        510999.0600000001      //         11   // best known value:     510998.95069(16) eV
+#define  ELECTRON_MASS_EV_FLUKA        510999.0600            //         11   // best known value:     510998.95069(16) eV
 #define  MUON_MASS_EV_FLUKA         105658389.0000            //         13   // best known value:     105658375.5(23) eV
 #define  PION_MASS_EV_FLUKA         139569950.0000            //        211   //
 #define  KAON_MASS_EV_FLUKA         493646000.0000            //        321   //

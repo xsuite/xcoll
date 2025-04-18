@@ -30,7 +30,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     xc.FlukaEngine.particle_ref = particle_ref
     xc.FlukaEngine.capacity = capacity
     xc.FlukaEngine.start(elements=coll, clean=True, verbose=False, return_all=True,
-                        return_neutral=True, electron_lower_momentum_cut=1.e6)
+                        return_neutral=True, electron_lower_momentum_cut=1.e6, include_showers=True)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
