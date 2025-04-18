@@ -333,7 +333,7 @@ class FlukaEngine(BaseEngine):
         pdg_id = part.pdg_id[0]
         if abs(pdg_id) in fluka_masses:
             mass_fluka = fluka_masses[abs(pdg_id)][-1]
-            if abs(mass-mass_fluka) > 1.:    # The mass differs more than 1eV from the FLUKA reference mass
+            if abs(mass-mass_fluka) > 0.01:    # The mass differs more than 0.01eV from the FLUKA reference mass
                 old_energy0 = part.energy0[0]
                 part.mass0  = mass_fluka
                 if keep_p0c_constant:
