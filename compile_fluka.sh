@@ -50,7 +50,8 @@ f2py -m pyflukaf -c pyfluka.f90 \
  mod_units.o \
  pdgid.o \
  mod_fluka.o \
- ../flukaio/lib/libFlukaIO64.a
+ ../flukaio/lib/libFlukaIO64.a \
+ --backend distutils --fcompiler=gfortran
 
 mv pyflukaf.* ../
 cd ../../../..
