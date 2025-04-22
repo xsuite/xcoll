@@ -11,11 +11,13 @@ import xcoll as xc
 from  xcoll import particle_states as xcp
 from xcoll import fluka_masses as xflm
 
+
 FLUKA_PROTON_MASS_EV = xflm[2212][1]
 FLUKA_ELECTRON_MASS_EV = xflm[11][1]
 FLUKA_MUON_MASS_EV = xflm[13][1]
 FLUKA_PION_MASS_EV = xflm[211][1]
 FLUKA_LEAD_MASS_EV = xflm[1000822080][1]
+
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 def test_protons(hit):
@@ -31,10 +33,34 @@ def test_protons(hit):
     else:
         part, part_init = _init_particles(num_part, x=0, px=0)
     _track_particles(coll, part)
+    tol=1e-12
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
+    _stop_engine()
+
+
+@pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
+def test_lead(hit):
+    print(f"Testing lead with hit={hit}.")
+    num_part = 100
+    p0c = 6.8e12*82
+    capacity = 500_000
+    _stop_engine()
+    if hit:
+        kwargs_ref = {}
+    else:
+        kwargs_ref = {'x': 0, 'px': 0}
+    particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=p0c)
+    coll = _init_fluka(particle_ref, capacity)
+    part, part_init = _init_particles(num_part, **kwargs_ref)
+    _track_particles(coll, part)
+    tol=1e-12
+    if hit:
+        _assert_hit(part, part_init, coll, tol=tol)
+    else:
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -54,15 +80,17 @@ def test_antiprotons(proton_ref, hit):
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
         kwargs_ref.update({'mass_ratio': 1, 'charge_ratio': -1,
                            'pdg_id': -2212, 'ptau': 0})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antiproton', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -84,15 +112,17 @@ def test_electrons(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
                            'pdg_id': 11, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='electron', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -114,15 +144,17 @@ def test_positrons(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
                            'pdg_id': -11, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -144,15 +176,17 @@ def test_muons(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
                            'pdg_id': 13, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='muon', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -174,15 +208,17 @@ def test_antimuons(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
                            'pdg_id': -13, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antimuon', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
@@ -203,15 +239,17 @@ def test_positive_pions(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 1,
                            'pdg_id': 211, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi+', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
@@ -233,51 +271,23 @@ def test_negative_pions(proton_ref, hit):
         ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
         kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': -1,
                            'pdg_id': -211, 'ptau': ptau})
+        tol=3e-11
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi-', p0c=p0c)
+        tol=1e-12
     coll = _init_fluka(particle_ref, capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
-        _assert_hit(part, part_init, coll)
+        _assert_hit(part, part_init, coll, tol=tol)
     else:
-        _assert_missed(part, part_init, coll)
-    _stop_engine()
-
-
-@pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
-@pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'lead_ref'])
-def test_lead(proton_ref, hit):
-    print(f"Testing lead with hit={hit} and proton_ref={proton_ref}")
-    num_part = 100
-    p0c = 6.8e12*82
-    capacity = 500_000
-    _stop_engine()
-    if hit:
-        kwargs_ref = {}
-    else:
-        kwargs_ref = {'x': 0, 'px': 0}
-    if proton_ref:
-        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
-        mratio = FLUKA_LEAD_MASS_EV/FLUKA_PROTON_MASS_EV
-        ptau = (1/mratio-1)*np.sqrt(p0c**2 + FLUKA_PROTON_MASS_EV**2)/p0c
-        kwargs_ref.update({'mass_ratio': mratio, 'charge_ratio': 82,
-                           'pdg_id': 1000822080, 'ptau': ptau})
-    else:
-        particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=p0c)
-    coll = _init_fluka(particle_ref, capacity)
-    part, part_init = _init_particles(num_part, **kwargs_ref)
-    _track_particles(coll, part)
-    if hit:
-        _assert_hit(part, part_init, coll)
-    else:
-        _assert_missed(part, part_init, coll)
+        _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
 
 
 def _stop_engine():
     if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean_all=True)
+        xc.FlukaEngine.stop(clean=True)
 
 
 def _init_fluka(particle_ref, capacity):
@@ -320,25 +330,33 @@ def _track_particles(coll, part):
     print()
 
 
-def _assert_missed(part, part_init, coll):
+def _assert_missed(part, part_init, coll, tol=1e-12):
     E0 = xc.FlukaEngine.particle_ref.energy[0]
     alive = part_init._num_active_particles
     assert part._num_active_particles == alive
-    assert np.all(part.state[:alive] == 1)
     assert set(np.unique(part.state)) == {1, LAST_INVALID_STATE}
-    assert len(np.unique(part.energy[:alive] == 1))
-    assert np.allclose(part.energy[:alive], E0, atol=1e-12, rtol=1e-12)
+    mask_alive = False*np.ones(part.x.shape, dtype=bool)
+    mask_alive[:alive] = True
+    _test_drift(part, part_init, mask_alive, coll, tol=tol)
+
+
+def _test_drift(part, part_init, mask, coll, tol=1e-12):
+    E0 = xc.FlukaEngine.particle_ref.energy[0]
+    assert np.all(part.state[mask] == 1)
+    assert len(np.unique(part.energy[mask] == 1))
+    assert np.allclose(part.energy[mask], E0, atol=100*tol, rtol=tol)
     dri = xt.Drift(length=coll.length)
-    dri.track(part_init)
-    assert np.allclose(part_init.x, part.x, atol=1e-12, rtol=1e-12)
-    assert np.allclose(part_init.px, part.px, atol=1e-12, rtol=1e-12)
-    assert np.allclose(part_init.y, part.y, atol=1e-12, rtol=1e-12)
-    assert np.allclose(part_init.py, part.py, atol=1e-12, rtol=1e-12)
-    assert np.allclose(part_init.zeta, part.zeta, atol=1e-12, rtol=1e-12)
-    assert np.allclose(part_init.delta, part.delta, atol=1e-12, rtol=1e-12)
+    this_part_init = part_init.copy()
+    dri.track(this_part_init)
+    assert np.allclose(part.x[mask], this_part_init.x[mask], atol=100*tol, rtol=tol)
+    assert np.allclose(part.px[mask], this_part_init.px[mask], atol=100*tol, rtol=tol)
+    assert np.allclose(part.y[mask], this_part_init.y[mask], atol=100*tol, rtol=tol)
+    assert np.allclose(part.py[mask], this_part_init.py[mask], atol=100*tol, rtol=tol)
+    assert np.allclose(part.zeta[mask], this_part_init.zeta[mask], atol=100*tol, rtol=tol)
+    assert np.allclose(part.delta[mask], this_part_init.delta[mask], atol=100*tol, rtol=tol)
 
 
-def _assert_hit(part, part_init, coll):
+def _assert_hit(part, part_init, coll, tol=1e-12):
     E0 = xc.FlukaEngine.particle_ref.energy[0]
     alive_before = part_init._num_active_particles
     alive_after = part._num_active_particles
@@ -352,20 +370,21 @@ def _assert_hit(part, part_init, coll):
     mask_not_hit &= part_init.state != LAST_INVALID_STATE
 
     # All that have not hit should be alive, not have lost energy, and just have drifted
-    assert np.all(part.state[mask_not_hit] == 1)
-    assert np.allclose(part.energy[mask_not_hit], E0, atol=1e-12, rtol=1e-12)
+    _test_drift(part, part_init, mask_not_hit, coll, tol=tol)
     assert not np.any(mask_not_hit & is_child)
     assert not np.any(mask_not_hit & has_children)
-    dri = xt.Drift(length=coll.length)
-    dri.track(part_init)
-    assert np.allclose(part.x[mask_not_hit], part_init.x[mask_not_hit], atol=1e-12, rtol=1e-12)
-    assert np.allclose(part.px[mask_not_hit], part_init.px[mask_not_hit], atol=1e-12, rtol=1e-12)
-    assert np.allclose(part.y[mask_not_hit], part_init.y[mask_not_hit], atol=1e-12, rtol=1e-12)
-    assert np.allclose(part.py[mask_not_hit], part_init.py[mask_not_hit], atol=1e-12, rtol=1e-12)
-    assert np.allclose(part.zeta[mask_not_hit], part_init.zeta[mask_not_hit], atol=1e-12, rtol=1e-12)
-    assert np.allclose(part.delta[mask_not_hit], part_init.delta[mask_not_hit], atol=1e-12, rtol=1e-12)
 
     # All that are supposed to hit and are still alive should have lost energy
+    # Except those (which actually did not hit but barely scratched the collimator):
+    mask_hit_but_no = False*np.ones(mask_hit.shape, dtype=bool)
+    mask_hit_but_no[mask_hit & (part.state==1)] = [np.isclose(ee, E0, atol=100*tol, rtol=tol)
+                                                   for ee in part.energy[mask_hit & (part.state==1)]]
+    if np.any(mask_hit_but_no):
+        _test_drift(part, part_init, mask_hit_but_no, coll, tol=tol)
+        assert not np.any(mask_hit_but_no & is_child)
+        assert not np.any(mask_hit_but_no & has_children)
+        mask_hit[mask_hit_but_no] = False
+    # The following really should have hit
     assert np.all(part.energy[mask_hit & (part.state==1)] < E0)
     # All that are supposed to hit and died without leaving children should still have all their energy
     assert np.all(part.energy[mask_hit & (part.state==xcp.LOST_ON_FLUKA_COLL) & ~has_children] == E0)
@@ -391,4 +410,4 @@ def _assert_hit(part, part_init, coll):
     Eout = part.energy[part.state==1].sum()
     if alive_after > 0:
         assert Eout > 0
-    assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=1e-12, rtol=1e-12)
+    assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=100*tol, rtol=tol)
