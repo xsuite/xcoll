@@ -15,10 +15,6 @@ from .beam_elements import collimator_classes, crystal_classes
 from .general import __version__
 
 
-class MultiLossMap:
-    pass
-
-
 class LossMap:
     def __init__(self, line, part, *, line_is_reversed, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
@@ -149,8 +145,12 @@ class LossMap:
         is updated with the data from the file(s).
         """
         if hasattr(file, '__iter__') and not isinstance(file, (str, bytes, Path)):
+            i = 0
             for ff in file:
                 self.add_from_json(ff)
+                i += 1
+            if verbose:
+                print(f"Loaded {i} files into loss map.")
             return
         with open(Path(file), 'r') as fid:
             lossmap = json.load(fid)
@@ -412,6 +412,47 @@ class LossMap:
             raise ValueError("The JSON file does not contain the aperture n data.")
         if 'e' not in lossmap['aperture'] and enforce_new_format:
             raise ValueError("The JSON file does not contain the aperture energy data.")
+
+
+class MultiLossMap(LossMap):
+    def __init__(self, *lms):
+        """
+        Create a MultiLossMap object from a list of LossMap objects.
+        """
+        self._lms = []
+        self._aperture = {'s': [], 'name': [], 'n': [], 'e': []}
+        self._summary = {'s': [], 'name': [], 'n': [], 'e': [], 'length': [],
+                         'type': []}
+        self._machine_length = None
+        self._momentum = None
+        self._interpolation = None
+        self._xcoll = __version__
+        self._energy_waring_given = False
+        for lm in lms:
+            self.add_lossmap(lm)
+
+
+    def add_lossmap(self, lm):
+        """
+        Add a LossMap object to the MultiLossMap object.
+        """
+        if not isinstance(lm, LossMap):
+            raise ValueError("The input must be a LossMap object.")
+        self._lms.append(lm)
+        if self._machine_length is None:
+            self._machine_length = lm.machine_length
+        elif not np.isclose(self._machine_length, lm.machine_length):
+            raise ValueError("The machine lengths of the loss maps are not the same.")
+        if self._momentum is None:
+            self._momentum = lm.momentum
+        elif lm.momentum and not np.isclose(self._momentum, lm.momentum):
+            raise ValueError("The momenta of the loss maps are not the same.")
+        if self._interpolation is None:
+            self._interpolation = lm.interpolation
+        elif not np.isclose(self._interpolation, lm.interpolation):
+            raise ValueError("The interpolations of the loss maps are not the same.")
+        self._add_summary(lm._summary)
+        self._add_aperture(lm._aperture)
 
 
 def _create_weights_from_initial_state(part, function):
