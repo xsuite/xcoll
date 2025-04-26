@@ -122,9 +122,10 @@ class LossMap:
         return self._momentum
 
     def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
-             grid=True, energy=False):
-        _plot_lossmap_base(self.lossmap, norm=norm, ax=ax, xlim=xlim, ylim=ylim,
-                       legend=legend, grid=grid, energy=energy)
+             grid=True, energy=False, show=True, savefig=None):
+        return _plot_lossmap_base(self.lossmap, norm=norm, ax=ax, xlim=xlim,
+                            ylim=ylim, legend=legend, grid=grid, energy=energy,
+                            show=show, savefig=savefig)
 
     def add_particles(self, part, line, *, line_shift_s=0, weights=None,
                       weight_function=None, verbose=True):

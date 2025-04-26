@@ -12,7 +12,7 @@ _NORMS = ["total", "coll_max", "max", "none", "raw"]
 
 
 def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
-                       legend=True, grid=True, energy=False):
+                       legend=True, grid=True, energy=False, show=True, savefig=None):
     if norm in _NORMS:
         norm = norm.lower()
     elif not isinstance(norm, Number):
@@ -29,9 +29,6 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     warm_s = np.array([])  # Placeholder for warm losses, if needed
     warm_val = np.array([])  # Placeholder for warm losses, if needed
     if norm != "raw":
-        coll_val = coll_val / lossmap['collimator']['length']
-        if lossmap['interpolation'] is not None:
-            cold_val = cold_val / lossmap['aperture']['length_bins']
         # warm_val = warm_val / warm_length
         if norm == "total":
             scale = coll_val.sum() + cold_val.sum() + warm_val.sum()
@@ -46,9 +43,12 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         coll_val = coll_val / scale
         cold_val = cold_val / scale
         warm_val = warm_val / scale
+        coll_val = coll_val / lossmap['collimator']['length']
+        if lossmap['interpolation'] is not None:
+            cold_val = cold_val / lossmap['aperture']['length_bins']
 
     L = lossmap['machine_length']
-    xlim = xlim if xlim else [-0.025*L, 1.025*L]
+    xlim = xlim if xlim else [-0.01*L, 1.01*L]
     ylim = ylim if ylim else [1.e-7, 1.e1]
 
     if ax is None:
@@ -72,6 +72,15 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
 
     if legend:
         ax.legend(loc='best', fancybox=True, framealpha=0.8, fontsize="small")
+
+    plt.tight_layout()
+    if savefig:
+        plt.savefig(savefig, dpi=300, bbox_inches='tight')
+    if show:
+        plt.show()
+    else:
+        plt.close()
+    return ax.figure, ax
 
 
 def _label_from_norm(norm, energy):
