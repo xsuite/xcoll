@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -13,6 +13,7 @@ import xobjects as xo
 
 from .beam_elements import collimator_classes, crystal_classes
 from .general import __version__
+from .plot import _plot_lossmap_base
 
 
 class LossMap:
@@ -26,6 +27,7 @@ class LossMap:
         self._aper_nabs = np.array([])
         self._aper_eabs = np.array([])
         self._aperbins = np.array([])
+        self._aperbins_length = np.array([])
         self._aperbinned = np.array([])
         self._aperbinned_energy = np.array([])
         self._coll_s = np.array([])
@@ -63,6 +65,7 @@ class LossMap:
     @property
     def lossmap(self):
         coll_summary = self.summary[self.summary.n > 0].to_dict('list')
+        coll_summary = {kk: np.array(vv) for kk, vv in coll_summary.items()}
         return {
                 'collimator':      coll_summary,
                 'aperture':        self.aperture_losses,
@@ -87,16 +90,13 @@ class LossMap:
     def aperture_losses(self):
         if self._interpolation:
             mask = self._aperbinned > 0
-            # TODO: not entirely correct, as not all bins have the same lenght in practice (if
-            # an active element like a collimator starts in the middle of the bin, that bin is
-            # essentially shorter - or longer as it represents the particles that would be lost
-            # after the aperture marker).
             aper_s = self._aperbins[:-1] + self.interpolation/2
             return {
                 'idx_bins': np.arange(len(self._aperbins)-1)[mask],
                 's_bins': aper_s[mask],
                 'n_bins': self._aperbinned[mask],
-                'e_bins': self._aperbinned_energy[mask]
+                'e_bins': self._aperbinned_energy[mask],
+                'length_bins': self._aperbins_length[mask],
             }
         else:
             return {
@@ -121,6 +121,10 @@ class LossMap:
     def momentum(self):
         return self._momentum
 
+    def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
+             grid=True, energy=False):
+        _plot_lossmap_base(self.lossmap, norm=norm, ax=ax, xlim=xlim, ylim=ylim,
+                       legend=legend, grid=grid, energy=energy)
 
     def add_particles(self, part, line, *, line_shift_s=0, weights=None,
                       weight_function=None, verbose=True):
@@ -166,7 +170,7 @@ class LossMap:
             self._interpolate(part, line, verbose=verbose)
 
         self._make_coll_summary(part, line, line_shift_s, weights)
-        self._get_aperture_losses(part, line_shift_s, weights)
+        self._get_aperture_losses(part, line, line_shift_s, weights)
 
 
     def add_from_json(self, file, verbose=True):
@@ -327,10 +331,18 @@ class LossMap:
             L = self.machine_length
             end = L - np.mod(L, self.interpolation) + self.interpolation
             self._aperbins = np.linspace(0, end, int(np.ceil(L/self.interpolation)) + 1)
+            # TODO: not entirely correct, as not all bins have the same lenght in practice: If
+            # an active element like a magnet starts in the middle of the bin, that bin is
+            # essentially shorter. Then the first aperture marker after the element represents
+            # the particles that would be lost in this element, so there the aperture length is
+            # equal to the element length. This is not true if the active element is a collimator
+            # (then the losses are moved to the collimator anyway).
+            # TODO: need length for non-interpolated case as well?
+            self._aperbins_length = np.full(len(self._aperbins) - 1, self.interpolation, dtype=np.float64)
             self._aperbinned = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
             self._aperbinned_energy = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
 
-    def _get_aperture_losses(self, part, line_shift_s, weights):
+    def _get_aperture_losses(self, part, line, line_shift_s, weights):
         aper_mask = part.state == 0
         if len(part.s[aper_mask]) == 0:
             return
@@ -369,9 +381,8 @@ class LossMap:
                 self._aperbinned[aperdata['idx_bins']] = aperdata['n_bins']
                 self._aperbinned_energy[aperdata['idx_bins']] = aperdata['e_bins']
         else:
-            aper_eabs = aperdata['e'] if 'e' in aperdata else np.zeros(len(aperdata['s']))
             self._do_aperture_adding(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
-                                     aper_eabs=aper_eabs)
+                                     aper_eabs=aperdata['e'])
 
     def _do_aperture_binning(self, aper_s, aper_nabs, aper_eabs):
         binned = np.digitize(aper_s, bins=self._aperbins, right=False) - 1
@@ -387,7 +398,7 @@ class LossMap:
         # TODO: this can be done smarter, masks instead of loops, though
         # one should keep in mind that indices can be repeated and then
         # masking does not work correctly
-        for ss, nabs, eabs in zip(aper_s, aper_nabs, aper_eabs):
+        for ss, nabs, eabs, ll in zip(aper_s, aper_nabs, aper_eabs):
             idx, = np.where(self._aper_s == ss)
             if len(idx) == 0:
                 self._aper_s = np.append(self._aper_s, ss)
@@ -435,11 +446,18 @@ class LossMap:
                 raise ValueError("The JSON file does not contain the aperture n_bins data.")
             if 'e_bins' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture e_bins data.")
+            if 'length_bins' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture length_bins data.")
         else:
             if 's' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture s data.")
             if 'n' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture n data.")
+            if is_new_format:
+                if 'e' not in lossmap['aperture']:
+                    raise ValueError("The JSON file does not contain the aperture e data.")
+                if 'length' not in lossmap['aperture']:
+                    raise ValueError("The JSON file does not contain the aperture length data.")
         return is_new_format
 
 
