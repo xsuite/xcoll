@@ -16,6 +16,7 @@ class RFSweep:
         self.line = line
         self._get_base_frequency()
         self._install_zeta_shift()
+        self.reset()
 
     def _get_base_frequency(self):
         self.cavities = self.line.get_elements_of_type(xt.Cavity)[1]
@@ -178,6 +179,11 @@ class RFSweep:
                 self.line.tracker.time_last_track = t1 - t0
             else:
                 self.line.tracker.time_last_track = None
+
+
+    def reset(self):
+        self.line['rf_sweep'].dzeta = 0
+
 
     def _tracking_func(self, particles, rf_shift_per_turn, num_turns=1, *args, **kwargs):
         existing_sweep = self.current_sweep_value
