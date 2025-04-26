@@ -22,9 +22,18 @@ class LossMap:
         self._machine_length = line.get_length() if line else None
         self._interpolation = interpolation
         self._momentum = line.particle_ref.p0c[0] if line else None
-        self._aperture = {'s': [], 'name': [], 'n': [], 'e': []}
-        self._summary = {'s': [], 'name': [], 'n': [], 'e': [], 'length': [],
-                         'type': []}
+        self._aper_s = np.array([])
+        self._aper_nabs = np.array([])
+        self._aper_eabs = np.array([])
+        self._aperbins = np.array([])
+        self._aperbinned = np.array([])
+        self._aperbinned_energy = np.array([])
+        self._coll_s = np.array([])
+        self._coll_name = np.array([])
+        self._coll_nabs = np.array([])
+        self._coll_eabs = np.array([])
+        self._coll_length = np.array([])
+        self._coll_type = np.array([])
         self._xcoll = __version__
         self._energy_waring_given = False
         if part and line:
@@ -48,31 +57,53 @@ class LossMap:
 
     def save_summary(self, file):
         with open(Path(file), 'w') as fid:
-            fid.write(self._summary.__repr__())
+            fid.write(self.summary.__repr__())
 
 
     @property
     def lossmap(self):
         coll_summary = self.summary[self.summary.n > 0].to_dict('list')
         return {
-                'collimator':     coll_summary,
-                'aperture':       self._aperture,
-                'machine_length': self.machine_length,
-                'interpolation':  self.interpolation,
-                'reversed':       self.line_is_reversed,
-                'momentum':       self._momentum,
+                'collimator':      coll_summary,
+                'aperture':        self.aperture_losses,
+                'machine_length':  self.machine_length,
+                'interpolation':   self.interpolation,
+                'reversed':        self.line_is_reversed,
+                'momentum':        self._momentum,
             }
 
     @property
     def summary(self):
         return pd.DataFrame({
-            'name':   self._summary['name'],
-            'n':      self._summary['n'],
-            'e':      self._summary['e'],
-            'length': self._summary['length'],
-            's':      self._summary['s'],
-            'type':   self._summary['type'],
-        })
+            'name':   self._coll_name,
+            'n':      self._coll_nabs,
+            'e':      self._coll_eabs,
+            'length': self._coll_length,
+            's':      self._coll_s,
+            'type':   self._coll_type,
+        }).sort_values("s")
+
+    @property
+    def aperture_losses(self):
+        if self._interpolation:
+            mask = self._aperbinned > 0
+            # TODO: not entirely correct, as not all bins have the same lenght in practice (if
+            # an active element like a collimator starts in the middle of the bin, that bin is
+            # essentially shorter - or longer as it represents the particles that would be lost
+            # after the aperture marker).
+            aper_s = self._aperbins[:-1] + self.interpolation/2
+            return {
+                'idx_bins': np.arange(len(self._aperbins)-1)[mask],
+                's_bins': aper_s[mask],
+                'n_bins': self._aperbinned[mask],
+                'e_bins': self._aperbinned_energy[mask]
+            }
+        else:
+            return {
+                's': self._aper_s,
+                'n': self._aper_nabs,
+                'e': self._aper_eabs
+            }
 
     @property
     def line_is_reversed(self):
@@ -134,9 +165,8 @@ class LossMap:
         if self._interpolation:
             self._interpolate(part, line, verbose=verbose)
 
-        self._add_summary(self._make_coll_summary(part, line, line_shift_s, weights))
-        self._add_aperture(self._get_aperture_losses(part, line, line_shift_s, weights),
-                           verbose=verbose)
+        self._make_coll_summary(part, line, line_shift_s, weights)
+        self._get_aperture_losses(part, line_shift_s, weights)
 
 
     def add_from_json(self, file, verbose=True):
@@ -154,16 +184,16 @@ class LossMap:
             return
         with open(Path(file), 'r') as fid:
             lossmap = json.load(fid)
-        LossMap._assert_valid_json(lossmap)
-        if 'momentum' in lossmap:
+        new_style_json = LossMap._assert_valid_json(lossmap)
+        if new_style_json:
             if self._momentum is None:
                 self._momentum = lossmap['momentum']
             elif not np.isclose(self._momentum, lossmap['momentum']):
                 raise ValueError("The momentum is different from the one used "
                                  "to create the loss map.")
-        if 'xcoll' in lossmap and self._xcoll != lossmap['xcoll'] and verbose:
-            print("Warning: The xcoll version is different from the one used "
-                  "to create the loss map.")
+            if self._xcoll != lossmap['xcoll'] and verbose:
+                print("Warning: The xcoll version is different from the one used "
+                    "to create the loss map.")
         if self.line_is_reversed is None:
             self._line_is_reversed = lossmap['reversed']
         elif self.line_is_reversed != lossmap['reversed']:
@@ -179,8 +209,9 @@ class LossMap:
         elif not np.isclose(self.interpolation, lossmap['interpolation']):
             raise ValueError("The interpolation step is different from the one used "
                              "to create the loss map.")
-        self._add_summary(lossmap['collimator'])
-        self._add_aperture(lossmap['aperture'])
+        self._load_coll_summary(lossmap['collimator'])
+        self._load_aperture_losses(lossmap['aperture'])
+
 
     def _correct_absorbed(self, part, line, verbose=True):
         # Correct particles that are at an aperture directly after a collimator
@@ -227,92 +258,82 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        collimator_names = line.get_elements_of_type(collimator_classes)[1]
+        names = line.get_elements_of_type(collimator_classes)[1]
         coll_mask = (part.state <= -330) & (part.state >= -350)
         coll_losses = np.array([line.element_names[i]
                                   for i in part.at_element[coll_mask]])
-        coll_lengths = [line[name].length for name in collimator_names]
+        coll_lengths = [line[name].length for name in names]
 
         L = self.machine_length
         coll_pos = [(line.get_s_position(name) + cl/2 + line_shift_s)%L
-                    for name, cl in zip(collimator_names, coll_lengths)]
+                    for name, cl in zip(names, coll_lengths)]
         if self.line_is_reversed:
             coll_pos = L - coll_pos
 
         coll_types = [line[name].__class__.__name__
-                      for name in collimator_names]
+                      for name in names]
         coll_weights = weights[coll_mask]
         nabs = [coll_weights[coll_losses == name].sum()
-                for name in collimator_names]
+                for name in names]
         energy_weights = coll_weights * part.energy[coll_mask]
-        coll_energy = [energy_weights[coll_losses == name].sum()
-                       for name in collimator_names]
+        eabs = [energy_weights[coll_losses == name].sum()
+                for name in names]
+        self._do_collimator_adding(coll_s=coll_pos, coll_name=names, coll_nabs=nabs,
+                                   coll_eabs=eabs, coll_length=coll_lengths,
+                                   coll_type=coll_types)
 
-        return {
-            's':      coll_pos,
-            'name':   collimator_names,
-            'n':      nabs,
-            'e':      coll_energy,
-            'length': coll_lengths,
-            'type':   coll_types
-        }
+    def _load_coll_summary(self, colldata):
+        coll_eabs = colldata['e'] if 'e' in colldata else np.zeros(len(colldata['s']))
+        if 'type' in colldata:
+            coll_types = colldata['type']
+        else:
+            coll_types = np.full(len(colldata['s']), "Unknown", dtype=object)
+        self._do_collimator_adding(coll_s=colldata['s'], coll_name=colldata['name'],
+                                   coll_nabs=colldata['n'], coll_eabs=coll_eabs,
+                                   coll_length=colldata['length'], coll_type=coll_types)
 
-    def _add_summary(self, colldata):
-        # TODO: quick lazy hack array -> list -> array. Please fix.
-        data = self._summary.copy()
-        data['s'] = list(data['s'])
-        data['name'] = list(data['name'])
-        data['n'] = list(data['n'])
-        data['e'] = list(data['e'])
-        data['length'] = list(data['length'])
-        data['type'] = list(data['type'])
-        if 'e' not in colldata:
-            if not self._energy_waring_given:
-                print("Warning: The JSON file does not contain energy data. "
-                    + "Energy data in the loss map will be wrong.")
-                self._energy_waring_given = True
-            colldata['e'] = [0] * len(colldata['s'])
-        if 'type' not in colldata:
-            colldata['type'] = ['Unknown'] * len(colldata['s'])
-
-        for ss, nn, nabs, ee, ll, tt in zip(colldata['s'], colldata['name'],
-            colldata['n'], colldata['e'], colldata['length'], colldata['type']):
-            if nn not in data['name']:
-                data['s'].append(ss)
-                data['name'].append(nn)
-                data['n'].append(nabs)
-                data['e'].append(ee)
-                data['length'].append(ll)
-                data['type'].append(tt)
+    def _do_collimator_adding(self, coll_s, coll_name, coll_nabs, coll_eabs,
+                              coll_length, coll_type):
+        # TODO: this can be done smarter, masks instead of loops, though
+        # one should keep in mind that indices can be repeated and then
+        # masking does not work correctly
+        for ss, nn, nabs, eabs, ll, tt in zip(coll_s, coll_name, coll_nabs,
+                                        coll_eabs, coll_length, coll_type):
+            idx, = np.where(self._coll_name == nn)
+            if len(idx) == 0:
+                self._coll_s = np.append(self._coll_s, ss)
+                self._coll_name = np.append(self._coll_name, nn)
+                self._coll_nabs = np.append(self._coll_nabs, nabs)
+                self._coll_eabs = np.append(self._coll_eabs, eabs)
+                self._coll_length = np.append(self._coll_length, ll)
+                self._coll_type = np.append(self._coll_type, tt)
             else:
-                idx = data['name'].index(nn)
-                data['n'][idx] += nabs
-                data['e'][idx] += ee
-                if data['type'][idx] == 'Unknown':
-                    data['type'][idx] = tt
-                if not np.isclose(data['length'][idx], ll):
+                idx = idx[0]
+                if not np.isclose(self._coll_length[idx], ll):
                     raise ValueError(f"Length of {nn} is different from the one used "
                                     + "to create the loss map.")
-                if data['type'][idx] != tt and tt != 'Unknown':
+                if self._coll_type[idx] != tt and tt != 'Unknown':
                     raise ValueError(f"Type of {nn} is different from the one used to "
                                     + "create the loss map.")
-                if not np.isclose(data['s'][idx], ss):
+                if not np.isclose(self._coll_s[idx], ss):
                     raise ValueError(f"s position of {nn} is different from the one "
                                     + "used to create the loss map.")
-        data['s'] = np.array(data['s'])
-        data['name'] = np.array(data['name'])
-        data['n'] = np.array(data['n'])
-        data['e'] = np.array(data['e'])
-        data['length'] = np.array(data['length'])
-        data['type'] = np.array(data['type'])
-        self._summary = data
-        self._summary = self.summary.sort_values("s").to_dict('list')
+                self._coll_nabs[idx] += nabs
+                self._coll_eabs[idx] += eabs
 
 
-    def _get_aperture_losses(self, part, line, line_shift_s, weights):
+    def _make_aperture_bins(self):
+        if self._aperbins.size == 0:
+            L = self.machine_length
+            end = L - np.mod(L, self.interpolation) + self.interpolation
+            self._aperbins = np.linspace(0, end, int(np.ceil(L/self.interpolation)) + 1)
+            self._aperbinned = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
+            self._aperbinned_energy = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
+
+    def _get_aperture_losses(self, part, line_shift_s, weights):
         aper_mask = part.state == 0
         if len(part.s[aper_mask]) == 0:
-            return {'s': [], 'name': [], 'n': [], 'e': []}
+            return
 
         # Get s position per particle (lost on aperture)
         L = self.machine_length
@@ -320,74 +341,76 @@ class LossMap:
         if self._line_is_reversed:
             aper_s = L - aper_s
 
-        # Store names of aperture markers. Note that different s could have the same
-        # name due to the interpolation.
-        aper_names   = [line.element_names[i] for i in part.at_element[aper_mask]]
-        name_dict    = dict(zip(aper_s, aper_names)) # TODO: not floating-point-safe and slow
+        if self._interpolation:
+            # Binned aperture losses
+            self._make_aperture_bins()
+            self._do_aperture_binning(aper_s=aper_s, aper_nabs=weights[aper_mask],
+                                      aper_eabs=weights[aper_mask] * part.energy[aper_mask])
+        else:
+            # Aperture losses at exact s positions (because no interpolation performed)
+            # TODO: need correct lengths to scale
+            aper_pos       = np.unique(aper_s)
+            aper_weights   = self._weights[aper_mask]
+            aper_nabs      = [aper_weights[aper_s == j].sum() for j in aper_pos]
+            energy_weights = aper_weights * part.energy[aper_mask]
+            aper_eabs      = [energy_weights[aper_s == s].sum() for s in aper_pos]
+            self._do_aperture_adding(aper_s=aper_pos, aper_nabs=aper_nabs,
+                                     aper_eabs=aper_eabs)
 
-        # # TODO: correctly bin (now if apertures are closer than the interpolation step,
-        # # this is a bit wrong)
-        # end = L - np.mod(L, self.interpolation) + self.interpolation
-        # aperbins = np.linspace(0, end, np.ceil(L/self.interpolation) + 1)
-        # binned = aperbins[ np.digitize(aper_s, bins=aperbins, right=False) - 1 ] + self.interpolation/2
-
-        # Create output arrays
-        aper_pos       = np.unique(aper_s)
-        aper_names     = [name_dict[ss] for ss in aper_pos]
-        aper_weights   = weights[aper_mask]
-        aper_nabs      = [aper_weights[aper_s == s].sum() for s in aper_pos]
-        energy_weights = aper_weights * part.energy[aper_mask]
-        aper_energy    = [energy_weights[aper_s == s].sum() for s in aper_pos]
-
-        return {'s': aper_pos, 'name': aper_names, 'n': aper_nabs,
-                'e': aper_energy}
-
-    def _add_aperture(self, aperdata, verbose=True):
-        # TODO: quick lazy hack array -> list -> array. Please fix.
-        data = self._aperture.copy()
-        data['s'] = list(data['s'])
-        data['name'] = list(data['name'])
-        data['n'] = list(data['n'])
-        data['e'] = list(data['e'])
-        if 'e' not in aperdata:
-            if not self._energy_waring_given:
-                print("Warning: The JSON file does not contain energy data. "
-                    + "Energy data in the loss map will be wrong.")
-                self._energy_waring_given = True
-            aperdata['e'] = [0] * len(aperdata['s'])
-
-        for ss, nn, nabs, ee in zip(aperdata['s'], aperdata['name'],
-            aperdata['n'], aperdata['e']):
-            if ss not in data['s']:
-                data['s'].append(ss)
-                data['name'].append(nn)
-                data['n'].append(nabs)
-                data['e'].append(ee)
+    def _load_aperture_losses(self, aperdata):
+        if self._interpolation:
+            self._make_aperture_bins()
+            if not 'idx_bins' in aperdata and 's' in aperdata and 'n' in aperdata:
+                # Old-style JSON file
+                aper_eabs = aperdata['e'] if 'e' in aperdata else np.zeros(len(aperdata['s']))
+                self._do_aperture_binning(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
+                                          aper_eabs=aper_eabs)
             else:
-                idx = data['s'].index(ss)
-                data['n'][idx] += nabs
-                data['e'][idx] += ee
-                if data['name'][idx] != nn:
-                    raise ValueError(f"Different name {nn} at position {ss} than "
-                                    + "the one used to create the loss map.")
-        data['s'] = np.array(data['s'])
-        data['name'] = np.array(data['name'])
-        data['n'] = np.array(data['n'])
-        data['e'] = np.array(data['e'])
-        self._aperture = data
+                self._aperbinned[aperdata['idx_bins']] = aperdata['n_bins']
+                self._aperbinned_energy[aperdata['idx_bins']] = aperdata['e_bins']
+        else:
+            aper_eabs = aperdata['e'] if 'e' in aperdata else np.zeros(len(aperdata['s']))
+            self._do_aperture_adding(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
+                                     aper_eabs=aper_eabs)
+
+    def _do_aperture_binning(self, aper_s, aper_nabs, aper_eabs):
+        binned = np.digitize(aper_s, bins=self._aperbins, right=False) - 1
+        # We cannot directly use binned as an index, as repeated
+        # indices would be ignored
+        minlength = len(self._aperbins) - 1
+        self._aperbinned += np.bincount(binned, weights=aper_nabs,
+                                        minlength=minlength)
+        self._aperbinned_energy += np.bincount(binned, weights=aper_eabs,
+                                               minlength=minlength)
+
+    def _do_aperture_adding(self, aper_s, aper_nabs, aper_eabs):
+        # TODO: this can be done smarter, masks instead of loops, though
+        # one should keep in mind that indices can be repeated and then
+        # masking does not work correctly
+        for ss, nabs, eabs in zip(aper_s, aper_nabs, aper_eabs):
+            idx, = np.where(self._aper_s == ss)
+            if len(idx) == 0:
+                self._aper_s = np.append(self._aper_s, ss)
+                self._aper_nabs = np.append(self._aper_nabs, nabs)
+                self._aper_eabs = np.append(self._aper_eabs, eabs)
+            else:
+                idx = idx[0]
+                self._aper_nabs[idx] += nabs
+                self._aper_eabs[idx] += eabs
 
 
     @staticmethod
     def _assert_valid_json(lossmap):
-        enforce_new_format = 'xcoll' in lossmap
+        is_new_format = 'xcoll' in lossmap
         if 'machine_length' not in lossmap:
             raise ValueError("The JSON file does not contain the machine length data.")
         if 'interpolation' not in lossmap:
             raise ValueError("The JSON file does not contain the interpolation data.")
         if 'reversed' not in lossmap:
             raise ValueError("The JSON file does not contain the reversed data.")
-        if 'momentum' not in lossmap and enforce_new_format:
-            raise ValueError("The JSON file does not contain the momentum data.")
+        if is_new_format:
+            if 'momentum' not in lossmap:
+                raise ValueError("The JSON file does not contain the momentum data.")
         if 'collimator' not in lossmap:
             raise ValueError("The JSON file does not contain the collimator data.")
         if 's' not in lossmap['collimator']:
@@ -398,20 +421,26 @@ class LossMap:
             raise ValueError("The JSON file does not contain the collimator length data.")
         if 'n' not in lossmap['collimator']:
             raise ValueError("The JSON file does not contain the collimator n data.")
-        if 'e' not in lossmap['collimator'] and enforce_new_format:
-            raise ValueError("The JSON file does not contain the collimator energy data.")
-        if 'type' not in lossmap['collimator'] and enforce_new_format:
-            raise ValueError("The JSON file does not contain the collimator type data.")
+        if is_new_format:
+            if 'e' not in lossmap['collimator']:
+                raise ValueError("The JSON file does not contain the collimator energy data.")
+            if 'type' not in lossmap['collimator']:
+                raise ValueError("The JSON file does not contain the collimator type data.")
         if 'aperture' not in lossmap:
             raise ValueError("The JSON file does not contain the aperture data.")
-        if 's' not in lossmap['aperture']:
-            raise ValueError("The JSON file does not contain the aperture s data.")
-        if 'name' not in lossmap['aperture']:
-            raise ValueError("The JSON file does not contain the aperture name data.")
-        if 'n' not in lossmap['aperture']:
-            raise ValueError("The JSON file does not contain the aperture n data.")
-        if 'e' not in lossmap['aperture'] and enforce_new_format:
-            raise ValueError("The JSON file does not contain the aperture energy data.")
+        if is_new_format and lossmap['interpolation'] is not None:
+            if 'idx_bins' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture idx_bins data.")
+            if 'n_bins' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture n_bins data.")
+            if 'e_bins' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture e_bins data.")
+        else:
+            if 's' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture s data.")
+            if 'n' not in lossmap['aperture']:
+                raise ValueError("The JSON file does not contain the aperture n data.")
+        return is_new_format
 
 
 class MultiLossMap(LossMap):
@@ -419,15 +448,9 @@ class MultiLossMap(LossMap):
         """
         Create a MultiLossMap object from a list of LossMap objects.
         """
-        self._lms = []
-        self._aperture = {'s': [], 'name': [], 'n': [], 'e': []}
-        self._summary = {'s': [], 'name': [], 'n': [], 'e': [], 'length': [],
-                         'type': []}
-        self._machine_length = None
-        self._momentum = None
-        self._interpolation = None
-        self._xcoll = __version__
-        self._energy_waring_given = False
+        super().__init__(None, None, line_is_reversed=None)
+        del self._line_is_reversed
+        del self.line_is_reversed
         for lm in lms:
             self.add_lossmap(lm)
 
@@ -451,8 +474,17 @@ class MultiLossMap(LossMap):
             self._interpolation = lm.interpolation
         elif not np.isclose(self._interpolation, lm.interpolation):
             raise ValueError("The interpolations of the loss maps are not the same.")
-        self._add_summary(lm._summary)
-        self._add_aperture(lm._aperture)
+        self._do_collimator_adding(coll_s=lm._coll_s, coll_name=lm._coll_name,
+                                   coll_nabs=lm._coll_nabs, coll_eabs=lm._coll_eabs,
+                                   coll_length=lm._coll_length, coll_type=lm._coll_type)
+        if self.interpolation:
+            if not np.allclose(self._aperbins, lm._aperbins):
+                raise ValueError("The aperture bins of the loss maps are not the same.")
+            self._aperbinned += lm._aperbinned
+            self._aperbinned_energy += lm._aperbinned_energy
+        else:
+            self._do_aperture_adding(aper_s=lm._aper_s, aper_nabs=lm._aper_nabs,
+                                     aper_eabs=lm._aper_eabs)
 
 
 def _create_weights_from_initial_state(part, function):
