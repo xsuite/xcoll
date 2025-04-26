@@ -1158,6 +1158,8 @@ class BaseCrystal(BaseBlock):
             to_assign['align'] = kwargs.pop('align', 'upstream')
             to_assign['emittance'] = kwargs.pop('emittance', None)
             kwargs.setdefault('active', True)
+            kwargs.setdefault('_sin_y', 0)
+            kwargs.setdefault('_cos_y', 1)
 
             # Set crystal specific
             if 'bending_angle' in kwargs:
@@ -1216,7 +1218,7 @@ class BaseCrystal(BaseBlock):
         if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_U
 
-    @jaw_U.setter   # This moves both jaw_LU and jaw_LD in parallel
+    @jaw_U.setter
     def jaw_U(self, val):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw to None.")
@@ -1233,7 +1235,7 @@ class BaseCrystal(BaseBlock):
             shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
             return self._jaw_U + length*shift
 
-    @jaw_D.setter   # This moves both jaw_LU and jaw_LD in parallel
+    @jaw_D.setter
     def jaw_D(self, val):
         if val is None:
             self.tilt = 0
