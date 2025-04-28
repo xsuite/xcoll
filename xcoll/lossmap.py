@@ -43,6 +43,13 @@ class LossMap:
                                weights=weights, weight_function=weight_function,
                                verbose=verbose)
 
+    def __str__(self):
+        return f"LossMap ({int(self._aper_nabs.sum())} losses on aperture and " \
+             + f"{int(self._coll_nabs.sum())} losses on collimators)"
+
+    def __repr__(self):
+        return f"<{str(self)} at {hex(id(self))}>"
+
     @classmethod
     def from_json(cls, file, verbose=True):
         lm = cls(None, None, line_is_reversed=None)
@@ -120,6 +127,11 @@ class LossMap:
     @property
     def momentum(self):
         return self._momentum
+
+    @property
+    def num_particles(self):
+        return int(np.sum(self._aper_nabs) + np.sum(self._coll_nabs))
+
 
     def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
              grid=True, energy=False, show=True, savefig=None):
