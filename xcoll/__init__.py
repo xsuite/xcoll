@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 from .general import _pkg_root, __version__, citation
@@ -12,7 +12,7 @@ from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
-from .lossmap import LossMap
+from .lossmap import LossMap, MultiLossMap
 
 # Deprecated
 from ._manager import CollimatorManager

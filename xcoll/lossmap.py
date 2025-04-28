@@ -469,9 +469,13 @@ class MultiLossMap(LossMap):
         """
         super().__init__(None, None, line_is_reversed=None)
         del self._line_is_reversed
-        del self.line_is_reversed
         for lm in lms:
             self.add_lossmap(lm)
+
+    @property
+    def line_is_reversed(self):
+        raise AttributeError("The line_is_reversed property is not available "
+                           + "for MultiLossMap objects.")
 
 
     def add_lossmap(self, lm):
