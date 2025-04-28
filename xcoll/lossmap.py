@@ -134,7 +134,7 @@ class LossMap:
 
     @property
     def num_aperture_losses(self):
-        return int(self.aperture_losses['n_bins'].sum() + self._aper_nabs.sum())
+        return int(self._aperbinned.sum() + self._aper_nabs.sum())
 
     @property
     def num_collimator_losses(self):
