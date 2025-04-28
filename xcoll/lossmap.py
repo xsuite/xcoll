@@ -548,6 +548,7 @@ class MultiLossMap(LossMap):
                 # No aperture in this loss map
                 return
             elif len(self._aperbins) == 0:
+                self._aperbins = lm._aperbins
                 self._aperbinned = lm._aperbinned
                 self._aperbinned_energy = lm._aperbinned_energy
             else:
