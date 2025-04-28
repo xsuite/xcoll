@@ -44,8 +44,8 @@ class LossMap:
                                verbose=verbose)
 
     def __str__(self):
-        return f"LossMap ({int(self._aper_nabs.sum())} losses on aperture and " \
-             + f"{int(self._coll_nabs.sum())} losses on collimators)"
+        return f"LossMap ({self.num_aperture_losses} losses on aperture and " \
+             + f"{self.num_collimator_losses} losses on collimators)"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
@@ -129,8 +129,16 @@ class LossMap:
         return self._momentum
 
     @property
-    def num_particles(self):
-        return int(np.sum(self._aper_nabs) + np.sum(self._coll_nabs))
+    def num_losses(self):
+        return self.num_aperture_losses + self.num_collimator_losses
+
+    @property
+    def num_aperture_losses(self):
+        return int(self.aperture_losses['n_bins'].sum() + self._aper_nabs.sum())
+
+    @property
+    def num_collimator_losses(self):
+        return int(self._coll_nabs.sum())
 
 
     def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
