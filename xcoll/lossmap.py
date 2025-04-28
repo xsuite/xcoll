@@ -483,15 +483,37 @@ class LossMap:
 
 
 class MultiLossMap(LossMap):
-    def __init__(self, *lms):
+    def __init__(self, *lms, **named_lms):
         """
         Create a MultiLossMap object from a list of LossMap objects.
         """
         super().__init__(None, None, line_is_reversed=None)
         del self._line_is_reversed
         self._lms = []
+        self._lm_names = []
+        if len(lms) > 0:
+            if len(named_lms) > 0:
+                raise ValueError("Specify the LossMaps as args or kwargs, not both.")
+            if hasattr(lms[0], '__iter__'):
+                if len(lms) > 1:
+                    raise ValueError("Use args or a list of LossMap objects, not both.")
+                if isinstance(lms[0], dict):
+                    lms = lms[0].values()
+                    self._lm_names = lms[0].keys()
+                else:
+                    lms = lms[0]
+        elif len(named_lms) > 0:
+            lms = named_lms.values()
+            self._lm_names = named_lms.keys()
         for lm in lms:
             self.add_lossmap(lm)
+
+    @property
+    def lms(self):
+        if len(self._lm_names) > 0:
+            return dict(zip(self._lm_names, self._lms))
+        else:
+            return self._lms
 
     @property
     def line_is_reversed(self):
@@ -522,9 +544,10 @@ class MultiLossMap(LossMap):
                                    coll_nabs=lm._coll_nabs, coll_eabs=lm._coll_eabs,
                                    coll_length=lm._coll_length, coll_type=lm._coll_type)
         if self.interpolation:
-            if not np.allclose(self._aperbins, lm._aperbins) \
-            and not (len(self._aperbins) == 0 or len(lm._aperbins) == 0):
-                raise ValueError("The aperture bins of the loss maps are not the same.")
+            if not (len(self._aperbins) == 0 or len(lm._aperbins) == 0):
+                if len(self._aperbins) != len(lm._aperbins) \
+                or not np.allclose(self._aperbins, lm._aperbins):
+                    raise ValueError("The number of bins of the loss maps are not the same.")
             self._aperbinned += lm._aperbinned
             self._aperbinned_energy += lm._aperbinned_energy
         else:
