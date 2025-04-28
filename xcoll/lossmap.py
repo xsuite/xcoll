@@ -520,6 +520,18 @@ class MultiLossMap(LossMap):
         raise AttributeError("The line_is_reversed property is not available "
                            + "for MultiLossMap objects.")
 
+    @property
+    def lossmap(self):
+        coll_summary = self.summary[self.summary.n > 0].to_dict('list')
+        coll_summary = {kk: np.array(vv) for kk, vv in coll_summary.items()}
+        return {
+                'collimator':      coll_summary,
+                'aperture':        self.aperture_losses,
+                'machine_length':  self.machine_length,
+                'interpolation':   self.interpolation,
+                'momentum':        self._momentum,
+            }
+
 
     def add_lossmap(self, lm):
         """
