@@ -549,6 +549,7 @@ class MultiLossMap(LossMap):
                 return
             elif len(self._aperbins) == 0:
                 self._aperbins = lm._aperbins
+                self._aperbins_length = lm._aperbins_length
                 self._aperbinned = lm._aperbinned
                 self._aperbinned_energy = lm._aperbinned_energy
             else:
