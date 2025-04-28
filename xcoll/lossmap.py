@@ -522,7 +522,8 @@ class MultiLossMap(LossMap):
                                    coll_nabs=lm._coll_nabs, coll_eabs=lm._coll_eabs,
                                    coll_length=lm._coll_length, coll_type=lm._coll_type)
         if self.interpolation:
-            if not np.allclose(self._aperbins, lm._aperbins):
+            if not np.allclose(self._aperbins, lm._aperbins) \
+            and not (len(self._aperbins) == 0 or len(lm._aperbins) == 0):
                 raise ValueError("The aperture bins of the loss maps are not the same.")
             self._aperbinned += lm._aperbinned
             self._aperbinned_energy += lm._aperbinned_energy
