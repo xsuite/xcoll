@@ -489,6 +489,7 @@ class MultiLossMap(LossMap):
         """
         super().__init__(None, None, line_is_reversed=None)
         del self._line_is_reversed
+        self._lms = []
         for lm in lms:
             self.add_lossmap(lm)
 
