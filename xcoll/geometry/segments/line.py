@@ -29,10 +29,6 @@ class LineSegment(xo.Struct):
                                         ret=None)}
 
     def __init__(self, *args, **kwargs):
-        if ((kwargs['s2'] < kwargs['s1']) and (kwargs['x2'] < kwargs['x1'])) or (
-            (kwargs['s2'] > kwargs['s1']) and (kwargs['x2'] < kwargs['x1']) ):
-            kwargs['s1'], kwargs['s2'] = kwargs['s2'], kwargs['s1']
-            kwargs['x1'], kwargs['x2'] = kwargs['x2'], kwargs['x1']
         t1 = kwargs.pop('t1', 0.)
         t2 = kwargs.pop('t2', 1.)
         super().__init__(*args, **kwargs)

@@ -48,32 +48,24 @@ void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, 
     //Calculate the bounding box of a line segment.
     //Theta is the angle of the line wrt the horizontal. 
     //Phi is the angle from s1 to the first vertex (in the frame of the box).
-    double s1 = LineSegment_get_s1(seg);
-    double s2 = LineSegment_get_s2(seg);
-    double x1 = LineSegment_get_x1(seg);
-    double x2 = LineSegment_get_x2(seg);
+    double s1 = LineSegment_func_s(seg, t1);
+    double s2 = LineSegment_func_s(seg, t2);
+    double x1 = LineSegment_func_x(seg, t1);
+    double x2 = LineSegment_func_x(seg, t2);
     double sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
     double cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    double sin_p, cos_p; 
-    if (sin_t < 0){   // if theta is larger than 180 degrees, theta = theta - 180
-        sin_t = -sin_t;
-        cos_t = -cos_t;
-    }
-    if (cos_t < 1){   // if theta is larger than 90 degrees, phi = theta + 90 
-        sin_p = cos_t;
-        cos_p = -sin_t;
-    } else {          // if theta is between 0 and 90 degrees, phi = theta - 90
-        sin_p = -cos_t;
-        cos_p = sin_t;
-    }
     BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));   // length of the box
-    BoundingBox_set_w(box, 0.001);       // width of the box cannot be 0 for (0,0)
-    BoundingBox_set_rC(box, sqrt( (s1+BoundingBox_get_w(box)/2.*cos_p) * (s1+BoundingBox_get_w(box)/2.*cos_p) +  // length of the position vector to the first vertex
-                                  (x1+BoundingBox_get_w(box)/2.*sin_p) * (x1+BoundingBox_get_w(box)/2.*sin_p) ));
+    BoundingBox_set_w(box, 0.);       // width of the box cannot be 0 for (0,0)
+    BoundingBox_set_rC(box,sqrt(s1*s1 + x1*x1)); // length of the position vector to the first vertex
     BoundingBox_set_sin_tb(box, sin_t);  // orientation of the box (angle of length wrt horizontal)
     BoundingBox_set_cos_tb(box, cos_t);
-    BoundingBox_set_sin_tC(box, x1 / BoundingBox_get_rC(box));  // angle of the position vector to the first vertex
-    BoundingBox_set_cos_tC(box, s1 / BoundingBox_get_rC(box));
+    if (BoundingBox_get_rC(box) == 0.0){
+        BoundingBox_set_sin_tC(box, 0.0); // angle of the position vector to the first vertex
+        BoundingBox_set_cos_tC(box, 1.0);
+    } else {
+        BoundingBox_set_sin_tC(box, x1 / BoundingBox_get_rC(box));  // angle of the position vector to the first vertex
+        BoundingBox_set_cos_tC(box, s1 / BoundingBox_get_rC(box));
+    }
     double sin_tC = BoundingBox_get_sin_tC(box);
     double cos_tC = BoundingBox_get_cos_tC(box);
     BoundingBox_set_proj_l(box, BoundingBox_get_rC(box) * (cos_t*cos_tC + sin_t*sin_tC)); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)

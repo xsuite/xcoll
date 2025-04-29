@@ -64,22 +64,24 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 
 /*gpufun*/
 void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, double l1, double l2){
-    double s1 = DriftTrajectory_get_s0(traj);
+    double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
-    double x1 = DriftTrajectory_get_x0(traj);
+    double x1 = DriftTrajectory_func_x(traj, l1);
     double x2 = DriftTrajectory_func_x(traj, l2);
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
-    double sin_p  = -cos_t0;  // phi = theta - 90 deg.
-    double cos_p  = sin_t0;
     BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));   // length of the box
     BoundingBox_set_w(box, 0.);       // width of the box 
-    BoundingBox_set_rC(box, sqrt( (s1+BoundingBox_get_w(box)/2.*cos_p) * (s1+BoundingBox_get_w(box)/2.*cos_p) +  // length of the position vector to the first vertex
-                                   (x1+BoundingBox_get_w(box)/2.*sin_p) * (x1+BoundingBox_get_w(box)/2.*sin_p) ));
+    BoundingBox_set_rC(box, sqrt(s1*s1 + x1*x1));
     BoundingBox_set_sin_tb(box, sin_t0);  // orientation of the box (angle of length wrt horizontal)
     BoundingBox_set_cos_tb(box, cos_t0);
-    BoundingBox_set_sin_tC(box, x1 / BoundingBox_get_rC(box));  // angle of the position vector to the first vertex
-    BoundingBox_set_cos_tC(box, s1 / BoundingBox_get_rC(box));
+    if (BoundingBox_get_rC(box) == 0.){
+        BoundingBox_set_sin_tC(box, 0.0);  // angle of the position vector to the first vertex
+        BoundingBox_set_cos_tC(box, 1.0);
+    } else {
+        BoundingBox_set_sin_tC(box, x1 / BoundingBox_get_rC(box));  // angle of the position vector to the first vertex
+        BoundingBox_set_cos_tC(box, s1 / BoundingBox_get_rC(box));
+    }
     double sin_tC = BoundingBox_get_sin_tC(box);
     double cos_tC = BoundingBox_get_cos_tC(box);
     BoundingBox_set_proj_l(box, BoundingBox_get_rC(box) * (cos_t0*cos_tC + sin_t0*sin_tC)); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
