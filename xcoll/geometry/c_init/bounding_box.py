@@ -26,17 +26,30 @@ class BoundingBox(xo.Struct):
                                 c_name='BoundingBox_overlaps',
                                 args=[xo.Arg(xo.ThisClass, name="b1"),
                                       xo.Arg(xo.ThisClass, name="b2")],
-                                ret=xo.Arg(xo.Int8, name="overlaps"))}
+                                ret=xo.Arg(xo.Int8, name="overlaps")),
+                'set_params': xo.Kernel(
+                                c_name='BoundingBox_set_params',
+                                args=[xo.Arg(xo.ThisClass, name="box"),
+                                      xo.Arg(xo.Float64, name="rC"),
+                                      xo.Arg(xo.Float64, name="sin_tC"),
+                                      xo.Arg(xo.Float64, name="cos_tC"),
+                                      xo.Arg(xo.Float64, name="l"),
+                                      xo.Arg(xo.Float64, name="w"),
+                                      xo.Arg(xo.Float64, name="sin_tb"),
+                                      xo.Arg(xo.Float64, name="cos_tb")],
+                                ret=None)}
     _needs_compilation = True
     _extra_c_sources = [
         define_src,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
         _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
+        _pkg_root / 'geometry' / 'c_init' / 'bounding_box.h',
     ]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._set_params(**kwargs)
 
     def __str__(self):
         """Return str(self)."""
