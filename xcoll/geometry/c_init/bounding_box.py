@@ -49,7 +49,7 @@ class BoundingBox(xo.Struct):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._set_params(**kwargs)
+        #self._set_params(**kwargs)
 
     def __str__(self):
         """Return str(self)."""
