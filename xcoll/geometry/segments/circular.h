@@ -54,15 +54,16 @@ double CircularSegment_deriv_x(CircularSegment seg, double t){
 
 /*gpufun*/
 void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, double t1, double t2){
+    // The low-level angles always satisfy theta1 < theta2 and -pi <= theta1 <= pi (theta2 can be <= 3pi)
     double theta1 = CircularSegment_get__theta1(seg);
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1    = theta1 + t1*(theta2 - theta1);
     double tt2    = theta1 + t2*(theta2 - theta1);
-    if ((tt1 > M_PI) && (tt2 > M_PI)) {
-        tt1 -= 2*M_PI;
-        tt2 -= 2*M_PI;
-    }
-    printf("tt1 = %.20f, tt2 = %.20f\n", tt1, tt2);
+    // if ((tt1 > M_PI) && (tt2 > M_PI)) {
+    //     tt1 -= 2*M_PI;
+    //     tt2 -= 2*M_PI;
+    // }
+    // printf("tt1 = %.20f, tt2 = %.20f\n", tt1, tt2);
     double s1 = CircularSegment_func_s(seg, t1);
     double x1 = CircularSegment_func_x(seg, t1);
     double s2 = CircularSegment_func_s(seg, t2);
@@ -74,7 +75,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
     double sin_chord = dx / chord_length;
     double cos_chord = ds / chord_length;
     double sin_t, cos_t;                                       // angle of the box wrt horizontal
-    double min_x, min_s;   
+    double min_x, min_s;
     double sin_rot, cos_rot;
     double l, w;
     double rotate_box = -1.;
@@ -113,7 +114,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
         } else {
             sin_t = -cos_chord;                               // box angle is 90 degrees less than chord angle
             cos_t = sin_chord;
-            sin_rot = sin_t;    
+            sin_rot = sin_t;
             cos_rot = cos_t;
             sign = -1;
             printf("third if\n");

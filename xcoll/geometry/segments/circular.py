@@ -122,11 +122,9 @@ class CircularSegment(xo.Struct):
             else:
                 raise ValueError("Must provide centre, start point, or end point when providing radius!")
         t1 = kwargs.pop('t1', 0.)
-        t2 = kwargs.pop('t2', 2*np.pi)
+        t2 = kwargs.pop('t2', 1)
         super().__init__(**kwargs)
         self.set_angles(theta1, theta2)
-        print("theta1", self._theta1)
-        print("theta2", self._theta2)
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
@@ -194,7 +192,7 @@ class CircularSegment(xo.Struct):
         while theta2 > np.pi:
             theta2 -= 2*np.pi
         self._theta1 = theta1
-        if theta2 >= theta1:
+        if theta2 > theta1:
             self._theta2 = theta2
         else:
             # If theta2 is smaller than theta1, it means we have done a full turn
