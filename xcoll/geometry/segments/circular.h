@@ -55,16 +55,11 @@ double CircularSegment_deriv_x(CircularSegment seg, double t){
 /*gpufun*/
 void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, double t1, double t2){
     // The low-level angles always satisfy theta1 < theta2 and -pi <= theta1 <= pi (theta2 can be <= 3pi)
-
     // interpolate between theta1 and theta2 to get ang. positions tt1 & tt2 corresponding to arc par. t1 and t1
     double theta1 = CircularSegment_get__theta1(seg);
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1    = theta1 + t1*(theta2 - theta1);
     double tt2    = theta1 + t2*(theta2 - theta1);
-    if ((tt1 > M_PI) && (tt2 > M_PI)) {
-        tt1 = tt1 -2*M_PI;
-        tt2 = tt2 -2*M_PI;
-    }
     // Getting (s,x) coord. for t1 and t2. Has to be t1 and t2 because of parametrization.
     double s1 = CircularSegment_func_s(seg, t1);
     double x1 = CircularSegment_func_x(seg, t1);
@@ -81,6 +76,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
     double sin_t, cos_t;                                         // angle of the box wrt horizontal
     double min_x, min_s;
     double l, w;
+    double rC, sin_tC, cos_tC;
     // rotate box is needed to make sure we sent the correct w and l to the box. When the box is tilted we tend to change what
     // is the lowest vertex. In the box L is always the length from the first vertex to the second vertex.
     // in this code L is always the length of the side with the chord. In which the chord is the length between the two points. 
@@ -93,7 +89,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
     double rotate_box = -1.;
     int8_t sign = 1;                                             // The orientation of the box can impact calculations
     // this next part is made for the angles. We want the angle to be [0, 180] for simplicity. We need to know if box angle = chord ang., 
-    // and either we check what quadrant we're in (in which 1 and 3 gives equal, 2 and 4 does not). This is all done to find box angle
+    // and we check what quadrant we're in (in which 1 and 3 gives equal, 2 and 4 does not). This is all done to find box angle
     // and rot angle which we can only get from the chord angle. 
     // We normalize to [0, pi] because the box angle is always from the lowest vertex wrt the horizontal. So, if the box angle is larger 
     // than pi, then we also change the lowest vertex, and the box angle should adjust accordingly. So, it doesnt make sense to have it larger
@@ -152,31 +148,31 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
             // find the lowest vertex from point (s1,x1). Remember the rotation angle depends on the box angle, and if box = chord angle, then
             // we need to rotate 90 degrees to find the lowest vertex. If not, then it is equal to the box angle. It is generally always 
             // 90 degress off the chord angle. That is why we are using the chord angle for this. 
-            if (((tt1 <= M_PI && tt2 > M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 < 0.) ) && ( (-M_PI <= tt2) && (tt2 < 0.))) || ((tt1 <= 0 && tt2 > 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
-                BoundingBox_set_rC(box,( sqrt( ((s1)+w*sin_chord)*((s1)+w*sin_chord) +
-                                               ((x1)+w*(-cos_chord))*((x1)+w*(-cos_chord))) ));
-                double rC = BoundingBox_get_rC(box);
-                BoundingBox_set_sin_tC(box,((x1)+w*(-cos_chord)) / rC);
-                BoundingBox_set_cos_tC(box,((s1)+w*sin_chord) / rC);
+            if (((tt1 <= M_PI && tt2 > M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 < 0.) ) 
+                && ( (-M_PI <= tt2) && (tt2 < 0.))) || ((tt1 <= 0 && tt2 > 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
+                rC = sqrt( ((s1)+w*sin_chord)*((s1)+w*sin_chord) +
+                           ((x1)+w*(-cos_chord))*((x1)+w*(-cos_chord)));
+                sin_tC = ((x1)+w*(-cos_chord)) / rC;
+                cos_tC = ((s1)+w*sin_chord) / rC;
             } else {
                 // in this case (s1,x1) is the lowest vertex. Easier case.
                 double rC = (sqrt((s1)*(s1) + (x1)*(x1)));
-                BoundingBox_set_rC(box, rC);
-                BoundingBox_set_sin_tC(box, (x1) /rC);
-                BoundingBox_set_cos_tC(box, (s1) /rC);
+                sin_tC = (x1) /rC;
+                cos_tC = (s1) /rC;
             }
         } else {
             // this is the same as above, but for the other point.
-            if (((tt1 <= M_PI && tt2 >= M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 <= 0.) ) && ( (-M_PI <= tt2) && (tt2 <= 0.))) || ((tt1 <= 0 && tt2 >= 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
-                BoundingBox_set_rC(box, (sqrt( ((s2)-w*sin_chord)*((s2)-w*sin_chord) +
-                                              ((x2)-w*(-cos_chord))*((x2)-w*(-cos_chord))) ));
-                BoundingBox_set_sin_tC(box, (((x2)-w*(-cos_chord))) / BoundingBox_get_rC(box));
-                BoundingBox_set_cos_tC(box, ((s2)-w*sin_chord) / BoundingBox_get_rC(box));
+            if (((tt1 <= M_PI && tt2 >= M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 <= 0.) ) 
+                && ( (-M_PI <= tt2) && (tt2 <= 0.))) || ((tt1 <= 0 && tt2 >= 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
+                rC = (sqrt(((s2) - w*sin_chord)*((s2) - w*sin_chord) +
+                            ((x2) - w*(-cos_chord))*((x2) - w*(-cos_chord))));
+                sin_tC = (((x2) - w*(-cos_chord))) / rC;
+                cos_tC = ((s2) - w*sin_chord) / rC;
 
             } else {
-                BoundingBox_set_rC(box, sqrt((s2)*(s2) + (x2)*(x2)));
-                BoundingBox_set_sin_tC(box, (x2) / BoundingBox_get_rC(box));
-                BoundingBox_set_cos_tC(box, (s2) / BoundingBox_get_rC(box));
+                rC = sqrt((s2)*(s2) + (x2)*(x2));
+                sin_tC = (x2) / rC;
+                cos_tC = (s2) / rC;
             }
         }
     } else {
@@ -262,25 +258,15 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
             min_s = w4_s;
             rotate_box = 1;
         }
-        BoundingBox_set_rC(box, sqrt((min_s)*(min_s) + (min_x)*(min_x)));
-        BoundingBox_set_sin_tC(box, min_x / BoundingBox_get_rC(box));
-        BoundingBox_set_cos_tC(box, min_s / BoundingBox_get_rC(box));
+        rC = sqrt((min_s)*(min_s) + (min_x)*(min_x));
+        sin_tC = min_x / rC;
+        cos_tC = min_s / rC;
     }
     // this is the actual switching. 
-    if (rotate_box == -1){
-        BoundingBox_set_l(box, l);   // length of the box
-        BoundingBox_set_w(box, w);   // width of the box
-    } else {
-        BoundingBox_set_l(box, w);   // length of the box
-        BoundingBox_set_w(box, l);   // width of the box
-    }
-    double rC = BoundingBox_get_rC(box);                           // length of the position vector to the first vertex
-    double sin_tC = min_x / rC;
-    double cos_tC = min_s / rC;
     if (rotate_box == 1){
         BoundingBox_set_params(box, rC, sin_tC, cos_tC, w, l, sin_t, cos_t);
     } else {
-        BoundingBox_set_params(box, rC, cos_tC, sin_tC, l, w, sin_t, cos_t);
+        BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
     }
 }
 // /*gpufun*/
