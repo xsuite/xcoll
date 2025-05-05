@@ -55,124 +55,123 @@ double CircularSegment_deriv_x(CircularSegment seg, double t){
 /*gpufun*/
 void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, double t1, double t2){
     // The low-level angles always satisfy theta1 < theta2 and -pi <= theta1 <= pi (theta2 can be <= 3pi)
+
+    // interpolate between theta1 and theta2 to get ang. positions tt1 & tt2 corresponding to arc par. t1 and t1
     double theta1 = CircularSegment_get__theta1(seg);
     double theta2 = CircularSegment_get__theta2(seg);
     double tt1    = theta1 + t1*(theta2 - theta1);
     double tt2    = theta1 + t2*(theta2 - theta1);
-    // if ((tt1 > M_PI) && (tt2 > M_PI)) {
-    //     tt1 -= 2*M_PI;
-    //     tt2 -= 2*M_PI;
-    // }
-    // printf("tt1 = %.20f, tt2 = %.20f\n", tt1, tt2);
+    if ((tt1 > M_PI) && (tt2 > M_PI)) {
+        tt1 = tt1 -2*M_PI;
+        tt2 = tt2 -2*M_PI;
+    }
+    // Getting (s,x) coord. for t1 and t2. Has to be t1 and t2 because of parametrization.
     double s1 = CircularSegment_func_s(seg, t1);
     double x1 = CircularSegment_func_x(seg, t1);
     double s2 = CircularSegment_func_s(seg, t2);
     double x2 = CircularSegment_func_x(seg, t2);
+    // Calculate the chord vector between two arc points and its angle wrt the horizontal.
     double R  = CircularSegment_get_R(seg); 
     double dx = x2 - x1;
     double ds = s2 - s1;
     double chord_length = sqrt(dx*dx + ds*ds);
     double sin_chord = dx / chord_length;
     double cos_chord = ds / chord_length;
-    double sin_t, cos_t;                                       // angle of the box wrt horizontal
+    // Init. _t is the box angle, min and max is used to find lowest vertex,
+    double sin_t, cos_t;                                         // angle of the box wrt horizontal
     double min_x, min_s;
-    double sin_rot, cos_rot;
     double l, w;
+    // rotate box is needed to make sure we sent the correct w and l to the box. When the box is tilted we tend to change what
+    // is the lowest vertex. In the box L is always the length from the first vertex to the second vertex.
+    // in this code L is always the length of the side with the chord. In which the chord is the length between the two points. 
+    // This is done to maintain some generality in the code. Without it we would have to change it IN the code, which would be messy. 
+    
+    // Sign is needed due to the orientation of the box again. Bascially, when finding the lowest vertex etc we need to know if we are
+    // adding or subtracting stuff. This comes from sign. It is needed when having (tt2-tt1)>180 deg, because then we need to find all 4
+    // vertices and compare them to find the lowest one (slow, but i dont see how else we can do it since we dont know anything except (s1,x1)
+    // and (s2,x2), which in this case is not any of the vertices). 
     double rotate_box = -1.;
     int8_t sign = 1;                                             // The orientation of the box can impact calculations
-    printf("s1 = %f, s2 = %f\n", s1, s2);
-    printf("x1 = %f, x2 = %f\n", x1, x2);
+    // this next part is made for the angles. We want the angle to be [0, 180] for simplicity. We need to know if box angle = chord ang., 
+    // and either we check what quadrant we're in (in which 1 and 3 gives equal, 2 and 4 does not). This is all done to find box angle
+    // and rot angle which we can only get from the chord angle. 
+    // We normalize to [0, pi] because the box angle is always from the lowest vertex wrt the horizontal. So, if the box angle is larger 
+    // than pi, then we also change the lowest vertex, and the box angle should adjust accordingly. So, it doesnt make sense to have it larger
+    // than pi. Therefore, we adjust after (s1,x1) and (s2,x2). Points --> chord angle --> box angle & rot angle.
+    
+    // this if else check is to check if the chord angle is larger than 180 or not.
     if (((cos_chord > 1e-10) && (sin_chord > 1e-10))){           // if 0 < chord angle < 90 deg, then chord angle = box angle
         sin_t = sin_chord;
         cos_t = cos_chord;
-        sin_rot = -cos_t;
-        cos_rot = sin_t;
         sign = -1;
-        printf("first if\n");
     } else {
+        // if larger than 180 degrees, then we need to adjust the angle.
         if (sin_chord < 1e-10) {                               // if theta is larger than 180 degrees, theta = theta - 180
             sin_chord = -sin_chord;
             cos_chord = -cos_chord;
-            printf("over 180 degrees\n");
         }
-        printf("coschord = %f, sinchord = %f\n", cos_chord, sin_chord);
+        // then we need to recheck if 1) are we in the first quadrant, or
+        // 2) or are we at a border; 90, 180, etc..
+        // If neither of those then we know we're in the second quadrant, and we know that box != chord. 
         if ( ((cos_chord > 1e-10) && (sin_chord > 1e-10))){       // if 0 < chord angle < 90 deg, then chord angle = box angle
             sin_t = sin_chord;
             cos_t = cos_chord;
-            sin_rot = -cos_t;
-            cos_rot = sin_t;
             sign = -1;
-            printf("second if\n");
         } else if ((((cos_chord - 1.) < 1e-10) || ((cos_chord + 1.) > -1e-10)) && ((sin_chord < 1e-10) && (sin_chord > -1e-10))){
-            // FREDERIK: IT IS THESE ANGLES. problem is here.
             sin_t = sin_chord;  // if cos_chord is 1 or -1, then box angle = chord angle
             cos_t = cos_chord;
-            sin_rot = -cos_t;
-            cos_rot = sin_t;
             sign = -1;
-            printf("am i here ????\n");
         } else {
             sin_t = -cos_chord;                               // box angle is 90 degrees less than chord angle
             cos_t = sin_chord;
-            sin_rot = sin_t;
-            cos_rot = cos_t;
             sign = -1;
-            printf("third if\n");
         } 
     }
-    printf("chord_length = %f\n", chord_length);
-    printf("R = %f\n", R);
-    printf("tt2 - tt1 = %.20f\n", (tt2 - tt1));
+    // now that the angles are set, we need to figure out what the box looks like. First check is to check if 
+    // the box angle is less than 180 degrees. If its larger than 180 degrees, then we need to find the new width and length
     if ((tt2 - tt1) <= M_PI){                                   // delta theta of box less than 180.
-        w = R - sqrt(R*R - chord_length*chord_length/4.);      // sagitta
-        printf("here w = %f\n", w);
+        // this is the case where we have a box that is less than 180 degrees. Then the widt is the sagitta of the circle, and
+        // the length is the chord length.
+        w = R - sqrt(R*R - chord_length*chord_length/4.);       // sagitta
         l = chord_length;
+        // this part is again to make sure that we switch w and l if needed. If cos_chord < 0, then the line between the lowest point.
+        // and the next point (counterclockwise) is actually what we define as W here. It is the shorter side of the box. But, instead of 
+        // mixing w and l in the code itself, we will just switch them at the end. Rotate box == 1 gives switch. 
+        // Try drawing it out. 
         if (cos_chord > 0){
             rotate_box = -1;
         } else {
             rotate_box = 1;
         }
         // finding the first vertex. 
+        // this is the part where we find the first vertex. We need to check if the first vertex is the lower one or not. This
+        // depends on the angle and position of the box. We separate into cases of x1 < x2 and x1 > x2. This is done because
+        // the rC value depends on that; x1 lower --> x1 is first vertex (or closest to it), and opposite.
         if (x1 < x2){
-            //FREDERIK THE PROBLEM IS SEEN HERE
-            printf("here x1 < x2\n");
-            printf("sin_rot = %f, cos_rot = %f\n", sin_rot, cos_rot);
+            // this is where we check if (s1,x2) is the lowest vertex. Try drawing it out. Here you see that we use the rotation angle to
+            // find the lowest vertex from point (s1,x1). Remember the rotation angle depends on the box angle, and if box = chord angle, then
+            // we need to rotate 90 degrees to find the lowest vertex. If not, then it is equal to the box angle. It is generally always 
+            // 90 degress off the chord angle. That is why we are using the chord angle for this. 
             if (((tt1 <= M_PI && tt2 > M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 < 0.) ) && ( (-M_PI <= tt2) && (tt2 < 0.))) || ((tt1 <= 0 && tt2 > 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
-                BoundingBox_set_rC(box,( sqrt( ((s1)+w*cos_rot)*((s1)+w*cos_rot) +
-                                               ((x1)+w*sin_rot)*((x1)+w*sin_rot)) ));
+                BoundingBox_set_rC(box,( sqrt( ((s1)+w*sin_chord)*((s1)+w*sin_chord) +
+                                               ((x1)+w*(-cos_chord))*((x1)+w*(-cos_chord))) ));
                 double rC = BoundingBox_get_rC(box);
-                BoundingBox_set_sin_tC(box,((x1)+w*sin_rot) / rC);
-                BoundingBox_set_cos_tC(box,((s1)+w*cos_rot) / rC);
+                BoundingBox_set_sin_tC(box,((x1)+w*(-cos_chord)) / rC);
+                BoundingBox_set_cos_tC(box,((s1)+w*sin_chord) / rC);
             } else {
-                printf("here tho?\n");
+                // in this case (s1,x1) is the lowest vertex. Easier case.
                 double rC = (sqrt((s1)*(s1) + (x1)*(x1)));
-                printf("RC = %f\n", rC);
-                printf("sintC = %f\n", (x1) / rC);
-                printf("costC = %f\n", (s1) / rC);
-                printf("sintb = %f\n", sin_t);
-                printf("costb = %f\n", cos_t);
-                printf("s1: rC*cos_tc = %f\n", rC*s1/rC);
-                printf("x1:rC*sin_tc = %f\n", rC*x1/rC);
-                printf("s2: rC*cos_tc +l*costb = %f\n", rC*s1/rC + l*cos_t);
-                printf("s2 (min cos): rC*cos_tc -l*costb = %f\n", rC*s1/rC - l*cos_t);
-                printf("x2: rC*sin_tc +l*sintb = %f\n", rC*x1/rC + l*sin_t);
-                printf("s3: rC*cos_tc +l*costb - w*sin_t = %f\n", rC*s1/rC + l*cos_t - w*sin_t);
-                printf("s3(min cos): rC*cos_tc -l*costb - w*sin_t = %f\n", rC*s1/rC - l*cos_t - w*sin_t);
-                printf("x3: rC*sin_tc +l*sintb + w*cos_t = %f\n", rC*x1/rC + l*sin_t + w*cos_t);
-                printf("x3 (min cos): rC*sin_tc +l*sintb - w*cos_t = %f\n", rC*x1/rC + l*sin_t - w*cos_t);
-                printf("s4: rC*cos_tc - w*sin_t = %f\n", rC*s1/rC  - w*sin_t);
-                printf("x4: rC*sin_tc + w*cos_t = %f\n", rC*x1/rC  + w*cos_t);
-                printf("x4 (min cos): rC*sin_tc - w*cos_t = %f\n", rC*x1/rC  - w*cos_t);
                 BoundingBox_set_rC(box, rC);
                 BoundingBox_set_sin_tC(box, (x1) /rC);
                 BoundingBox_set_cos_tC(box, (s1) /rC);
             }
         } else {
+            // this is the same as above, but for the other point.
             if (((tt1 <= M_PI && tt2 >= M_PI) && (cos_chord < 0)) || (( (-M_PI <= tt1) && (tt1 <= 0.) ) && ( (-M_PI <= tt2) && (tt2 <= 0.))) || ((tt1 <= 0 && tt2 >= 0) && (cos_chord > 0))){                // t1 or t2 is lower vertex
-                BoundingBox_set_rC(box, (sqrt( ((s2)-w*cos_rot)*((s2)-w*cos_rot) +
-                                              ((x2)-w*sin_rot)*((x2)-w*sin_rot)) ));
-                BoundingBox_set_sin_tC(box, (((x2)-w*sin_rot)) / BoundingBox_get_rC(box));
-                BoundingBox_set_cos_tC(box, ((s2)-w*cos_rot) / BoundingBox_get_rC(box));
+                BoundingBox_set_rC(box, (sqrt( ((s2)-w*sin_chord)*((s2)-w*sin_chord) +
+                                              ((x2)-w*(-cos_chord))*((x2)-w*(-cos_chord))) ));
+                BoundingBox_set_sin_tC(box, (((x2)-w*(-cos_chord))) / BoundingBox_get_rC(box));
+                BoundingBox_set_cos_tC(box, ((s2)-w*sin_chord) / BoundingBox_get_rC(box));
 
             } else {
                 BoundingBox_set_rC(box, sqrt((s2)*(s2) + (x2)*(x2)));
@@ -181,50 +180,63 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
             }
         }
     } else {
-        rotate_box = -1;
+        // This is the case of when (tt2-tt1) > 180 degrees.
+        // the length of this box is always the diameter of the circle. This is because now the segment will always span > 180 deg, and
+        // therefore the maximum distance between two points is the diameter.
+        // The width of this circle is equal to the diameter - sagitta.
+        // The sagitta is the distance from the chord to the circle. 
         l = (2*R);                                            // L is always on the side of the chord in the code
         w = (R + sqrt(R*R - (chord_length*chord_length/4.))); // 2R - sagitta
+        // these variables are used to find the lowest vertex. In the other case (s1,x2) and (s2,x1) are two of the 4 vertices, 
+        // and we can "easier" check if either of the are the lowest of not. In this case it is a bit worse, seeing as we only have
+        // w, l and two points on the same side of the box (the chord side).
+        // The first variables are for the two points on the chord side of the box. The other two are for the other two points.
         double chord_side_w1_x, chord_side_w1_s, chord_side_w2_x, chord_side_w2_s;
         double w3_x, w3_s, w4_x, w4_s;
-        printf("x1, x2 = %f, %f\n", x1, x2);
         // determining the (s,x) of the vertices on the chord side of box
         if ((x2-x1) > 1e-10){
-            printf("sign = %d\n", sign);
+            // first we check if x2 > x1. Then, like before, we can assume that the box needs to be rotated. This time it is always the case, 
+            // and we dont need to check the angles. Might remove this tho seeing as we change rot_box later when we check the vertices.
             rotate_box = 1;
+            // Here we find vertices on the chord side of the box. You take your point of the chord side (x1,s1) or (x2,s2), and
+            // you go the remaining distance of L to find the actual vertices. (Diameter - chord length)/2 is the distance 
+            // from (s1,x1) or (s2,x2) to the vertices
             chord_side_w1_x = x1 - (2*R - chord_length)/2.*sin_chord;
             chord_side_w1_s = s1 - (2*R - chord_length)/2.*cos_chord;
             chord_side_w2_x = x2 + (2*R - chord_length)/2.*sin_chord;
             chord_side_w2_s = s2 + (2*R - chord_length)/2.*cos_chord;
-            w3_x = chord_side_w1_x - sign*w*sin_rot;
-            w3_s = chord_side_w1_s + w*cos_rot;
-            w4_x = chord_side_w2_x - sign*w*sin_rot;
-            w4_s = chord_side_w2_s + w*cos_rot;
-            printf("here?????\n");
+            // here we find the other two vertices. This is where the orientation of the box matters, and we use the sign variable to
+            // determine if we need to add or subtract the distance from the chord side to the vertices. This comes from how the angles were
+            // defined in the beginning! Essentially, we need to rotate the box by 90 degrees (wrt chord angle) to find the other two vertices.
+            w3_x = chord_side_w1_x - sign*w*(-cos_chord);
+            w3_s = chord_side_w1_s + w*sin_chord;
+            w4_x = chord_side_w2_x - sign*w*(-cos_chord);
+            w4_s = chord_side_w2_s + w*sin_chord;
         } else {
+            // this is the same as above, but for the other case.
             rotate_box = -1;
             chord_side_w2_x = x2 - (2*R - chord_length)/2.*sin_chord;
             chord_side_w2_s = s2 - (2*R - chord_length)/2.*cos_chord;
             chord_side_w1_x = x1 + (2*R - chord_length)/2.*sin_chord;
             chord_side_w1_s = s1 + (2*R - chord_length)/2.*cos_chord;
-            w3_x = chord_side_w1_x + sign*w*sin_rot; 
-            w3_s = chord_side_w1_s - w*cos_rot;
-            w4_x = chord_side_w2_x + sign*w*sin_rot;
-            w4_s = chord_side_w2_s - w*cos_rot;
+            w3_x = chord_side_w1_x + sign*w*(-cos_chord); 
+            w3_s = chord_side_w1_s - w*sin_chord;
+            w4_x = chord_side_w2_x + sign*w*(-cos_chord);
+            w4_s = chord_side_w2_s - w*sin_chord;
         }
         // Compare with the other three points to find the first vertex. Also taking into account if the box is horiztonal
-        printf("w3_x, w3_s = %f, %f\n", w3_x, w3_s);
-        printf("w4_x, w4_s = %f, %f\n", w4_x, w4_s);
-        printf("chord_side_w1_x, chord_side_w1_s = %f, %f\n", chord_side_w1_x, chord_side_w1_s);
-        printf("chord_side_w2_x, chord_side_w2_s = %f, %f\n", chord_side_w2_x, chord_side_w2_s);
-        printf("rotate_box = %f\n", rotate_box);
-        printf("cos_t = %f, sin_t = %f\n", cos_t, sin_t);
-        printf("cos_rot = %f, sin_rot = %f\n", cos_rot, sin_rot);
-        printf("l = %f, w = %f\n", l, w);
-        printf("cos_chord = %f, sin_chord = %f\n", cos_chord, sin_chord);
+        // so, we start with one of the chord side vertices. We need to check if it is the lowest vertex or not.
+        // We do this by checking if the x values are lower than the other vertices.
         min_x = chord_side_w1_x;
         min_s = chord_side_w1_s;
-        if ((chord_side_w2_x < min_x) || (((chord_side_w2_x-min_x)<1e-10) && (chord_side_w2_s < min_s))) {
+        // here several things are checked. 1) Is the other chord point lower? 
+        // 2) are they equal? If so the box is horizontal! And then 3) is p2 the leftmost point? 
+        if ((chord_side_w2_x < min_x) || (((chord_side_w2_x-min_x) < 1e-10) && (chord_side_w2_s < min_s))) {
             if ((chord_side_w2_x < min_x) && (chord_side_w2_s > min_s)) {
+                // if p2 is smaller than p1 wrt x, AND p2 has a larger s value, then we need to rotate the box. 
+                // This is becaues the chord side will be on the left side of the lower point. And therefore, the line from
+                // the lower point to the next point counterclockwise is actually the width of the box, but later on it should be the length
+                // so we need to switch. 
                 rotate_box = 1;
             } else {
                 rotate_box = -1;
@@ -232,12 +244,20 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
             min_x = chord_side_w2_x; 
             min_s = chord_side_w2_s;
         }
+        // we check if point three is lower (or horizontal and leftmost) than the current lowest point.
         if (w3_x < min_x || (((w3_x-min_x)<1e-10) && (w3_s < min_s))) {
+            // if yes than point 3 is now the lowest point. Note that here we dont have to check that extra if regarding the 
+            // rotation, because w3 comes from point 1 (on the chord side), and therefore we know there will always be two sides of the box 
+            // between the chord side and w3. So, there will be a width side, w3 point, length, width, chord. All good.
             min_x = w3_x; 
             min_s = w3_s;   
             rotate_box = -1;
         }
         if (w4_x < min_x || (((w4_x - min_x)<1e-10) && w4_s <= min_s)) {
+            // here we check the same for point 4, which comes from point 2 on the chord side. Here it is the opposite as w3, and there
+            // will always be a need to switch as there is only one side from w4 until chord side (counterclockwise), and since chord
+            // side is always the length side in this code, then this side in between is width. But if w4 is lowest, then this side has
+            // to be length. We need to switch. 
             min_x = w4_x; 
             min_s = w4_s;
             rotate_box = 1;
@@ -246,7 +266,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
         BoundingBox_set_sin_tC(box, min_x / BoundingBox_get_rC(box));
         BoundingBox_set_cos_tC(box, min_s / BoundingBox_get_rC(box));
     }
-    printf("rotate_box = %f\n", rotate_box);
+    // this is the actual switching. 
     if (rotate_box == -1){
         BoundingBox_set_l(box, l);   // length of the box
         BoundingBox_set_w(box, w);   // width of the box
@@ -255,10 +275,13 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
         BoundingBox_set_w(box, l);   // width of the box
     }
     double rC = BoundingBox_get_rC(box);                           // length of the position vector to the first vertex
-    BoundingBox_set_sin_tb(box, sin_t);                            // orientation of the box (angle of length wrt horizontal)
-    BoundingBox_set_cos_tb(box, cos_t);
-    BoundingBox_set_proj_l(box, rC * (cos_t*s1/rC + sin_t*x1/rC)); // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    BoundingBox_set_proj_w(box, rC * (cos_t*x1/rC - sin_t*s1/rC)); // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    double sin_tC = min_x / rC;
+    double cos_tC = min_s / rC;
+    if (rotate_box == 1){
+        BoundingBox_set_params(box, rC, sin_tC, cos_tC, w, l, sin_t, cos_t);
+    } else {
+        BoundingBox_set_params(box, rC, cos_tC, sin_tC, l, w, sin_t, cos_t);
+    }
 }
 // /*gpufun*/
 // void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
