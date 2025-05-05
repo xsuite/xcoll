@@ -748,29 +748,29 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
             }
             else
             {
-				if (dp > 1.01 ) {
-				std::cout << "in secondary particles" << std::endl;
-				std::cout << hits_index << std::endl;
-				std::cout << hitsCount << std::endl;
-				std::cout << particleActiveState.size() << std::endl;
-				std::cout << particleActiveState.at(hits_index) << std::endl;
-				std::cout << prod_write_index << std::endl;
-std::cout << "coords.x = " << coords.x / CLHEP::m << std::endl;
-std::cout << "coords.y = " << coords.y / CLHEP::m << std::endl;
-std::cout << "coords.xp = " << coords.xp << std::endl;
-std::cout << "coords.yp = " << coords.yp << std::endl;
-std::cout << "oneplusdelta = " << oneplusdelta << std::endl;
-std::cout << "zt = " << zt / CLHEP::m << std::endl;
-std::cout << "dp = " << dp << std::endl;
-std::cout << "xtrack_part->s = " << xtrack_part->s << std::endl;
-std::cout << "collLength = " << collLength / CLHEP::m << std::endl;
-std::cout << "pdg_id = " << pdg_id << std::endl;
-std::cout << "parent_id = " << parent_id << std::endl;
-std::cout << "at_element = " << xtrack_part->at_element << std::endl;
-std::cout << "at_turn = " << xtrack_part->at_turn << std::endl;
-std::cout << "massratio = " << mratio << std::endl;
-std::cout << "chargeratio = " << qratio << std::endl;
-};
+				//if (dp > 1.01 ) {
+				//std::cout << "in secondary particles" << std::endl;
+				//std::cout << hits_index << std::endl;
+				//std::cout << hitsCount << std::endl;
+				//std::cout << particleActiveState.size() << std::endl;
+				//std::cout << particleActiveState.at(hits_index) << std::endl;
+				//std::cout << prod_write_index << std::endl;
+//std::cout << "coords.x = " << coords.x / CLHEP::m << std::endl;
+//std::cout << "coords.y = " << coords.y / CLHEP::m << std::endl;
+//std::cout << "coords.xp = " << coords.xp << std::endl;
+//std::cout << "coords.yp = " << coords.yp << std::endl;
+//std::cout << "oneplusdelta = " << oneplusdelta << std::endl;
+//std::cout << "zt = " << zt / CLHEP::m << std::endl;
+//std::cout << "dp = " << dp << std::endl;
+//std::cout << "xtrack_part->s = " << xtrack_part->s << std::endl;
+//std::cout << "collLength = " << collLength / CLHEP::m << std::endl;
+//std::cout << "pdg_id = " << pdg_id << std::endl;
+//std::cout << "parent_id = " << parent_id << std::endl;
+//std::cout << "at_element = " << xtrack_part->at_element << std::endl;
+//std::cout << "at_turn = " << xtrack_part->at_turn << std::endl;
+//std::cout << "massratio = " << mratio << std::endl;
+//std::cout << "chargeratio = " << qratio << std::endl;
+//};
                 // Secondary particles are populated in newly allocated arrays
                 x_prod_ptr[prod_write_index] = coords.x / CLHEP::m;
                 y_prod_ptr[prod_write_index] = coords.y / CLHEP::m;

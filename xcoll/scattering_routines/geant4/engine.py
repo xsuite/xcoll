@@ -118,7 +118,7 @@ class Geant4Engine(xo.HybridClass):
         Geant4Engine.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
         time.sleep(0.1) # ping to check when open
         Geant4Engine.conn = rpyc.classic.connect('localhost', port=port)
-        Geant4Engine.conn._config['sync_request_timeout'] = 240 # Set timeout to 240 seconds
+        Geant4Engine.conn._config['sync_request_timeout'] = 1240 # Set timeout to 240 seconds
         # rconn._config['sync_request_timeout'] = None # No timeout
         Geant4Engine.conn.execute('import sys')
         Geant4Engine.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')

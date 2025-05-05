@@ -114,7 +114,7 @@ def run_geant4_line(opening, part_distribution_width):
     line = create_line()
     part = install_geant4_collimators(line, opening, part_distribution_width)
 
-    xc.Geant4Engine.start(line=line, seed=1993, bdsim_config_file=str(path / f'settings_protons.gmad'))
+    xc.Geant4Engine.start(line=line, seed=1993, bdsim_config_file=str(path / f'geant4_protons.gmad'))
 
     # Track
     xc.enable_scattering(line=line)
