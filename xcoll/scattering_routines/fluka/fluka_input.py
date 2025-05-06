@@ -7,7 +7,6 @@ import os
 import sys
 import json
 import numpy as np
-import pathlib as Path
 from subprocess import run, PIPE
 from contextlib import redirect_stdout
 
@@ -29,7 +28,7 @@ _header_stop  = "*  XCOLL END  **"
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[],
                        verbose=True, **kwargs):
-    # _create_generic_colls(element_dict)
+    _create_prototypes_file(element_dict, prototypes_file)
     include_files = get_include_files(particle_ref, include_files, verbose=verbose, **kwargs)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
@@ -62,26 +61,11 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
             fluka_dict[name]['angle'] = ee.angle
             fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
             fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
-    _rite_xcoll_header_to_fluka_input(input_file, fluka_dict)
+    _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
     if verbose:
         print(f"Created FLUKA input file {input_file}.")
     return input_file, insertion_file
 
-def xcoll_to_fluka_material(material):
-    # XXX EXPAND THIS DICT
-
-    material_dict = {
-        "iner": "INERM180",
-        "c":    "  CARBON",
-        "Si":   " SILICON",
-        "cu":   "  COPPER",
-        "mogr": "AC150GPH"
-    }
-
-    if material not in material_dict.keys():
-        raise ValueError(f"Material {material} not found in material dictionary!")
-    else:
-        return material_dict[material]
 
 def get_collimators_from_input_file(input_file):
     with open(input_file, 'r') as fp:
@@ -101,156 +85,6 @@ def verify_insertion_file(insertion_file, element_dict):
     for name, val in element_dict.items():
         if val.fluka_id not in all_fluka_ids:
             raise ValueError(f'FlukaCollimator {name} not found in insertion file!')
-
-def _create_generic_assemblies(_generic_colls):
-    for gen in _generic_colls.keys():
-        template_assembly = f"""\
-# --------------------------------------------------------------------------------------------------------------
-PROTOTYPE       {gen}_T
-# --------------------------------------------------------------------------------------------------------------
-# prototype of the tank:
-FEDB_TAG        {gen}_T                # tag in the fedb (for the name of the file)
-FEDB_SERIES     test                    # series of the fedb (for the name of the file)
-# this rot-defi is only for local use:
-ROT-DEFI         0.0       0.0       0.0     100.0   -3000.0    1000.0 proto
-#
-# --------------------------------------------------------------------------------------------------------------
-PROTOTYPE       {gen}_B
-# --------------------------------------------------------------------------------------------------------------
-# prototype of the jaw:
-FEDB_TAG        {gen}_B                # tag in the fedb (for the name of the file)
-FEDB_SERIES     test                    # series of the fedb (for the name of the file)
-# this rot-defi is only for local use:
-ROT-DEFI         0.0       0.0       0.0       0.0   -3000.0    1000.0 proto
-#
-#
-#
-# --------------------------------------------------------------------------------------------------------------
-ASSEMBLY        {gen}
-# --------------------------------------------------------------------------------------------------------------
-#
-# needed bodies:
-#               rename          rotname         name_in_file   fedb_series     fedb_tag       index
-BODY            CONTAINO        CONTAINO        {gen}_T        test            {gen}_T        1
-BODY            CONTAINI        CONTAINO        {gen}_TIN      test            {gen}_T        1
-* jaw on positive x:
-BODY            JAW_POS         JAW_POS         {gen}_B        test            {gen}_B        1
-* jaw on negative x:
-BODY            JAW_NEG         JAW_NEG         {gen}_B        test            {gen}_B        1
-#
-# define regions:
-#               rename          material        rotbody         defition
-REGION          *               EXTERNAL        *               -CONTAINO
-* tank:
-REGION          TANK            LATTICE         CONTAINO        +CONTAINO -CONTAINI
-* vacuum between jaws:
-REGION          INNERVAC        VACUUM          *               +CONTAINO -JAW_POS  -JAW_NEG
-* jaw on positive x:
-REGION          JAW_POS         LATTICE         JAW_POS         +JAW_POS
-* jaw on negative x:
-REGION          JAW_NEG         LATTICE         JAW_NEG         +JAW_NEG
-#
-ROT-DEFI         0.0       0.0       0.0       0.0       0.0       0.0  CONTAINO
-#
-ROT-DEFI         0.0       0.0       0.0       0.0       0.0       0.0  JAW_POS
-* rotate by 180 deg the negative jaw:
-ROT-DEFI       300.0       0.0     180.0       0.0       0.0       0.0  JAW_NEG
-"""
-        filepath = FlukaEnvironment.fedb_base / "assemblies" / f"test_{gen}.lbp"
-        with filepath.open('w') as fp:
-            fp.write(template_assembly)
-
-def _create_generic_bodies(_generic_colls):
-    for gen in _generic_colls.keys():
-        template_body = f"""\
-RPP {gen}_B   0.0 10.0 -5 5 -{_generic_colls[gen].length*100/2} {_generic_colls[gen].length*100/2}
-"""
-        filepath = FlukaEnvironment.fedb_base / "bodies" / f"test_{gen}_B.bodies"
-        with filepath.open('w') as fp:
-            # dump file in path FLUKA_environment.linebuilder / src
-            fp.write(template_body)
-
-        template_tank = f"""\
-RPP {gen}_T   -15.0 15.0 -10 10 -{_generic_colls[gen].length*100/2} {_generic_colls[gen].length*100/2}
-RPP {gen}_TIN -15.0 15.0 -10 10 -{_generic_colls[gen].length*100/2} {_generic_colls[gen].length*100/2}
-"""
-        filepath = FlukaEnvironment.fedb_base / "bodies" / f"test_{gen}_T.bodies"
-        with filepath.open('w') as fp:
-            # dump file in path FLUKA_environment.linebuilder / src
-            fp.write(template_tank)
-def _create_generic_regions(_generic_colls):
-    for gen in _generic_colls.keys():
-        template_body_reg = f"""\
-{gen}_B     25 +{gen}_B
-"""
-        filepath = FlukaEnvironment.fedb_base / "regions" / f"test_{gen}_B.regions"
-        with filepath.open('w') as fp:
-            fp.write(template_body_reg)
-
-        template_tank_reg = f"""\
-{gen}_T     25 +{gen}_T -{gen}_TIN
-{gen}_TIN   25 +{gen}_TIN
-"""
-        filepath = FlukaEnvironment.fedb_base / "regions" / f"test_{gen}_T.regions"
-        with filepath.open('w') as fp:
-            fp.write(template_tank_reg)
-
-def _create_generic_materials(_generic_colls):
-    for gen in _generic_colls.keys():
-        mat = xcoll_to_fluka_material(_generic_colls[gen].material)
-        template_body_mat = f"""\
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-ASSIGNMA    {mat}    {gen}_B
-"""
-        filepath = FlukaEnvironment.fedb_base / "materials" / f"test_{gen}_B.assignmat"
-        with filepath.open('w') as fp:
-            fp.write(template_body_mat)
-        template_tank_mat = f"""\
-ASSIGNMA      VACUUM    {gen}_T
-ASSIGNMA      VACUUM  {gen}_TIN
-"""
-        filepath = FlukaEnvironment.fedb_base / "materials" / f"test_{gen}_T.assignmat"
-        with filepath.open('w') as fp:
-            fp.write(template_tank_mat)
-
-def _create_gen_files(_generic_colls):
-    _create_generic_assemblies(_generic_colls)
-    _create_generic_bodies(_generic_colls)
-    _create_generic_regions(_generic_colls)
-    _create_generic_materials(_generic_colls)
-
-def _create_crystal_files(_cristals):
-    _create_crystal_assemblies(_cristals)
-
-
-def _create_generic_colls(element_dict):
-
-    class GenericCollimator:
-        def __init__(self, name, length, material):
-            self.name = name
-            self.length = length
-            self.material = material
-            self.collimator_list = []
-
-    # Check collimator with material and go through cases with same length
-
-    _generic_colls = {}
-    for name, ee in element_dict.items():
-        # if ee.generic:
-        if ee.material:
-            matched = False
-            for generic in _generic_colls.values():
-                if generic.length == ee.length and generic.material == ee.material:
-                    generic.collimator_list.append(name)
-                    matched = True
-                    break
-            if not matched:
-                new_name = f"GEN{len(_generic_colls) + 2}"
-                new_generic = GenericCollimator(new_name, ee.length, ee.material)
-                new_generic.collimator_list.append(name)
-                _generic_colls[new_name] = new_generic
-
-    _create_gen_files(_generic_colls)
 
 
 def _create_prototypes_file(element_dict, prototypes_file=None):
