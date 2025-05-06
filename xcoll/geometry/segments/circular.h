@@ -70,6 +70,14 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
     double dx = x2 - x1;
     double ds = s2 - s1;
     double chord_length = sqrt(dx*dx + ds*ds);
+    if (chord_length < 1e-10){
+        // The two points are the same, so we have a 360 segment
+        double sR = CircularSegment_get_sR(seg);
+        double xR = CircularSegment_get_xR(seg);
+        double rC = sqrt((sR-R)*(sR-R) + (xR-R)*(xR-R)); // length of position vector to first vertex
+        BoundingBox_set_params(box, rC, (xR-R)/rC, (sR-R)/rC, 2*R, 2*R, 0., 1.);
+        return;
+    }
     double sin_chord = dx / chord_length;
     double cos_chord = ds / chord_length;
     // Init. _t is the box angle, min and max is used to find lowest vertex,
@@ -134,10 +142,10 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
         // and the next point (counterclockwise) is actually what we define as W here. It is the shorter side of the box. But, instead of 
         // mixing w and l in the code itself, we will just switch them at the end. Rotate box == 1 gives switch. 
         // Try drawing it out. 
-        if (cos_chord > 0){
-            rotate_box = -1;
-        } else {
+        if ((cos_chord < 0. && cos_chord > -1.)){
             rotate_box = 1;
+        } else {
+            rotate_box = -1;
         }
         // finding the first vertex. 
         // this is the part where we find the first vertex. We need to check if the first vertex is the lower one or not. This
@@ -156,7 +164,7 @@ void CircularSegment_init_bounding_box(CircularSegment seg, BoundingBox box, dou
                 cos_tC = ((s1)+w*sin_chord) / rC;
             } else {
                 // in this case (s1,x1) is the lowest vertex. Easier case.
-                double rC = (sqrt((s1)*(s1) + (x1)*(x1)));
+                rC = (sqrt((s1)*(s1) + (x1)*(x1)));
                 sin_tC = (x1) /rC;
                 cos_tC = (s1) /rC;
             }
