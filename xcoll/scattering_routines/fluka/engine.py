@@ -17,7 +17,7 @@ except (ImportError, ModuleNotFoundError):
 
 from .reference_masses import source, fluka_masses
 from .environment import FlukaEnvironment, format_fluka_float
-from .prototypes import FlukaPrototype, FlukaAssembly
+from .prototype import FlukaPrototype, FlukaAssembly
 from ..engine import BaseEngine
 from ...general import _pkg_root
 

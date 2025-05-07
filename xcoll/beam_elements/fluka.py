@@ -11,7 +11,7 @@ import xtrack as xt
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine, assemblies, \
                                         FlukaPrototype, FlukaAssembly
-from ..scattering_routines.fluka.prototypes import assemblies_wrong_jaw
+from ..scattering_routines.fluka.prototype import assemblies_wrong_jaw
 
 
 class FlukaCollimator(BaseCollimator):

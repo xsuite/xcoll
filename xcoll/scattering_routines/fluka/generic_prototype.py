@@ -9,7 +9,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 from .environment import FlukaEnvironment
-from .prototypes import FlukaAssembly
+from .prototype import FlukaPrototype, FlukaAssembly
 
 
 def xcoll_to_fluka_material(material):
@@ -29,7 +29,7 @@ def xcoll_to_fluka_material(material):
         return material_dict[material]
 
 
-class FlukaGenericAssembly(xc.FlukaAssembly):
+class FlukaGenericAssembly(FlukaAssembly):
     def __new__(cls,  *, material=None, length=None, side='both', **kwargs):
         if material is None:
             raise ValueError("Need to provide material!")
@@ -40,7 +40,7 @@ class FlukaGenericAssembly(xc.FlukaAssembly):
         for prototype in FlukaPrototype._registry:
             if isinstance(prototype, FlukaGenericAssembly):
                 if prototype.material == material and prototype.length == length \
-                and if prototype.side == side:
+                and prototype.side == side:
                     return prototype
         # Create new generic assembly
         return super().__new__(cls, fedb_series='NOPE', fedb_tag='NOPENOPE', **kwargs)
@@ -52,9 +52,16 @@ class FlukaGenericAssembly(xc.FlukaAssembly):
         kwargs['fedb_series'] = 'generic'
         kwargs['fedb_tag'] = f'GEN{num_generic_assemblies:03d}'
         super().__init__(**kwargs)
-        self._x_dim = kwargs.get('x_dim', 1)
-        self._y_dim = kwargs.get('y_dim', 1)
-        create_fedb_files(fedb_tag, self.material, self.length, self.side, self.x_dim, self.y_dim)
+        self._x_dim = kwargs.get('x_dim', 0.2)
+        self._y_dim = kwargs.get('y_dim', 0.2)
+        if self._x_dim > 0.25:
+            self._x_dim = 0.25
+        if self._y_dim > 0.25:
+            self._y_dim = 0.25
+        create_assembly_file(self.fedb_tag, self.side)
+        create_body_file(self.fedb_tag, self.length, self.x_dim, self.y_dim)
+        create_region_file(self.fedb_tag)
+        create_material_file(self.fedb_tag, self.material)
 
     @property
     def x_dim(self):
@@ -150,9 +157,10 @@ RPP {fedb_tag}_B   0.0 {100*x_dim} -{100*y_dim/2} {100*y_dim/2} -{length*100/2} 
     with filepath.open('w') as fp:
         fp.write(template_body)
 
+    # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
-RPP {fedb_tag}_T  -{200*x_dim} {200*x_dim} -{100*y_dim} {100*y_dim} -{length*120} {length*120}
-RPP {fedb_tag}_I  -{200*x_dim} {200*x_dim} -{100*y_dim} {100*y_dim} -{length*120} {length*120}
+RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*120} {length*120}
+RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*120} {length*120}
 """
     filepath = FlukaEnvironment.fedb_base / "bodies" / f"generic_{fedb_tag}_T.bodies"
     with filepath.open('w') as fp:
@@ -180,7 +188,7 @@ def create_material_file(fedb_tag, material):
     mat = xcoll_to_fluka_material(material)
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-ASSIGNMA    {mat:8}   {fedb_tag}_B
+ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 """
     filepath = FlukaEnvironment.fedb_base / "materials" / f"generic_{fedb_tag}_B.assignmat"
     with filepath.open('w') as fp:
@@ -188,8 +196,8 @@ ASSIGNMA    {mat:8}   {fedb_tag}_B
 
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-ASSIGNMA      VACUUM  {fedb_tag}_T
-ASSIGNMA      VACUUM  {fedb_tag}_I
+ASSIGNMA      VACUUM  {fedb_tag:>6}_T
+ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
     filepath = FlukaEnvironment.fedb_base / "materials" / f"generic_{fedb_tag}_T.assignmat"
     with filepath.open('w') as fp:

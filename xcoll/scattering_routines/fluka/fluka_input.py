@@ -18,7 +18,7 @@ except (ImportError, ModuleNotFoundError):
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
 from .environment import FlukaEnvironment
-from .prototypes import FlukaAssembly
+from .prototype import FlukaAssembly
 from .includes import get_include_files
 
 
