@@ -103,10 +103,10 @@ class FlukaCollimator(BaseCollimator):
             self.side = self.assembly.side
             print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
                 + f"to match the assembly '{self.assembly.name}'.")
-        if self.assembly.material is not None and self.assembly.material != self.material:
-            self.material = self.assembly.material
-            print(f"Warning: Material of collimator '{self.name}' was changed to '{self.material}' "
-                + f"to match the assembly '{self.assembly.name}'.")
+        # if self.assembly.material is not None and self.assembly.material != self.material:
+        #     self.material = self.assembly.material
+        #     print(f"Warning: Material of collimator '{self.name}' was changed to '{self.material}' "
+        #         + f"to match the assembly '{self.assembly.name}'.")
         if self.assembly.length is not None:
             self.length_front = (self.assembly.length - self.length) / 2
             self.length_back = self.assembly.length - self.length - self.length_front

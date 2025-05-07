@@ -324,7 +324,8 @@ class FlukaPrototype:
 
     def generate_code(self):
         if self.active and self.active_elements:
-            prot  = f"{self._type.upper():9}     {self.name}\n"
+            # prot  = f"{self._type.upper():9}     {self.name}\n"
+            prot  = f"ASSEMBLY      {self.name}\n"
             prot += f"FEDB_SERIES   {self.fedb_series}\n"
             prot += f"FEDB_TAG      {self.fedb_tag}\n"
             prot += f"ROT-DEFI  "
@@ -428,10 +429,10 @@ class FlukaPrototype:
                 if prototype.active_elements:
                     raise ValueError(f"Prototype {prototype.name} not found in prototypes file!")
             else:
-                if prototype._type.upper() != all_prototypes[prototype.name]['type']:
-                    raise ValueError(f"Wrong type for {prototype.name} (expected "
-                                + f"{prototype._type.upper()}, got "
-                                + f"{all_prototypes[prototype.name]['type']})!")
+                # if prototype._type.upper() != all_prototypes[prototype.name]['type']:
+                #     raise ValueError(f"Wrong type for {prototype.name} (expected "
+                #                 + f"{prototype._type.upper()}, got "
+                #                 + f"{all_prototypes[prototype.name]['type']})!")
                 if 'fedb_series' not in all_prototypes[prototype.name]:
                     raise ValueError(f"FEDB_SERIES for {prototype.name} not found in prototypes file!")
                 if prototype.fedb_series != all_prototypes[prototype.name]['fedb_series']:
