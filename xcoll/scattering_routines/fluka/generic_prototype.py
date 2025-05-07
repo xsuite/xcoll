@@ -30,38 +30,53 @@ def xcoll_to_fluka_material(material):
 
 
 class FlukaGenericAssembly(FlukaAssembly):
-    def __new__(cls,  *, material=None, length=None, side='both', **kwargs):
-        if material is None:
-            raise ValueError("Need to provide material!")
-        if length is None:
-            raise ValueError("Need to provide length!")
-        if side not in [None, 'both', 'left', 'right']:
+    _generic_required_fields = ['material', 'length']
+    _generic_optional_fields = {'side': 'both', 'x_dim': 0.2, 'y_dim': 0.2}
+
+    def __new__(cls, **kwargs):
+        for field in cls._generic_required_fields:
+            if field not in kwargs:
+                raise ValueError(f"Need to provide {field}!")
+        if kwargs.get('side') not in [None, 'both', 'left', 'right']:
             raise ValueError("Side must be 'both', 'left' or 'right'!")
         for prototype in FlukaPrototype._registry:
             if isinstance(prototype, FlukaGenericAssembly):
-                if prototype.material == material and prototype.length == length \
-                and prototype.side == side:
+                found = True
+                for field in cls._generic_required_fields:
+                    if kwargs[field] != getattr(prototype, field):
+                        found = False
+                        break
+                for field, opt_value in cls._generic_optional_fields.items():
+                    if kwargs.get(field, opt_value) != getattr(prototype, field):
+                        found = False
+                        break
+                if found:
                     return prototype
         # Create new generic assembly
         return super().__new__(cls, fedb_series='NOPE', fedb_tag='NOPENOPE', **kwargs)
 
-
     def __init__(self, **kwargs):
+        if not hasattr(self, 'fedb_tag') and not hasattr(self, 'fedb_series'):
+            self._init(kwargs)
+            self._x_dim = kwargs['x_dim']
+            self._y_dim = kwargs['y_dim']
+            if self._x_dim > 0.25:
+                self._x_dim = 0.25
+            if self._y_dim > 0.25:
+                self._y_dim = 0.25
+            create_assembly_file(self.fedb_tag, self.side)
+            create_body_file(self.fedb_tag, self.length, self.x_dim, self.y_dim)
+            create_region_file(self.fedb_tag)
+            create_material_file(self.fedb_tag, self.material)
+
+    def _init(self, kwargs):
         num_generic_assemblies = len([p for p in FlukaPrototype._registry
-                                      if isinstance(p, FlukaGenericAssembly)])
+                                    if isinstance(p, FlukaGenericAssembly)])
         kwargs['fedb_series'] = 'generic'
         kwargs['fedb_tag'] = f'GEN{num_generic_assemblies:03d}'
+        for field, opt_value in self._generic_optional_fields.items():
+            kwargs.setdefault(field, opt_value)
         super().__init__(**kwargs)
-        self._x_dim = kwargs.get('x_dim', 0.2)
-        self._y_dim = kwargs.get('y_dim', 0.2)
-        if self._x_dim > 0.25:
-            self._x_dim = 0.25
-        if self._y_dim > 0.25:
-            self._y_dim = 0.25
-        create_assembly_file(self.fedb_tag, self.side)
-        create_body_file(self.fedb_tag, self.length, self.x_dim, self.y_dim)
-        create_region_file(self.fedb_tag)
-        create_material_file(self.fedb_tag, self.material)
 
     @property
     def x_dim(self):
@@ -70,6 +85,22 @@ class FlukaGenericAssembly(FlukaAssembly):
     @property
     def y_dim(self):
         return self._y_dim
+
+
+class FlukaGenericCrystalAssembly(FlukaGenericAssembly):
+    _generic_required_fields = ['material', 'length', 'bending_radius', 'side']
+    _generic_optional_fields = {'x_dim': 0.2, 'y_dim': 0.2}
+
+    def __new__(cls,  *, bending_radius=None, **kwargs):
+        if bending_radius is None:
+            raise ValueError("Need to provide bending_radius!")
+        return super().__new__(cls, **kwargs)
+
+    def __init__(self, **kwargs):
+        if not hasattr(self, 'fedb_tag') and not hasattr(self, 'fedb_series'):
+            self._init(kwargs)
+            # Set dimensions
+            # create files
 
 
 def create_assembly_file(fedb_tag, side):
@@ -159,8 +190,8 @@ RPP {fedb_tag}_B   0.0 {100*x_dim} -{100*y_dim/2} {100*y_dim/2} -{length*100/2} 
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
-RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*120} {length*120}
-RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*120} {length*120}
+RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
 """
     filepath = FlukaEnvironment.fedb_base / "bodies" / f"generic_{fedb_tag}_T.bodies"
     with filepath.open('w') as fp:

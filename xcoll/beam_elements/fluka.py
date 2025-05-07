@@ -10,7 +10,7 @@ import xtrack as xt
 
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine, assemblies, \
-                                        FlukaPrototype, FlukaAssembly
+                        FlukaPrototype, FlukaAssembly, FlukaGenericAssembly
 from ..scattering_routines.fluka.prototype import assemblies_wrong_jaw
 
 
@@ -51,6 +51,16 @@ class FlukaCollimator(BaseCollimator):
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = FlukaEngine()._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
+                if 'material' in kwargs:
+                    material = kwargs.pop('material')
+                    if to_assign['assembly'] is not None:
+                        raise ValueError('Cannot set both material and assembly!')
+                    length = kwargs.get('length', None)
+                    if length is None:
+                        raise ValueError('Need to provide length!')
+                    side = kwargs.pop('side', 'both')
+                    to_assign['assembly'] = FlukaGenericAssembly(material=material, side=side,
+                                                                 length=length)
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
@@ -68,6 +78,12 @@ class FlukaCollimator(BaseCollimator):
         obj = super().copy(**kwargs)
         obj.assembly = self.assembly
         return obj
+
+    @property
+    def material(self):
+        if self.assembly is not None:
+            return self.assembly.material
+
 
     @property
     def assembly(self):
@@ -100,10 +116,6 @@ class FlukaCollimator(BaseCollimator):
         if self.assembly.side is not None and self.assembly.side != self.side:
             self.side = self.assembly.side
             print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
-                + f"to match the assembly '{self.assembly.name}'.")
-        if self.assembly.material is not None and self.assembly.material != self.material:
-            self.material = self.assembly.material
-            print(f"Warning: Material of collimator '{self.name}' was changed to '{self.material}' "
                 + f"to match the assembly '{self.assembly.name}'.")
         if self.assembly.length is not None:
             self.length_front = (self.assembly.length - self.length) / 2
