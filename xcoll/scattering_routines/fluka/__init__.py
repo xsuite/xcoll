@@ -8,4 +8,5 @@ from .engine import FlukaEngine
 from .reference_masses import fluka_masses
 from .reference_names import fluka_names
 from .prototypes import FlukaPrototype, FlukaAssembly, assemblies
+from .generic import FlukaGenericAssembly
 from .environment import FlukaEnvironment

@@ -510,6 +510,7 @@ class FlukaAssembly(FlukaPrototype):
             files += prot.files
         return files
 
+import ipdb; ipdb.set_trace()
 
 assemblies = {
     # SPS assemblies

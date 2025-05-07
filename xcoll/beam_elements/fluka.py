@@ -82,6 +82,8 @@ class FlukaCollimator(BaseCollimator):
     @assembly.setter
     def assembly(self, assembly):
         if isinstance(assembly, str):
+            import ipdb; ipdb.set_trace()
+            # assemblies = FlukaAssembly._registry
             if assembly in assemblies:
                 assembly = assemblies[assembly]
             elif assembly in assemblies_wrong_jaw:

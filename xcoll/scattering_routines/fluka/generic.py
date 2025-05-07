@@ -9,7 +9,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 from .environment import FlukaEnvironment
-from .prototypes import FlukaAssembly
+from .prototypes import FlukaAssembly, FlukaPrototype, assemblies
 
 
 def xcoll_to_fluka_material(material):
@@ -29,7 +29,7 @@ def xcoll_to_fluka_material(material):
         return material_dict[material]
 
 
-class FlukaGenericAssembly(xc.FlukaAssembly):
+class FlukaGenericAssembly(FlukaAssembly):
     def __new__(cls,  *, material=None, length=None, side='both', **kwargs):
         if material is None:
             raise ValueError("Need to provide material!")
@@ -40,7 +40,7 @@ class FlukaGenericAssembly(xc.FlukaAssembly):
         for prototype in FlukaPrototype._registry:
             if isinstance(prototype, FlukaGenericAssembly):
                 if prototype.material == material and prototype.length == length \
-                and if prototype.side == side:
+                and prototype.side == side:
                     return prototype
         # Create new generic assembly
         return super().__new__(cls, fedb_series='NOPE', fedb_tag='NOPENOPE', **kwargs)
@@ -51,10 +51,13 @@ class FlukaGenericAssembly(xc.FlukaAssembly):
                                       if isinstance(p, FlukaGenericAssembly)])
         kwargs['fedb_series'] = 'generic'
         kwargs['fedb_tag'] = f'GEN{num_generic_assemblies:03d}'
+        fedb_seties = kwargs['fedb_series']
+        fedb_tag = kwargs['fedb_tag']
         super().__init__(**kwargs)
         self._x_dim = kwargs.get('x_dim', 1)
         self._y_dim = kwargs.get('y_dim', 1)
         create_fedb_files(fedb_tag, self.material, self.length, self.side, self.x_dim, self.y_dim)
+        assemblies[]
 
     @property
     def x_dim(self):
@@ -64,6 +67,11 @@ class FlukaGenericAssembly(xc.FlukaAssembly):
     def y_dim(self):
         return self._y_dim
 
+def create_fedb_files(fedb_tag, material, length, side, x_dim, y_dim):
+    create_assembly_file(fedb_tag, side)
+    create_body_file(fedb_tag, length, x_dim, y_dim)
+    create_region_file(fedb_tag)
+    create_material_file(fedb_tag, material)
 
 def create_assembly_file(fedb_tag, side):
     template_assembly = f"""\
