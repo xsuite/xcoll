@@ -151,10 +151,13 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                                              return_exotics=return_exotics, return_all=return_all,
                                              return_neutral=return_neutral, use_crystals=use_crystals)
         this_include_files.append(scoring_file)
-    # Add any additional include files
-    for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
-        if ff.name not in [file.name for file in this_include_files]:
-            this_include_files.append(ff)
+
+    if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
+        this_include_files.append(_assignmat_include_file())
+    if 'include_custom_biasing.inp' not in [file.name for file in this_include_files]:
+        this_include_files.append(_biasing_include_file())
+    if 'include_define.inp' not in [file.name for file in this_include_files]:
+        this_include_files.append(_define_include_file())
     this_include_files = [FsPath(ff).resolve() for ff in this_include_files]
     for ff in this_include_files:
         if not ff.exists():
@@ -400,6 +403,59 @@ USERDUMP       100.0
 *
 * crystal scoring
 {crystal}        50.0                                                  CRYSTAL
+"""
+    with filename.open('w') as fp:
+        fp.write(template)
+    return filename
+
+
+def _assignmat_include_file():
+    filename = FsPath(f"include_custom_assignmat.inp").resolve()
+    template = f"""\
+******************************************************************************
+*                           ASSIGNMAT SETTINGS                               *
+******************************************************************************
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+* Place in this file all the custom assignmat you require
+*
+"""
+    with filename.open('w') as fp:
+        fp.write(template)
+    return filename
+
+
+def _biasing_include_file():
+    filename = FsPath(f"include_custom_biasing.inp").resolve()
+    template = f"""\
+******************************************************************************
+*                             BIASING SETTINGS                               *
+******************************************************************************
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+* Place in this file all the custom biasing you require
+*
+* --------------------------------
+* Standard Leading particle biasing applies everywhere
+*________+_________+_________+_________+_________+_________+_________+
+*EMF-BIAS      1022.0     10.00     10.00       2.0  @LASTREG          LPBEMF
+*
+"""
+    with filename.open('w') as fp:
+        fp.write(template)
+    return filename
+
+
+def _define_include_file():
+    filename = FsPath(f"include_define.inp").resolve()
+    template = f"""\
+******************************************************************************
+*                                  DEFINES                                   *
+******************************************************************************
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+* Place in this file all the custom defines you require
+*
 """
     with filename.open('w') as fp:
         fp.write(template)
