@@ -275,7 +275,8 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
         try:
             cmd = run(['tree', path.as_posix()], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
-            raise RuntimeError(f"Could not find 'tree' exectuable!")
+            # No tree executable. Return as no more can be done
+            return
         if cmd.returncode != 0:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             self._gfortran_installed = False
