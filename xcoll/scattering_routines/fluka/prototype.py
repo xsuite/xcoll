@@ -39,7 +39,7 @@ class FlukaPrototype:
         return self
 
     def __init__(self, fedb_series=None, fedb_tag=None, angle=0, side=None,
-                 length=None, material=None, info=None, extra_commands=None):
+                 length=None, material=None, info=None, extra_commands=None, **kwargs):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -113,6 +113,12 @@ class FlukaPrototype:
             return FlukaPrototype(**data)
         elif cls == 'FlukaAssembly':
             return FlukaAssembly(**data)
+        elif cls == 'FlukaGenericAssembly':
+            from xcoll import FlukaGenericAssembly
+            return FlukaGenericAssembly(**data)
+        elif cls == 'FlukaGenericCrystalAssembly':
+            from xcoll import FlukaGenericCrystalAssembly
+            return FlukaGenericCrystalAssembly(**data)
         else:
             raise ValueError(f"Invalid data format for {cls}.")
 
@@ -324,8 +330,8 @@ class FlukaPrototype:
 
     def generate_code(self):
         if self.active and self.active_elements:
-            # prot  = f"{self._type.upper():9}     {self.name}\n"
-            prot  = f"ASSEMBLY      {self.name}\n"
+            _type = 'ASSEMBLY' if isinstance(self, FlukaAssembly) else 'PROTOTYPE'
+            prot  = f"{_type:9}     {self.name}\n"
             prot += f"FEDB_SERIES   {self.fedb_series}\n"
             prot += f"FEDB_TAG      {self.fedb_tag}\n"
             prot += f"ROT-DEFI  "
@@ -429,22 +435,23 @@ class FlukaPrototype:
                 if prototype.active_elements:
                     raise ValueError(f"Prototype {prototype.name} not found in prototypes file!")
             else:
-                # if prototype._type.upper() != all_prototypes[prototype.name]['type']:
-                #     raise ValueError(f"Wrong type for {prototype.name} (expected "
-                #                 + f"{prototype._type.upper()}, got "
-                #                 + f"{all_prototypes[prototype.name]['type']})!")
+                _type = 'ASSEMBLY' if isinstance(prototype, FlukaAssembly) else 'PROTOTYPE'
+                if _type != all_prototypes[prototype.name]['type']:
+                    raise ValueError(f"Wrong type for {prototype.name} (expected "
+                                  + f"{prototype._type.upper()}, got "
+                                  + f"{all_prototypes[prototype.name]['type']})!")
                 if 'fedb_series' not in all_prototypes[prototype.name]:
                     raise ValueError(f"FEDB_SERIES for {prototype.name} not found in prototypes file!")
                 if prototype.fedb_series != all_prototypes[prototype.name]['fedb_series']:
                     raise ValueError(f"Wrong fedb_series for {prototype.name} (expected "
-                                + f"{prototype.fedb_series}, got "
-                                + f"{all_prototypes[prototype.name]['fedb_series']})!")
+                                   + f"{prototype.fedb_series}, got "
+                                   + f"{all_prototypes[prototype.name]['fedb_series']})!")
                 if 'fedb_tag' not in all_prototypes[prototype.name]:
                     raise ValueError(f"FEDB_TAG for {prototype.name} not found in prototypes file!")
                 if prototype.fedb_tag != all_prototypes[prototype.name]['fedb_tag']:
                     raise ValueError(f"Wrong fedb_tag for {prototype.name} (expected "
-                                + f"{prototype.fedb_tag}, got "
-                                + f"{all_prototypes[prototype.name]['fedb_tag']})!")
+                                   + f"{prototype.fedb_tag}, got "
+                                   + f"{all_prototypes[prototype.name]['fedb_tag']})!")
                 if 'elements' not in all_prototypes[prototype.name]:
                     raise ValueError(f"MAP_ENTRIES for {prototype.name} not found in prototypes file!")
                 for element in prototype.active_elements:
@@ -511,7 +518,6 @@ class FlukaAssembly(FlukaPrototype):
             files += prot.files
         return files
 
-import ipdb; ipdb.set_trace()
 
 assemblies = {
     # SPS assemblies

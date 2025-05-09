@@ -10,8 +10,8 @@ import xtrack as xt
 
 from .base import BaseCollimator
 from ..scattering_routines.fluka import track, FlukaEngine, assemblies, \
-                                        FlukaPrototype, FlukaAssembly
-from ..scattering_routines.fluka.prototypes import assemblies_wrong_jaw
+                        FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, FlukaGenericCrystalAssembly
+from ..scattering_routines.fluka.prototype import assemblies_wrong_jaw
 
 
 class FlukaCollimator(BaseCollimator):
@@ -51,6 +51,21 @@ class FlukaCollimator(BaseCollimator):
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = FlukaEngine()._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
+                if 'material' in kwargs:
+                    material = kwargs.pop('material')
+                    if to_assign['assembly'] is not None:
+                        raise ValueError('Cannot set both material and assembly!')
+                    length = kwargs.get('length', None)
+                    if length is None:
+                        raise ValueError('Need to provide length!')
+                    side = kwargs.pop('side', 'both')
+                    if 'bending_radius' in kwargs:
+                        bending_radius = kwargs.pop('bending_radius', None)
+                        to_assign['assembly'] = FlukaGenericCrystalAssembly(material=material, side=side,
+                                                                            length=length, bending_radius=bending_radius)
+                    else:
+                        to_assign['assembly'] = FlukaGenericAssembly(material=material, side=side,
+                                                                    length=length)
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
@@ -70,6 +85,12 @@ class FlukaCollimator(BaseCollimator):
         return obj
 
     @property
+    def material(self):
+        if self.assembly is not None:
+            return self.assembly.material
+
+
+    @property
     def assembly(self):
         for prototype in FlukaPrototype._assigned_registry.values():
             if self in prototype.elements:
@@ -82,8 +103,6 @@ class FlukaCollimator(BaseCollimator):
     @assembly.setter
     def assembly(self, assembly):
         if isinstance(assembly, str):
-            import ipdb; ipdb.set_trace()
-            # assemblies = FlukaAssembly._registry
             if assembly in assemblies:
                 assembly = assemblies[assembly]
             elif assembly in assemblies_wrong_jaw:
@@ -103,10 +122,6 @@ class FlukaCollimator(BaseCollimator):
             self.side = self.assembly.side
             print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
                 + f"to match the assembly '{self.assembly.name}'.")
-        # if self.assembly.material is not None and self.assembly.material != self.material:
-        #     self.material = self.assembly.material
-        #     print(f"Warning: Material of collimator '{self.name}' was changed to '{self.material}' "
-        #         + f"to match the assembly '{self.assembly.name}'.")
         if self.assembly.length is not None:
             self.length_front = (self.assembly.length - self.length) / 2
             self.length_back = self.assembly.length - self.length - self.length_front

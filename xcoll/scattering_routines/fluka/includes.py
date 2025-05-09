@@ -15,6 +15,8 @@ except (ImportError, ModuleNotFoundError):
 
 from .reference_names import fluka_names
 from .environment import format_fluka_float
+from .prototype import FlukaAssembly, assemblies
+from .generic_prototype import FlukaGenericCrystalAssembly
 from ...general import _pkg_root
 
 
@@ -152,6 +154,12 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                                              return_neutral=return_neutral, use_crystals=use_crystals)
         this_include_files.append(scoring_file)
     # Add any additional include files
+    # use_crystals = True
+    # if use_crystals:  # Find a better condition
+    if FlukaGenericCrystalAssembly in FlukaAssembly._registry:
+        assignmat_file = _assignmat_include_file()
+        this_include_files.append(assignmat_file)
+
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in this_include_files]:
             this_include_files.append(ff)
@@ -162,6 +170,48 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         elif ff.parent != FsPath.cwd():
             ff.copy_to(FsPath.cwd())
     return this_include_files
+
+
+def _assignmat_include_file():
+
+    crystal_assemblies = [ ff for ff in FlukaAssembly._registry if isinstance(ff, FlukaGenericCrystalAssembly) ]
+    template = f"""\
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+*
+* Crystal Card
+* what (1) = REGNUM ( mandatory )
+* what (2) = Crystal bending angle [ mrad ]
+* what (3) = A parameter = Crystal length [ cm ]
+* what (4) = B parameter = Torsion coefficient [ mrad / cm ]
+* what (5) = C parameter = Quasi - Mosaic factor [ mrad / cm ]
+* what (6) = D parameter = Crystal temperature [K]
+* sdum = crystal type
+* what (7 ,8 ,9) = U/V/ W of nominal crystal normal to the curvature plane
+* what (10 ,11 ,12) = U /V/W of nominal crystal channel direction
+* what (13 ,14 ,15) = X /Y/Z of crystal nominal position
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* CRYSTAL what (1) what (2) what (3) what (4) what (5) what (6) sdum
+* CRYSTAL what (7) what (8) what (9) what (10) what (11) what (12) &
+* CRYSTAL what (13) what (14) what (15) &&
+*
+"""
+    for cristal in crystal_assemblies:
+        name   = cristal.name
+        l      = cristal.length
+        bang = cristal.length/cristal.bending_radius
+        angle  = cristal.angle
+
+        template += f"""\
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+CRYSTAL    {name}_B  {bang:>8}  {l:>8}       0.0       0.0     300.0 110
+CRYSTAL         0.0      -1.0       0.0       0.0       0.0       1.0 &
+CRYSTAL     0.00001   -3000.0    1000.0                               &&
+"""
+    filename = FsPath("include_custom_assignmat.inp").resolve()
+
+    with filename.open('w') as fp:
+        fp.write(template)
+    return filename
 
 
 def _beam_include_file(particle_ref):
