@@ -228,7 +228,7 @@ REGION      TANK        LATTICE     CONTAINO    +CONTAINO -CONTAINI
     if side in [None, 'both', 'right']:
         subtract_jaws += ' -JAW_NEG'
     template_assembly += f"""
-REGION      INNERVAC    VACUUM      *           +CONTAINO{subtract_jaws}"""
+REGION      INNERVAC    VACUUM      *           +CONTAINI{subtract_jaws}"""
     if side in [None, 'both', 'left']:
         template_assembly += f"""
 * jaw on positive x:

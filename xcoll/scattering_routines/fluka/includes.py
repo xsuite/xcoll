@@ -156,7 +156,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
     # Add any additional include files
     # use_crystals = True
     # if use_crystals:  # Find a better condition
-    if FlukaGenericCrystalAssembly in FlukaAssembly._registry:
+    if any(isinstance(ff, FlukaGenericCrystalAssembly) for ff in FlukaAssembly._registry):
         assignmat_file = _assignmat_include_file()
         this_include_files.append(assignmat_file)
 
@@ -197,15 +197,16 @@ def _assignmat_include_file():
 """
     for cristal in crystal_assemblies:
         name   = cristal.name
-        l      = cristal.length
-        bang = cristal.length/cristal.bending_radius
+        l      = cristal.length * 100
+        bang   = round(l/(cristal.bending_radius*100) *1000, 6) # mrad
+        print(bang)
         angle  = cristal.angle
 
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL    {name}_B  {bang:>8}  {l:>8}       0.0       0.0     300.0 110
-CRYSTAL         0.0      -1.0       0.0       0.0       0.0       1.0 &
-CRYSTAL     0.00001   -3000.0    1000.0                               &&
+CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &
+CRYSTAL      -1049.0   -2999.0    1000.1                              &&
 """
     filename = FsPath("include_custom_assignmat.inp").resolve()
 
