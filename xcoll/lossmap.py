@@ -191,7 +191,7 @@ class LossMap:
             self._interpolate(part, line, verbose=verbose)
 
         self._make_coll_summary(part, line, line_shift_s, weights)
-        self._get_aperture_losses(part, line, line_shift_s, weights)
+        self._get_aperture_losses(part, line_shift_s, weights)
 
 
     def add_from_json(self, file, verbose=True):
@@ -363,7 +363,7 @@ class LossMap:
             self._aperbinned = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
             self._aperbinned_energy = np.zeros(len(self._aperbins) - 1, dtype=np.float64)
 
-    def _get_aperture_losses(self, part, line, line_shift_s, weights):
+    def _get_aperture_losses(self, part, line_shift_s, weights):
         aper_mask = part.state == 0
         if len(part.s[aper_mask]) == 0:
             return
@@ -383,7 +383,7 @@ class LossMap:
             # Aperture losses at exact s positions (because no interpolation performed)
             # TODO: need correct lengths to scale
             aper_pos       = np.unique(aper_s)
-            aper_weights   = self._weights[aper_mask]
+            aper_weights   = weights[aper_mask]
             aper_nabs      = [aper_weights[aper_s == j].sum() for j in aper_pos]
             energy_weights = aper_weights * part.energy[aper_mask]
             aper_eabs      = [energy_weights[aper_s == s].sum() for s in aper_pos]
