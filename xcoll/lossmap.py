@@ -419,7 +419,7 @@ class LossMap:
         # TODO: this can be done smarter, masks instead of loops, though
         # one should keep in mind that indices can be repeated and then
         # masking does not work correctly
-        for ss, nabs, eabs, ll in zip(aper_s, aper_nabs, aper_eabs):
+        for ss, nabs, eabs in zip(aper_s, aper_nabs, aper_eabs):
             idx, = np.where(self._aper_s == ss)
             if len(idx) == 0:
                 self._aper_s = np.append(self._aper_s, ss)
