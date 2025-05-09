@@ -51,36 +51,39 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     xlim = xlim if xlim else [-0.01*L, 1.01*L]
     ylim = ylim if ylim else [1.e-7, 1.e1]
 
-    if ax is None:
-        _, ax = plt.subplots(figsize=(16, 4))
+    font = {'family': 'serif', 'size': 17}
+    format_dict = {f"font.{prop}": font[prop] for prop in font}
+    with plt.rc_context(format_dict):
+        if ax is None:
+            _, ax = plt.subplots(figsize=(16, 4))
 
-    if grid:
-        ax.grid(axis="y", which="major", zorder=0)
+        if grid:
+            ax.grid(axis="y", which="major", zorder=0)
 
-    bar_common_kwargs = dict(width = 0.8, lw = 1, bottom = 1.e-9)
-    ax.bar(coll_s, coll_val, color="k", edgecolor="k", label="Collimator", zorder=10, **bar_common_kwargs)
-    ax.bar(cold_s, cold_val, color="b", edgecolor="b", label="Cold",  zorder=11, **bar_common_kwargs)
-    # ax.bar(warm_s, warm_val, color="r", edgecolor="r", label="Warm",  zorder=12, **bar_common_kwargs)
+        bar_common_kwargs = dict(width = 0.8, lw = 1, bottom = 1.e-9)
+        ax.bar(coll_s, coll_val, color="k", edgecolor="k", label="Collimator", zorder=10, **bar_common_kwargs)
+        ax.bar(cold_s, cold_val, color="b", edgecolor="b", label="Cold",  zorder=11, **bar_common_kwargs)
+        # ax.bar(warm_s, warm_val, color="r", edgecolor="r", label="Warm",  zorder=12, **bar_common_kwargs)
 
-    ax.set_yscale("log")
-    ax.set_ylim(ylim)
-    ax.set_xlim(xlim)
+        ax.set_yscale("log")
+        ax.set_ylim(ylim)
+        ax.set_xlim(xlim)
 
-    ax.set_yticks([10**i for i in range(int(np.log10(ylim[0])), 1 + int(np.log10(ylim[1])))])
-    ax.set_xlabel("s [m]")
-    ax.set_ylabel(_label_from_norm(norm, energy))
+        ax.set_yticks([10**i for i in range(int(np.log10(ylim[0])), 1 + int(np.log10(ylim[1])))])
+        ax.set_xlabel("s [m]")
+        ax.set_ylabel(_label_from_norm(norm, energy))
 
-    if legend:
-        ax.legend(loc='best', fancybox=True, framealpha=0.8, fontsize="small")
+        if legend:
+            ax.legend(loc='best', fancybox=True, framealpha=0.8, fontsize="small")
 
-    plt.tight_layout()
-    if savefig:
-        plt.savefig(savefig, dpi=300, bbox_inches='tight')
-    if show:
-        plt.show()
-    else:
-        plt.close()
-    return ax.figure, ax
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(savefig, dpi=300, bbox_inches='tight')
+        if show:
+            plt.show()
+        else:
+            plt.close()
+        return ax.figure, ax
 
 
 def _label_from_norm(norm, energy):
