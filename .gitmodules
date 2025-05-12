@@ -1,3 +1,0 @@
-[submodule "xcoll/scattering_routines/fluka/fedb/fedb_coupling"]
-	path = xcoll/scattering_routines/fluka/fedb/fedb_coupling
-	url = https://gitlab.cern.ch/bmi/fedb/coupling/fedb_coupling.git
