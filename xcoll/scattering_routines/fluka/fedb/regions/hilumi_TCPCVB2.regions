@@ -1,1 +1,4 @@
-../fedb_xcoll/regions/hilumi_TCPCVB2.regions
+TCPCVB2R    5 | +TCPCVB2 +TCPCVB21 -TCPCVB22 +TCPCVB23
+TCPCVB2B    5 | +TCPCVB2 +TCPCVB22
+              | +TCPCVB2 -TCPCVB23
+              | +TCPCVB2 -TCPCVB21

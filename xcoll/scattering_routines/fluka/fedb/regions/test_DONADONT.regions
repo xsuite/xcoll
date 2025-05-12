@@ -1,1 +1,103 @@
-../fedb_xcoll/regions/test_DONADONT.regions
+* Element: DONADONT [Regions]
+* Parking: DONADONT
+* Infos:   Target Collimator Dump Quadruple Tank
+* **************************************
+* Surrounding vacuum
+TCDQVacO     5 | +DONADONT -DN150RI -DN150Cyl
+               | +DONADONT +DN150RI -DN250RO -DNCTO
+               | +DONADONT +DN150RI -DN250RO +DNCBO
+               | +DONADONT +DN150RI -DN250RO +DNCTO -DNCBO -DNCC1OR -DNCC1XCP
+               | +DONADONT +DN150RI -DN250RO +DNCTO -DNCBO -DNCC2OR +DNCC2XCP
+               | +DONADONT +DN250RO -MTFRI -MTFER
+               | +DONADONT +MTFRI -MTFLI -MTCylO -vdTFB -vdCLF -vdCRF
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdTFB  -vdBFT -yzero  -vdCRO -vdCLO
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdTFB  -vdBFT +yzero  -vdCRO -vdCLO -ccCO
+               | +DONADONT +MTFRI -MTFLI -MTCylO +vdBFT  -vdCLF -vdCRF -ccCF
+               | +DONADONT +MTFLI -DN250LO -MTFER
+               | +DONADONT +DN250LO -DN150LI -DNCTO
+               | +DONADONT +DN250LO -DN150LI +DNCBO
+               | +DONADONT +DN250LO -DN150LI +DNCTO -DNCBO -DNCC1XCP -DNCC1OR
+               | +DONADONT +DN250LO -DN150LI +DNCTO -DNCBO +DNCC2XCP -DNCC2OR
+               | +DONADONT +DN150LI -DN150LO -DN150Cyl
+* Main Tank vacuum vessel
+TQDVta       5 | +MTCylO -MTCylI +MTZR -MTZL -vdCRI -vdCLI -ccCI +yzero
+               | +MTCylO -MTCylI +MTZR -MTZL -vdCRI -vdCLI -yzero
+* Main Tank inner vacuum
+TQDVine      5 | +DONADONT -MTFRO +DNCTI -DNCBI +DNCC1XCP -DNCC2XCP
+               | +DONADONT -MTFRO -DNCC1XCP +DNCC1IR
+               | +DONADONT -MTFRO +DNCC2XCP +DNCC2IR
+               | +DONADONT +MTFLO +DNCTI +DNCC1XCP -DNCBI -DNCC2XCP
+               | +DONADONT +MTFLO +DNCC2IR +DNCC2XCP
+               | +DONADONT +MTFLO +DNCC1IR -DNCC1XCP
+               | +MTFRO -MTZR  +MTCylO
+               | +DONADONT +vdCRO +vdTFT -vdT
+               | +DONADONT +vdCRO +vdB
+               | +DONADONT +ccCO  +vdB
+               | +DONADONT +vdCLO +vdTFT -vdT
+               | +DONADONT +vdCLO +vdB
+               | +MTZL  -MTFLO +MTCylO
+TQDVini1     5 +MTZR -MTZL +MTCylI -BeScrCO -TCQJWCT 
+TQDVini2     5 | +MTZR  -MTZL  +MTCylI +BeScrCO -BeScrRRP -BeScrTT
+               | +MTZR  -MTZL  +MTCylI +BeScrCO -BeScrRRP +BeScrBB
+               | +MTZR  -MTZL  +MTCylI +BeScrRRP -BeScrRRO
+               | +MTZR  -MTZL  +BeScrCO -BeScrRRP -BeScrBT +BeScrTB
+               | +MTZR  -MTZL  +BeScrRRP +BeScrRRI
+*
+* Flanges
+TQDVRF       5 +MTFER -MTCylO +MTFRO -MTFRI
+TQDVLF       5 +MTFER -MTCylO +MTFLI -MTFLO
+*
+* TCDS Vacuum Devices
+vdRta        5 -MTCylO +vdT -vdB +vdCRO -vdCRI
+vdRTF        5 +vdCRF -vdCRO +vdTFT -vdTFB
+vdRBF        5 +DONADONT +vdCRF -vdCRO +vdBFT
+vdRTCap      5 +DONADONT +vdCRF -vdTFT
+vdRin        5 -MTCylI +vdT -vdB +vdCRI
+vdLta        5 -MTCylO +vdT -vdB +vdCLO -vdCLI
+vdLTF        5 +vdCLF -vdCLO +vdTFT -vdTFB
+vdLBF        5 +DONADONT +vdCLF -vdCLO +vdBFT
+vdLTCap      5 +DONADONT +vdCLF -vdTFT
+vdLin        5 -MTCylI +vdT -vdB +vdCLI
+*
+*
+* TCDS Cooling connection
+ccta         5 -MTCylO +yzero -vdB +ccCO -ccCI
+ccin         5 -MTCylI +yzero -vdB +ccCI
+ccF          5 +DONADONT +ccCF -ccCO +vdBFT
+* UHV DN250 Upstream
+DN250R       5 |(+DN250RO -MTFRO +MTFER +DNCC2XCP -DNCC2OR)
+               |(+DN250RO -MTFRO +MTFER -DNCC1XCP -DNCC1OR)
+               |(+DN250RO -MTFRO +MTFER +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DN250RO -MTFRO +MTFER +DNCC1XCP -DNCC2XCP +DNCBO)
+* UHV DN150 Upstream
+DN150R       5 |(+DONADONT -DN150RI +DN150Cyl +DNCC2XCP -DNCC2OR)
+               |(+DONADONT -DN150RI +DN150Cyl -DNCC1XCP -DNCC1OR)
+               |(+DONADONT -DN150RI +DN150Cyl +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DONADONT -DN150RI +DN150Cyl +DNCC1XCP -DNCC2XCP +DNCBO)
+* UHV DN250-DN150 Connection Upstream
+DNConR       5 |(+DONADONT -MTFRO +DNCC2XCP +DNCC2OR -DNCC2IR)
+               |(+DONADONT -MTFRO -DNCC1XCP +DNCC1OR -DNCC1IR)
+               |(+DONADONT -MTFRO +DNCC1XCP -DNCC2XCP +DNCTO -DNCTI)
+               |(+DONADONT -MTFRO +DNCC1XCP -DNCC2XCP +DNCBI -DNCBO)
+* DN250 Left Upstream
+DN250L       5 |(+MTFLO -DN250LO +MTFER +DNCC2XCP -DNCC2OR)
+               |(+MTFLO -DN250LO +MTFER -DNCC1XCP -DNCC1OR)
+               |(+MTFLO -DN250LO +MTFER +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+MTFLO -DN250LO +MTFER +DNCC1XCP -DNCC2XCP +DNCBO)
+* DN150 Left Upstream
+DN150L       5 |(+DONADONT +DN150LI +DN150Cyl +DNCC2XCP -DNCC2OR)
+               |(+DONADONT +DN150LI +DN150Cyl -DNCC1XCP -DNCC1OR)
+               |(+DONADONT +DN150LI +DN150Cyl +DNCC1XCP -DNCC2XCP -DNCTO)
+               |(+DONADONT +DN150LI +DN150Cyl +DNCC1XCP -DNCC2XCP +DNCBO)
+* DN250-DN150 connection Left Upstream
+DNConL       5 |(+DONADONT +MTFLO +DNCC2XCP +DNCC2OR -DNCC2IR)
+               |(+DONADONT +MTFLO -DNCC1XCP +DNCC1OR -DNCC1IR)
+               |(+DONADONT +MTFLO +DNCC1XCP -DNCC2XCP +DNCTO -DNCTI)
+               |(+DONADONT +MTFLO +DNCC1XCP -DNCC2XCP +DNCBI -DNCBO)
+* TCDQ Beam Screen
+BScreen      5 |+MTZR -MTZL +BeScrRRO -BeScrRRI +BeScrRRP
+               |+MTZR -MTZL +BeScrTT -BeScrTB +BeScrCO -BeScrRRP
+               |+MTZR -MTZL +BeScrBT -BeScrBB +BeScrCO -BeScrRRP
+* TCDQ Jaw Container
+TCDQJWVC     5 +TCQJWCT
+*
