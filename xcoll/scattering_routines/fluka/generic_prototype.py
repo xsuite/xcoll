@@ -87,11 +87,6 @@ class FlukaGenericAssembly(FlukaAssembly):
     def y_dim(self):
         return self._y_dim
 
-def create_fedb_files(fedb_tag, material, length, side, x_dim, y_dim):
-    create_assembly_file(fedb_tag, side)
-    create_body_file(fedb_tag, length, x_dim, y_dim)
-    create_region_file(fedb_tag)
-    create_material_file(fedb_tag, material)
 
 class FlukaGenericCrystalAssembly(FlukaGenericAssembly):
     _generic_required_fields = ['material', 'length', 'bending_radius', 'side']

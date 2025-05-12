@@ -12,7 +12,6 @@ from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .scattering_routines.fluka import FlukaEngine, FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
                                        FlukaGenericCrystalAssembly, FlukaEnvironment, fluka_masses, fluka_names
 from .scattering_routines.fluka import assemblies as fluka_assemblies
-from .scattering_routines.fluka import FlukaGenericAssembly
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
