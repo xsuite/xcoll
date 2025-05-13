@@ -119,8 +119,16 @@ class FlukaCollimator(BaseCollimator):
     def assembly(self, assembly):
         import xcoll as xc
         if isinstance(assembly, str):
-            if assembly in xc.fluka.assemblies:
-                assembly = xc.fluka.assemblies[assembly]
+            assembly = assembly.strip.split('_')
+        if hasattr(assembly, '__iter__'):
+            if len(assembly) != 2:
+                raise ValueError('Assembly name should be a string or a tuple of two strings!')
+            if assembly[0] in xc.fluka.assemblies \
+            and assembly[1] in xc.fluka.assemblies[assembly[0]]:
+                assembly = xc.fluka.assemblies[assembly[0]][assembly[1]]
+            elif assembly[0] in xc.fluka.prototypes \
+            and assembly[1] in xc.fluka.prototypes[assembly[0]][assembly[1]]:
+                assembly = xc.fluka.prototypes[assembly[0]][assembly[1]]
             else:
                 raise ValueError(f"Assembly (or prototype) '{assembly}' not defined.")
         elif not isinstance(assembly, FlukaPrototype) and assembly is not None:
