@@ -34,5 +34,9 @@ class FlukaWrapper:
         return {f'{pro.fedb_series}_{pro.fedb_tag}': pro
                 for pro in FlukaPrototype._registry}
 
+    def compile(self, *args, **kwargs):
+        """Compile the FLUKA code."""
+        self.environment.compile(*args, **kwargs)
+
 
 fluka = FlukaWrapper()

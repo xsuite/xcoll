@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from .track import track, track_core
-from .prototype import FlukaPrototype, FlukaAssembly, assemblies
+from .track import track
+from .prototype import FlukaPrototype, FlukaAssembly
 from .generic_prototype import FlukaGenericAssembly, FlukaGenericCrystalAssembly
 

@@ -530,7 +530,7 @@ FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSP',     info="secondary with ja
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLA',     info="shower absorber")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCT',      info="tertiary")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCL',      info="physics debris absorber")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      angle=np.deg2rad(90.) info="injection protection")
+FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      angle=np.deg2rad(90.), info="injection protection")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIA',    info="injection protection")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIB',    info="injection protection")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAA',  side='left',  info="dump protection")
@@ -561,7 +561,7 @@ FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPM',    info="secondary with ja
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMC',   info="secondary with jaw in MoGr coated (5um)")
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMP',   info="secondary with jaw in MoGr coated (prototype)")
 FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPX',    info="alternative tertiary")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   angle=np.deg2rad(90) info="alternative tertiary")
+FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   angle=np.deg2rad(90), info="alternative tertiary")
 
 # The following assemblies give wrong results with the jaw test:
 FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAA',   info="dump protection")
