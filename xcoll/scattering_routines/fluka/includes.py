@@ -9,7 +9,7 @@ import xtrack as xt
 from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, \
                                  is_proton, is_ion, is_lepton
 try:
-    from xaux import singleton, FsPath  # TODO: once xaux is in Xsuite keep only this
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 

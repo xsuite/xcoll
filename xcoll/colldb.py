@@ -15,7 +15,6 @@ import xtrack as xt
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
                            FlukaCollimator, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
-from .scattering_routines.fluka import FlukaEngine
 
 
 def _initialise_None(dct):
@@ -582,9 +581,10 @@ class CollimatorDatabase:
     def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
                                   fluka_input_file=None, remove_missing=True):
         # Check server
-        if FlukaEngine.is_running():
+        import xcoll as xc
+        if xc.fluka.engine.is_running():
             print("Warning: FLUKA server is already running. Stopping server to install collimators.")
-            FlukaEngine.stop()
+            xc.fluka.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
             if 'assembly' not in self[name]:

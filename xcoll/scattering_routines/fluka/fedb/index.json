@@ -1,0 +1,25 @@
+{
+    "xcoll_files": [
+        "assemblies/test_DONADON.lbp",
+        "bodies/hilumi_TCPCHB1.bodies",
+        "bodies/hilumi_TCPCHB2.bodies",
+        "bodies/hilumi_TCPCVB1.bodies",
+        "bodies/hilumi_TCPCVB2.bodies",
+        "bodies/test_DONADONJ.bodies",
+        "bodies/test_DONADONT.bodies",
+        "materials/hilumi_TCPCHB1.assignmat",
+        "materials/hilumi_TCPCHB2.assignmat",
+        "materials/hilumi_TCPCVB1.assignmat",
+        "materials/hilumi_TCPCVB2.assignmat",
+        "materials/test_DONADONJ.assignmat",
+        "materials/test_DONADONT.assignmat",
+        "materials/materials.inp",
+        "regions/hilumi_TCPCHB1.regions",
+        "regions/hilumi_TCPCHB2.regions",
+        "regions/hilumi_TCPCVB1.regions",
+        "regions/hilumi_TCPCVB2.regions",
+        "regions/test_DONADONJ.regions",
+        "regions/test_DONADONT.regions"
+    ],
+    "external_files": []
+}

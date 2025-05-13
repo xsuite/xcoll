@@ -9,9 +9,9 @@ from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCol
                            FlukaCollimator, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, \
                            element_classes
 from .scattering_routines.everest import materials, Material, CrystalMaterial
-from .scattering_routines.fluka import FlukaEngine, FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
-                                       FlukaGenericCrystalAssembly, FlukaEnvironment, fluka_masses, fluka_names
-from .scattering_routines.fluka import assemblies as fluka_assemblies
+from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
+                                       FlukaGenericCrystalAssembly
+from .scattering_routines.fluka.wrapper import fluka
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep

@@ -8,11 +8,11 @@ from contextlib import contextmanager
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseCollimator
-from ..scattering_routines.fluka import track, FlukaEngine, assemblies, \
+from .base import BaseCollimator, BaseCrystal
+from ..scattering_routines.fluka import track, \
                     FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
                     FlukaGenericCrystalAssembly
-from ..scattering_routines.fluka.prototype import assemblies_wrong_jaw
+from ..scattering_routines.fluka.engine import FlukaEngine
 
 
 class FlukaCollimator(BaseCollimator):
@@ -71,7 +71,8 @@ class FlukaCollimator(BaseCollimator):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
     def __del__(self):
-        self.assembly.remove_element(self.name, force=False)
+        if self.assembly:
+            self.assembly.remove_element(self.name, force=False)
         try:
             super().__del__()
         except AttributeError:
@@ -89,8 +90,9 @@ class FlukaCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        self.assembly = FlukaGenericAssembly(material=material, side=self.side,
-                                             length=self.length)
+        if not self._being_constructed():
+            self.assembly = FlukaGenericAssembly(material=material, side=self.side,
+                                                 length=self.length)
 
     @property
     def side(self):
@@ -99,8 +101,9 @@ class FlukaCollimator(BaseCollimator):
 
     @side.setter
     def side(self, side):
-        self.assembly = FlukaGenericAssembly(material=self.material, side=side,
-                                             length=self.length)
+        if not self._being_constructed():
+            self.assembly = FlukaGenericAssembly(material=self.material, side=side,
+                                                 length=self.length)
 
     @property
     def assembly(self):
@@ -114,15 +117,12 @@ class FlukaCollimator(BaseCollimator):
 
     @assembly.setter
     def assembly(self, assembly):
+        import xcoll as xc
         if isinstance(assembly, str):
-            if assembly in assemblies:
-                assembly = assemblies[assembly]
-            elif assembly in assemblies_wrong_jaw:
-                print(f"Warning: Assembly '{assembly}' might be wrong.")
-                assembly = assemblies_wrong_jaw[assembly]
+            if assembly in xc.fluka.assemblies:
+                assembly = xc.fluka.assemblies[assembly]
             else:
-                raise ValueError(f"Assembly (or prototype) '{assembly}' not present "
-                               + f"in internal database. Please define it yourself.")
+                raise ValueError(f"Assembly (or prototype) '{assembly}' not defined.")
         elif not isinstance(assembly, FlukaPrototype) and assembly is not None:
             raise ValueError('Invalid assembly or prototype!')
         # Remove the element from the old assembly and add it to the new one
@@ -155,6 +155,7 @@ class FlukaCollimator(BaseCollimator):
     @contextmanager
     def _in_constructor(cls):
         original_setattr = cls.__setattr__
+        cls._being_constructed_ = True
         def new_setattr(self, *args, **kwargs):
             return super().__setattr__( *args, **kwargs)
         cls.__setattr__ = new_setattr
@@ -162,6 +163,13 @@ class FlukaCollimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
+            cls._being_constructed_ = False
+
+    def _being_constructed(self):
+        if hasattr(self, '_being_constructed_'):
+            return self._being_constructed_
+        else:
+            return False
 
 
 
@@ -249,7 +257,8 @@ class FlukaCrystal(BaseCrystal):
 
     @material.setter
     def material(self, material):
-        self.assembly = FlukaGenericCrystalAssembly(material=material, side=self.side,
+        if not self._being_constructed():
+            self.assembly = FlukaGenericCrystalAssembly(material=material, side=self.side,
                                length=self.length, bending_radius=self.bending_radius)
 
     @property
@@ -258,7 +267,8 @@ class FlukaCrystal(BaseCrystal):
 
     @side.setter
     def side(self, side):
-        self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=side,
+        if not self._being_constructed():
+            self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=side,
                                length=self.length, bending_radius=self.bending_radius)
 
     @property
@@ -267,7 +277,8 @@ class FlukaCrystal(BaseCrystal):
 
     @bending_radius.setter
     def bending_radius(self, material):
-        self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=self.side,
+        if not self._being_constructed():
+            self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=self.side,
                                          length=self.length, bending_radius=bending_radius)
 
     @property
@@ -290,11 +301,7 @@ class FlukaCrystal(BaseCrystal):
     @classmethod
     @contextmanager
     def _in_constructor(cls):
-        original_setattr = cls.__setattr__
-        def new_setattr(self, *args, **kwargs):
-            return super().__setattr__( *args, **kwargs)
-        cls.__setattr__ = new_setattr
-        try:
-            yield
-        finally:
-            cls.__setattr__ = original_setattr
+        return FlukaCollimator._in_constructor(cls)
+
+    def _being_constructed(self):
+        return FlukaCollimator._being_constructed(self)

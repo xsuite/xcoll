@@ -17,7 +17,6 @@ except (ImportError, ModuleNotFoundError):
 
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
-from .environment import FlukaEnvironment
 from .prototype import FlukaAssembly
 from .includes import get_include_files
 
@@ -28,6 +27,7 @@ _header_stop  = "*  XCOLL END  **"
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[],
                        verbose=True, **kwargs):
+    import xcoll as xc
     _create_prototypes_file(element_dict, prototypes_file)
     include_files = get_include_files(particle_ref, include_files, verbose=verbose, **kwargs)
     # Call FLUKA_builder
@@ -38,7 +38,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     assert input_file.exists()
     assert insertion_file.exists()
     # Expand using include files
-    cmd = run([(FlukaEnvironment.fedb_base / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    cmd = run([(xc.fluka.environment.fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:
@@ -167,9 +167,10 @@ def _element_dict_to_fluka(element_dict, dump=False):
 
 
 def _fluka_builder(collimator_dict):
+    import xcoll as xc
     # Save system state
-    FlukaEnvironment.set_fedb_environment()
-    file_path = FlukaEnvironment.linebuilder / "src" / "FLUKA_builder.py"
+    xc.fluka.environment.set_fedb_environment()
+    file_path = xc.fluka.environment.linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
             import FLUKA_builder as fb
@@ -191,7 +192,7 @@ def _fluka_builder(collimator_dict):
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
-    FlukaEnvironment.unset_fedb_environment()
+    xc.fluka.environment.unset_fedb_environment()
 
     return input_file, coll_dict
 

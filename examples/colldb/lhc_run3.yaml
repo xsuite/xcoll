@@ -84,9 +84,9 @@ collimators:
     tcl.4r5.b1:         { <<: *TCL4,                  }
     tcl.5r5.b1:         { <<: *TCL5,                  }
     tcl.6r5.b1:         { <<: *TCL6,                  }
-    tcdqa.a4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqaa' }
-    tcdqa.c4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqac' }
-    tcdqa.b4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqab' }
+    tcdqa.a4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqnaa' }
+    tcdqa.c4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqnac' }
+    tcdqa.b4r6.b1:      { <<: *TCDQ,   assembly: 'lhc_tcdqnab' }
     tcsp.a4r6.b1:       { <<: *TCSP                   }
     tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR,  assembly: 'hilumi_tcppm' }
     tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR,  assembly: 'hilumi_tcppm' }
@@ -153,9 +153,9 @@ collimators:
     tcla.c6l7.b2:       { <<: *TCLA7,  angle:  90     }
     tcla.d6l7.b2:       { <<: *TCLA7,  angle:   0     }
     tcla.a7l7.b2:       { <<: *TCLA7,  angle:   0     }
-    tcdqa.a4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqaa' }
-    tcdqa.c4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqac' }
-    tcdqa.b4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqab' }
+    tcdqa.a4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqnaa' }
+    tcdqa.c4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqnac' }
+    tcdqa.b4l6.b2:      { <<: *TCDQ,   assembly: 'lhc_tcdqnab' }
     tcsp.a4l6.b2:       { <<: *TCSP                   }
     tctph.4r5.b2:       { <<: *TCT15,  angle:   0     }
     tctpv.4r5.b2:       { <<: *TCT15,  angle:  90     }

@@ -5,22 +5,25 @@
 
 import os
 import sys
+import json
 from math import floor, log10
 from subprocess import run, PIPE
 
 try:
-    from xaux import ClassProperty, ClassPropertyMeta, singleton, FsPath  # TODO: once xaux is in Xsuite keep only this
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ...xaux import ClassProperty, ClassPropertyMeta, singleton, FsPath
+    from ...xaux import FsPath
 
 from ...general import _pkg_root
 
 
-@singleton(allow_underscore_vars_in_init=False)
-class FlukaEnvironment(metaclass=ClassPropertyMeta):
+class FlukaEnvironment:
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 
     def __init__(self, *args, **kwargs):
+        self._make_installed = False
+        self._cmake_installed = False
+        self._gcc_installed = False
         self._gfortran_installed = False
         self._old_sys_path = None
         self._old_os_env = None
@@ -28,11 +31,11 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
         self.fluka = kwargs.pop('fluka', None)
         self.flukaserver = kwargs.pop('flukaserver', None)
         self.flair = kwargs.pop('flair', None)
-        self.fedb = kwargs.pop('fedb', None)
         self.linebuilder = kwargs.pop('linebuilder', None)
+        if not (self.fedb / 'index.json').exists():
+            self._generate_xcoll_index()
 
     def __del__(self):
-        self._restore_fedb_base()
         if self._old_sys_path:
             sys.path = self._old_sys_path
         if self._old_os_env:
@@ -43,13 +46,12 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
     # === Paths ===
     # =============
 
-    @ClassProperty
-    def fluka(cls):
-        return cls.get_self()._fluka
+    @property
+    def fluka(self):
+        return self._fluka
 
     @fluka.setter
-    def fluka(cls, val):
-        self = cls.get_self()
+    def fluka(self, val):
         if val is None:
             self._fluka = (self._default_fluka_eos_path / 'fluka4-5.0' / 'bin' / 'rfluka').resolve()
         else:
@@ -58,16 +60,15 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             self._fluka = val
 
     @fluka.deleter
-    def fluka(cls):
-        cls.fluka = None
+    def fluka(self):
+        self.fluka = None
 
-    @ClassProperty
-    def flukaserver(cls):
-        return cls.get_self()._flukaserver
+    @property
+    def flukaserver(self):
+        return self._flukaserver
 
     @flukaserver.setter
-    def flukaserver(cls, val):
-        self = cls.get_self()
+    def flukaserver(self, val):
         if val is None:
             self._flukaserver = (self._default_fluka_eos_path / 'fluka_coupling' / 'fluka' / 'flukaserver').resolve()
         else:
@@ -76,16 +77,15 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             self._flukaserver = val
 
     @flukaserver.deleter
-    def flukaserver(cls):
-        cls.flukaserver = None
+    def flukaserver(self):
+        self.flukaserver = None
 
-    @ClassProperty
-    def flair(cls):
-        return cls.get_self()._flair
+    @property
+    def flair(self):
+        return self._flair
 
     @flair.setter
-    def flair(cls, val):
-        self = cls.get_self()
+    def flair(self, val):
         if val is None:
             self._flair = (self._default_fluka_eos_path / 'flair-3.4' /  'flair').resolve()
         else:
@@ -94,16 +94,15 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             self._flair = val
 
     @flair.deleter
-    def flair(cls):
-        cls.flair = None
+    def flair(self):
+        self.flair = None
 
-    @ClassProperty
-    def linebuilder(cls):
-        return cls.get_self()._linebuilder
+    @property
+    def linebuilder(self):
+        return self._linebuilder
 
     @linebuilder.setter
-    def linebuilder(cls, val):
-        self = cls.get_self()
+    def linebuilder(self, val):
         if val is None:
             # linebuilder = (_linebuilder_coupling / 'linebuilder').resolve()
             # TODO if MR on gitlab accepted, update path
@@ -114,49 +113,141 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             self._linebuilder = val
 
     @linebuilder.deleter
-    def linebuilder(cls):
-        cls.linebuilder = None
+    def linebuilder(self):
+        self.linebuilder = None
 
-    @ClassProperty
-    def fedb(cls):
-        # This is the user fedb path, only for user-defined assemblies
-        return cls.get_self()._fedb
-
-    @fedb.setter
-    def fedb(cls, val):
-        self = cls.get_self()
-        if val is None:
-            self._restore_fedb_base()
-            self._fedb = None
-        else:
-            val = FsPath(val)
-            self._brute_force_path(val)
-            self._fedb = val
-            self._sync_user_fedb()
-
-    @fedb.deleter
-    def fedb(cls):
-        cls.fedb = None
-
-    @ClassProperty
-    def fedb_base(cls):
+    @property
+    def fedb(self):
         return (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
-    @ClassProperty
-    def fedb_xcoll(cls):
-        return (cls.fedb_base / 'fedb_xcoll').resolve()
-
-    @ClassProperty
-    def fedb_coupling(cls):
-        return (cls.fedb_base / 'fedb_coupling').resolve()
+    @property
+    def index(self):
+        with open(self.fedb / 'index.json', 'r') as fid:
+            data = json.load(fid)
+        return data
 
     # ======================
     # === Public Methods ===
     # ======================
 
-    @classmethod
-    def test_gfortran(cls, verbose=False):
-        self = cls.get_self()
+    def compile(self, flukaio_path=None, verbose=False):
+        self.test_make(verbose=verbose)
+        self.test_gcc(verbose=verbose)
+        self.test_gfortran(verbose=verbose)
+        if flukaio_path is None:
+            flukaio_path = FsPath('/eos/project-c/collimation-team/software/flukaio').resolve()
+        else:
+            flukaio_path = FsPath(flukaio_path).resolve()
+        if not flukaio_path.exists():
+            raise FileNotFoundError(f"Could not find FlukaIO path {flukaio_path}!")
+        self._brute_force_path(flukaio_path)
+        # TODO: xaux fails if copying from EOS
+        # flukaio_path.copy_to(_pkg_root / 'scattering_routines' / 'fluka')
+        import shutil
+        shutil.copytree(flukaio_path, _pkg_root / 'scattering_routines' / 'fluka' / 'flukaio',
+                        dirs_exist_ok=True, ignore=shutil.ignore_patterns('.git'))
+        cwd = FsPath.cwd()
+        so = (_pkg_root / 'scattering_routines' / 'fluka').glob('pyflukaf.*so')
+        for file in so:
+            file.unlink()
+        os.chdir(_pkg_root / 'scattering_routines' / 'fluka' / 'flukaio')
+        cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            print("Compiled FlukaIO successfully.")
+        else:
+            stderr = cmds.stderr.decode('UTF-8').strip().split('\n')
+            os.chdir(cwd)
+            raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
+        os.chdir(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src')
+        mod = (_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').glob('*.{mod,o}')
+        for file in mod:
+            file.unlink()
+        cmd = run(['gfortran', '-fpic', '-c', 'core_tools.f90', 'constants.f90', 'strings.f90',
+                   'mod_alloc.f90', 'common_modules.f90', 'string_tools.f90', 'mod_units.f90',
+                   'pdgid.f90', 'mod_fluka.f90'], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            print("Compiled FORTRAN source successfully.")
+        else:
+            stderr = cmds.stderr.decode('UTF-8').strip().split('\n')
+            os.chdir(cwd)
+            raise RuntimeError(f"Failed to compile FORTRAN source!\nError given is:\n{stderr}")
+        cmd = run(['f2py', '-m', 'pyflukaf', '-c', 'pyfluka.f90',
+                   'core_tools.o', 'constants.o', 'strings.o', 'mod_alloc.o',
+                   'common_modules.o', 'string_tools.o', 'mod_units.o',
+                   'pdgid.o', 'mod_fluka.o', '../flukaio/lib/libFlukaIO64.a',
+                   '--backend', 'distutils', '--fcompiler=gfortran'], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            print("Linked pyflukaf successfully.")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            os.chdir(cwd)
+            raise RuntimeError(f"Failed to link pyflukaf!\nError given is:\n{stderr}")
+        os.chdir(cwd)
+        # Clean up
+        mod = (_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').glob('*.{mod,o}')
+        for file in mod:
+            file.unlink()
+        shutil.rmtree(_pkg_root / 'scattering_routines' / 'fluka' / 'flukaio')
+        so = list((_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src').glob('pyflukaf.*so'))
+        if len(so) > 1:
+            raise RuntimeError(f"Found multiple pyflukaf shared libraries!")
+        if len(so) == 0:
+            raise RuntimeError(f"Failed pyFLUKA compilation! No shared library found in "
+                             + f"{(_pkg_root / 'scattering_routines' / 'fluka').as_posix()}!")
+        so = so[0]
+        so = so.rename(_pkg_root / 'scattering_routines' / 'fluka' / so.name)
+        print(f"Created pyFLUKA shared library in {so}.")
+
+    def test_make(self, verbose=False):
+        try:
+            cmd = run(["make", "--version"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._make_installed = False
+            raise RuntimeError("Could not find make installation!")
+        if cmd.returncode == 0:
+            self._make_installed = True
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._make_installed = False
+            raise RuntimeError(f"Could not run make! Verify its installation.\nError given is:\n{stderr}")
+        try:
+            cmd = run(["cmake", "--version"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._cmake_installed = False
+            raise RuntimeError("Could not find cmake installation!")
+        if cmd.returncode == 0:
+            self._cmake_installed = True
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._cmake_installed = False
+            raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
+
+    def test_gcc(self, verbose=False):
+        try:
+            cmd = run(["gcc", "-dumpversion"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._gcc_installed = False
+            raise RuntimeError("Could not find gcc installation! Need gcc 9 or higher.")
+        if cmd.returncode == 0:
+            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            if int(version.split('.')[0]) < 9:
+                self._gcc_installed = False
+                raise RuntimeError(f"Need gcc 9 or higher, but found gcc {version}!")
+            self._gcc_installed = True
+            if verbose:
+                cmd2 = run(["which", "gcc"], stdout=PIPE, stderr=PIPE)
+                if cmd2.returncode == 0:
+                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
+                    print(f"Found gcc {version} in {file}", flush=True)
+                else:
+                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
+                    raise RuntimeError(f"Could not run `which gcc`!\nError given is:\n{stderr}")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._gcc_installed = False
+            raise RuntimeError(f"Could not run gcc! Verify its installation.\nError given is:\n{stderr}")
+
+    def test_gfortran(self, verbose=False):
         try:
             cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
@@ -181,44 +272,66 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             self._gfortran_installed = False
             raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
 
-    @classmethod
-    def set_fluka_environment(cls):
-        self = cls.get_self()
+
+    def import_fedb(self, fedb_path, overwrite=True):
+        fedb_path = FsPath(fedb_path)
+        if not fedb_path.exists():
+            raise FileNotFoundError(f"Could not find FEDB path {fedb_path}!")
+        with open(self.fedb / 'index.json', 'r') as fid:
+            data = json.load(fid)
+        for directory in ['assemblies', 'bodies', 'materials', 'regions', 'stepsizes']:
+            for file in fedb_path.glob(f'{directory}/*'):
+                if file.name == 'materials.inp':
+                    # TODO: later we want this to be a materials DB in Xcoll and import potential new
+                    # materials from this file into the Xcoll materials DB, and regenerate the file
+                    continue
+                if f'{directory}/{file.name}' in data['xcoll_files']:
+                    raise FileExistsError(f"Trying to import file {file.name} from {fedb_path}, "
+                                         + "but it already exists in the Xcoll FEDB!")
+                if f'{directory}/{file.name}' in data['external_files']:
+                    if not overwrite:
+                        print(f"Trying to import file {file.name} from {fedb_path}, "
+                              + "but it already exists in the FEDB! Skipped.")
+                        continue
+                    else:
+                        # Remove the old file
+                        path = self.fedb / directory / file.name
+                        path.unlink()
+                        file.copy_to(self.fedb / directory / file.name)
+                        data['external_files'].append(f'{directory}/{file.name}')
+        with open(self.fedb / 'index.json', 'w') as fid:
+            json.dump(index, fid, indent=4)
+
+
+    def set_fluka_environment(self):
         self._brute_force_path(self.fluka.parents[1])
         self._brute_force_path(self.flukaserver.parent)
 
-    @classmethod
-    def set_flair_environment(cls):
-        self = cls.get_self()
+    def set_flair_environment(self):
         self._brute_force_path(self.flair.parent)
 
-    @classmethod
-    def set_fedb_environment(cls):
-        self = cls.get_self()
+    def set_fedb_environment(self):
         self._old_sys_path = sys.path.copy()
         self._old_os_env = os.environ.copy()
         self._brute_force_path(self.fedb_coupling)
         self._brute_force_path(self.linebuilder)
-        os.environ['FEDB_PATH'] = self.fedb_base.as_posix()
+        os.environ['FEDB_PATH'] = self.fedb.as_posix()
         os.environ['LB_PATH'] = self.linebuilder.as_posix()
         # Brute-force the system paths
-        sys.path.append(self.fedb_base.as_posix())
-        sys.path.append((self.fedb_base / "tools").as_posix())
-        sys.path.append((self.fedb_base / "tools" / "materials" / "cables").as_posix())
+        sys.path.append(self.fedb.as_posix())
+        sys.path.append((self.fedb / "tools").as_posix())
+        sys.path.append((self.fedb / "tools" / "materials" / "cables").as_posix())
         sys.path.append((self.linebuilder / "src").as_posix())
         sys.path.append((self.linebuilder / "lib").as_posix())
 
-    @classmethod
-    def unset_fedb_environment(cls):
-        self = cls.get_self()
+    def unset_fedb_environment(self):
         sys.path = self._old_sys_path
         self._old_sys_path = None
         os.environ = self._old_os_env
         self._old_os_env = None
 
-    @classmethod
-    def run_flair(cls, input_file=None):
-        self = cls.get_self()
+
+    def run_flair(self, input_file=None):
         if input_file is None:
             return
         input_file = FsPath(input_file)
@@ -227,26 +340,25 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
         except FileNotFoundError:
             print("Flair not found. Cannot view input file.")
             return
-        cmd = run([FlukaEnvironment().flair.as_posix(), input_file.as_posix()],
+        cmd = run([self.flair.as_posix(), input_file.as_posix()],
                   stdout=PIPE, stderr=PIPE)
         if cmd.returncode != 0:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Failed to run flair on input file {input_file}!\n"
                              + f"Error given is:\n{stderr}")
 
-    @classmethod
-    def test_assembly(cls, fedb_series, fedb_tag, *, show=True, keep_files=False):
+
+    def test_assembly(self, fedb_series, fedb_tag, *, show=True, keep_files=False):
         if show:
             try:
-                cls.set_flair_environment()
+                self.set_flair_environment()
             except FileNotFoundError:
                 print("Flair not found. Cannot view assembly.")
                 return
         else:
             keep_files=True
-        self = cls.get_self()
         self.set_fedb_environment()
-        cmd = run(['python', self.fedb_base / 'tools' / 'test_assembly.py', fedb_series,
+        cmd = run(['python', self.fedb / 'tools' / 'test_assembly.py', fedb_series,
                    fedb_tag], stdout=PIPE, stderr=PIPE)
         self.unset_fedb_environment()
         if cmd.returncode != 0:
@@ -269,6 +381,24 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
     # === Private Methods ===
     # =======================
 
+    def _add_to_index(self, directory, file):
+        file = FsPath(file)
+        with open(self.fedb / 'index.json', 'r') as fid:
+            data = json.load(fid)
+        data['xcoll_files'].append(f'{directory}/{file.name}')
+        with open(self.fedb / 'index.json', 'w') as fid:
+            json.dump(data, fid, indent=4)
+
+    def _generate_xcoll_index(self):
+        index = {'xcoll_files': [], 'external_files': []}
+        if not (self.fedb / 'stepsizes').exists():
+            (self.fedb / 'stepsizes').mkdir()
+        for directory in ['assemblies', 'bodies', 'materials', 'regions', 'stepsizes']:
+             for file in self.fedb.glob(f'{directory}/*'):
+                index['xcoll_files'].append(f'{directory}/{file.name}')
+        with open(self.fedb / 'index.json', 'w') as fid:
+            json.dump(index, fid, indent=4)
+
     def _brute_force_path(self, path):
         if not path.exists():
             raise FileNotFoundError(f"Could not find path {path}!")
@@ -279,28 +409,7 @@ class FlukaEnvironment(metaclass=ClassPropertyMeta):
             return
         if cmd.returncode != 0:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gfortran_installed = False
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
-
-    def _sync_user_fedb(self):
-        if self._fedb:
-            for directory in ['assemblies', 'bodies', 'materials', 'regions']:
-                for file in self._fedb.glob(f'{directory}/*.lbp'):
-                    path = self.fedb_base / directory / file.name
-                    if path.exists():
-                        if not path.is_symlink():
-                            raise FileExistsError(f"File {path} exists but is not a symlink! "
-                                                + "Only symlinks are allowed in the FEDB inside "
-                                                + "Xcoll. Something is wrong.")
-                        self._overwritten_paths[path] = path.readlink().as_posix()
-                        path.unlink()
-                    path.symlink_to(file)
-
-    def _restore_fedb_base(self):
-        for path, target in self._overwritten_paths.items():
-            path.unlink()
-            path.symlink_to(target)
-        self._overwritten_paths = {}
 
 
 def format_fluka_float(value):
