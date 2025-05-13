@@ -11,12 +11,16 @@ from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCol
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
                                        FlukaGenericCrystalAssembly
-from .scattering_routines.fluka.wrapper import fluka
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .lossmap import LossMap
 from .headers import particle_states
+
+# Initialise FLUKA environment
+from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
+fluka = _FlukaWrapper()
+fluka.environment._load_fedb_prototypes()
 
 # Deprecated
 from ._manager import CollimatorManager
@@ -27,7 +31,7 @@ def generate_pencil_on_collimator(line, name, *args, **kwargs):
     warn("`xcoll.generate_pencil_on_collimator()` is deprecated and will be removed. Use "
        + "`line[coll].generate_pencil()` instead.", FutureWarning)
     return line[name].generate_pencil(*args, **kwargs)
-def generate_delta_from_dispersion(line, at_element, *args, **kwargs):
+def generate_delta_from_dispersion(line, name, *args, **kwargs):
     from warnings import warn
     warn("`xcoll.generate_delta_from_dispersion()` is deprecated and will be removed. Use "
        + "`line[at_element].generate_delta()` instead.", FutureWarning)

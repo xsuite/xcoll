@@ -21,10 +21,6 @@ class FlukaEnvironment:
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 
     def __init__(self, *args, **kwargs):
-        self._make_installed = False
-        self._cmake_installed = False
-        self._gcc_installed = False
-        self._gfortran_installed = False
         self._old_sys_path = None
         self._old_os_env = None
         self._overwritten_paths = {}
@@ -32,8 +28,6 @@ class FlukaEnvironment:
         self.flukaserver = kwargs.pop('flukaserver', None)
         self.flair = kwargs.pop('flair', None)
         self.linebuilder = kwargs.pop('linebuilder', None)
-        if not (self.fedb / 'index.json').exists():
-            self._generate_xcoll_index()
 
     def __del__(self):
         if self._old_sys_path:
@@ -120,20 +114,15 @@ class FlukaEnvironment:
     def fedb(self):
         return (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
-    @property
-    def index(self):
-        with open(self.fedb / 'index.json', 'r') as fid:
-            data = json.load(fid)
-        return data
 
     # ======================
     # === Public Methods ===
     # ======================
 
     def compile(self, flukaio_path=None, verbose=False):
-        self.test_make(verbose=verbose)
-        self.test_gcc(verbose=verbose)
-        self.test_gfortran(verbose=verbose)
+        self.assert_make_installed(verbose=verbose)
+        self.assert_gcc_isntalled(verbose=verbose)
+        self.assert_gfortran_installed(verbose=verbose)
         if flukaio_path is None:
             flukaio_path = FsPath('/eos/project-c/collimation-team/software/flukaio').resolve()
         else:
@@ -155,7 +144,7 @@ class FlukaEnvironment:
         if cmd.returncode == 0:
             print("Compiled FlukaIO successfully.")
         else:
-            stderr = cmds.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
         os.chdir(_pkg_root / 'scattering_routines' / 'fluka' / 'FORTRAN_src')
@@ -168,7 +157,7 @@ class FlukaEnvironment:
         if cmd.returncode == 0:
             print("Compiled FORTRAN source successfully.")
         else:
-            stderr = cmds.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile FORTRAN source!\nError given is:\n{stderr}")
         cmd = run(['f2py', '-m', 'pyflukaf', '-c', 'pyfluka.f90',
@@ -198,109 +187,32 @@ class FlukaEnvironment:
         so = so.rename(_pkg_root / 'scattering_routines' / 'fluka' / so.name)
         print(f"Created pyFLUKA shared library in {so}.")
 
-    def test_make(self, verbose=False):
-        try:
-            cmd = run(["make", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._make_installed = False
-            raise RuntimeError("Could not find make installation!")
-        if cmd.returncode == 0:
-            self._make_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._make_installed = False
-            raise RuntimeError(f"Could not run make! Verify its installation.\nError given is:\n{stderr}")
-        try:
-            cmd = run(["cmake", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._cmake_installed = False
-            raise RuntimeError("Could not find cmake installation!")
-        if cmd.returncode == 0:
-            self._cmake_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._cmake_installed = False
-            raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
 
-    def test_gcc(self, verbose=False):
-        try:
-            cmd = run(["gcc", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._gcc_installed = False
-            raise RuntimeError("Could not find gcc installation! Need gcc 9 or higher.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gcc_installed = False
-                raise RuntimeError(f"Need gcc 9 or higher, but found gcc {version}!")
-            self._gcc_installed = True
-            if verbose:
-                cmd2 = run(["which", "gcc"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gcc {version} in {file}", flush=True)
-                else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gcc`!\nError given is:\n{stderr}")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gcc_installed = False
-            raise RuntimeError(f"Could not run gcc! Verify its installation.\nError given is:\n{stderr}")
-
-    def test_gfortran(self, verbose=False):
-        try:
-            cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._gfortran_installed = False
-            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gfortran_installed = False
-                raise RuntimeError(f"Need gfortran 9 or higher, but found gfortran {version}!")
-            self._gfortran_installed = True
-            if verbose:
-                cmd2 = run(["which", "gfortran"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}", flush=True)
-                else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gfortran_installed = False
-            raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
-
-
-    def import_fedb(self, fedb_path, overwrite=True):
+    def import_fedb(self, fedb_path):
+        import xcoll as xc
         fedb_path = FsPath(fedb_path)
         if not fedb_path.exists():
             raise FileNotFoundError(f"Could not find FEDB path {fedb_path}!")
-        with open(self.fedb / 'index.json', 'r') as fid:
-            data = json.load(fid)
-        for directory in ['assemblies', 'bodies', 'materials', 'regions', 'stepsizes']:
-            for file in fedb_path.glob(f'{directory}/*'):
-                if file.name == 'materials.inp':
-                    # TODO: later we want this to be a materials DB in Xcoll and import potential new
-                    # materials from this file into the Xcoll materials DB, and regenerate the file
-                    continue
-                if f'{directory}/{file.name}' in data['xcoll_files']:
-                    raise FileExistsError(f"Trying to import file {file.name} from {fedb_path}, "
-                                         + "but it already exists in the Xcoll FEDB!")
-                if f'{directory}/{file.name}' in data['external_files']:
-                    if not overwrite:
-                        print(f"Trying to import file {file.name} from {fedb_path}, "
-                              + "but it already exists in the FEDB! Skipped.")
-                        continue
-                    else:
-                        # Remove the old file
-                        path = self.fedb / directory / file.name
-                        path.unlink()
-                        file.copy_to(self.fedb / directory / file.name)
-                        data['external_files'].append(f'{directory}/{file.name}')
-        with open(self.fedb / 'index.json', 'w') as fid:
-            json.dump(index, fid, indent=4)
+        for file in fedb_path.glob(f'assemblies/*.lbp'):
+            meta = self.fedb / 'metadata' / 'coupling' / f'{file.name}.json'
+            if meta.exists():
+                pro = xc.FlukaAssembly.from_json(meta)
+            else:
+                print(f"Warning: No metadata found for assembly {file.name} in {fedb_path}!")
+                pro = xc.FlukaAssembly(*file.stem.split('_'))
+            pro.assembly_file = file
+        for file in fedb_path.glob(f'bodies/*.bodies'):
+            meta = self.fedb / 'metadata' / 'coupling' / f'{file.name}.json'
+            if meta.exists():
+                pro = xc.FlukaPrototype.from_json(meta)
+            else:
+                print(f"Warning: No metadata found for prototype {file.name} in {fedb_path}!")
+                pro = xc.FlukaPrototype(*file.stem.split('_'))
+            pro.body_file = file
+            pro.material_file = fedb_path / 'materials' / f'{file.stem}.assignmat'
+            pro.region_file = fedb_path / 'regions' / f'{file.stem}.regions'
+        for file in fedb_path.glob(f'stepsizes/*'):
+            file.copy_to(self.fedb / 'stepsizes' / file.name)
 
 
     def set_fluka_environment(self):
@@ -377,27 +289,90 @@ class FlukaEnvironment:
             logfile.unlink()
 
 
+    def assert_make_installed(self, verbose=False):
+        if hasattr(self, '_make_installed') and hasattr(self, '_cmake_installed'):
+            return self._make_installed and self._cmake_installed
+        try:
+            cmd = run(["make", "--version"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._make_installed = False
+            raise RuntimeError("Could not find make installation!")
+        if cmd.returncode == 0:
+            self._make_installed = True
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._make_installed = False
+            raise RuntimeError(f"Could not run make! Verify its installation.\nError given is:\n{stderr}")
+        try:
+            cmd = run(["cmake", "--version"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._cmake_installed = False
+            raise RuntimeError("Could not find cmake installation!")
+        if cmd.returncode == 0:
+            self._cmake_installed = True
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._cmake_installed = False
+            raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
+
+    def assert_gcc_isntalled(self, verbose=False):
+        if hasattr(self, '_gcc_installed'):
+            return self._gcc_installed
+        try:
+            cmd = run(["gcc", "-dumpversion"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._gcc_installed = False
+            raise RuntimeError("Could not find gcc installation! Need gcc 9 or higher.")
+        if cmd.returncode == 0:
+            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            if int(version.split('.')[0]) < 9:
+                self._gcc_installed = False
+                raise RuntimeError(f"Need gcc 9 or higher, but found gcc {version}!")
+            self._gcc_installed = True
+            if verbose:
+                cmd2 = run(["which", "gcc"], stdout=PIPE, stderr=PIPE)
+                if cmd2.returncode == 0:
+                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
+                    print(f"Found gcc {version} in {file}", flush=True)
+                else:
+                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
+                    raise RuntimeError(f"Could not run `which gcc`!\nError given is:\n{stderr}")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._gcc_installed = False
+            raise RuntimeError(f"Could not run gcc! Verify its installation.\nError given is:\n{stderr}")
+
+    def assert_gfortran_installed(self, verbose=False):
+        if hasattr(self, '_gfortran_installed'):
+            return self._gfortran_installed
+        try:
+            cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
+            self._gfortran_installed = False
+            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher.")
+        if cmd.returncode == 0:
+            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            if int(version.split('.')[0]) < 9:
+                self._gfortran_installed = False
+                raise RuntimeError(f"Need gfortran 9 or higher, but found gfortran {version}!")
+            self._gfortran_installed = True
+            if verbose:
+                cmd2 = run(["which", "gfortran"], stdout=PIPE, stderr=PIPE)
+                if cmd2.returncode == 0:
+                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
+                    print(f"Found gfortran {version} in {file}", flush=True)
+                else:
+                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
+                    raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
+        else:
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            self._gfortran_installed = False
+            raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
+
+
     # =======================
     # === Private Methods ===
     # =======================
-
-    def _add_to_index(self, directory, file):
-        file = FsPath(file)
-        with open(self.fedb / 'index.json', 'r') as fid:
-            data = json.load(fid)
-        data['xcoll_files'].append(f'{directory}/{file.name}')
-        with open(self.fedb / 'index.json', 'w') as fid:
-            json.dump(data, fid, indent=4)
-
-    def _generate_xcoll_index(self):
-        index = {'xcoll_files': [], 'external_files': []}
-        if not (self.fedb / 'stepsizes').exists():
-            (self.fedb / 'stepsizes').mkdir()
-        for directory in ['assemblies', 'bodies', 'materials', 'regions', 'stepsizes']:
-             for file in self.fedb.glob(f'{directory}/*'):
-                index['xcoll_files'].append(f'{directory}/{file.name}')
-        with open(self.fedb / 'index.json', 'w') as fid:
-            json.dump(index, fid, indent=4)
 
     def _brute_force_path(self, path):
         if not path.exists():
@@ -410,6 +385,12 @@ class FlukaEnvironment:
         if cmd.returncode != 0:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
+
+    def _load_fedb_prototypes(self):
+        from xcoll import FlukaPrototype
+        prototypes = (self.fedb / 'metadata').glob('*_*.json')
+        for file in prototypes:
+            FlukaPrototype.from_json(file)
 
 
 def format_fluka_float(value):
