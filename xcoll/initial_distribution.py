@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -90,11 +90,14 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if side == '+-':
         num_plus = int(num_particles/2)
         num_min  = int(num_particles - num_plus)
-        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
-        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
+        coords_plus = _generate_4D_pencil_one_jaw(line, name, num_plus, plane, '+', impact_parameter, dr_sigmas,
+                                                  at_element, is_converging, tw_at_s, **kwargs)
+        coords_min  = _generate_4D_pencil_one_jaw(line, name, num_min,  plane, '-', impact_parameter, dr_sigmas,
+                                                  at_element, is_converging, tw_at_s, **kwargs)
         coords      = [ [*c_plus, *c_min] for c_plus, c_min in zip(coords_plus, coords_min)]
     else:
-        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter, dr_sigmas, at_element, is_converging, tw_at_s)
+        coords      = _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
+                                                  dr_sigmas, at_element, is_converging, tw_at_s, **kwargs)
     pencil            = coords[0]
     p_pencil          = coords[1]
     transverse_norm   = coords[2]
@@ -185,29 +188,26 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                dr_sigmas, at_element, is_converging, tw_at_s=None):
+                                dr_sigmas, at_element, is_converging, tw_at_s=None,
+                                _capacity=None, **kwargs):
     coll = line[name]
 
     if side == '+':
-        if is_converging:
-            if isinstance(coll, EverestCrystal):
-                pencil_pos = coll.jaw_U + impact_parameter
-            else:
-                pencil_pos = coll.jaw_LU + impact_parameter
+        if isinstance(coll, EverestCrystal):
+            # A pencil on the crystal should always be upstream
+            pencil_pos = coll.jaw_U + impact_parameter
         else:
-            if isinstance(coll, EverestCrystal):
-                pencil_pos = coll.jaw_D - impact_parameter
+            if is_converging:
+                pencil_pos = coll.jaw_LU + impact_parameter
             else:
                 pencil_pos = coll.jaw_LD + impact_parameter
     elif side == '-':
-        if is_converging:
-            if isinstance(coll, EverestCrystal):
-                pencil_pos = coll.jaw_U - impact_parameter
-            else:
-                pencil_pos = coll.jaw_RU - impact_parameter
+        if isinstance(coll, EverestCrystal):
+            # A pencil on the crystal should always be upstream
+            pencil_pos = coll.jaw_U - impact_parameter
         else:
-            if isinstance(coll, EverestCrystal):
-                pencil_pos = coll.jaw_D + impact_parameter
+            if is_converging:
+                pencil_pos = coll.jaw_RU - impact_parameter
             else:
                 pencil_pos = coll.jaw_RD - impact_parameter
 
@@ -215,7 +215,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     pencil, p_pencil = xp.generate_2D_pencil_with_absolute_cut(
                         num_particles, plane=plane, absolute_cut=pencil_pos, line=line,
                         dr_sigmas=dr_sigmas, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                        at_element=at_element, side=side, twiss=tw_at_s
+                        at_element=at_element, side=side, twiss=tw_at_s, **kwargs
                        )
 
     # Other plane: generate gaussian distribution in normalized coordinates

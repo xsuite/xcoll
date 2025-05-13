@@ -171,7 +171,7 @@ double calculate_dechanneling_length(EverestData restrict everest, double pc) {
     double energy   = sqrt(pow(momentum, 2.) + pow(XC_PROTON_MASS, 2.)); // [MeV]
     double gammar   = energy/XC_PROTON_MASS;
 
-    double const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy) - 1.);
+    double const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy/1000) - 1.);
     const_dech       *= (XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)*1.0e3; // [m/GeV]
     return const_dech;
 }
