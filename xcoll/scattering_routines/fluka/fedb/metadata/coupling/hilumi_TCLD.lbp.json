@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCLD",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCLD",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "shower absorber",
+    "extra_commands": null
+}

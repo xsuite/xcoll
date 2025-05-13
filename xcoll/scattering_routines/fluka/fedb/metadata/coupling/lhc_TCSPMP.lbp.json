@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCSPMP",
+    "fedb_series": "lhc",
+    "fedb_tag": "TCSPMP",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "OLD - secondary with jaw in MoGr coated (prototype)",
+    "extra_commands": null
+}

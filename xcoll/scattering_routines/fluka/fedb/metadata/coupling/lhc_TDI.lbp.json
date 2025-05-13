@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TDI",
+    "fedb_series": "lhc",
+    "fedb_tag": "TDI",
+    "side": null,
+    "angle": 1.5707963267948966,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "injection protection",
+    "extra_commands": null
+}

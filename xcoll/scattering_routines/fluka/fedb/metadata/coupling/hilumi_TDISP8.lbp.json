@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TDISP8",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TDISP8",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "DOES NOT WORK - injection protection",
+    "extra_commands": null
+}

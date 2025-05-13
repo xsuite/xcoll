@@ -3,8 +3,14 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import json
 import numpy as np
 from pathlib import Path
+
+try:
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
+except (ImportError, ModuleNotFoundError):
+    from ...xaux import FsPath
 
 from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
@@ -38,8 +44,9 @@ class FlukaPrototype:
             FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, angle=0, side=None,
-                 length=None, material=None, info=None, extra_commands=None, **kwargs):
+    def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
+                 height=None, length=None, material=None, info=None, extra_commands=None,
+                 is_crystal=False, bending_radius=None, **kwargs):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -52,12 +59,16 @@ class FlukaPrototype:
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
         if side is not None:
-            self.side = side       # This will overwrite the side in the FlukaCollimator
+            BaseCollimator.side.fset(self, side)  # This will overwrite the side in the FlukaCollimator
         else:
             self._side = None
         self._angle = angle        # This will adapt the transformation used in the LineBuilder
         self._length = length      # This will adapt the Drift used in pre-tracking (length_front, length_back)
+        self._width = width
+        self._height = height
         self._material = material  # This will overwrite the material in the FlukaCollimator
+        self._is_crystal = is_crystal
+        self._bending_radius = bending_radius
         self._info = info
         self._extra_commands = extra_commands
         self._id = None
@@ -82,13 +93,30 @@ class FlukaPrototype:
                 elements += 's'
         else:
             elements = "unassigned"
+        info = f" ({self.info})" if self.info else ''
         return f"{self.__class__.__name__} '{self.name}' ({elements}): " \
-             + f"tag {self.fedb_tag} in {self.fedb_series} series ({self.info})"
+             + f"tag {self.fedb_tag} in {self.fedb_series} series{info}"
 
     def __str__(self):
         if self._is_null:
             return ''
         return self.__repr__()
+
+    def delete(self):
+        if self._is_null:
+            return
+        if len(self._elements) > 0:
+            raise ValueError(f"Cannot delete {self._type} '{self.name}' "
+                           + f"while it has {len(self._elements)} elements assigned!")
+        # Remove the prototype from the registry of all prototypes
+        if self in FlukaPrototype._registry:
+            FlukaPrototype._registry.remove(self)
+        # Remove the prototype from the registry of all assemblies
+        if self in FlukaAssembly._registry:
+            FlukaAssembly._registry.remove(self)
+        # Remove all files associated with the prototype
+        for file in self.files:
+            file.unlink(missing_ok=True)
 
     def to_dict(self):
         if self._is_null:
@@ -101,7 +129,11 @@ class FlukaPrototype:
             'side': self.side,
             'angle': self.angle,
             'length': self.length,
+            'width': self.width,
+            'height': self.height,
             'material': self.material,
+            'is_crystal': self.is_crystal,
+            'bending_radius': self.bending_radius,
             'info': self.info,
             'extra_commands': self.extra_commands,
         }
@@ -121,6 +153,16 @@ class FlukaPrototype:
             return FlukaGenericCrystalAssembly(**data)
         else:
             raise ValueError(f"Invalid data format for {cls}.")
+
+    @classmethod
+    def from_json(cls, path):
+        if isinstance(path, str):
+            path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        with path.open('r') as fid:
+            data = json.load(fid)
+        return cls.from_dict(data)
 
     @property
     def name(self):
@@ -150,24 +192,62 @@ class FlukaPrototype:
 
     @property
     def body_file(self):
+        if self._is_null:
+            return None
         import xcoll as xc
         file = xc.fluka.environment.fedb / "bodies" \
                     / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         return file.resolve()
 
+    @body_file.setter
+    def body_file(self, path):
+        if self._is_null:
+            raise ValueError("Cannot set body_file for a null prototype!")
+        import xcoll as xc
+        path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        path.copy_to(xc.fluka.environment.fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies")
+        with open(xc.fluka.environment.fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
+            json.dump(self.to_dict(), fid, indent=4)
+
     @property
     def material_file(self):
+        if self._is_null:
+            return None
         import xcoll as xc
         file = xc.fluka.environment.fedb / "materials" \
                     / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
         return file.resolve()
 
+    @material_file.setter
+    def material_file(self, path):
+        if self._is_null:
+            raise ValueError("Cannot set material_file for a null prototype!")
+        import xcoll as xc
+        path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        path.copy_to(xc.fluka.environment.fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat")
+
     @property
     def region_file(self):
+        if self._is_null:
+            return None
         import xcoll as xc
         file = xc.fluka.environment.fedb / "regions" \
                     / f"{self.fedb_series}_{self.fedb_tag}.regions"
         return file.resolve()
+
+    @region_file.setter
+    def region_file(self, path):
+        if self._is_null:
+            raise ValueError("Cannot set region_file for a null prototype!")
+        import xcoll as xc
+        path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        path.copy_to(xc.fluka.environment.fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions")
 
     @property
     def files(self):
@@ -184,15 +264,29 @@ class FlukaPrototype:
             return None
         return BaseCollimator.side.fget(self)
 
-    @side.setter
-    def side(self, val):
-        BaseCollimator.side.fset(self, val)
-
     @property
     def angle(self):
         if self._is_null:
             return None
         return self._angle
+
+    @property
+    def length(self):
+        if self._is_null:
+            return None
+        return self._length
+
+    @property
+    def width(self):
+        if self._is_null:
+            return None
+        return self._width
+
+    @property
+    def height(self):
+        if self._is_null:
+            return None
+        return self._height
 
     @property
     def material(self):
@@ -201,10 +295,16 @@ class FlukaPrototype:
         return self._material
 
     @property
-    def length(self):
+    def is_crystal(self):
         if self._is_null:
             return None
-        return self._length
+        return self._is_crystal
+
+    @property
+    def bending_radius(self):
+        if self._is_null:
+            return None
+        return self._bending_radius
 
     @property
     def info(self):
@@ -471,16 +571,40 @@ class FlukaAssembly(FlukaPrototype):
                     / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         return file.resolve()
 
+    @assembly_file.setter
+    def assembly_file(self, path):
+        if self._is_null:
+            raise ValueError("Cannot set assembly_file for a null prototype!")
+        import xcoll as xc
+        path = FsPath(path)
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist!")
+        path.copy_to(xc.fluka.environment.fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp")
+        with open(xc.fluka.environment.fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
+            json.dump(self.to_dict(), fid, indent=4)
+
     @property
     def body_file(self):
+        pass
+
+    @body_file.setter
+    def body_file(self, path):
         pass
 
     @property
     def material_file(self):
         pass
 
+    @material_file.setter
+    def material_file(self, path):
+        pass
+
     @property
     def region_file(self):
+        pass
+
+    @region_file.setter
+    def region_file(self, path):
         pass
 
     @property
@@ -519,57 +643,3 @@ class FlukaAssembly(FlukaPrototype):
         for prot in self.prototypes:
             files += prot.files
         return files
-
-
-# SPS assemblies
-FlukaAssembly(fedb_series='sps',    fedb_tag='TCSM',     info="test collimator (hollow jaw)")
-# LHC assemblies
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCP',      info="primary with jaw in CFC")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSG',     info="secondary with jaw in CFC")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSP',     info="secondary with jaw in CFC and in-jaw BPMs (IR6)")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLA',     info="shower absorber")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCT',      info="tertiary")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCL',      info="physics debris absorber")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TDI',      angle=np.deg2rad(90.), info="injection protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIA',    info="injection protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCLIB',    info="injection protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAA',  side='left',  info="dump protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAB',  side='left',  info="dump protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQnAC',  side='left',  info="dump protection")
-# HL-LHC assemblies
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCPPM',    info="primary with jaw in MoGr coated")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated (6um)")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPGRC',  info="secondary with jaw in CFC with Cu coating layer (3um)")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLD',     info="shower absorber")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTx',     info="tertiary")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTy',     info="tertiary")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCLX',     info="physics debris absorber")
-# 'hilumi_tcpc':   FlukaPrototype(fedb_series='hilumi',fedb_tag='TCPCHB1',  info="crystal")
-# FCC assemblies
-FlukaAssembly(fedb_series='fcc',    fedb_tag='TCP',      info="primary")
-FlukaAssembly(fedb_series='fcc',    fedb_tag='TCSG',     info="secondary")
-FlukaAssembly(fedb_series='fcc',    fedb_tag='TCDQ',     side='right',  info="dump protection")
-FlukaAssembly(fedb_series='fccee',  fedb_tag='TCP',      info="primary")
-FlukaAssembly(fedb_series='fccee',  fedb_tag='TCS',      info="secondary")
-
-# Only for testing
-FlukaAssembly(fedb_series='test',   fedb_tag='DONADON',  info="mesh to test child particle ids")
-
-# Old assemblies - not to be used
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCPM',     info="primary with jaw in MoGr coated ??")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPM',    info="secondary with jaw in MoGr coated")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMC',   info="secondary with jaw in MoGr coated (5um)")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCSPMP',   info="secondary with jaw in MoGr coated (prototype)")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPX',    info="alternative tertiary")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCTPXV',   angle=np.deg2rad(90), info="alternative tertiary")
-
-# The following assemblies give wrong results with the jaw test:
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAA',   info="dump protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAB',   info="dump protection")
-FlukaAssembly(fedb_series='lhc',    fedb_tag='TCDQAC',   info="dump protection")
-
-# The following assemblies have errors in the prototype code:
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TCSPMPRT', info="secondary TCSPM prototype (three stripes)")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP2',   info="injection protection")
-FlukaAssembly(fedb_series='hilumi', fedb_tag='TDISP8',   info="injection protection")
-FlukaAssembly(fedb_series='fcc',    fedb_tag='TCL',      info="absorber")

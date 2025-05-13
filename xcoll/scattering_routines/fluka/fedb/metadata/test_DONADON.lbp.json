@@ -1,0 +1,15 @@
+{
+    "__class__": "FlukaAssembly",
+    "fedb_series": "test",
+    "fedb_tag": "DONADON",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "mesh to test child particle ids",
+    "extra_commands": null
+}

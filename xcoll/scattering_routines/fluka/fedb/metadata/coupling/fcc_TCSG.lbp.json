@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCSG",
+    "fedb_series": "fcc",
+    "fedb_tag": "TCSG",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "secondary",
+    "extra_commands": null
+}

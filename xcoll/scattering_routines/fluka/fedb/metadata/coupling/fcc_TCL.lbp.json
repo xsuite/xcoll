@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCL",
+    "fedb_series": "fcc",
+    "fedb_tag": "TCL",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "DOES NOT WORK - absorber",
+    "extra_commands": null
+}

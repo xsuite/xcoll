@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCSPMPRT",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCSPMPRT",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "DOES NOT WORK - secondary TCSPM prototype (three stripes)",
+    "extra_commands": null
+}
