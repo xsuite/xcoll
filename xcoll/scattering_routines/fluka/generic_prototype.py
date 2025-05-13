@@ -3,6 +3,9 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import json
+import numpy as np
+
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
@@ -10,7 +13,6 @@ except (ImportError, ModuleNotFoundError):
 
 from .prototype import FlukaPrototype, FlukaAssembly
 
-import numpy as np
 
 def xcoll_to_fluka_material(material):
     # XXX EXPAND THIS DICT
@@ -29,9 +31,12 @@ def xcoll_to_fluka_material(material):
         return material_dict[material]
 
 
+# TODO TODO TODO there is no need for this to be a separate class1
+#                it should spawn FlukaAssembly instances
+
 class FlukaGenericAssembly(FlukaAssembly):
     _generic_required_fields = ['material', 'length']
-    _generic_optional_fields = {'side': 'both', 'x_dim': 0.2, 'y_dim': 0.2}
+    _generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
 
     def __new__(cls, **kwargs):
         for field in cls._generic_required_fields:
@@ -58,14 +63,14 @@ class FlukaGenericAssembly(FlukaAssembly):
     def __init__(self, **kwargs):
         if not hasattr(self, 'fedb_tag') and not hasattr(self, 'fedb_series'):
             self._init(kwargs)
-            self._x_dim = kwargs['x_dim']
-            self._y_dim = kwargs['y_dim']
-            if self._x_dim > 0.25:
-                self._x_dim = 0.25
-            if self._y_dim > 0.25:
-                self._y_dim = 0.25
-            create_assembly_file(self.fedb_tag, self.side)
-            create_body_file(self.fedb_tag, self.length, self.x_dim, self.y_dim)
+            self._width = kwargs['width']
+            self._height = kwargs['height']
+            if self._width > 0.25:
+                self._width = 0.25
+            if self._height > 0.25:
+                self._height = 0.25
+            self.assembly_file = create_assembly_file(self.fedb_tag, self.side)
+            create_body_file(self.fedb_tag, self.length, self.width, self.height)
             create_region_file(self.fedb_tag)
             create_material_file(self.fedb_tag, self.material)
 
@@ -77,14 +82,6 @@ class FlukaGenericAssembly(FlukaAssembly):
         for field, opt_value in self._generic_optional_fields.items():
             kwargs.setdefault(field, opt_value)
         super().__init__(**kwargs)
-
-    @property
-    def x_dim(self):
-        return self._x_dim
-
-    @property
-    def y_dim(self):
-        return self._y_dim
 
 
 class FlukaGenericCrystalAssembly(FlukaGenericAssembly):
@@ -102,10 +99,10 @@ class FlukaGenericCrystalAssembly(FlukaGenericAssembly):
             self._init(kwargs)
             self.bending_radius = kwargs['bending_radius']
             # Set dimensions
-            self._x_dim = kwargs['x_dim']
-            self._y_dim = kwargs['y_dim']
+            self._width = kwargs['width']
+            self._height = kwargs['height']
             # create files
-            create_assembly_file(self.fedb_tag, self.side)
+            self.assembly_file = create_assembly_file(self.fedb_tag, self.side)
             create_crystal_body_file(self.fedb_tag, self.length, self.bending_radius,  self.x_dim, self.y_dim)
             create_crystal_region_file(self.fedb_tag)
             create_crystal_material_file(self.fedb_tag, self.material)
@@ -183,8 +180,8 @@ ROT-DEFI             0.0         0.0         0.0         0.0         0.0        
 * rotate by 180 deg the negative jaw:
 ROT-DEFI           300.0         0.0       180.0         0.0         0.0         0.0 JAW_NEG
 """
-    _write_file("assemblies", f"generic_{fedb_tag}.lbp",
-                template_assembly)
+    return _write_file("assemblies", f"generic_{fedb_tag}.lbp",
+                       template_assembly)
 
 
 def create_body_file(fedb_tag, length, x_dim, y_dim):
@@ -293,4 +290,4 @@ def _write_file(directory, filename, content):
     path = fluka.environment.fedb / directory / filename
     with path.open('w') as fid:
         fid.write(content)
-    fluka.environment._add_to_index(directory, filename)
+    return path
