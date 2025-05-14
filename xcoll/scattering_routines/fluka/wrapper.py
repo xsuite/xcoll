@@ -20,7 +20,7 @@ class FlukaWrapper:
     def engine(self):
         if not self._engine:
             # Lazy load the engine to avoid circular imports
-            # and to ensure that the environment is set up first
+            # and to ensure that the engine is set up only once
             from xcoll.scattering_routines.fluka.engine import FlukaEngine
             self._engine = FlukaEngine()
         return self._engine
@@ -29,7 +29,7 @@ class FlukaWrapper:
     def environment(self):
         if not self._environment:
             # Lazy load the engine to avoid circular imports
-            # and to ensure that the environment is set up first
+            # and to ensure that the environment is set up only once
             from xcoll.scattering_routines.fluka.environment import FlukaEnvironment
             self._environment = FlukaEnvironment()
         return self._environment

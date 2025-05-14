@@ -19,8 +19,8 @@ def _drift(coll, particles, length):
     coll._equivalent_drift.length = old_length
 
 def track(coll, particles):
-    from .engine import FlukaEngine
-    FlukaEngine()._assert_element(coll)
+    import xcoll as xc
+    xc.fluka.engine._assert_element(coll)
 
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
@@ -35,24 +35,24 @@ def track(coll, particles):
         return
 
     # Check the server and whether it's initialised correctly
-    from .engine import FlukaEngine
-    if not FlukaEngine()._flukaio_connected:
+    import xcoll as xc
+    if not xc.fluka.engine._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "
-                       + f"(id: {id(FlukaEngine())})")
+                       + f"(id: {id(xc.fluka.engine)})")
 
-    FlukaEngine.assert_particle_ref()
+    xc.fluka.engine.assert_particle_ref()
 
-    if 1.4*npart > FlukaEngine.capacity:
-        raise ValueError(f"Tracking {npart} particles but only {FlukaEngine.capacity} allocated in "
+    if 1.4*npart > xc.fluka.engine.capacity:
+        raise ValueError(f"Tracking {npart} particles but only {xc.fluka.engine.capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
 
-    FlukaEngine.init_tracking(npart)
+    xc.fluka.engine.init_tracking(npart)
 
-    if particles.particle_id.max() > FlukaEngine.max_particle_id:
+    if particles.particle_id.max() > xc.fluka.engine.max_particle_id:
         raise ValueError(f"Some particles have an id ({particles.particle_id.max()}) "
                        + f"that is higher than the highest id known to FLUKA ("
-                       + f"{FlukaEngine.max_particle_id}).\nThis could happen if this "
+                       + f"{xc.fluka.engine.max_particle_id}).\nThis could happen if this "
                        + "particles object is larger than the first particles instance "
                        + "tracked in this session, or if secondary particles are generated "
                        + "somewhere else than FLUKA.\nIn that case, call "
@@ -60,10 +60,10 @@ def track(coll, particles):
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
-    if abs(particles.mass0 - FlukaEngine.particle_ref.mass0) > 1e-3:
+    if abs(particles.mass0 - xc.fluka.engine.particle_ref.mass0) > 1e-3:
         raise ValueError("Error in reference mass of `particles`: not in sync with FLUKA reference particle!\n"
                        + "Rebuild the particles object using the FLUKA reference particle.")
-    if abs(particles.q0 - FlukaEngine.particle_ref.q0) > 1e-3:
+    if abs(particles.q0 - xc.fluka.engine.particle_ref.q0) > 1e-3:
         raise ValueError("Error in reference charge of `particles`: not in sync with FLUKA reference particle!\n"
                        + "Rebuild the particles object using the FLUKA reference particle.")
     if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
@@ -75,21 +75,21 @@ def track(coll, particles):
 
 
 def _expand(arr, dtype=float):
-    from .engine import FlukaEngine
-    max_part = FlukaEngine.capacity
+    import xcoll as xc
+    max_part = xc.fluka.engine.capacity
     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
 
 
 def track_core(coll, part):
+    import xcoll as xc
     npart = part._num_active_particles
-    from .engine import FlukaEngine
     try:
         from .pyflukaf import track_fluka
     except (ModuleNotFoundError, ImportError) as error:
-        FlukaEngine()._warn_pyfluka(error)
+        xc.fluka.engine._warn_pyfluka(error)
         return
 
-    max_part       = FlukaEngine.capacity
+    max_part       = xc.fluka.engine.capacity
     alive_at_entry = part.state > 0
     max_id         = part.particle_id[alive_at_entry].max()
     assert alive_at_entry.sum() == npart
@@ -319,11 +319,11 @@ def track_core(coll, part):
         new_part.state[mask_massless | mask_neutral] = -MASSLESS_OR_NEUTRAL
         part.add_particles(new_part)
         max_particle_id = new_pid.max()
-        if max_particle_id <= FlukaEngine.max_particle_id:
+        if max_particle_id <= xc.fluka.engine.max_particle_id:
             raise ValueError(f"FLUKA returned new particles with IDs {max_particle_id} that are "
-                           + f"lower than the highest ID known ({FlukaEngine.max_particle_id}).\n"
+                           + f"lower than the highest ID known ({xc.fluka.engine.max_particle_id}).\n"
                            + "This should not happen. Please report this issue to the developers.")
-        FlukaEngine._max_particle_id = max_particle_id
+        xc.fluka.engine._max_particle_id = max_particle_id
 
     # Kill all flagged particles
     part.state[part.state==-LOST_ON_FLUKA_COLL] = LOST_ON_FLUKA_COLL

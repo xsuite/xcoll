@@ -5,7 +5,6 @@
 
 import json
 import numpy as np
-from pathlib import Path
 
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -353,7 +352,7 @@ class FlukaPrototype:
         return active_elements
 
     def add_element(self, element, force=True):
-        from .engine import FlukaEngine
+        import xcoll as xc
         if element is None:
             if not force:
                 raise ValueError("Cannot add a null element to a prototype!")
@@ -363,7 +362,7 @@ class FlukaPrototype:
                 raise ValueError(f"Element {element} has no `name` variable! "
                                + f"Cannot assign to a prototype!")
             return None
-        elif not isinstance(element, FlukaEngine()._element_classes):
+        elif not isinstance(element, xc.fluka.engine._element_classes):
             if not force:
                 raise ValueError(f"Element {element.name} is not a FLUKA element! "
                                + f"Cannot assign to a prototype!")
@@ -491,7 +490,7 @@ class FlukaPrototype:
         prototypes = "\n".join(prototypes)
         if save:
             if path is None:
-                path = Path.cwd()
+                path = FsPath.cwd()
             with (path / "prototypes.lbp").open("w") as fp:
                 fp.write(prototypes)
         return prototypes
@@ -499,9 +498,9 @@ class FlukaPrototype:
     @classmethod
     def inspect_prototypes_file(cls, prototypes_file):
         if prototypes_file is None:
-            prototypes_file = Path.cwd() / "prototypes.lbp"
+            prototypes_file = FsPath.cwd() / "prototypes.lbp"
         all_prototypes = {}
-        with Path(prototypes_file).open("r") as fp:
+        with FsPath(prototypes_file).open("r") as fp:
             name = None
             for line in fp.readlines():
                 line = line.strip()
