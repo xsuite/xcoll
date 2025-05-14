@@ -23,13 +23,13 @@ def test_simple_track(num_part):
     _capacity = num_part*2
 
     # If a previous test failed, stop the server manually
-    if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean=True)
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=0.6, jaw=0.001, assembly='hilumi_tcppm')
-    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.start(elements=coll, capacity=_capacity, clean=False, verbose=True)
+    xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.fluka.engine.start(elements=coll, capacity=_capacity, clean=False, verbose=True)
 
     # Particle distribution
     x_init   = np.random.normal(loc=0.002, scale=1e-3, size=num_part)
@@ -37,8 +37,8 @@ def test_simple_track(num_part):
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                                   particle_ref=xc.FlukaEngine.particle_ref,
-                                   _capacity=xc.FlukaEngine.capacity)
+                                   particle_ref=xc.fluka.engine.particle_ref,
+                                   _capacity=xc.fluka.engine.capacity)
     part_fluka = part_init.copy()
     part_drift = part_init.copy()
 
@@ -68,7 +68,7 @@ def test_simple_track(num_part):
     print(f"KS test passed with p = {p_value}")
 
     # Stop the FLUKA server
-    xc.FlukaEngine.stop(clean=True)
+    xc.fluka.engine.stop(clean=True)
 
 
 def test_fluka_format_float():
@@ -127,22 +127,22 @@ def test_fluka_format_float():
 
 
 def test_particle_ids():
-    if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean=True)
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
     coll = xc.FlukaCollimator(length=0.0001, assembly='test_donadon', jaw=0.001)
-    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=6.8e12)
-    xc.FlukaEngine.capacity = 100_000
-    xc.FlukaEngine.seed = 7856231
-    xc.FlukaEngine.start(elements=coll, clean=False, verbose=True)
+    xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=6.8e12)
+    xc.fluka.engine.capacity = 100_000
+    xc.fluka.engine.seed = 7856231
+    xc.fluka.engine.start(elements=coll, clean=False, verbose=True)
     x_init, y_init = np.array(np.meshgrid(np.linspace(-0.01, 0.01, 21), np.linspace(-0.01, 0.01, 21))).reshape(2,-1)
     px_init = 0
     py_init = 0
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                                   particle_ref=xc.FlukaEngine.particle_ref,
-                                   _capacity=xc.FlukaEngine.capacity)
+                                   particle_ref=xc.fluka.engine.particle_ref,
+                                   _capacity=xc.fluka.engine.capacity)
 
     part = part_init.copy()
-    xc.FlukaEngine.stop(clean=True)
+    xc.fluka.engine.stop(clean=True)
 
 
 def test_prototypes():

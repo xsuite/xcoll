@@ -50,22 +50,22 @@ def test_fluka(jaw, angle, assembly):
     tilt = 0
 
     # If a previous test failed, stop the server manually
-    if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean=True)
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
-    xc.FlukaEngine.particle_ref = particle_ref
-    xc.FlukaEngine.start(elements=coll, capacity=10_000)
+    xc.fluka.engine.particle_ref = particle_ref
+    xc.fluka.engine.start(elements=coll, capacity=10_000)
 
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=5000, dim=0.015,
-                            _capacity=xc.FlukaEngine.capacity, particle_ref=xc.FlukaEngine().particle_ref)
+                            _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine().particle_ref)
     part = part_init.copy()
     coll.track(part)
     _assert_valid_positions(part, hit_ids, not_hit_ids)
 
     # Stop the FLUKA server
-    xc.FlukaEngine.stop(clean=True)
+    xc.fluka.engine.stop(clean=True)
 
 
 def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1.e-6,

@@ -15,8 +15,8 @@ num_part = int(10_000)
 _capacity = num_part*2
 
 
-if xc.FlukaEngine.is_running():
-    xc.FlukaEngine.stop(clean=True)
+if xc.fluka.engine.is_running():
+    xc.fluka.engine.stop(clean=True)
 
 
 # Create a FLUKA collimator
@@ -29,10 +29,10 @@ coll2.jaw = 0.001
 
 
 # Connect to FLUKA
-xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-xc.FlukaEngine.capacity = _capacity
-xc.FlukaEngine.seed = 5656565
-xc.FlukaEngine.start(elements=coll, clean=True, verbose=False)
+xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+xc.fluka.engine.capacity = _capacity
+xc.fluka.engine.seed = 5656565
+xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -43,8 +43,8 @@ px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                               particle_ref=xc.FlukaEngine.particle_ref,
-                               _capacity=xc.FlukaEngine.capacity)
+                               particle_ref=xc.fluka.engine.particle_ref,
+                               _capacity=xc.fluka.engine.capacity)
 part = part_init.copy()
 part2 = part_init.copy()
 part_test = part_init.copy()
@@ -69,7 +69,7 @@ print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")
 
 
 # Stop the FLUKA server
-xc.FlukaEngine.stop(clean=True)
+xc.fluka.engine.stop(clean=True)
 
 
 # Make some plots

@@ -9,14 +9,13 @@ from xtrack.particles import masses as xpm
 
 import xcoll as xc
 from  xcoll import particle_states as xcp
-from xcoll import fluka_masses as xflm
 
 
-FLUKA_PROTON_MASS_EV = xflm[2212][1]
-FLUKA_ELECTRON_MASS_EV = xflm[11][1]
-FLUKA_MUON_MASS_EV = xflm[13][1]
-FLUKA_PION_MASS_EV = xflm[211][1]
-FLUKA_LEAD_MASS_EV = xflm[1000822080][1]
+FLUKA_PROTON_MASS_EV = xc.fluka.masses[2212][1]
+FLUKA_ELECTRON_MASS_EV = xc.fluka.masses[11][1]
+FLUKA_MUON_MASS_EV = xc.fluka.masses[13][1]
+FLUKA_PION_MASS_EV = xc.fluka.masses[211][1]
+FLUKA_LEAD_MASS_EV = xc.fluka.masses[1000822080][1]
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
@@ -286,16 +285,16 @@ def test_negative_pions(proton_ref, hit):
 
 
 def _stop_engine():
-    if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean=True)
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
 
 
 def _init_fluka(particle_ref, capacity):
     coll = xc.FlukaCollimator(length=0.4, assembly='fcc_tcp')
     coll.jaw = 0.002
-    xc.FlukaEngine.particle_ref = particle_ref
-    xc.FlukaEngine.capacity = capacity
-    xc.FlukaEngine.start(elements=coll, clean=True, verbose=True, return_all=True,
+    xc.fluka.engine.particle_ref = particle_ref
+    xc.fluka.engine.capacity = capacity
+    xc.fluka.engine.start(elements=coll, clean=True, verbose=True, return_all=True,
                         return_neutral=True, electron_lower_momentum_cut=1.e6)
     return coll
 
@@ -305,15 +304,15 @@ def _init_particles(num_part, x=0.0022, px=-1.e-5, **kwargs):
     px_init = np.random.normal(loc=px, scale=5.e-6, size=num_part)
     y_init  = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    pref    = xc.FlukaEngine.particle_ref
+    pref    = xc.fluka.engine.particle_ref
     kwargs.setdefault('p0c', pref.p0c)
     kwargs.setdefault('mass0', pref.mass0)
     kwargs.setdefault('q0', pref.q0)
     kwargs.setdefault('pdg_id', pref.pdg_id)
     part_init = xt.Particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                             _capacity=xc.FlukaEngine.capacity, **kwargs)
+                             _capacity=xc.fluka.engine.capacity, **kwargs)
     print("Created particles with the following parameters:")
-    E0 = xc.FlukaEngine.particle_ref.energy[0]
+    E0 = xc.fluka.engine.particle_ref.energy[0]
     print(f"Reference energy: {E0} eV (in particles: {part_init.energy[0]} eV)")
     print(f"Mass {part_init.mass[0]} eV")
     print(f"Charge {part_init.charge_ratio[0]*part_init.q0}")
@@ -331,7 +330,7 @@ def _track_particles(coll, part):
 
 
 def _assert_missed(part, part_init, coll, tol=1e-12):
-    E0 = xc.FlukaEngine.particle_ref.energy[0]
+    E0 = xc.fluka.engine.particle_ref.energy[0]
     alive = part_init._num_active_particles
     assert part._num_active_particles == alive
     assert set(np.unique(part.state)) == {1, LAST_INVALID_STATE}
@@ -341,7 +340,7 @@ def _assert_missed(part, part_init, coll, tol=1e-12):
 
 
 def _test_drift(part, part_init, mask, coll, tol=1e-12):
-    E0 = xc.FlukaEngine.particle_ref.energy[0]
+    E0 = xc.fluka.engine.particle_ref.energy[0]
     assert np.all(part.state[mask] == 1)
     assert len(np.unique(part.energy[mask] == 1))
     assert np.allclose(part.energy[mask], E0, atol=100*tol, rtol=tol)
@@ -357,7 +356,7 @@ def _test_drift(part, part_init, mask, coll, tol=1e-12):
 
 
 def _assert_hit(part, part_init, coll, tol=1e-12):
-    E0 = xc.FlukaEngine.particle_ref.energy[0]
+    E0 = xc.fluka.engine.particle_ref.energy[0]
     alive_before = part_init._num_active_particles
     alive_after = part._num_active_particles
     part.sort(interleave_lost_particles=True)

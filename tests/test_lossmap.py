@@ -51,8 +51,8 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, tes
 @retry()
 def test_lossmap_fluka():
     # If a previous test failed, stop the server manually
-    if xc.FlukaEngine.is_running():
-        xc.FlukaEngine.stop(clean=True)
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
 
     npart = 5000
     beam = 2
@@ -69,8 +69,8 @@ def test_lossmap_fluka():
     for coll in colldb.collimator_names:
         line[coll].tilt = 0
 
-    xc.FlukaEngine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
-    xc.FlukaEngine.start(line=line, capacity=2*npart, cwd='run_fluka_temp', verbose=True)
+    xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.fluka.engine.start(line=line, capacity=2*npart, cwd='run_fluka_temp', verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
@@ -78,7 +78,7 @@ def test_lossmap_fluka():
     line.scattering.enable()
     line.track(part, num_turns=2)
     line.scattering.disable()
-    xc.FlukaEngine.stop(clean=True)
+    xc.fluka.engine.stop(clean=True)
     assert_lossmap(beam, npart, line, part, tcp, 0.1, True, 'FlukaCollimator', None)
 
 

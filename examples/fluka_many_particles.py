@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 # warnings.filterwarnings("error")
 
 
-if xc.FlukaEngine.is_running():
-    xc.FlukaEngine.stop()
+if xc.fluka.engine.is_running():
+    xc.fluka.engine.stop()
 
 
 def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
@@ -27,9 +27,9 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     coll.jaw = 0.001
 
     # Connect to FLUKA
-    xc.FlukaEngine.particle_ref = particle_ref
-    xc.FlukaEngine.capacity = capacity
-    xc.FlukaEngine.start(elements=coll, clean=True, verbose=False, return_all=True,
+    xc.fluka.engine.particle_ref = particle_ref
+    xc.fluka.engine.capacity = capacity
+    xc.fluka.engine.start(elements=coll, clean=True, verbose=False, return_all=True,
                         return_neutral=True, electron_lower_momentum_cut=1.e6, include_showers=True)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -39,8 +39,8 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                                   particle_ref=xc.FlukaEngine.particle_ref,
-                                   _capacity=xc.FlukaEngine.capacity)
+                                   particle_ref=xc.fluka.engine.particle_ref,
+                                   _capacity=xc.fluka.engine.capacity)
     part = part_init.copy()
 
     # Do the tracking in FLUKA
@@ -115,7 +115,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     print()
 
     # Stop the FLUKA server
-    xc.FlukaEngine.stop(clean=True)
+    xc.fluka.engine.stop(clean=True)
 
     if plot:
         data = []

@@ -45,7 +45,7 @@ line.build_tracker()
 line.collimators.assign_optics()
 
 # Connect to FLUKA
-xc.FlukaEngine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', clean=True, verbose=True)
+xc.fluka.engine.start(line=line, capacity=2*num_particles, cwd='run_fluka_temp', clean=True, verbose=True)
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
@@ -63,7 +63,7 @@ line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Stop the FLUKA connection (and return to the previous directory)
-xc.FlukaEngine.stop(clean=True)
+xc.fluka.engine.stop(clean=True)
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
 # and plotted with the 'lossmaps' package
