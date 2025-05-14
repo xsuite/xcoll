@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import atexit
 import numpy as np
 
 try:
@@ -31,84 +32,93 @@ def xcoll_to_fluka_material(material):
         return material_dict[material]
 
 
-# TODO TODO TODO there is no need for this to be a separate class1
-#                it should spawn FlukaAssembly instances
+def exit_handler():
+    """Remove generic assemblies on exit."""
+    for assembly in FlukaPrototype._registry:
+        if isinstance(assembly, FlukaAssembly) \
+        and assembly.fedb_series == 'generic':
+            for el in assembly.elements:
+                assembly.remove_element(el)
+            assembly.delete()
+atexit.register(exit_handler)
 
-class FlukaGenericAssembly(FlukaAssembly):
-    _generic_required_fields = ['material', 'length']
-    _generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
 
-    def __new__(cls, **kwargs):
-        for field in cls._generic_required_fields:
+_generic_required_fields = ['material', 'length']
+_generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
+_generic_crystal_required_fields = ['material', 'length', 'bending_radius']
+_generic_crystal_optional_fields = {'side': 'left', 'width': 0.02, 'height': 0.05}
+
+
+def create_generic_assembly(**kwargs):
+    _validate_kwargs(kwargs)
+    # Check if the assembly already exists
+    for prototype in FlukaPrototype._registry:
+        if prototype.fedb_series == 'generic':
+            found = True
+            for field in _generic_required_fields:
+                if kwargs[field] != getattr(prototype, field):
+                    found = False
+                    break
+            for field, opt_value in _generic_optional_fields.items():
+                if kwargs.get(field, opt_value) != getattr(prototype, field):
+                    found = False
+                    break
+            if found:
+                return prototype
+    # Get an ID
+    existing_ids = [int(p.fedb_tag[3:]) for p in FlukaPrototype._registry
+                    if p.fedb_series == 'generic' and isinstance(p, FlukaAssembly)]
+    max_id = max(existing_ids) if existing_ids else 0
+    new_id = min(set(range(max_id+2)) - set(existing_ids))
+    fedb_series = 'generic'
+    fedb_tag = f'GEN{new_id:03d}'
+    # Create the objects
+    tank = FlukaPrototype(fedb_series, f'{fedb_tag}_T', _allow_generic=True)
+    kwargs_body = kwargs.copy()
+    kwargs_body.pop('side')
+    body = FlukaPrototype(fedb_series, f'{fedb_tag}_B', _allow_generic=True, **kwargs_body)
+    ass = FlukaAssembly(fedb_series, fedb_tag, _allow_generic=True, **kwargs)
+    # Create and assign the files
+    if kwargs['is_crystal']:
+            body_file, tank_file = _crystal_body_file(fedb_tag, **kwargs)
+            _crystal_region_file(fedb_tag, **kwargs)
+            _crystal_material_file(fedb_tag, **kwargs)
+    else:
+        body_file, tank_file = _body_file(fedb_tag, **kwargs)
+        _region_file(fedb_tag, **kwargs)
+        _material_file(fedb_tag, **kwargs)
+    body.body_file = body_file
+    tank.body_file = tank_file
+    ass.assembly_file = _assembly_file(fedb_tag, **kwargs)
+    return ass
+
+
+def _validate_kwargs(kwargs):
+    kwargs.setdefault('is_crystal', False)
+    if kwargs['is_crystal']:
+        for field in _generic_crystal_required_fields:
             if field not in kwargs:
                 raise ValueError(f"Need to provide {field}!")
-        if kwargs.get('side') not in [None, 'both', 'left', 'right']:
-            raise ValueError("Side must be 'both', 'left' or 'right'!")
-        for prototype in FlukaPrototype._registry:
-            if isinstance(prototype, FlukaGenericAssembly):
-                found = True
-                for field in cls._generic_required_fields:
-                    if kwargs[field] != getattr(prototype, field):
-                        found = False
-                        break
-                for field, opt_value in cls._generic_optional_fields.items():
-                    if kwargs.get(field, opt_value) != getattr(prototype, field):
-                        found = False
-                        break
-                if found:
-                    return prototype
-        # Create new generic assembly
-        return super().__new__(cls, fedb_series='NOPE', fedb_tag='NOPENOPE', **kwargs)
-
-    def __init__(self, **kwargs):
-        if not hasattr(self, 'fedb_tag') and not hasattr(self, 'fedb_series'):
-            self._init(kwargs)
-            self._width = kwargs['width']
-            self._height = kwargs['height']
-            if self._width > 0.25:
-                self._width = 0.25
-            if self._height > 0.25:
-                self._height = 0.25
-            self.assembly_file = create_assembly_file(self.fedb_tag, self.side)
-            create_body_file(self.fedb_tag, self.length, self.width, self.height)
-            create_region_file(self.fedb_tag)
-            create_material_file(self.fedb_tag, self.material)
-
-    def _init(self, kwargs):
-        num_generic_assemblies = len([p for p in FlukaPrototype._registry
-                                    if isinstance(p, FlukaGenericAssembly)])
-        kwargs['fedb_series'] = 'generic'
-        kwargs['fedb_tag'] = f'GEN{num_generic_assemblies:03d}'
-        for field, opt_value in self._generic_optional_fields.items():
+        for field, opt_value in _generic_crystal_optional_fields.items():
             kwargs.setdefault(field, opt_value)
-        super().__init__(**kwargs)
+    else:
+        for field in _generic_required_fields:
+            if field not in kwargs:
+                raise ValueError(f"Need to provide {field}!")
+        for field, opt_value in _generic_optional_fields.items():
+            kwargs.setdefault(field, opt_value)
+    if kwargs.get('side') not in ['both', 'left', 'right']:
+        raise ValueError("Side must be 'both', 'left' or 'right'!")
+    if kwargs['width'] > 0.25:
+        kwargs['width'] = 0.25
+    if kwargs['height'] > 0.25:
+        kwargs['height'] = 0.25
+    kwargs.pop('fedb_series', None) # fedb_series is always 'generic'
+    kwargs.pop('fedb_tag', None)    # fedb_tag is always 'GENnnn'
+    kwargs['angle'] = 0             # Only horizontal assembly (angle will be provided by LineBuilder)
 
 
-class FlukaGenericCrystalAssembly(FlukaGenericAssembly):
-    _generic_required_fields = ['material', 'length', 'bending_radius', 'side']
-    _generic_optional_fields = {'x_dim': 0.2, 'y_dim': 0.2}
-
-    def __new__(cls,  *, bending_radius=None, **kwargs):
-        if bending_radius is None:
-            raise ValueError("Need to provide bending_radius!")
-        kwargs['bending_radius'] = bending_radius
-        return super().__new__(cls, **kwargs)
-
-    def __init__(self, **kwargs):
-        if not hasattr(self, 'fedb_tag') and not hasattr(self, 'fedb_series'):
-            self._init(kwargs)
-            self.bending_radius = kwargs['bending_radius']
-            # Set dimensions
-            self._width = kwargs['width']
-            self._height = kwargs['height']
-            # create files
-            self.assembly_file = create_assembly_file(self.fedb_tag, self.side)
-            create_crystal_body_file(self.fedb_tag, self.length, self.bending_radius,  self.x_dim, self.y_dim)
-            create_crystal_region_file(self.fedb_tag)
-            create_crystal_material_file(self.fedb_tag, self.material)
-
-
-def create_assembly_file(fedb_tag, side):
+def _assembly_file(fedb_tag, side, **kwargs):
     template_assembly = f"""\
 # --------------------------------------------------------------------------------------------------------------
 PROTOTYPE       {fedb_tag}_T
@@ -184,23 +194,24 @@ ROT-DEFI           300.0         0.0       180.0         0.0         0.0        
                        template_assembly)
 
 
-def create_body_file(fedb_tag, length, x_dim, y_dim):
+def _body_file(fedb_tag, length, width, height, **kwargs):
     template_body = f"""\
-RPP {fedb_tag}_B   0.0 {100*x_dim} -{100*y_dim/2} {100*y_dim/2} -{length*100/2} {length*100/2}
+RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 """
-    _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
-                template_body)
+    body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
+                        template_body)
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
 RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
 RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
 """
-    _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
-                template_tank)
+    tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
+                        template_tank)
+    return body_file, tank_file
 
 
-def create_region_file(fedb_tag):
+def _region_file(fedb_tag, **kwargs):
     template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B
 """
@@ -215,7 +226,7 @@ def create_region_file(fedb_tag):
                 template_tank_reg)
 
 
-def create_material_file(fedb_tag, material):
+def _material_file(fedb_tag, material, **kwargs):
     mat = xcoll_to_fluka_material(material)
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
@@ -233,24 +244,25 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
                 template_tank_mat)
 
 
-def create_crystal_body_file(fedb_tag, length, bending_radius, x_dim, y_dim):
+def _crystal_body_file(fedb_tag, length, bending_radius, width, height, **kwargs):
     template_body = f"""\
-RPP {fedb_tag}_B   0.0 {x_dim*(100+10)} -{y_dim*(100+10)/2} {y_dim*(100+10)/2} 0.00001 {length*(100+20)}
+RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} 0.00001 {length*(100+20)}
 ZCC {fedb_tag}Z1  {bending_radius*100} 0.0 {bending_radius*100}
-ZCC {fedb_tag}Z2  {bending_radius*100} 0.0 {bending_radius*100-x_dim*100}
+ZCC {fedb_tag}Z2  {bending_radius*100} 0.0 {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
 """
-    _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
-                template_body)
+    body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
+                            template_body)
     template_tank = f"""\
 RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
 RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
 """
-    _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
-                template_tank)
+    tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
+                            template_tank)
+    return body_file, tank_file
 
 
-def create_crystal_region_file(fedb_tag):
+def _crystal_region_file(fedb_tag, **kwargs):
     template_body_reg = f"""\
 {fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1
 {fedb_tag}B2     5 | +{fedb_tag}_B +{fedb_tag}Z2
@@ -267,7 +279,7 @@ def create_crystal_region_file(fedb_tag):
                 template_body_tank)
 
 
-def create_crystal_material_file(fedb_tag, material):
+def _crystal_material_file(fedb_tag, material, **kwargs):
     mat = xcoll_to_fluka_material(material)
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..

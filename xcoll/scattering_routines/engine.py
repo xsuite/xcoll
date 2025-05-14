@@ -227,7 +227,6 @@ class BaseEngine(xo.HybridClass):
 
 
     def stop(self, clean=False, **kwargs):
-        kwargs, _ = self.filter_kwargs(**kwargs)
         self._stop_engine(**kwargs)
         if clean:
             self.clean(clean_all=True, **kwargs)

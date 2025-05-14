@@ -5,5 +5,5 @@
 
 from .track import track
 from .prototype import FlukaPrototype, FlukaAssembly
-from .generic_prototype import FlukaGenericAssembly, FlukaGenericCrystalAssembly
+from .generic_prototype import create_generic_assembly
 

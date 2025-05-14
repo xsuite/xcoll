@@ -11,7 +11,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from .environment import format_fluka_float
+from .environment import format_fluka_float, _FEDB
 from ...beam_elements.base import BaseCollimator
 
 
@@ -25,10 +25,8 @@ class FlukaPrototype:
     # FlukaPrototypes and another for FlukaAssemblies.
     _assigned_registry = {}
 
-    def __new__(cls, **kwargs):
+    def __new__(cls, fedb_series=None, fedb_tag=None, **kwargs):
         # If the prototype is already defined, return the existing instance
-        fedb_series = kwargs.get('fedb_series', None)
-        fedb_tag = kwargs.get('fedb_tag', None)
         if fedb_series is not None or fedb_tag is not None:
             for prototype in FlukaPrototype._registry:
                 if prototype.fedb_series.upper() == fedb_series.upper() \
@@ -45,7 +43,7 @@ class FlukaPrototype:
 
     def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
                  height=None, length=None, material=None, info=None, extra_commands=None,
-                 is_crystal=False, bending_radius=None, **kwargs):
+                 is_crystal=False, bending_radius=None, _allow_generic=False, **kwargs):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -54,6 +52,11 @@ class FlukaPrototype:
             raise ValueError("Both 'fedb_series' and 'fedb_tag' must be provided.")
         else:
             self._is_null = False
+        if fedb_series == 'generic' and not _allow_generic:
+            this_type = self.__class__.__name__[5:].lower()
+            raise ValueError("Cannot use 'generic' as fedb_series, unless creating a generic " \
+                          + f"{this_type}. Please use xcoll.fluka.create_generic_{this_type}() " \
+                          + f"instead.")
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
@@ -108,14 +111,13 @@ class FlukaPrototype:
             raise ValueError(f"Cannot delete {self._type} '{self.name}' "
                            + f"while it has {len(self._elements)} elements assigned!")
         # Remove the prototype from the registry of all prototypes
-        if self in FlukaPrototype._registry:
+        while self in FlukaPrototype._registry:
             FlukaPrototype._registry.remove(self)
-        # Remove the prototype from the registry of all assemblies
-        if self in FlukaAssembly._registry:
-            FlukaAssembly._registry.remove(self)
         # Remove all files associated with the prototype
         for file in self.files:
             file.unlink(missing_ok=True)
+        meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
+        meta.unlink(missing_ok=True)
 
     def to_dict(self):
         if self._is_null:
@@ -141,15 +143,9 @@ class FlukaPrototype:
     def from_dict(cls, data):
         cls = data.pop('__class__', None)
         if cls == 'FlukaPrototype':
-            return FlukaPrototype(**data)
+            return FlukaPrototype(_allow_generic=True, **data)
         elif cls == 'FlukaAssembly':
-            return FlukaAssembly(**data)
-        elif cls == 'FlukaGenericAssembly':
-            from xcoll import FlukaGenericAssembly
-            return FlukaGenericAssembly(**data)
-        elif cls == 'FlukaGenericCrystalAssembly':
-            from xcoll import FlukaGenericCrystalAssembly
-            return FlukaGenericCrystalAssembly(**data)
+            return FlukaAssembly(_allow_generic=True, **data)
         else:
             raise ValueError(f"Invalid data format for {cls}.")
 
@@ -193,60 +189,53 @@ class FlukaPrototype:
     def body_file(self):
         if self._is_null:
             return None
-        import xcoll as xc
-        file = xc.fluka.environment.fedb / "bodies" \
-                    / f"{self.fedb_series}_{self.fedb_tag}.bodies"
+        file = _FEDB / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         return file.resolve()
 
     @body_file.setter
     def body_file(self, path):
         if self._is_null:
             raise ValueError("Cannot set body_file for a null prototype!")
-        import xcoll as xc
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(xc.fluka.environment.fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies")
-        with open(xc.fluka.environment.fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
+        target = _FEDB / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
+        if path != target:
+            path.copy_to(target)
+        with open(_FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
             json.dump(self.to_dict(), fid, indent=4)
 
     @property
     def material_file(self):
         if self._is_null:
             return None
-        import xcoll as xc
-        file = xc.fluka.environment.fedb / "materials" \
-                    / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
+        file = _FEDB / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
         return file.resolve()
 
     @material_file.setter
     def material_file(self, path):
         if self._is_null:
             raise ValueError("Cannot set material_file for a null prototype!")
-        import xcoll as xc
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(xc.fluka.environment.fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat")
+        path.copy_to(_FEDB / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat")
 
     @property
     def region_file(self):
         if self._is_null:
             return None
-        import xcoll as xc
-        file = xc.fluka.environment.fedb / "regions" \
-                    / f"{self.fedb_series}_{self.fedb_tag}.regions"
+        file = _FEDB / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions"
         return file.resolve()
 
     @region_file.setter
     def region_file(self, path):
         if self._is_null:
             raise ValueError("Cannot set region_file for a null prototype!")
-        import xcoll as xc
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(xc.fluka.environment.fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions")
+        path.copy_to(_FEDB / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions")
 
     @property
     def files(self):
@@ -558,28 +547,58 @@ class FlukaPrototype:
                     if element.name.upper() not in all_prototypes[prototype.name]['elements']:
                         raise ValueError(f"Element {element.name} not found in prototypes file!")
 
+    @property
+    def dependant_assemblies(self):
+        """Return a list of all assemblies that depend on this prototype."""
+        if self._is_null:
+            return []
+        assemblies = []
+        for assembly in FlukaPrototype._registry:
+            if isinstance(assembly, FlukaAssembly) \
+            and assembly.fedb_series == self.fedb_series:
+                if self in assembly.prototypes:
+                    assemblies.append(assembly)
+        return assemblies
+
 
 class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies
     _assigned_registry = {}
 
+    def delete(self):
+        if self._is_null:
+            return
+        if len(self._elements) > 0:
+            raise ValueError(f"Cannot delete {self._type} '{self.name}' "
+                           + f"while it has {len(self._elements)} elements assigned!")
+        # Remove prototypes if no other assembly depends on them
+        for prototype in self.prototypes:
+            if prototype.dependant_assemblies == [self]:
+                prototype.delete()
+        # Remove the assembly from the registry of all prototypes
+        while self in FlukaPrototype._registry:
+            FlukaPrototype._registry.remove(self)
+        # Remove all files associated with the assembly
+        self.assembly_file.unlink(missing_ok=True)
+        meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
+        meta.unlink(missing_ok=True)
+
     @property
     def assembly_file(self):
-        import xcoll as xc
-        file = xc.fluka.environment.fedb / "assemblies" \
-                    / f"{self.fedb_series}_{self.fedb_tag}.lbp"
+        file = _FEDB / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         return file.resolve()
 
     @assembly_file.setter
     def assembly_file(self, path):
         if self._is_null:
             raise ValueError("Cannot set assembly_file for a null prototype!")
-        import xcoll as xc
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(xc.fluka.environment.fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp")
-        with open(xc.fluka.environment.fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
+        target = _FEDB / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
+        if path != target:
+            path.copy_to(target)
+        with open(_FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
             json.dump(self.to_dict(), fid, indent=4)
 
     @property
@@ -628,7 +647,8 @@ class FlukaAssembly(FlukaPrototype):
                         raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
                     fedb_tag = line.split()[1]
                 if fedb_series is not None and fedb_tag is not None:
-                    prototypes.append(FlukaPrototype(fedb_series=fedb_series, fedb_tag=fedb_tag))
+                    prototypes.append(FlukaPrototype(fedb_series=fedb_series, fedb_tag=fedb_tag,
+                                                     _allow_generic=True))
                     fedb_series = None
                     fedb_tag = None
                     prototype_found = False

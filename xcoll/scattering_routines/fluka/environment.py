@@ -17,6 +17,9 @@ except (ImportError, ModuleNotFoundError):
 from ...general import _pkg_root
 
 
+_FEDB = (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
+
+
 class FlukaEnvironment:
     _default_fluka_eos_path = FsPath('/eos/project/f/flukafiles/fluka-coupling').resolve()
 
@@ -112,7 +115,7 @@ class FlukaEnvironment:
 
     @property
     def fedb(self):
-        return (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
+        return _FEDB
 
 
     # ======================

@@ -10,8 +10,7 @@ import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
 from ..scattering_routines.fluka import track, \
-                    FlukaPrototype, FlukaAssembly, FlukaGenericAssembly, \
-                    FlukaGenericCrystalAssembly
+                    FlukaPrototype, FlukaAssembly, create_generic_assembly
 from ..scattering_routines.fluka.engine import FlukaEngine
 
 
@@ -62,8 +61,8 @@ class FlukaCollimator(BaseCollimator):
                     if length is None:
                         raise ValueError('Need to provide length!')
                     side = kwargs.pop('side', 'both')
-                    to_assign['assembly'] = FlukaGenericAssembly(material=material, side=side,
-                                                                 length=length)
+                    to_assign['assembly'] = create_generic_assembly(material=material,
+                                                side=side, length=length)
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
@@ -72,7 +71,7 @@ class FlukaCollimator(BaseCollimator):
 
     def __del__(self):
         if self.assembly:
-            self.assembly.remove_element(self.name, force=False)
+            self.assembly.remove_element(self, force=False)
         try:
             super().__del__()
         except AttributeError:
@@ -91,8 +90,8 @@ class FlukaCollimator(BaseCollimator):
     @material.setter
     def material(self, material):
         if not self._being_constructed():
-            self.assembly = FlukaGenericAssembly(material=material, side=self.side,
-                                                 length=self.length)
+            self.assembly = create_generic_assembly(material=material,
+                                side=self.side, length=self.length)
 
     @property
     def side(self):
@@ -102,8 +101,8 @@ class FlukaCollimator(BaseCollimator):
     @side.setter
     def side(self, side):
         if not self._being_constructed():
-            self.assembly = FlukaGenericAssembly(material=self.material, side=side,
-                                                 length=self.length)
+            self.assembly = create_generic_assembly(material=self.material,
+                                side=side, length=self.length)
 
     @property
     def assembly(self):
@@ -123,6 +122,7 @@ class FlukaCollimator(BaseCollimator):
         if hasattr(assembly, '__iter__'):
             if len(assembly) != 2:
                 raise ValueError('Assembly name should be a string or a tuple of two strings!')
+            assembly = (assembly[0].lower(), assembly[1].lower())
             if assembly[0] in xc.fluka.assemblies \
             and assembly[1] in xc.fluka.assemblies[assembly[0]]:
                 assembly = xc.fluka.assemblies[assembly[0]][assembly[1]]
@@ -248,13 +248,14 @@ class FlukaCrystal(BaseCrystal):
                     BaseCrystal.bending_radius.fset(self, bending_radius)
                 if bending_angle:
                     BaseCrystal.bending_angle.fset(self, bending_angle)
-                self.assembly = FlukaGenericCrystalAssembly(material=material, side=side,
-                                         length=self.length, bending_radius=self.bending_radius)
+                self.assembly = create_generic_assembly(is_crystal=True, material=material,
+                                    side=side, length=self.length,
+                                    bending_radius=self.bending_radius)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
-    def __del__(self):
-        return FlukaCollimator.__del__(self, **kwargs)
+    def __del__(self, **kwargs):
+        FlukaCollimator.__del__(self, **kwargs)
 
     def copy(self, **kwargs):
         return FlukaCollimator.copy(self, **kwargs)
@@ -266,8 +267,9 @@ class FlukaCrystal(BaseCrystal):
     @material.setter
     def material(self, material):
         if not self._being_constructed():
-            self.assembly = FlukaGenericCrystalAssembly(material=material, side=self.side,
-                               length=self.length, bending_radius=self.bending_radius)
+            self.assembly = create_generic_assembly(is_crystal=True, material=material,
+                                side=self.side, length=self.length,
+                                bending_radius=self.bending_radius)
 
     @property
     def side(self):
@@ -276,18 +278,20 @@ class FlukaCrystal(BaseCrystal):
     @side.setter
     def side(self, side):
         if not self._being_constructed():
-            self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=side,
-                               length=self.length, bending_radius=self.bending_radius)
+            self.assembly = create_generic_assembly(is_crystal=True, material=self.material,
+                                side=side, length=self.length,
+                                bending_radius=self.bending_radius)
 
     @property
     def bending_radius(self):
         return BaseCrystal.bending_radius.fget(self)
 
     @bending_radius.setter
-    def bending_radius(self, material):
+    def bending_radius(self, bending_radius):
         if not self._being_constructed():
-            self.assembly = FlukaGenericCrystalAssembly(material=self.material, side=self.side,
-                                         length=self.length, bending_radius=bending_radius)
+            self.assembly = create_generic_assembly(is_crystal=True, material=self.material,
+                                side=self.side, length=self.length,
+                                bending_radius=bending_radius)
 
     @property
     def assembly(self):
