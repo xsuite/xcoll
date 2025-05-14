@@ -178,7 +178,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
 
 def _assignmat_include_file():
     crystal_assemblies = [pro for pro in FlukaPrototype._registry
-                          if pro.is_crystal and isinstance(pro, FlukaAssembly)]
+                          if pro.is_crystal and not isinstance(pro, FlukaAssembly)]
     template = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 *
@@ -206,7 +206,7 @@ def _assignmat_include_file():
         angle  = crystal.angle
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-CRYSTAL    {name}_B  {bang:>8}  {l:>8}       0.0       0.0     300.0 110
+CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
 CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &
 CRYSTAL      -1049.0   -2999.0    1000.1                              &&
 """

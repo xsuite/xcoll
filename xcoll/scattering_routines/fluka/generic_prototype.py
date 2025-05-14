@@ -203,8 +203,8 @@ RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
-RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
-RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 """
     tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
                         template_tank)
@@ -254,8 +254,8 @@ PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_r
     body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
                             template_body)
     template_tank = f"""\
-RPP {fedb_tag}_T  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
-RPP {fedb_tag}_I  -{28} {28} -{28} {28} -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 """
     tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
                             template_tank)
