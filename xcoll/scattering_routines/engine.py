@@ -13,19 +13,12 @@ import xtrack.particles.pdg as pdg
 
 try:
     # TODO: once xaux is in Xsuite keep only this
-    from xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton, ranID
+    from xaux import FsPath, ranID
 except (ImportError, ModuleNotFoundError):
-    from ..xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton, ranID
+    from ..xaux import FsPath, ranID
 
 
-class BaseEngineMeta(MetaHybridClass, ClassPropertyMeta):
-    def __new__(cls, name, bases, data):
-        new_class = MetaHybridClass.__new__(cls, name, bases, data)
-        return ClassPropertyMeta.__new__(cls, name, bases, data, new_class)
-
-
-@singleton(allow_underscore_vars_in_init=False)
-class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
+class BaseEngine(xo.HybridClass):
     _xofields = {
         '_particle_ref': xt.Particles._XoStruct,
         '_seed':         xo.UInt64,
@@ -41,10 +34,6 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     def __init__(self, **kwargs):
         if self._element_classes is None:
             raise NotImplementedError(f"{self.__class__.__name__} needs to define `_element_classes`!")
-        if np.any([key[0] != '_' for key in self._xofields.keys()]):
-            raise ValueError(f"All fields in `{self.__class__.__name__}._xofields` have "
-                            + f"to start with an underscore! This is to ensure to work "
-                            + f"correctly with `ClassProperty`.")
         # Initialise defaults
         self._cwd = None
         self._line = None
@@ -86,35 +75,34 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
     # === Properties ===
     # ==================
 
-    @ClassProperty
-    def name(cls):
-        return cls.__name__.replace('Engine', '').lower()
+    @property
+    def name(self):
+        return self.__class__.__name__.replace('Engine', '').lower()
 
-    @ClassProperty
-    def verbose(cls):
-        return cls.get_self()._verbose
+    @property
+    def verbose(self):
+        return self._verbose
 
     @verbose.setter
-    def verbose(cls, val):
-        cls.get_self()._verbose = val
+    def verbose(self, val):
+        self._verbose = val
 
-    @ClassProperty
-    def line(cls):
-        return cls.get_self()._line
+    @property
+    def line(self):
+        return self._line
 
     @line.setter
-    def line(cls, val):
+    def line(self, val):
         if not val is None and not isinstance(val, xt.Line):
             raise ValueError("`line` has to be an xt.Line object!")
-        cls.get_self()._line = val
+        self._line = val
 
     @line.deleter
-    def line(cls):
-        cls.get_self()._line = None
+    def line(self):
+        self._line = None
 
-    @ClassProperty
-    def particle_ref(cls):
-        self = cls.get_self()
+    @property
+    def particle_ref(self):
         initial = xt.Particles().to_dict()
         current = self._particle_ref.to_dict()
         if xt.line._dicts_equal(initial, current):
@@ -123,8 +111,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             return self._particle_ref
 
     @particle_ref.setter
-    def particle_ref(cls, val):
-        self = cls.get_self()
+    def particle_ref(self, val):
         if val is None:
             self._particle_ref = xt.Particles()
         else:
@@ -134,54 +121,51 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 raise ValueError("`particle_ref` has to be a single particle!")
             pdg_id = val.pdg_id[0]
             if pdg_id == 0:
-                if cls._only_protons:
+                if self._only_protons:
                     pdg_id = pdg.get_pdg_id_from_name('proton')
                 else:
-                    raise ValueError(f"{cls.__name__} allows the use of particles "
+                    raise ValueError(f"{self.__class__.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
-            elif cls._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
-                raise ValueError("{cls.__name__} only supports protons!")
+            elif self._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
+                raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
 
     @particle_ref.deleter
-    def particle_ref(cls):
-        cls.particle_ref = None
+    def particle_ref(self):
+        self.particle_ref = None
 
-    @ClassProperty
-    def capacity(cls):
-        self = cls.get_self()
+    @property
+    def capacity(self):
         if self._capacity == 0:
             return None
         else:
             return int(self._capacity)
 
     @capacity.setter
-    def capacity(cls, val):
+    def capacity(self, val):
         if val is None:
             val = 0
-        cls.get_self()._capacity = int(val)
+        self._capacity = int(val)
 
     @capacity.deleter
-    def capacity(cls):
-        cls.get_self().capacity = None
+    def capacity(self):
+        self.capacity = None
 
-    @ClassProperty
-    def seed(cls):
-        self = cls.get_self()
+    @property
+    def seed(self):
         if self._seed == 0:
             return None
         else:
             return self._seed
 
     @seed.setter
-    def seed(cls, val):
-        self = cls.get_self()
+    def seed(self, val):
         if val is None:
             val = 0
         val = int(val)
-        if cls._int32:
+        if self._int32:
             new_val = np.uint32(val)
         else:
             new_val = np.uint64(val)
@@ -190,28 +174,25 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._seed = new_val
 
     @seed.deleter
-    def seed(cls):
-        cls.seed = None
+    def seed(self):
+        self.seed = None
 
-    @ClassProperty
-    def input_file(cls):
-        if cls._uses_input_file:
-            return cls.get_self()._input_file
+    @property
+    def input_file(self):
+        if self._uses_input_file:
+            return self._input_file
 
-    @ClassProperty
-    def element_dict(cls):
-        return cls.get_self()._element_dict
+    @property
+    def element_dict(self):
+        return self._element_dict
 
 
     # ======================
     # === Public Methods ===
     # ======================
 
-    @classmethod
-    def start(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
+    def start(self, *, line=None, elements=None, names=None, cwd=None, seed=None,
               particle_ref=None, input_file=None, clean=True, **kwargs):
-        self = cls.get_self(**kwargs)
-        kwargs, _ = cls.filter_kwargs(**kwargs)
         for key in kwargs.keys():
             if key.startswith('_'):
                 raise ValueError(f"Unknown keyword argument '{key}'!")
@@ -221,12 +202,12 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
             return
 
         # Clean up any leftover failed runs
-        cls.stop(clean=clean)
+        self.stop(clean=clean)
 
         if self.verbose:
-            print(f"Starting {cls.__name__}...", flush=True)
+            print(f"Starting {self.__class__.__name__}...", flush=True)
         else:
-            print(f"Starting {cls.__name__}...   ", flush=True, end='')
+            print(f"Starting {self.__class__.__name__}...   ", flush=True, end='')
         self._pre_start(**kwargs)
 
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
@@ -240,15 +221,13 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._preparing_input = False
         self._start_engine(**kwargs)
         if self.verbose:
-            print(f"{cls.__name__} started.", flush=True)
+            print(f"{self.__class__.__name__} started.", flush=True)
         else:
             print(f"Done.", flush=True)
 
 
-    @classmethod
-    def stop(cls, clean=False, **kwargs):
-        self = cls.get_self(**kwargs)
-        kwargs, _ = cls.filter_kwargs(**kwargs)
+    def stop(self, clean=False, **kwargs):
+        kwargs, _ = self.filter_kwargs(**kwargs)
         self._stop_engine(**kwargs)
         if clean:
             self.clean(clean_all=True, **kwargs)
@@ -257,20 +236,16 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         self._tracking_initialised = False
 
 
-    @classmethod
-    def assert_particle_ref(cls):
-        if cls.get_self().particle_ref is None:
-            raise ValueError(f"{cls.__name__} reference particle not set!")
+    def assert_particle_ref(self):
+        if self.particle_ref is None:
+            raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
 
-    @classmethod
-    def generate_input_file(cls, *, line=None, elements=None, names=None, cwd=None, seed=None,
+    def generate_input_file(self, *, line=None, elements=None, names=None, cwd=None, seed=None,
                             particle_ref=None, filename=None, **kwargs):
         # This method manually generates an input file without starting the engine
-        self = cls.get_self(**kwargs)
-        kwargs, _ = cls.filter_kwargs(**kwargs)
         if not self._uses_input_file:
-            raise ValueError(f"{cls.__name__} does not use input files!")
+            raise ValueError(f"{self.__class__.__name__} does not use input files!")
         if self._element_dict:
             raise ValueError("Elements already assigned to engine (cannot regenerate input "
                            + "file after starting engine)!")
@@ -294,9 +269,7 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         return input_file
 
 
-    @classmethod
-    def is_running(cls, **kwargs):
-        self = cls.get_self() # Do not pass kwargs! We are dealing with the setters manually
+    def is_running(self, **kwargs):
         if hasattr(self, '_preparing_input') and self._preparing_input:
             # We need this to allow changing the element settings which otherwise are locked
             return False
@@ -305,20 +278,15 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
         return self._is_running(**kwargs)
 
 
-    @classmethod
-    def clean(cls, **kwargs):
-        cls.clean_input_files(**kwargs)
-        cls.clean_output_files(**kwargs)
+    def clean(self, **kwargs):
+        self.clean_input_files(**kwargs)
+        self.clean_output_files(**kwargs)
 
-    @classmethod
-    def clean_input_files(cls, **kwargs):
-        self = cls.get_self()
+    def clean_input_files(self, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
         self._clean_input_files(**kwargs)
 
-    @classmethod
-    def clean_output_files(cls, **kwargs):
-        self = cls.get_self()
+    def clean_output_files(self, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
         self._clean_output_files(**kwargs)
 

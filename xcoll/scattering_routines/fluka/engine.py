@@ -11,9 +11,9 @@ import xobjects as xo
 import xtrack.particles.pdg as pdg
 
 try:
-    from xaux import ClassProperty, FsPath  # TODO: once xaux is in Xsuite keep only this
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ...xaux import ClassProperty, FsPath
+    from ...xaux import FsPath
 
 from .reference_masses import source, fluka_masses
 from .environment import FlukaEnvironment, format_fluka_float
@@ -66,50 +66,47 @@ class FlukaEngine(BaseEngine):
     # === New Properties ===
     # ======================
 
-    @ClassProperty
-    def network_port(cls):
-        return cls.get_self()._network_port
+    @property
+    def network_port(self):
+        return self._network_port
 
-    @ClassProperty
-    def timeout_sec(cls):
-        return cls.get_self()._timeout_sec
+    @property
+    def timeout_sec(self):
+        return self._timeout_sec
 
     @timeout_sec.setter
-    def timeout_sec(cls, val):
-        cls.get_self()._timeout_sec = val
+    def timeout_sec(self, val):
+        self._timeout_sec = val
 
-    @ClassProperty
-    def max_particle_id(cls):
-        return cls.get_self()._max_particle_id
+    @property
+    def max_particle_id(self):
+        return self._max_particle_id
 
 
     # ============================
     # === Overwrite Properties ===
     # ============================
 
-    @ClassProperty
-    def seed(cls):
-        return BaseEngine.classproperty.seed.fget(cls)
+    @property
+    def seed(self):
+        return BaseEngine.seed.fget(self)
 
     @seed.setter
-    def seed(cls, val):
-        BaseEngine.classproperty.seed.fset(cls, val)
-        self = cls.get_self()
-        self._seed = int(self._seed / 5)
+    def seed(self, val):
+        BaseEngine.seed.fset(self, val)
+        if self._seed > 999999999:   # FLUKA only accepts 9 digits
+            self._seed = int(self._seed / 4.3)
 
     @seed.deleter
-    def seed(cls):
-        return BaseEngine.classproperty.seed.fdel(cls)
+    def seed(self):
+        return BaseEngine.seed.fdel(self)
 
 
     # ======================
     # === Public methods ===
     # ======================
 
-    @classmethod
-    def init_tracking(cls, max_particle_id, **kwargs):
-        self = cls.get_self(**kwargs)
-        kwargs, _ = cls.filter_kwargs(**kwargs)
+    def init_tracking(self, max_particle_id, **kwargs):
         if self._tracking_initialised == False:
             self.assert_particle_ref()
             _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0], long_name=True)
@@ -131,9 +128,7 @@ class FlukaEngine(BaseEngine):
             self._tracking_initialised = True
 
 
-    @classmethod
-    def view(cls, input_file=None):
-        self = cls.get_self()
+    def view(self, input_file=None):
         if input_file is None:
             if self.input_file is None:
                 return
