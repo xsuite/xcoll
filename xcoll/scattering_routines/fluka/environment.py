@@ -17,7 +17,8 @@ except (ImportError, ModuleNotFoundError):
 from ...general import _pkg_root
 
 
-_FEDB = (_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
+_FEDB = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb_local').resolve()
+_FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').resolve()
 
 
 class FlukaEnvironment:
@@ -191,31 +192,47 @@ class FlukaEnvironment:
         print(f"Created pyFLUKA shared library in {so}.")
 
 
-    def import_fedb(self, fedb_path):
+    def import_fedb(self, fedb_path, overwrite=False):
         import xcoll as xc
         fedb_path = FsPath(fedb_path)
         if not fedb_path.exists():
             raise FileNotFoundError(f"Could not find FEDB path {fedb_path}!")
         for file in fedb_path.glob(f'assemblies/*.lbp'):
-            meta = self.fedb / 'metadata' / 'coupling' / f'{file.name}.json'
+            if (_FEDB / 'assemblies' / file.name).exists() and not overwrite:
+                print(f"Warning: Assembly {file.name} already exists in Xcoll. "
+                     + "Use overwrite=True to overwrite it.")
+                continue
+            meta = _FEDB_TEMPLATE/ 'metadata' / 'coupling' / f'{file.name}.json'
             if meta.exists():
                 pro = xc.FlukaAssembly.from_json(meta)
+                print(f"Imported assembly {pro.fedb_series}_{pro.fedb_tag}")
             else:
                 print(f"Warning: No metadata found for assembly {file.name} in {fedb_path}!")
-                pro = xc.FlukaAssembly(*file.stem.split('_'))
+                part = file.stem.split('_')
+                fedb_series = part[0]
+                fedb_tag = '_'.join(part[1:])
+                pro = xc.FlukaAssembly(fedb_series, fedb_tag)
             pro.assembly_file = file
         for file in fedb_path.glob(f'bodies/*.bodies'):
-            meta = self.fedb / 'metadata' / 'coupling' / f'{file.name}.json'
+            if (_FEDB / 'bodies' / file.name).exists() and not overwrite:
+                print(f"Warning: Prototype {file.name} already exists in Xcoll. "
+                     + "Use overwrite=True to overwrite it.")
+                continue
+            meta = _FEDB_TEMPLATE / 'metadata' / 'coupling' / f'{file.name}.json'
             if meta.exists():
                 pro = xc.FlukaPrototype.from_json(meta)
+                print(f"Imported prototype {pro.fedb_series}_{pro.fedb_tag}")
             else:
                 print(f"Warning: No metadata found for prototype {file.name} in {fedb_path}!")
-                pro = xc.FlukaPrototype(*file.stem.split('_'))
+                part = file.stem.split('_')
+                fedb_series = part[0]
+                fedb_tag = '_'.join(part[1:])
+                pro = xc.FlukaPrototype(fedb_series, fedb_tag)
             pro.body_file = file
             pro.material_file = fedb_path / 'materials' / f'{file.stem}.assignmat'
             pro.region_file = fedb_path / 'regions' / f'{file.stem}.regions'
         for file in fedb_path.glob(f'stepsizes/*'):
-            file.copy_to(self.fedb / 'stepsizes' / file.name)
+            file.copy_to(_FEDB / 'stepsizes' / file.name)
 
 
     def set_fluka_environment(self):
@@ -228,14 +245,14 @@ class FlukaEnvironment:
     def set_fedb_environment(self):
         self._old_sys_path = sys.path.copy()
         self._old_os_env = os.environ.copy()
-        self._brute_force_path(self.fedb_coupling)
+        self._brute_force_path(_FEDB)
         self._brute_force_path(self.linebuilder)
-        os.environ['FEDB_PATH'] = self.fedb.as_posix()
+        os.environ['FEDB_PATH'] = _FEDB.as_posix()
         os.environ['LB_PATH'] = self.linebuilder.as_posix()
         # Brute-force the system paths
-        sys.path.append(self.fedb.as_posix())
-        sys.path.append((self.fedb / "tools").as_posix())
-        sys.path.append((self.fedb / "tools" / "materials" / "cables").as_posix())
+        sys.path.append(_FEDB.as_posix())
+        # sys.path.append((self.fedb / "tools").as_posix())
+        # sys.path.append((self.fedb / "tools" / "materials" / "cables").as_posix())
         sys.path.append((self.linebuilder / "src").as_posix())
         sys.path.append((self.linebuilder / "lib").as_posix())
 
@@ -273,7 +290,7 @@ class FlukaEnvironment:
         else:
             keep_files=True
         self.set_fedb_environment()
-        cmd = run(['python', self.fedb / 'tools' / 'test_assembly.py', fedb_series,
+        cmd = run(['python', _FEDB / 'tools' / 'test_assembly.py', fedb_series,
                    fedb_tag], stdout=PIPE, stderr=PIPE)
         self.unset_fedb_environment()
         if cmd.returncode != 0:
@@ -389,9 +406,22 @@ class FlukaEnvironment:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
-    def _load_fedb_prototypes(self):
+    def _init_fedb(self):
         from xcoll import FlukaPrototype
-        prototypes = (self.fedb / 'metadata').glob('*_*.json')
+        _FEDB.mkdir(parents=True, exist_ok=True)
+        for directory in ['assemblies', 'bodies', 'regions', 'materials', 'stepsizes', 'metadata']:
+            (_FEDB / directory).mkdir(parents=True, exist_ok=True)
+            for f in (_FEDB_TEMPLATE / directory).glob('*.*'):
+                link = _FEDB / directory / f.name
+                if not link.exists():
+                    link.symlink_to(f)
+        tools = _FEDB / 'tools'
+        if not tools.exists():
+            tools.symlink_to(_FEDB_TEMPLATE / 'tools')
+        structure = _FEDB / 'structure.py'
+        if not structure.exists():
+            structure.symlink_to(_FEDB_TEMPLATE / 'structure.py')
+        prototypes = (_FEDB / 'metadata').glob('*_*.json')
         for file in prototypes:
             FlukaPrototype.from_json(file)
 

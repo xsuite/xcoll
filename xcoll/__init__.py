@@ -19,7 +19,7 @@ from .headers import particle_states
 # Initialise FLUKA environment
 from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
 fluka = _FlukaWrapper()
-fluka.environment._load_fedb_prototypes()
+fluka.environment._init_fedb()
 
 # Deprecated
 from ._manager import CollimatorManager
@@ -38,4 +38,3 @@ def generate_delta_from_dispersion(line, name, *args, **kwargs):
 
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)
-

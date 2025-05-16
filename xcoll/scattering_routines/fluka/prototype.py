@@ -31,9 +31,6 @@ class FlukaPrototype:
             for prototype in FlukaPrototype._registry:
                 if prototype.fedb_series.upper() == fedb_series.upper() \
                 and prototype.fedb_tag.upper() == fedb_tag.upper():
-                    if prototype.__class__ != cls:
-                        raise ValueError(f"{cls.__name__} '{fedb_tag}' is already defined "
-                                       + f"as a {prototype.__class__.__name__}!")
                     return prototype
         # Register the new prototype
         self = object.__new__(cls)
@@ -115,9 +112,11 @@ class FlukaPrototype:
             FlukaPrototype._registry.remove(self)
         # Remove all files associated with the prototype
         for file in self.files:
-            file.unlink(missing_ok=True)
+            if file.exists() or file.is_symlink():
+                file.unlink()
         meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
-        meta.unlink(missing_ok=True)
+        if file.exists() or file.is_symlink():
+            meta.unlink()
 
     def to_dict(self):
         if self._is_null:
@@ -579,9 +578,11 @@ class FlukaAssembly(FlukaPrototype):
         while self in FlukaPrototype._registry:
             FlukaPrototype._registry.remove(self)
         # Remove all files associated with the assembly
-        self.assembly_file.unlink(missing_ok=True)
+        if self.assembly_file.exists() or self.assembly_file.is_symlink():
+            self.assembly_file.unlink()
         meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
-        meta.unlink(missing_ok=True)
+        if meta.exists() or meta.is_symlink():
+            meta.unlink()
 
     @property
     def assembly_file(self):

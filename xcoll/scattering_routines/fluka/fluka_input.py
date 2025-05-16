@@ -19,6 +19,7 @@ from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
 from .prototype import FlukaAssembly
 from .includes import get_include_files
+from .environment import _FEDB
 
 
 _header_start = "*  XCOLL START  **"
@@ -27,7 +28,6 @@ _header_stop  = "*  XCOLL END  **"
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[],
                        verbose=True, **kwargs):
-    import xcoll as xc
     _create_prototypes_file(element_dict, prototypes_file)
     include_files = get_include_files(particle_ref, include_files, verbose=verbose, **kwargs)
     # Call FLUKA_builder
@@ -38,7 +38,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     assert input_file.exists()
     assert insertion_file.exists()
     # Expand using include files
-    cmd = run([(xc.fluka.environment.fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    cmd = run([(_FEDB / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:
