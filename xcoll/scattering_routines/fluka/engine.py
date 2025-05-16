@@ -16,7 +16,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 from .reference_masses import source, fluka_masses
-from .environment import FlukaEnvironment, format_fluka_float
+from .environment import format_fluka_float
 from .prototype import FlukaPrototype, FlukaAssembly
 from ..engine import BaseEngine
 from ...general import _pkg_root
@@ -129,12 +129,13 @@ class FlukaEngine(BaseEngine):
 
 
     def view(self, input_file=None):
+        import xcoll as xc
         if input_file is None:
             if self.input_file is None:
                 return
             else:
                 input_file = self.input_file[0]
-        FlukaEnvironment.run_flair(input_file)
+        xc.fluka.environment.run_flair(input_file)
 
 
     # =================================
@@ -144,6 +145,10 @@ class FlukaEngine(BaseEngine):
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         self._deactivate_unused_assemblies()
         from .fluka_input import create_fluka_input
+        if 'particle_ref' in kwargs:
+            self.particle_ref = kwargs.pop('particle_ref')
+        if 'verbose' in kwargs:
+            self.verbose = kwargs.pop('verbose')
         input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
                                         prototypes_file=prototypes_file, include_files=include_files,
                                         verbose=self.verbose, **kwargs)
@@ -152,8 +157,9 @@ class FlukaEngine(BaseEngine):
 
 
     def _pre_start(self, **kwargs):
-        FlukaEnvironment.test_gfortran()
-        FlukaEnvironment.set_fluka_environment()
+        import xcoll as xc
+        xc.fluka.environment.assert_gfortran_installed()
+        xc.fluka.environment.set_fluka_environment()
 
 
     def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
@@ -383,12 +389,13 @@ class FlukaEngine(BaseEngine):
 
 
     def _start_server(self):
+        import xcoll as xc
         log = self._cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        self._server_process = Popen([FlukaEnvironment.fluka.as_posix(),
+        self._server_process = Popen([xc.fluka.environment.fluka.as_posix(),
                                       self.input_file[0].as_posix(), '-e',
-                                      FlukaEnvironment.flukaserver.as_posix(), '-M', "1"],
+                                      xc.fluka.environment.flukaserver.as_posix(), '-M', "1"],
                                      cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)

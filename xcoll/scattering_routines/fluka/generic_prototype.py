@@ -13,6 +13,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 from .prototype import FlukaPrototype, FlukaAssembly
+from .environment import _FEDB
 
 
 def xcoll_to_fluka_material(material):
@@ -298,8 +299,7 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 
 
 def _write_file(directory, filename, content):
-    from xcoll import fluka
-    path = fluka.environment.fedb / directory / filename
+    path = _FEDB / directory / filename
     with path.open('w') as fid:
         fid.write(content)
     return path

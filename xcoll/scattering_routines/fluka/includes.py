@@ -15,8 +15,7 @@ except (ImportError, ModuleNotFoundError):
 
 from .reference_names import fluka_names
 from .environment import format_fluka_float
-from .prototype import FlukaAssembly
-from .generic_prototype import FlukaGenericCrystalAssembly
+from .prototype import FlukaPrototype, FlukaAssembly
 from ...general import _pkg_root
 
 
@@ -154,7 +153,8 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                                              return_neutral=return_neutral, use_crystals=use_crystals)
         this_include_files.append(scoring_file)
     # Add any additional include files
-    if any(isinstance(ff, FlukaGenericCrystalAssembly) for ff in FlukaAssembly._registry):
+    if any(pro.is_crystal and not isinstance(pro, FlukaAssembly)
+           for pro in FlukaPrototype._registry):
         assignmat_file = _assignmat_include_file()
         this_include_files.append(assignmat_file)
 

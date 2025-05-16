@@ -44,12 +44,13 @@ class FlukaCollimator(BaseCollimator):
         return self
 
     def __init__(self, **kwargs):
+        import xcoll as xc
         with self.__class__._in_constructor():
             to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
-                to_assign['name'] = FlukaEngine()._get_new_element_name()
+                to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
                 if 'material' in kwargs or 'side' in kwargs:
                     if to_assign['assembly'] is not None:
@@ -118,7 +119,7 @@ class FlukaCollimator(BaseCollimator):
     def assembly(self, assembly):
         import xcoll as xc
         if isinstance(assembly, str):
-            assembly = assembly.strip.split('_')
+            assembly = assembly.strip().split('_')
         if hasattr(assembly, '__iter__'):
             if len(assembly) != 2:
                 raise ValueError('Assembly name should be a string or a tuple of two strings!')
@@ -138,14 +139,7 @@ class FlukaCollimator(BaseCollimator):
             self.assembly.remove_element(self, force=False)
         if assembly:
             assembly.add_element(self, force=False)
-            BaseCollimator.side.fset(self, self.assembly.side)
-            if isinstance(self, BaseCrystal):
-                BaseCrystal.bending_radius.fset(self, self.assembly.bending_radius)
         if self.assembly:
-            if self.assembly.side is not None and self.assembly.side != self.side:
-                self.side = self.assembly.side
-                print(f"Warning: Side of collimator '{self.name}' was changed to '{self.side}' "
-                    + f"to match the assembly '{self.assembly.name}'.")
             if self.assembly.length is not None:
                 self.length_front = (self.assembly.length - self.length) / 2
                 self.length_back = self.assembly.length - self.length - self.length_front
@@ -154,8 +148,9 @@ class FlukaCollimator(BaseCollimator):
         track(self, part)
 
     def __setattr__(self, name, value):
+        import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
-        and FlukaEngine.is_running() is True:
+        and xc.fluka.engine.is_running() is True:
             raise ValueError('Engine is running; FlukaCollimator is frozen.')
         super().__setattr__(name, value)
 
@@ -212,11 +207,12 @@ class FlukaCrystal(BaseCrystal):
 
     def __init__(self, **kwargs):
         with self.__class__._in_constructor():
+            import xcoll as xc
             to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
-                to_assign['name'] = FlukaEngine()._get_new_element_name()
+                to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
                 if to_assign['assembly']:
                     raise NotImplementedError('FlukaCrystalAssemblies not yet implemented!')
@@ -305,8 +301,9 @@ class FlukaCrystal(BaseCrystal):
         FlukaCollimator.track(self, part)
 
     def __setattr__(self, name, value):
+        import xcoll as xc
         if name not in self._allowed_fields_when_frozen \
-        and FlukaEngine.is_running() is True:
+        and xc.fluka.engine.is_running() is True:
             raise ValueError('Engine is running; FlukaCrystal is frozen.')
         super().__setattr__(name, value)
 
