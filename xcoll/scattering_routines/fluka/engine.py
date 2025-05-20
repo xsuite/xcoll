@@ -94,8 +94,8 @@ class FlukaEngine(BaseEngine):
     @seed.setter
     def seed(self, val):
         BaseEngine.seed.fset(self, val)
-        if self._seed > 999999999:   # FLUKA only accepts 9 digits
-            self._seed = int(self._seed / 4.3)
+        if self._seed >= 9.e8:   # FLUKA only accepts 8 digits
+            self._seed = int(self._seed / 4.77219)
 
     @seed.deleter
     def seed(self):
