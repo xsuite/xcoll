@@ -47,8 +47,7 @@ class BaseEngine(xo.HybridClass):
         kwargs.setdefault('_particle_ref', xt.Particles())
         kwargs.setdefault('_seed', 0)
         kwargs.setdefault('_capacity', 0)
-        super().__init__(**{key: value for key, value in kwargs.items()
-                            if key in self._xofields.keys() or key == '_xobject'})
+        super().__init__(**kwargs)
 
     def __del__(self, *args, **kwargs):
         self.stop(warn=False)

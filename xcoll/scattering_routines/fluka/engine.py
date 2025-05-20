@@ -48,17 +48,15 @@ class FlukaEngine(BaseEngine):
         # issues with the HybridClass constructor.
         super().__init__()
         # Initialise fluka-only defaults
-        self._timeout_sec = 36000
         self._log = None
         self._log_fid = None
         self.server_pid = None
         self._network_nfo = None
         self._server_process = None
         self._flukaio_connected = False
-        self._network_port = -1
-        self._max_particle_id = -1
-        # The only super that will be called from here is the Singleton, which will
-        # set all attributes.
+        kwargs.setdefault('_timeout_sec', 36000)
+        kwargs.setdefault('_network_port', -1)
+        kwargs.setdefault('_max_particle_id', -1)
         super().__init__(**kwargs)
 
 

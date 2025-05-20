@@ -144,6 +144,7 @@ class FlukaEnvironment:
         for file in so:
             file.unlink()
         os.chdir(_pkg_root / 'scattering_routines' / 'fluka' / 'flukaio')
+        cmd = run(['make', 'clean'], stdout=PIPE, stderr=PIPE)
         cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             print("Compiled FlukaIO successfully.")
