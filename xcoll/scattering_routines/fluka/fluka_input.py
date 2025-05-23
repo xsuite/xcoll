@@ -17,7 +17,7 @@ except (ImportError, ModuleNotFoundError):
 
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
-from .prototype import FlukaAssembly
+from .prototype import FlukaPrototype
 from .includes import get_include_files
 from .environment import _FEDB
 
@@ -26,10 +26,11 @@ _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
 
-def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include_files=[],
+def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, **kwargs):
     _create_prototypes_file(element_dict, prototypes_file)
-    include_files = get_include_files(particle_ref, include_files, verbose=verbose, **kwargs)
+    include_files, kwargs = get_include_files(particle_ref, verbose=verbose,
+                                              **kwargs)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
     input_file, fluka_dict = _fluka_builder(collimator_dict)
@@ -64,7 +65,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None, include
     _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
     if verbose:
         print(f"Created FLUKA input file {input_file}.")
-    return input_file, insertion_file
+    return [input_file, insertion_file], kwargs
 
 
 def get_collimators_from_input_file(input_file):
@@ -92,11 +93,11 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
         if ee.assembly is None:
             raise ValueError(f"Collimator {name} has no assembly!")
     if prototypes_file is None:
-        FlukaAssembly.make_prototypes()
+        FlukaPrototype.make_prototypes()
     else:
         prototypes_file = FsPath(prototypes_file).resolve()
         prototypes_file.copy_to(FsPath.cwd() / 'prototypes.lbp')
-    FlukaAssembly.inspect_prototypes_file(prototypes_file)
+    FlukaPrototype.inspect_prototypes_file(prototypes_file)
 
 
 # TODO check that prototype is valid and its sides

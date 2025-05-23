@@ -42,7 +42,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                       include_showers=None, return_photons=None, return_electrons=None,
                       return_leptons=None, return_neutrinos=None, return_protons=None,
                       return_neutrons=None, return_ions=None, return_exotics=None,
-                      return_all=None, return_neutral=None, use_crystals=False):
+                      return_all=None, return_neutral=None, use_crystals=False, **kwargs):
     this_include_files = include_files.copy()
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
@@ -173,7 +173,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
             raise FileNotFoundError(f"Include file not found: {ff}.")
         elif ff.parent != FsPath.cwd():
             ff.copy_to(FsPath.cwd())
-    return this_include_files
+    return this_include_files, kwargs
 
 
 def _assignmat_include_file():

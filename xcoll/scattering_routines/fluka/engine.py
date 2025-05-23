@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from numbers import Number
 from subprocess import run, PIPE, Popen
 from time import sleep
  
@@ -36,17 +37,15 @@ class FlukaEngine(BaseEngine):
 
     _int32 = True
     _uses_input_file = True
+    _num_input_files = 3
     _uses_run_folder = True
 
     _extra_c_sources = [source]
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
-        from ...beam_elements import FlukaCollimator
-        self.__class__._element_classes = (FlukaCollimator,)
-        # Call the BaseEngine constructor, first without any argutments to avoid
-        # issues with the HybridClass constructor.
-        super().__init__()
+        from ...beam_elements import FlukaCollimator, FlukaCrystal
+        self.__class__._element_classes = (FlukaCollimator, FlukaCrystal)
         # Initialise fluka-only defaults
         self._log = None
         self._log_fid = None
@@ -74,6 +73,10 @@ class FlukaEngine(BaseEngine):
 
     @timeout_sec.setter
     def timeout_sec(self, val):
+        if val is None:
+            val = 36000
+        if not isinstance(Number) or val <= 60:
+            raise ValueError("`capacity` has to be an integer and larger than 60!")
         self._timeout_sec = val
 
     @property
@@ -104,7 +107,7 @@ class FlukaEngine(BaseEngine):
     # === Public methods ===
     # ======================
 
-    def init_tracking(self, max_particle_id, **kwargs):
+    def init_tracking(self, max_particle_id):
         if self._tracking_initialised == False:
             self.assert_particle_ref()
             _, A0, Z0, name = pdg.get_properties_from_pdg_id(self.particle_ref.pdg_id[0], long_name=True)
@@ -140,24 +143,29 @@ class FlukaEngine(BaseEngine):
     # === Base methods to overwrite ===
     # =================================
 
+    def _set_engine_properties(self, **kwargs):
+        timeout_sec = kwargs.pop('timeout_sec', None)
+        if timeout_sec is not None:
+            self._old_timeout_sec = self.timeout_sec
+            self.timeout_sec = timeout_sec
+        return super()._set_engine_properties(**kwargs)
+
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
-        self._deactivate_unused_assemblies()
         from .fluka_input import create_fluka_input
-        if 'particle_ref' in kwargs:
-            self.particle_ref = kwargs.pop('particle_ref')
-        if 'verbose' in kwargs:
-            self.verbose = kwargs.pop('verbose')
-        input_file = create_fluka_input(element_dict=self._element_dict, particle_ref=self.particle_ref,
-                                        prototypes_file=prototypes_file, include_files=include_files,
-                                        verbose=self.verbose, **kwargs)
+        self._deactivate_unused_assemblies()
+        input_file, kwargs = create_fluka_input(element_dict=self._element_dict,
+                                particle_ref=self.particle_ref, prototypes_file=prototypes_file,
+                                include_files=include_files, verbose=self.verbose, **kwargs)
         self._set_seed_in_input_file(input_file)
-        return input_file
+        # The only thing left in kwargs are parameters to start the engine
+        return input_file, kwargs
 
 
     def _pre_start(self, **kwargs):
         import xcoll as xc
         xc.fluka.environment.assert_gfortran_installed()
         xc.fluka.environment.set_fluka_environment()
+        return kwargs
 
 
     def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
@@ -186,9 +194,10 @@ class FlukaEngine(BaseEngine):
         self._log = None
         self._network_port = -1
         self._max_particle_id = -1
+        return kwargs
 
 
-    def _is_running(self, **kwargs):
+    def _is_running(self):
         # Is the Popen process still running?
         if self._server_process is None:
             return False
