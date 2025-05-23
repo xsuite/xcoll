@@ -6,7 +6,7 @@
 from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
-from .fluka import FlukaCollimator
+from .fluka import FlukaCollimator, FlukaCrystal
 from .blowup import BlowUp
 from .monitor import EmittanceMonitor
 

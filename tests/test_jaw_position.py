@@ -41,7 +41,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
                                       'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
                                       'lhc_tclia', 'lhc_tclib', 'lhc_tcdqaa', 'lhc_tcdqab',
-                                      'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcsg',
+                                      'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcspgrc',
                                       'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
                                       'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
 @pytest.mark.parametrize('angle', angles)
@@ -59,7 +59,7 @@ def test_fluka(jaw, angle, assembly):
     xc.fluka.engine.start(elements=coll, capacity=10_000)
 
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=5000, dim=0.015,
-                            _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine().particle_ref)
+                            _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
     part = part_init.copy()
     coll.track(part)
     _assert_valid_positions(part, hit_ids, not_hit_ids)
@@ -77,15 +77,15 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
     num_part_step = num_part//5
     num_part = 5*num_part_step
     x = np.random.uniform(-dim, dim, num_part_step)
-    if coll.side != 'both':
+    if coll.side != 'both' and not coll.side is None:  # None is hack as FLUKA assemblies have no side yet TODO: update metadata
         num_part_step *= 2
-    if coll.side == 'left' or coll.side == 'both':
+    if coll.side == 'left' or coll.side == 'both' or coll.side is None:  # None is hack as FLUKA assemblies have no side yet TODO: update metadata
         jaw_L = min(coll.jaw_LU, coll.jaw_LD)
         x = np.concatenate([x, np.random.uniform(jaw_L - jaw_band, jaw_L - jaw_accuracy, num_part_step)])
         x = np.concatenate([x, np.random.uniform(jaw_L + jaw_accuracy, jaw_L + jaw_band, num_part_step)])
     else:
         jaw_L = 1e6
-    if coll.side == 'right' or coll.side == 'both':
+    if coll.side == 'right' or coll.side == 'both' or coll.side is None:  # None is hack as FLUKA assemblies have no side yet TODO: update metadata
         jaw_R = max(coll.jaw_RU, coll.jaw_RD)
         x = np.concatenate([x, np.random.uniform(jaw_R - jaw_band, jaw_R - jaw_accuracy, num_part_step)])
         x = np.concatenate([x, np.random.uniform(jaw_R + jaw_accuracy, jaw_R + jaw_band, num_part_step)])

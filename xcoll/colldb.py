@@ -558,10 +558,10 @@ class CollimatorDatabase:
     def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            if self[name]['bending_radius'] is None:
-                self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
-            else:
+            if self[name]['bending_radius'] or self[name]['bending_angle']:
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
+            else:
+                self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
@@ -569,11 +569,11 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             mat = SixTrack_to_xcoll(self[name]['material'])
-            if self[name]['bending_radius'] is None:
-                self._create_collimator(EverestCollimator, line, name, material=mat[0],
+            if self[name]['bending_radius'] or self[name]['bending_angle']:
+                self._create_collimator(EverestCrystal, line, name, material=mat[1],
                                         verbose=verbose)
             else:
-                self._create_collimator(EverestCrystal, line, name, material=mat[1],
+                self._create_collimator(EverestCollimator, line, name, material=mat[0],
                                         verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
@@ -587,12 +587,17 @@ class CollimatorDatabase:
             xc.fluka.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            if 'assembly' not in self[name]:
-                raise ValueError(f"FlukaCollimator {name} needs an assembly!")
-            if self[name]['bending_radius'] is None:
-                self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
+            crystal_assembly = False
+            if 'assembly' in self[name]:
+                self[name].pop('material', None)
+                self[name].pop('side', None)
+                self[name].pop('bending_radius', None)
+                self[name].pop('bending_angle', None)
+                crystal_assembly = self[name]['assembly'].is_crystal
+            if self[name]['bending_radius'] or self[name]['bending_angle'] or crystal_assembly:
+                self._create_collimator(FlukaCrystal, line, name, verbose=verbose)
             else:
-                raise ValueError("Xcoll - Fluka coupling does not yet support crystals!")
+                self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 

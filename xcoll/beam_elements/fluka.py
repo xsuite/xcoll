@@ -92,7 +92,7 @@ class FlukaCollimator(BaseCollimator):
     def material(self, material):
         if not self._being_constructed():
             self.assembly = create_generic_assembly(material=material,
-                                side=self.side, length=self.length)
+                                            side=self.side, length=self.length)
 
     @property
     def side(self):
@@ -103,7 +103,7 @@ class FlukaCollimator(BaseCollimator):
     def side(self, side):
         if not self._being_constructed():
             self.assembly = create_generic_assembly(material=self.material,
-                                side=side, length=self.length)
+                                            side=side, length=self.length)
 
     @property
     def assembly(self):
@@ -209,6 +209,7 @@ class FlukaCrystal(BaseCrystal):
         with self.__class__._in_constructor():
             import xcoll as xc
             to_assign = {}
+            generic = False
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
@@ -216,7 +217,6 @@ class FlukaCrystal(BaseCrystal):
                 to_assign['assembly'] = kwargs.pop('assembly', None)
                 if to_assign['assembly']:
                     raise NotImplementedError('FlukaCrystalAssemblies not yet implemented!')
-                material = None
                 if 'material' in kwargs or 'side' in kwargs or 'bending_radius' in kwargs \
                 or 'bending_angle' in kwargs:
                     if to_assign['assembly'] is not None:
@@ -236,17 +236,18 @@ class FlukaCrystal(BaseCrystal):
                     side = kwargs.pop('side', None)
                     if side is None:
                         raise ValueError('Need to provide side!')
+                    generic = True
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
-            if self.assembly is None and material:
-                if bending_radius:
-                    BaseCrystal.bending_radius.fset(self, bending_radius)
-                if bending_angle:
-                    BaseCrystal.bending_angle.fset(self, bending_angle)
+            if self.assembly is None and generic:
+                if bending_radius is None:
+                    bending_radius = get_bending_radius_from_angle(bending_angle)
                 self.assembly = create_generic_assembly(is_crystal=True, material=material,
-                                    side=side, length=self.length,
-                                    bending_radius=self.bending_radius)
+                                                        side=side, length=self.length,
+                                                        bending_radius=bending_radius)
+                del self._bending_radius
+                del self._bending_angle
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
@@ -264,8 +265,8 @@ class FlukaCrystal(BaseCrystal):
     def material(self, material):
         if not self._being_constructed():
             self.assembly = create_generic_assembly(is_crystal=True, material=material,
-                                side=self.side, length=self.length,
-                                bending_radius=self.bending_radius)
+                                                    side=self.side, length=self.length,
+                                                    bending_radius=self.bending_radius)
 
     @property
     def side(self):
@@ -275,19 +276,28 @@ class FlukaCrystal(BaseCrystal):
     def side(self, side):
         if not self._being_constructed():
             self.assembly = create_generic_assembly(is_crystal=True, material=self.material,
-                                side=side, length=self.length,
-                                bending_radius=self.bending_radius)
+                                                    side=side, length=self.length,
+                                                    bending_radius=self.bending_radius)
 
     @property
     def bending_radius(self):
-        return BaseCrystal.bending_radius.fget(self)
+        if self.assembly is not None:
+            return self.assembly.bending_radius
 
     @bending_radius.setter
     def bending_radius(self, bending_radius):
         if not self._being_constructed():
             self.assembly = create_generic_assembly(is_crystal=True, material=self.material,
-                                side=self.side, length=self.length,
-                                bending_radius=bending_radius)
+                                                    side=self.side, length=self.length,
+                                                    bending_radius=bending_radius)
+
+    @property
+    def bending_angle(self):
+        return self._get_bending_angle_from_radius(self.bending_radius)
+
+    @bending_angle.setter
+    def bending_angle(self, bending_angle):
+        self.bending_radius = get_bending_radius_from_angle(bending_angle)
 
     @property
     def assembly(self):
@@ -296,6 +306,28 @@ class FlukaCrystal(BaseCrystal):
     @assembly.setter
     def assembly(self, assembly):
         FlukaCollimator.assembly.fset(self, assembly)
+
+    def _get_bending_radius_from_angle(self, bending_angle):
+        if self.assembly:
+            old_length = self.length
+            self.length = self.assembly.length
+        BaseCrystal.bending_angle.fset(self, bending_angle)
+        bending_radius = self._bending_radius
+        if self.assembly:
+            self.length = old_length
+        del self._bending_radius
+        return bending_radius
+
+    def _get_bending_angle_from_radius(self, bending_radius):
+        if self.assembly:
+            old_length = self.length
+            self.length = self.assembly.length
+        BaseCrystal.bending_radius.fset(self, bending_radius)
+        bending_angle = self._bending_angle
+        if self.assembly:
+            self.length = old_length
+        del self._bending_angle
+        return bending_angle
 
     def track(self, part):
         FlukaCollimator.track(self, part)
