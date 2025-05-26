@@ -116,29 +116,24 @@ class FlukaCollimator(BaseCollimator):
         return None
 
     @assembly.setter
-    def assembly(self, assembly):
+    def assembly(self, val):
         import xcoll as xc
-        if isinstance(assembly, str):
-            assembly = assembly.strip().split('_')
-        if hasattr(assembly, '__iter__'):
-            if len(assembly) != 2:
-                raise ValueError('Assembly name should be a string or a tuple of two strings!')
-            assembly = (assembly[0].lower(), assembly[1].lower())
-            if assembly[0] in xc.fluka.assemblies \
-            and assembly[1] in xc.fluka.assemblies[assembly[0]]:
-                assembly = xc.fluka.assemblies[assembly[0]][assembly[1]]
-            elif assembly[0] in xc.fluka.prototypes \
-            and assembly[1] in xc.fluka.prototypes[assembly[0]][assembly[1]]:
-                assembly = xc.fluka.prototypes[assembly[0]][assembly[1]]
+        if isinstance(val, str):
+            if val in xc.fluka.assemblies:
+                val = xc.fluka.assemblies[val]
+            elif val in xc.fluka.prototypes:
+                val = xc.fluka.prototypes[val]
             else:
-                raise ValueError(f"Assembly (or prototype) '{assembly}' not defined.")
-        elif not isinstance(assembly, FlukaPrototype) and assembly is not None:
-            raise ValueError('Invalid assembly or prototype!')
+                raise ValueError(f"Unknown assembly or prototype '{val}'.")
+            if val.is_broken:
+                print(f'Warning: assembly or prototype {val.name} is broken!')
+        elif not isinstance(val, FlukaPrototype) and val is not None:
+            raise ValueError(f'Invalid assembly or prototype {val}!')
         # Remove the element from the old assembly and add it to the new one
         if self.assembly:
             self.assembly.remove_element(self, force=False)
-        if assembly:
-            assembly.add_element(self, force=False)
+        if val:
+            val.add_element(self, force=False)
         if self.assembly:
             if self.assembly.length is not None:
                 self.length_front = (self.assembly.length - self.length) / 2

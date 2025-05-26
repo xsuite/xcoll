@@ -30,7 +30,8 @@ class FlukaPrototype:
         if fedb_series is not None or fedb_tag is not None:
             for prototype in FlukaPrototype._registry:
                 if prototype.fedb_series.upper() == fedb_series.upper() \
-                and prototype.fedb_tag.upper() == fedb_tag.upper():
+                and prototype.fedb_tag.upper() == fedb_tag.upper() \
+                and prototype.__class__ == cls:
                     return prototype
         # Register the new prototype
         self = object.__new__(cls)
@@ -40,7 +41,8 @@ class FlukaPrototype:
 
     def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
                  height=None, length=None, material=None, info=None, extra_commands=None,
-                 is_crystal=False, bending_radius=None, _allow_generic=False, **kwargs):
+                 is_crystal=False, bending_radius=None, _allow_generic=False, is_broken=False,
+                 **kwargs):
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -70,6 +72,7 @@ class FlukaPrototype:
         self._bending_radius = bending_radius
         self._info = info
         self._extra_commands = extra_commands
+        self._is_broken = is_broken
         self._id = None
         self._type = self.__class__.__name__[5:].lower()
         self._elements = []
@@ -136,6 +139,7 @@ class FlukaPrototype:
             'bending_radius': self.bending_radius,
             'info': self.info,
             'extra_commands': self.extra_commands,
+            'is_broken': self.is_broken,
         }
 
     @classmethod
@@ -304,6 +308,12 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._extra_commands
+
+    @property
+    def is_broken(self):
+        if self._is_null:
+            return None
+        return self._is_broken
 
     @property
     def assigned(self):
@@ -682,7 +692,22 @@ class FlukaPrototypeAccessor:
         for ss, vv in self.ordered_data.items():
             res.append(f"FEDB Series: {ss}")
             for tt, pro in vv.items():
+                if pro.is_broken:
+                    continue
                 res.append(f"    {tt:<16}: {pro}")
+        res_broken = []
+        for ss, vv in self.ordered_data.items():
+            if any(pro.is_broken for pro in vv.values()):
+                res_broken.append(f"FEDB Series: {ss}")
+            for tt, pro in vv.items():
+                if not pro.is_broken:
+                    continue
+                res_broken.append(f"    {tt:<16}: {pro}")
+        if res_broken:
+            res.append('')
+            res.append('BROKEN:')
+            res.append('')
+            res += res_broken
         return "\n".join(res)
 
     def show(self):
@@ -774,7 +799,19 @@ class FlukaSeriesAccessor:
     def __str__(self):
         res = [f"FEDB Series: {self._series}"]
         for tt, pro in self._series_data.items():
+            if pro.is_broken:
+                continue
             res.append(f"    {tt:<16}: {pro}")
+        res_broken = []
+        for tt, pro in self._series_data.items():
+            if not pro.is_broken:
+                continue
+            res_broken.append(f"    {tt:<16}: {pro}")
+        if res_broken:
+            res.append('')
+            res.append('BROKEN:')
+            res.append('')
+            res += res_broken
         return "\n".join(res)
 
     def show(self):

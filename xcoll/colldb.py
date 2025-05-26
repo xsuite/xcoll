@@ -558,7 +558,8 @@ class CollimatorDatabase:
     def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            if self[name]['bending_radius'] or self[name]['bending_angle']:
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
             else:
                 self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
@@ -569,7 +570,8 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             mat = SixTrack_to_xcoll(self[name]['material'])
-            if self[name]['bending_radius'] or self[name]['bending_angle']:
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
                 self._create_collimator(EverestCrystal, line, name, material=mat[1],
                                         verbose=verbose)
             else:
@@ -593,8 +595,17 @@ class CollimatorDatabase:
                 self[name].pop('side', None)
                 self[name].pop('bending_radius', None)
                 self[name].pop('bending_angle', None)
-                crystal_assembly = self[name]['assembly'].is_crystal
-            if self[name]['bending_radius'] or self[name]['bending_angle'] or crystal_assembly:
+                if self[name]['assembly'] in xc.fluka.assemblies:
+                    pro = xc.fluka.assemblies[self[name]['assembly']]
+                elif self[name]['assembly'] in xc.fluka.prototypes:
+                    pro = xc.fluka.prototypes[self[name]['assembly']]
+                else:
+                    raise ValueError(f"Unknown assembly or prototype "
+                                   + f"'{self[name]['assembly']}'.")
+                crystal_assembly = pro.is_crystal
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']) \
+            or crystal_assembly:
                 self._create_collimator(FlukaCrystal, line, name, verbose=verbose)
             else:
                 self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
