@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaPrototype",
+    "name": "BIMH_TNK",
+    "fedb_series": "sps",
+    "fedb_tag": "BIMH_TNK",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": null,
+    "extra_commands": null
+}

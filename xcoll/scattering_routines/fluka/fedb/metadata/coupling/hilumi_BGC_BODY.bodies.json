@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaPrototype",
+    "name": "BGC_BODY",
+    "fedb_series": "hilumi",
+    "fedb_tag": "BGC_BODY",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": null,
+    "extra_commands": null
+}

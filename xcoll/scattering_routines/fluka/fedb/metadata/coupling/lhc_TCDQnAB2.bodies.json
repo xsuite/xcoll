@@ -1,0 +1,16 @@
+{
+    "__class__": "FlukaPrototype",
+    "name": "TCDQnAB2",
+    "fedb_series": "lhc",
+    "fedb_tag": "TCDQnAB2",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": null,
+    "extra_commands": null
+}
