@@ -5,6 +5,7 @@
 
 from .reference_masses import fluka_masses
 from .reference_names import fluka_names
+from .prototype import FlukaPrototypeAccessor, FlukaAssemblyAccessor
 
 
 class FlukaWrapper:
@@ -44,29 +45,11 @@ class FlukaWrapper:
 
     @property
     def assemblies(self):
-        from xcoll import FlukaPrototype, FlukaAssembly
-        filtered = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
-                    for pro in FlukaPrototype._registry
-                    if isinstance(pro, FlukaAssembly)]
-        # build a dict‐of‐dicts by nesting comprehensions
-        series = {k for k, _, _ in filtered}
-        return {
-            kk: {ii: vv for xx, ii, vv in filtered if xx == kk}
-            for kk in series
-        }
+        return FlukaAssemblyAccessor()
 
     @property
     def prototypes(self):
-        from xcoll import FlukaPrototype, FlukaAssembly
-        filtered = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
-                    for pro in FlukaPrototype._registry
-                    if not isinstance(pro, FlukaAssembly)]
-        # build a dict‐of‐dicts by nesting comprehensions
-        series = {k for k, _, _ in filtered}
-        return {
-            kk: {ii: vv for xx, ii, vv in filtered if xx == kk}
-            for kk in series
-        }
+        return FlukaPrototypeAccessor()
 
     def compile(self, *args, **kwargs):
         """Compile the FLUKA code."""

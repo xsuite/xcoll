@@ -663,3 +663,152 @@ class FlukaAssembly(FlukaPrototype):
         for prot in self.prototypes:
             files += prot.files
         return files
+
+
+class FlukaPrototypeAccessor:
+    """This class is used to access the prototypes in the FEDB."""
+
+    def __init__(self):
+        self._type = 'Prototype'
+        self._raw = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
+                    for pro in FlukaPrototype._registry
+                    if not isinstance(pro, FlukaAssembly)]
+
+    def __repr__(self):
+        return f"<FlukaPrototypeAccessor at {hex(id(self))} (use .show() to see the content)>"
+
+    def __str__(self):
+        res = []
+        for ss, vv in self.ordered_data.items():
+            res.append(f"FEDB Series: {ss}")
+            for tt, pro in vv.items():
+                res.append(f"    {tt:<16}: {pro}")
+        return "\n".join(res)
+
+    def show(self):
+        """Print the content of the FEDB."""
+        print(self)
+
+    @property
+    def series(self):
+        return {ss for ss, _, _ in self._raw}
+
+    @property
+    def tags(self):
+        return {tt for _, tt, _ in self._raw}
+
+    @property
+    def data(self):
+        return {f'{ss}_{tt}': pro for ss, tt, pro in self._raw}
+
+    @property
+    def ordered_data(self):
+        return {
+            ss: {tt: vv for xx, tt, vv in self._raw if xx == ss}
+            for ss in self.series
+        }
+
+    def keys(self):
+        f"""A set-like object providing a view on the {self._type.lower()} tags."""
+        return self.data.keys()
+
+    def values(self):
+        f"""A set-like object providing a view on the {self._type.lower()[-1]}ies."""
+        return self.data.values()
+
+    def items(self):
+        f"""A set-like object providing a view on the {self._type.lower()[-1]}ies and their tags."""
+        return self.data.items()
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data.__iter__())
+
+    def __contains__(self, val):
+        val = val.lower()
+        return val in self.data or val in self.series or val in self.tags
+
+    def __getitem__(self, val):
+        val = val.lower()
+        # If val is the full specification (series_tag), return the prototype
+        if val in self.data:
+            return self.data[val]
+        # If val is a series, return the prototypes in that series
+        elif val in self.series:
+            return FlukaSeriesAccessor(self._type, self.ordered_data, val)
+        # If val is a tag and that tag is unique, return the prototype
+        elif val in self.tags:
+            this_data = [pro for ss, tt, pro in self._raw if tt == val]
+            if len(this_data) > 1:
+                raise KeyError(f"Tag '{val}' is not unique in the FEDB. "
+                              + "Please specify the series as well.")
+            else:
+                return this_data[0]
+        else:
+            raise KeyError(f"{self._type} '{val}' not found in the FEDB.")
+
+
+class FlukaAssemblyAccessor(FlukaPrototypeAccessor):
+    """This class is used to access the assemblies in the FEDB."""
+
+    def __init__(self):
+        self._type = 'Assembly'
+        self._raw = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
+                    for pro in FlukaPrototype._registry
+                    if isinstance(pro, FlukaAssembly)]
+
+
+class FlukaSeriesAccessor:
+    """This class is used to access the prototypes or assemblies in a specific series."""
+
+    def __init__(self, type, data, series):
+        self._type = type
+        self._series = series
+        self._series_data = data[series]
+
+    def __repr__(self):
+        return f"<FlukaSeriesAccessor at {hex(id(self))} (use .show() to see the content)>"
+
+    def __str__(self):
+        res = [f"FEDB Series: {self._series}"]
+        for tt, pro in self._series_data.items():
+            res.append(f"    {tt:<16}: {pro}")
+        return "\n".join(res)
+
+    def show(self):
+        """Print the content of the FEDB series."""
+        print(self)
+
+    def keys(self):
+        f"""A set-like object providing a view on the {self._type.lower()} tags."""
+        return self._series_data.keys()
+
+    def values(self):
+        f"""A set-like object providing a view on the {self._type.lower()[-1]}ies."""
+        return self._series_data.values()
+
+    def items(self):
+        f"""A set-like object providing a view on the {self._type.lower()[-1]}ies and their tags."""
+        return self._series_data.items()
+
+    def __len__(self):
+        return len(self._series_data)
+
+    def __iter__(self):
+        return iter(self._series_data.__iter__())
+
+    def __contains__(self, val):
+        val = val.lower()
+        return val in self._series_data
+
+    def __getitem__(self, val):
+        val = val.lower()
+        # If val is a tag, return the prototype
+        if val in self._series_data:
+            return self._series_data[val]
+        raise KeyError(f"{self._type} with tag '{val}' not found in series "
+                     + f"'{self._series}'.")
+
+
