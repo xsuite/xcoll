@@ -15,8 +15,10 @@ from pathlib import PosixPath
 
 
 class FsPath(PosixPath):
-    def copy_to(self, other):
+    def copy_to(self, other, **kwargs):
         shutil.copy(self, other)
+    def rmtree(self, *args, **kwargs):
+        shutil.rmtree(self, *args, **kwargs)
 
 
 

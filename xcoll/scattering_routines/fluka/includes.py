@@ -172,7 +172,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         if not ff.exists():
             raise FileNotFoundError(f"Include file not found: {ff}.")
         elif ff.parent != FsPath.cwd():
-            ff.copy_to(FsPath.cwd())
+            ff.copy_to(FsPath.cwd(), method='mount')
     return this_include_files, kwargs
 
 

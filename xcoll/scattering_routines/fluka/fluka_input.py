@@ -19,8 +19,6 @@ from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
 from .prototype import FlukaPrototype
 from .includes import get_include_files
-from .environment import _FEDB
-
 
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
@@ -28,6 +26,7 @@ _header_stop  = "*  XCOLL END  **"
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, **kwargs):
+    import xcoll as xc
     _create_prototypes_file(element_dict, prototypes_file)
     include_files, kwargs = get_include_files(particle_ref, verbose=verbose,
                                               **kwargs)
@@ -39,7 +38,8 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
     assert input_file.exists()
     assert insertion_file.exists()
     # Expand using include files
-    cmd = run([(_FEDB / 'tools' / 'expand.sh').as_posix(), input_file.name],
+    fedb = xc.fluka.environment.fedb
+    cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
         if verbose:
@@ -96,7 +96,7 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
         FlukaPrototype.make_prototypes()
     else:
         prototypes_file = FsPath(prototypes_file).resolve()
-        prototypes_file.copy_to(FsPath.cwd() / 'prototypes.lbp')
+        prototypes_file.copy_to(FsPath.cwd() / 'prototypes.lbp', method='mount')
     FlukaPrototype.inspect_prototypes_file(prototypes_file)
 
 
@@ -193,7 +193,7 @@ def _fluka_builder(collimator_dict):
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
-    xc.fluka.environment.unset_fedb_environment()
+    xc.fluka.environment.restore_environment()
 
     return input_file, coll_dict
 

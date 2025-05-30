@@ -11,7 +11,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from .environment import format_fluka_float, _FEDB
+from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
 
 
@@ -105,6 +105,7 @@ class FlukaPrototype:
         return self.__repr__()
 
     def delete(self):
+        import xcoll as xc
         if self._is_null:
             return
         if len(self._elements) > 0:
@@ -117,7 +118,8 @@ class FlukaPrototype:
         for file in self.files:
             if file.exists() or file.is_symlink():
                 file.unlink()
-        meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
+        fedb = xc.fluka.environment.fedb
+        meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
         if file.exists() or file.is_symlink():
             meta.unlink()
 
@@ -190,55 +192,69 @@ class FlukaPrototype:
 
     @property
     def body_file(self):
+        import xcoll as xc
         if self._is_null:
             return None
-        file = _FEDB / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
+        fedb = xc.fluka.environment.fedb
+        file = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         return file.resolve()
 
     @body_file.setter
     def body_file(self, path):
+        import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set body_file for a null prototype!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        target = _FEDB / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
+        fedb = xc.fluka.environment.fedb
+        target = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         if path != target:
-            path.copy_to(target)
-        with open(_FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
+            path.copy_to(target, method='mount')
+        with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
             json.dump(self.to_dict(), fid, indent=4)
 
     @property
     def material_file(self):
+        import xcoll as xc
         if self._is_null:
             return None
-        file = _FEDB / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
+        fedb = xc.fluka.environment.fedb
+        file = fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
         return file.resolve()
 
     @material_file.setter
     def material_file(self, path):
+        import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set material_file for a null prototype!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(_FEDB / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat")
+        fedb = xc.fluka.environment.fedb
+        path.copy_to(fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat",
+                     method='mount')
 
     @property
     def region_file(self):
+        import xcoll as xc
         if self._is_null:
             return None
-        file = _FEDB / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions"
+        fedb = xc.fluka.environment.fedb
+        file = fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions"
         return file.resolve()
 
     @region_file.setter
     def region_file(self, path):
+        import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set region_file for a null prototype!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        path.copy_to(_FEDB / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions")
+        fedb = xc.fluka.environment.fedb
+        path.copy_to(fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions",
+                     method='mount')
 
     @property
     def files(self):
@@ -575,6 +591,7 @@ class FlukaAssembly(FlukaPrototype):
     _assigned_registry = {}
 
     def delete(self):
+        import xcoll as xc
         if self._is_null:
             return
         if len(self._elements) > 0:
@@ -590,26 +607,33 @@ class FlukaAssembly(FlukaPrototype):
         # Remove all files associated with the assembly
         if self.assembly_file.exists() or self.assembly_file.is_symlink():
             self.assembly_file.unlink()
-        meta = _FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
+        fedb = xc.fluka.environment.fedb
+        meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
         if meta.exists() or meta.is_symlink():
             meta.unlink()
 
     @property
     def assembly_file(self):
-        file = _FEDB / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
+        import xcoll as xc
+        if self._is_null:
+            return None
+        fedb = xc.fluka.environment.fedb
+        file = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         return file.resolve()
 
     @assembly_file.setter
     def assembly_file(self, path):
+        import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set assembly_file for a null prototype!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
-        target = _FEDB / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
+        fedb = xc.fluka.environment.fedb
+        target = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         if path != target:
-            path.copy_to(target)
-        with open(_FEDB / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
+            path.copy_to(target, method='mount')
+        with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
             json.dump(self.to_dict(), fid, indent=4)
 
     @property

@@ -6,6 +6,8 @@
 from .reference_masses import fluka_masses
 from .reference_names import fluka_names
 from .prototype import FlukaPrototypeAccessor, FlukaAssemblyAccessor
+from .engine import FlukaEngine
+from .environment import FlukaEnvironment
 
 
 class FlukaWrapper:
@@ -22,8 +24,8 @@ class FlukaWrapper:
         if not self._engine:
             # Lazy load the engine to avoid circular imports
             # and to ensure that the engine is set up only once
-            from xcoll.scattering_routines.fluka.engine import FlukaEngine
             self._engine = FlukaEngine()
+            self._engine._environment = self.environment
         return self._engine
 
     @property
@@ -31,7 +33,6 @@ class FlukaWrapper:
         if not self._environment:
             # Lazy load the engine to avoid circular imports
             # and to ensure that the environment is set up only once
-            from xcoll.scattering_routines.fluka.environment import FlukaEnvironment
             self._environment = FlukaEnvironment()
         return self._environment
 
@@ -50,11 +51,3 @@ class FlukaWrapper:
     @property
     def prototypes(self):
         return FlukaPrototypeAccessor()
-
-    def compile(self, *args, **kwargs):
-        """Compile the FLUKA code."""
-        self.environment.compile(*args, **kwargs)
-
-    def import_fedb(self, *args, **kwargs):
-        """Import a FLUKA FEDB."""
-        self.environment.import_fedb(*args, **kwargs)

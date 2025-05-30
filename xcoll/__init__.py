@@ -19,7 +19,6 @@ from .headers import particle_states
 # Initialise FLUKA environment
 from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
 fluka = _FlukaWrapper()
-fluka.environment._init_fedb()
 
 # Deprecated
 from ._manager import CollimatorManager

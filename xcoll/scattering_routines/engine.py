@@ -43,6 +43,7 @@ class BaseEngine(xo.HybridClass):
         self._input_file = None
         self._element_dict = {}
         self._warning_given = False
+        self._environment = None
         self._element_index = 0
         self._tracking_initialised = False
         self._deactivated_elements = {}
@@ -75,6 +76,10 @@ class BaseEngine(xo.HybridClass):
     # ==================
     # === Properties ===
     # ==================
+
+    @property
+    def environment(self):
+        return self._environment
 
     @property
     def name(self):
@@ -197,6 +202,16 @@ class BaseEngine(xo.HybridClass):
     # ======================
 
     def start(self, *, clean=True, input_file=None, **kwargs):
+        if not self.environment:
+            raise RuntimeError(f"{self.name.capitalize()} environment not set up! "
+                             + f"Do not manually create an instance of the engine.")
+        if not self.environment.initialised:
+            raise RuntimeError(f"{self.name.capitalize()} environment not initialised! "
+                             + f"Please set all paths in the environment before "
+                             + f"starting the engine.")
+        if not self.environment.compiled:
+            raise RuntimeError(f"{self.name.capitalize()} interface not compiled! "
+                             + f"Please compile before starting the engine.")
         if self.is_running():
             self._print("Engine already running.")
             return
@@ -504,7 +519,7 @@ class BaseEngine(xo.HybridClass):
                 if not file.exists():
                     raise ValueError(f"Input file {file.as_posix()} not found!")
                 if file.parent != FsPath.cwd() and self._uses_run_folder:
-                    file.copy_to(FsPath.cwd())
+                    file.copy_to(FsPath.cwd(), method='mount')
                     new_files.append(FsPath.cwd() / file.name)
                 else:
                     new_files.append(file)
