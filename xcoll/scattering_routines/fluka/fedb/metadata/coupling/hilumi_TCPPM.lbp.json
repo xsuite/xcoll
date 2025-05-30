@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "primary with jaw in MoGr coated",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

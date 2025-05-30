@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "WRONG RESULT - dump protection",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "DOES NOT WORK - secondary TCSPM prototype (three stripes)",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

@@ -11,5 +11,6 @@
     "is_crystal": true,
     "bending_radius": null,
     "info": "crystal",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

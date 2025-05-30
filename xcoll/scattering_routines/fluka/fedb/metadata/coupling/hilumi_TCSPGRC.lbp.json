@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "secondary with jaw in CFC with Cu coating layer (3um)",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "OLD - secondary with jaw in MoGr coated (5um)",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }

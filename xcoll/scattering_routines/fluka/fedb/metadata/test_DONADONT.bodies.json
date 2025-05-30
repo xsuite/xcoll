@@ -12,5 +12,6 @@
     "is_crystal": false,
     "bending_radius": null,
     "info": "mesh to test child particle ids - TANK",
-    "extra_commands": null
+    "extra_commands": null,
+    "is_broken": false
 }
