@@ -155,6 +155,3 @@ __pycache__/
 *$py.class
 *.egg-info/
 *.egg
-
-# FLUKA
-xcoll/scattering_routines/fluka/fedb_local
