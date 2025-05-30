@@ -84,7 +84,7 @@ def track_core(coll, part):
     import xcoll as xc
     npart = part._num_active_particles
     try:
-        from .pyflukaf import track_fluka
+        from pyflukaf import track_fluka
     except (ModuleNotFoundError, ImportError) as error:
         xc.fluka.engine._warn_pyfluka(error)
         return

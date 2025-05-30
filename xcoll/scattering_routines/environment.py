@@ -43,22 +43,31 @@ class BaseEnvironment:
         return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() to see the paths)>"
 
     def __str__(self):
-        res = [f"{self.__class__.__name__}"]
-        for path in self._paths.keys():
-            value = getattr(self, f'_{path}', None)
-            path = f'{path}:'
-            if value is None:
-                res.append(f"    {path:<20} None")
-            else:
+        res = ["XcollEnvironment"]
+        res.append(f"    Configuration file:  {self._config_file.as_posix()}")
+        res.append(f"    Configuration dir:   {self._config_dir.as_posix()}")
+        res.append(f"    Data dir:            {self._data_dir.as_posix()}")
+        if self._temp_dir:
+            res.append(f"    Temporary dir:       {self._temp_dir.name}")
+        if self.__class__ is not BaseEnvironment:
+            res.append("")
+            res.append(f"{self.__class__.__name__}")
+            for path in self._paths.keys():
+                value = getattr(self, f'_{path}', None)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()}")
+            for path in self._read_only_paths.keys():
+                value = getattr(self, path)
+                path = f'{path} (read-only):'
                 res.append(f"    {path:<20} {value.as_posix()}")
-        for path in self._read_only_paths.keys():
-            value = getattr(self, path)
-            path = f'{path} (read-only):'
-            res.append(f"    {path:<20} {value.as_posix()}")
-        if self._old_sys_path and self._old_os_env:
-            res.append("Custom environment stored:")
-            res.append(f"    sys.path: {self._old_sys_path}")
-            res.append(f"    os.environ: {self._old_os_env}")
+            if self._old_sys_path and self._old_os_env:
+                res.append("")
+                res.append("Custom environment stored:")
+                res.append(f"    sys.path: {self._old_sys_path}")
+                res.append(f"    os.environ: {self._old_os_env}")
         return "\n".join(res)
 
     @property

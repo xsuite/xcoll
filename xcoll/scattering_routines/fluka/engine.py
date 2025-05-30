@@ -117,7 +117,7 @@ class FlukaEngine(BaseEngine):
             m0 = self.particle_ref.mass0 / 1.e6
             q0 = abs(self.particle_ref.q0)
             try:
-                from .pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
+                from pyflukaf import pyfluka_init_max_uid, pyfluka_set_synch_part
             except (ModuleNotFoundError, ImportError) as error:
                 self._warn(error)
             self._print(f"Setting max_particle_id to {max_particle_id}, "
@@ -377,7 +377,7 @@ class FlukaEngine(BaseEngine):
 
     def _init_fortran(self, fortran_debug_level=0):
         try:
-            from .pyflukaf import pyfluka_init
+            from pyflukaf import pyfluka_init
             pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
         except (ModuleNotFoundError, ImportError) as error:
             self._warn(error)
@@ -426,7 +426,7 @@ class FlukaEngine(BaseEngine):
         self._print(f"Started fluka server on network port {self.network_port}. "
                   + f"Connecting (timeout: {self.timeout_sec})...   ", end='')
         try:
-            from .pyflukaf import pyfluka_connect
+            from pyflukaf import pyfluka_connect
             pyfluka_connect(self.timeout_sec)
             self._flukaio_connected = True
         except (ModuleNotFoundError, ImportError) as error:
@@ -439,7 +439,7 @@ class FlukaEngine(BaseEngine):
             self._flukaio_connected = False
             self._print(f"Closing fluka server connection...   ", end='')
             try:
-                from .pyflukaf import pyfluka_close
+                from pyflukaf import pyfluka_close
                 pyfluka_close()
             except (ModuleNotFoundError, ImportError) as error:
                 self._warn(error)
