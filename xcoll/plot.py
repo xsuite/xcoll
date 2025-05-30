@@ -29,7 +29,10 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     warm_s = np.array([])  # Placeholder for warm losses, if needed
     warm_val = np.array([])  # Placeholder for warm losses, if needed
     if norm != "raw":
-        # warm_val = warm_val / warm_length
+        if lossmap['interpolation']:
+            cold_val = cold_val / lossmap['interpolation']
+            # warm_val = warm_val / lossmap['interpolation']
+        coll_val = coll_val / lossmap['collimator']['length']
         if norm == "total":
             scale = coll_val.sum() + cold_val.sum() + warm_val.sum()
         elif norm == "coll_max":
@@ -43,7 +46,6 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         coll_val = coll_val / scale
         cold_val = cold_val / scale
         warm_val = warm_val / scale
-        coll_val = coll_val / lossmap['collimator']['length']
         if lossmap['interpolation'] is not None:
             cold_val = cold_val / lossmap['aperture']['length_bins']
 
