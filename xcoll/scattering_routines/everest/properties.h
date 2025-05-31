@@ -93,7 +93,7 @@ void calculate_scattering(EverestData restrict everest, double pc) {
 
 
 /*gpufun*/
-double calculate_dechanneling_length(EverestData restrict everest, double pc) {
+double calculate_dechannelling_length(EverestData restrict everest, double pc) {
     // Material properties
     double const exenergy = everest->coll->exenergy;
 

@@ -75,12 +75,12 @@ double channelling_average_density(EverestData restrict everest, CrystalGeometry
 
 /*gpufun*/
 double* channel_transport(EverestData restrict everest, LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
-    // Channeling: happens over an arc length L_chan (potentially less if dechanneling)
+    // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)
-    //             The chord angle xp at the start of channeling (I) is t_P/2 + t_I
-    //             The angle xp at the end of channeling (F) is t_P + t_I
+    //             The chord angle xp at the start of channelling (I) is t_P/2 + t_I
+    //             The angle xp at the end of channelling (F) is t_P + t_I
     //             In practice: we drift from start to end, but overwrite the angle afterwards
-    // TODO: why does channeling only have 50% energy loss?
+    // TODO: why does channelling only have 50% energy loss?
 
     double* result = (double*)malloc(2 * sizeof(double));
 
@@ -88,23 +88,23 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
 
-    // First log particle at start of channeling
+    // First log particle at start of channelling
     int64_t i_slot = -1;
-    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELING);
+    if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_CHANNELLING);
 
-    // Do channeling.
+    // Do channelling.
     // The distance from I to F is the chord length of the angle t_P: d = 2 r sin(t_P/2)
     // Hence the longitudinal distance (the length to be drifted) is the projection of this using the
-    // xp at the start of channeling: s = 2 r sin(t_P/2)cos(t_P/2 + t_I)
+    // xp at the start of channelling: s = 2 r sin(t_P/2)cos(t_P/2 + t_I)
     double t_chord= t_I + t_P/2.;
     double drift_length = 2.*L_chan/t_P * sin(t_P/2.) * cos(t_chord);
-    LocalParticle_set_xp(part, t_chord);          // Angle at start of channeling
+    LocalParticle_set_xp(part, t_chord);          // Angle at start of channelling
     Drift_single_particle_4d(part, drift_length);
-    // In reality,the particle oscillates horizontally between the planes while channeling.
+    // In reality,the particle oscillates horizontally between the planes while channelling.
     // This effect is mimicked by giving a random angle spread at the exit
     double sigma_ran = 0.5*everest->t_c;
     double ran_angle = RandomNormal_generate(part)*sigma_ran;
-    LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channeling
+    LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channelling
 
     // Apply energy loss along trajectory
     pc = calcionloss(everest, part, L_chan, pc, 0.5);
@@ -113,7 +113,7 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     // It is done in K2, so we should do it. Though, it seems that with the current implementation in xtrack
     // this is no longer correct with exact drifts...?
 
-    // Finally log particle at end of channeling
+    // Finally log particle at end of channelling
     if (sc) InteractionRecordData_log_child(record, i_slot, part);
 
     result[0] = drift_length;
@@ -137,7 +137,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
     calculate_critical_angle(everest, part, cg, pc);
 #endif
 
-    // Do we channel, or are we in the transition between channeling and VR?
+    // Do we channel, or are we in the transition between channelling and VR?
     double xp = LocalParticle_get_xp(part);
     double alpha = fabs(xp - everest->t_I) / everest->t_c;
     double ratio = everest->Rc_over_R;
@@ -147,7 +147,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
 #ifdef XCOLL_TRANSITION
         // TRANSITION
         // We feel that this transition is not needed, as it interpolates between two regions
-        // (adding a slant below the channeling region) which does not seem to be present in
+        // (adding a slant below the channelling region) which does not seem to be present in
         // experimental data.
 #ifdef XCOLL_REFINE_ENERGY
         calculate_VI_parameters(everest, part, pc);
@@ -164,20 +164,20 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         double L_chan = everest->r*t_P;
 
         // ------------------------------------------------
-        // Calculate curved length L_dechan of dechanneling
+        // Calculate curved length L_dechan of dechannelling
         // ------------------------------------------------
-        double const_dech = calculate_dechanneling_length(everest, pc);
+        double const_dech = calculate_dechannelling_length(everest, pc);
         double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
         double N_atom = 1.0e-1;
         if(RandomUniform_generate(part) <= N_atom) {
-            TLdech1 /= 200.;   // Updated dechanneling length (m)
+            TLdech1 /= 200.;   // Updated dechannelling length (m)
         }
         double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length
 
         // -----------------------------------------------------
         // Calculate curved length L_nucl of nuclear interaction
         // -----------------------------------------------------
-        // Nuclear interaction length is rescaled in this case, because channeling
+        // Nuclear interaction length is rescaled in this case, because channelling
         double collnt = everest->coll->collnt;
         double avrrho = channelling_average_density(everest, cg, part, pc);
         if (avrrho == 0) {
@@ -187,7 +187,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         }
         double L_nucl = collnt*RandomExponential_generate(part);
 
-// printf("Channeling (%f -> %f):   L_c: %f,  L_d: %f,  L_n: %f\n", t_I, t_P, L_chan, L_dechan, L_nucl);
+// printf("Channelling (%f -> %f):   L_c: %f,  L_d: %f,  L_n: %f\n", t_I, t_P, L_chan, L_dechan, L_nucl);
         // ------------------------------------------------------------------------
         // Compare the 3 lengths: the first one encountered is what will be applied
         // ------------------------------------------------------------------------
@@ -204,7 +204,7 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
             double channeled_length = result_chan[0];
             pc = result_chan[1];
             free(result_chan);
-            if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELING);
+            if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING);
             pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
 
         } else {

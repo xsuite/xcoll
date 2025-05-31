@@ -20,8 +20,8 @@ source = r'''
 #define  XC_PP_ELASTIC                     15        // PP   // point (no children)
 #define  XC_SINGLE_DIFFRACTIVE             16        // SD   // point (no children)
 #define  XC_COULOMB                        17        // C    // point (no children)
-#define  XC_CHANNELING                    100        // CH   // continuous
-#define  XC_DECHANNELING                  101        // DCH  // point (no children)
+#define  XC_CHANNELLING                    100       // CH   // continuous
+#define  XC_DECHANNELLING                  101       // DCH  // point (no children)
 #define  XC_VOLUME_REFLECTION_TRANS_CH    102        // VRCH // point (no children)    Transition region around +-xpcrit
 #define  XC_VOLUME_REFLECTION             103        // VR   // point (no children)
 #define  XC_VOLUME_REFLECTION_TRANS_MCS   104        // VRAM // point (no children)    Transition region around t_P
