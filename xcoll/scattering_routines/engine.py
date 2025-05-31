@@ -153,7 +153,7 @@ class BaseEngine(xo.HybridClass):
     def capacity(self, val):
         if val is None:
             val = 0
-        if not isinstance(val, Number) or val <= 0:
+        if not isinstance(val, Number) or val < 0:
             raise ValueError("`capacity` has to be a positive integer!")
         self._capacity = int(val)
 
@@ -325,7 +325,7 @@ class BaseEngine(xo.HybridClass):
             val = kwargs.pop(prop, None)
             if val is not None:
                 # We only need to update the property when it is not None
-                setattr(self, f'_old_{prop}', val)
+                setattr(self, f'_old_{prop}', getattr(self, prop))
                 setattr(self, prop, val)
         # We need to set the following properties first as they are needed by the others
         _set_property('verbose')
