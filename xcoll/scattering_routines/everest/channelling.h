@@ -137,18 +137,14 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
     calculate_critical_angle(everest, part, cg, pc);
 #endif
 
-    // Do we channel, or are we in the transition between channelling and VR?
+    // Do we channel or scatter away on the lattice?
     double xp = LocalParticle_get_xp(part);
     double alpha = fabs(xp - everest->t_I) / everest->t_c;
     double ratio = everest->Rc_over_R;
     double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->coll->eta);
 
     if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
-#ifdef XCOLL_TRANSITION
-        // TRANSITION
-        // We feel that this transition is not needed, as it interpolates between two regions
-        // (adding a slant below the channelling region) which does not seem to be present in
-        // experimental data.
+#ifdef XCOLL_TRANSITION_VRCH
 #ifdef XCOLL_REFINE_ENERGY
         calculate_VI_parameters(everest, part, pc);
 #endif
@@ -187,7 +183,6 @@ double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometr
         }
         double L_nucl = collnt*RandomExponential_generate(part);
 
-// printf("Channelling (%f -> %f):   L_c: %f,  L_d: %f,  L_n: %f\n", t_I, t_P, L_chan, L_dechan, L_nucl);
         // ------------------------------------------------------------------------
         // Compare the 3 lengths: the first one encountered is what will be applied
         // ------------------------------------------------------------------------

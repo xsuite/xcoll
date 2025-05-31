@@ -6,7 +6,9 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
-#define XCOLL_TRANSITION
+#define XCOLL_TRANSITION_VRCH
+#define XCOLL_TRANSITION_VRAM
+// #define XCOLL_TRANSITION_VRAM_OLD
 
 typedef struct EverestCollData_ {
     // Collimator properties

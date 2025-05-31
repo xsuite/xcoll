@@ -19,7 +19,7 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
     double x_P = cg->x_P;
     double r   = sqrt((s-s_P)*(s-s_P) + (x-x_P)*(x-x_P));
     everest->r = r;
-    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channelling planes (not neccecarly the same as xp)
+    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channelling planes (not necessarily the same as xp)
 }
 
 
