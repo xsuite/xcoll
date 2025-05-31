@@ -16,7 +16,12 @@ from pathlib import PosixPath
 
 class FsPath(PosixPath):
     def copy_to(self, other, **kwargs):
-        shutil.copy(self, other)
+        if self.is_dir():
+            shutil.copytree(self, other / self.name, dirs_exist_ok=True)
+        else:
+            shutil.copy(self, other)
+    def move_to(self, other, **kwargs):
+        shutil.move(self, other)
     def rmtree(self, *args, **kwargs):
         shutil.rmtree(self, *args, **kwargs)
 
