@@ -8,7 +8,7 @@
 
 #define XCOLL_TRANSITION_VRCH
 #define XCOLL_TRANSITION_VRAM
-// #define XCOLL_TRANSITION_VRAM_OLD
+#define XCOLL_TRANSITION_VRAM_OLD
 
 typedef struct EverestCollData_ {
     // Collimator properties

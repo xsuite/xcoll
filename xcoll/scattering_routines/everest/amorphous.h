@@ -20,7 +20,8 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
     double Ang_avr = everest->Ang_avr;
     double Ang_rms = everest->Ang_rms * RandomNormal_generate(part);
-    // # TODO: test this, also move nuclear check before VI check in Amorphous and use standard MCS
+    // TODO: Use standard MCS
+    // TODO: should we automatically channel after VC? Now it will still roll a dice, and do VRCH if failed. Many VR are missed this way
 
     if (transition == XC_VOLUME_REFLECTION_TRANS_CH){
         // We are in transition from CH to VR

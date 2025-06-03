@@ -273,38 +273,3 @@ class XcollCollimatorAPI:
         if name not in table.name:
             raise ValueError(f"Element {name} not found in line. Need to manually provide `at_s`.")
         return table.rows[name].s[0] + existing_length/2. - length/2
-
-
-
-# Deprecated; to be removed
-# -------------------------
-
-def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
-    warn("The function xcoll.assign_optics_to_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.assign_optics() instead.", FutureWarning)
-    line.collimators.assign_optics(nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss)
-
-def get_optics_at(names, *, twiss=None, line=None):
-    warn("The function xcoll.get_optics_at() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.get_optics_at() instead.", FutureWarning)
-    return line.collimators.get_optics_at(names=names, twiss=twiss)
-
-def open_collimators(line, names=None):
-    warn("The function xcoll.open_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.open_collimators() instead.", FutureWarning)
-    line.collimators.open(names=names)
-
-def send_to_parking(line, names=None):
-    warn("The function xcoll.send_to_parking() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.send_to_parking() instead.", FutureWarning)
-    line.collimators.to_parking(names=names)
-
-def enable_scattering(line):
-    warn("The function xcoll.enable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.enable() instead.", FutureWarning)
-    line.scattering.enable()
-
-def disable_scattering(line):
-    warn("The function xcoll.disable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.disable() instead.", FutureWarning)
-    line.scattering.disable()
