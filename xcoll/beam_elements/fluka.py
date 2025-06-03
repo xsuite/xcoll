@@ -22,6 +22,7 @@ class FlukaCollimator(BaseCollimator):
         '_tracking':             xo.Int8,
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
+    _xofields.pop('_side')  # Defined by assembly
 
     isthick = True
     allow_track = True
@@ -45,13 +46,14 @@ class FlukaCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         import xcoll as xc
-        with self.__class__._in_constructor():
+        with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
+                generic = False
                 if 'material' in kwargs or 'side' in kwargs:
                     if to_assign['assembly'] is not None:
                         raise ValueError('Cannot set both material/side and assembly!')
@@ -62,11 +64,14 @@ class FlukaCollimator(BaseCollimator):
                     if length is None:
                         raise ValueError('Need to provide length!')
                     side = kwargs.pop('side', 'both')
-                    to_assign['assembly'] = create_generic_assembly(material=material,
-                                                side=side, length=length)
+                    generic = True
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
+            if generic:
+                side = self._get_side_from_input(side)
+                self.assembly = create_generic_assembly(material=material,
+                                                 side=side, length=length)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
@@ -75,7 +80,7 @@ class FlukaCollimator(BaseCollimator):
             self.assembly.remove_element(self, force=False)
         try:
             super().__del__()
-        except AttributeError:
+        except (AttributeError, TypeError): # During shutdown, if the parent class is already garbage collected
             pass
 
     def copy(self, **kwargs):
@@ -102,6 +107,7 @@ class FlukaCollimator(BaseCollimator):
     @side.setter
     def side(self, side):
         if not self._being_constructed():
+            side = self._get_side_from_input(side)
             self.assembly = create_generic_assembly(material=self.material,
                                             side=side, length=self.length)
 
@@ -151,9 +157,10 @@ class FlukaCollimator(BaseCollimator):
 
     @classmethod
     @contextmanager
-    def _in_constructor(cls):
+    def _in_constructor(cls, self=None):
         original_setattr = cls.__setattr__
-        cls._being_constructed_ = True
+        if self is not None:
+            self._being_constructed_ = True
         def new_setattr(self, *args, **kwargs):
             return super().__setattr__( *args, **kwargs)
         cls.__setattr__ = new_setattr
@@ -161,13 +168,24 @@ class FlukaCollimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
-            cls._being_constructed_ = False
+            if self is not None:
+                self._being_constructed_ = False
 
     def _being_constructed(self):
         if hasattr(self, '_being_constructed_'):
             return self._being_constructed_
         else:
             return False
+
+    # ===================================================
+    # ===   Hacks to use parent setters and getters   ===
+    # ===================================================
+
+    def _get_side_from_input(self, side):
+        BaseCollimator.side.fset(self, side)
+        side = BaseCollimator.side.fget(self)
+        self._side = None # Cannot delete it, because by accessing the xofield of the BaseCollimator parent, it became a descriptor
+        return side
 
 
 
@@ -179,6 +197,9 @@ class FlukaCrystal(BaseCrystal):
         '_tracking':             xo.Int8,
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
+    _xofields.pop('_side')  # Defined by assembly
+    _xofields.pop('_bending_radius')  # Defined by assembly
+    _xofields.pop('_bending_angle')  # Defined by assembly
 
     isthick = True
     allow_track = True
@@ -201,7 +222,7 @@ class FlukaCrystal(BaseCrystal):
         return self
 
     def __init__(self, **kwargs):
-        with self.__class__._in_constructor():
+        with self.__class__._in_constructor(self):
             import xcoll as xc
             to_assign = {}
             generic = False
@@ -235,14 +256,13 @@ class FlukaCrystal(BaseCrystal):
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
-            if self.assembly is None and generic:
+            if generic:
                 if bending_radius is None:
-                    bending_radius = get_bending_radius_from_angle(bending_angle)
+                    bending_radius = self._get_bending_radius_from_angle(bending_angle)
+                side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(is_crystal=True, material=material,
                                                         side=side, length=self.length,
                                                         bending_radius=bending_radius)
-                del self._bending_radius
-                del self._bending_angle
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
@@ -265,11 +285,13 @@ class FlukaCrystal(BaseCrystal):
 
     @property
     def side(self):
-        return FlukaCollimator.side.fget(self)
+        if self.assembly is not None:
+            return FlukaCollimator.side.fget(self)
 
     @side.setter
     def side(self, side):
         if not self._being_constructed():
+            side = self._get_side_from_input(side)
             self.assembly = create_generic_assembly(is_crystal=True, material=self.material,
                                                     side=side, length=self.length,
                                                     bending_radius=self.bending_radius)
@@ -292,7 +314,7 @@ class FlukaCrystal(BaseCrystal):
 
     @bending_angle.setter
     def bending_angle(self, bending_angle):
-        self.bending_radius = get_bending_radius_from_angle(bending_angle)
+        self.bending_radius = self._get_bending_radius_from_angle(bending_angle)
 
     @property
     def assembly(self):
@@ -301,28 +323,6 @@ class FlukaCrystal(BaseCrystal):
     @assembly.setter
     def assembly(self, assembly):
         FlukaCollimator.assembly.fset(self, assembly)
-
-    def _get_bending_radius_from_angle(self, bending_angle):
-        if self.assembly:
-            old_length = self.length
-            self.length = self.assembly.length
-        BaseCrystal.bending_angle.fset(self, bending_angle)
-        bending_radius = self._bending_radius
-        if self.assembly:
-            self.length = old_length
-        del self._bending_radius
-        return bending_radius
-
-    def _get_bending_angle_from_radius(self, bending_radius):
-        if self.assembly:
-            old_length = self.length
-            self.length = self.assembly.length
-        BaseCrystal.bending_radius.fset(self, bending_radius)
-        bending_angle = self._bending_angle
-        if self.assembly:
-            self.length = old_length
-        del self._bending_angle
-        return bending_angle
 
     def track(self, part):
         FlukaCollimator.track(self, part)
@@ -334,10 +334,40 @@ class FlukaCrystal(BaseCrystal):
             raise ValueError('Engine is running; FlukaCrystal is frozen.')
         super().__setattr__(name, value)
 
-    @classmethod
-    @contextmanager
-    def _in_constructor(cls):
-        return FlukaCollimator._in_constructor(cls)
+    _in_constructor = FlukaCollimator._in_constructor
+    _being_constructed = FlukaCollimator._being_constructed
 
-    def _being_constructed(self):
-        return FlukaCollimator._being_constructed(self)
+
+    # ===================================================
+    # ===   Hacks to use parent setters and getters   ===
+    # ===================================================
+
+    def _get_side_from_input(self, side):
+        BaseCrystal.side.fset(self, side)
+        side = BaseCrystal.side.fget(self)
+        self._side = None # Cannot delete it, because by accessing the xofield of the BaseCrystal parent, it became a descriptor
+        return side
+
+    def _get_bending_radius_from_angle(self, bending_angle):
+        if self.assembly:
+            old_length = self.length
+            self.length = self.assembly.length
+        BaseCrystal.bending_angle.fset(self, bending_angle)
+        bending_radius = BaseCrystal.bending_radius.fget(self)
+        self._bending_angle = None
+        self._bending_radius = None
+        if self.assembly:
+            self.length = old_length
+        return bending_radius
+
+    def _get_bending_angle_from_radius(self, bending_radius):
+        if self.assembly:
+            old_length = self.length
+            self.length = self.assembly.length
+        BaseCrystal.bending_radius.fset(self, bending_radius)
+        bending_angle = BaseCrystal.bending_angle.fget(self)
+        self._bending_angle = None
+        self._bending_radius = None
+        if self.assembly:
+            self.length = old_length
+        return bending_angle

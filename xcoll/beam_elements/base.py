@@ -1023,7 +1023,8 @@ class BaseCollimator(BaseBlock):
             assert np.isclose(self._sin_yR/self._cos_yR, self._tan_yR)
 
         # Verify bools
-        assert self._side in [-1, 1, 0]
+        if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
+            assert isinstance(self._side, int) and self._side in [-1, 0, 1]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1436,10 +1437,8 @@ class BaseCrystal(BaseBlock):
 
     @side.setter
     def side(self, val):
-        temp = self._side
         BaseCollimator.side.fset(self, val)
         if self._side == 0:
-            self._side = temp
             raise ValueError("Crystal cannot be two-sided! Please set `side` "
                            + "to 'left' or 'right'.")
 
@@ -1461,7 +1460,11 @@ class BaseCrystal(BaseBlock):
         assert np.isclose(ang, abs(np.arcsin(self._sin_y)))
         assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
         # Verify bools
-        assert self._side in [-1, 1]
+        if '_side' in self._xofields:
+            assert isinstance(self._side, int) and self._side in [-1, 0, 1]
         # Crystal specific
-        assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
+        if '_bending_radius' in self._xofields and '_bending_angle' in self._xofields:
+            assert isinstance(self._bending_radius, float) and self._bending_radius > 0
+            assert isinstance(self._bending_angle, float) and abs(self._bending_angle) <= np.pi/2
+            assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 
