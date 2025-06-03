@@ -6,8 +6,8 @@
 from .general import _pkg_root, __version__, citation
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, \
-                           FlukaCollimator, BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, \
-                           element_classes
+                           FlukaCollimator, FlukaCrystal, BlowUp, EmittanceMonitor, \
+                           collimator_classes, crystal_classes, element_classes
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
 from .colldb import CollimatorDatabase

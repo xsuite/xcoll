@@ -104,7 +104,7 @@ class FlukaPrototype:
             return ''
         return self.__repr__()
 
-    def delete(self):
+    def delete(self, **kwargs):
         import xcoll as xc
         if self._is_null:
             return
@@ -590,7 +590,7 @@ class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies
     _assigned_registry = {}
 
-    def delete(self):
+    def delete(self, _ignore_files=False, **kwargs):
         import xcoll as xc
         if self._is_null:
             return
@@ -598,9 +598,10 @@ class FlukaAssembly(FlukaPrototype):
             raise ValueError(f"Cannot delete {self._type} '{self.name}' "
                            + f"while it has {len(self._elements)} elements assigned!")
         # Remove prototypes if no other assembly depends on them
-        for prototype in self.prototypes:
-            if prototype.dependant_assemblies == [self]:
-                prototype.delete()
+        if self.assembly_file.exists() or not _ignore_files:
+            for prototype in self.prototypes:
+                if prototype.dependant_assemblies == [self]:
+                    prototype.delete()
         # Remove the assembly from the registry of all prototypes
         while self in FlukaPrototype._registry:
             FlukaPrototype._registry.remove(self)

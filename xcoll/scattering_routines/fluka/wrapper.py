@@ -21,19 +21,12 @@ class FlukaWrapper:
 
     @property
     def engine(self):
-        if not self._engine:
-            # Lazy load the engine to avoid circular imports
-            # and to ensure that the engine is set up only once
-            self._engine = FlukaEngine()
-            self._engine._environment = self.environment
+        self._lazy_load_engine()
         return self._engine
 
     @property
     def environment(self):
-        if not self._environment:
-            # Lazy load the engine to avoid circular imports
-            # and to ensure that the environment is set up only once
-            self._environment = FlukaEnvironment()
+        self._lazy_load_environment()
         return self._environment
 
     @property
@@ -46,8 +39,22 @@ class FlukaWrapper:
 
     @property
     def assemblies(self):
+        self._lazy_load_environment()
         return FlukaAssemblyAccessor()
 
     @property
     def prototypes(self):
+        self._lazy_load_environment()
         return FlukaPrototypeAccessor()
+
+    def _lazy_load_environment(self):
+        """Ensure the environment is loaded."""
+        if not self._environment:
+            self._environment = FlukaEnvironment()
+
+    def _lazy_load_engine(self):
+        """Ensure the engine is loaded."""
+        if not self._engine:
+            self._engine = FlukaEngine()
+            self._engine._environment = self.environment
+        return self._engine

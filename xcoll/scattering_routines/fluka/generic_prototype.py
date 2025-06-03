@@ -39,7 +39,14 @@ def exit_handler():
         and assembly.fedb_series == 'generic':
             for el in assembly.elements:
                 assembly.remove_element(el)
-            assembly.delete()
+            assembly.delete(_ignore_files=True)
+    # If there are broken assemblies, there might be prototypes left
+    for prototype in FlukaPrototype._registry:
+        if isinstance(prototype, FlukaPrototype) \
+        and prototype.fedb_series == 'generic':
+            for el in prototype.elements:
+                prototype.remove_element(el)
+            prototype.delete(_ignore_files=True)
 atexit.register(exit_handler)
 
 
@@ -108,7 +115,7 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_optional_fields.items():
             kwargs.setdefault(field, opt_value)
     if kwargs.get('side') not in ['both', 'left', 'right']:
-        raise ValueError("Side must be 'both', 'left' or 'right'!")
+        raise ValueError(f"Side must be 'both', 'left' or 'right', but got {kwargs.get('side')}!")
     if kwargs['width'] > 0.25:
         kwargs['width'] = 0.25
     if kwargs['height'] > 0.25:
