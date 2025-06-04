@@ -234,17 +234,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCrystal_init_data(part, coll, cg);
-                    calculate_initial_angle(everest, part, cg);
-#ifdef XCOLL_USE_EXACT
-                    double const xp = LocalParticle_get_exact_xp(part);
-#else
-                    double const xp = LocalParticle_get_xp(part);
-#endif
-                    if (fabs(xp - everest->t_I) < everest->t_c) {
-                        pc_out = Channel(everest, part, cg, pc_in/1.e9, remaining_length)*1.e9;
-                    } else {
-                        pc_out = Amorphous(everest, part, cg, pc_in/1.e9, remaining_length, 1)*1.e9;
-                    }
+                    pc_out = do_crystal(everest, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);
                 }
 

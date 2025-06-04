@@ -200,6 +200,11 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
             // Volume Capture
             if (sc) InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
             // We call the main Channel function for the leftover
+            calculate_initial_angle(everest, part, cg);
+            calculate_opening_angle(everest, part, cg);
+            #ifdef XCOLL_REFINE_ENERGY
+                calculate_critical_angle(everest, part, cg, pc);
+            #endif
             pc = Channel(everest, part, cg, pc, length - length_VI);
         }
 

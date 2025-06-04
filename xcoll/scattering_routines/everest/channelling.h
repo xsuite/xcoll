@@ -122,108 +122,119 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
 }
 
 
+double do_crystal(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
+    calculate_initial_angle(everest, part, cg);
+    calculate_opening_angle(everest, part, cg);
+#ifdef XCOLL_REFINE_ENERGY
+    calculate_critical_angle(everest, part, cg, pc);
+#endif
+#ifdef XCOLL_USE_EXACT
+    double const xp = LocalParticle_get_exact_xp(part);
+#else
+    double const xp = LocalParticle_get_xp(part);
+#endif
+    if (fabs(xp - everest->t_I) < everest->t_c) {
+        double alpha = fabs(xp - everest->t_I) / everest->t_c;
+        double ratio = everest->Rc_over_R;
+        double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->coll->eta);
+        if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
+#ifdef XCOLL_TRANSITION_VRCH
+#ifdef XCOLL_REFINE_ENERGY
+            calculate_VI_parameters(everest, part, pc);
+#endif
+            volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
+#endif
+            pc = Amorphous(everest, part, cg, pc, length, 1);
+        } else {
+            pc = Channel(everest, part, cg, pc, length);
+        }
+    } else {
+        pc = Amorphous(everest, part, cg, pc, length, 1);
+    }
+    return pc;
+}
+
 double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return pc;
     }
 
-    InteractionRecordData record = everest->coll->record;
-    RecordIndex record_index     = everest->coll->record_index;
-    int8_t sc = everest->coll->record_scatterings;
-
-    calculate_initial_angle(everest, part, cg);
-#ifdef XCOLL_REFINE_ENERGY
-    calculate_critical_angle(everest, part, cg, pc);
-#endif
-
-    // Do we channel or scatter away on the lattice?
-    double xp = LocalParticle_get_xp(part);
-    double alpha = fabs(xp - everest->t_I) / everest->t_c;
+    // CHANNEL
+    double t_I = everest->t_I;
+    double t_P = everest->t_P;
+    double L_chan = everest->r*t_P;
     double ratio = everest->Rc_over_R;
-    double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(everest->coll->eta);
 
-    if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
-#ifdef XCOLL_TRANSITION_VRCH
-#ifdef XCOLL_REFINE_ENERGY
-        calculate_VI_parameters(everest, part, pc);
-#endif
-        volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_CH);
-#endif
-        pc = Amorphous(everest, part, cg, pc, length, 1);
+    // ------------------------------------------------
+    // Calculate curved length L_dechan of dechannelling
+    // ------------------------------------------------
+    double const_dech = calculate_dechannelling_length(everest, pc);
+    double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
+    double N_atom = 1.0e-1;
+    if(RandomUniform_generate(part) <= N_atom) {
+        TLdech1 /= 200.;   // Updated dechannelling length (m)
+    }
+    double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length
+
+    // -----------------------------------------------------
+    // Calculate curved length L_nucl of nuclear interaction
+    // -----------------------------------------------------
+    // Nuclear interaction length is rescaled in this case, because channelling
+    double collnt = everest->coll->collnt;
+    double avrrho = channelling_average_density(everest, cg, part, pc);
+    if (avrrho == 0) {
+        collnt = 1.e10;  // very large because essentially 1/0
+    } else {
+        collnt = collnt/avrrho;
+    }
+    double L_nucl = collnt*RandomExponential_generate(part);
+
+    // ------------------------------------------------------------------------
+    // Compare the 3 lengths: the first one encountered is what will be applied
+    // ------------------------------------------------------------------------
+    if (L_chan <= fmin(L_dechan, L_nucl)){
+        // Channel full length
+        double* result_chan = channel_transport(everest, part, pc, L_chan, t_I, t_P);
+        // double channeled_length = result_chan[0];
+        pc = result_chan[1];
+        free(result_chan);
+
+    } else if (L_dechan < L_nucl) {
+        // Channel up to L_dechan, then amorphous
+        double* result_chan = channel_transport(everest, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan);
+        double channeled_length = result_chan[0];
+        pc = result_chan[1];
+        free(result_chan);
+
+        if (everest->coll->record_scatterings){
+            InteractionRecordData record = everest->coll->record;
+            RecordIndex record_index     = everest->coll->record_index;
+            InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING);
+        }
+        pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
 
     } else {
-        // CHANNEL
-        calculate_opening_angle(everest, part, cg);
-        double t_I = everest->t_I;
-        double t_P = everest->t_P;
-        double L_chan = everest->r*t_P;
-
-        // ------------------------------------------------
-        // Calculate curved length L_dechan of dechannelling
-        // ------------------------------------------------
-        double const_dech = calculate_dechannelling_length(everest, pc);
-        double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
-        double N_atom = 1.0e-1;
-        if(RandomUniform_generate(part) <= N_atom) {
-            TLdech1 /= 200.;   // Updated dechannelling length (m)
-        }
-        double L_dechan = TLdech1*RandomExponential_generate(part);   // Actual dechan. length
-
-        // -----------------------------------------------------
-        // Calculate curved length L_nucl of nuclear interaction
-        // -----------------------------------------------------
-        // Nuclear interaction length is rescaled in this case, because channelling
-        double collnt = everest->coll->collnt;
-        double avrrho = channelling_average_density(everest, cg, part, pc);
-        if (avrrho == 0) {
-            collnt = 1.e10;  // very large because essentially 1/0
+        // Channel up to L_nucl, then scatter, then amorphous
+        double* result_chan = channel_transport(everest, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan);
+        double channeled_length = result_chan[0];
+        pc = result_chan[1];
+        free(result_chan);
+        // Rescale nuclear interaction parameters
+        everest->rescale_scattering = avrrho;
+#ifndef XCOLL_REFINE_ENERGY
+        calculate_scattering(everest, pc);
+#endif
+        pc = nuclear_interaction(everest, part, pc);
+        if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
+            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {
-            collnt = collnt/avrrho;
-        }
-        double L_nucl = collnt*RandomExponential_generate(part);
-
-        // ------------------------------------------------------------------------
-        // Compare the 3 lengths: the first one encountered is what will be applied
-        // ------------------------------------------------------------------------
-        if (L_chan <= fmin(L_dechan, L_nucl)){
-            // Channel full length
-            double* result_chan = channel_transport(everest, part, pc, L_chan, t_I, t_P);
-            // double channeled_length = result_chan[0];
-            pc = result_chan[1];
-            free(result_chan);
-
-        } else if (L_dechan < L_nucl) {
-            // Channel up to L_dechan, then amorphous
-            double* result_chan = channel_transport(everest, part, pc, L_dechan, t_I, t_P*L_dechan/L_chan);
-            double channeled_length = result_chan[0];
-            pc = result_chan[1];
-            free(result_chan);
-            if (sc) InteractionRecordData_log(record, record_index, part, XC_DECHANNELLING);
-            pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
-
-        } else {
-            // Channel up to L_nucl, then scatter, then amorphous
-            double* result_chan = channel_transport(everest, part, pc, L_nucl, t_I, t_P*L_nucl/L_chan);
-            double channeled_length = result_chan[0];
-            pc = result_chan[1];
-            free(result_chan);
-            // Rescale nuclear interaction parameters
-            everest->rescale_scattering = avrrho;
+            // We call the main Amorphous function for the leftover
+            everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY
             calculate_scattering(everest, pc);
 #endif
-            pc = nuclear_interaction(everest, part, pc);
-            if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
-                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
-            } else {
-                // We call the main Amorphous function for the leftover
-                everest->rescale_scattering = 1;
-#ifndef XCOLL_REFINE_ENERGY
-                calculate_scattering(everest, pc);
-#endif
-                pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
-            }
+            pc = Amorphous(everest, part, cg, pc, length - channeled_length, 1);
         }
     }
 
