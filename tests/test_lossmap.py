@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import json
@@ -25,7 +25,7 @@ path = Path(__file__).parent / 'data'
                             [1, 'V', 3500, 0.1, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_run_lossmap(beam, plane, npart, interpolation, ignore_crystals, test_context):
+def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context):
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
 
@@ -52,7 +52,7 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
     with flaky_assertions():
         line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
-                         interpolation=interpolation)
+                            interpolation=interpolation)
         print(ThisLM.summary)
 
         ThisLM.to_json("lossmap.json")
@@ -67,7 +67,7 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
 
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
-        assert list(summ.columns) == ['collname', 'nabs', 'length', 's', 'type']
+        assert list(summ.columns) == ['collname', 'nabs', 'energy', 'length', 's', 'type']
         assert len(summ[summ.type==coll_cls]) == 10
         if not ignore_crystals:
             assert len(summ[summ.type==cry_cls]) == 2
@@ -79,22 +79,25 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
         summ = summ[summ.nabs > 0]
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', \
                                    'interpolation', 'reversed']
-        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n']
+        assert list(lm['collimator'].keys()) == ['s', 'name', 'length', 'n', 'e']
         assert len(lm['collimator']['s']) == len(summ)
         assert len(lm['collimator']['name']) == len(summ)
         assert len(lm['collimator']['length']) == len(summ)
         assert len(lm['collimator']['n']) == len(summ)
+        assert len(lm['collimator']['e']) == len(summ)
         assert np.all(lm['collimator']['s'] == summ.s)
         assert np.all(lm['collimator']['name'] == summ.collname)
         assert np.all(lm['collimator']['length'] == summ.length)
         assert np.all(lm['collimator']['n'] == summ.nabs)
+        assert np.all(lm['collimator']['e'] == summ.energy)
         assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
         assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
-        assert list(lm['aperture'].keys()) == ['s', 'name', 'n']
+        assert list(lm['aperture'].keys()) == ['s', 'name', 'n', 'e']
         if npart > 5000:
             assert len(lm['aperture']['s']) > 0
             assert len(lm['aperture']['s']) == len(lm['aperture']['name'])
             assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
+            assert len(lm['aperture']['s']) == len(lm['aperture']['e'])
             assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed

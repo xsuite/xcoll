@@ -8,6 +8,7 @@ import xtrack as xt
 
 from .interaction_types import source, interactions, shortcuts, is_point
 from ..general import _pkg_root
+from ..headers.particle_states import particle_states_src
 
 import numpy as np
 import pandas as pd
@@ -53,7 +54,7 @@ class InteractionRecord(xt.BeamElement):
 
     _extra_c_sources = [
         source,
-        _pkg_root.joinpath('headers','particle_states.h'),
+        particle_states_src,
         _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
 

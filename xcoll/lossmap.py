@@ -254,14 +254,24 @@ class LossMap:
                             + f"moved to {line.element_names[elem-1]}")
                     part.at_element[idx] = elem - 1
                     what_type = line[elem-1].__class__.__name__
-                    if what_type == 'EverestCollimator':
+                    if what_type == 'EverestBlock':
+                        part.state[idx] = -330
+                    elif what_type == 'EverestCollimator':
                         part.state[idx] = -331
                     elif what_type == 'EverestCrystal':
                         part.state[idx] = -332
+                    elif what_type == 'FlukaBlock':
+                        part.state[idx] = -333
                     elif what_type == 'FlukaCollimator':
-                        part.state[idx] = -334   # TODO: what if crystal?
+                        part.state[idx] = -334
+                    elif what_type == 'FlukaCrystal':
+                        part.state[idx] = -335
+                    elif what_type == 'Geant4Block':
+                        part.state[idx] = -336
                     elif what_type == 'Geant4Collimator':
-                        part.state[idx] = -337   # TODO: what if crystal?
+                        part.state[idx] = -337
+                    elif what_type == 'Geant4Crystal':
+                        part.state[idx] = -338
                     elif what_type == 'BlackAbsorber':
                         part.state[idx] = -340
                     else:

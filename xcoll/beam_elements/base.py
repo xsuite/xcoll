@@ -10,6 +10,7 @@ import xtrack as xt
 
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
+from ..headers.particle_states import particle_states_src
 
 
 OPEN_JAW = 3
@@ -31,7 +32,7 @@ class InvalidXcoll(xt.BeamElement):
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
-        _pkg_root.joinpath('headers','particle_states.h'),
+        particle_states_src,
         _pkg_root.joinpath('headers','checks.h')
     ]
 
@@ -62,7 +63,7 @@ class BaseBlock(xt.BeamElement):
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['record_impacts', 'record_exits', 'record_scatterings']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
 
     _depends_on = [InvalidXcoll]
 
@@ -78,14 +79,34 @@ class BaseBlock(xt.BeamElement):
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
+            # Set name (useful for bookkeeping like in FLUKA)
+            to_assign['name'] = kwargs.pop('name', None)
+            # Set active
             kwargs.setdefault('active', True)
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
         super().__init__(**kwargs)
+        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
+        # We also have to manually initialise them for xobject generation
         for key, val in to_assign.items():
             setattr(self, key, val)
         BaseBlock._verify_consistency(self)
+
+    def copy(self, **kwargs):
+        obj = super().copy(**kwargs)
+        obj.name = self.name
+        return obj
+
+    @property
+    def name(self):
+        if not hasattr(self, '_name'):
+            self._name = None
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -190,8 +211,10 @@ class BaseCollimator(BaseBlock):
     skip_in_loss_location_refinement = True
 
     _noexpr_fields = {'align', 'side', 'name'}
-    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
+                         *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
+                         'side', 'align', 'emittance']
 
     _depends_on = [BaseBlock]
 
