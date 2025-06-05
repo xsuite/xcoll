@@ -14,6 +14,12 @@ import xobjects as xo
 from .beam_elements import collimator_classes, crystal_classes
 from .general import __version__
 from .plot import _plot_lossmap_base
+from .headers.particle_states import (
+    LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
+    LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
+    LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
+    LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
+    VIRTUAL_ENERGY)
 
 
 class LossMap:
@@ -255,25 +261,25 @@ class LossMap:
                     part.at_element[idx] = elem - 1
                     what_type = line[elem-1].__class__.__name__
                     if what_type == 'EverestBlock':
-                        part.state[idx] = -330
+                        part.state[idx] = LOST_ON_EVEREST_BLOCK
                     elif what_type == 'EverestCollimator':
-                        part.state[idx] = -331
+                        part.state[idx] = LOST_ON_EVEREST_COLL
                     elif what_type == 'EverestCrystal':
-                        part.state[idx] = -332
+                        part.state[idx] = LOST_ON_EVEREST_CRYSTAL
                     elif what_type == 'FlukaBlock':
-                        part.state[idx] = -333
+                        part.state[idx] = LOST_ON_FLUKA_BLOCK
                     elif what_type == 'FlukaCollimator':
-                        part.state[idx] = -334
+                        part.state[idx] = LOST_ON_FLUKA_COLL
                     elif what_type == 'FlukaCrystal':
-                        part.state[idx] = -335
+                        part.state[idx] = LOST_ON_FLUKA_CRYSTAL
                     elif what_type == 'Geant4Block':
-                        part.state[idx] = -336
+                        part.state[idx] = LOST_ON_GEANT4_BLOCK
                     elif what_type == 'Geant4Collimator':
-                        part.state[idx] = -337
+                        part.state[idx] = LOST_ON_GEANT4_COLL
                     elif what_type == 'Geant4Crystal':
-                        part.state[idx] = -338
+                        part.state[idx] = LOST_ON_GEANT4_CRYSTAL
                     elif what_type == 'BlackAbsorber':
-                        part.state[idx] = -340
+                        part.state[idx] = LOST_ON_ABSORBER
                     else:
                         raise ValueError(f"Unknown collimator type {what_type}")
 
@@ -293,8 +299,15 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
+        all_lost_states = [LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
+                           LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
+                           LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
+                           LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
+                           VIRTUAL_ENERGY
+        ]
+
         names = line.get_elements_of_type(collimator_classes)[1]
-        coll_mask = (part.state <= -330) & (part.state >= -350)
+        coll_mask = (part.state <= max(all_lost_states)) & (part.state >= min(all_lost_states))
         coll_losses = np.array([line.element_names[i]
                                   for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
