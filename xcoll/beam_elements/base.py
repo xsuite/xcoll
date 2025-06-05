@@ -457,7 +457,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LU(self):
-        if not np.isclose(self._jaw_LU, OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose((self._jaw_LU + self._jaw_LD) / 2,
+                          OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LU
 
     @jaw_LU.setter   # This assumes jaw_LD remains fixed, hence both jaw_L and the tilt change
@@ -474,7 +475,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LD(self):
-        if not np.isclose(self._jaw_LD, OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose((self._jaw_LU + self._jaw_LD) / 2,
+                          OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LD
 
     @jaw_LD.setter   # This assumes jaw_LU remains fixed, hence both jaw_L and the tilt change
@@ -491,7 +493,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RU(self):
-        if not np.isclose(self._jaw_RU, -OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose((self._jaw_RU + self._jaw_RD) / 2,
+                          -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RU
 
     @jaw_RU.setter   # This assumes jaw_RD remains fixed, hence both jaw_R and the tilt change
@@ -508,7 +511,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RD(self):
-        if not np.isclose(self._jaw_RD, -OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose((self._jaw_RU + self._jaw_RD) / 2,
+                          -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RD
 
     @jaw_RD.setter   # This assumes jaw_RU remains fixed, hence both jaw_R and the tilt change
@@ -879,9 +883,7 @@ class BaseCollimator(BaseBlock):
         if self.side != 'right':
             if self.optics_ready() and self.jaw_L is not None:
                 return round((self.jaw_L - self.co[0][0])/self.sigma[0][0], 6)
-            elif not self._gap_L_set_manually():
-                return None
-            else:
+            elif self._gap_L_set_manually():
                 return self._gap_L
 
     @gap_L.setter
@@ -899,9 +901,7 @@ class BaseCollimator(BaseBlock):
         if self.side != 'left':
             if self.optics_ready() and self.jaw_R is not None:
                 return round((self.jaw_R - self.co[0][1])/self.sigma[0][1], 6)
-            elif not self._gap_R_set_manually():
-                return None
-            else:
+            elif self._gap_R_set_manually():
                 return self._gap_R
 
     @gap_R.setter
