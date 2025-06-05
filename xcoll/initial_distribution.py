@@ -10,7 +10,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes, EverestCrystal
+from .beam_elements import collimator_classes, BaseCrystal
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -191,7 +191,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
     coll = line[name]
 
     if side == '+':
-        if isinstance(coll, EverestCrystal):
+        if isinstance(coll, BaseCrystal):
             # A pencil on the crystal should always be upstream
             pencil_pos = coll.jaw_U + impact_parameter
         else:
@@ -200,7 +200,7 @@ def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_p
             else:
                 pencil_pos = coll.jaw_LD + impact_parameter
     elif side == '-':
-        if isinstance(coll, EverestCrystal):
+        if isinstance(coll, BaseCrystal):
             # A pencil on the crystal should always be upstream
             pencil_pos = coll.jaw_U - impact_parameter
         else:
