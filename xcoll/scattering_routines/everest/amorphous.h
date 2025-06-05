@@ -83,19 +83,46 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     return pc;
 }
 
-double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
 
-/*gpufun*/
+double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
+double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
+
+double volume_interaction(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
+#ifdef XCOLL_REFINE_ENERGY
+    calculate_VI_parameters(everest, part, pc);
+#endif
+    // Are we reflecting or captured?
+    if (RandomUniform_generate(part) > everest->Vcapt) {
+        // Volume Reflection
+        volume_reflection(everest, part, transition);
+        // We call the main Amorphous function for the leftover
+        pc = Amorphous(everest, part, cg, pc, length, 0);
+
+    } else {
+        // Volume Capture
+        if (everest->coll->record_scatterings){
+            InteractionRecordData record = everest->coll->record;
+            RecordIndex record_index     = everest->coll->record_index;
+            InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
+        }
+        // We call the main Channel function for the leftover
+        calculate_initial_angle(everest, part, cg);
+        calculate_opening_angle(everest, part, cg);
+        #ifdef XCOLL_REFINE_ENERGY
+            calculate_critical_angle(everest, part, cg, pc);
+        #endif
+        pc = Channel(everest, part, cg, pc, length);
+    }
+    return pc;
+}
+
+// /*gpufun*/
 double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
 
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
         return pc;
     }
-
-    InteractionRecordData record = everest->coll->record;
-    RecordIndex record_index     = everest->coll->record_index;
-    int8_t sc = everest->coll->record_scatterings;
 
     calculate_initial_angle(everest, part, cg);
 
@@ -186,32 +213,9 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
     } else if (length_VI <= length_exit && allow_VI == 1){
         // MCS to volume interaction
         pc = amorphous_transport(everest, part, pc, length_VI, 0);
-#ifdef XCOLL_REFINE_ENERGY
-        calculate_VI_parameters(everest, part, pc);
-#endif
-        // Are we reflecting or captured?
-        if (RandomUniform_generate(part) > everest->Vcapt) {
-            // Volume Reflection
-            volume_reflection(everest, part, 0);
-            // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, cg, pc, length - length_VI, 0);
-
-        } else {
-            // Volume Capture
-            if (sc) InteractionRecordData_log(record, record_index, part, XC_VOLUME_CAPTURE);
-            // We call the main Channel function for the leftover
-            calculate_initial_angle(everest, part, cg);
-            calculate_opening_angle(everest, part, cg);
-            #ifdef XCOLL_REFINE_ENERGY
-                calculate_critical_angle(everest, part, cg, pc);
-            #endif
-            pc = Channel(everest, part, cg, pc, length - length_VI);
-        }
+        pc = volume_interaction(everest, part, cg, pc, length - length_VI, 0);
 
     } else if (length_VR_trans <= length_exit && allow_VI == 1){
-#ifdef XCOLL_REFINE_ENERGY
-        calculate_critical_angle(everest, part, cg, pc);
-#endif
         // We estimate where we are in the transition region (rather on the VR side or rather on the AM side)
         // by looking at how much correction we needed on the length. If length_VI is closest to length_exit,
         // we are on the VR side. On the other hand, if length_VR_trans is closest to length_exit, we are on the
@@ -220,8 +224,11 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
         if (RandomUniform_generate(part) > prob_MCS){
             // We are on the VR side
             pc = amorphous_transport(everest, part, pc, length_VR_trans, 0);
-            volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
-            pc = Amorphous(everest, part, cg,  pc, length - length_VR_trans, 0);
+            pc = volume_interaction(everest, part, cg, pc, length - length_VR_trans, XC_VOLUME_REFLECTION_TRANS_MCS);
+            // // Volume Reflection
+            // volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
+            // // We call the main Amorphous function for the leftover
+            // pc = Amorphous(everest, part, cg,  pc, length - length_VR_trans, 0);
         } else {
             // We are on the AM side
             // if (sc) InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
