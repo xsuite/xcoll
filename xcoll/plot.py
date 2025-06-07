@@ -20,12 +20,12 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
 
     coll_s = lossmap['collimator']['s']
     coll_val = lossmap['collimator']['e'] if energy else lossmap['collimator']['n']
-    if lossmap['interpolation'] is None:
-        cold_s = lossmap['aperture']['s']
-        cold_val = lossmap['aperture']['e'] if energy else lossmap['aperture']['n']
-    else:
+    if lossmap['interpolation']:
         cold_s = lossmap['aperture']['s_bins']
         cold_val = lossmap['aperture']['e_bins'] if energy else lossmap['aperture']['n_bins']
+    else:
+        cold_s = lossmap['aperture']['s']
+        cold_val = lossmap['aperture']['e'] if energy else lossmap['aperture']['n']
     warm_s = np.array([])  # Placeholder for warm losses, if needed
     warm_val = np.array([])  # Placeholder for warm losses, if needed
     if norm != "raw":
@@ -46,7 +46,7 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         coll_val = coll_val / scale
         cold_val = cold_val / scale
         warm_val = warm_val / scale
-        if lossmap['interpolation'] is not None:
+        if lossmap['interpolation']:
             cold_val = cold_val / lossmap['aperture']['length_bins']
 
     L = lossmap['machine_length']
