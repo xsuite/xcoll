@@ -23,7 +23,8 @@ def xcoll_to_fluka_material(material):
         "c":    "  CARBON",
         "si":   " SILICON",
         "cu":   "  COPPER",
-        "mogr": "AC150GPH"
+        "mogr": "AC150GPH",
+        "vacuum": "VACUUM"
     }
 
     if material not in material_dict.keys():
