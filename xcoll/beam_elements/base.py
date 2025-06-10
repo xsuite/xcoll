@@ -1024,7 +1024,7 @@ class BaseCollimator(BaseBlock):
 
         # Verify bools
         if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
-            assert isinstance(self._side, int) and self._side in [-1, 0, 1]
+            assert self._side in [-1, 0, 1]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1461,7 +1461,7 @@ class BaseCrystal(BaseBlock):
         assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
         # Verify bools
         if '_side' in self._xofields:
-            assert isinstance(self._side, int) and self._side in [-1, 0, 1]
+            assert self._side in [-1, 0, 1]
         # Crystal specific
         if '_bending_radius' in self._xofields and '_bending_angle' in self._xofields:
             assert isinstance(self._bending_radius, float) and self._bending_radius > 0
