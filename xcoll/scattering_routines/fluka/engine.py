@@ -258,24 +258,44 @@ class FlukaEngine(BaseEngine):
             if jaw is None or (jaw[0] is None and jaw[1] is None):
                 ee.jaw = None
             else:
-                if jaw[0] is None:
-                    if ee.side != 'right':
-                        self._print(f"Warning: {name} is right-sided in the input file, "
-                                   + "but not in the line! Overwritten by the former.")
-                        ee.side = 'right'
-                elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
-                    self._print(f"Warning: Jaw_L of {name} differs from input file "
-                              + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
-                    ee.jaw_L = jaw[0]
-                if jaw[1] is None:
-                    if ee.side != 'left':
-                        self._print(f"Warning: {name} is left-sided in the input file, "
-                                  + f"but not in the line! Overwritten by the former.")
-                        ee.side = 'left'
-                elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
-                    self._print(f"Warning: Jaw_R of {name} differs from input file "
-                              + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
-                    ee.jaw_R = jaw[1]
+                if ee.assembly.is_crystal:
+                    if jaw[0] is None:
+                        if ee.side != 'right':
+                            self._print(f"Warning: {name} is right-sided in the input file, "
+                                    + "but not in the line! Overwritten by the former.")
+                            ee.side = 'right'
+                    elif not np.isclose(ee.jaw, jaw[0], atol=1e-9):
+                        self._print(f"Warning: Jaw of {name} differs from input file "
+                                + f"({ee.jaw} vs {jaw[0]})! Overwritten.")
+                        ee.jaw = jaw[0]
+                    if jaw[1] is None:
+                        if ee.side != 'left':
+                            self._print(f"Warning: {name} is left-sided in the input file, "
+                                    + "but not in the line! Overwritten by the former.")
+                            ee.side = 'left'
+                    elif not np.isclose(ee.jaw, jaw[1], atol=1e-9):
+                        self._print(f"Warning: Jaw of {name} differs from input file "
+                                + f"({ee.jaw} vs {jaw[1]})! Overwritten.")
+                        ee.jaw = jaw[1]
+                else:
+                    if jaw[0] is None:
+                        if ee.side != 'right':
+                            self._print(f"Warning: {name} is right-sided in the input file, "
+                                    + "but not in the line! Overwritten by the former.")
+                            ee.side = 'right'
+                    elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
+                        self._print(f"Warning: Jaw_L of {name} differs from input file "
+                                + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
+                        ee.jaw_L = jaw[0]
+                    if jaw[1] is None:
+                        if ee.side != 'left':
+                            self._print(f"Warning: {name} is left-sided in the input file, "
+                                    + f"but not in the line! Overwritten by the former.")
+                            ee.side = 'left'
+                    elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
+                        self._print(f"Warning: Jaw_R of {name} differs from input file "
+                                + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
+                        ee.jaw_R = jaw[1]
         # TODO: tilts!!
 
 
