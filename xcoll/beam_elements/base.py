@@ -1197,12 +1197,17 @@ class BaseCrystal(BaseBlock):
     @jaw.setter
     def jaw(self, val):
         if val is None:
-            val = self._side*OPEN_JAW
+            if self.side == 'left':
+                val = OPEN_JAW
+            elif self.side == 'right':
+                val = -OPEN_JAW
+            else:
+                raise ValueError("Cannot determine side. Something is wrong with the collimator!")
         self.jaw_U = val
 
     @property
     def jaw_U(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_U
 
     @jaw_U.setter   # This moves both jaw_LU and jaw_LD in parallel
@@ -1214,9 +1219,10 @@ class BaseCrystal(BaseBlock):
 
     @property
     def jaw_D(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             length = self.length
-            if self._side*self.bending_radius < 0:
+            if (self.side == 'left' and self.bending_radius < 0) \
+            or (self.side == 'right' and self.bending_radius > 0):
                 # Correction for inner corner point
                 length -= self.width*np.sin(abs(self._bending_angle))
             shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
