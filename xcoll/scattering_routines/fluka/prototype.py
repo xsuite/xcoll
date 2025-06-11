@@ -42,7 +42,9 @@ class FlukaPrototype:
     def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
                  height=None, length=None, material=None, info=None, extra_commands=None,
                  is_crystal=False, bending_radius=None, _allow_generic=False, is_broken=False,
-                 **kwargs):
+                 _force_init=False, **kwargs):
+        if getattr(self, "_initialized", False) and not _force_init:
+            return
         if fedb_series is None and fedb_tag is None:
             self._is_null = True
             info = None
@@ -76,6 +78,7 @@ class FlukaPrototype:
         self._id = None
         self._type = self.__class__.__name__[5:].lower()
         self._elements = []
+        self._initialized = True
 
     def __repr__(self):
         if self._is_null:
@@ -96,7 +99,8 @@ class FlukaPrototype:
         else:
             elements = "unassigned"
         info = f" ({self.info})" if self.info else ''
-        return f"{self.__class__.__name__} '{self.name}' ({elements}): " \
+        cry = "crystal " if self.is_crystal else ''
+        return f"{self.__class__.__name__} {cry}'{self.name}' ({elements}): " \
              + f"tag {self.fedb_tag} in {self.fedb_series} series{info}"
 
     def __str__(self):
@@ -120,7 +124,7 @@ class FlukaPrototype:
                 file.unlink()
         fedb = xc.fluka.environment.fedb
         meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
-        if file.exists() or file.is_symlink():
+        if meta.exists() or meta.is_symlink():
             meta.unlink()
 
     def to_dict(self):
@@ -148,9 +152,9 @@ class FlukaPrototype:
     def from_dict(cls, data):
         cls = data.pop('__class__', None)
         if cls == 'FlukaPrototype':
-            return FlukaPrototype(_allow_generic=True, **data)
+            return FlukaPrototype(_allow_generic=True, _force_init=True, **data)
         elif cls == 'FlukaAssembly':
-            return FlukaAssembly(_allow_generic=True, **data)
+            return FlukaAssembly(_allow_generic=True, _force_init=True, **data)
         else:
             raise ValueError(f"Invalid data format for {cls}.")
 

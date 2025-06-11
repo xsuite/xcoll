@@ -17,7 +17,7 @@ except (ImportError, ModuleNotFoundError):
 
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from ...general import _pkg_root
-from .prototype import FlukaPrototype
+from .prototype import FlukaPrototype, FlukaAssembly
 from .includes import get_include_files
 
 _header_start = "*  XCOLL START  **"
@@ -28,6 +28,9 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, **kwargs):
     import xcoll as xc
     _create_prototypes_file(element_dict, prototypes_file)
+    for prototype in {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}.values():
+        if prototype.is_crystal:
+            kwargs.setdefault('use_crystals', True)
     include_files, kwargs = get_include_files(particle_ref, verbose=verbose,
                                               **kwargs)
     # Call FLUKA_builder
@@ -60,8 +63,16 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
         else:
             fluka_dict[name]['length'] /= 100
             fluka_dict[name]['angle'] = ee.angle
-            fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
-            fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
+            if ee.assembly.is_crystal:
+                if ee.side == 'left':
+                    fluka_dict[name]['tilt'] = [ee.tilt, None]
+                    fluka_dict[name]['jaw'] = [ee.jaw, None]
+                elif ee.side == 'right':
+                    fluka_dict[name]['tilt'] = [None, ee.tilt]
+                    fluka_dict[name]['jaw'] = [None, ee.jaw]
+            else:
+                fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
+                fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
     _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
     if verbose:
         print(f"Created FLUKA input file {input_file}.")
@@ -108,35 +119,45 @@ def _element_dict_to_fluka(element_dict, dump=False):
             raise ValueError(f"Collimator {name} has zero length!")
 
         nsig = 1 # TODO can remove?
-        if ee.side == 'left':
-            if ee.jaw_L is None:
+        if ee.assembly.is_crystal:
+            if ee.jaw is None:
                 half_gap = OPEN_JAW
             else:
-                nsig = ee.gap_L
-                half_gap = ee.jaw_L
+                nsig = ee.gap
+                half_gap = ee.jaw
             offset = 0
-            tilt_1 = ee.tilt_L
+            tilt_1 = ee.tilt
             tilt_2 = 0
-        elif ee.side == 'right':
-            if ee.jaw_R is None:
-                half_gap = OPEN_JAW
-            else:
-                nsig = ee.gap_R
-                half_gap = -ee.jaw_R   #  TODO: is the sign correct?
-            offset = 0
-            tilt_1 = 0
-            tilt_2 = ee.tilt_R
         else:
-            if ee.jaw_L is None and ee.jaw_R is None:
-                half_gap = OPEN_JAW
-                offset = 0
-            else:
-                if ee.gap_L is not None:
+            if ee.side == 'left':
+                if ee.jaw_L is None:
+                    half_gap = OPEN_JAW
+                else:
                     nsig = ee.gap_L
-                elif ee.gap_R is not None:
+                    half_gap = ee.jaw_L
+                offset = 0
+                tilt_1 = ee.tilt_L
+                tilt_2 = 0
+            elif ee.side == 'right':
+                if ee.jaw_R is None:
+                    half_gap = OPEN_JAW
+                else:
                     nsig = ee.gap_R
-                half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
-                offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
+                    half_gap = -ee.jaw_R   #  TODO: is the sign correct?
+                offset = 0
+                tilt_1 = 0
+                tilt_2 = ee.tilt_R
+            else:
+                if ee.jaw_L is None and ee.jaw_R is None:
+                    half_gap = OPEN_JAW
+                    offset = 0
+                else:
+                    if ee.gap_L is not None:
+                        nsig = ee.gap_L
+                    elif ee.gap_R is not None:
+                        nsig = ee.gap_R
+                    half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
+                    offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = round(ee.tilt_L, 9)
             tilt_2 = round(ee.tilt_R, 9)
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:

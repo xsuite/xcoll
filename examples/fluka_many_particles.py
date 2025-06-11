@@ -18,7 +18,7 @@ if xc.fluka.engine.is_running():
     xc.fluka.engine.stop()
 
 
-def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
+def run_many_particles(particle_ref, num_part, capacity=None, plot=False, showers=True):
     if not capacity:
         capacity = num_part*100
 
@@ -31,7 +31,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     xc.fluka.engine.capacity = capacity
     xc.fluka.engine.start(elements=coll, clean=True, verbose=False, return_all=True,
                           return_neutral=True, electron_lower_momentum_cut=1.e6,
-                          include_showers=True)
+                          include_showers=showers)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
@@ -152,7 +152,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
 
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=500_000)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=50_000, showers=False)
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
 
 

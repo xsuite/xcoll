@@ -180,8 +180,10 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
 
 
 def _assignmat_include_file():
-    crystal_assemblies = [pro for pro in FlukaPrototype._registry
-                          if pro.is_crystal and not isinstance(pro, FlukaAssembly)]
+    crystal_assemblies  = [pro for pro in FlukaPrototype._assigned_registry.values()
+                           if pro.is_crystal]
+    crystal_assemblies += [pro for ass in FlukaAssembly._assigned_registry.values()
+                           for pro in ass.prototypes if pro.is_crystal]
     template = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 *
@@ -206,12 +208,25 @@ def _assignmat_include_file():
         name   = crystal.name
         l      = crystal.length * 100
         bang   = round(l/(crystal.bending_radius*100) *1000, 6) # mrad
-        angle  = crystal.angle
+        if crystal.fluka_position is not None:
+            pos = crystal.fluka_position
+        else:
+            if isinstance(crystal, FlukaAssembly):
+                raise ValueError(f"Crystal {name} has no position in the prototypes file.")
+            if len(crystal.dependant_assemblies) == 0:
+                raise ValueError(f"Crystal {name} has no position in the prototypes file.")
+            elif len(crystal.dependant_assemblies) > 1:
+                raise ValueError(f"Crystal {name} has multiple positions in the prototypes file. "
+                                + "(too many dependant aseemblies).")
+            pos = crystal.dependant_assemblies[0].fluka_position
+        pos1   = format_fluka_float(pos[3])
+        pos2   = format_fluka_float(pos[4])
+        pos3   = format_fluka_float(pos[5])
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
 CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &
-CRYSTAL      -1049.0   -2999.0    1000.1                              &&
+CRYSTAL   {pos1}{pos2}{pos3}                              &&
 """
     filename = FsPath("include_custom_assignmat.inp").resolve()
 
@@ -483,22 +498,6 @@ USERDUMP       100.0
 *
 * crystal scoring
 {crystal}        50.0                                                  CRYSTAL
-"""
-    with filename.open('w') as fp:
-        fp.write(template)
-    return filename
-
-
-def _assignmat_include_file():
-    filename = FsPath(f"include_custom_assignmat.inp").resolve()
-    template = f"""\
-******************************************************************************
-*                           ASSIGNMAT SETTINGS                               *
-******************************************************************************
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*
-* Place in this file all the custom assignmat you require
-*
 """
     with filename.open('w') as fp:
         fp.write(template)
