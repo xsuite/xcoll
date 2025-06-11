@@ -250,7 +250,7 @@ BEAMPOS
 *
 """
     if bb_int:
-        bb_int_template = f"""\
+        template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 * W(1):interaction type, W(2):Index IR, W(3):Length of IR[cm], W(4):SigmaZ
 SOURCE            1.        1.        0.        0.
@@ -269,9 +269,8 @@ USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_O
 USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_L
 *
 """
-        template += bb_int_template
     else:
-        template_source += """\
+        template += f"""\
 * Only asking for loss map and touches map as in Xsuite
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 SOURCE                                         87.       88.        1.
@@ -279,7 +278,6 @@ SOURCE           89.       90.       91.        0.       -1.       10.&
 SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 """
 
-        template += template_source
 
     with filename.open('w') as fp:
         fp.write(template)
