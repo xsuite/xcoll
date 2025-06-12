@@ -154,13 +154,22 @@ class K2Engine:
                 el._optics[el.align]['alfy'] = [1]
                 # Guesstimate betx and bety such that the gap is ~5 sigma
                 beta_gamma_rel = particle_ref._xobject.gamma0[0] * particle_ref._xobject.beta0[0]
-                off2 = ((el.jaw_L - el.jaw_R)/10)**2
-                betx = 10000 if abs(el._cos_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_x /(el._cos_zL**2)
-                bety = 10000 if abs(el._sin_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_y /(el._sin_zL**2)
+                if el.__class__ == _K2Crystal:
+                    off2 = (el.jaw/5)**2
+                    centre_x = 0
+                    centre_y = 0
+                    betx = 10000 if abs(el._cos_z) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_x /(el._cos_z**2)
+                    bety = 10000 if abs(el._sin_z) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_y /(el._sin_z**2)
+                else:
+                    off2 = ((el.jaw_L - el.jaw_R)/10)**2
+                    centre_x = (el.jaw_L + el.jaw_R)/2 * el._cos_zL
+                    centre_y = (el.jaw_L + el.jaw_R)/2 * el._sin_zL
+                    betx = 10000 if abs(el._cos_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_x /(el._cos_zL**2)
+                    bety = 10000 if abs(el._sin_zL) < 1.e-12 else off2*beta_gamma_rel/el.nemitt_y /(el._sin_zL**2)
                 el._optics[el.align]['betx'] = [betx]  # TODO: understand
                 el._optics[el.align]['bety'] = [bety]
-                el._optics[el.align]['x']  = [(el.jaw_L + el.jaw_R)/2 * el._cos_zL]
-                el._optics[el.align]['y']  = [(el.jaw_L + el.jaw_R)/2 * el._sin_zL]
+                el._optics[el.align]['x']  = [centre_x]
+                el._optics[el.align]['y']  = [centre_y]
                 el._optics[el.align]['px'] = [0]
                 el._optics[el.align]['py'] = [0]
                 el._optics['beta_gamma_rel'] = beta_gamma_rel
