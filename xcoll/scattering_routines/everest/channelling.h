@@ -103,7 +103,12 @@ double* channel_transport(EverestData restrict everest, LocalParticle* part, dou
     // In reality,the particle oscillates horizontally between the planes while channelling.
     // This effect is mimicked by giving a random angle spread at the exit
     double sigma_ran = 0.5*everest->t_c;
-    double ran_angle = RandomNormal_generate(part)*sigma_ran;
+    double ran = RandomNormal_generate(part);
+    while (fabs(ran) > 2.0) {
+        // Ensure that the kick is within [-tc, +tc]
+        ran = RandomNormal_generate(part);
+    }
+    double ran_angle = ran*sigma_ran;
     LocalParticle_set_xp(part, t_I + t_P + ran_angle); // Angle at end of channelling
 
     // Apply energy loss along trajectory
