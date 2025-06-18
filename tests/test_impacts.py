@@ -45,7 +45,7 @@ def test_impacts_from_line(beam, plane, test_context):
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
     line.scattering.disable()
 
-    _assert_impacts(impacts)
+    _assert_impacts(impacts, lengths=[line[coll].length for coll in df.collimator[mask]])
 
 
 @for_all_test_contexts(
@@ -61,11 +61,11 @@ def test_impacts_single_collimator(test_context):
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part = xp.Particles(x=x_init, px=px_init, y=y_init, py=py_init, delta=0, p0c=4e11)
 
-    impacts_coll = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
+    impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True, record_exits=True)
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
-    _assert_impacts(impacts)
+    _assert_impacts(impacts, lengths=coll.length)
 
 
 @for_all_test_contexts(
@@ -93,14 +93,14 @@ def test_impacts_single_crystal(R, side, test_context):
     _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'], check_exit=False)
 
 
-def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], check_exit=True):
+def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
     df = impacts.to_pandas()
     types = np.unique(df.interaction_type)
     assert np.all([type in expected_types for type in types])
 
     for this_type in ['Enter Jaw L', 'Enter Jaw R']:
         if this_type in expected_types:
-            mask = df.interaction_type == 'Enter Jaw L'
+            mask = df.interaction_type == this_type
             assert np.all(np.isclose(df.s_before[mask], 0.0, atol=1e-12) |
                         np.isclose(df.x_before[mask], 0.0, atol=1e-12))
             mask_all = mask & np.isclose(df.s_before, 0.0, atol=1e-12) & \
@@ -109,7 +109,7 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
         else:
             assert this_type not in types
 
-    if check_exit:
+    if lengths:
         mask = df.interaction_type == 'Exit Jaw'
-        assert np.all(np.isclose(df.s_before[mask], [line[coll].length for coll in df.collimator[mask]], atol=1e-12) |
+        assert np.all(np.isclose(df.s_before[mask], lengths, atol=1e-12) |
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
