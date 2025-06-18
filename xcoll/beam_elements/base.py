@@ -550,23 +550,23 @@ class BaseCollimator(BaseBlock):
 
     def _update_tilts(self):
         if self.side != 'right':
-            # if self.jaw_LD is not None and self.jaw_LU is not None:
-            self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
-            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-            self._tan_yL = self._sin_yL / self._cos_yL
-            # else:
-            #     self._sin_yL = 0.
-            #     self._cos_yL = 1.
-            #     self._tan_yL = 0.
+            if self.length > 0:
+                self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
+                self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+                self._tan_yL = self._sin_yL / self._cos_yL
+            else:
+                self._sin_yL = 0.
+                self._cos_yL = 1.
+                self._tan_yL = 0.
         if self.side != 'left':
-            # if self.jaw_RD is not None and self.jaw_RU is not None:
-            self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
-            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-            self._tan_yR = self._sin_yR / self._cos_yR
-            # else:
-            #     self._sin_yR = 0.
-            #     self._cos_yR = 1.
-            #     self._tan_yR = 0.
+            if self.length > 0:
+                self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
+                self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+                self._tan_yR = self._sin_yR / self._cos_yR
+            else:
+                self._sin_yR = 0.
+                self._cos_yR = 1.
+                self._tan_yR = 0.
 
     def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
