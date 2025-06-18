@@ -1512,7 +1512,7 @@ class BaseCrystal(BaseBlock):
             assert self._side in [-1, 0, 1]
         # Crystal specific
         if '_bending_radius' in self._xofields and '_bending_angle' in self._xofields:
-            assert isinstance(self._bending_radius, float) and self._bending_radius > 0
+            assert isinstance(self._bending_radius, float) and not np.isclose(self._bending_radius, 0)
             assert isinstance(self._bending_angle, float) and abs(self._bending_angle) <= np.pi/2
             assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 
