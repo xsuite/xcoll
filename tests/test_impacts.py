@@ -45,7 +45,7 @@ def test_impacts_from_line(beam, plane, test_context):
     line.track(part, num_turns=num_turns, time=True, with_progress=1)
     line.scattering.disable()
 
-    _assert_impacts(impacts, lengths=[line[coll].length for coll in df.collimator[mask]])
+    _assert_impacts(impacts, lengths=line.collimators.length)
 
 
 @for_all_test_contexts(
@@ -90,7 +90,7 @@ def test_impacts_single_crystal(R, side, test_context):
     coll.track(part)
     part.sort(interleave_lost_particles=True)
 
-    _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'], check_exit=False)
+    _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Exit Jaw'])
 
 
 def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit Jaw'], lengths=None):
@@ -111,5 +111,7 @@ def _assert_impacts(impacts, expected_types=['Enter Jaw L', 'Enter Jaw R', 'Exit
 
     if lengths:
         mask = df.interaction_type == 'Exit Jaw'
-        assert np.all(np.isclose(df.s_before[mask], lengths, atol=1e-12) |
+        if not isinstance(lengths, dict):
+            lengths = {coll: lengths for coll in np.unique(df.collimator[mask])}
+        assert np.all(np.isclose(df.s_before[mask], [lengths[coll] for coll in df.collimator[mask]], atol=1e-12) |
                     np.isclose(df.x_before[mask], 0.0, atol=1e-12))
