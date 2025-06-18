@@ -26,7 +26,7 @@ class XcollLineAccessor:
 
     @property
     def _coll_dict(self):
-        return {name: self.line[name] for name in self.names}
+        return {name: self.line.get(name) for name in self.names}
 
     def keys(self):
         return self._coll_dict.keys()
@@ -62,6 +62,9 @@ class XcollLineAccessor:
                 properties[name] = getattr(el, attr)
         if len(properties) == 0:
             raise AttributeError(f"Attribute `{attr}` not found.")
+        if len({tuple(ii) if isinstance(ii, list) else ii for ii in properties.values()}) == 1:
+            # If all values are the same, return a single value
+            return next(iter(properties.values()))
         return properties
 
     def __setattr__(self, attr, value):
