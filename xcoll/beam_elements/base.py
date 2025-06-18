@@ -253,6 +253,10 @@ class BaseCollimator(BaseBlock):
                 for key in ['jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `jaw` and `{key}`!")
+                if hasattr(kwargs['jaw'], '__iter__') and hasattr(kwargs['jaw'][0], '__iter__'):
+                    for key in ['tilt', 'tilt_L', 'tilt_R']:
+                        if key in kwargs:
+                            raise ValueError(f"Cannot specify jaw corners and `{key}`!")
                 to_assign['jaw'] = kwargs.pop('jaw')
             elif 'jaw_L' in kwargs or 'jaw_R' in kwargs:
                 for key in ['jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
@@ -280,21 +284,16 @@ class BaseCollimator(BaseBlock):
                         raise ValueError(f"Cannot use both `tilt` and `{key}`!")
                 to_assign['tilt'] = kwargs.pop('tilt')
             elif 'tilt_L' in kwargs or 'tilt_R' in kwargs:
-                if 'tilt_L' in kwargs:
-                    to_assign['tilt_L'] = kwargs.pop('tilt_L')
-                if 'tilt_R' in kwargs:
-                    to_assign['tilt_R'] = kwargs.pop('tilt_R')
+                to_assign['tilt_L'] = kwargs.pop('tilt_L', None)
+                to_assign['tilt_R'] = kwargs.pop('tilt_R', None)
 
             # Set gap
             if 'gap' in kwargs:
-                for key in ['jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap_L', 'gap_R']:
+                for key in ['gap_L', 'gap_R']:
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap'] = kwargs.pop('gap')
             elif 'gap_L' in kwargs or 'gap_R' in kwargs:
-                for key in ['jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap']:
-                    if key in kwargs:
-                        raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap_L'] = kwargs.pop('gap_L', None)
                 to_assign['gap_R'] = kwargs.pop('gap_R', None)
             kwargs.setdefault('_gap_L', OPEN_GAP)
@@ -415,7 +414,7 @@ class BaseCollimator(BaseBlock):
                 return
         # If we got here, val is incompatible
         raise ValueError(f"The attribute `jaw` should be of the form [L, R] or "
-                       + f"[[LU, RU], [LD, RD], but got {val}.")
+                       + f"[[LU, LD], [RU, RD], but got {val}.")
 
     @property
     def jaw_L(self):
@@ -551,23 +550,23 @@ class BaseCollimator(BaseBlock):
 
     def _update_tilts(self):
         if self.side != 'right':
-            if self.jaw_LD is not None and self.jaw_LU is not None:
-                self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
-                self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-                self._tan_yL = self._sin_yL / self._cos_yL
-            else:
-                self._sin_yL = 0.
-                self._cos_yL = 1.
-                self._tan_yL = 0.
+            # if self.jaw_LD is not None and self.jaw_LU is not None:
+            self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
+            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+            self._tan_yL = self._sin_yL / self._cos_yL
+            # else:
+            #     self._sin_yL = 0.
+            #     self._cos_yL = 1.
+            #     self._tan_yL = 0.
         if self.side != 'left':
-            if self.jaw_RD is not None and self.jaw_RU is not None:
-                self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
-                self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-                self._tan_yR = self._sin_yR / self._cos_yR
-            else:
-                self._sin_yR = 0.
-                self._cos_yR = 1.
-                self._tan_yR = 0.
+            # if self.jaw_RD is not None and self.jaw_RU is not None:
+            self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
+            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+            self._tan_yR = self._sin_yR / self._cos_yR
+            # else:
+            #     self._sin_yR = 0.
+            #     self._cos_yR = 1.
+            #     self._tan_yR = 0.
 
     def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
