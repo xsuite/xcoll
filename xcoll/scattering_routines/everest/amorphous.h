@@ -166,28 +166,30 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
     double length_VI = 1e10;
     if (xp > everest->t_I){
     // xp has to be larger than t_I to be able to VR (no matter which transition we consider)
-#ifdef XCOLL_TRANSITION_VRAM_OLD
-        // Transition region between VR and AM for t_B < xp - tI < t_B + 2t_c
+// #ifdef XCOLL_TRANSITION_VRAM
+//         // Transition region between VR and AM for t_B < xp - tI < t_B + t_c  (or t_B + 2t_c if OLD)
+//         length_VI = everest->r * sin(xp - everest->t_I) * cos(xp);
+// // #else
+// // #ifdef XCOLL_TRANSITION_VRAM
+// //         // Transition region between VR and AM for t_B < xp - tI < t_B + t_c
+// //         // We need to start transitioning earlier than t_B
+// //         length_VI = everest->r * sin(xp - everest->t_I + everest->t_c) * cos(xp);
+// #else
+//         // Normal behaviour, no transition
         length_VI = everest->r * sin(xp - everest->t_I) * cos(xp);
-#else
-#ifdef XCOLL_TRANSITION_VRAM
-        // Transition region between VR and AM for t_B - t_c < xp - tI < t_B + t_c
-        // We need to start transitioning earlier than t_B
-        length_VI = everest->r * sin(xp - everest->t_I + everest->t_c) * cos(xp);
-#else
-        // Normal behaviour, no transition
-        length_VI = everest->r * sin(xp - everest->t_I) * cos(xp);
-#endif
-#endif
+// // #endif
+// #endif
     }
     // Calculate extra length to transition region between VR and AM
     double length_VR_trans = 1e10;
 #ifdef XCOLL_TRANSITION_VRAM_OLD
+    // Transition region between VR and AM for t_B < xp - tI < t_B + 2t_c
     if (xp - 2.*everest->t_c > everest->t_I){
         length_VR_trans = everest->r * sin(xp - everest->t_I - 2.*everest->t_c) * cos(xp);
     }
 #else
 #ifdef XCOLL_TRANSITION_VRAM
+    // Transition region between VR and AM for t_B < xp - tI < t_B + t_c
     if (xp - everest->t_c > everest->t_I){
         length_VR_trans = everest->r * sin(xp - everest->t_I - everest->t_c) * cos(xp);
     }
