@@ -31,11 +31,15 @@ class EverestBlock(BaseBlock):
     isthick = True
     needs_rng = True
     allow_track = True
+    allow_double_sided = False
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = ['_material']
-    _store_in_to_dict      = ['material']
+    _noexpr_fields         = {'material'}
+    _skip_in_to_dict       = [*BaseBlock._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseBlock._store_in_to_dict, 'material']
     _internal_record_class = BaseBlock._internal_record_class
 
     _depends_on = [BaseBlock, EverestEngine]
@@ -95,11 +99,15 @@ class EverestCollimator(BaseCollimator):
     isthick = True
     needs_rng = True
     allow_track = True
+    allow_double_sided = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = [ *BaseCollimator._skip_in_to_dict, '_material' ]
-    _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'material' ]
+    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, EverestEngine]
@@ -148,7 +156,6 @@ class EverestCollimator(BaseCollimator):
                             _buffer=_buffer, _offset=_offset)
 
 
-
 class EverestCrystal(BaseCrystal):
     _xofields = {**BaseCrystal._xofields,
         'miscut':             xo.Float64,
@@ -163,9 +170,13 @@ class EverestCrystal(BaseCrystal):
     isthick = True
     needs_rng = True
     allow_track = True
+    allow_double_sided = False
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'lattice'}
     _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_orient', '_material']
     _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'lattice', 'material']
     _internal_record_class = BaseCrystal._internal_record_class

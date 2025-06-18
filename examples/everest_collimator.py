@@ -33,7 +33,7 @@ line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json'
 TCPH = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
 TCPV = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.MolybdenumGraphite, angle=90, emittance=3.5e-6)
 TCPS = xc.EverestCollimator(length=0.6, gap=5, material=xc.materials.Carbon, angle=127.5, emittance=3.5e-6)
-xc.install_elements(line, ['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
+line.collimators.install(['tcp.c6l7.b1', 'tcp.d6l7.b1', 'tcp.b6l7.b1'], [TCPH, TCPV, TCPS], need_apertures=False)
 
 
 # Aperture model check

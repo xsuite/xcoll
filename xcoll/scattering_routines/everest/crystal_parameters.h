@@ -19,7 +19,7 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
     double x_P = cg->x_P;
     double r   = sqrt((s-s_P)*(s-s_P) + (x-x_P)*(x-x_P));
     everest->r = r;
-    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channeling planes (not neccecarly the same as xp)
+    everest->t_I = R/fabs(R)*asin( (s-s_P)/r); // Tangent angle of the channelling planes (not necessarily the same as xp)
 }
 
 
@@ -68,7 +68,7 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
         }
     }
 
-    // Opening angle of channeling trajectory
+    // Opening angle of channelling trajectory
     double s = LocalParticle_get_s(part);
     double x = LocalParticle_get_x(part);
     everest->t_P = acos(1 - ( (s_F-s)*(s_F-s) - (x_F-x)*(x_F-x) ) / (2*r*r) );
@@ -78,17 +78,17 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
 /*gpufun*/
 double _critical_angle0(EverestCollData restrict coll, double pc){
     // Define typical angles/probabilities for orientation 110
-    double eum   = coll->eum;
-    double eta   = coll->eta;
+    double eum = coll->eum;
+    double eta = coll->eta;
     return sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals    // pc is actually beta pc
 }
 
 /*gpufun*/
 double _critical_radius(EverestCollData restrict coll, double pc){
     // Define typical angles/probabilities for orientation 110
-    double eum   = coll->eum;
-    double ai    = coll->ai;
-    double eta   = coll->eta;
+    double eum = coll->eum;
+    double ai  = coll->ai;
+    double eta = coll->eta;
     return pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]   // pc is actually beta pc
 }
 
@@ -96,7 +96,7 @@ double _critical_radius(EverestCollData restrict coll, double pc){
 double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_over_R){
     double t_c = 0;
     if (Rc_over_R <= 1.) {
-        // Otherwise no channeling possible
+        // Otherwise no channelling possible
         t_c = t_c0*(1 - Rc_over_R); // Critical angle for curved crystal
         if (coll->orient == 2) {
             t_c *= 0.98;
@@ -132,7 +132,7 @@ void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, 
     double c2 = 5./3.;  // Fitting coefficient
     double c3 =  1.7;   // Fitting coefficient
     if (ratio > 1.) {
-        // no channeling possibile
+        // no channelling possibile
         Ang_avr = c1*t_c0*5.e-2/ratio;         // Average angle reflection
         Ang_rms = c3*0.42*t_c0*sin(1.4/ratio); // RMS scattering
         everest->Vcapt = 0.;                   // Probability of VC is zero

@@ -10,56 +10,51 @@
 
 
 /*gpufun*/
-double jaw(EverestData restrict everest, LocalParticle* part, double p, double length, int edge_check) {
+double jaw(EverestData restrict everest, LocalParticle* part, double pc, double length, int edge_check) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
-        return p;
+        return pc;
     }
 
-    double rlen = length;
-    double s0 = LocalParticle_get_s(part);
-    p /= 1e9;   // Energy (not momentum) in GeV
+    pc /= 1.e9; // [GeV]
 
     if (everest->coll->only_mcs) {
-        mcs(everest, part, rlen, p, edge_check);
+        // TODO: ionisation loss should also be calculated when only_mcs
+        mcs(everest, part, length, pc, edge_check);
 
     } else {
-        // Do a step for a point-like interaction.
-        // Get monte-carlo interaction length.
+        double rlen = length;
+        double s0 = LocalParticle_get_s(part);
         while (1) {
-            calculate_ionisation_properties(everest, p);
+            // Length of the step until nuclear interaction
             double length_step = everest->xintl*RandomExponential_generate(part);
 
-            // If the monte-carlo interaction length is longer than the remaining
-            // length, then put it to the remaining length, do mcs and return.
             if (length_step > rlen) {
-                mcs(everest, part, rlen, p, edge_check);
+                // Length to nuclear interaction is longer than remaining: MCS to end and exit collimator
+                mcs(everest, part, rlen, pc, edge_check);
                 break;
             }
 
-            // Otherwise do multi-coulomb scattering.
-            mcs(everest, part, length_step, p, edge_check);
-
-            if(LocalParticle_get_x(part) <= 0) {
-                // PARTICLE LEFT COLLIMATOR BEFORE ITS END.
+            mcs(everest, part, length_step, pc, edge_check);
+            if (LocalParticle_get_state(part) < 1 || (edge_check && LocalParticle_get_x(part) <= 0)){
+                // Particle lost all energy due to ionisation, or left the collimator
                 break;
             }
 
-            p = nuclear_interaction(everest, part, p);
+            pc = nuclear_interaction(everest, part, pc);
             if (LocalParticle_get_state(part) < 1){
-                // PARTICLE WAS ABSORBED INSIDE COLLIMATOR DURING MCS.
+                // Particle was absorbed
                 break;
             }
 
             // Calculate the remaining interaction length and close the iteration loop.
             rlen = rlen - length_step;
         }
-        // TODO: ionisation loss should also be calculated when only_mcs
-        double m_dpodx = calcionloss(everest, part, rlen);  // DM routine to include tail // TODO: should not be rlen but s after updating
-        double s = LocalParticle_get_s(part) - s0;
-        p = p-m_dpodx*s; // TODO: This is correct: ionisation loss is only calculated and applied at end of while (break)
+        calculate_ionisation_properties(everest, pc);
+        double ionisation_length = LocalParticle_get_s(part) - s0;
+        pc = calcionloss(everest, part, ionisation_length, pc, 1);
     }
-    return p*1e9;  // Back to eV
+    return pc*1e9;  // Back to eV
 }
 
 #endif /* XCOLL_EVEREST_JAW_H */

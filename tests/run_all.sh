@@ -13,7 +13,7 @@ then
     xsuite-prebuild r
     # "xsuite-prebuild c" to remove kernels
     echo "done."
-    pytest -n 13 -vv --html="pytest_results.html" --self-contained-html
+    pytest -n 10 -vv --html="pytest_results.html" --self-contained-html
 else
     echo "Not all tests are verified. Aborting."
     exit 1

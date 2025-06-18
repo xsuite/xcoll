@@ -37,6 +37,8 @@ class GeneralMaterial(xo.HybridClass):
         '_only_mcs':                xo.Int8
     }
 
+    _depends_on = [xo.Float64]
+
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs.setdefault('hcut', 0.02)
