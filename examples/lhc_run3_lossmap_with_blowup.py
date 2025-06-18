@@ -120,7 +120,7 @@ plt.show()
 
 
 # Plot
-collimators_with_most_losses = ThisLM.summary.sort_values('nabs', ascending=False).collname.values[:5]
+collimators_with_most_losses = ThisLM.summary.sort_values('n', ascending=False).name.values[:5]
 
 bin_centers = {}
 losses = {}
