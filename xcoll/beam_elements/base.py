@@ -286,6 +286,10 @@ class BaseCollimator(BaseBlock):
             elif 'tilt_L' in kwargs or 'tilt_R' in kwargs:
                 to_assign['tilt_L'] = kwargs.pop('tilt_L', None)
                 to_assign['tilt_R'] = kwargs.pop('tilt_R', None)
+            kwargs.setdefault('_sin_yL', 0)
+            kwargs.setdefault('_cos_yL', 1)
+            kwargs.setdefault('_sin_yR', 0)
+            kwargs.setdefault('_cos_yR', 1)
 
             # Set gap
             if 'gap' in kwargs:
@@ -606,7 +610,7 @@ class BaseCollimator(BaseBlock):
             self.tilt_L = val[0]
             self.tilt_R = val[1]
         else:
-            raise ValueError
+            raise ValueError(f"The attribute `tilt` should be of the form LR or [L, R] ")
 
     @property
     def tilt_L(self):
@@ -1053,7 +1057,8 @@ class BaseCollimator(BaseBlock):
             assert np.isclose(self._sin_yR/self._cos_yR, self._tan_yR)
 
         # Verify bools
-        assert self._side in [-1, 1, 0]
+        if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
+            assert self._side in [-1, 1, 0]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1232,12 +1237,17 @@ class BaseCrystal(BaseBlock):
     @jaw.setter
     def jaw(self, val):
         if val is None:
-            val = self._side*OPEN_JAW
+            if self.side == 'left':
+                val = OPEN_JAW
+            elif self.side == 'right':
+                val = -OPEN_JAW
+            else:
+                raise ValueError("Cannot determine side. Something is wrong with the collimator!")
         self.jaw_U = val
 
     @property
     def jaw_U(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_U
 
     @jaw_U.setter
@@ -1249,9 +1259,10 @@ class BaseCrystal(BaseBlock):
 
     @property
     def jaw_D(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             length = self.length
-            if self._side*self.bending_radius < 0:
+            if (self.side == 'left' and self.bending_radius < 0) \
+            or (self.side == 'right' and self.bending_radius > 0):
                 # Correction for inner corner point
                 length -= self.width*np.sin(abs(self._bending_angle))
             shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
@@ -1497,7 +1508,11 @@ class BaseCrystal(BaseBlock):
         assert np.isclose(ang, abs(np.arcsin(self._sin_y)))
         assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
         # Verify bools
-        assert self._side in [-1, 1]
+        if '_side' in self._xofields:
+            assert self._side in [-1, 0, 1]
         # Crystal specific
-        assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
+        if '_bending_radius' in self._xofields and '_bending_angle' in self._xofields:
+            assert isinstance(self._bending_radius, float) and self._bending_radius > 0
+            assert isinstance(self._bending_angle, float) and abs(self._bending_angle) <= np.pi/2
+            assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 
