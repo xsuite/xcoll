@@ -10,7 +10,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes, BaseCrystal, FlukaCollimator
+from .beam_elements import collimator_classes, BaseCrystal, FlukaCollimator, FlukaCrystal
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -27,9 +27,11 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         raise ValueError("Need to provide a valid collimator!")
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
+
     num_particles = int(num_particles)
-    if len(line.get_elements_of_type(FlukaCollimator)[0]) > 0:
-        kwargs.setdefault('_capacity', 2*num_particles)
+    if _capacity is None and len(line.get_elements_of_type(
+                                (FlukaCollimator, FlukaCrystal))[0]) > 0:
+        _capacity = 2*num_particles
 
     # Define the plane
     angle = coll.angle

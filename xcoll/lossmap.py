@@ -25,10 +25,10 @@ from .headers.particle_states import (
 class LossMap:
     def __init__(self, line, part, *, line_is_reversed, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
-        fluka_coll = line.get_elements_of_type(FlukaCollimator, FlukaCrystal)[0]
+        fluka_coll = line.get_elements_of_type((FlukaCollimator, FlukaCrystal))[0]
         if len(fluka_coll) > 0 and np.any([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
             raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
-        
+
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length() if line else None
         self._interpolation = interpolation
