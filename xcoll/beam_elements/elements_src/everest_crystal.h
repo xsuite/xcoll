@@ -210,17 +210,21 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_set_s(part, 0);
 
                 // Store initial coordinates for updating later
-                double const rvv_in     = LocalParticle_get_rvv(part);
+                double const rvv_in  = LocalParticle_get_rvv(part);
 #ifdef XCOLL_USE_EXACT
-                double const xp_in      = LocalParticle_get_exact_xp(part);
-                double const yp_in      = LocalParticle_get_exact_yp(part);
+                double const xp_in   = LocalParticle_get_exact_xp(part);
+                double const yp_in   = LocalParticle_get_exact_yp(part);
 #else
-                double const xp_in      = LocalParticle_get_xp(part);
-                double const yp_in      = LocalParticle_get_yp(part);
+                double const xp_in   = LocalParticle_get_xp(part);
+                double const yp_in   = LocalParticle_get_yp(part);
 #endif
-                double const zeta_in    = LocalParticle_get_zeta(part);
-                double const energy_in  = LocalParticle_get_energy(part);
-                double energy_out;
+                double const zeta_in = LocalParticle_get_zeta(part);
+                double const p0c     = LocalParticle_get_p0c(part);
+                double const delta   = LocalParticle_get_delta(part);
+                double const qq0     = LocalParticle_get_charge_ratio(part);
+                double const chi     = LocalParticle_get_chi(part);
+                double const pc_in   = (1 + delta)*p0c*qq0/chi;
+                double pc_out;
 
                 // Check if hit on jaws
                 int8_t is_hit = hit_crystal_check_and_transform(part, cg);
@@ -230,17 +234,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
                     EverestData everest = EverestCrystal_init_data(part, coll, cg);
-                    calculate_initial_angle(everest, part, cg);
-#ifdef XCOLL_USE_EXACT
-                    double const xp = LocalParticle_get_exact_xp(part);
-#else
-                    double const xp = LocalParticle_get_xp(part);
-#endif
-                    if (fabs(xp - everest->t_I) < everest->t_c) {
-                        energy_out = Channel(everest, part, cg, energy_in/1.e9, remaining_length)*1.e9;
-                    } else {
-                        energy_out = Amorphous(everest, part, cg, energy_in/1.e9, remaining_length, 1)*1.e9;
-                    }
+                    pc_out = do_crystal(everest, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);
                 }
 
@@ -249,10 +243,16 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 LocalParticle_add_to_s(part, s_coll);
 
                 LocalParticle_set_zeta(part, zeta_in);
+
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part)>0){
-                    // Update energy; the last flag keeps angles constant (even valid for exact angles!)
-                    LocalParticle_add_to_energy(part, energy_out - energy_in, 0);
+                    double const rpp_old  = LocalParticle_get_rpp(part);
+                    LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
+                    // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)
+                    double const scale = rpp_old / LocalParticle_get_rpp(part);
+                    LocalParticle_scale_px(part, scale);
+                    LocalParticle_scale_py(part, scale);
+
                     // Update zeta
 #ifdef XCOLL_USE_EXACT
                     double xp  = LocalParticle_get_exact_xp(part);

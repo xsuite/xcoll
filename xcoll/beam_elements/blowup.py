@@ -31,6 +31,7 @@ class BlowUp(InvalidXcoll):
     skip_in_loss_location_refinement = True
     allow_loss_refinement = False
 
+    _noexpr_fields    = {'plane', 'name', 'line'}
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
     _store_in_to_dict = ['amplitude', 'plane', 'calibration']
 
