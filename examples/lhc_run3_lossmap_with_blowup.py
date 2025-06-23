@@ -5,9 +5,9 @@
 
 import numpy as np
 from pathlib import Path
-import matplotlib.pyplot as plt
 import time
 start_time = time.time()
+import matplotlib.pyplot as plt
 
 import xobjects as xo
 import xtrack as xt
@@ -115,8 +115,12 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
+ThisLM.plot()
+plt.show()
+
+
 # Plot
-collimators_with_most_losses = ThisLM.summary.sort_values('nabs', ascending=False).collname.values[:5]
+collimators_with_most_losses = ThisLM.summary.sort_values('n', ascending=False).name.values[:5]
 
 bin_centers = {}
 losses = {}

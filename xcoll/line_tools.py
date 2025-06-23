@@ -11,22 +11,108 @@ import xtrack as xt
 from .beam_elements import element_classes, collimator_classes, block_classes
 
 
-class XcollScatteringAPI:
-    def __init__(self, line):
-        self._line = line
+class XcollLineAccessor:
+    _typename = 'element'
+
+    def __init__(self, line, names=None):
+        super().__setattr__('_line', line)
+        if names:
+            super().__setattr__('names', names)
+            # self.names = names
 
     @property
     def line(self):
         return self._line
 
+    @property
+    def _coll_dict(self):
+        return {name: self.line.get(name) for name in self.names}
+
+    def keys(self):
+        return self._coll_dict.keys()
+
+    def values(self):
+        return self._coll_dict.values()
+
+    def items(self):
+        return self._coll_dict.items()
+
+    def __iter__(self):
+        super().__setattr__('_iter_names', iter(self.names))
+        return self
+
+    def __next__(self):
+        try:
+            name = next(self._iter_names)
+        except StopIteration:
+            raise StopIteration
+        else:
+            return self.line[name]
+
+    def __len__(self):
+        return len(self.names)
+
+    def __contains__(self, key):
+        return key in self.names
+
+    def __getattr__(self, attr):
+        properties = {}
+        for name, el in self.items():
+            if hasattr(el, attr):
+                properties[name] = getattr(el, attr)
+        if len(properties) == 0:
+            raise AttributeError(f"Attribute `{attr}` not found.")
+        if len({tuple(ii) if isinstance(ii, list) else ii for ii in properties.values()}) == 1:
+            # If all values are the same, return a single value
+            return next(iter(properties.values()))
+        return properties
+
+    def __setattr__(self, attr, value):
+        if isinstance(value, dict):
+            for name, el in self.items():
+                if name in value:
+                    if not hasattr(el, attr):
+                        raise AttributeError(f"Attribute `{attr}` not found in "
+                                           + f"{self._typename} `{name}`.")
+                    setattr(el, attr, value[name])
+        else:
+            # If value is not a dict, we assume it is a single value to set for all collimators
+            for name, el in self.items():
+                if hasattr(el, attr):
+                    setattr(el, attr, value)
+
+    def __getitem__(self, name):
+        if name in self.names:
+            return self.line[name]
+        else:
+            raise ValueError(f"{self._typename.capitalize()} `{name}` not found in line!")
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} at {hex(id(self))}>"
+
+    def __str__(self):
+        if len(self.names) == 0:
+            return ''
+        res = [f'{self._typename.capitalize()}s:']
+        for name in self.names:
+            res.append(f"    {name:<16} ({self.line[name].__class__.__name__})")
+        return "\n".join(res)
+
+
+class XcollScatteringAPI(XcollLineAccessor):
+
+    @property
+    def names(self):
+        # This makes sure the accessor can access the names of the collimators dynamically
+        return self.line.get_elements_of_type(element_classes)[1]
+
     def enable(self):
-        elements = self.line.get_elements_of_type(element_classes)[0]
-        if len(elements) == 0:
+        if len(self) == 0:
             print("No xcoll elements found in line.")
         else:
             nemitt_x = None
             nemitt_y = None
-            for el in elements:
+            for el in self:
                 if hasattr(el, 'optics') and el.optics is not None:
                     if nemitt_x is None:
                         nemitt_x = el.nemitt_x
@@ -40,22 +126,78 @@ class XcollScatteringAPI:
                     el.enable_scattering()
 
     def disable(self):
-        elements = self.line.get_elements_of_type(element_classes)[0]
-        if len(elements) == 0:
+        if len(self) == 0:
             print("No xcoll elements found in line.")
         else:
-            for el in elements:
+            for el in self:
                 if hasattr(el, 'disable_scattering'):
                     el.disable_scattering()
 
 
-class XcollCollimatorAPI:
-    def __init__(self, line):
-        self._line = line
+class XcollCollimatorAPI(XcollLineAccessor):
+    _typename = 'collimator'
+
+    def __str__(self):
+        res = []
+        if len(self.families) > 0:
+            res.append('Families:')
+            for family, names in self.families.items():
+                res.append(f"    {family:8}: {', '.join(names)}")
+            res.append('')
+        res.append(super().__str__())
+        return "\n".join(res)
 
     @property
-    def line(self):
-        return self._line
+    def names(self):
+        # This makes sure the accessor can access the names of the collimators dynamically
+        return self.line.get_elements_of_type(collimator_classes)[1]
+
+    @property
+    def families(self):
+        families = {}
+        try:
+            prop_families = self.family
+        except AttributeError:
+            return families
+        else:
+            for name in self.names:
+                if name in prop_families:
+                    if prop_families[name] not in families:
+                        families[prop_families[name]] = []
+                    families[prop_families[name]].append(name)
+                else:
+                    if 'no family' not in families:
+                        families['no family'] = []
+                    families['no family'].append(name)
+            return families
+
+    def __getitem__(self, name):
+        # We can getitem by name or family, so we overwrite the super method
+        if name in self.families:
+            return XcollLineAccessor(line=self.line, names=self.families[name])
+        elif name in self.names:
+            return self.line[name]
+        else:
+            raise ValueError(f"Neither family nor collimator `{name}` found in line!")
+
+
+    def open(self, names=None):
+        if names is None:
+            names = self.names
+        if len(names) == 0:
+            print("No collimators found in line.")
+        else:
+            for coll in names:
+                self.line[coll].open_jaws(keep_tilts=False)
+                self.line[coll].gap = None
+
+    def to_parking(self, names=None):
+        if names is None:
+            names = self.names
+        if len(names) == 0:
+            print("No collimators found in line.")
+        else:
+            raise NotImplementedError("Need to move this to new type manager or so.")
 
     def install(self, names, elements, *, at_s=None, apertures=None, need_apertures=False, s_tol=1.e-6):
         if self.line._has_valid_tracker():
@@ -77,10 +219,11 @@ class XcollCollimatorAPI:
         assert len(apertures) == len(names)
 
         # Verify elements
-        for el in elements:
-            print(el.__class__)
+        for name, el in zip(names, elements):
             assert isinstance(el, block_classes)
             el._tracking = False
+            if el.name is None:
+                el.name = name
 
         # Get positions
         tab = self.line.get_table()
@@ -239,30 +382,11 @@ class XcollCollimatorAPI:
                 twiss = tw
         if not self.line._has_valid_tracker():
             raise Exception("Please build tracker before setting the openings!")
-        names = self.line.get_elements_of_type(collimator_classes)[1]
-        tw_upstream, tw_downstream = self.get_optics_at(names, twiss=twiss)
+        tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
-        for coll in names:
-            self.line[coll].assign_optics(name=coll, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
-                                    twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
-
-    def open(self, names=None):
-        if names is None:
-            names = self.line.get_elements_of_type(collimator_classes)[1]
-        if len(names) == 0:
-            print("No collimators found in line.")
-        else:
-            for coll in names:
-                self.line[coll].open_jaws(keep_tilts=False)
-                self.line[coll].gap = None
-
-    def to_parking(self, names=None):
-        if names is None:
-            names = self.line.get_elements_of_type(collimator_classes)[1]
-        if len(names) == 0:
-            print("No collimators found in line.")
-        else:
-            raise NotImplementedError("Need to move this to new type manager or so.")
+        for name, coll in self.items():
+            coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
+                               twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
 
     def _get_s_start(self, name, *, length, table=None):
         if table is None:
@@ -274,38 +398,3 @@ class XcollCollimatorAPI:
         if name not in table.name:
             raise ValueError(f"Element {name} not found in line. Need to manually provide `at_s`.")
         return table.rows[name].s[0] + existing_length/2. - length/2
-
-
-
-# Deprecated; to be removed
-# -------------------------
-
-def assign_optics_to_collimators(line, nemitt_x=None, nemitt_y=None, twiss=None):
-    warn("The function xcoll.assign_optics_to_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.assign_optics() instead.", FutureWarning)
-    line.collimators.assign_optics(nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss=twiss)
-
-def get_optics_at(names, *, twiss=None, line=None):
-    warn("The function xcoll.get_optics_at() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.get_optics_at() instead.", FutureWarning)
-    return line.collimators.get_optics_at(names=names, twiss=twiss)
-
-def open_collimators(line, names=None):
-    warn("The function xcoll.open_collimators() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.open_collimators() instead.", FutureWarning)
-    line.collimators.open(names=names)
-
-def send_to_parking(line, names=None):
-    warn("The function xcoll.send_to_parking() is deprecated and will be "
-       + "removed in the future. Please use line.collimators.send_to_parking() instead.", FutureWarning)
-    line.collimators.to_parking(names=names)
-
-def enable_scattering(line):
-    warn("The function xcoll.enable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.enable() instead.", FutureWarning)
-    line.scattering.enable()
-
-def disable_scattering(line):
-    warn("The function xcoll.disable_scattering() is deprecated and will be "
-       + "removed in the future. Please use line.scattering.disable() instead.", FutureWarning)
-    line.scattering.disable()

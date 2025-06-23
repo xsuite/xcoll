@@ -10,6 +10,7 @@ import xtrack as xt
 
 from ..interaction_record import InteractionRecord
 from ..general import _pkg_root
+from ..headers.particle_states import particle_states_src
 
 
 OPEN_JAW = 3
@@ -22,14 +23,16 @@ class InvalidXcoll(xt.BeamElement):
     }
 
     isthick = True
-    behaves_like_drift = True
+    needs_rng = False
     allow_track = False
-    skip_in_loss_location_refinement = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
     allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
     # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
-        _pkg_root.joinpath('headers','particle_states.h'),
+        particle_states_src,
         _pkg_root.joinpath('headers','checks.h')
     ]
 
@@ -51,12 +54,16 @@ class BaseBlock(xt.BeamElement):
     }
 
     isthick = True
+    needs_rng = False
     allow_track = False
+    allow_double_sided = True
     behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
     _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['record_impacts', 'record_exits', 'record_scatterings']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
 
     _depends_on = [InvalidXcoll]
 
@@ -64,15 +71,42 @@ class BaseBlock(xt.BeamElement):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseBlock:
+        if cls is BaseBlock:
             raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
 
     def __init__(self, **kwargs):
+        to_assign = {}
         if '_xobject' not in kwargs:
+            # Set name (useful for bookkeeping like in FLUKA)
+            to_assign['name'] = kwargs.pop('name', None)
+            # Set active
             kwargs.setdefault('active', True)
+            to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
+            to_assign['record_exits'] = kwargs.pop('record_exits', False)
+            to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
         super().__init__(**kwargs)
+        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
+        # We also have to manually initialise them for xobject generation
+        for key, val in to_assign.items():
+            setattr(self, key, val)
+        BaseBlock._verify_consistency(self)
+
+    def copy(self, **kwargs):
+        obj = super().copy(**kwargs)
+        obj.name = self.name
+        return obj
+
+    @property
+    def name(self):
+        if not hasattr(self, '_name'):
+            self._name = None
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
 
     def enable_scattering(self):
         if hasattr(self, '_tracking'):
@@ -93,6 +127,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_impacts.setter
     def record_impacts(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_impacts` must be a boolean value.")
         if val and not self.record_impacts:
             self._record_interactions += 1
         elif not val and self.record_impacts:
@@ -104,6 +140,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_exits.setter
     def record_exits(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_exits` must be a boolean value.")
         if val and not self.record_exits:
             self._record_interactions += 2
         elif not val and self.record_exits:
@@ -115,6 +153,8 @@ class BaseBlock(xt.BeamElement):
 
     @record_scatterings.setter
     def record_scatterings(self, val):
+        if not isinstance(val, bool):
+            raise ValueError("`record_scatterings` must be a boolean value.")
         if val and not self.record_scatterings:
             self._record_interactions += 4
         elif not val and self.record_scatterings:
@@ -161,14 +201,20 @@ class BaseCollimator(BaseBlock):
         '_nemitt_y':      xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
+    isthick = True
+    needs_rng = False
+    allow_track = False
     allow_double_sided = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+    _noexpr_fields = {'align', 'side', 'name'}
+    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
+                         *[f for f in _xofields if f.startswith('_')]]
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
+                         'side', 'align', 'emittance']
 
     _depends_on = [BaseBlock]
 
@@ -177,7 +223,7 @@ class BaseCollimator(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCollimator:
+        if cls is BaseCollimator:
             raise Exception("Abstract class `BaseCollimator` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -207,6 +253,10 @@ class BaseCollimator(BaseBlock):
                 for key in ['jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `jaw` and `{key}`!")
+                if hasattr(kwargs['jaw'], '__iter__') and hasattr(kwargs['jaw'][0], '__iter__'):
+                    for key in ['tilt', 'tilt_L', 'tilt_R']:
+                        if key in kwargs:
+                            raise ValueError(f"Cannot specify jaw corners and `{key}`!")
                 to_assign['jaw'] = kwargs.pop('jaw')
             elif 'jaw_L' in kwargs or 'jaw_R' in kwargs:
                 for key in ['jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap', 'gap_L', 'gap_R']:
@@ -233,20 +283,21 @@ class BaseCollimator(BaseBlock):
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `tilt` and `{key}`!")
                 to_assign['tilt'] = kwargs.pop('tilt')
-            else:
-                to_assign['tilt_L'] = kwargs.pop('tilt_L', 0)
-                to_assign['tilt_R'] = kwargs.pop('tilt_R', 0)
+            elif 'tilt_L' in kwargs or 'tilt_R' in kwargs:
+                to_assign['tilt_L'] = kwargs.pop('tilt_L', None)
+                to_assign['tilt_R'] = kwargs.pop('tilt_R', None)
+            kwargs.setdefault('_sin_yL', 0)
+            kwargs.setdefault('_cos_yL', 1)
+            kwargs.setdefault('_sin_yR', 0)
+            kwargs.setdefault('_cos_yR', 1)
 
             # Set gap
             if 'gap' in kwargs:
-                for key in ['jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap_L', 'gap_R']:
+                for key in ['gap_L', 'gap_R']:
                     if key in kwargs:
                         raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap'] = kwargs.pop('gap')
             elif 'gap_L' in kwargs or 'gap_R' in kwargs:
-                for key in ['jaw', 'jaw_L', 'jaw_R', 'jaw_LU', 'jaw_LD', 'jaw_RU', 'jaw_RD', 'gap']:
-                    if key in kwargs:
-                        raise ValueError(f"Cannot use both `gap` and `{key}`!")
                 to_assign['gap_L'] = kwargs.pop('gap_L', None)
                 to_assign['gap_R'] = kwargs.pop('gap_R', None)
             kwargs.setdefault('_gap_L', OPEN_GAP)
@@ -263,7 +314,8 @@ class BaseCollimator(BaseBlock):
             self._optics = None
         for key, val in to_assign.items():
             setattr(self, key, val)
-        self._verify_consistency()
+        self._update_tilts()
+        BaseCollimator._verify_consistency(self)
 
 
     # Main collimator angle
@@ -366,7 +418,7 @@ class BaseCollimator(BaseBlock):
                 return
         # If we got here, val is incompatible
         raise ValueError(f"The attribute `jaw` should be of the form [L, R] or "
-                       + f"[[LU, RU], [LD, RD], but got {val}.")
+                       + f"[[LU, LD], [RU, RD], but got {val}.")
 
     @property
     def jaw_L(self):
@@ -408,7 +460,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LU(self):
-        if not self.jaw_L is None:
+        if not np.isclose((self._jaw_LU + self._jaw_LD) / 2,
+                          OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LU
 
     @jaw_LU.setter   # This assumes jaw_LD remains fixed, hence both jaw_L and the tilt change
@@ -425,7 +478,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_LD(self):
-        if not self.jaw_L is None:
+        if not np.isclose((self._jaw_LU + self._jaw_LD) / 2,
+                          OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_LD
 
     @jaw_LD.setter   # This assumes jaw_LU remains fixed, hence both jaw_L and the tilt change
@@ -442,7 +496,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RU(self):
-        if not self.jaw_R is None:
+        if not np.isclose((self._jaw_RU + self._jaw_RD) / 2,
+                          -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RU
 
     @jaw_RU.setter   # This assumes jaw_RD remains fixed, hence both jaw_R and the tilt change
@@ -459,7 +514,8 @@ class BaseCollimator(BaseBlock):
 
     @property
     def jaw_RD(self):
-        if not self.jaw_R is None:
+        if not np.isclose((self._jaw_RU + self._jaw_RD) / 2,
+                          -OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_RD
 
     @jaw_RD.setter   # This assumes jaw_RU remains fixed, hence both jaw_R and the tilt change
@@ -498,13 +554,23 @@ class BaseCollimator(BaseBlock):
 
     def _update_tilts(self):
         if self.side != 'right':
-            self._sin_yL = (self.jaw_LD - self.jaw_LU) / self.length
-            self._cos_yL = np.sqrt(1 - self._sin_yL**2)
-            self._tan_yL = self._sin_yL / self._cos_yL
+            if self.length > 0:
+                self._sin_yL = (self._jaw_LD - self._jaw_LU) / self.length
+                self._cos_yL = np.sqrt(1 - self._sin_yL**2)
+                self._tan_yL = self._sin_yL / self._cos_yL
+            else:
+                self._sin_yL = 0.
+                self._cos_yL = 1.
+                self._tan_yL = 0.
         if self.side != 'left':
-            self._sin_yR = (self.jaw_RD - self.jaw_RU) / self.length
-            self._cos_yR = np.sqrt(1 - self._sin_yR**2)
-            self._tan_yR = self._sin_yR / self._cos_yR
+            if self.length > 0:
+                self._sin_yR = (self._jaw_RD - self._jaw_RU) / self.length
+                self._cos_yR = np.sqrt(1 - self._sin_yR**2)
+                self._tan_yR = self._sin_yR / self._cos_yR
+            else:
+                self._sin_yR = 0.
+                self._cos_yR = 1.
+                self._tan_yR = 0.
 
     def _update_gaps(self, only_L=False, only_R=False):
         # If we had set a value for the gap manually, this needs to be updated
@@ -544,7 +610,7 @@ class BaseCollimator(BaseBlock):
             self.tilt_L = val[0]
             self.tilt_R = val[1]
         else:
-            raise ValueError
+            raise ValueError(f"The attribute `tilt` should be of the form LR or [L, R] ")
 
     @property
     def tilt_L(self):
@@ -820,9 +886,7 @@ class BaseCollimator(BaseBlock):
         if self.side != 'right':
             if self.optics_ready() and self.jaw_L is not None:
                 return round((self.jaw_L - self.co[0][0])/self.sigma[0][0], 6)
-            elif not self._gap_L_set_manually():
-                return None
-            else:
+            elif self._gap_L_set_manually():
                 return self._gap_L
 
     @gap_L.setter
@@ -840,9 +904,7 @@ class BaseCollimator(BaseBlock):
         if self.side != 'left':
             if self.optics_ready() and self.jaw_R is not None:
                 return round((self.jaw_R - self.co[0][1])/self.sigma[0][1], 6)
-            elif not self._gap_R_set_manually():
-                return None
-            else:
+            elif self._gap_R_set_manually():
                 return self._gap_R
 
     @gap_R.setter
@@ -995,7 +1057,8 @@ class BaseCollimator(BaseBlock):
             assert np.isclose(self._sin_yR/self._cos_yR, self._tan_yR)
 
         # Verify bools
-        assert self._side in [-1, 1, 0]
+        if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
+            assert self._side in [-1, 1, 0]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1039,20 +1102,25 @@ class BaseCrystal(BaseBlock):
         # Crystal specific
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
-        'width':              xo.Float64,
-        'height':             xo.Float64
+        '_width':              xo.Float64,
+        '_height':             xo.Float64
         # 'thick':              xo.Float64
     }
 
-    isthick = BaseBlock.isthick
-    allow_track = BaseBlock.allow_track
-    behaves_like_drift = BaseBlock.behaves_like_drift
-    skip_in_loss_location_refinement = BaseBlock.skip_in_loss_location_refinement
-    allow_double_sided = False
 
+    isthick = True
+    needs_rng = False
+    allow_track = False
+    allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
+    _noexpr_fields    = {'align', 'side', 'name'}
     _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
-                         'bending_radius', 'bending_angle']
+    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
+                         'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
 
     _depends_on = [BaseCollimator]
 
@@ -1060,7 +1128,7 @@ class BaseCrystal(BaseBlock):
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
-        if cls == BaseCrystal:
+        if cls is BaseCrystal:
             raise Exception("Abstract class `BaseCrystal` cannot be instantiated!")
         instance = super().__new__(cls)
         return instance
@@ -1110,13 +1178,15 @@ class BaseCrystal(BaseBlock):
             kwargs.setdefault('_gap', OPEN_GAP)
 
             # Set tilt
-            if 'jaw_D' not in kwargs:
-                to_assign['tilt'] = kwargs.pop('tilt', 0)
+            if 'tilt' in kwargs:
+                to_assign['tilt'] = kwargs.pop('tilt')
 
             # Set others
             to_assign['align'] = kwargs.pop('align', 'upstream')
             to_assign['emittance'] = kwargs.pop('emittance', None)
             kwargs.setdefault('active', True)
+            kwargs.setdefault('_sin_y', 0)
+            kwargs.setdefault('_cos_y', 1)
 
             # Set crystal specific
             if 'bending_angle' in kwargs:
@@ -1125,10 +1195,10 @@ class BaseCrystal(BaseBlock):
                 to_assign['bending_angle'] = kwargs.pop('bending_angle')
             else:
                 to_assign['bending_radius'] = kwargs.pop('bending_radius', 1)
-            kwargs.setdefault('width', 0)
-            kwargs.setdefault('height', 0)
+            to_assign['width'] = kwargs.pop('width', 1)
+            to_assign['height'] = kwargs.pop('height', 1)
 
-        xt.BeamElement.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
         if not hasattr(self, '_optics'):
@@ -1140,7 +1210,7 @@ class BaseCrystal(BaseBlock):
                 self._jaw_U *= -1
             if np.isclose(self._gap, OPEN_GAP):
                 self._gap *= -1
-        self._verify_consistency()
+        BaseCrystal._verify_consistency(self)
 
 
     # Main crystal angle
@@ -1167,15 +1237,20 @@ class BaseCrystal(BaseBlock):
     @jaw.setter
     def jaw(self, val):
         if val is None:
-            val = self._side*OPEN_JAW
+            if self.side == 'left':
+                val = OPEN_JAW
+            elif self.side == 'right':
+                val = -OPEN_JAW
+            else:
+                raise ValueError("Cannot determine side. Something is wrong with the collimator!")
         self.jaw_U = val
 
     @property
     def jaw_U(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             return self._jaw_U
 
-    @jaw_U.setter   # This moves both jaw_LU and jaw_LD in parallel
+    @jaw_U.setter
     def jaw_U(self, val):
         if val is None:
             raise ValueError("Cannot set corner to None! Use open_jaws() or set jaw to None.")
@@ -1184,15 +1259,16 @@ class BaseCrystal(BaseBlock):
 
     @property
     def jaw_D(self):
-        if not np.isclose(self._jaw_U, self._side*OPEN_JAW, atol=1.e-10):  # open position
+        if not np.isclose(abs(self._jaw_U), OPEN_JAW, atol=1.e-10):  # open position
             length = self.length
-            if self._side*self.bending_radius < 0:
+            if (self.side == 'left' and self.bending_radius < 0) \
+            or (self.side == 'right' and self.bending_radius > 0):
                 # Correction for inner corner point
                 length -= self.width*np.sin(abs(self._bending_angle))
             shift = np.tan(self._bending_angle/2)*self._cos_y + self._sin_y
             return self._jaw_U + length*shift
 
-    @jaw_D.setter   # This moves both jaw_LU and jaw_LD in parallel
+    @jaw_D.setter
     def jaw_D(self, val):
         if val is None:
             self.tilt = 0
@@ -1382,6 +1458,26 @@ class BaseCrystal(BaseBlock):
         self._bending_radius = self.length / np.sin(bending_angle)
 
     @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `width` should be positive, but got {val}.")
+        self._width = val
+
+    @property
+    def height(self):
+        return self._height
+
+    @height.setter
+    def height(self, val):
+        if val <= 0:
+            raise ValueError(f"The field `height` should be positive, but got {val}.")
+        self._height = val
+
+    @property
     def side(self):
         return BaseCollimator.side.fget(self)
 
@@ -1412,7 +1508,11 @@ class BaseCrystal(BaseBlock):
         assert np.isclose(ang, abs(np.arcsin(self._sin_y)))
         assert np.isclose(self._sin_y/self._cos_y, self._tan_y)
         # Verify bools
-        assert self._side in [-1, 1]
+        if '_side' in self._xofields:
+            assert self._side in [-1, 0, 1]
         # Crystal specific
-        assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
+        if '_bending_radius' in self._xofields and '_bending_angle' in self._xofields:
+            assert isinstance(self._bending_radius, float) and not np.isclose(self._bending_radius, 0)
+            assert isinstance(self._bending_angle, float) and abs(self._bending_angle) <= np.pi/2
+            assert np.isclose(self._bending_angle, np.arcsin(self.length/self._bending_radius))
 

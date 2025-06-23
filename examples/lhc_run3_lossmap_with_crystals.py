@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 import time
 start_time = time.time()
+import matplotlib.pyplot as plt
 
 import xobjects as xo
 import xpart as xp
@@ -140,3 +141,5 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
+ThisLM.plot()
+plt.show()
