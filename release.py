@@ -20,10 +20,10 @@
 #
 # Steps:
 #     - Version numbers are of the form major.minor.patch
-#     - Run `make_release_branch.py` with argument major, minor, path, or a version number.
+#     - Run `make_release_branch.py` with argument major, minor, patch, or a version number.
 #       Alternatively, manually make a release branch named release/v<version_number>
 #     - Make sure all changes are committed and pushed (working directory clean)
-#     - In this branch, run `release.py` (again with argument major, minor, path, or a version number).
+#     - In this branch, run `release.py` (again with argument major, minor, patch, or a version number).
 #       This will make the release, push to main, push to PyPI, and create draft release notes on GitHub.
 
 

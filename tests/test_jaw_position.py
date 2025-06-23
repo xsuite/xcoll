@@ -12,8 +12,6 @@ import xtrack as xt
 import xcoll as xc
 import time
 
-import matplotlib.pyplot as plt
-
 # TODO: particle angles
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
@@ -122,6 +120,8 @@ def _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids):
     mask = np.isin(part.parent_particle_id, not_hit_ids) & (part.state < 1)
     wrong_ids = part.parent_particle_id[mask]
     mask_wrong_init = np.isin(part_init.particle_id, wrong_ids)
+
+    import matplotlib.pyplot as plt
 
     mask_hit_init = np.isin(part_init.particle_id, hit_ids)
     mask_not_hit_init = np.isin(part_init.particle_id, not_hit_ids)
