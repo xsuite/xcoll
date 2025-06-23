@@ -21,7 +21,7 @@ include = ["LICENSE", "NOTICE"]
 
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.10"
 ruamel-yaml = { version = "^0.17.31", optional = true }
 numpy = ">=1.0"
 pandas = ">=1.4"
