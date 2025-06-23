@@ -594,7 +594,8 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             crystal_assembly = False
-            if 'assembly' in self[name]:
+            extra_kwargs = {}
+            if 'assembly' in self[name] and self[name]['assembly']:
                 self[name].pop('material', None)
                 self[name].pop('side', None)
                 self[name].pop('bending_radius', None)
@@ -607,12 +608,16 @@ class CollimatorDatabase:
                     raise ValueError(f"Unknown assembly or prototype "
                                    + f"'{self[name]['assembly']}'.")
                 crystal_assembly = pro.is_crystal
+            else:
+                for kwarg in ['assembly', 'material', 'side', 'bending_radius', 'bending_angle']:
+                    if self[name].get(kwarg):
+                        extra_kwargs[kwarg] = self[name][kwarg]
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']) \
             or crystal_assembly:
-                self._create_collimator(FlukaCrystal, line, name, verbose=verbose)
+                self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
             else:
-                self._create_collimator(FlukaCollimator, line, name, verbose=verbose)
+                self._create_collimator(FlukaCollimator, line, name, verbose=verbose, **extra_kwargs)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
