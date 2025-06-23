@@ -66,9 +66,8 @@ class LossMap:
         with open(Path(file), 'w') as fid:
             json.dump({
                 'xcoll': self._xcoll,
-                'date':  pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
-                **self.lossmap
-            }, fid, indent=True, cls=xo.JEncoder)
+                'date':  pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+            } | self.lossmap, fid, indent=True, cls=xo.JEncoder)
 
     def save_summary(self, file):
         with open(Path(file), 'w') as fid:

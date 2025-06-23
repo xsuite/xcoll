@@ -216,13 +216,12 @@ class InteractionRecord(xt.BeamElement):
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
-                **{
+                'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]]
+                } | {
                     f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
                     for p in ['before', 'after']
                     for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
-                }
-            })
+                })
         return df
 
     # TODO: list of impacted collimators

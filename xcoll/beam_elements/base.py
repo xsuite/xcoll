@@ -170,7 +170,7 @@ class BaseBlock(xt.BeamElement):
 
 
 class BaseCollimator(BaseBlock):
-    _xofields = {**BaseBlock._xofields,
+    _xofields = BaseBlock._xofields | {
         # Collimator angle
         '_sin_zL':        xo.Float64,
         '_cos_zL':        xo.Float64,
@@ -1082,7 +1082,7 @@ class BaseCollimator(BaseBlock):
 
 
 class BaseCrystal(BaseBlock):
-    _xofields = {**BaseBlock._xofields,
+    _xofields = BaseBlock._xofields | {
         # Collimator angle
         '_sin_z':             xo.Float64,
         '_cos_z':             xo.Float64,

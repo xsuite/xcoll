@@ -11,7 +11,7 @@ from ..general import _pkg_root
 
 
 class BlackAbsorber(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
+    _xofields = BaseCollimator._xofields | {
         '_tracking':        xo.Int8
     }
 
@@ -47,7 +47,7 @@ class BlackAbsorber(BaseCollimator):
 
 
 class BlackCrystal(BaseCrystal):
-    _xofields = { **BaseCrystal._xofields,
+    _xofields = BaseCrystal._xofields | {
         '_tracking':        xo.Int8
     }
 

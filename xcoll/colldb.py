@@ -110,7 +110,7 @@ class CollimatorDatabase:
                         settings['overwritten_keys'] = overwritten_keys
 
                 # Load family settings, potentially overwriting settings for this collimator
-                settings = {**fam[thisfam], **settings}
+                settings = fam[thisfam] | settings
 
             else:
                 settings['family'] = None
@@ -405,7 +405,7 @@ class CollimatorDatabase:
         #         fam_keys = []
         #         if fam is not None:
         #             fam_keys = dcts._family_dict[fam].keys()
-        #             coll_dict = {**{'<<': '*'+fam}, **coll_dict}
+        #             coll_dict = {'<<': '*'+fam} | coll_dict
         #         temp_items_to_print = []
         #         if coll_dict['crystal'] and str(coll_dict['crystal'])!='nan':
         #             temp_items_to_print = ['bending_radius','width','height','miscut','crystal']

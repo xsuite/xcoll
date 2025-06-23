@@ -67,7 +67,7 @@ base_user_fields = {}
 base_user_fields_read_only = ['gemitt_x', 'gemitt_y']
 
 # BaseCollimator
-base_coll_fields = {**base_fields,
+base_coll_fields = base_fields | {
     '_jaw_LU': 0.01544,
     '_jaw_LD': 0.0152,
     '_jaw_RU': -0.0152,
@@ -92,7 +92,7 @@ base_coll_fields = {**base_fields,
     '_nemitt_x': 3.5e-6,
     '_nemitt_y': 2.5e-6
 }
-base_coll_dict_fields = [*base_dict_fields,
+base_coll_dict_fields = base_dict_fields + [
     {'field': 'angle', 'val':  40,       'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
     {'field': 'angle', 'val':  [40],     'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(40*np.pi/180), '_cos_zR': np.cos(40*np.pi/180)}},
     {'field': 'angle', 'val':  [40, 47], 'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180), '_sin_zR': np.sin(47*np.pi/180), '_cos_zR': np.cos(47*np.pi/180)}},
@@ -116,7 +116,7 @@ base_coll_dict_fields = [*base_dict_fields,
     {'field': 'side',  'val':  '+-',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}},
     {'field': 'side',  'val':  '-+',    'expected': {'_side': 0,  '_jaw_LU': 2.9966200152325128, '_jaw_RU': -3.0024049945125952, '_jaw_LD': 3.0033799847674874,  '_jaw_RD': -2.9975950054874047, 'gap_L': None, 'gap_R': None, 'jaw_LU': None, 'jaw_LD': None, 'jaw_RU': None, 'jaw_RD': None}}
 ]
-base_coll_user_fields = [*base_user_fields,
+base_coll_user_fields = base_user_fields + [
     {'field': 'angle_L',   'val':  40,               'expected': {'_sin_zL': np.sin(40*np.pi/180), '_cos_zL': np.cos(40*np.pi/180)}},
     {'field': 'angle_R',   'val':  43,               'expected': {'_sin_zR': np.sin(43*np.pi/180), '_cos_zR': np.cos(43*np.pi/180)}},
     {'field': 'tilt_L',    'val':  0.5*np.pi/180,    'expected': {'_sin_yL': np.sin(0.5*np.pi/180), '_cos_yL': np.cos(0.5*np.pi/180), '_tan_yL': np.tan(0.5*np.pi/180)}},
@@ -137,7 +137,7 @@ base_coll_user_fields = [*base_user_fields,
 base_coll_user_fields_read_only = base_user_fields_read_only
 
 # BaseCrystal
-base_crystal_fields = {**base_fields,
+base_crystal_fields = base_fields | {
     '_jaw_U': 0.01544,
     '_sin_z': np.sin(137.8*np.pi/180),
     '_cos_z': np.cos(137.8*np.pi/180),
@@ -154,7 +154,7 @@ base_crystal_fields = {**base_fields,
     'width':            0.05,
     'height':           0.02
 }
-base_crystal_dict_fields = [*base_dict_fields,
+base_crystal_dict_fields = base_dict_fields + [
     {'field': 'angle',          'val':  40,      'expected': {'_sin_z': np.sin(40*np.pi/180), '_cos_z': np.cos(40*np.pi/180)}},
     {'field': 'jaw',            'val':  0.015,   'expected': {'jaw': 0.015, 'jaw_U': 0.015, 'jaw_D': 0.08540449144429954}},
     {'field': 'tilt',           'val':  5.2e-3,  'expected': {'_sin_y': np.sin(5.2e-3), '_cos_y': np.cos(5.2e-3), '_tan_y': np.tan(5.2e-3), 'jaw_U': 0.015,  'jaw_D': 0.09238350714959694}},
@@ -168,7 +168,7 @@ base_crystal_dict_fields = [*base_dict_fields,
     {'field': 'bending_radius', 'val':  47,      'expected': {'_bending_radius': 47.0,              '_bending_angle': 0.027663102518570612, 'jaw_U': 0.015, 'jaw_D': 0.039715568642416266}},
     {'field': 'bending_angle',  'val':  0.07,    'expected': {'_bending_radius': 18.58660391285491, '_bending_angle': 0.07,                 'jaw_U': 0.015, 'jaw_D': 0.06713730900985289}}
 ]
-base_crystal_user_fields = [*base_user_fields,
+base_crystal_user_fields = base_user_fields + [
     {'field': 'jaw_U',     'val':  0.013,            'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}},
     {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
     {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,           'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
@@ -194,19 +194,19 @@ black_crystal_user_fields = base_crystal_user_fields
 black_crystal_user_fields_read_only = base_crystal_user_fields_read_only
 
 # EverestCollimator
-everest_fields = {**base_coll_fields,
+everest_fields = base_coll_fields | {
     '_material':         xc.materials.Copper,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
-everest_dict_fields = [*base_coll_dict_fields,
+everest_dict_fields = base_coll_dict_fields + [
     {'field': 'material', 'val': xc.materials.Copper, 'expected': {'_material': xc.materials.Copper}}
 ]
 everest_user_fields = base_coll_user_fields
 everest_user_fields_read_only = base_coll_user_fields_read_only
 
 # EverestCrystal
-everest_crystal_fields = {**base_crystal_fields,
+everest_crystal_fields = base_crystal_fields | {
     'miscut':            1.2e-6,
     '_orient':           2,
     '_critical_angle':   1.3e-6,
@@ -214,7 +214,7 @@ everest_crystal_fields = {**base_crystal_fields,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
-everest_crystal_dict_fields = [*base_crystal_dict_fields,
+everest_crystal_dict_fields = base_crystal_dict_fields + [
     {'field': 'material', 'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}},
     {'field': 'lattice', 'val': 'strip',        'expected': {'_orient': 1}},
     {'field': 'lattice', 'val': '110',          'expected': {'_orient': 1}},

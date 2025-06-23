@@ -11,7 +11,7 @@ from ..general import _pkg_root
 
 
 class TransparentCollimator(BaseCollimator):
-    _xofields = { **BaseCollimator._xofields,
+    _xofields = BaseCollimator._xofields | {
         '_tracking':        xo.Int8
     }
 
@@ -47,7 +47,7 @@ class TransparentCollimator(BaseCollimator):
 
 
 class TransparentCrystal(BaseCrystal):
-    _xofields = { **BaseCrystal._xofields,
+    _xofields = BaseCrystal._xofields | {
         '_tracking':        xo.Int8
     }
 

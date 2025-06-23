@@ -59,7 +59,7 @@ class GeneralMaterial(xo.HybridClass):
 
 
 class Material(GeneralMaterial):
-    _xofields = { **GeneralMaterial._xofields,
+    _xofields = GeneralMaterial._xofields | {
         'radiation_length':         xo.Float64      # radl
     }
 
@@ -71,7 +71,7 @@ class Material(GeneralMaterial):
 
 
 class CrystalMaterial(GeneralMaterial):
-    _xofields = { **GeneralMaterial._xofields,
+    _xofields = GeneralMaterial._xofields | {
         'crystal_radiation_length': xo.Float64,     # dlri
         'crystal_nuclear_length':   xo.Float64,     # dlyi
         'crystal_plane_distance':   xo.Float64,     # ai  [mm]
