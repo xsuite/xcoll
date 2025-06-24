@@ -62,6 +62,7 @@ class BaseBlock(xt.BeamElement):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
+    _noexpr_fields = {'name'}
     _skip_in_to_dict  = ['_record_interactions']
     _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
 
