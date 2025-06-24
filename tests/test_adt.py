@@ -1,10 +1,11 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 
 import xtrack as xt
 import xpart as xp
