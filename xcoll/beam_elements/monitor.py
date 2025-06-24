@@ -150,6 +150,7 @@ class ParticleStatsMonitor(xt.BeamElement):
         dct['data'] = self.data._to_json()
         dct['beta0'] = self.beta0
         dct['gamma0'] = self.gamma0
+        dct['mass0'] = self.mass0
         xt.json.dump(dct, file, indent=indent)
 
     @classmethod
@@ -173,9 +174,11 @@ class ParticleStatsMonitor(xt.BeamElement):
                     data[key] += np.array(value)
         beta0 = dct.pop('beta0')
         gamma0 = dct.pop('gamma0')
+        mass0 = dct.pop('mass0')
         self = cls.from_dict(dct | {'data': data})
         self._beta0 = beta0
         self._gamma0 = gamma0
+        self._mass0 = mass0
         return self
 
     @classmethod
@@ -241,9 +244,43 @@ class ParticleStatsMonitor(xt.BeamElement):
         return self._gamma0
 
     @property
+    def mass0(self):
+        if not hasattr(self, '_mass0'):
+            self._mass0 = self.line.particle_ref.mass0[0]
+        return self._mass0
+
+    @property
     def turns(self):
         self._calculate()
         return self._turns
+
+    # TODO: need to store mass_ratio!
+
+    @property
+    def pc_mean(self):
+        if self.monitor_delta:
+            self._calculate()
+            return (1 + self.delta_mean) * self.beta0 * self.gamma0 * self.mass0
+        else:
+            raise ValueError("Momentum mean not available! Set monitor_delta=True to monitor delta.")
+
+    @property
+    def pc_var(self):
+        if self.monitor_delta:
+            self._calculate()
+            return self.delta_var * self.beta0**2 * self.gamma0**2 * self.mass0**2
+        else:
+            raise ValueError("Momentum variance not available! Set monitor_delta=True to monitor delta.")
+
+    @property
+    def energy_mean(self):
+        self._calculate()
+        return (1 + self.beta0**2 * self.pzeta_mean) * self.gamma0 * self.mass0
+
+    @property
+    def energy_var(self):
+        self._calculate()
+        return self.beta0**4 * self.pzeta_mean**2 * self.gamma0**2 * self.mass0**2
 
 
     def _calculate(self):
