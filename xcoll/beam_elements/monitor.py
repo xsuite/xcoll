@@ -10,7 +10,8 @@ import xtrack as xt
 
 from ..general import _pkg_root
 
-class EmittanceMonitorRecord(xo.Struct):
+
+class ParticleStatsMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
@@ -18,6 +19,7 @@ class EmittanceMonitorRecord(xo.Struct):
     py_sum1          = xo.Float64[:]
     zeta_sum1        = xo.Float64[:]
     pzeta_sum1       = xo.Float64[:]
+    delta_sum1       = xo.Float64[:]
     x_x_sum2         = xo.Float64[:]
     x_px_sum2        = xo.Float64[:]
     x_y_sum2         = xo.Float64[:]
@@ -39,9 +41,10 @@ class EmittanceMonitorRecord(xo.Struct):
     zeta_zeta_sum2   = xo.Float64[:]
     zeta_pzeta_sum2  = xo.Float64[:]
     pzeta_pzeta_sum2 = xo.Float64[:]
+    delta_delta_sum2 = xo.Float64[:]
 
-class EmittanceMonitor(xt.BeamElement):
-    _xofields={
+class ParticleStatsMonitor(xt.BeamElement):
+    _xofields = {
         'part_id_start':      xo.Int64,
         'part_id_end':        xo.Int64,
         'start_at_turn':      xo.Int64,
@@ -49,7 +52,7 @@ class EmittanceMonitor(xt.BeamElement):
         'frev':               xo.Float64,
         'sampling_frequency': xo.Float64,
         '_index':             xt.RecordIndex,
-        'data':               EmittanceMonitorRecord,
+        'data':               ParticleStatsMonitorRecord,
         '_cached':            xo.Int8,
         '_plane_selector':    xo.Int8
     }
@@ -60,7 +63,7 @@ class EmittanceMonitor(xt.BeamElement):
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
         xt._pkg_root.joinpath('headers/atomicadd.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')
+        _pkg_root.joinpath('beam_elements/elements_src/monitor.h')
     ]
 
     def __init__(self, **kwargs):
@@ -91,6 +94,8 @@ class EmittanceMonitor(xt.BeamElement):
                 Defaults to True.
             longitudinal (bool): Whether or not to monitor the longitudinal plane.
                 Defaults to True.
+            monitor_delta (bool): Whether or not to monitor delta and delta**2.
+                Defaults to False.
         """
         if '_xobject' not in kwargs:
             if 'particle_id_range' in kwargs:
@@ -113,9 +118,11 @@ class EmittanceMonitor(xt.BeamElement):
             horizontal = kwargs.pop('horizontal', True)
             vertical = kwargs.pop('vertical', True)
             longitudinal = kwargs.pop('longitudinal', True)
+            monitor_delta = kwargs.pop('monitor_delta', False)
             kwargs['_plane_selector']  =   int(horizontal)
             kwargs['_plane_selector'] += 2*int(vertical)
             kwargs['_plane_selector'] += 4*int(longitudinal)
+            kwargs['_plane_selector'] += 8*int(monitor_delta)
             if "data" not in kwargs:
                 # explicitely init with zeros (instead of size only) to have consistent initial values
                 size = int(round((kwargs['stop_at_turn'] - kwargs['start_at_turn']) \
@@ -123,11 +130,14 @@ class EmittanceMonitor(xt.BeamElement):
                 size_h = np.zeros(size) if horizontal else np.zeros(1)
                 size_v = np.zeros(size) if vertical else np.zeros(1)
                 size_l = np.zeros(size) if longitudinal else np.zeros(1)
-                kwargs['data'] = {field.name: np.zeros(size) for field in EmittanceMonitorRecord._fields
-                                  if 'x' not in field.name and 'y' not in field.name and 'zeta' not in field.name}
-                kwargs['data'].update({field.name: size_h for field in EmittanceMonitorRecord._fields if 'x' in field.name})
-                kwargs['data'].update({field.name: size_v for field in EmittanceMonitorRecord._fields if 'y' in field.name})
-                kwargs['data'].update({field.name: size_l for field in EmittanceMonitorRecord._fields if 'zeta' in field.name})
+                size_d = np.zeros(size) if monitor_delta else np.zeros(1)
+                kwargs['data'] = {field.name: np.zeros(size) for field in ParticleStatsMonitorRecord._fields
+                                  if 'x' not in field.name and 'y' not in field.name and 'zeta' not in field.name \
+                                  and 'delta' not in field.name}
+                kwargs['data'].update({field.name: size_h for field in ParticleStatsMonitorRecord._fields if 'x' in field.name})
+                kwargs['data'].update({field.name: size_v for field in ParticleStatsMonitorRecord._fields if 'y' in field.name})
+                kwargs['data'].update({field.name: size_l for field in ParticleStatsMonitorRecord._fields if 'zeta' in field.name})
+                kwargs['data'].update({field.name: size_d for field in ParticleStatsMonitorRecord._fields if 'delta' in field.name})
         super().__init__(**kwargs)
         if not hasattr(self, '_cached'):
             self._cached = False
@@ -145,6 +155,127 @@ class EmittanceMonitor(xt.BeamElement):
         self._line = line
         return self
 
+    @property
+    def name(self):
+        if not hasattr(self, '_name'):
+            raise ValueError("Name not set! Install the monitor using xc.EmittanceMonitor.install() "
+                             "or manually set the name after installation.")
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
+
+    @property
+    def line(self):
+        if not hasattr(self, '_line'):
+            raise ValueError("Line not set! Install the monitor using xc.EmittanceMonitor.install() "
+                             "or manually set the line after installation.")
+        return self._line
+
+    @line.setter
+    def line(self, val):
+        self._line = val
+
+
+    @property
+    def horizontal(self):
+        return bool(self._plane_selector % 2)
+
+    @property
+    def vertical(self):
+        return bool((self._plane_selector >> 1) % 2)
+
+    @property
+    def longitudinal(self):
+        return bool((self._plane_selector >> 2) % 2)
+
+    @property
+    def monitor_delta(self):
+        return bool((self._plane_selector >> 3) % 2)
+
+
+    @property
+    def beta0(self):
+        if not hasattr(self, '_beta0'):
+            self._beta0 = self.line.particle_ref.beta0[0]
+        return self._beta0
+
+    @property
+    def gamma0(self):
+        if not hasattr(self, '_gamma0'):
+            self._gamma0 = self.line.particle_ref.gamma0[0]
+        return self._gamma0
+
+    @property
+    def turns(self):
+        self._calculate()
+        return self._turns
+
+
+    def _calculate(self):
+        if self._cached:
+            return
+
+        # Calculate mean and variance
+        N = self.count
+        mask = N > 0
+        N = N[mask]
+        self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
+        with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
+            for field in [f.name for f in ParticleStatsMonitorRecord._fields]:
+                if field.endswith('_sum1'):
+                    x = field[:-5]
+                    ff = getattr(self, f'{x}_sum1')
+                    ff = ff[mask] if len(ff) == len(mask) else ff
+                    mean = ff / N
+                    setattr(self, f'_{x}_mean', mean)
+            for field in [f.name for f in ParticleStatsMonitorRecord._fields]:
+                if field.endswith('_sum2'):
+                    x1, x2 = field[:-5].split('_')
+                    mean1 = getattr(self, f'_{x1}_mean')
+                    mean2 = getattr(self, f'_{x2}_mean')
+                    ff = getattr(self, field)
+                    ff = ff[mask] if len(ff) == len(mask) else ff
+                    variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
+                    setattr(self, f'_{x1}_{x2}_var', variance)
+        self._cached = True
+
+
+    def __getattr__(self, attr):
+        if attr in [f.name for f in ParticleStatsMonitorRecord._fields]:
+            return getattr(self.data, attr).to_nparray()
+
+        elif attr in self.__class__._xofields:
+            return super().__getattr(attr)
+
+        else:
+            if attr.startswith('_'):
+                raise AttributeError(f"Attribute {attr} not set!")
+
+            if attr.endswith('_var'):
+                self._calculate()
+                return getattr(self, f'_{attr}')
+
+            elif attr.endswith('_mean'):
+                self._calculate()
+                return getattr(self, f'_{attr}')
+
+            else:
+                raise AttributeError(f"{self.__class__.__name__} has no attribute '{attr}'")
+
+
+class EmittanceMonitor(ParticleStatsMonitor):
+    _xofields = ParticleStatsMonitor._xofields
+
+    behaves_like_drift = True
+    allow_loss_refinement = True
+
+    _depends_on      = [ParticleStatsMonitor]
+    _noexpr_fields   = ParticleStatsMonitor._noexpr_fields
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')
+    ]
 
     @property
     def gemitt_x(self):
@@ -225,59 +356,6 @@ class EmittanceMonitor(xt.BeamElement):
         return self._gemitt_III * self.beta0 * self.gamma0
 
 
-    @property
-    def horizontal(self):
-        return bool(self._plane_selector % 2)
-
-    @property
-    def vertical(self):
-        return bool((self._plane_selector >> 1) % 2)
-
-    @property
-    def longitudinal(self):
-        return bool((self._plane_selector >> 2) % 2)
-
-
-    @property
-    def beta0(self):
-        if not hasattr(self, '_beta0'):
-            self._beta0 = self.line.particle_ref.beta0[0]
-        return self._beta0
-
-    @property
-    def gamma0(self):
-        if not hasattr(self, '_gamma0'):
-            self._gamma0 = self.line.particle_ref.gamma0[0]
-        return self._gamma0
-
-    @property
-    def turns(self):
-        self._calculate()
-        return self._turns
-
-    @property
-    def name(self):
-        if not hasattr(self, '_name'):
-            raise ValueError("Name not set! Install the monitor using xc.EmittanceMonitor.install() "
-                             "or manually set the name after installation.")
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = val
-
-    @property
-    def line(self):
-        if not hasattr(self, '_line'):
-            raise ValueError("Line not set! Install the monitor using xc.EmittanceMonitor.install() "
-                             "or manually set the line after installation.")
-        return self._line
-
-    @line.setter
-    def line(self, val):
-        self._line = val
-
-
     def _check_horizontal(self):
         if not self.horizontal:
             raise ValueError("Horizontal plane not monitored!")
@@ -295,26 +373,7 @@ class EmittanceMonitor(xt.BeamElement):
         if self._cached:
             return
 
-        # Calculate mean, variance, and std
-        N = self.count
-        mask = N > 0
-        N = N[mask]
-        self._turns = np.array(range(self.start_at_turn, self.stop_at_turn))[mask]
-        with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
-            for field in [f.name for f in EmittanceMonitorRecord._fields]:
-                if field.endswith('_sum2'):
-                    x1, x2 = field[:-5].split('_')
-                    ff1 = getattr(self, f'{x1}_sum1')
-                    ff1 = ff1[mask] if len(ff1) == len(mask) else ff1
-                    mean1 = ff1 / N
-                    ff2 = getattr(self, f'{x2}_sum1')
-                    ff2 = ff2[mask] if len(ff2) == len(mask) else ff2
-                    mean2 = ff2 / N
-                    ff = getattr(self, field)
-                    ff = ff[mask] if len(ff) == len(mask) else ff
-                    variance = ff / (N - 1) - mean1 * mean2 * N / (N - 1)
-                    setattr(self, f'_{x1}_{x2}_var', variance)
-        self._cached = True
+        super()._calculate()
         self._cached_modes = False
 
         # Calculate emittances
@@ -410,22 +469,3 @@ class EmittanceMonitor(xt.BeamElement):
         setattr(self, '_gemitt_II',  np.array(gemitt_II))
         setattr(self, '_gemitt_III', np.array(gemitt_III))
         self._cached_modes = True
-
-
-    def __getattr__(self, attr):
-        if attr in [f.name for f in EmittanceMonitorRecord._fields]:
-            return getattr(self.data, attr).to_nparray()
-
-        elif attr in self.__class__._xofields:
-            return super().__getattr(attr)
-
-        else:
-            if attr.startswith('_'):
-                raise AttributeError(f"Attribute {attr} not set!")
-
-            if attr.endswith('_var'):
-                self._calculate()
-                return getattr(self, f'_{attr}')
-
-            else:
-                raise AttributeError(f"EmittanceMonitor has no attribute '{attr}'")
