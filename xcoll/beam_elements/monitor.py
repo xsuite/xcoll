@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import io
 import numpy as np
 
 import xobjects as xo
@@ -144,6 +145,38 @@ class ParticleStatsMonitor(xt.BeamElement):
         if not hasattr(self, '_cached_modes'):
             self._cached_modes = False
 
+    def to_json(self, file, indent=2):
+        dct = self.to_dict()
+        dct['data'] = self.data._to_json()
+        dct['beta0'] = self.beta0
+        dct['gamma0'] = self.gamma0
+        xt.json.dump(dct, file, indent=indent)
+
+    @classmethod
+    def from_json(cls, file):
+        if not hasattr(file, '__iter__') or isinstance(file, (str, io.IOBase)):
+            file = [file]
+        dct = {}
+        data = {}
+        for f in file:
+            this_dct = xt.json.load(f)
+            this_data = this_dct.pop('data')
+            if dct == {}:
+                dct = this_dct
+                data = {kk: np.array(vv) for kk, vv in this_data.items()}
+            else:
+                if not xt.line._dicts_equal(this_dct, dct):
+                    raise ValueError(f"Json file {f} not compatible with previous ones!")
+                for key, value in this_data.items():
+                    if key not in data:
+                        raise ValueError(f"Json file {f} not compatible with previous ones!")
+                    data[key] += np.array(value)
+        beta0 = dct.pop('beta0')
+        gamma0 = dct.pop('gamma0')
+        self = cls.from_dict(dct | {'data': data})
+        self._beta0 = beta0
+        self._gamma0 = gamma0
+        return self
 
     @classmethod
     def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):

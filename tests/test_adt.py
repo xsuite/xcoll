@@ -65,3 +65,14 @@ def test_blow_up(beam, plane, test_context):
             assert mon.nemitt_y.argmax() > 0.95*num_turns
             # x should not have changed (max 10%):
             assert all([abs(nn-nemitt_x)/nemitt_x < 1.e-1 for nn in mon.nemitt_x])
+
+    # Quick test to check storing
+    file = Path(f'monitor_{beam}{plane}{test_context}.json')
+    assert not file.exists()
+    mon.to_json(file)
+    assert file.exists()
+    mon2 = xc.EmittanceMonitor.from_json(file)
+    dct1 = mon.to_dict()
+    dct2 = mon2.to_dict()
+    assert xt.line._dicts_equal(dct1, dct2)
+    file.unlink()

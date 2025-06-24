@@ -84,6 +84,9 @@ adt.activate()
 # Track
 line.track(part, num_turns=total_turns, with_progress=1)
 
+# Store the monitor
+mon.to_json('emittance_monitor.json')
+
 
 # Get the normalised emittance from the particles monitor
 part_norm = twiss.get_normalized_coordinates(mon2)
