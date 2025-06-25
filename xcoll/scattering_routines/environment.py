@@ -19,8 +19,8 @@ except (ImportError, ModuleNotFoundError):
 
 class BaseEnvironment:
     _pkg_root
-    _config_dir = (_pkg_root / 'config').resolve()
-    _data_dir   = (_pkg_root / 'lib').resolve()
+    _config_dir = FsPath(_pkg_root / 'config').resolve()
+    _data_dir   = FsPath(_pkg_root / 'lib').resolve()
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
     # _data_dir   = FsPath(user_data_dir('xcoll')).resolve()
     _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
