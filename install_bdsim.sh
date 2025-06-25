@@ -64,8 +64,7 @@ cmake ${geant4_path}/geant4-v${geant4_ver} \
     -DGEANT4_USE_SYSTEM_CLHEP=ON \
     -DGEANT4_USE_SYSTEM_ZLIB=OFF \
     -DGEANT4_USE_RAYTRACER_X11=ON \
-    -DGEANT4_USE_SYSTEM_EXPAT=ON \
-    -DGEANT4_USE_XM=ON
+    -DGEANT4_USE_SYSTEM_EXPAT=ON
 make -j $(nproc)
 make install
 cd $geant4_path
