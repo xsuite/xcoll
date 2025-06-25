@@ -1,12 +1,12 @@
 #!/bin/bash
 
-python_ver=3.9
-# python_ver=3.11  # does not work
-root_ver=6.28.12
-clhep_ver=2.4.5.3
-# clhep_ver=2.4.7.1   # does not work
-geant4_ver=10.4.3
-# geant4_ver=11.3.0
+# python_ver=3.9
+python_ver=3.13  # does not work
+root_ver=6.34.4 #"6.34.4=py313h7eb37b6_0"
+# clhep_ver=2.4.5.3
+clhep_ver=2.4.7.1   # does not work
+# geant4_ver=10.4.3
+geant4_ver=11.3.2
 
 
 function GOTO() {
@@ -30,7 +30,7 @@ then
     echo -e "${RED}This script should be run from the xcoll directory.${RESET}"
     exit 1
 fi
-geant4_path=${xcoll_path}/xcoll/scattering_routines/geant4/v${geant4_ver}
+geant4_path=${xcoll_path}/xcoll/lib/
 mkdir $geant4_path
 cd ${xcoll_path}/..
 
@@ -53,16 +53,19 @@ tar -xvf geant4-v${geant4_ver}.tar.gz
 rm geant4-v${geant4_ver}.tar.gz
 mkdir -p geant4-v${geant4_ver}/build
 cd geant4-v${geant4_ver}/build
-cmake $geant4_path/geant4-v${geant4_ver} \
+cmake ${geant4_path}/geant4-v${geant4_ver} \
     -DCMAKE_INSTALL_PREFIX=${geant4_path}/geant4-v${geant4_ver} \
+    -DGEANT4_BUILD_MULTITHREADED=OFF \
     -DGEANT4_INSTALL_DATA=ON \
     -DGEANT4_INSTALL_DATADIR=${geant4_path}/geant4-v${geant4_ver} \
     -DGEANT4_USE_GDML=ON \
-    -DGEANT4_USE_QT=ON \
     -DGEANT4_USE_OPENGL_X11=ON \
-    -DGEANT4_USE_RAYTRACER_X11=ON \
+    -DGEANT4_USE_QT=ON \
     -DGEANT4_USE_SYSTEM_CLHEP=ON \
-    -DGEANT4_USE_SYSTEM_EXPAT=ON
+    -DGEANT4_USE_SYSTEM_ZLIB=OFF \
+    -DGEANT4_USE_RAYTRACER_X11=ON \
+    -DGEANT4_USE_SYSTEM_EXPAT=ON \
+    -DGEANT4_USE_XM=ON
 make -j $(nproc)
 make install
 cd $geant4_path
