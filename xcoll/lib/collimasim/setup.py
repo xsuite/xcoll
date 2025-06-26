@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+import shutil
 
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
@@ -73,6 +74,36 @@ class CMakeBuild(build_ext):
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
         ]
         build_args = []
+
+        # 1) Figure out which C compiler CMake will pick by default
+        #    (respecting CC env­var if set, or falling back to `cc`)
+        cc = os.environ.get("CC", shutil.which("cc") or "")
+        cc_basename = os.path.basename(cc)
+
+        def is_clang_compiler(compiler_path):
+            # quick sanity check: basename contains “clang”
+            if "clang" in compiler_path:
+                return True
+            # if not obvious, run --version and look for clang in the output
+            try:
+                out = subprocess.check_output(
+                    [compiler_path, "--version"],
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True
+                )
+                return "clang" in out.lower()
+            except Exception:
+                return False
+
+        if is_clang_compiler(cc_basename):
+            # 2) Only now look for clang-scan-deps
+            clang_scan_deps = shutil.which("clang-scan-deps")
+            if clang_scan_deps:
+                cmake_args.append(
+                    "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=" + clang_scan_deps
+                )
+            else:
+                print("Warning: clang-scan-deps not found in PATH; skipping dependency scanning.")
 
         if self.compiler.compiler_type != "msvc":
             # Using Ninja-build since it a) is available as a wheel and b)

@@ -3,7 +3,7 @@
 python_ver=3.11
 # python_ver=3.13
 root_ver=6.28.12
-# root_ver=6.34.4 # "6.34.4=py313h7eb37b6_0"
+# root_ver=6.34.4
 clhep_ver=2.4.5.3
 # clhep_ver=2.4.7.1
 geant4_ver=10.4.3
@@ -59,6 +59,7 @@ cmake ${geant4_path}/geant4-v${geant4_ver} \
     -DCMAKE_INSTALL_PREFIX=${geant4_path}/geant4-v${geant4_ver}-install \
     -DGEANT4_BUILD_MULTITHREADED=OFF \
     -DGEANT4_INSTALL_DATA=ON \
+    -DGEANT4_INSTALL_DATADIR=${geant4_path}/geant4-v${geant4_ver}-install \
     -DGEANT4_USE_GDML=ON \
     -DGEANT4_USE_OPENGL_X11=ON \
     -DGEANT4_USE_QT=ON \
@@ -86,13 +87,13 @@ git clone --recursive https://github.com/bdsim-collaboration/bdsim.git
 # sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMakeLists.txt
 mkdir -p bdsim-build
 mkdir -p bdsim-install
-cd ${geant4_path}/geant4-v${geant4_ver}/bin
+cd ${geant4_path}/geant4-v${geant4_ver}-install/bin
 source geant4.sh
 cd ${geant4_path}/bdsim-build
 cmake ${geant4_path}/bdsim \
     -DCMAKE_INSTALL_PREFIX=${geant4_path}/bdsim-install \
     -DUSE_SIXTRACKLINK=ON \
-    -DBDSIM_BUILD_STATIC_LIBS=ON \
+    -DBDSIM_BUILD_STATIC_LIBS=OFF \
     -DGEANT4_CONFIG=$(which geant4-config)
 make -j $(nproc)
 if [ $? -ne 0 ]; then
@@ -109,7 +110,7 @@ unset LD_LIBRARY_PATH
 echo
 echo -e "${YELLOW}compiling collimasim...${RESET}"
 cd $xcoll_path
-source $geant4_path/bdsim/bin/bdsim.sh
+source $geant4_path/bdsim-install/bin/bdsim.sh
 ./compile_collimasim.sh
 
 echo -e "${LIMEGREEN}Installation complete!${RESET}"
@@ -202,9 +203,7 @@ function setupEnvironment(){
 
     conda config --add channels conda-forge
     conda config --set channel_priority strict
-    conda install compilers cmake make -y
-    conda install root=${root_ver} -y # to get root version compiled with C++17
-    conda install clhep=${clhep_ver} -y
+    conda install compilers make cmake -y
     conda install xerces-c -y
     conda install boost -y
     conda install qt-main -y
@@ -213,6 +212,8 @@ function setupEnvironment(){
     conda install flex bison -y
     conda install xorg-renderproto xorg-xextproto xorg-xproto -y
     conda install expat -y
+    conda install root=${root_ver} -y
+    conda install clhep=${clhep_ver} -y
 }
 
 GOTO 'main'
