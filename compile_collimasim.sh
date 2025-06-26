@@ -14,7 +14,7 @@
 # GITCOMMAND=/usr/bin/git
 
 
-path=xcoll/scattering_routines/geant4
+path=xcoll/lib
 
 collimasim_path=$path/collimasim
 
