@@ -204,6 +204,7 @@ function setupEnvironment(){
     conda config --add channels conda-forge
     conda config --set channel_priority strict
     conda install compilers make cmake -y
+    # conda install clang-tools -y
     conda install xerces-c -y
     conda install boost -y
     conda install qt-main -y
