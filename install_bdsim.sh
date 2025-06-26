@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# python_ver=3.9
-python_ver=3.13  # does not work
-root_ver=6.34.4 #"6.34.4=py313h7eb37b6_0"
-# clhep_ver=2.4.5.3
-clhep_ver=2.4.7.1   # does not work
-# geant4_ver=10.4.3
-geant4_ver=11.3.2
+python_ver=3.11
+# python_ver=3.13
+root_ver=6.28.12
+# root_ver=6.34.4 # "6.34.4=py313h7eb37b6_0"
+clhep_ver=2.4.5.3
+# clhep_ver=2.4.7.1
+geant4_ver=10.4.3
+# geant4_ver=11.3.2
 
 
 function GOTO() {
@@ -51,13 +52,13 @@ echo -e "${YELLOW}downloading geant4 v${geant4_ver}...${RESET}"
 wget https://gitlab.cern.ch/geant4/geant4/-/archive/v${geant4_ver}/geant4-v${geant4_ver}.tar.gz
 tar -xvf geant4-v${geant4_ver}.tar.gz
 rm geant4-v${geant4_ver}.tar.gz
-mkdir -p geant4-v${geant4_ver}/build
-cd geant4-v${geant4_ver}/build
+mkdir -p geant4-v${geant4_ver}-build
+mkdir -p geant4-v${geant4_ver}-install
+cd geant4-v${geant4_ver}-build
 cmake ${geant4_path}/geant4-v${geant4_ver} \
-    -DCMAKE_INSTALL_PREFIX=${geant4_path}/geant4-v${geant4_ver} \
+    -DCMAKE_INSTALL_PREFIX=${geant4_path}/geant4-v${geant4_ver}-install \
     -DGEANT4_BUILD_MULTITHREADED=OFF \
     -DGEANT4_INSTALL_DATA=ON \
-    -DGEANT4_INSTALL_DATADIR=${geant4_path}/geant4-v${geant4_ver} \
     -DGEANT4_USE_GDML=ON \
     -DGEANT4_USE_OPENGL_X11=ON \
     -DGEANT4_USE_QT=ON \
@@ -66,7 +67,15 @@ cmake ${geant4_path}/geant4-v${geant4_ver} \
     -DGEANT4_USE_RAYTRACER_X11=ON \
     -DGEANT4_USE_SYSTEM_EXPAT=ON
 make -j $(nproc)
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to build Geant4.${RESET}"
+    exit 1
+fi
 make install
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to install Geant4.${RESET}"
+    exit 1
+fi
 cd $geant4_path
 
 echo
@@ -75,18 +84,26 @@ git clone --recursive https://github.com/bdsim-collaboration/bdsim.git
 
 # edit bdsim/CMakeLists.txt to change CMAKE_CXX_STANDARD to 17
 # sed -i 's/set(CMAKE_CXX_STANDARD [0-9]\+)/set(CMAKE_CXX_STANDARD 17)/' bdsim/CMakeLists.txt
-mkdir -p bdsim/build
+mkdir -p bdsim-build
+mkdir -p bdsim-install
 cd ${geant4_path}/geant4-v${geant4_ver}/bin
 source geant4.sh
-cd ${geant4_path}/bdsim/build
+cd ${geant4_path}/bdsim-build
 cmake ${geant4_path}/bdsim \
-    -DCMAKE_INSTALL_PREFIX=${geant4_path}/bdsim \
+    -DCMAKE_INSTALL_PREFIX=${geant4_path}/bdsim-install \
     -DUSE_SIXTRACKLINK=ON \
     -DBDSIM_BUILD_STATIC_LIBS=ON \
     -DGEANT4_CONFIG=$(which geant4-config)
-    # -DGEANT4_CONFIG=${geant4_path}/geant4-v${geant4_ver}/bin/geant4-config
-make -j $(nproc) 
+make -j $(nproc)
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to build BDSIM.${RESET}"
+    exit 1
+fi
 make install
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to install BDSIM.${RESET}"
+    exit 1
+fi
 unset LD_LIBRARY_PATH
 
 echo
@@ -195,6 +212,7 @@ function setupEnvironment(){
     conda install xorg-libxmu -y
     conda install flex bison -y
     conda install xorg-renderproto xorg-xextproto xorg-xproto -y
+    conda install expat -y
 }
 
 GOTO 'main'
