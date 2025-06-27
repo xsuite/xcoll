@@ -140,11 +140,9 @@ class FlukaEngine(BaseEngine):
     # =================================
 
     def _set_engine_properties(self, **kwargs):
-        timeout_sec = kwargs.pop('timeout_sec', None)
-        if timeout_sec is not None:
-            self._old_timeout_sec = self.timeout_sec
-            self.timeout_sec = timeout_sec
-        return super()._set_engine_properties(**kwargs)
+        kwargs = super()._set_engine_properties(**kwargs)
+        self._set_property('timeout_sec', kwargs)
+        return kwargs
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
