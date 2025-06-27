@@ -213,6 +213,8 @@ RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2
     template_tank = f"""\
 RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+*RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
+*RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
 """
     tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
                         template_tank)
