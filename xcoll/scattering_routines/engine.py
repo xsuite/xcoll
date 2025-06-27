@@ -30,7 +30,7 @@ class BaseEngine(xo.HybridClass):
     _only_protons = False
     _element_classes = None
     _uses_input_file = False
-    _num_input_files = 0
+    _num_input_files = 1
     _uses_run_folder = False
 
     def __init__(self, **kwargs):
@@ -324,17 +324,18 @@ class BaseEngine(xo.HybridClass):
     # or they can be set when the engine is started. In the latter case, the values
     # are temporary and the original will be restored when the engine is stopped.
 
+    def _set_property(prop, kwargs):
+        val = kwargs.pop(prop, None)
+        if val is not None:
+            # We only need to update the property when it is not None
+            setattr(self, f'_old_{prop}', getattr(self, prop))
+            setattr(self, prop, val)
+
     def _set_engine_properties(self, **kwargs):
         self._preparing_input = True  # We need this to allow changing the element settings which otherwise are locked
-        def _set_property(prop):
-            val = kwargs.pop(prop, None)
-            if val is not None:
-                # We only need to update the property when it is not None
-                setattr(self, f'_old_{prop}', getattr(self, prop))
-                setattr(self, prop, val)
         # We need to set the following properties first as they are needed by the others
-        _set_property('verbose')
-        _set_property('line')
+        _set_property('verbose', kwargs)
+        _set_property('line', kwargs)
         # The following properties have a specific logic
         self._use_seed(kwargs.pop('seed', None))
         self._use_particle_ref(kwargs.pop('particle_ref', None))
@@ -342,7 +343,7 @@ class BaseEngine(xo.HybridClass):
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
         # Now we can set the rest of the properties
-        _set_property('capacity')
+        _set_property('capacity', kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):

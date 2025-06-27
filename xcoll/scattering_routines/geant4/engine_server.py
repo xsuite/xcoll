@@ -1,6 +1,10 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2025                  #
+# ######################################### #
+
 import subprocess as _subprocess
 import rpyc as _rpyc
-import collimasim as cs
 import time
 
 class BDSIMServer:
@@ -41,6 +45,7 @@ class BDSIMServer:
                    particles_pdg_id,particles_particle_id, particles_state,
                    particles_at_element, particles_at_turn]
         self.g4link.addParticles(coordinates)
+
     def addParticles2(self, coordinates):
         self.g4link.addParticles(list(coordinates))
 

@@ -139,3 +139,7 @@ class Geant4Collimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
+
+
+class Geant4Crystal(BaseCrystal):
+    pass
