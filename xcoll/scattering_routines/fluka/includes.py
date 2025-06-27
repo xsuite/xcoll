@@ -221,7 +221,8 @@ def _assignmat_include_file():
             pos = crystal.dependant_assemblies[0].fluka_position
         pos1   = format_fluka_float(pos[3]-50.0+1e-4)
         pos2   = format_fluka_float(pos[4])
-        pos3   = format_fluka_float(pos[5]+1e-4)
+        pos3   = format_fluka_float(pos[5]-(l)-0.04+1e-4)
+        #pos3   = format_fluka_float(pos[5]+1e-4)
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110

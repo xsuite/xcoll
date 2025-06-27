@@ -256,7 +256,7 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 
 def _crystal_body_file(fedb_tag, length, bending_radius, width, height, **kwargs):
     template_body = f"""\
-RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} 0.00001 {length*(100+20)}
+RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} -{length*(100+20)} {length*(100+20)}
 ZCC {fedb_tag}Z1  {bending_radius*100} 0.0 {bending_radius*100}
 ZCC {fedb_tag}Z2  {bending_radius*100} 0.0 {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
