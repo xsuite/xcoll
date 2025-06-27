@@ -11,7 +11,7 @@ import time
 
 def track(coll, particles):
     import xcoll as xc
-    xc.geant4.engine.assert_ready_to_track(self, coll, particles, _necessary_attributes=['geant4_id'])
+    xc.geant4.engine.assert_ready_to_track(coll, particles, _necessary_attributes=['geant4_id'])
     track_core(coll, particles)
 
 
