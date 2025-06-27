@@ -9,43 +9,9 @@ import xpart as xp
 import time
 
 
-def _drift(coll, particles, length):
-    old_length = coll._equivalent_drift.length
-    coll._equivalent_drift.length = length
-    coll._equivalent_drift.track(particles)
-    coll._equivalent_drift.length = old_length
-
-
 def track(coll, particles):
     import xcoll as xc
-    xc.geant4.engine._assert_element(coll)
-
-    if not coll.active or not coll._tracking or not coll.geant4_id or not coll.jaw:
-        _drift(coll, particles, coll.length)
-        return
-
-    npart = particles._num_active_particles
-    if npart == 0:
-        return
-
-    assert isinstance(particles._buffer.context, xo.ContextCpu)
-    npart = particles._num_active_particles
-    if npart == 0:
-        return
-
-    assert xc.geant4.engine.environment.compiled
-    if not xc.geant4.engine.g4link.is_running():
-       raise ValueError(f"Geant4Engine not yet running!\nPlease do this first, by calling "
-                      + f"xcoll.Geant4Engine.start().")
-    xc.geant4.engine.assert_particle_ref()
-    if abs(particles.mass0 - xc.geant4.engine.particle_ref.mass0) > 1e-3:
-        raise ValueError("Error in reference mass of `particles`: not in sync with Geant4 reference particle!\n"
-                       + "Rebuild the particles object using the Geant4 reference particle.")
-    if abs(particles.q0 - xc.geant4.engine.particle_ref.q0) > 1e-3:
-        raise ValueError("Error in reference charge of `particles`: not in sync with Geant4 reference particle!\n"
-                       + "Rebuild the particles object using the Geant4 reference particle.")
-    if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
-        raise ValueError("Some particles are missing the pdg_id!")
+    xc.geant4.engine.assert_ready_to_track(self, coll, particles, _necessary_attributes=['geant4_id'])
     track_core(coll, particles)
 
 

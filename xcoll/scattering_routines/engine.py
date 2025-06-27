@@ -251,10 +251,13 @@ class BaseEngine(xo.HybridClass):
         self._warning_given = False
         self._tracking_initialised = False
 
-
-    def assert_particle_ref(self):
-        if self.particle_ref is None:
-            raise ValueError(f"{self.__class__.__name__} reference particle not set!")
+    def is_running(self):
+        if hasattr(self, '_preparing_input') and self._preparing_input:
+            # We need this to allow changing the element settings which otherwise are locked
+            return False
+        # If we get here, we cannot say if the engine is running or not and we need an
+        # implementation in the child class
+        return self._is_running()
 
 
     def generate_input_file(self, *, clean=True, filename=None, **kwargs):
@@ -294,13 +297,44 @@ class BaseEngine(xo.HybridClass):
         return new_input_file
 
 
-    def is_running(self):
-        if hasattr(self, '_preparing_input') and self._preparing_input:
-            # We need this to allow changing the element settings which otherwise are locked
-            return False
-        # If we get here, we cannot say if the engine is running or not and we need an
-        # implementation in the child class
-        return self._is_running()
+    def assert_particle_ref(self):
+        if self.particle_ref is None:
+            raise ValueError(f"{self.__class__.__name__} reference particle not set!")
+
+    def assert_ready_to_track(self, coll, particles, _necessary_attributes=[]):
+        self._assert_element(coll)
+
+        missing_attributes = False
+        for attr in _necessary_attributes:
+            if not hasattr(coll, attr) or not getattr(coll, attr):
+                missing_attributes = True
+
+        if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
+            coll._equivalent_drift.track(particles)
+            return
+
+        npart = particles._num_active_particles
+        if npart == 0:
+            return
+        if not isinstance(particles._buffer.context, xo.ContextCpu):
+            raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
+
+        assert self.environment.compiled
+        if not self.is_running():
+            raise ValueError(f"{self.__class__.__name__} not yet running!\nPlease do this "
+                           + f"first, by calling xcoll.{self.__class__.__name__}.start().")
+
+        self.assert_particle_ref()
+        if abs(particles.mass0 - self.particle_ref.mass0) > 1e-3:
+            raise ValueError(f"Error in reference mass of `particles`: not in sync with "
+                           + f"{self.name} reference particle!\nRebuild the particles object "
+                           + f"using the {self.__class__.__name__} reference particle.")
+        if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
+            raise ValueError(f"Error in reference charge of `particles`: not in sync with "
+                           + f"{self.name} reference particle!\nRebuild the particles object "
+                           + f"using the {self.__class__.__name__} reference particle.")
+        if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+            raise ValueError("Some particles are missing the pdg_id!")
 
 
     def clean(self, **kwargs):
@@ -334,8 +368,8 @@ class BaseEngine(xo.HybridClass):
     def _set_engine_properties(self, **kwargs):
         self._preparing_input = True  # We need this to allow changing the element settings which otherwise are locked
         # We need to set the following properties first as they are needed by the others
-        _set_property('verbose', kwargs)
-        _set_property('line', kwargs)
+        self._set_property('verbose', kwargs)
+        self._set_property('line', kwargs)
         # The following properties have a specific logic
         self._use_seed(kwargs.pop('seed', None))
         self._use_particle_ref(kwargs.pop('particle_ref', None))
@@ -343,7 +377,7 @@ class BaseEngine(xo.HybridClass):
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
         # Now we can set the rest of the properties
-        _set_property('capacity', kwargs)
+        self._set_property('capacity', kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):

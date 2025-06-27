@@ -94,12 +94,12 @@ class Geant4Engine(BaseEngine):
 
     def _set_engine_properties(self, **kwargs):
         kwargs = super()._set_engine_properties(**kwargs)
-        _set_property('relative_energy_cut', kwargs)
-        _set_property('bdsim_config_file', kwargs)
+        self._set_property('relative_energy_cut', kwargs)
+        self._set_property('bdsim_config_file', kwargs)
         return kwargs
 
-    def _generate_input_file(self, ):
-        pass
+    def _generate_input_file(self, **kwargs):
+        return kwargs
 
     def _start_engine(self, **kwargs):
         if self.bdsim_config_file is None:
