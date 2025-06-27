@@ -129,14 +129,10 @@ class FlukaEngine(BaseEngine):
             self._tracking_initialised = True
 
 
-    def view(self, input_file=None):
-        import xcoll as xc
-        if input_file is None:
-            if self.input_file is None:
-                return
-            else:
-                input_file = self.input_file[0]
-        xc.fluka.environment.run_flair(input_file)
+    def view(self):
+        if self.input_file is None:
+            return
+        xc.fluka.environment.run_flair(self.input_file[0])
 
 
     # =================================
@@ -301,13 +297,14 @@ class FlukaEngine(BaseEngine):
 
     def _clean_input_files(self, input_file, cwd, clean_all=False, _only_list=False, **kwargs):
         if cwd is not None:
-            files_to_delete = ['prototypes.lbp', 'assignmat.inp', 'linebuilder.log']
+            files_to_delete = ['prototypes.lbp', 'assignmat.inp', 'linebuilder.log',
+                               'new_collgaps.dat']
             files_to_delete = [cwd / f for f in files_to_delete]
             files_to_delete += list(cwd.glob(f'include_*.inp'))
             if input_file is not None:
                 if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
                     input_file = [input_file]
-                files_to_delete += list(cwd.glob(f'{input_file[0].stem}_orig.inp'))
+                files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
                 if clean_all and not _only_list:
                     files_to_delete += self._all_input_files(input_file)
             if _only_list:
@@ -318,7 +315,7 @@ class FlukaEngine(BaseEngine):
 
     def _clean_output_files(self, input_file, cwd, clean_all=False, **kwargs):
         if cwd is not None:
-            files_to_delete = [network_file, fluka_log, server_log, 'new_collgaps.dat',
+            files_to_delete = [network_file, fluka_log, server_log,
                             'fluka_isotope.log', 'fort.208', 'fort.251']
             files_to_delete = [cwd / f for f in files_to_delete]
             if input_file is not None:

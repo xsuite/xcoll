@@ -5,6 +5,7 @@
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
+from .transparent import TransparentCollimator, TransparentCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
 from .fluka import FlukaCollimator, FlukaCrystal
 from .blowup import BlowUp

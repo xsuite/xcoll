@@ -6,4 +6,5 @@
 from xcoll import __version__
 
 def test_version():
-    assert __version__ == '0.6.0rc0.dev0+fluka'
+    assert __version__ == '0.6.0rc0.dev1+fluka'
+

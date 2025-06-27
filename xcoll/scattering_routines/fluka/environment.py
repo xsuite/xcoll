@@ -167,6 +167,13 @@ class FlukaEnvironment(BaseEnvironment):
             pro.region_file = fedb_path / 'regions' / f'{file.stem}.regions'
         for file in fedb_path.glob(f'stepsizes/*'):
             file.copy_to(self.fedb / 'stepsizes' / file.name, method='mount')
+        tools = self.fedb / 'tools'
+        if tools.exists():
+            tools.rmtree()
+        (_FEDB_TEMPLATE / 'tools').copy_to(tools, method='mount')
+        structure = self.fedb / 'structure.py'
+        structure.unlink(missing_ok=True)
+        (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')
 
 
     def set_fluka_environment(self):
@@ -183,9 +190,9 @@ class FlukaEnvironment(BaseEnvironment):
         os.environ['FEDB_PATH'] = self.fedb.as_posix()
         os.environ['LB_PATH'] = self.linebuilder.as_posix()
         # Brute-force the system paths
-        sys.path.append(self.fedb.as_posix())
-        sys.path.append((self.linebuilder / "src").as_posix())
-        sys.path.append((self.linebuilder / "lib").as_posix())
+        sys.path.insert(0, (self.linebuilder / "src").as_posix())
+        sys.path.insert(0, (self.linebuilder / "lib").as_posix())
+        sys.path.insert(0, self.fedb.as_posix())
 
 
     def run_flair(self, input_file=None):
@@ -220,8 +227,7 @@ class FlukaEnvironment(BaseEnvironment):
         self.restore_environment()
         if cmd.returncode != 0:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise RuntimeError(f"Failed to run flair on input file {input_file}!\n"
-                             + f"Error given is:\n{stderr}")
+            raise RuntimeError(f"Failed to run flair!\nError given is:\n{stderr}")
         file = FsPath.cwd() / f"{fedb_series}_{fedb_tag}.inp"
         if not file.exists():
             raise FileNotFoundError(f"Temporary input file {file} not generated!")
@@ -250,10 +256,10 @@ class FlukaEnvironment(BaseEnvironment):
                     link.symlink_to(f)
         tools = self.fedb / 'tools'
         if not tools.exists():
-            tools.symlink_to(_FEDB_TEMPLATE / 'tools')
+            (_FEDB_TEMPLATE / 'tools').copy_to(tools, method='mount')
         structure = self.fedb / 'structure.py'
         if not structure.exists():
-            structure.symlink_to(_FEDB_TEMPLATE / 'structure.py')
+            (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')
         prototypes = (self.fedb / 'metadata').glob('*_*.json')
         for file in prototypes:
             FlukaPrototype.from_json(file)

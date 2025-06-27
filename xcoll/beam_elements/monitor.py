@@ -57,6 +57,7 @@ class EmittanceMonitor(xt.BeamElement):
     behaves_like_drift = True
     allow_loss_refinement = True
 
+    _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
         xt._pkg_root.joinpath('headers/atomicadd.h'),
         _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')

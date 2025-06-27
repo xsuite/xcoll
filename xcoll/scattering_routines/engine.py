@@ -266,27 +266,32 @@ class BaseEngine(xo.HybridClass):
                            + "file after starting engine)!")
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
+        cwd = kwargs.get('cwd')
+        if cwd and FsPath(cwd).resolve() == FsPath.cwd().resolve():
+            print("Warning: Cannot use current working directory as input folder.")
+            kwargs.pop('cwd')
         kwargs = self._set_engine_properties(**kwargs)
 
         # Create input file
         input_file, _ = self._generate_input_file(**kwargs)
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
-            # Some engines might need multiple input files (like Fluka)
+            # Some engines might create multiple input files (like Fluka)
             input_file = [input_file]
         if filename is None:
             if hasattr(self, '_old_cwd') and self._old_cwd is not None:
-                input_file[0] = input_file[0].rename(self._old_cwd / input_file[0].name)
+                new_input_file = [input_file[0].rename(self._old_cwd / input_file[0].name)]
+            else:
+                new_input_file = [input_file[0]]
         else:
-            input_file[0] = input_file[0].rename(filename)
+            new_input_file = [input_file[0].rename(filename)]
         for i, file in enumerate(input_file[1:]):
-            input_file[i+1] = file.rename(input_file[0].parent / file.name)
-        input_file = input_file[0] if self._num_input_files==1 else input_file
+            new_input_file.append(file.rename(new_input_file[0].parent / file.name))
 
         if clean:
-            self.clean_input_files(clean_all=False)
+            self.clean_input_files(clean_all=True, input_file=input_file)
         self._restore_engine_properties(clean=clean)
 
-        return input_file
+        return new_input_file
 
 
     def is_running(self):
@@ -343,7 +348,7 @@ class BaseEngine(xo.HybridClass):
     def _restore_engine_properties(self, clean=False):
         self._preparing_input = False
         # Reset particle_ref in the line
-        if hasattr(self, '_old_particle_ref'):
+        if hasattr(self, '_old_line_particle_ref'):
             self.line.particle_ref = self._old_line_particle_ref
             del self._old_line_particle_ref
         # The following properties have a specific logic
