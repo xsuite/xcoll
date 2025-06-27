@@ -219,9 +219,9 @@ def _assignmat_include_file():
                 raise ValueError(f"Crystal {name} has multiple positions in the prototypes file. "
                                 + "(too many dependant aseemblies).")
             pos = crystal.dependant_assemblies[0].fluka_position
-        pos1   = format_fluka_float(pos[3])
+        pos1   = format_fluka_float(pos[3]-50.0+1e-4)
         pos2   = format_fluka_float(pos[4])
-        pos3   = format_fluka_float(pos[5])
+        pos3   = format_fluka_float(pos[5]+1e-4)
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
@@ -235,7 +235,7 @@ CRYSTAL   {pos1}{pos2}{pos3}                              &&
     return filename
 
 
-def _beam_include_file(particle_ref, bb_int=0):
+def _beam_include_file(particle_ref, bb_int=False):
     filename = FsPath("include_settings_beam.inp").resolve()
     pdg_id = particle_ref.pdg_id[0]
     momentum_cut = particle_ref.p0c[0] / 1e9 * 1.05
@@ -267,20 +267,25 @@ BEAMPOS
     if bb_int:
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-* W(1):interaction type, W(2):Index IR, W(3):Length of IR[cm], W(4):SigmaZ
-SOURCE            1.        1.        0.        0.
+* W(1): interaction type, W(2): Index IR, W(3): Length of IR[cm], W(4): SigmaZ
+* Interaction type: 1.0 (Inelastic), 10.0 (Elastic), 100.0 (EMD)
+* SigmaZ: sigma_z (cm) for the Gaussian sampling of the, collision position around the center of the insertion
+SOURCE    {format_fluka_float(bb_int['int_type'])}        1.        0.        0.
 SOURCE           89.       90.       91.        0.                    &
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*USRICALL    0.511232 -0.026532 0.0148447 0.0020532    2.3e-6          BBCOL_H 
-*USRICALL  0.59894741-0.0002269-0.0001212-0.00035714.8293E-10                                                        BBCOL_H
-* USRICALL    0.511232 -0.026532 0.0148447 0.0020532    2.3e-6          BBCOL_H
-USRICALL  {format_fluka_float(bb_int['theta2'])}{format_fluka_float(bb_int['xs'])}{format_fluka_float(bb_int['sigma_p_x2'])}{format_fluka_float(bb_int['sigma_p_y2'])}{Z:8}.0{A:8}.0BBEAMCOL
+* W(1): Theta2-> Polar angle (rad) between b2 and -z direction.
+* W(2): Azimuthal angle (deg) defining the crossing plane.
+* W(3): Sigma_x for Gaussian sampling in b2, dir (x', y', 1) wrt to px
+* W(4): Sigma_y for Gaussian sampling in b2, dir (x', y', 1) wrt to py
+* W(5): Z b2
+* W(6): A b2
+USRICALL  {format_fluka_float(bb_int['theta2'])}{format_fluka_float(bb_int['xs'])}{format_fluka_float(bb_int['sigma_p_x2'])}{format_fluka_float(bb_int['sigma_p_y2'])}{format_fluka_float(bb_int['Z'])}{format_fluka_float(bb_int['A'])}BBEAMCOL
 USRICALL  {format_fluka_float(bb_int['betx'])}{format_fluka_float(bb_int['alfx'])}{format_fluka_float(bb_int['dx'])}{format_fluka_float(bb_int['dpx'])}{format_fluka_float(bb_int['rms_emx'])}          BBCOL_H
 USRICALL  {format_fluka_float(bb_int['bety'])}{format_fluka_float(bb_int['alfy'])}{format_fluka_float(bb_int['dy'])}{format_fluka_float(bb_int['dpy'])}{format_fluka_float(bb_int['rms_emy'])}          BBCOL_V
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*USRICALL      #OFFSET                                                        BBCOL_O
+* * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* *USRICALL      #OFFSET                                                        BBCOL_O
 USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_O
-*USRICALL      #SIGDPP                                                        BBCOL_L
+* *USRICALL      #SIGDPP                                                        BBCOL_L
 USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_L
 *
 """
