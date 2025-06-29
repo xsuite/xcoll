@@ -20,7 +20,9 @@ def _drift(coll, particles, length):
 
 def track(coll, particles):
     import xcoll as xc
-    xc.fluka.engine.assert_ready_to_track(coll, particles, _necessary_attributes=['fluka_id'])
+    if xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
+                                _necessary_attributes=['fluka_id']):
+        return
 
     if not xc.fluka.engine._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "

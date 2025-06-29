@@ -301,7 +301,7 @@ class BaseEngine(xo.HybridClass):
         if self.particle_ref is None:
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
-    def assert_ready_to_track(self, coll, particles, _necessary_attributes=[]):
+    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[]):
         self._assert_element(coll)
 
         missing_attributes = False
@@ -311,11 +311,11 @@ class BaseEngine(xo.HybridClass):
 
         if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
             coll._equivalent_drift.track(particles)
-            return
+            return True
 
         npart = particles._num_active_particles
         if npart == 0:
-            return
+            return True
         if not isinstance(particles._buffer.context, xo.ContextCpu):
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
@@ -335,6 +335,7 @@ class BaseEngine(xo.HybridClass):
                            + f"using the {self.__class__.__name__} reference particle.")
         if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
             raise ValueError("Some particles are missing the pdg_id!")
+        return False
 
 
     def clean(self, **kwargs):
