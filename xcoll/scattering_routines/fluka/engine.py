@@ -320,7 +320,7 @@ class FlukaEngine(BaseEngine):
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
 
             # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
-            _input_files = self._clean_input_files(input_file, cwd, clean_all=False)
+            _input_files = self._get_input_files_to_clean(input_file, cwd, clean_all=False)
             files_to_delete  = [file for file in files_to_delete
                                 if FsPath(file).resolve() not in _input_files]
 
