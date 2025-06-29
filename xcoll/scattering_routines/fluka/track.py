@@ -32,6 +32,8 @@ def track(coll, particles):
         raise ValueError(f"Tracking {npart} particles but only {xc.fluka.engine.capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
 
+    xc.fluka.engine.init_tracking(npart)
+
     if particles.particle_id.max() > xc.fluka.engine.max_particle_id:
         raise ValueError(f"Some particles have an id ({particles.particle_id.max()}) "
                        + f"that is higher than the highest id known to FLUKA ("
@@ -42,8 +44,6 @@ def track(coll, particles):
                        + "xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
-
-    xc.fluka.engine.init_tracking(npart)
 
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
