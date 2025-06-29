@@ -20,6 +20,11 @@ def _drift(coll, particles, length):
 
 def track(coll, particles):
     import xcoll as xc
+
+    # Initialize ionisation loss accumulation variable
+    if coll._acc_ionisation_loss < 0:
+        coll._acc_ionisation_loss = 0.
+
     if xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
                                 _necessary_attributes=['fluka_id']):
         return
@@ -46,10 +51,6 @@ def track(coll, particles):
                        + "xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
-
-    # Initialize ionisation loss accumulation variable
-    if coll._acc_ionisation_loss < 0:
-        coll._acc_ionisation_loss = 0.
 
     _drift(coll, particles, -coll.length_front)
     track_core(coll, particles)
