@@ -79,6 +79,7 @@ class FlukaPrototype:
         self._type = self.__class__.__name__[5:].lower()
         self._elements = []
         self._initialized = True
+        self._file_is_valid = None
 
     def __repr__(self):
         if self._is_null:
@@ -400,6 +401,7 @@ class FlukaPrototype:
         if not self.exists():
             raise ValueError(f"{self._type.capitalize()} '{self.name}' "
                            + f"does not exist in the FEDB!")
+        self.check_file_valid()
         # Add the prototype to the registry of assigned prototypes if not yet present
         if len(self._elements) == 0:
             # Rename the prototype if the name is already in use
@@ -589,6 +591,69 @@ class FlukaPrototype:
                     assemblies.append(assembly)
         return assemblies
 
+    def check_file_valid(self, raise_error=True):
+        if self._file_is_valid is None:
+            self._file_is_valid = True
+            prototype_found = False
+            fedb_series = None
+            fedb_tag = None
+            with self.body_file.open('r') as fid:
+                for line in fid:
+                    if line.upper().startswith('ASSEMBLY'):
+                        self._file_is_valid = False
+                        if raise_error:
+                            raise ValueError("Corrupt prototype file: found ASSEMBLY instead of PROTOTYPE.")
+                    if line.upper().startswith('PROTOTYPE'):
+                        if prototype_found:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt prototype file: PROTOTYPE defined more than once.")
+                        prototype_found = True
+                        continue
+                    if line.upper().startswith('FEDB_SERIES'):
+                        if fedb_series is not None:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt prototype file: FEDB_SERIES defined more than once.")
+                        if not prototype_found:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt prototype file: FEDB_SERIES without PROTOTYPE.")
+                        fedb_series = line.split()[1]
+                    if line.upper().startswith('FEDB_TAG'):
+                        if fedb_tag is not None:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt prototype file: FEDB_TAG defined more than once.")
+                        if not prototype_found:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt prototype file: FEDB_TAG without PROTOTYPE.")
+                        fedb_tag = line.split()[1]
+            if fedb_series is None:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError("Corrupt prototype file: FEDB_SERIES not defined.")
+            if fedb_tag is None:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError("Corrupt prototype file: FEDB_TAG not defined.")
+            if fedb_series != self.fedb_series:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError(f"Corrupt prototype file: FEDB_SERIES in file {fedb_series} "
+                                + f"does not match {self.fedb_series}. Please take note that the "
+                                + f"filename should mathch the FEDB_SERIES and FEDB_TAG exactly, "
+                                + f"i.e. {self.fedb_series}_{self.fedb_tag}.bodies")
+            if fedb_tag != self.fedb_tag:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError(f"Corrupt prototype file: FEDB_TAG in file {fedb_tag} "
+                                + f"does not match {self.fedb_tag}. Please take note that the "
+                                + f"filename should mathch the FEDB_SERIES and FEDB_TAG exactly, "
+                                + f"i.e. {self.fedb_series}_{self.fedb_tag}.bodies")
+        return self._file_is_valid
+
 
 class FlukaAssembly(FlukaPrototype):
     # We have a registry for FlukaPrototypes and another for FlukaAssemblies
@@ -703,6 +768,66 @@ class FlukaAssembly(FlukaPrototype):
             files += prot.files
         return files
 
+    def check_file_valid(self, raise_error=True):
+        if self._file_is_valid is None:
+            self._file_is_valid = True
+            prototype_found = False
+            fedb_series = None
+            fedb_tag = None
+            ass_fedb_tag = None
+            with self.assembly_file.open('r') as fid:
+                for line in fid:
+                    if line.upper().startswith('ASSEMBLY'):
+                        if ass_fedb_tag:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: ASSEMBLY defined more than once.")
+                        ass_fedb_tag = line.split()[1]
+                        continue
+                    if line.upper().startswith('PROTOTYPE'):
+                        if ass_fedb_tag:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: PROTOTYPE after ASSEMBLY.")
+                        prototype_found = True
+                        continue
+                    if line.upper().startswith('FEDB_SERIES'):
+                        if fedb_series is not None:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: FEDB_SERIES defined more than once.")
+                        if not prototype_found:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
+                        fedb_series = line.split()[1]
+                    if line.upper().startswith('FEDB_TAG'):
+                        if fedb_tag is not None:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: FEDB_TAG defined more than once.")
+                        if not prototype_found:
+                            self._file_is_valid = False
+                            if raise_error:
+                                raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
+                        fedb_tag = line.split()[1]
+                    if fedb_series is not None and fedb_tag is not None:
+                        fedb_series = None
+                        fedb_tag = None
+                        prototype_found = False
+            if not ass_fedb_tag:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError("Corrupt assembly file: ASSEMBLY not defined.")
+            if ass_fedb_tag != self.fedb_tag:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError(f"Corrupt assembly file: ASSEMBLY {ass_fedb_tag} "
+                                + f"does not match {self.fedb_tag}. Please take note "
+                                + f"that the filename should match exactly, i.e. "
+                                + f"{self.fedb_series}_{self.fedb_tag}.lbp")
+        return self._file_is_valid
+
 
 class FlukaPrototypeAccessor:
     """This class is used to access the prototypes in the FEDB."""
@@ -779,6 +904,18 @@ class FlukaPrototypeAccessor:
 
     def __iter__(self):
         return iter(self.data.__iter__())
+
+    def __iter__(self):
+        super().__setattr__('_iter_data', iter(self.keys()))
+        return self
+
+    def __next__(self):
+        try:
+            name = next(self._iter_data)
+        except StopIteration:
+            raise StopIteration
+        else:
+            return self[name]
 
     def __contains__(self, val):
         val = val.lower()
