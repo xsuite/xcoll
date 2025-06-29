@@ -28,10 +28,10 @@ class BaseWrapper:
     def _lazy_load_environment(self):
         # Ensure the environment is loaded
         if not self._environment:
-            self._environment = _environment_cls()
+            self._environment = self._environment_cls()
 
     def _lazy_load_engine(self):
         # Ensure the engine is loaded
         if not self._engine:
-            self._engine = _engine_cls()
+            self._engine = self._engine_cls()
             self._engine._environment = self.environment

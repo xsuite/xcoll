@@ -341,13 +341,25 @@ class BaseEngine(xo.HybridClass):
         self.clean_input_files(**kwargs)
         self.clean_output_files(**kwargs)
 
-    def clean_input_files(self, **kwargs):
+    def clean_input_files(self, clean_all=False, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
-        self._clean_input_files(**kwargs)
+        files_to_delete = self._get_input_files_to_clean(**kwargs)
+        if not clean_all:
+            files_to_delete = [f for f in files_to_delete
+                    if f not in self._all_input_files(kwargs['input_file'])]
+        for f in files_to_delete:
+            if f is not None and f.exists():
+                f.unlink()
 
-    def clean_output_files(self, **kwargs):
+    def clean_output_files(self, clean_all=False, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
-        self._clean_output_files(**kwargs)
+        files_to_delete = self._get_output_files_to_clean(**kwargs)
+        if not clean_all:
+            files_to_delete = [f for f in files_to_delete
+                    if f not in self._all_input_files(kwargs['input_file'])]
+        for f in files_to_delete:
+            if f is not None and f.exists():
+                f.unlink()
 
 
     # =======================
@@ -358,7 +370,7 @@ class BaseEngine(xo.HybridClass):
     # or they can be set when the engine is started. In the latter case, the values
     # are temporary and the original will be restored when the engine is stopped.
 
-    def _set_property(prop, kwargs):
+    def _set_property(self, prop, kwargs):
         val = kwargs.pop(prop, None)
         if val is not None:
             # We only need to update the property when it is not None
@@ -624,11 +636,21 @@ class BaseEngine(xo.HybridClass):
     # === Methods to be optionally overwritten by child engine ===
     # ============================================================
 
-    def _clean_input_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
+    def _get_input_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
         pass
 
-    def _clean_output_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
+    def _get_output_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
         pass
+
+    def _all_input_files(self, input_file=None):
+        if self._uses_input_file:
+            if self._num_input_files == 1:
+                return [self._input_file]
+            else:
+                raise NotImplementedError(f"Need to implement `_all_input_files` for "
+                                    + f"{self.__class__.__name__}!")
+        else:
+                return []
 
     def _remove_element(self, el):
         pass
