@@ -87,7 +87,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                      + "is very low and will result in very long computation times.")
         if include_showers is None:
             include_showers = True if _is_lepton(particle_ref) else False
-            include_showers = True if return_all else False
+            include_showers = True if return_all else include_showers
         physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=lower_momentum_cut,
                                              photon_lower_momentum_cut=photon_lower_momentum_cut,
                                              electron_lower_momentum_cut=electron_lower_momentum_cut,
