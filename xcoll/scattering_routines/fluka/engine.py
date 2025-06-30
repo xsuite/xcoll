@@ -132,7 +132,7 @@ class FlukaEngine(BaseEngine):
     def view(self):
         if self.input_file is None:
             return
-        xc.fluka.environment.run_flair(self.input_file[0])
+        self.environment.run_flair(self.input_file[0])
 
 
     # =================================
