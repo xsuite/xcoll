@@ -26,7 +26,7 @@ def test_gaps(beam, test_context):
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
     line.collimators.install(name, coll, need_apertures=True)
     line.build_tracker()
-    tw = line.twiss()
+    tw = line.twiss(reverse=False)
     beta_gamma_rel = line.particle_ref._xobject.gamma0[0]*line.particle_ref._xobject.beta0[0]
     coll.assign_optics(name=name, nemitt_x=3.5e-6, nemitt_y=2.5e-6, twiss=tw, beta_gamma_rel=beta_gamma_rel)
     coll.jaw_L = None

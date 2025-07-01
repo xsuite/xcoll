@@ -66,7 +66,7 @@ line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT
-tw = line.twiss()
+tw = line.twiss(reverse=False)
 line.collimators.assign_optics(twiss=tw)
 if plane == 'H':
     adt.calibrate_by_emittance(nemitt=nemitt_x, twiss=tw)

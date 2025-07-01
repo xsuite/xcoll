@@ -64,7 +64,7 @@ line.insert_element(element=mon2, name="particle monitor", at_s=adt_pos)
 # Build the tracker and optimise
 line.build_tracker()
 line.optimize_for_tracking()
-twiss = line.twiss()
+twiss = line.twiss(reverse=False)
 
 
 # This will calibrate the ADT such that we push the full beam beyond 5 sigma over 1000 turns.

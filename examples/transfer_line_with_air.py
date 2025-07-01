@@ -76,7 +76,7 @@ dy0 = 0.0
 dpx0 = 0.02
 dpy0 = 0.0
 tw_init = xt.TwissInit(betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0, dx=dx0, dy=dy0, dpx=dpx0, dpy=dpy0)
-tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init)
+tw = line.twiss(method='4d', start="monitor start", end="END", init=tw_init, reverse=False)
 
 nemitt_x = 7.639770207283603e-06
 nemitt_y = 3.534081877201574e-06

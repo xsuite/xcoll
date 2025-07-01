@@ -366,7 +366,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
         if twiss is None:
             if not self.line._has_valid_tracker():
                 raise Exception("Please build the tracker before computing the optics for the openings!")
-            twiss = self.line.twiss()
+            twiss = self.line.twiss(reverse=False)
         if not hasattr(names, '__iter__') and not isinstance(names, str):
             names = [names]
         coll_entry_indices = twiss.rows.indices[names]

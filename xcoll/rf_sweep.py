@@ -61,7 +61,7 @@ class RFSweep:
             E = self.line.particle_ref.energy0[0]
             q = self.line.particle_ref.q0
             h = self.f_RF * self.L / beta0 / sc.c
-            tw = self.line.twiss()
+            tw = self.line.twiss(reverse=False)
             eta = tw.slip_factor
 
             bucket_height = np.sqrt(abs(q*self.V*beta0**2 / (np.pi*h*eta*E) * (

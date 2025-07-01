@@ -186,7 +186,7 @@ class BlowUp(InvalidXcoll):
                 raise ValueError("The provided line has no reference particle. Use the argument `beta_gamma_rel`")
             beta_gamma_rel = line.particle_ref.gamma0[0]*line.particle_ref.beta0[0]
         if twiss is None:
-            twiss = line.twiss()
+            twiss = line.twiss(reverse=False)
         gamma = twiss.rows[name][f"gam{'x' if self.plane == 'H' else 'y'}"][0]
         # Asumming a Gaussian beam, we will have shifted all beam beyond 5 sigma with an emittance growth
         # of around a factor 60. In practive, a ~50x increase is enough due to the covariance terms.

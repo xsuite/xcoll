@@ -40,7 +40,7 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
     line.build_tracker()
     line.collimators.assign_optics()
 
-    tw = line.twiss()
+    tw = line.twiss(reverse=False)
     tcp_conv = f"tcp.c6{'l' if beam == 1 else 'r'}7.b{beam}"
     tcp_div = f"tcp.d6{'l' if beam == 1 else 'r'}7.b{beam}"
 
