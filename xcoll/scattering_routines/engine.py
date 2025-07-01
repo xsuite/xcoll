@@ -10,6 +10,8 @@ import shutil
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
+import xtrack.particles.pdg as pdg
+
 try:
     # TODO: once xaux is in Xsuite keep only this
     from xaux import ClassProperty, ClassPropertyMeta, FsPath, singleton
@@ -135,10 +137,10 @@ class BaseEngine(xo.HybridClass, metaclass=BaseEngineMeta):
                 raise ValueError("`particle_ref` has to be a single particle!")
             if val.pdg_id[0] == 0:
                 if cls._only_protons:
-                    val.pdg_id[0] = xp.get_pdg_id_from_name('proton')
+                    val.pdg_id[0] = pdg.get_pdg_id_from_name('proton')
                 else:
                     raise ValueError("`particle_ref` needs to have a valid pdg_id")
-            elif cls._only_protons and val.pdg_id[0] != xp.get_pdg_id_from_name('proton'):
+            elif cls._only_protons and val.pdg_id[0] != pdg.get_pdg_id_from_name('proton'):
                 raise ValueError("{cls.__name__} only supports protons!")
             self._particle_ref = val
 
