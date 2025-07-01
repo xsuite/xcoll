@@ -217,12 +217,11 @@ def _assignmat_include_file():
                 raise ValueError(f"Crystal {name} has no position in the prototypes file.")
             elif len(crystal.dependant_assemblies) > 1:
                 raise ValueError(f"Crystal {name} has multiple positions in the prototypes file. "
-                                + "(too many dependant aseemblies).")
+                                + "(too many dependant asemblies).")
             pos = crystal.dependant_assemblies[0].fluka_position
-        pos1   = format_fluka_float(pos[3]-50.0+1e-4)
+        pos1   = format_fluka_float(pos[3]-50.0+1e-4) # XXX Does it always work with the 50cm shift?
         pos2   = format_fluka_float(pos[4])
-        pos3   = format_fluka_float(pos[5]-(l)-0.04+1e-4)
-        #pos3   = format_fluka_float(pos[5]+1e-4)
+        pos3   = format_fluka_float(pos[5])
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 CRYSTAL     {name:>8}{format_fluka_float(bang)}{format_fluka_float(l)}       0.0       0.0     300.0 110
@@ -360,7 +359,7 @@ PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
 PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
 PHYSICS           2.                                                  EM-DISSO
-* beam-beam collisoins
+* beam-beam collisions
 PHYSICS       8000.0                                                  LIMITS
 *THRESHOL         0.0       0.0    8000.0    8000.0       0.0       0.0
 """
