@@ -30,7 +30,8 @@ def xcoll_to_fluka_material(material):
         "c":    "  CARBON",
         "si":   " SILICON",
         "cu":   "  COPPER",
-        "mogr": "AC150GPH"
+        "mogr": "AC150GPH",
+        "vacuum": "VACUUM"
     }
 
     if material not in material_dict.keys():
@@ -219,6 +220,8 @@ RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2
     template_tank = f"""\
 RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+*RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
+*RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
 """
     tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
                         template_tank)
@@ -260,10 +263,11 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 
 def _crystal_body_file(fedb_tag, length, bending_radius, width, height, **kwargs):
     template_body = f"""\
-RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} 0.00001 {length*(100+20)}
-ZCC {fedb_tag}Z1  {bending_radius*100} 0.0 {bending_radius*100}
-ZCC {fedb_tag}Z2  {bending_radius*100} 0.0 {bending_radius*100-width*100}
+RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} -{length*(100+20)} {length*(100+20)}
+YCC {fedb_tag}Z1  0.0 {bending_radius*100} {bending_radius*100}
+YCC {fedb_tag}Z2  0.0 {bending_radius*100} {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
+XYP {fedb_tag}P2  0.0
 """
     body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
                             template_body)
@@ -278,10 +282,11 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 
 def _crystal_region_file(fedb_tag, **kwargs):
     template_body_reg = f"""\
-{fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1
+{fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1 - {fedb_tag}P2
 {fedb_tag}B2     5 | +{fedb_tag}_B +{fedb_tag}Z2
                    | +{fedb_tag}_B -{fedb_tag}Z1
                    | +{fedb_tag}_B -{fedb_tag}P1
+                   | +{fedb_tag}_B +{fedb_tag}P2 -{fedb_tag}Z2
 """
     _write_file("regions", f"generic_{fedb_tag}_B.regions",
                 template_body_reg)

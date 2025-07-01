@@ -43,10 +43,13 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                       return_leptons=None, return_neutrinos=None, return_protons=None,
                       return_neutrons=None, return_ions=None, return_exotics=None,
                       return_all=None, return_neutral=None, use_crystals=False, **kwargs):
+
+    bb_int = kwargs.get('bb_int', None)
+
     this_include_files = include_files.copy()
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
-        this_include_files.append(_beam_include_file(particle_ref))
+        this_include_files.append(_beam_include_file(particle_ref, bb_int=bb_int))
     if 'include_settings_physics.inp' in [file.name for file in this_include_files]:
         if photon_lower_momentum_cut is not None:
             raise ValueError("Physics include file already provided. Cannot change "
@@ -214,9 +217,9 @@ def _assignmat_include_file():
                 raise ValueError(f"Crystal {name} has no position in the prototypes file.")
             elif len(crystal.dependant_assemblies) > 1:
                 raise ValueError(f"Crystal {name} has multiple positions in the prototypes file. "
-                                + "(too many dependant aseemblies).")
+                                + "(too many dependant asemblies).")
             pos = crystal.dependant_assemblies[0].fluka_position
-        pos1   = format_fluka_float(pos[3])
+        pos1   = format_fluka_float(pos[3]-50.0+1e-4) # XXX Does it always work with the 50cm shift?
         pos2   = format_fluka_float(pos[4])
         pos3   = format_fluka_float(pos[5])
         template += f"""\
@@ -232,10 +235,11 @@ CRYSTAL   {pos1}{pos2}{pos3}                              &&
     return filename
 
 
-def _beam_include_file(particle_ref):
+def _beam_include_file(particle_ref, bb_int=False):
     filename = FsPath("include_settings_beam.inp").resolve()
     pdg_id = particle_ref.pdg_id[0]
     momentum_cut = particle_ref.p0c[0] / 1e9 * 1.05
+
     hi_prope = "*"
     if pdg_id in fluka_names:
         name = fluka_names[pdg_id]
@@ -248,7 +252,6 @@ def _beam_include_file(particle_ref):
         raise ValueError(f"Reference particle {get_name_from_pdg_id(pdg_id)} not "
                         + "supported by FLUKA.")
     beam = f"BEAM      {format_fluka_float(momentum_cut)}{50*' '}{name}"
-
     template = f"""\
 ******************************************************************************
 *                          BEAM SETTINGS                                     *
@@ -260,12 +263,42 @@ def _beam_include_file(particle_ref):
 *
 BEAMPOS
 *
-* Only asking for loss map and touches map as in Sixtrack
+"""
+    if bb_int:
+        template += f"""\
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* W(1): interaction type, W(2): Index IR, W(3): Length of IR[cm], W(4): SigmaZ
+* Interaction type: 1.0 (Inelastic), 10.0 (Elastic), 100.0 (EMD)
+* SigmaZ: sigma_z (cm) for the Gaussian sampling of the, collision position around the center of the insertion
+SOURCE    {format_fluka_float(bb_int['int_type'])}        1.        0.        0.
+SOURCE           89.       90.       91.        0.                    &
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* W(1): Theta2-> Polar angle (rad) between b2 and -z direction.
+* W(2): Azimuthal angle (deg) defining the crossing plane.
+* W(3): Sigma_x for Gaussian sampling in b2, dir (x', y', 1) wrt to px
+* W(4): Sigma_y for Gaussian sampling in b2, dir (x', y', 1) wrt to py
+* W(5): Z b2
+* W(6): A b2
+USRICALL  {format_fluka_float(bb_int['theta2'])}{format_fluka_float(bb_int['xs'])}{format_fluka_float(bb_int['sigma_p_x2'])}{format_fluka_float(bb_int['sigma_p_y2'])}{format_fluka_float(bb_int['Z'])}{format_fluka_float(bb_int['A'])}BBEAMCOL
+USRICALL  {format_fluka_float(bb_int['betx'])}{format_fluka_float(bb_int['alfx'])}{format_fluka_float(bb_int['dx'])}{format_fluka_float(bb_int['dpx'])}{format_fluka_float(bb_int['rms_emx'])}          BBCOL_H
+USRICALL  {format_fluka_float(bb_int['bety'])}{format_fluka_float(bb_int['alfy'])}{format_fluka_float(bb_int['dy'])}{format_fluka_float(bb_int['dpy'])}{format_fluka_float(bb_int['rms_emy'])}          BBCOL_V
+* * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* *USRICALL      #OFFSET                                                        BBCOL_O
+USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_O
+* *USRICALL      #SIGDPP                                                        BBCOL_L
+USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_L
+*
+"""
+    else:
+        template += f"""\
+* Only asking for loss map and touches map as in Xsuite
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 SOURCE                                         87.       88.        1.
 SOURCE           89.       90.       91.        0.       -1.       10.&
-*SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
+SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 """
+
+
     with filename.open('w') as fp:
         fp.write(template)
     return filename
@@ -326,6 +359,8 @@ PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
 PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
 PHYSICS           2.                                                  EM-DISSO
+* beam-beam collisions
+PHYSICS       8000.0                                                  LIMITS
 *THRESHOL         0.0       0.0    8000.0    8000.0       0.0       0.0
 """
     with filename.open('w') as fp:
