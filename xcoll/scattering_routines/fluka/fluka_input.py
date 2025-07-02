@@ -160,8 +160,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
             tilt_1 = round(ee.tilt_L, 9)
             tilt_2 = round(ee.tilt_R, 9)
-        if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
-            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
+        # if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
+            # raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
         if nsig is None:
             nsig = 1

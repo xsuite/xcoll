@@ -226,6 +226,7 @@ class FlukaCrystal(BaseCrystal):
             import xcoll as xc
             to_assign = {}
             generic = False
+            import pdb; pdb.set_trace()
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
@@ -252,6 +253,10 @@ class FlukaCrystal(BaseCrystal):
                     side = kwargs.pop('side', None)
                     if side is None:
                         raise ValueError('Need to provide side!')
+                    if 'width' in kwargs:
+                        width = kwargs.pop('width', None)
+                    if 'height' in kwargs:
+                        height = kwargs.pop('height', None)
                     generic = True
             super().__init__(**kwargs)
             for key, val in to_assign.items():
@@ -262,7 +267,8 @@ class FlukaCrystal(BaseCrystal):
                 side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(is_crystal=True, material=material,
                                                         side=side, length=self.length,
-                                                        bending_radius=bending_radius)
+                                                        bending_radius=bending_radius,
+                                                        width=width, height=height)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 

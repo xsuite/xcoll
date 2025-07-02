@@ -115,7 +115,8 @@ def _validate_kwargs(kwargs):
             if field not in kwargs:
                 raise ValueError(f"Need to provide {field}!")
         for field, opt_value in _generic_crystal_optional_fields.items():
-            kwargs.setdefault(field, opt_value)
+            if field not in kwargs:
+                kwargs.setdefault(field, opt_value)
     else:
         for field in _generic_required_fields:
             if field not in kwargs:
