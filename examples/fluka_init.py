@@ -7,7 +7,8 @@ xc.fluka.environment.flukaserver = '/eos/project/f/flukafiles/fluka-coupling/flu
 xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'
 xc.fluka.environment.flair       = '/eos/project/f/flukafiles/fluka-coupling/flair-3.4/flair'
 
-# Compile the FLUKA interface
+# Compile the FLUKA interface. This should be done within the environment it will be used to avoid dependency issues.
+# E.g. when running on HTCondor with cvmfs, compile with cvmfs sourced.
 xc.fluka.environment.compile(flukaio_path='/eos/project-c/collimation-team/software/flukaio', verbose=True)
 
 # Import a FLUKA FEDB

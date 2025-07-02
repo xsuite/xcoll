@@ -132,7 +132,7 @@ class FlukaEngine(BaseEngine):
     def view(self):
         if self.input_file is None:
             return
-        xc.fluka.environment.run_flair(self.input_file[0])
+        self.environment.run_flair(self.input_file[0])
 
 
     # =================================
@@ -140,11 +140,9 @@ class FlukaEngine(BaseEngine):
     # =================================
 
     def _set_engine_properties(self, **kwargs):
-        timeout_sec = kwargs.pop('timeout_sec', None)
-        if timeout_sec is not None:
-            self._old_timeout_sec = self.timeout_sec
-            self.timeout_sec = timeout_sec
-        return super()._set_engine_properties(**kwargs)
+        kwargs = super()._set_engine_properties(**kwargs)
+        self._set_property('timeout_sec', kwargs)
+        return kwargs
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
@@ -300,7 +298,7 @@ class FlukaEngine(BaseEngine):
         # TODO: tilts!!
 
 
-    def _clean_input_files(self, input_file, cwd, clean_all=False, _only_list=False, **kwargs):
+    def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is not None:
             files_to_delete = ['prototypes.lbp', 'assignmat.inp', 'linebuilder.log',
                                'new_collgaps.dat']
@@ -310,15 +308,12 @@ class FlukaEngine(BaseEngine):
                 if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
                     input_file = [input_file]
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
-                if clean_all and not _only_list:
-                    files_to_delete += self._all_input_files(input_file)
-            if _only_list:
-                return files_to_delete
-            for f in files_to_delete:
-                if f is not None and f.exists():
-                    f.unlink()
+                files_to_delete += self._all_input_files(input_file)
+            return files_to_delete
+        else:
+            return []
 
-    def _clean_output_files(self, input_file, cwd, clean_all=False, **kwargs):
+    def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is not None:
             files_to_delete = [network_file, fluka_log, server_log,
                             'fluka_isotope.log', 'fort.208', 'fort.251']
@@ -330,21 +325,19 @@ class FlukaEngine(BaseEngine):
                 files_to_delete += list(cwd.glob(f'{input_file[0].stem}*'))
 
             # Do not delete the extra files generated with the input file (they are deleted with clean_input_files)
-            _input_files = self._clean_input_files(input_file, cwd, clean_all=False,
-                                                   _only_list=True)
+            _input_files = self._get_input_files_to_clean(input_file, cwd, clean_all=False)
             files_to_delete  = [file for file in files_to_delete
                                 if FsPath(file).resolve() not in _input_files]
 
-            if not clean_all and input_file is not None:
+            if input_file is not None:
                 # Do not delete the input file itself
                 files_to_delete  = [file for file in files_to_delete
                                     if FsPath(file).resolve() != input_file[0].resolve()]
-            if clean_all and input_file is not None:
+            if input_file is not None:
                 files_to_delete += self._all_input_files(input_file)
-            for f in files_to_delete:
-                if f is not None and f.exists():
-                    f.unlink()
-
+            return files_to_delete
+        else:
+            return []
 
     def _all_input_files(self, input_file):
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):

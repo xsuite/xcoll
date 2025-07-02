@@ -15,6 +15,13 @@ except (ImportError, ModuleNotFoundError):
 from .prototype import FlukaPrototype, FlukaAssembly
 
 
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+#
+# DOES NOT WORK WITH PARALLEL JOBS: Exit handler of one job will delete prototype
+# as soon as finished, even if other job still running...
+#
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
 def xcoll_to_fluka_material(material):
     # XXX EXPAND THIS DICT
 

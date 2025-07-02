@@ -31,7 +31,8 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     num_particles = int(num_particles)
     if _capacity is None and len(line.get_elements_of_type(
                                 (FlukaCollimator, FlukaCrystal))[0]) > 0:
-        _capacity = 2*num_particles
+        import xcoll as xc
+        _capacity = cap if (cap := xc.fluka.engine.capacity) else 2*num_particles
 
     # Define the plane
     angle = coll.angle
@@ -111,13 +112,15 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         part = xp.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=at_element, _context=coll._buffer.context, **kwargs
+                line=line, at_element=at_element, _capacity=_capacity,
+                _context=coll._buffer.context, **kwargs
         )
     else:
         part = xp.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=at_element, _context=coll._buffer.context, **kwargs
+                line=line, at_element=at_element, _capacity=_capacity,
+                _context=coll._buffer.context, **kwargs
         )
 
     part._init_random_number_generator()
@@ -158,7 +161,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                pencil_spread, twiss=None, _capacity=None, **kwargs):
+                                pencil_spread, twiss=None, **kwargs):
     coll = line[name]
     beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
 

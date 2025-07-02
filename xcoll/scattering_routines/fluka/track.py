@@ -20,29 +20,21 @@ def _drift(coll, particles, length):
 
 def track(coll, particles):
     import xcoll as xc
-    xc.fluka.engine._assert_element(coll)
 
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
 
-    if not coll.active or not coll._tracking or not coll.fluka_id or not coll.jaw:
-        _drift(coll, particles, coll.length)
+    if xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
+                                _necessary_attributes=['fluka_id']):
         return
 
-    npart = particles._num_active_particles
-    if npart == 0:
-        return
-
-    # Check the server and whether it's initialised correctly
-    import xcoll as xc
     if not xc.fluka.engine._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
                        + f"xcoll.FlukaEngine.start(fluka_input_file.inp). "
                        + f"(id: {id(xc.fluka.engine)})")
 
-    xc.fluka.engine.assert_particle_ref()
-
+    npart = particles._num_active_particles
     if 1.4*npart > xc.fluka.engine.capacity:
         raise ValueError(f"Tracking {npart} particles but only {xc.fluka.engine.capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
@@ -59,15 +51,6 @@ def track(coll, particles):
                        + "xcoll.FlukaEngine.init_tracking(max_particle_id) before tracking "
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
-
-    if abs(particles.mass0 - xc.fluka.engine.particle_ref.mass0) > 1e-3:
-        raise ValueError("Error in reference mass of `particles`: not in sync with FLUKA reference particle!\n"
-                       + "Rebuild the particles object using the FLUKA reference particle.")
-    if abs(particles.q0 - xc.fluka.engine.particle_ref.q0) > 1e-3:
-        raise ValueError("Error in reference charge of `particles`: not in sync with FLUKA reference particle!\n"
-                       + "Rebuild the particles object using the FLUKA reference particle.")
-    if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
-        raise ValueError("Some particles are missing the pdg_id!")
 
     _drift(coll, particles, -coll.length_front)
     track_core(coll, particles)
