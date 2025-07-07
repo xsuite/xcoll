@@ -17,7 +17,7 @@ authors = [
 ]
 readme = "README.md"
 license = "Apache 2.0"
-include = ["LICENSE", "NOTICE"]
+exclude = ["xcoll/lib", "xcoll/config"]
 
 
 [tool.poetry.dependencies]
