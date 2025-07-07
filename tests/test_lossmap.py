@@ -12,10 +12,16 @@ import xcoll as xc
 import pytest
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
+try:
+    import matplotlib.pyplot as plt
+    matplotlib_installed = True
+except (ImportError, ModuleNotFoundError):
+    matplotlib_installed = False
 
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.skipif(not matplotlib_installed, reason="matplolib not installed")
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -26,31 +32,48 @@ path = Path(__file__).parent / 'data'
                             [1, 'V', 3500, False, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context):
+def test_lossmap_everest_with_plot(beam, plane, npart, interpolation, ignore_crystals, test_context):
+    _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, True)
 
+
+@pytest.mark.skipif(matplotlib_installed, reason="matplolib installed")
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+@retry()
+@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
+                            [1, 'H', 2500, 0.2, True],
+                            [2, 'V', 500, 0.3, True],
+                            [1, 'V', 3500, False, False],
+                            [2, 'H', 30000, 0.15, False]
+                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
+def test_lossmap_everest_without_plot(beam, plane, npart, interpolation, ignore_crystals, test_context):
+    _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, False)
+
+
+def _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, do_plot):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                     beam=beam, ignore_crystals=ignore_crystals)
-
     colldb.install_everest_collimators(line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
-
     line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
-
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
-
     line.scattering.enable()
     line.track(part, num_turns=2)
     line.scattering.disable()
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}"
-    assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal', this_id)
+    _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal', this_id)
+    if do_plot:
+        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
+        assert Path(f"test-{this_id}.jpg").exists()
+        Path(f"test-{this_id}.jpg").unlink()
 
 
-def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
+def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
     with flaky_assertions():
         line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
@@ -73,9 +96,6 @@ def assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")
         assert Path(f"coll_summary-{this_id}.txt").exists()
         Path(f"coll_summary-{this_id}.txt").unlink()
-        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
-        assert Path(f"test-{this_id}.jpg").exists()
-        Path(f"test-{this_id}.jpg").unlink()
 
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
