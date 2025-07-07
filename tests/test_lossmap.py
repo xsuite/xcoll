@@ -66,7 +66,7 @@ def _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, te
     line.track(part, num_turns=2)
     line.scattering.disable()
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}"
-    _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal', this_id)
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal', this_id)
     if do_plot:
         ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
@@ -142,3 +142,4 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
                 assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed
+    return ThisLM
