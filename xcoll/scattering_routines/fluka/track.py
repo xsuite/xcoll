@@ -53,7 +53,15 @@ def track(coll, particles):
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
     _drift(coll, particles, -coll.length_front)
+    if coll.co is not None: # FLUKA collimators are centered; need to shift
+        dx = coll.co[1][0]
+        dy = coll.co[1][1]
+        particles.x -= dx
+        particles.y -= dy
     track_core(coll, particles)
+    if coll.co is not None:
+        particles.x += dx
+        particles.y += dy
     _drift(coll, particles, -coll.length_back)
 
 
