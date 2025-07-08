@@ -248,8 +248,8 @@ class FlukaEngine(BaseEngine):
                 ee.length_front = (input_dict[name]['length'])/2
                 ee.length_back = (input_dict[name]['length'] - 2*ee.length)/2
             else:
-                ee.length_front = (input_dict[name]['length'] - 2*ee.length)/2
-                ee.length_back = (input_dict[name]['length'] - 2*ee.length)/2
+                ee.length_front = (input_dict[name]['length'] - ee.length)/2
+                ee.length_back = (input_dict[name]['length'] - ee.length)/2
 
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
