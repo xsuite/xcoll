@@ -226,7 +226,6 @@ class FlukaCrystal(BaseCrystal):
             import xcoll as xc
             to_assign = {}
             generic = False
-            import pdb; pdb.set_trace()
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)

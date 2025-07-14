@@ -157,11 +157,13 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     elif ee.gap_R is not None:
                         nsig = ee.gap_R
                     half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
-                    offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
-            tilt_1 = round(ee.tilt_L, 9)
-            tilt_2 = round(ee.tilt_R, 9)
-        # if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
-            # raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
+                    offset   = 0 # (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
+
+        tilt_1 = round(ee.tilt_L, 9) if ee.tilt_L is not None else 0.0
+        tilt_2 = round(ee.tilt_R, 9) if ee.tilt_R is not None else 0.0
+
+        if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
+            raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
         if nsig is None:
             nsig = 1
@@ -211,6 +213,7 @@ def _fluka_builder(collimator_dict):
 
     with open('linebuilder.log', 'w') as f:
         with redirect_stdout(f):
+            # input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True, verbose=True)
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
