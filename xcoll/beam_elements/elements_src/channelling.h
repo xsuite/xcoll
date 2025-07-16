@@ -31,3 +31,20 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
 }
 
 #endif /* XCOLL_CHANNELLINGDEV_H */
+#ifndef CHANNELLING_H
+#define CHANNELLING_H
+
+#include <stdio.h>
+#include "mconf.h"  // αυτό είναι από το cephes
+
+// δήλωση της συνάρτησης cephes (υπάρχει στο ellik.c)
+double ellik(double phi, double m);
+
+void test_channelling(){
+    double x = ellik(0.5, 0.9);
+    printf("ellik(0.5, 0.9) = %f\n", x);
+}
+
+#endif
+
+
