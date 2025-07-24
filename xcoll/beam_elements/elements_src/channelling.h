@@ -9,7 +9,6 @@
 
 #include <math.h>
 #include <stdio.h>
-#include "myfunctions.h"
 
 // Moliere functions 
 

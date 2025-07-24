@@ -24,6 +24,7 @@ class ChannellingDev(InvalidXcoll):
     _depends_on = [InvalidXcoll]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
         _pkg_root.joinpath('beam_elements','elements_src','channelling.h')
     ]
 
