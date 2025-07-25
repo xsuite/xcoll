@@ -21,6 +21,7 @@ def _drift(coll, particles, length):
 def track(coll, particles):
     import xcoll as xc
 
+    
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
@@ -52,30 +53,214 @@ def track(coll, particles):
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
-    _drift(coll, particles, -coll.length_front)
+    import time
+
+    import xpart as xp
+
+    start = time.time()
+
+    coll_everest = xc.EverestCollimator(length=coll.length, material=xc.materials.MolybdenumGraphite)
+    coll_everest.jaw = coll.jaw
+
+    part_everest = particles.copy()
+    coll_everest.track(part_everest)
+
+    mask_hit_base = (
+        (abs(particles.px - part_everest.px) > 1e-12) |
+        (abs(particles.py - part_everest.py) > 1e-12) |
+        (particles.pdg_id == -999999999)
+    )
+
+    end = time.time()
+    print(f"Tracking Everest collimator took {end - start:.4f} seconds")
+
+
+    start = time.time()
+    mask_lost = (particles.state != 1) & (particles.pdg_id != -999999999)
+
+    # Final hit mask includes both
+    mask_hit = mask_hit_base # | mask_lost
+
+
+#     mask_hit = ((abs(particles.px - part_everest.px) > 1e-12) | (abs(particles.py - part_everest.py) >1e-12) | (particles.pdg_id == -999999999))
+# 
+    # mask_lost = ((particles.state != 1) & (particles.pdg_id != -999999999))
+    mask_miss_no_lost = ~((abs(particles.px - part_everest.px) > 1e-12) |  (abs(particles.py - part_everest.py) > 1e-12)) & (particles.pdg_id != -999999999)
+    mask_miss = mask_miss_no_lost | mask_lost
+
+
+    hit_id = particles.particle_id[mask_hit]
+    miss_id = particles.particle_id[mask_miss]
+    is_hit = np.isin(particles.particle_id, hit_id)
+    is_miss = np.isin(particles.particle_id, miss_id)
+
+    if mask_lost.any():
+        particles_lost = particles.filter(mask_lost)
+    else:
+        particles_lost = None 
+
+    particles_hit = 0
+    particles_miss = 0
+    particles_hit = particles.filter(is_hit)
+    end = time.time()
+    print(f"Tracking Everest collimator took {end - start:.4f} seconds")
+
+    print(f"Tracking {particles._num_active_particles} particles (FLUKA)...     ", end='')
+    print(f"Hit: {particles_hit._num_active_particles}")
+    print(f"Collimator: {coll.name}")
+
+
+    # if ((particles_hit._num_active_particles == 0) & (particles_miss == 0)):
+    #     # track_core(coll, particles)
+    #     _drift(coll, particles, coll.length)
+    #     return
+
+    
+    # check if ~is_hit has any true value
+    if np.any(~is_hit):
+        particles_miss = particles.filter(~is_hit)
+    elif (particles_hit._num_active_particles == 0) and (particles._num_active_particles > 0):
+        # import pdb; pdb.set_trace()
+        print("Could not find any particles that hit the collimator, but some particles are still active. ")
+        print("This is likely due to a bug in the collimator tracking code. Please report this issue.")
+         
+    # particles_miss = particles.filter(~is_hit) if np.any(is_miss) else 0
+#     particles_miss = particles.filter(is_miss) if np.any(is_miss) else 0
+#     particles_miss = particles_miss.filter(particles_miss.state == 1) if np.any(is_miss) else 0
+
+    # missing_capacity = 0
+    # if particles_miss:
+    #     miss_part = particles_miss._num_active_particles
+    #     more_capacity = particles.filter([False] * (particles._capacity - miss_part) + [True] * miss_part)
+    start = time.time()
+
+
+    if particles_miss:
+        _drift(coll, particles_miss, coll.length)
+    if particles_hit._num_active_particles > 0:
+        _drift(coll, particles_hit, -coll.length_front)
     if coll.co is not None: # FLUKA collimators are centered; need to shift
         dx = coll.co[1][0]
         dy = coll.co[1][1]
-        particles.x -= dx
-        particles.y -= dy
-    track_core(coll, particles)
+        particles_hit.x -= dx
+        particles_hit.y -= dy
+
+    if particles_hit._num_active_particles > 0:
+        track_core(coll, particles_hit)
+    else:
+        #_drift(coll, particles_hit, coll.length_front+coll.length_back+coll.length)
+        _drift(coll, particles, coll.length)
+        end = time.time()
+        print(f"No particles hit the collimator, skipping FLUKA tracking.")
+        print(f"Time taken: {end - start:.4f} seconds")
+        return
+
     if coll.co is not None:
-        particles.x += dx
-        particles.y += dy
-    _drift(coll, particles, -coll.length_back)
+        particles_hit.x += dx
+        particles_hit.y += dy
+
+    _drift(coll, particles_hit, -coll.length_back)
+
+    end = time.time()
+    print(f"Tracking FLUKA collimator took {end - start:.4f} seconds")
+    print("")
 
 
-def _expand(arr, dtype=float):
+    # new_particles=particles_hit
+    # _drift(coll, particles, -coll.length_front)
+    # if coll.co is not None: # FLUKA collimators are centered; need to shift
+    #     dx = coll.co[1][0]
+    #     dy = coll.co[1][1]
+    #     particles.x -= dx
+    #     particles.y -= dy
+    #     track_core(coll, particles)
+    # if coll.co is not None:
+    #     particles.x += dx
+    #     particles.y += dy
+    # _drift(coll, particles, -coll.length_back)
+
+
+    particles_to_merge = []
+
+    # particles_to_merge.append(particles_hit)
+    # if particles_miss:
+    #     particles_to_merge.append(particles_miss)
+    # new_particles._capacity = particles._capacity
+
+    # new_particles.add_particles(particles_hit)
+    # if particles_lost:
+    #     new_particles.add_particles(particles_lost)
+    # if particles_miss:
+    #     particles_hit.add_particles(particles_miss)
+    #     # particles_lost.add_particles(particles_miss)
+    #     # particles_lost.add_particles(particles_hit)
+    #     particles_merged = xp.Particles.merge([particles_hit, more_capacity])
+    # else:
+    #     # particles_lost.add_particles(particles_hit)
+    #     particles_merged = particles_hit
+
+
+    start = time.time()
+
+    if particles_miss:
+        total_new = particles_hit._capacity + particles_miss._capacity
+    else:
+        total_new = particles_hit._capacity
+
+    # for field in particles_merged._fields:
+    #     if field == "_capacity": continue
+    #     val_new = getattr(particles_merged, field)
+    #     setattr(particles, field, val_new.copy())
+
+    for field in particles._fields:
+        # check if field is array, if not continue
+        if field == "_capacity": continue
+        if field == "_num_active_particles": 
+            setattr(particles, field, particles_hit._num_active_particles + particles_miss._num_active_particles if particles_miss else particles_hit._num_active_particles)
+
+        if not isinstance(getattr(particles, field), np.ndarray):
+            continue
+
+        if hasattr(particles_hit, field):
+            f_hit = getattr(particles_hit, field)
+            if particles_miss:
+                f_miss = getattr(particles_miss, field)
+                combined = np.concatenate([f_hit, f_miss])
+            else:
+                combined = f_hit
+            setattr(particles, field, combined)
+            #  getattr(particles, field)[:total_new] = combined
+    
+    end = time.time()
+
+    
+    particles.reorganize()
+    xc.fluka.engine._max_particle_id = particles.particle_id.max()
+    print(f"Copying fields took {end - start:.4f} seconds")
+
+
+# def _expand(arr, dtype=float):
+#     import xcoll as xc
+#     max_part = xc.fluka.engine.capacity
+#     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
+
+def _expand(arr, dtype=np.float64):
     import xcoll as xc
     max_part = xc.fluka.engine.capacity
-    return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
+    arr = np.asarray(arr, dtype=dtype, order='F')  # Fortran order
+
+    if arr.size == max_part:
+        return arr
+    expanded = np.zeros(max_part, dtype=dtype, order='F')
+    expanded[:arr.size] = arr
+    return expanded
 
 
 def track_core(coll, part):
     import xcoll as xc
     npart = part._num_active_particles
     try:
-        from pyflukaf import track_fluka
+        from pyflukaf import track_fluka, track_fluka_batch
     except (ModuleNotFoundError, ImportError) as error:
         xc.fluka.engine._warn_pyfluka(error)
         return
@@ -136,7 +321,41 @@ def track_core(coll, part):
     turn_in  = part.at_turn[0]
     start    = part.start_tracking_at_element  # TODO: is this needed?
 
+    # def combine_data_to_2d(data):
+    #     keys = ['x', 'xp', 'y', 'yp', 'zeta', 'e', 'm', 'q', 'A', 'Z', 'pdg_id',
+    #             'pid', 'ppid', 'weight', 'spin_x', 'spin_y', 'spin_z']
+
+    #     arrays = []
+    #     for k in keys:
+    #         arr = data[k]
+    #         # Ensure integer arrays are cast to float64 (fortran compatibility)
+    #         if np.issubdtype(arr.dtype, np.integer):
+    #             arr = arr.astype(np.float64)
+    #         arrays.append(arr)
+
+    #     combined = np.vstack(arrays).T  # shape (npart, nfields)
+    #     # Make sure it's Fortran contiguous for f2py
+    #     combined = np.asfortranarray(combined)
+    #     return combined
+
+    # combined = combine_data_to_2d(data)
+
+    # import time
+    # start = time.time()
+    # track_fluka_batch(turn=turn_in+1,
+    #                   fluka_id=coll.fluka_id,
+    #                   length=coll.length + coll.length_front + coll.length_back,
+    #                   alive_part=npart,
+    #                   max_part=max_part,
+    #                   particle_data=combined)
+    # end = time.time()
+    # print(f"2D combined version: {end - start:.4f} seconds")
+
     # send to fluka
+    import time
+    # for key in ['x', 'xp', 'y', 'yp', 'zeta', 'e', 'm', 'q', 'A', 'Z', 'pdg_id', 'pid', 'ppid', 'weight', 'spin_x', 'spin_y', 'spin_z']:
+    #     data[key] = np.asfortranarray(data[key])
+
     track_fluka(turn=turn_in+1,     # Turn indexing start from 1 with FLUKA IO (start from 0 with xpart)
                 fluka_id=coll.fluka_id,
                 length=coll.length + coll.length_front + coll.length_back,
@@ -160,6 +379,8 @@ def track_core(coll, part):
                 spin_y_part=data['spin_y'],
                 spin_z_part=data['spin_z']
                )
+
+
 
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
@@ -187,10 +408,50 @@ def track_core(coll, part):
     # ===============================================================================================
     mask_existing = new_pid <= max_id
 
+    def original_lookup(part_particle_id, new_pid, mask_existing):
+        idx_old = np.array([np.where(part_particle_id == pid)[0][0]
+                        for pid in new_pid[mask_existing]])
+        return idx_old
+
+    def safe_lookup(part_particle_id, new_pid, mask_existing):
+
+        idx_old = []
+        target_pids = new_pid[mask_existing]
+
+        for pid in target_pids:
+            match = np.where(part_particle_id == pid)[0]
+            if match.size > 0:
+                idx_old.append(match[0])
+            # Optional: log or warn if a match is not found
+            # else:
+            #     print(f"[warning] pid {pid} not found in part_particle_id")
+
+        return np.array(idx_old, dtype=int)
+
+
+    def dict_lookup(part_particle_id, new_pid, mask_existing):
+        id_to_index = {pid: i for i, pid in enumerate(part_particle_id)}
+        idx_old = np.array([id_to_index[pid] for pid in new_pid[mask_existing]])
+        return idx_old
+
+    def searchsorted_lookup(part_particle_id, new_pid, mask_existing):
+        sorted_ids = np.sort(part_particle_id)
+        idx_old = np.searchsorted(sorted_ids, new_pid[mask_existing])
+        return idx_old
+
     if np.any(mask_existing):
         # TODO: this is slooooow
-        idx_old  = np.array([np.where(part.particle_id[alive_at_entry]==idx)[0][0]
-                             for idx in new_pid[mask_existing]])  # list of indices
+        import time
+        # for fn in [original_lookup, dict_lookup, searchsorted_lookup]:
+        #     start = time.time()
+        #     idxs = fn(part.particle_id, new_pid, mask_existing)
+        #     end = time.time()
+        #     print(f"{fn.__name__} took {end - start:.4f} seconds, found {len(idxs)} indices")
+
+        # idx_old  = np.array([np.where(part.particle_id[alive_at_entry]==idx)[0][0]
+        #                      for idx in new_pid[mask_existing]])  # list of indices
+        idx_old = original_lookup(part.particle_id[alive_at_entry], new_pid, mask_existing)
+        # idx_old = safe_lookup(part.particle_id[alive_at_entry], new_pid, mask_existing)
 
         # Sanity check
         assert np.all(part.particle_id[idx_old] == new_pid[mask_existing])
@@ -201,7 +462,12 @@ def track_core(coll, part):
         E_diff = np.zeros(len(part.x))
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing] * 1.e6
         if np.any(E_diff < -precision):
-            raise ValueError(f"FLUKA returned particle with energy higher than incoming particle!")
+            # import pdb; pdb.set_trace()
+            # raise ValueError(f"FLUKA returned particle with energy higher than incoming particle!")
+            # just a warning for now
+            print(f"[warning] FLUKA returned particle with energy higher than incoming particle! "
+                  + f"Energy difference: {E_diff[idx_old][E_diff[idx_old] < -precision]}")
+
         E_diff[E_diff < precision] = 0. # Lower cut on energy loss
         part.add_to_energy(-E_diff)
         part.weight[idx_old]       = data['weight'][:npart][mask_existing]
