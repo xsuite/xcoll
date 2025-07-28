@@ -65,6 +65,18 @@ def track(coll, particles):
     part_everest = particles.copy()
     coll_everest.track(part_everest)
 
+    _drift(coll, part_everest, -coll.length_front)
+    # Checking particles that hit the collimator
+
+    if coll.co is not None: # FLUKA collimators are centered; need to shift
+        dx = coll.co[1][0]
+        dy = coll.co[1][1]
+        part_everest.x -= dx
+        part_everest.y -= dy
+        coll_everest.track(part_everest)
+    else:
+        coll_everest.track(part_everest)
+
     mask_hit_base = (
         (abs(particles.px - part_everest.px) > 1e-12) |
         (abs(particles.py - part_everest.py) > 1e-12) |
@@ -82,9 +94,6 @@ def track(coll, particles):
     mask_hit = mask_hit_base # | mask_lost
 
 
-#     mask_hit = ((abs(particles.px - part_everest.px) > 1e-12) | (abs(particles.py - part_everest.py) >1e-12) | (particles.pdg_id == -999999999))
-# 
-    # mask_lost = ((particles.state != 1) & (particles.pdg_id != -999999999))
     mask_miss_no_lost = ~((abs(particles.px - part_everest.px) > 1e-12) |  (abs(particles.py - part_everest.py) > 1e-12)) & (particles.pdg_id != -999999999)
     mask_miss = mask_miss_no_lost | mask_lost
 
@@ -109,12 +118,6 @@ def track(coll, particles):
     print(f"Hit: {particles_hit._num_active_particles}")
     print(f"Collimator: {coll.name}")
 
-
-    # if ((particles_hit._num_active_particles == 0) & (particles_miss == 0)):
-    #     # track_core(coll, particles)
-    #     _drift(coll, particles, coll.length)
-    #     return
-
     
     # check if ~is_hit has any true value
     if np.any(~is_hit):
@@ -124,14 +127,6 @@ def track(coll, particles):
         print("Could not find any particles that hit the collimator, but some particles are still active. ")
         print("This is likely due to a bug in the collimator tracking code. Please report this issue.")
          
-    # particles_miss = particles.filter(~is_hit) if np.any(is_miss) else 0
-#     particles_miss = particles.filter(is_miss) if np.any(is_miss) else 0
-#     particles_miss = particles_miss.filter(particles_miss.state == 1) if np.any(is_miss) else 0
-
-    # missing_capacity = 0
-    # if particles_miss:
-    #     miss_part = particles_miss._num_active_particles
-    #     more_capacity = particles.filter([False] * (particles._capacity - miss_part) + [True] * miss_part)
     start = time.time()
 
 
