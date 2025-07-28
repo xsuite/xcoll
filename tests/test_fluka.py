@@ -129,7 +129,7 @@ def test_fluka_format_float():
 def test_particle_ids():
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
-    coll = xc.FlukaCollimator(length=0.0001, assembly='test_donadon', jaw=0.001)
+    coll = xc.FlukaCollimator(length=0.0001, assembly='donadonj', jaw=0)
     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=6.8e12)
     xc.fluka.engine.capacity = 100_000
     xc.fluka.engine.seed = 7856231

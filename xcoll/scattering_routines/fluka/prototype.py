@@ -109,6 +109,10 @@ class FlukaPrototype:
             return ''
         return self.__repr__()
 
+    def clear(self):
+        for el in self.elements:
+            self.remove_element(el, force=True)
+
     def delete(self, **kwargs):
         import xcoll as xc
         if self._is_null:
@@ -592,67 +596,7 @@ class FlukaPrototype:
         return assemblies
 
     def check_file_valid(self, raise_error=True):
-        if self._file_is_valid is None:
-            self._file_is_valid = True
-            prototype_found = False
-            fedb_series = None
-            fedb_tag = None
-            with self.body_file.open('r') as fid:
-                for line in fid:
-                    if line.upper().startswith('ASSEMBLY'):
-                        self._file_is_valid = False
-                        if raise_error:
-                            raise ValueError("Corrupt prototype file: found ASSEMBLY instead of PROTOTYPE.")
-                    if line.upper().startswith('PROTOTYPE'):
-                        if prototype_found:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt prototype file: PROTOTYPE defined more than once.")
-                        prototype_found = True
-                        continue
-                    if line.upper().startswith('FEDB_SERIES'):
-                        if fedb_series is not None:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt prototype file: FEDB_SERIES defined more than once.")
-                        if not prototype_found:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt prototype file: FEDB_SERIES without PROTOTYPE.")
-                        fedb_series = line.split()[1]
-                    if line.upper().startswith('FEDB_TAG'):
-                        if fedb_tag is not None:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt prototype file: FEDB_TAG defined more than once.")
-                        if not prototype_found:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt prototype file: FEDB_TAG without PROTOTYPE.")
-                        fedb_tag = line.split()[1]
-            if fedb_series is None:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError("Corrupt prototype file: FEDB_SERIES not defined.")
-            if fedb_tag is None:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError("Corrupt prototype file: FEDB_TAG not defined.")
-            if fedb_series != self.fedb_series:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError(f"Corrupt prototype file: FEDB_SERIES in file {fedb_series} "
-                                + f"does not match {self.fedb_series}. Please take note that the "
-                                + f"filename should mathch the FEDB_SERIES and FEDB_TAG exactly, "
-                                + f"i.e. {self.fedb_series}_{self.fedb_tag}.bodies")
-            if fedb_tag != self.fedb_tag:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError(f"Corrupt prototype file: FEDB_TAG in file {fedb_tag} "
-                                + f"does not match {self.fedb_tag}. Please take note that the "
-                                + f"filename should mathch the FEDB_SERIES and FEDB_TAG exactly, "
-                                + f"i.e. {self.fedb_series}_{self.fedb_tag}.bodies")
-        return self._file_is_valid
+        return True
 
 
 class FlukaAssembly(FlukaPrototype):
