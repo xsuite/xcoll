@@ -68,14 +68,14 @@ def track(coll, particles):
     _drift(coll, part_everest, -coll.length_front)
     # Checking particles that hit the collimator
 
-    if coll.co is not None: # FLUKA collimators are centered; need to shift
-        dx = coll.co[1][0]
-        dy = coll.co[1][1]
-        part_everest.x -= dx
-        part_everest.y -= dy
-        coll_everest.track(part_everest)
-    else:
-        coll_everest.track(part_everest)
+    # if coll.co is not None: # FLUKA collimators are centered; need to shift
+    #     dx = coll.co[1][0]
+    #     dy = coll.co[1][1]
+    #     part_everest.x -= dx
+    #     part_everest.y -= dy
+    #     coll_everest.track(part_everest)
+    # else:
+    coll_everest.track(part_everest)
 
     mask_hit_base = (
         (abs(particles.px - part_everest.px) > 1e-12) |
