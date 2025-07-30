@@ -84,7 +84,7 @@ class Geant4Engine(xo.HybridClass):
         if bdsim_config_file is None:
             raise NotImplementedError
 
-        this._old_os_environ = set_geant4_env(geant4_path, bdsim_path)
+        # this._old_os_environ = set_geant4_env(geant4_path, bdsim_path)
 
         this.bdsim_config_file = Path(bdsim_config_file).expanduser().resolve().as_posix()
         cls.set_particle_ref(particle_ref=particle_ref, line=line, p0c=p0c)
@@ -167,8 +167,8 @@ class Geant4Engine(xo.HybridClass):
         Geant4Engine.g4link = None
         Geant4Engine.server.terminate()
         Geant4Engine.server = None
-        unset_geant4_env(this._old_os_environ)
-        this._old_os_environ = None
+        # unset_geant4_env(this._old_os_environ)
+        # this._old_os_environ = None
 
 
     @classmethod
