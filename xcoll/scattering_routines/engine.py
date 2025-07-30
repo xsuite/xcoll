@@ -333,7 +333,7 @@ class BaseEngine(xo.HybridClass):
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
                            + f"using the {self.__class__.__name__} reference particle.")
-        if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+        if not self._only_protons and np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
             raise ValueError("Some particles are missing the pdg_id!")
         return False
 
