@@ -22,17 +22,11 @@ class Geant4Environment(BaseEnvironment):
 
     def geant4_found(self):
         cmd = run(['which', 'geant4-config'])
-        if cmd.returncode != 0:
-            return False
-        else:
-            return True
+        return cmd.returncode == 0
 
     def bdsim_found(self):
         cmd = run(['which', 'bdsim'])
-        if cmd.returncode != 0:
-            return False
-        else:
-            return True
+        return cmd.returncode == 0
 
     def collimasim_found(self):
         try:

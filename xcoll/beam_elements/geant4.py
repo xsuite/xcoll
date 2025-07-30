@@ -11,7 +11,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from .base import BaseCollimator
+from .base import BaseCollimator, BaseCrystal
 from ..scattering_routines.geometry import XcollGeometry
 from ..scattering_routines.geant4 import Geant4Engine
 from ..scattering_routines.geant4 import track as track_in_python

@@ -33,7 +33,7 @@ def get_open_port():
 
 class Geant4Engine(BaseEngine):
 
-    _xofields = {
+    _xofields = {**BaseEngine._xofields,
         '_relative_energy_cut': xo.Float64,
         '_bdsim_config_file':   xo.String
 #         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
@@ -154,8 +154,10 @@ class Geant4Engine(BaseEngine):
 
     def _stop_engine(self, **kwargs):
         self._g4link = None
-        self._server.terminate()
-        self._server = None
+        if self._server:
+            self._server.terminate()
+            self._server = None
+        return kwargs
 
     def _is_running(self):
         return self._g4link is not None

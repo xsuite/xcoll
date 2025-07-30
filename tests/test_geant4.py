@@ -42,7 +42,8 @@ def test_black_absorbers(test_context):
                                   _context=test_context)
         ba_collimators.append(bacoll)
 
-    xc.Geant4Engine.start(elements=g4_collimators, seed=1993, particle_ref='proton', p0c=7e12,
+    xc.geant4.engine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.geant4.engine.start(elements=g4_collimators, seed=1993,
                           bdsim_config_file=str(path / f'geant4_ba_protons.gmad'))
 
     x = np.random.uniform(-0.1, 0.1, n_part)
@@ -50,9 +51,9 @@ def test_black_absorbers(test_context):
     px = np.random.uniform(-0.1, 0.1, n_part)
     py = np.random.uniform(-0.1, 0.1, n_part)
     part = xp.build_particles(x=x, y=y, px=px, py=py, _context=test_context,
-                              particle_ref=xc.Geant4Engine().particle_ref)
+                              particle_ref=xc.geant4.engine.particle_ref)
     part_ba = part.copy()
-    # xc.Geant4Engine().particle_ref
+    # xc.geant4.engine.particle_ref
 
     for coll in g4_collimators:
         coll.track(part)
@@ -67,7 +68,7 @@ def test_black_absorbers(test_context):
                   == part_ba.filter(part_ba.state==1).particle_id)
 
     # Stop the Geant4 connection
-    xc.Geant4Engine.stop(clean=True)  
+    xc.geant4.engine.stop(clean=True)
 
 @pytest.mark.parametrize('num_part', [1000, 5000])
 @pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
@@ -76,12 +77,13 @@ def test_simple_track(num_part):
     _capacity = num_part*2
 
     # If a previous test failed, stop the server manually
-    if xc.Geant4Engine.is_running():
-        xc.Geant4Engine.stop(clean=True)
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop(clean=True)
 
     # Define Geant4 collimator and start Geant4 engine
     coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=0.001)
-    xc.Geant4Engine.start(elements=coll, seed=1993,
+    xc.geant4.engine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.geant4.engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution
@@ -89,7 +91,7 @@ def test_simple_track(num_part):
     px_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-    particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    particle_ref = xp.genat4.engine.particle_ref
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                    particle_ref=particle_ref, _capacity=_capacity)
     part_geant4 = part_init.copy()
@@ -121,7 +123,7 @@ def test_simple_track(num_part):
     # print(f"KS test passed with p = {p_value}")
 
     # Stop the Geant4 connection
-    xc.Geant4Engine.stop(clean=True)
+    xc.geant4.engine.stop(clean=True)
 
 
 # @pytest.mark.parametrize('tilt', [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]],
@@ -138,12 +140,13 @@ def test_jaw(jaw, angle): #, tilt):
     jaw_band = 1.e-6
 
     # If a previous test failed, stop the server manually
-    if xc.Geant4Engine.is_running():
-        xc.Geant4Engine.stop(clean=True)
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop(clean=True)
 
     # Define Geant4 collimator and start Geant4 engine
     coll = xc.Geant4Collimator(material='mogr', length=0.6, jaw=jaw, angle=angle, tilt=tilt)
-    xc.Geant4Engine.start(elements=coll, seed=1993,
+    xc.geant4.engine.particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+    xc.geant4.engine.start(elements=coll, seed=1993,
                           bdsim_config_file=path / 'geant4_protons.gmad')
 
     # Particle distribution (x and y are in the frame of the collimator)
@@ -156,7 +159,7 @@ def test_jaw(jaw, angle): #, tilt):
     y = np.random.uniform(-0.02, 0.02, 5*num_part_step)
     x_new = np.cos(np.deg2rad(angle))*x - np.sin(np.deg2rad(angle))*y
     y_new = np.sin(np.deg2rad(angle))*x + np.cos(np.deg2rad(angle))*y
-    part_init = xp.build_particles(x=x_new, y=y_new, particle_ref=xc.Geant4Engine().particle_ref,
+    part_init = xp.build_particles(x=x_new, y=y_new, particle_ref=xc.geant4.engine.particle_ref,
                                    _capacity=_capacity)
     mask = np.concatenate([(x >= min(coll.jaw_LU, coll.jaw_LD)) | (x <= max(coll.jaw_RU, coll.jaw_RD)),
                           np.full(5*num_part_step, False)])
@@ -196,4 +199,5 @@ def test_jaw(jaw, angle): #, tilt):
     assert len(part.x[faulty]) <= 1  # We allow for a small margin of error
 
     # Stop the Geant4 connection
-    xc.Geant4Engine.stop(clean=True)
+    xc.geant4.engine.stop(clean=True)
+
