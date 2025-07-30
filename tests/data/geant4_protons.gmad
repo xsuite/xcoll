@@ -1,6 +1,5 @@
 beam, particle="proton", momentum=7*TeV;
-! option, physicsList = "g4FTFP_BERT";
-option, physicsList="em decay hadronic_elastic ftfp_bert stopping neutron_tracking_cut ion ion_em_dissociation";
+option, physicsList = "g4FTFP_BERT";
 ! option, stopSecondaries = 1;
 
 ! Material defintions for collimation (matching materials used in FLUKA)

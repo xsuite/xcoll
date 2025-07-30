@@ -116,10 +116,9 @@ class Geant4Engine(xo.HybridClass):
         import rpyc
         port = get_open_port()
         Geant4Engine.server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
-        time.sleep(0.1) # ping to check when open
+        time.sleep(5) # ping to check when open
         Geant4Engine.conn = rpyc.classic.connect('localhost', port=port)
-        Geant4Engine.conn._config['sync_request_timeout'] = 1240 # Set timeout to 240 seconds
-        # rconn._config['sync_request_timeout'] = None # No timeout
+        Geant4Engine.conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
         Geant4Engine.conn.execute('import sys')
         Geant4Engine.conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
         Geant4Engine.conn.execute('import engine_server')
@@ -141,6 +140,10 @@ class Geant4Engine(xo.HybridClass):
             elements = [elements]
         elements = [el for el in elements if el.jaw is not None and el.active]
         for el in elements:
+            if 'tcc' in el.geant4_id:
+                isACrystal = True
+            else:
+                isACrystal = False
             side = 2 if el._side == -1 else el._side
             jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
@@ -151,7 +154,8 @@ class Geant4Engine(xo.HybridClass):
                                       apertureRight=-jaw_R,   # TODO: is this correct?
                                       rotation=np.deg2rad(el.angle),
                                       xOffset=0, yOffset=0, side=side,
-                                      jawTiltLeft=tilt_L, jawTiltRight=tilt_R)
+                                      jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                              isACrystal=isACrystal)
         print('Geant4Engine initialised')
 
 

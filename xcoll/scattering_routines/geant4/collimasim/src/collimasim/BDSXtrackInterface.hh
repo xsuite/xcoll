@@ -75,7 +75,8 @@ public:
                        double yOffsetIn,
                        double jawTiltLeft,
                        double jawTiltRight,
-                       int    side);
+                       int    side,
+                       bool isACrystal);
 
     void addParticles(const py::list& coordinates);
 

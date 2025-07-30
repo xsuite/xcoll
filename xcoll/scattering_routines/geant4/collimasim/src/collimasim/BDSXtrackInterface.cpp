@@ -163,13 +163,12 @@ void XtrackInterface::addCollimator(const std::string&   name,
                                     double yOffsetIn,
                                     double jawTiltLeft,
                                     double jawTiltRight,
-                                    int    side)
+                                    int    side,
+                                    bool isACrystal)
     {
 
         bool buildLeft  = side == 0 || side == 1;
         bool buildRight = side == 0 || side == 2;
-
-        bool isACrystal = false;
 
         bds->AddLinkCollimatorJaw(name,
                                   material,

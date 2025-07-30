@@ -26,13 +26,13 @@ class BDSIMServer:
                                          seed=seed, batchMode=batchMode)
 
     def addCollimator(self,geant4_id,material,length,apertureLeft=None,apertureRight=None,
-                      rotation=None,xOffset=0,yOffset=0,side=None,jawTiltLeft=None,jawTiltRight=None):
+                      rotation=None,xOffset=0,yOffset=0,side=None,jawTiltLeft=None,jawTiltRight=None,isACrystal=False):
         self.g4link.addCollimator(geant4_id, material, length,
                                   apertureLeft=apertureLeft,
                                   apertureRight=apertureRight,   # TODO: is this correct?
                                   rotation=rotation,
                                   xOffset=xOffset, yOffset=yOffset, side=side,
-                                  jawTiltLeft=jawTiltLeft, jawTiltRight=jawTiltRight)
+                                  jawTiltLeft=jawTiltLeft, jawTiltRight=jawTiltRight, isACrystal=isACrystal)
 
     def addParticles(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                      particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
@@ -82,15 +82,11 @@ class BDSIMServer:
         buf = io.BytesIO(blob)
         loaded = np.load(buf)
         coords = [np.array(loaded[key]) for key in loaded.files]
-        #for key in loaded.files:
-        #    print(key)
-        #    print(loaded[key])
         self.g4link.addParticles(coords)
 
     def addParticles2(self, coordinates):
         import time
         t0 = time.time()
-        #coordinates = [np.array(arr, copy=True) for arr in coordinates]
         t1 = time.time()
 
         coords = coordinates  # already native
@@ -110,7 +106,6 @@ class BDSIMServer:
             coords['at_element'],
             coords['at_turn'],
         ])
-        #self.g4link.addParticles(list(coordinates))
         t2 = time.time()
         print(f"[server] proxy unwrap: {t1 - t0:.6f}s, g4link.addParticles: {t2 - t1:.6f}s")
 
@@ -131,15 +126,8 @@ class BDSIMServer:
         buf = io.BytesIO(binary_blob)
         loaded = np.load(buf)
         coords = [np.array(loaded[key]) for key in loaded.files]
-        #for key in loaded.files:
-        #    print(key)
-        #    print(loaded[key])
         # Call the Geant4 collimation backend
         products = self.g4link.collimateReturn(coords)
-        #for key in products.keys():
-        #    print(key)
-        #    print(products[key])
-        #return products
         # Pack results as a dict for serialization
         result_dict = {
             'x': products['x'],
