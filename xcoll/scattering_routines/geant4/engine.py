@@ -48,8 +48,8 @@ class Geant4Engine(BaseEngine):
         self.__class__._element_classes = (Geant4Collimator, Geant4Crystal)
         # Initialise geant4-only defaults
         self._g4link = None
-        self._server = None
-        self._conn = None
+        self._server = None # remove after geant4 bugfix
+        self._conn = None # remove after geant4 bugfix
         kwargs['_bdsim_config_file'] = ''.ljust(256)
         super().__init__(**kwargs)
         self.relative_energy_cut = None # To set default value
@@ -98,25 +98,35 @@ class Geant4Engine(BaseEngine):
         self._set_property('bdsim_config_file', kwargs)
         return kwargs
 
-    def _generate_input_file(self, **kwargs):
+    def _use_input_file(self, input_file=None, **kwargs):
+        # Temporary hack to set geant4 IDs at the correct moment (before the setting of attributes is locked,
+        # but after the engine has assigned the element_dict). When the gmad input file is auto-generated,
+        # that script can also set the IDs.
+        coll_id = 1
+        for el in self._element_dict.values():
+            el.geant4_id = coll_id # TODO: will be provided by new BDSIM interface
+            coll_id += 1
         return kwargs
 
     def _start_engine(self, **kwargs):
+        from ...beam_elements import BaseCrystal
         if self.bdsim_config_file is None:
-            raise NotImplementedError
+            raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
+
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
         pdg_id = self.particle_ref.pdg_id
 
-        ### revert after geant4 bug fixed try:
-        ### revert after geant4 bug fixed     import collimasim as cs
-        ### revert after geant4 bug fixed except ImportError as e:
-        ### revert after geant4 bug fixed     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        ### revert after geant4 bug fixed else:
-        ### revert after geant4 bug fixed     self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
-        ### revert after geant4 bug fixed                                      referencePdgId=self.particle_ref.pdg_id,
-        ### revert after geant4 bug fixed                                      referenceEk=Ekin / 1e9, # BDSIM expects GeV
-        ### revert after geant4 bug fixed                                      relativeEnergyCut=self.relative_energy_cut,
-        ### revert after geant4 bug fixed                                      seed=self.seed, batchMode=True)
+        ### revert after geant4 bug fixed
+        ### try:
+        ###     import collimasim as cs
+        ### except ImportError as e:
+        ###     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+        ### else:
+        ###     self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+        ###                                      referencePdgId=self.particle_ref.pdg_id,
+        ###                                      referenceEk=Ekin / 1e9, # BDSIM expects GeV
+        ###                                      relativeEnergyCut=self.relative_energy_cut,
+        ###                                      seed=self.seed, batchMode=True)
 
         ### remove the following lines after geant4 bug fixed
         import rpyc
@@ -130,7 +140,7 @@ class Geant4Engine(BaseEngine):
         self._conn.execute('import engine_server')
         self._conn.execute('import collimasim as cs')
         self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-        self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file,
+        self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
                                     referencePdgId=self.particle_ref.pdg_id,
                                     referenceEk=Ekin / 1e9, # BDSIM expects GeV
                                     relativeEnergyCut=self.relative_energy_cut,
@@ -143,22 +153,21 @@ class Geant4Engine(BaseEngine):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            self._g4link.addCollimator(el.geant4_id, el.material, el.length,
-                                      apertureLeft=jaw_L,
-                                      apertureRight=-jaw_R,   # TODO: is this correct?
-                                      rotation=np.deg2rad(el.angle),
-                                      xOffset=0, yOffset=0, side=side,
-                                      jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                      isACrystal=isinstance(el, BaseCrystal))
+            # TODO: should geant4_id be a string or an int?
+            self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
+                                       apertureLeft=jaw_L,
+                                       apertureRight=-jaw_R,   # TODO: is this correct?
+                                       rotation=np.deg2rad(el.angle),
+                                       xOffset=0, yOffset=0, side=side,
+                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                       isACrystal=isinstance(el, BaseCrystal))
 
     def _stop_engine(self, **kwargs):
         self._g4link = None
-        if self._server:
-            self._server.terminate()
-            self._server = None
+        if self._server: # remove after geant4 bugfix
+            self._server.terminate() # remove after geant4 bugfix
+            self._server = None # remove after geant4 bugfix
         return kwargs
 
     def _is_running(self):
         return self._g4link is not None
-
-

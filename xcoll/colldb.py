@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import io
@@ -15,7 +15,6 @@ import xtrack as xt
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
                            Geant4Collimator, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
-from .scattering_routines.geant4 import Geant4Engine
 
 
 def _initialise_None(dct):
@@ -586,15 +585,16 @@ class CollimatorDatabase:
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
     def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
-        if Geant4Engine.is_running():
+        import xcoll as xc
+        if xc.geant4.engine.is_running():
             print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
-            Geant4Engine.stop()
+            xc.geant4.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
             if self[name]['bending_radius'] is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
             self._create_collimator(Geant4Collimator, line, name, verbose=verbose,
-                                    material=self[name]['material'], geant4_id=name)
+                                    material=self[name]['material'])
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 

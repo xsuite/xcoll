@@ -13,13 +13,13 @@ from rpyc.utils.classic import obtain
 
 def track(coll, particles):
     import xcoll as xc
-    xc.geant4.engine.assert_ready_to_track(coll, particles, _necessary_attributes=['geant4_id'])
+    xc.geant4.engine.assert_ready_to_track_or_skip(coll, particles, _necessary_attributes=['geant4_id'])
     track_core(coll, particles)
 
 
 def track_core(coll, part):
     import xcoll as xc
-    xc.geant4.engine.g4link.clearData() # Clear the old data - bunch particles and hits
+    xc.geant4.engine._g4link.clearData() # Clear the old data - bunch particles and hits
 
     # This temp delta is necessary because for primary particles, the coordinates are
     # modified in place. But for the longitudinal plane there are 3 coordinates that must
@@ -29,7 +29,7 @@ def track_core(coll, part):
     npart = part._num_active_particles
     ndead = part._num_lost_particles
 
-    coordinates = {
+    coords = {
         'x': part.x,
         'y': part.y,
         'px': part.px,
@@ -45,32 +45,21 @@ def track_core(coll, part):
         'at_element': part.at_element,
         'at_turn': part.at_turn
     }
-    # Use numpy.savez to serialize
-    buf = io.BytesIO()
-    np.savez(buf, **coordinates)
+    ### revert after geant4 bug fixed
+    ### xc.geant4.engine._g4link.addParticles(coords)
+    ### xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
+    ### xc.geant4.engine._g4link.collimate()
+    ### products = self.g4link.collimateReturn(coords)
+
+    ### remove the following lines after geant4 bug fixed
+    buf = io.BytesIO() # Use numpy.savez to serialize
+    np.savez(buf, **coords)
     buf.seek(0)
-
-    result_blob = xc.geant4.engine.g4link.add_particles_and_collimate_return(buf.getvalue(), coll.geant4_id)
-
-    # Deserialize
-    result_buf = io.BytesIO(result_blob)
+    result_blob = xc.geant4.engine._g4link.add_particles_and_collimate_return(
+                                            buf.getvalue(), f'{coll.geant4_id}') # TODO: should geant4_id be a string or an int?
+    result_buf = io.BytesIO(result_blob) # Deserialize
     products = np.load(result_buf)
-
-    if False:
-        temp_secondaries_x = products['x']
-        temp_secondaries_y = products['y']
-        temp_secondaries_px = products['px']
-        temp_secondaries_py = products['py']
-        temp_secondaries_zeta = products['zeta']
-        temp_secondaries_delta = products['delta']
-        temp_secondaries_charge_ratio = products['charge_ratio']
-        temp_secondaries_s = products['s']
-        temp_secondaries_pdg_id = products['pdg_id']
-        temp_secondaries_parent_particle_id = products['parent_particle_id']
-        temp_secondaries_at_element = products['at_element']
-        temp_secondaries_at_turn = products['at_turn']
-        temp_secondaries_mass_ratio = products['mass_ratio']
-        temp_secondaries_state = products['state']
+    ### remove down to here after geant4 bug fixed
 
     npartsAliveAndDead = npart+ndead
     part.x[:npartsAliveAndDead] = products['x'][:npartsAliveAndDead]
@@ -88,12 +77,11 @@ def track_core(coll, part):
     new_delta = part.delta.copy()
     new_delta[:npartsAliveAndDead] = products['delta'][:npartsAliveAndDead]
     part.update_delta(new_delta)
-    print(set(part.pdg_id))
     if products['x'] is None or products['x'][npartsAliveAndDead] == -9999:
         part.reorganize()
     else:
         mask = products['state'][npartsAliveAndDead:] > -999999
-        new_particles = xp.Particles(_context=particles._buffer.context,
+        new_particles = xp.Particles(_context=part._buffer.context,
                 p0c = part.p0c[0], # TODO: Should we check that 
                                         #       they are all the same?
                 mass0 = part.mass0,
@@ -113,5 +101,7 @@ def track_core(coll, part):
                 pdg_id = products['pdg_id'][npartsAliveAndDead:][mask])
 
         part.add_particles(new_particles)
+
+    # Set the state of excited ions - not supported (will fail in BDSIM when resent)
     mask = (part.pdg_id > 999999999) & ((part.pdg_id % 10) != 0)
     part.state[mask] = -4000

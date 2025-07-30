@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll Package.   #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import random
@@ -19,14 +19,9 @@ from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack
                                             SixTrack_from_xcoll_crystal, Material, CrystalMaterial
 
 
-def _new_id64(len=16):
-    chars = string.ascii_letters + string.digits + '+/'
-    return ''.join(random.choice(chars) for i in range(len))
-
-
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
-        'geant4_id': xo.String,
+        'geant4_id': xo.Int16,
         '_material': xo.String,
         '_tracking': xo.Int8
     }
@@ -59,7 +54,6 @@ class Geant4Collimator(BaseCollimator):
             to_assign = {}
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
-                kwargs['geant4_id'] = kwargs.get('geant4_id', _new_id64()).ljust(16)
                 to_assign['material'] = kwargs.pop('material', None)
                 kwargs['_material'] = ''.ljust(16)
             super().__init__(**kwargs)
@@ -124,7 +118,9 @@ class Geant4Collimator(BaseCollimator):
 
 
     def __setattr__(self, name, value):
-        if name not in self._allowed_fields_when_frozen and Geant4Engine.is_running():
+        import xcoll as xc
+        if name not in self._allowed_fields_when_frozen \
+        and xc.geant4.engine.is_running():
             raise ValueError('Engine is running; Geant4Collimator is frozen.')
         super().__setattr__(name, value)
 
