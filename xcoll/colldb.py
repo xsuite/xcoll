@@ -548,18 +548,26 @@ class CollimatorDatabase:
             print(f"Installing {name:20} as {cls.__name__}")
         prop_dict = {kk: vv for kk, vv in self[name].items() \
                      if kk in cls._xofields or kk in cls._store_in_to_dict}
+        prop_dict['name'] = name
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
+        if 'family' in self[name] and self[name]['family'].lower() != 'unknown':
+            if self[name]['family'] == name:
+                raise ValueError(f"Collimator {name} has the same name as its family!")
+            el.family = self[name]['family']
         self._elements[name] = el
+        el.name = name
+        return el
 
     def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            if self[name]['bending_radius'] is None:
-                self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
-            else:
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
+            else:
+                self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
@@ -567,17 +575,17 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             mat = SixTrack_to_xcoll(self[name]['material'])
-            if self[name]['bending_radius'] is None:
-                self._create_collimator(EverestCollimator, line, name, material=mat[0],
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
+                self._create_collimator(EverestCrystal, line, name, material=mat[1],
                                         verbose=verbose)
             else:
-                self._create_collimator(EverestCrystal, line, name, material=mat[1],
+                self._create_collimator(EverestCollimator, line, name, material=mat[0],
                                         verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
-    def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
-                                   bdsim_config_file=None, relative_energy_cut=0.15, random_seed=None):
+    def install_geant4_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         if Geant4Engine.is_running():
             print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
             Geant4Engine.stop()

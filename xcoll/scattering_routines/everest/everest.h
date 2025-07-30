@@ -6,7 +6,10 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
-#define XCOLL_TRANSITION
+#define XCOLL_TRANSITION_VRCH
+#define XCOLL_TRANSITION_VRAM
+// #define XCOLL_TRANSITION_VRAM_OLD
+
 
 typedef struct EverestCollData_ {
     // Collimator properties
@@ -47,8 +50,10 @@ typedef struct EverestData_ {
     double prob_tail_c2;
     double prob_tail_c3;
     double prob_tail_c4;
-    double energy_loss;
-    double energy_loss_tail;
+    double energy_loss_m;
+    double energy_loss_xi_m;
+    double energy_loss_most_probable_m;
+    double energy_loss_tail_m;
     // Crystal data
     double rescale_scattering;
     double t_c;

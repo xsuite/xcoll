@@ -1,3 +1,3 @@
-[submodule "xcoll/scattering_routines/geant4/collimasim"]
-	path = xcoll/scattering_routines/geant4/collimasim
-	url = https://gitlab.cern.ch/anabramo/collimasim.git
+[submodule "xcoll/lib/collimasim/lib/pybind11"]
+	path = xcoll/lib/collimasim/lib/pybind11
+	url = https://github.com/pybind/pybind11.git

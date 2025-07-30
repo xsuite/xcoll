@@ -1,6 +1,10 @@
+# copyright ############################### #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2025                  #
+# ######################################### #
+
 import subprocess as _subprocess
 import rpyc as _rpyc
-import collimasim as cs
 import time
 import numpy as np
 import io
@@ -13,8 +17,10 @@ class BDSIMServer:
             raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
         self.g4link = None
 
+
     def close(self):
         pass
+
 
     def XtrackInterface(self,bdsimConfigFile=None,referencePdgId=None,referenceEk=None,
                         relativeEnergyCut=None,seed=None,batchMode=None):
@@ -25,14 +31,16 @@ class BDSIMServer:
                                          relativeEnergyCut=relativeEnergyCut,
                                          seed=seed, batchMode=batchMode)
 
+
     def addCollimator(self,geant4_id,material,length,apertureLeft=None,apertureRight=None,
-                      rotation=None,xOffset=0,yOffset=0,side=None,jawTiltLeft=None,jawTiltRight=None,isACrystal=False):
+                      rotation=None,xOffset=0,yOffset=0,side=None,jawTiltLeft=None,jawTiltRight=None, isACrystal=False):
         self.g4link.addCollimator(geant4_id, material, length,
                                   apertureLeft=apertureLeft,
                                   apertureRight=apertureRight,   # TODO: is this correct?
                                   rotation=rotation,
                                   xOffset=xOffset, yOffset=yOffset, side=side,
                                   jawTiltLeft=jawTiltLeft, jawTiltRight=jawTiltRight, isACrystal=isACrystal)
+
 
     def addParticles(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                      particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
@@ -43,6 +51,7 @@ class BDSIMServer:
                    particles_pdg_id,particles_particle_id, particles_state,
                    particles_at_element, particles_at_turn]
         self.g4link.addParticles(coordinates)
+
 
     def add_particles_and_collimate_return(self, blob, geant4_id):
         buf = io.BytesIO(blob)
@@ -76,13 +85,12 @@ class BDSIMServer:
         return out_buf.getvalue()
 
 
-
-
     def receive_serialized_particles(self, blob):
         buf = io.BytesIO(blob)
         loaded = np.load(buf)
         coords = [np.array(loaded[key]) for key in loaded.files]
         self.g4link.addParticles(coords)
+
 
     def addParticles2(self, coordinates):
         import time
@@ -108,6 +116,7 @@ class BDSIMServer:
         ])
         t2 = time.time()
         print(f"[server] proxy unwrap: {t1 - t0:.6f}s, g4link.addParticles: {t2 - t1:.6f}s")
+
 
     def collimateReturn(self, particles_x, particles_y, particles_px, particles_py,particles_zeta, delta_temp,
                         particles_chi,particles_charge_ratio, particles_s,particles_pdg_id,particles_particle_id,
@@ -175,3 +184,4 @@ class BDSIMServer:
 
     def clearData(self):
         self.g4link.clearData()
+

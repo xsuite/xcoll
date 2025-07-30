@@ -24,7 +24,7 @@ sequence = 'lhcb1' if beam==1 else 'lhcb2'
 
 line = xt.Line.from_madx_sequence(mad.sequence[sequence], apply_madx_errors=True, install_apertures=True)
 print(f"Imported {len(line.element_names)} elements.")
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=mad.sequence[sequence].beam.gamma)
+line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, pdg_id=2212, gamma0=mad.sequence[sequence].beam.gamma)
 
 
 # Elements to keep

@@ -11,7 +11,7 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from .base import BaseCollimator
+from .base import BaseCollimator, BaseCrystal
 from ..scattering_routines.geometry import XcollGeometry
 from ..scattering_routines.geant4 import Geant4Engine
 from ..scattering_routines.geant4 import track as track_in_python
@@ -100,6 +100,7 @@ class Geant4Collimator(BaseCollimator):
                 raise ValueError("SixTrack material 'BL' not supported. Use a BlackAbsorber.")
         geant4_materials = {
             'c':    'AC150GPH',
+            'si':   'Si',
             'cu':   'Cu',
             'mogr': 'MG6403Fc',
             'mo':   'Mo',
@@ -138,3 +139,7 @@ class Geant4Collimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
+
+
+class Geant4Crystal(BaseCrystal):
+    pass
