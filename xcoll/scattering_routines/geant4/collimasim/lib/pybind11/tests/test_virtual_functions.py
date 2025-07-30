@@ -1,10 +1,7 @@
-from __future__ import annotations
-
-import sys
-
+# -*- coding: utf-8 -*-
 import pytest
 
-import env
+import env  # noqa: F401
 
 m = pytest.importorskip("pybind11_tests.virtual_functions")
 from pybind11_tests import ConstructorStats  # noqa: E402
@@ -13,12 +10,12 @@ from pybind11_tests import ConstructorStats  # noqa: E402
 def test_override(capture, msg):
     class ExtendedExampleVirt(m.ExampleVirt):
         def __init__(self, state):
-            super().__init__(state + 1)
+            super(ExtendedExampleVirt, self).__init__(state + 1)
             self.data = "Hello world"
 
         def run(self, value):
-            print(f"ExtendedExampleVirt::run({value}), calling parent..")
-            return super().run(value + 1)
+            print("ExtendedExampleVirt::run(%i), calling parent.." % value)
+            return super(ExtendedExampleVirt, self).run(value + 1)
 
         def run_bool(self):
             print("ExtendedExampleVirt::run_bool()")
@@ -28,11 +25,11 @@ def test_override(capture, msg):
             return "override1"
 
         def pure_virtual(self):
-            print(f"ExtendedExampleVirt::pure_virtual(): {self.data}")
+            print("ExtendedExampleVirt::pure_virtual(): %s" % self.data)
 
     class ExtendedExampleVirt2(ExtendedExampleVirt):
         def __init__(self, state):
-            super().__init__(state + 1)
+            super(ExtendedExampleVirt2, self).__init__(state + 1)
 
         def get_string2(self):
             return "override2"
@@ -44,7 +41,7 @@ def test_override(capture, msg):
         capture
         == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
-    """
+    """  # noqa: E501 line too long
     )
 
     with pytest.raises(RuntimeError) as excinfo:
@@ -62,7 +59,7 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
-    """
+    """  # noqa: E501 line too long
     )
     with capture:
         assert m.runExampleVirtBool(ex12p) is False
@@ -79,11 +76,8 @@ def test_override(capture, msg):
         == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
-    """
+    """  # noqa: E501 line too long
     )
-
-    if env.GRAALPY:
-        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
@@ -94,7 +88,6 @@ def test_override(capture, msg):
     assert cstats.move_constructions >= 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alias_delay_initialization1(capture):
     """`A` only initializes its trampoline class when we inherit from it
 
@@ -104,7 +97,7 @@ def test_alias_delay_initialization1(capture):
 
     class B(m.A):
         def __init__(self):
-            super().__init__()
+            super(B, self).__init__()
 
         def f(self):
             print("In python f()")
@@ -134,7 +127,6 @@ def test_alias_delay_initialization1(capture):
     )
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_alias_delay_initialization2(capture):
     """`A2`, unlike the above, is configured to always initialize the alias
 
@@ -145,7 +137,7 @@ def test_alias_delay_initialization2(capture):
 
     class B2(m.A2):
         def __init__(self):
-            super().__init__()
+            super(B2, self).__init__()
 
         def f(self):
             print("In python B2.f()")
@@ -193,7 +185,7 @@ def test_alias_delay_initialization2(capture):
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.mark.xfail("env.PYPY or env.GRAALPY")
+@pytest.mark.xfail("env.PYPY")
 @pytest.mark.skipif(
     not hasattr(m, "NCVirt"), reason="NCVirt does not work on Intel/PGI/NVCC compilers"
 )
@@ -201,7 +193,8 @@ def test_move_support():
     class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
             # Constructs and returns a new instance:
-            return m.NonCopyable(a * a, b * b)
+            nc = m.NonCopyable(a * a, b * b)
+            return nc
 
         def get_movable(self, a, b):
             # Return a referenced copy
@@ -252,7 +245,7 @@ def test_dispatch_issue(msg):
     class PyClass2(m.DispatchIssue):
         def dispatch(self):
             with pytest.raises(RuntimeError) as excinfo:
-                super().dispatch()
+                super(PyClass2, self).dispatch()
             assert (
                 msg(excinfo.value)
                 == 'Tried to call pure virtual function "Base::dispatch"'
@@ -262,39 +255,6 @@ def test_dispatch_issue(msg):
 
     b = PyClass2()
     assert m.dispatch_issue_go(b) == "Yay.."
-
-
-def test_recursive_dispatch_issue():
-    """#3357: Recursive dispatch fails to find python function override"""
-
-    class Data(m.Data):
-        def __init__(self, value):
-            super().__init__()
-            self.value = value
-
-    class Adder(m.Adder):
-        def __call__(self, first, second, visitor):
-            # lambda is a workaround, which adds extra frame to the
-            # current CPython thread. Removing lambda reveals the bug
-            # [https://github.com/pybind/pybind11/issues/3357]
-            (lambda: visitor(Data(first.value + second.value)))()  # noqa: PLC3002
-
-    class StoreResultVisitor:
-        def __init__(self):
-            self.result = None
-
-        def __call__(self, data):
-            self.result = data.value
-
-    store = StoreResultVisitor()
-
-    m.add2(Data(1), Data(2), Adder(), store)
-    assert store.result == 3
-
-    # without lambda in Adder class, this function fails with
-    # RuntimeError: Tried to call pure virtual function "AdderBase::__call__"
-    m.add3(Data(1), Data(2), Data(3), Adder(), store)
-    assert store.result == 6
 
 
 def test_override_ref():
@@ -442,27 +402,7 @@ def test_inherited_virtuals():
     assert obj.say_everything() == "BT -7"
 
 
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_issue_1454():
     # Fix issue #1454 (crash when acquiring/releasing GIL on another thread in Python 2.7)
     m.test_gil()
     m.test_gil_from_thread()
-
-
-def test_python_override():
-    def func():
-        class Test(m.test_override_cache_helper):
-            def func(self):
-                return 42
-
-        return Test()
-
-    def func2():
-        class Test(m.test_override_cache_helper):
-            pass
-
-        return Test()
-
-    for _ in range(1500):
-        assert m.test_override_cache(func()) == 42
-        assert m.test_override_cache(func2()) == 0

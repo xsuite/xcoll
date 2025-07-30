@@ -1,6 +1,14 @@
 Strings, bytes and Unicode conversions
 ######################################
 
+.. note::
+
+    This section discusses string handling in terms of Python 3 strings. For
+    Python 2.7, replace all occurrences of ``str`` with ``unicode`` and
+    ``bytes`` with ``str``.  Python 2.7 users may find it best to use ``from
+    __future__ import unicode_literals`` to avoid unintentionally using ``str``
+    instead of ``unicode``.
+
 Passing Python strings to C++
 =============================
 
@@ -50,9 +58,9 @@ Passing bytes to C++
 --------------------
 
 A Python ``bytes`` object will be passed to C++ functions that accept
-``std::string`` or ``char*`` *without* conversion.  In order to make a function
-*only* accept ``bytes`` (and not ``str``), declare it as taking a ``py::bytes``
-argument.
+``std::string`` or ``char*`` *without* conversion.  On Python 3, in order to
+make a function *only* accept ``bytes`` (and not ``str``), declare it as taking
+a ``py::bytes`` argument.
 
 
 Returning C++ strings to Python
@@ -101,11 +109,8 @@ conversion has the same overhead as implicit conversion.
     m.def("str_output",
         []() {
             std::string s = "Send your r\xe9sum\xe9 to Alice in HR"; // Latin-1
-            py::handle py_s = PyUnicode_DecodeLatin1(s.data(), s.length(), nullptr);
-            if (!py_s) {
-                throw py::error_already_set();
-            }
-            return py::reinterpret_steal<py::str>(py_s);
+            py::str py_s = PyUnicode_DecodeLatin1(s.data(), s.length());
+            return py_s;
         }
     );
 
@@ -116,8 +121,7 @@ conversion has the same overhead as implicit conversion.
 
 The `Python C API
 <https://docs.python.org/3/c-api/unicode.html#built-in-codecs>`_ provides
-several built-in codecs. Note that these all return *new* references, so
-use :cpp:func:`reinterpret_steal` when converting them to a :cpp:class:`str`.
+several built-in codecs.
 
 
 One could also use a third party encoding library such as libiconv to transcode
@@ -199,6 +203,11 @@ decoded to Python ``str``.
             return text;
         }
     );
+
+.. warning::
+
+    Wide character strings may not work as described on Python 2.7 or Python
+    3.3 compiled with ``--enable-unicode=ucs2``.
 
 Strings in multibyte encodings such as Shift-JIS must transcoded to a
 UTF-8/16/32 before being returned to Python.

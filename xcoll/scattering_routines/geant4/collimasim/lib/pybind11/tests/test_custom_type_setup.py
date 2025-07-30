@@ -1,4 +1,4 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
 
 import gc
 import weakref
@@ -34,7 +34,7 @@ def gc_tester():
 
 
 # PyPy does not seem to reliably garbage collect.
-@pytest.mark.skipif("env.PYPY or env.GRAALPY")
+@pytest.mark.skipif("env.PYPY")
 def test_self_cycle(gc_tester):
     obj = m.OwnsPythonObjects()
     obj.value = obj
@@ -42,7 +42,7 @@ def test_self_cycle(gc_tester):
 
 
 # PyPy does not seem to reliably garbage collect.
-@pytest.mark.skipif("env.PYPY or env.GRAALPY")
+@pytest.mark.skipif("env.PYPY")
 def test_indirect_cycle(gc_tester):
     obj = m.OwnsPythonObjects()
     obj_list = [obj]

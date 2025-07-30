@@ -1,0 +1,3 @@
+ # ID name  angle[rad]  betax[m]  betay[m] halfgap[m]  Material  Length[m]  sigx[m]  sigy[m] tilt1[rad] tilt2[rad] nsig
+         1 DUMMY1        0.0000000000E+00   0.0000E+00   0.0000E+00   0.5 C    10   0.0000E_00   0.0000E00   0.00000E+00   0.00000E+00   0.00000E+00
+         2 DUMMY2        0.0000000000E+00   0.0000E+00   0.0000E+00   0.5 C    10   0.0000E_00   0.0000E00   0.00000E+00   0.00000E+00   0.00000E+00

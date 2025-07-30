@@ -1,24 +1,8 @@
-#!/usr/bin/env -S uv run
-
-# /// script
-# dependencies = ["nox>=2025.2.9"]
-# ///
-
-from __future__ import annotations
-
-import argparse
-import contextlib
-import os
-from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-
 import nox
 
-nox.needs_version = ">=2025.2.9"
-nox.options.default_venv_backend = "uv|virtualenv"
+nox.options.sessions = ["lint", "tests", "tests_packaging"]
+
+PYTHON_VERISONS = ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
 
 
 @nox.session(reuse_venv=True)
@@ -27,25 +11,26 @@ def lint(session: nox.Session) -> None:
     Lint the codebase (except for clang-format/tidy).
     """
     session.install("pre-commit")
-    session.run("pre-commit", "run", "-a", *session.posargs)
+    session.run("pre-commit", "run", "-a")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERISONS)
 def tests(session: nox.Session) -> None:
     """
     Run the tests (requires a compiler).
     """
     tmpdir = session.create_tmp()
-    session.install("cmake")
-    session.install("-r", "tests/requirements.txt")
+    session.install("pytest", "cmake")
     session.run(
         "cmake",
-        "-S.",
-        f"-B{tmpdir}",
+        "-S",
+        ".",
+        "-B",
+        tmpdir,
         "-DPYBIND11_WERROR=ON",
         "-DDOWNLOAD_CATCH=ON",
         "-DDOWNLOAD_EIGEN=ON",
-        *session.posargs,
+        *session.posargs
     )
     session.run("cmake", "--build", tmpdir)
     session.run("cmake", "--build", tmpdir, "--config=Release", "--target", "check")
@@ -57,95 +42,47 @@ def tests_packaging(session: nox.Session) -> None:
     Run the packaging tests.
     """
 
-    session.install("-r", "tests/requirements.txt", "pip")
-    session.run("pytest", "tests/extra_python_package", *session.posargs)
+    session.install("-r", "tests/requirements.txt", "--prefer-binary")
+    session.run("pytest", "tests/extra_python_package")
 
 
-@nox.session(reuse_venv=True, default=False)
+@nox.session(reuse_venv=True)
 def docs(session: nox.Session) -> None:
     """
-    Build the docs. Pass --non-interactive to avoid serving.
+    Build the docs. Pass "serve" to serve.
     """
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-b", dest="builder", default="html", help="Build target (default: html)"
-    )
-    args, posargs = parser.parse_known_args(session.posargs)
-    serve = args.builder == "html" and session.interactive
-
-    extra_installs = ["sphinx-autobuild"] if serve else []
-    session.install("-r", "docs/requirements.txt", *extra_installs)
+    session.install("-r", "docs/requirements.txt")
     session.chdir("docs")
 
-    shared_args = (
-        "-n",  # nitpicky mode
-        "-T",  # full tracebacks
-        f"-b={args.builder}",
-        ".",
-        f"_build/{args.builder}",
-        *posargs,
-    )
+    if "pdf" in session.posargs:
+        session.run("sphinx-build", "-M", "latexpdf", ".", "_build")
+        return
 
-    if serve:
-        session.run(
-            "sphinx-autobuild", "--open-browser", "--ignore=.build", *shared_args
-        )
-    else:
-        session.run("sphinx-build", "--keep-going", *shared_args)
+    session.run("sphinx-build", "-M", "html", ".", "_build")
+
+    if "serve" in session.posargs:
+        session.log("Launching docs at http://localhost:8000/ - use Ctrl-C to quit")
+        session.run("python", "-m", "http.server", "8000", "-d", "_build/html")
+    elif session.posargs:
+        session.error("Unsupported argument to docs")
 
 
-@nox.session(reuse_venv=True, default=False)
+@nox.session(reuse_venv=True)
 def make_changelog(session: nox.Session) -> None:
     """
     Inspect the closed issues and make entries for a changelog.
     """
-    session.install_and_run_script("tools/make_changelog.py")
-
-
-@nox.session(reuse_venv=True, default=False)
-def build(session: nox.Session) -> None:
-    """
-    Build SDist and wheel.
-    """
-
-    session.install("build")
-    session.log("Building normal files")
-    session.run("python", "-m", "build", *session.posargs)
-
-
-@contextlib.contextmanager
-def preserve_file(filename: Path) -> Generator[str, None, None]:
-    """
-    Causes a file to be stored and preserved when the context manager exits.
-    """
-    old_stat = filename.stat()
-    old_file = filename.read_text(encoding="utf-8")
-    try:
-        yield old_file
-    finally:
-        filename.write_text(old_file, encoding="utf-8")
-        os.utime(filename, (old_stat.st_atime, old_stat.st_mtime))
+    session.install("ghapi", "rich")
+    session.run("python", "tools/make_changelog.py")
 
 
 @nox.session(reuse_venv=True)
-def build_global(session: nox.Session) -> None:
+def build(session: nox.Session) -> None:
     """
-    Build global SDist and wheel.
+    Build SDists and wheels.
     """
 
-    installer = ["--installer=uv"] if session.venv_backend == "uv" else []
-    session.install("build", "tomlkit")
-    session.log("Building pybind11-global files")
-    pyproject = Path("pyproject.toml")
-    with preserve_file(pyproject):
-        newer_txt = session.run("python", "tools/make_global.py", silent=True)
-        assert isinstance(newer_txt, str)
-        pyproject.write_text(newer_txt, encoding="utf-8")
-        session.run(
-            "python",
-            "-m",
-            "build",
-            *installer,
-            *session.posargs,
-        )
+    session.install("build")
+    session.run("python", "-m", "build")
+    session.run("python", "-m", "build", env={"PYBIND11_GLOBAL_SDIST": "1"})

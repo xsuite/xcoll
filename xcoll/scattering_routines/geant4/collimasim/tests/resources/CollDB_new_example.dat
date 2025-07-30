@@ -1,0 +1,18 @@
+# Automatically converted collimator DB from old format file 'CollDB_HL.data'
+# Families
+NSIG_FAM tcph                 10.000000 PRIMARY
+NSIG_FAM tcpv                 80.000000 PRIMARY
+NSIG_FAM tcsh                 11.500000 SECONDARY
+NSIG_FAM tcsv                 89.500000 SECONDARY
+#
+# Collimators
+# name                                                opening/fam mat.     length[m]    angle[deg]     offset[m]    
+tcp.a.b1                                                     tcph C        0.600000      0.000000      0.000000
+tcp.b.b1                                                     tcpv C        0.600000      90.00000      0.000000
+tcs.b1.b1                                                    tcsv C        1.000000      90.00000      0.000000
+tcs.a1.b1                                                    tcsh C        1.000000      0.000000      0.000000
+tcs.a2.b1                                                    tcsh C        1.000000      0.000000      0.000000
+tcs.b2.b1                                                    tcsv C        1.000000      90.00000      0.000000
+#
+# Additional Collimator Settings
+SETTINGS

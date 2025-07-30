@@ -1,8 +1,7 @@
-from __future__ import annotations
-
+# -*- coding: utf-8 -*-
 import pytest
 
-import env
+import env  # noqa: F401
 from pybind11_tests import ConstructorStats
 from pybind11_tests import multiple_inheritance as m
 
@@ -14,7 +13,8 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.PYPY and env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -53,14 +53,15 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.PYPY and env.PY2")
+@pytest.mark.xfail("env.PYPY and not env.PY2")
 def test_multiple_inheritance_python():
     class MI1(m.Base1, m.Base2):
         def __init__(self, i, j):
             m.Base1.__init__(self, i)
             m.Base2.__init__(self, j)
 
-    class B1:
+    class B1(object):
         def v(self):
             return 1
 
@@ -95,7 +96,7 @@ def test_multiple_inheritance_python():
         def v(self):
             return 2
 
-    class B3:
+    class B3(object):
         def v(self):
             return 3
 
@@ -263,6 +264,7 @@ def test_mi_static_properties():
         assert d.static_value == 0
 
 
+# Requires PyPy 6+
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
@@ -278,9 +280,8 @@ def test_mi_unaligned_base():
 
     c = m.I801C()
     d = m.I801D()
-    if not env.GRAALPY:
-        # + 4 below because we have the two instances, and each instance has offset base I801B2
-        assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    # + 4 below because we have the two instances, and each instance has offset base I801B2
+    assert ConstructorStats.detail_reg_inst() == n_inst + 4
     b1c = m.i801b1_c(c)
     assert b1c is c
     b2c = m.i801b2_c(c)
@@ -289,9 +290,6 @@ def test_mi_unaligned_base():
     assert b1d is d
     b2d = m.i801b2_d(d)
     assert b2d is d
-
-    if env.GRAALPY:
-        pytest.skip("ConstructorStats is incompatible with GraalPy.")
 
     assert ConstructorStats.detail_reg_inst() == n_inst + 4  # no extra instances
     del c, b1c, b2c
@@ -315,8 +313,7 @@ def test_mi_base_return():
     assert d1.a == 1
     assert d1.b == 2
 
-    if not env.GRAALPY:
-        assert ConstructorStats.detail_reg_inst() == n_inst + 4
+    assert ConstructorStats.detail_reg_inst() == n_inst + 4
 
     c2 = m.i801c_b2()
     assert type(c2) is m.I801C
@@ -328,13 +325,12 @@ def test_mi_base_return():
     assert d2.a == 1
     assert d2.b == 2
 
-    if not env.GRAALPY:
-        assert ConstructorStats.detail_reg_inst() == n_inst + 8
+    assert ConstructorStats.detail_reg_inst() == n_inst + 8
 
-        del c2
-        assert ConstructorStats.detail_reg_inst() == n_inst + 6
-        del c1, d1, d2
-        assert ConstructorStats.detail_reg_inst() == n_inst
+    del c2
+    assert ConstructorStats.detail_reg_inst() == n_inst + 6
+    del c1, d1, d2
+    assert ConstructorStats.detail_reg_inst() == n_inst
 
     # Returning an unregistered derived type with a registered base; we won't
     # pick up the derived type, obviously, but should still work (as an object
@@ -362,139 +358,3 @@ def test_diamond_inheritance():
     assert d is d.c0().b()
     assert d is d.c1().b()
     assert d is d.c0().c1().b().c0().b()
-
-
-def test_pr3635_diamond_b():
-    o = m.MVB()
-    assert o.b == 1
-
-    assert o.get_b_b() == 1
-
-
-def test_pr3635_diamond_c():
-    o = m.MVC()
-    assert o.b == 1
-    assert o.c == 2
-
-    assert o.get_b_b() == 1
-    assert o.get_c_b() == 1
-
-    assert o.get_c_c() == 2
-
-
-def test_pr3635_diamond_d0():
-    o = m.MVD0()
-    assert o.b == 1
-    assert o.c == 2
-    assert o.d0 == 3
-
-    assert o.get_b_b() == 1
-    assert o.get_c_b() == 1
-    assert o.get_d0_b() == 1
-
-    assert o.get_c_c() == 2
-    assert o.get_d0_c() == 2
-
-    assert o.get_d0_d0() == 3
-
-
-def test_pr3635_diamond_d1():
-    o = m.MVD1()
-    assert o.b == 1
-    assert o.c == 2
-    assert o.d1 == 4
-
-    assert o.get_b_b() == 1
-    assert o.get_c_b() == 1
-    assert o.get_d1_b() == 1
-
-    assert o.get_c_c() == 2
-    assert o.get_d1_c() == 2
-
-    assert o.get_d1_d1() == 4
-
-
-def test_pr3635_diamond_e():
-    o = m.MVE()
-    assert o.b == 1
-    assert o.c == 2
-    assert o.d0 == 3
-    assert o.d1 == 4
-    assert o.e == 5
-
-    assert o.get_b_b() == 1
-    assert o.get_c_b() == 1
-    assert o.get_d0_b() == 1
-    assert o.get_d1_b() == 1
-    assert o.get_e_b() == 1
-
-    assert o.get_c_c() == 2
-    assert o.get_d0_c() == 2
-    assert o.get_d1_c() == 2
-    assert o.get_e_c() == 2
-
-    assert o.get_d0_d0() == 3
-    assert o.get_e_d0() == 3
-
-    assert o.get_d1_d1() == 4
-    assert o.get_e_d1() == 4
-
-    assert o.get_e_e() == 5
-
-
-def test_pr3635_diamond_f():
-    o = m.MVF()
-    assert o.b == 1
-    assert o.c == 2
-    assert o.d0 == 3
-    assert o.d1 == 4
-    assert o.e == 5
-    assert o.f == 6
-
-    assert o.get_b_b() == 1
-    assert o.get_c_b() == 1
-    assert o.get_d0_b() == 1
-    assert o.get_d1_b() == 1
-    assert o.get_e_b() == 1
-    assert o.get_f_b() == 1
-
-    assert o.get_c_c() == 2
-    assert o.get_d0_c() == 2
-    assert o.get_d1_c() == 2
-    assert o.get_e_c() == 2
-    assert o.get_f_c() == 2
-
-    assert o.get_d0_d0() == 3
-    assert o.get_e_d0() == 3
-    assert o.get_f_d0() == 3
-
-    assert o.get_d1_d1() == 4
-    assert o.get_e_d1() == 4
-    assert o.get_f_d1() == 4
-
-    assert o.get_e_e() == 5
-    assert o.get_f_e() == 5
-
-    assert o.get_f_f() == 6
-
-
-def test_python_inherit_from_mi():
-    """Tests extending a Python class from a single inheritor of a MI class"""
-
-    class PyMVF(m.MVF):
-        g = 7
-
-        def get_g_g(self):
-            return self.g
-
-    o = PyMVF()
-
-    assert o.b == 1
-    assert o.c == 2
-    assert o.d0 == 3
-    assert o.d1 == 4
-    assert o.e == 5
-    assert o.f == 6
-    assert o.g == 7
-
-    assert o.get_g_g() == 7

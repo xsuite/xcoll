@@ -1,0 +1,5 @@
+! Dummy example - Pb208 at 450 Z GeV
+beam, particle="ion 208 82", momentum=36900*GeV;
+option, physicsList = "em decay muon hadronic_elastic ftfp_bert ion ion_elastic ion_em_dissociation";
+option, minimumKineticEnergy=40*GeV;
+option, physicsEnergyLimitHigh=600000;

@@ -1,14 +1,10 @@
-from __future__ import annotations
-
+# -*- coding: utf-8 -*-
 import pytest
-
-import env  # noqa: F401
 
 m = pytest.importorskip("pybind11_tests.smart_ptr")
 from pybind11_tests import ConstructorStats  # noqa: E402
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_smart_ptr(capture):
     # Object1
     for i, o in enumerate(
@@ -20,7 +16,7 @@ def test_smart_ptr(capture):
             m.print_object_2(o)
             m.print_object_3(o)
             m.print_object_4(o)
-        assert capture == f"MyObject1[{i}]\n" * 4
+        assert capture == "MyObject1[{i}]\n".format(i=i) * 4
 
     for i, o in enumerate(
         [m.make_myobject1_1(), m.make_myobject1_2(), m.MyObject1(6), 7], start=4
@@ -38,11 +34,13 @@ def test_smart_ptr(capture):
             m.print_myobject1_4(o)
 
         times = 4 if isinstance(o, int) else 8
-        assert capture == f"MyObject1[{i}]\n" * times
+        assert capture == "MyObject1[{i}]\n".format(i=i) * times
 
     cstats = ConstructorStats.get(m.MyObject1)
     assert cstats.alive() == 0
-    expected_values = [f"MyObject1[{i}]" for i in range(1, 7)] + ["MyObject1[7]"] * 4
+    expected_values = ["MyObject1[{}]".format(i) for i in range(1, 7)] + [
+        "MyObject1[7]"
+    ] * 4
     assert cstats.values() == expected_values
     assert cstats.default_constructions == 0
     assert cstats.copy_constructions == 0
@@ -60,7 +58,7 @@ def test_smart_ptr(capture):
             m.print_myobject2_2(o)
             m.print_myobject2_3(o)
             m.print_myobject2_4(o)
-        assert capture == f"MyObject2[{i}]\n" * 4
+        assert capture == "MyObject2[{i}]\n".format(i=i) * 4
 
     cstats = ConstructorStats.get(m.MyObject2)
     assert cstats.alive() == 1
@@ -83,7 +81,7 @@ def test_smart_ptr(capture):
             m.print_myobject3_2(o)
             m.print_myobject3_3(o)
             m.print_myobject3_4(o)
-        assert capture == f"MyObject3[{i}]\n" * 4
+        assert capture == "MyObject3[{i}]\n".format(i=i) * 4
 
     cstats = ConstructorStats.get(m.MyObject3)
     assert cstats.alive() == 1
@@ -121,7 +119,6 @@ def test_smart_ptr_refcounting():
     assert m.test_object1_refcounting()
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_unique_nodelete():
     o = m.MyObject4(23)
     assert o.value == 23
@@ -133,7 +130,6 @@ def test_unique_nodelete():
     assert cstats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_unique_nodelete4a():
     o = m.MyObject4a(23)
     assert o.value == 23
@@ -145,7 +141,6 @@ def test_unique_nodelete4a():
     assert cstats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_unique_deleter():
     m.MyObject4a(0)
     o = m.MyObject4b(23)
@@ -162,7 +157,6 @@ def test_unique_deleter():
     assert cstats4b.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_large_holder():
     o = m.MyObject5(5)
     assert o.value == 5
@@ -172,7 +166,6 @@ def test_large_holder():
     assert cstats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_and_references():
     s = m.SharedPtrRef()
     stats = ConstructorStats.get(m.A)
@@ -204,7 +197,6 @@ def test_shared_ptr_and_references():
     assert stats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_shared_ptr_from_this_and_references():
     s = m.SharedFromThisRef()
     stats = ConstructorStats.get(m.B)
@@ -251,7 +243,6 @@ def test_shared_ptr_from_this_and_references():
     assert y is z
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_move_only_holder():
     a = m.TypeWithMoveOnlyHolder.make()
     b = m.TypeWithMoveOnlyHolder.make_as_object()
@@ -263,7 +254,6 @@ def test_move_only_holder():
     assert stats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_holder_with_addressof_operator():
     # this test must not throw exception from c++
     a = m.TypeForHolderWithAddressOf.make()
@@ -294,7 +284,6 @@ def test_holder_with_addressof_operator():
     assert stats.alive() == 0
 
 
-@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_move_only_holder_with_addressof_operator():
     a = m.TypeForMoveOnlyHolderWithAddressOf.make()
     a.print_object()
@@ -313,8 +302,9 @@ def test_smart_ptr_from_default():
     instance = m.HeldByDefaultHolder()
     with pytest.raises(RuntimeError) as excinfo:
         m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert "Unable to load a custom holder type from a default-holder instance" in str(
-        excinfo.value
+    assert (
+        "Unable to load a custom holder type from a "
+        "default-holder instance" in str(excinfo.value)
     )
 
 
@@ -326,32 +316,3 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
-
-
-def test_private_esft_tolerance():
-    # Regression test: binding a shared_ptr<T> member where T privately inherits
-    # enable_shared_from_this<T> must not cause a C++ compile error.
-    c = m.ContainerUsingPrivateESFT()
-    # The ptr member is not actually usable in any way, but this is how the
-    # pybind11 v2 release series worked.
-    with pytest.raises(TypeError):
-        _ = c.ptr  # getattr
-    with pytest.raises(TypeError):
-        c.ptr = None  # setattr
-
-
-def test_copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled():
-    assert (
-        m.return_std_shared_ptr_example_drvd() == "copyable_holder_caster_traits_test"
-    )
-
-
-def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
-    assert (
-        m.return_std_unique_ptr_example_drvd() == "move_only_holder_caster_traits_test"
-    )
-
-
-def test_const_only_holder():
-    o = m.MyObject6("my_data")
-    assert o.value == "my_data"
