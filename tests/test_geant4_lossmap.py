@@ -8,7 +8,8 @@ import xcoll as xc
 import collimasim as cs
 import time
 
-path = Path('/home/a20/ドキュメント/work/git/xtrack/dev/xcoll_geant4/xcoll/tests/data')
+
+path = xc._pkg_root.parent / 'tests' / 'data'
 beam = 1
 plane = 'H'
 npart = int(5e5)
@@ -49,5 +50,7 @@ t11 = time.time()
 print(f'total time: {t11-t00}')
 
 assert np.sum(part.state == -333) > 80000
+print(np.sum(part.state == -333))
 assert np.sum(part.state == 0) > 10000
+print(np.sum(part.state == 0))
 assert len(part.s[(part.state==0) & (part.s > 20290) & (part.s < 20538)]) > 10

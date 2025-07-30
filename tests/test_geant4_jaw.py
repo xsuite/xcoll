@@ -23,7 +23,8 @@ try:
 except ImportError:
     cs = None
 
-path = Path('/home/a20/ドキュメント/work/git/xtrack/dev/xcoll_geant4/xcoll/tests/data')
+
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 g4coll = xc.Geant4Collimator(length=0.6, jaw=0.001, angle=0, tilt=0,
                             material='Ti', geant4_id=f'g4coll_0')
@@ -67,10 +68,15 @@ t10 = time.time()
 g4coll.track(part1)
 t11 = time.time()
 
+part.sort(interleave_lost_particles=True)
+part1.sort(interleave_lost_particles=True)
+
 assert np.sum(part.state == -333) > 40000 ## some particles should have died
-assert np.sum(np.abs((part.px[part_init.state==1] - part_init.px[part_init.state==1])) == 0) == 0 ## all particles should have some kick in x and y
-assert np.sum(np.abs((part.py[part_init.state==1] - part_init.py[part_init.state==1])) == 0) == 0 ## all particles should have some kick in x and y
+mask = (part_init.state==1) & (part.state==1)
+assert not np.any(np.isclose(part.px[mask], 0, atol=1e-12)) ## all particles should have some kick in x and y
+assert not np.any(np.isclose(part.py[mask], 0, atol=1e-12))
 
 assert np.sum((part1.state < 1) & (part1.state > -9999)) == 0 ## no particles should have died
-assert np.sum(np.abs((part1.px[part_init1.state==1] - part_init1.px[part_init1.state==1])) > 0) == 0 ## no particles should have kicks in x and y
-assert np.sum(np.abs((part1.py[part_init1.state==1] - part_init1.py[part_init1.state==1])) > 0) == 0 ## no particles should have kicks in x and y
+mask = (part_init1.state==1) & (part1.state==1)
+assert np.allclose(part1.px[mask], 0, atol=1e-12) ## no particles should have a kick in x and y
+assert np.allclose(part1.py[mask], 0, atol=1e-12)

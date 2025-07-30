@@ -23,8 +23,8 @@ try:
 except ImportError:
     cs = None
 
-path = Path('/home/a20/ドキュメント/work/git/xtrack/dev/xcoll_geant4/xcoll/tests/data')
 
+path = xc._pkg_root.parent / 'tests' / 'data'
 g4coll = xc.Geant4Collimator(length=0.6, jaw=0.001, angle=0, tilt=0,
                             material='Ti', geant4_id=f'g4coll_0')
 xc.Geant4Engine.start(elements=g4coll, seed=1993, particle_ref='proton', p0c=7e12, relative_energy_cut=0.1,
@@ -47,7 +47,6 @@ g4coll.track(part)
 t01 = time.time() 
 
 mask = part.parent_particle_id != part.particle_id
-mask2 = np.isin(part_init.particle_id, part.parent_particle_id[mask])
 
 xdiffs = []
 ydiffs = []
@@ -55,8 +54,8 @@ pxvals = []
 pyvals = []
 for parent_id,x1,y1,px,py in zip(part.parent_particle_id[mask],part.x[mask],part.y[mask],part.px[mask],part.py[mask]):
     mask2 = part_init.particle_id == parent_id
-    x0 = part_init.x[mask2]
-    y0 = part_init.y[mask2]
+    x0 = part_init.x[mask2][0]
+    y0 = part_init.y[mask2][0]
     dx = x1 - x0
     dy = y1 - y0
     xdiffs.append(dx)
