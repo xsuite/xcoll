@@ -38,11 +38,11 @@ def test_geant4_ppid(test_context):
     xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1,
                           bdsim_config_file=path / f'geant4_protons.gmad')
 
-    num_part = 1000
+    num_part_1d = 1000
     jaw_band = 1e-6
     _capacity = int(2e6)
-    x = np.linspace(0.002, 10, num_part)
-    y = np.linspace(-10, 10, num_part)
+    x = np.linspace(0.002, 10, num_part_1d)
+    y = np.linspace(-10, 10, num_part_1d)
     X, Y = np.meshgrid(x,y)
     coords = np.vstack([X.ravel(), Y.ravel()]).T
     part_init = xp.build_particles(x=coords[:,0], y=coords[:,1], particle_ref=particle_ref, _capacity=_capacity)

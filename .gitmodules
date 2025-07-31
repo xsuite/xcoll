@@ -1,3 +1,0 @@
-[submodule "xcoll/lib/collimasim/lib/pybind11"]
-	path = xcoll/lib/collimasim/lib/pybind11
-	url = https://github.com/pybind/pybind11.git
