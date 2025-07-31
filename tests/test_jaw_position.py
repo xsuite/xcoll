@@ -12,6 +12,14 @@ import xtrack as xt
 import xcoll as xc
 import time
 
+try:
+    import collimasim as cs
+except ImportError:
+    cs = None
+
+path = xc._pkg_root.parent / 'tests' / 'data'
+
+
 # TODO: particle angles
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
@@ -32,6 +40,27 @@ def test_everest(jaw, angle, tilt):
     part = part_init.copy()
     coll.track(part)
     _assert_valid_positions(part, hit_ids, not_hit_ids)
+
+
+@pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
+@pytest.mark.parametrize('angle', angles)
+@pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
+@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
+def test_geant4(jaw, angle, tilt):
+    num_part = 25_000
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop(clean=True)
+    coll = xc.Geant4Collimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material='c')
+    xc.geant4.engine.particle_ref = particle_ref
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1,
+                           bdsim_config_file=path / 'geant4_protons.gmad')
+    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part,
+                                            particle_ref=xc.geant4.engine.particle_ref,
+                                            _capacity=4*num_part)
+    part = part_init.copy()
+    coll.track(part)
+    _assert_valid_positions(part, hit_ids, not_hit_ids)
+    xc.geant4.engine.stop(clean=True)
 
 
 # # TODO: lhc_tdi and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
@@ -113,11 +142,12 @@ def _assert_valid_positions(part, hit_ids, not_hit_ids, momentum_accuracy=1.e-12
     # Particles that are supposed to have hit the collimator, but are alive and have no kick, are considered faulty
     faulty =  mask_hit & (abs(part.px) < momentum_accuracy) & (abs(part.py) < momentum_accuracy)
     faulty &= (part.state > 0)
-    assert len(part.x[faulty]) <= 1  # We allow for a small margin of error
+    assert sum(faulty) <= 1  # We allow for a small margin of error
 
 
 def _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids):
     mask = np.isin(part.parent_particle_id, not_hit_ids) & (part.state < 1)
+    mask |= np.isin(part.parent_particle_id, hit_ids) & (part.state < 1)
     wrong_ids = part.parent_particle_id[mask]
     mask_wrong_init = np.isin(part_init.particle_id, wrong_ids)
 
