@@ -478,7 +478,7 @@ class BaseEngine(xo.HybridClass):
             if names is None:
                 names = []
                 for ee in elements:
-                    if hasattr(ee, 'name'):
+                    if hasattr(ee, 'name') and ee.name:
                         names.append(ee.name)
                     else:
                         name = self._get_new_element_name()
@@ -514,6 +514,9 @@ class BaseEngine(xo.HybridClass):
                 this_elements.append(ee)
         if len(this_elements) == 0:
             raise ValueError(f"No active {self.name} elements found!")
+        if len(set(this_names)) != len(this_names):
+            raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
+                           + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _reactivate_elements(self):
