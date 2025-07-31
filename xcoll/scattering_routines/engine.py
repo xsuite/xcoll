@@ -415,10 +415,11 @@ class BaseEngine(xo.HybridClass):
     def _use_seed(self, seed=None):
         if seed is None:
             if self.seed is None:
+                rng = np.random.default_rng()
                 if self._int32:
-                    self.seed = np.random.randint(0, int(2**32))
+                    self.seed = rng.integers(0, int(2**31)) # 32-bit signed
                 else:
-                    self.seed = np.random.randint(0, int(2**64))
+                    self.seed = rng.integers(0, int(2**63)) # 64-bit signed
         else:
             self._old_seed = self.seed
             self.seed = seed
