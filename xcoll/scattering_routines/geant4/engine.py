@@ -39,6 +39,7 @@ class Geant4Engine(BaseEngine):
 #         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
+    _int32 = True
     # _uses_input_file = True
     # _uses_run_folder = True
 
@@ -155,8 +156,8 @@ class Geant4Engine(BaseEngine):
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
             # TODO: should geant4_id be a string or an int?
             self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
-                                       apertureLeft=jaw_L,
-                                       apertureRight=-jaw_R,   # TODO: is this correct?
+                                       apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
+                                       apertureRight=-jaw_R-1.e-9,
                                        rotation=np.deg2rad(el.angle),
                                        xOffset=0, yOffset=0, side=side,
                                        jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
