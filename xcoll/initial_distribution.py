@@ -10,7 +10,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes, BaseCrystal, Geant4Collimator
+from .beam_elements import collimator_classes, BaseCrystal, Geant4Collimator, Geant4Crystal
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -28,8 +28,8 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
     num_particles = int(num_particles)
-    if len(line.get_elements_of_type(Geant4Collimator)[0]) > 0:
-        kwargs.setdefault('_capacity', 2*num_particles)
+    if not _capacity and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
+        _capacity = 2*num_particles
 
     # Define the plane
     angle = coll.angle
@@ -106,17 +106,15 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
 
     # Build the particles
     if plane == 'x':
-        part = xp.build_particles(
+        part = line.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=at_element, _context=coll._buffer.context, **kwargs
-        )
+                at_element=at_element, _context=coll._buffer.context, **kwargs)
     else:
-        part = xp.build_particles(
-                x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil, 
+        part = line.build_particles(
+                x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                line=line, at_element=at_element, _context=coll._buffer.context, **kwargs
-        )
+                at_element=at_element, _context=coll._buffer.context, **kwargs)
 
     part._init_random_number_generator()
 
