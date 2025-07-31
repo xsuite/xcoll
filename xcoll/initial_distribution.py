@@ -28,7 +28,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
     num_particles = int(num_particles)
-    if not _capacity and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
+    if _capacity is None and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
         _capacity = 2*num_particles
 
     # Define the plane
@@ -86,12 +86,12 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
                 _capacity_min  = None
             part_plus = generate_pencil_on_collimator(line=line, name=name, num_particles=num_plus,
                                 impact_parameter=impact_parameter, _capacity=_capacity_plus,
-                                side='+', pencil_spread=pencil_spread, twiss=twiss, 
+                                side='+', pencil_spread=pencil_spread, twiss=twiss,
                                 _longitudinal_coords=[zeta_plus, delta_plus],
                                 **kwargs)
             part_min = generate_pencil_on_collimator(line=line, name=name, num_particles=num_min,
                                 impact_parameter=impact_parameter, _capacity=_capacity_min,
-                                side='-', pencil_spread=pencil_spread, twiss=twiss, 
+                                side='-', pencil_spread=pencil_spread, twiss=twiss,
                                 _longitudinal_coords=[zeta_min, delta_min],
                                 **kwargs)
 
@@ -109,12 +109,14 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         part = line.build_particles(
                 x=pencil, px=p_pencil, y_norm=transverse_norm, py_norm=p_transverse_norm,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                at_element=at_element, _context=coll._buffer.context, **kwargs)
+                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
+                **kwargs)
     else:
         part = line.build_particles(
                 x_norm=transverse_norm, px_norm=p_transverse_norm, y=pencil, py=p_pencil,
                 zeta=zeta, delta=delta, nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y,
-                at_element=at_element, _context=coll._buffer.context, **kwargs)
+                at_element=at_element, _capacity=_capacity, _context=coll._buffer.context,
+                **kwargs)
 
     part._init_random_number_generator()
 
