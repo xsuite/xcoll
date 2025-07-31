@@ -124,10 +124,10 @@ class Geant4Engine(BaseEngine):
         ###     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
         ### else:
         ###     self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-        ###                                      referencePdgId=self.particle_ref.pdg_id,
-        ###                                      referenceEk=Ekin / 1e9, # BDSIM expects GeV
-        ###                                      relativeEnergyCut=self.relative_energy_cut,
-        ###                                      seed=self.seed, batchMode=True)
+        ###                                       referencePdgId=self.particle_ref.pdg_id,
+        ###                                       referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+        ###                                       relativeEnergyCut=self.relative_energy_cut,
+        ###                                       seed=self.seed, batchMode=True)
 
         ### remove the following lines after geant4 bug fixed
         import rpyc

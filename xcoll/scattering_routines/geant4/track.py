@@ -8,7 +8,6 @@ import xobjects as xo
 import xpart as xp
 import time
 import io
-from rpyc.utils.classic import obtain
 
 
 def track(coll, particles):
@@ -29,6 +28,18 @@ def track_core(coll, part):
     npart = part._num_active_particles
     ndead = part._num_lost_particles
 
+    ### revert after geant4 bug fixed
+    ### coords = [part.x, part.y, part.px, part.py,
+    ###           part.zeta, delta_temp, part.chi,
+    ###           part.charge_ratio, part.s,
+    ###           part.pdg_id,part.particle_id, part.state,
+    ###           part.at_element, part.at_turn]
+    ### xc.geant4.engine._g4link.addParticles(coords)
+    ### xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
+    ### xc.geant4.engine._g4link.collimate()
+    ### products = xc.geant4.engine._g4link.collimateReturn(coords)
+
+    ### remove the following lines after geant4 bug fixed
     coords = {
         'x': part.x,
         'y': part.y,
@@ -45,13 +56,6 @@ def track_core(coll, part):
         'at_element': part.at_element,
         'at_turn': part.at_turn
     }
-    ### revert after geant4 bug fixed
-    ### xc.geant4.engine._g4link.addParticles(coords)
-    ### xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
-    ### xc.geant4.engine._g4link.collimate()
-    ### products = self.g4link.collimateReturn(coords)
-
-    ### remove the following lines after geant4 bug fixed
     buf = io.BytesIO() # Use numpy.savez to serialize
     np.savez(buf, **coords)
     buf.seek(0)
@@ -82,8 +86,7 @@ def track_core(coll, part):
     else:
         mask = products['state'][npartsAliveAndDead:] > -999999
         new_particles = xp.Particles(_context=part._buffer.context,
-                p0c = part.p0c[0], # TODO: Should we check that 
-                                        #       they are all the same?
+                p0c = part.p0c[0],
                 mass0 = part.mass0,
                 q0 = part.q0,
                 s = products['s'][npartsAliveAndDead:][mask],
