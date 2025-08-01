@@ -9,7 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ...headers.particle_states import LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY
+from ...headers.particle_states import LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL, \
+                                       VIRTUAL_ENERGY, HIT_ON_FLUKA_COLL
 
 
 def _drift(coll, particles, length):
@@ -18,7 +19,7 @@ def _drift(coll, particles, length):
     coll._equivalent_drift.track(particles)
     coll._equivalent_drift.length = old_length
 
-def track(coll, particles):
+def track_pre(coll, particles):
     import xcoll as xc
 
     # Initialize ionisation loss accumulation variable
@@ -53,7 +54,9 @@ def track(coll, particles):
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
     _drift(coll, particles, -coll.length_front)
-    track_core(coll, particles)
+
+
+def track_post(coll, particles):
     _drift(coll, particles, -coll.length_back)
 
 
@@ -65,7 +68,6 @@ def _expand(arr, dtype=float):
 
 def track_core(coll, part):
     import xcoll as xc
-    npart = part._num_active_particles
     try:
         from pyflukaf import track_fluka
     except (ModuleNotFoundError, ImportError) as error:
@@ -73,9 +75,10 @@ def track_core(coll, part):
         return
 
     max_part       = xc.fluka.engine.capacity
-    alive_at_entry = part.state > 0
-    max_id         = part.particle_id[alive_at_entry].max()
-    assert alive_at_entry.sum() == npart
+    send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
+    npart          = send_to_fluka.sum()
+    max_id         = part.particle_id[part.state > 0].max()
+    assert npart  <= part._num_active_particles
 
     # Get particle data
     m0         = part.mass0
@@ -84,9 +87,9 @@ def track_core(coll, part):
     E0         = part.energy0[0]
     beta0      = part.beta0[0]
     gamma0     = part.gamma0[0]
-    mass       = m0*part.charge_ratio[alive_at_entry] / part.chi[alive_at_entry]
-    charge     = q0*part.charge_ratio[alive_at_entry]
-    pdg_id     = part.pdg_id[alive_at_entry]
+    mass       = m0*part.charge_ratio[send_to_fluka] / part.chi[send_to_fluka]
+    charge     = q0*part.charge_ratio[send_to_fluka]
+    pdg_id     = part.pdg_id[send_to_fluka]
     _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     A          = np.array([0 if pdgid < 0 else aa for aa, pdgid in zip(A, pdg_id)])  # FLUKA treats antiprotons as A = 0 = Z
     Z          = np.array([0 if pdgid < 0 else zz for zz, pdgid in zip(Z, pdg_id)])
@@ -94,28 +97,28 @@ def track_core(coll, part):
 
     # Prepare arrays for FORTRAN
     data = {}
-    data['x']      = _expand(part.x[alive_at_entry] * 1000.)
-    data['xp']     = _expand(part.px[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
-    data['y']      = _expand(part.y[alive_at_entry] * 1000.)
-    data['yp']     = _expand(part.py[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
-    data['zeta']   = _expand(part.zeta[alive_at_entry] * 1000.)
-    data['e']      = _expand(part.energy[alive_at_entry] / 1.e6)
+    data['x']      = _expand(part.x[send_to_fluka] * 1000.)
+    data['xp']     = _expand(part.px[send_to_fluka] * part.rpp[send_to_fluka] * 1000.)
+    data['y']      = _expand(part.y[send_to_fluka] * 1000.)
+    data['yp']     = _expand(part.py[send_to_fluka] * part.rpp[send_to_fluka] * 1000.)
+    data['zeta']   = _expand(part.zeta[send_to_fluka] * 1000.)
+    data['e']      = _expand(part.energy[send_to_fluka] / 1.e6)
     data['m']      = _expand(mass / 1.e6)
     data['q']      = _expand(charge.astype(np.int16), dtype=np.int16)
     data['A']      = _expand(A.astype(np.int32), dtype=np.int32)
     data['Z']      = _expand(Z.astype(np.int32), dtype=np.int32)
     data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32)
     # FLUKA is 1-indexed
-    data['pid']    = _expand(part.particle_id[alive_at_entry].astype(np.int32) + 1, dtype=np.int32)
+    data['pid']    = _expand(part.particle_id[send_to_fluka].astype(np.int32) + 1, dtype=np.int32)
     # FLUKA does not use a parent ID, but a primary ID (hence not the direct parent but the first impact)
     # After one passage, there is no difference between parent ID and primary ID, but when a child gets
     # children in a second passage, we cannot trace them to the correct parent (only to the correct grand-
     # parent). To accommodate this, we do not send the parent ID to FLUKA but store it manually here. Then
     # in FLUKA everything looks like a first passage, and we can restore the correct info later.
     data['ppid']   = data['pid'].copy()
-    old_pid        = part.particle_id[alive_at_entry]
-    old_ppid       = part.parent_particle_id[alive_at_entry]
-    data['weight'] = _expand(part.weight[alive_at_entry])
+    old_pid        = part.particle_id[send_to_fluka]
+    old_ppid       = part.parent_particle_id[send_to_fluka]
+    data['weight'] = _expand(part.weight[send_to_fluka])
     # TODO: Hard-coded spin (currently not used)
     data['spin_x'] = _expand(np.zeros(npart))
     data['spin_y'] = _expand(np.zeros(npart))
@@ -181,13 +184,14 @@ def track_core(coll, part):
 
     if np.any(mask_existing):
         # TODO: this is slooooow
-        idx_old  = np.array([np.where(part.particle_id[alive_at_entry]==idx)[0][0]
+        idx_old  = np.array([np.where(part.particle_id==idx)[0][0]
                              for idx in new_pid[mask_existing]])  # list of indices
 
+        # import ipdb; ipdb.set_trace()
         # Sanity check
         assert np.all(part.particle_id[idx_old] == new_pid[mask_existing])
         assert np.all(part.parent_particle_id[idx_old] == new_ppid[mask_existing])
-        assert np.all(part.state[idx_old] > 0)
+        assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)
 
         # Update momentum
         E_diff = np.zeros(len(part.x))
@@ -212,7 +216,7 @@ def track_core(coll, part):
 
     # Little hack to set the dead particles, as idx_old is not a mask (but a list of indices)
     # (hence we cannot use ~idx_old)
-    part.state[alive_at_entry]     = -LOST_ON_FLUKA_COLL # Do not kill yet to avoid issues with energy updating
+    part.state[send_to_fluka]      = -LOST_ON_FLUKA_COLL # Do not kill yet to avoid issues with energy updating
     if np.any(mask_existing):
         part.state[idx_old]        = 1     # These actually survived
 
@@ -229,7 +233,7 @@ def track_core(coll, part):
             raise RuntimeError(f"Too many particles generated by FLUKA ({num_needed} needed, "
                              + f"but only {num_free} free in particles object)!")
 
-        idx_parents = np.array([np.where(part.particle_id[alive_at_entry]==idx)[0][0] for idx in new_ppid[mask_new]])
+        idx_parents = np.array([np.where(part.particle_id[send_to_fluka]==idx)[0][0] for idx in new_ppid[mask_new]])
 
         # Create new particles
         E = data['e'][:npart][mask_new] * 1.e6
