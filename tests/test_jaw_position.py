@@ -29,6 +29,7 @@ particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_everest(jaw, angle, tilt):
+    print(f"{jaw}-{angle}-{tilt}:")
     coll = xc.EverestCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material=xc.materials.MolybdenumGraphite)
     impacts = None
     if hasattr(jaw, '__iter__') and jaw[1] < 0:
@@ -40,7 +41,7 @@ def test_everest(jaw, angle, tilt):
     _assert_valid_positions(part, hit_ids, not_hit_ids, coll.length, impacts=impacts)
 
 
-# TODO: lhc_tdi and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
+# TODO: lhc_tdi, lhc_tcdq.., and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
 # @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
                                       'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
@@ -51,6 +52,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_fluka(jaw, angle, assembly):
+    print(f"{jaw}-{angle}-{assembly}:")
     tilt = 0
 
     # If a previous test failed, stop the server manually
@@ -117,10 +119,9 @@ def _assert_valid_positions(part, hit_ids, not_hit_ids, length, impacts=None, mo
     mask_hit = np.isin(part.parent_particle_id, hit_ids)
     mask_not_hit = np.isin(part.parent_particle_id, not_hit_ids)
 
-    assert np.unique(part.state[mask_alive]).size == 1  # All alive particles should have the same state
-
-    # All particles should have reached the end of the collimator
+    # All alive particles should have reached the end of the collimator and should have the same state
     assert np.allclose(part.s[mask_alive], length, atol=1e-12)
+    assert np.unique(part.state[mask_alive]).size == 1
 
     # Particles that are supposed to not have hit the collimator, but have a kick or are dead, are considered faulty
     assert not np.any(abs(part.px[mask_not_hit]) > momentum_accuracy)

@@ -126,9 +126,9 @@ def track_core(coll, part):
 
     # Change npart to np.array to make it writable, store some initial data
     npart    = np.array(npart, dtype=np.int64)
-    s_in     = part.s[0]
-    ele_in   = part.at_element[0]
-    turn_in  = part.at_turn[0]
+    s_in     = part.s[send_to_fluka][0]
+    ele_in   = part.at_element[send_to_fluka][0]
+    turn_in  = part.at_turn[send_to_fluka][0]
     start    = part.start_tracking_at_element  # TODO: is this needed?
 
     # send to fluka
