@@ -21,6 +21,23 @@ from .prototype import FlukaPrototype, FlukaAssembly
 # as soon as finished, even if other job still running...
 #
 # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# def exit_handler():
+#     """Remove generic assemblies on exit."""
+#     for assembly in FlukaPrototype._registry:
+#         if isinstance(assembly, FlukaAssembly) \
+#         and assembly.fedb_series == 'generic':
+#             for el in assembly.elements:
+#                 assembly.remove_element(el)
+#             assembly.delete(_ignore_files=True)
+#     # If there are broken assemblies, there might be prototypes left
+#     for prototype in FlukaPrototype._registry:
+#         if isinstance(prototype, FlukaPrototype) \
+#         and prototype.fedb_series == 'generic':
+#             for el in prototype.elements:
+#                 prototype.remove_element(el)
+#             prototype.delete(_ignore_files=True)
+# atexit.register(exit_handler)
+
 
 def xcoll_to_fluka_material(material):
     # XXX EXPAND THIS DICT
@@ -30,31 +47,14 @@ def xcoll_to_fluka_material(material):
         "c":    "  CARBON",
         "si":   " SILICON",
         "cu":   "  COPPER",
-        "mogr": "AC150GPH"
+        "mogr": "AC150GPH",
+        "vacuum": "VACUUM",
     }
 
     if material not in material_dict.keys():
         raise ValueError(f"Material {material} not found in material dictionary!")
     else:
         return material_dict[material]
-
-
-def exit_handler():
-    """Remove generic assemblies on exit."""
-    for assembly in FlukaPrototype._registry:
-        if isinstance(assembly, FlukaAssembly) \
-        and assembly.fedb_series == 'generic':
-            for el in assembly.elements:
-                assembly.remove_element(el)
-            assembly.delete(_ignore_files=True)
-    # If there are broken assemblies, there might be prototypes left
-    for prototype in FlukaPrototype._registry:
-        if isinstance(prototype, FlukaPrototype) \
-        and prototype.fedb_series == 'generic':
-            for el in prototype.elements:
-                prototype.remove_element(el)
-            prototype.delete(_ignore_files=True)
-atexit.register(exit_handler)
 
 
 _generic_required_fields = ['material', 'length']
