@@ -30,7 +30,7 @@ class BaseEngine(xo.HybridClass):
     _only_protons = False
     _element_classes = None
     _uses_input_file = False
-    _num_input_files = 0
+    _num_input_files = 1
     _uses_run_folder = False
 
     def __init__(self, **kwargs):
@@ -251,10 +251,13 @@ class BaseEngine(xo.HybridClass):
         self._warning_given = False
         self._tracking_initialised = False
 
-
-    def assert_particle_ref(self):
-        if self.particle_ref is None:
-            raise ValueError(f"{self.__class__.__name__} reference particle not set!")
+    def is_running(self):
+        if hasattr(self, '_preparing_input') and self._preparing_input:
+            # We need this to allow changing the element settings which otherwise are locked
+            return False
+        # If we get here, we cannot say if the engine is running or not and we need an
+        # implementation in the child class
+        return self._is_running()
 
 
     def generate_input_file(self, *, clean=True, filename=None, **kwargs):
@@ -266,49 +269,102 @@ class BaseEngine(xo.HybridClass):
                            + "file after starting engine)!")
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
+        cwd = kwargs.get('cwd')
+        if cwd and FsPath(cwd).resolve() == FsPath.cwd().resolve():
+            print("Warning: Cannot use current working directory as input folder.")
+            kwargs.pop('cwd')
         kwargs = self._set_engine_properties(**kwargs)
 
         # Create input file
         input_file, _ = self._generate_input_file(**kwargs)
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
-            # Some engines might need multiple input files (like Fluka)
+            # Some engines might create multiple input files (like Fluka)
             input_file = [input_file]
         if filename is None:
             if hasattr(self, '_old_cwd') and self._old_cwd is not None:
-                input_file[0] = input_file[0].rename(self._old_cwd / input_file[0].name)
+                new_input_file = [input_file[0].rename(self._old_cwd / input_file[0].name)]
+            else:
+                new_input_file = [input_file[0]]
         else:
-            input_file[0] = input_file[0].rename(filename)
+            new_input_file = [input_file[0].rename(filename)]
         for i, file in enumerate(input_file[1:]):
-            input_file[i+1] = file.rename(input_file[0].parent / file.name)
-        input_file = input_file[0] if self._num_input_files==1 else input_file
+            new_input_file.append(file.rename(new_input_file[0].parent / file.name))
 
         if clean:
-            self.clean_input_files(clean_all=False)
+            self.clean_input_files(clean_all=True, input_file=input_file)
         self._restore_engine_properties(clean=clean)
 
-        return input_file
+        return new_input_file
 
 
-    def is_running(self):
-        if hasattr(self, '_preparing_input') and self._preparing_input:
-            # We need this to allow changing the element settings which otherwise are locked
-            return False
-        # If we get here, we cannot say if the engine is running or not and we need an
-        # implementation in the child class
-        return self._is_running()
+    def assert_particle_ref(self):
+        if self.particle_ref is None:
+            raise ValueError(f"{self.__class__.__name__} reference particle not set!")
+
+    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[]):
+        self._assert_element(coll)
+
+        missing_attributes = False
+        for attr in _necessary_attributes:
+            if not hasattr(coll, attr) or not getattr(coll, attr):
+                missing_attributes = True
+
+        if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
+            coll._equivalent_drift.track(particles)
+            return True
+
+        npart = particles._num_active_particles
+        if npart == 0:
+            return True
+        if not isinstance(particles._buffer.context, xo.ContextCpu):
+            raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
+
+        assert self.environment.compiled
+        if not self.is_running():
+            raise ValueError(f"{self.__class__.__name__} not yet running!\nPlease do this "
+                           + f"first, by calling xcoll.{self.__class__.__name__}.start().")
+
+        self.assert_particle_ref()
+        if abs(particles.mass0 - self.particle_ref.mass0) > 1e-3:
+            raise ValueError(f"Error in reference mass of `particles`: not in sync with "
+                           + f"{self.name} reference particle!\nRebuild the particles object "
+                           + f"using the {self.__class__.__name__} reference particle.")
+        if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
+            raise ValueError(f"Error in reference charge of `particles`: not in sync with "
+                           + f"{self.name} reference particle!\nRebuild the particles object "
+                           + f"using the {self.__class__.__name__} reference particle.")
+        if not self._only_protons:
+            if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+                raise ValueError("Some particles are missing the pdg_id!")
+            if particles._num_active_particles + particles._num_lost_particles == particles._capacity:
+                raise ValueError("Particles capacity equal to size! Please provide extra capacity "
+                               + "for secondaries.")
+        return False
 
 
     def clean(self, **kwargs):
         self.clean_input_files(**kwargs)
         self.clean_output_files(**kwargs)
 
-    def clean_input_files(self, **kwargs):
+    def clean_input_files(self, clean_all=False, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
-        self._clean_input_files(**kwargs)
+        files_to_delete = self._get_input_files_to_clean(**kwargs)
+        if not clean_all:
+            files_to_delete = [f for f in files_to_delete
+                    if f not in self._all_input_files(kwargs['input_file'])]
+        for f in files_to_delete:
+            if f is not None and f.exists():
+                f.unlink()
 
-    def clean_output_files(self, **kwargs):
+    def clean_output_files(self, clean_all=False, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
-        self._clean_output_files(**kwargs)
+        files_to_delete = self._get_output_files_to_clean(**kwargs)
+        if not clean_all:
+            files_to_delete = [f for f in files_to_delete
+                    if f not in self._all_input_files(kwargs['input_file'])]
+        for f in files_to_delete:
+            if f is not None and f.exists():
+                f.unlink()
 
 
     # =======================
@@ -319,17 +375,18 @@ class BaseEngine(xo.HybridClass):
     # or they can be set when the engine is started. In the latter case, the values
     # are temporary and the original will be restored when the engine is stopped.
 
+    def _set_property(self, prop, kwargs):
+        val = kwargs.pop(prop, None)
+        if val is not None:
+            # We only need to update the property when it is not None
+            setattr(self, f'_old_{prop}', getattr(self, prop))
+            setattr(self, prop, val)
+
     def _set_engine_properties(self, **kwargs):
         self._preparing_input = True  # We need this to allow changing the element settings which otherwise are locked
-        def _set_property(prop):
-            val = kwargs.pop(prop, None)
-            if val is not None:
-                # We only need to update the property when it is not None
-                setattr(self, f'_old_{prop}', getattr(self, prop))
-                setattr(self, prop, val)
         # We need to set the following properties first as they are needed by the others
-        _set_property('verbose')
-        _set_property('line')
+        self._set_property('verbose', kwargs)
+        self._set_property('line', kwargs)
         # The following properties have a specific logic
         self._use_seed(kwargs.pop('seed', None))
         self._use_particle_ref(kwargs.pop('particle_ref', None))
@@ -337,13 +394,13 @@ class BaseEngine(xo.HybridClass):
         self._get_elements(kwargs.pop('elements', None), kwargs.pop('names', None))
         self._set_cwd(kwargs.pop('cwd', None))
         # Now we can set the rest of the properties
-        _set_property('capacity')
+        self._set_property('capacity', kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
         self._preparing_input = False
         # Reset particle_ref in the line
-        if hasattr(self, '_old_particle_ref'):
+        if hasattr(self, '_old_line_particle_ref'):
             self.line.particle_ref = self._old_line_particle_ref
             del self._old_line_particle_ref
         # The following properties have a specific logic
@@ -362,10 +419,11 @@ class BaseEngine(xo.HybridClass):
     def _use_seed(self, seed=None):
         if seed is None:
             if self.seed is None:
+                rng = np.random.default_rng()
                 if self._int32:
-                    self.seed = np.random.randint(0, int(2**32))
+                    self.seed = rng.integers(0, int(2**31)) # 32-bit signed
                 else:
-                    self.seed = np.random.randint(0, int(2**64))
+                    self.seed = rng.integers(0, int(2**63)) # 64-bit signed
         else:
             self._old_seed = self.seed
             self.seed = seed
@@ -424,7 +482,7 @@ class BaseEngine(xo.HybridClass):
             if names is None:
                 names = []
                 for ee in elements:
-                    if hasattr(ee, 'name'):
+                    if hasattr(ee, 'name') and ee.name:
                         names.append(ee.name)
                     else:
                         name = self._get_new_element_name()
@@ -460,6 +518,9 @@ class BaseEngine(xo.HybridClass):
                 this_elements.append(ee)
         if len(this_elements) == 0:
             raise ValueError(f"No active {self.name} elements found!")
+        if len(set(this_names)) != len(this_names):
+            raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
+                           + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _reactivate_elements(self):
@@ -584,11 +645,21 @@ class BaseEngine(xo.HybridClass):
     # === Methods to be optionally overwritten by child engine ===
     # ============================================================
 
-    def _clean_input_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
-        pass
+    def _get_input_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
+        return []
 
-    def _clean_output_files(self, input_file=None, cwd=None, clean_all=False, **kwargs):
-        pass
+    def _get_output_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
+        return []
+
+    def _all_input_files(self, input_file=None):
+        if self._uses_input_file:
+            if self._num_input_files == 1:
+                return [self._input_file]
+            else:
+                raise NotImplementedError(f"Need to implement `_all_input_files` for "
+                                    + f"{self.__class__.__name__}!")
+        else:
+                return []
 
     def _remove_element(self, el):
         pass
