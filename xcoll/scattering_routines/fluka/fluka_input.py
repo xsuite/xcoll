@@ -119,6 +119,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
             raise ValueError(f"Collimator {name} has zero length!")
 
         nsig = 1 # TODO can remove?
+        tilt_1 = ee.tilt_L
+        tilt_2 = ee.tilt_R
         if ee.assembly.is_crystal:
             if ee.jaw is None:
                 half_gap = OPEN_JAW
@@ -126,7 +128,6 @@ def _element_dict_to_fluka(element_dict, dump=False):
                 nsig = ee.gap
                 half_gap = ee.jaw
             offset = 0
-            tilt_1 = ee.tilt
             tilt_2 = 0
         else:
             if ee.side == 'left':
@@ -136,7 +137,6 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     nsig = ee.gap_L
                     half_gap = ee.jaw_L
                 offset = 0
-                tilt_1 = ee.tilt_L
                 tilt_2 = 0
             elif ee.side == 'right':
                 if ee.jaw_R is None:
@@ -146,7 +146,6 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     half_gap = -ee.jaw_R   #  TODO: is the sign correct?
                 offset = 0
                 tilt_1 = 0
-                tilt_2 = ee.tilt_R
             else:
                 if ee.jaw_L is None and ee.jaw_R is None:
                     half_gap = OPEN_JAW
@@ -158,8 +157,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
                         nsig = ee.gap_R
                     half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
                     offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
-            tilt_1 = round(ee.tilt_L, 9)
-            tilt_2 = round(ee.tilt_R, 9)
+        tilt_1 = 0 if ee.tilt_L is None else round(tilt_1, 9)
+        tilt_2 = 0 if ee.tilt_R is None else round(tilt_2, 9)
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
             raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 

@@ -148,7 +148,7 @@ class FlukaCollimator(BaseCollimator):
                 self.length_front = (self.assembly.length - self.length) / 2
                 self.length_back = self.assembly.length - self.length - self.length_front
             if self.assembly.side is not None:
-                self._side = self.assembly.side
+                self._get_side_from_input(self.assembly.side)
 
     def track(self, part):
         track_pre(self, part)
