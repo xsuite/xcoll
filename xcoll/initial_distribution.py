@@ -20,11 +20,13 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     """Generate a pencil beam on a collimator."""
 
     # Do some general checks
-    if not line._has_valid_tracker():
-        raise ValueError("Please build tracker before generating pencil distribution!")
+    # if not line._has_valid_tracker():
+    #     raise ValueError("Please build tracker before generating pencil distribution!")
     coll = line[name]
     if not isinstance(coll, tuple(collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
+    if longitudinal_betatron_cut:
+        raise NotImplementedError("Longitudinal betatron cut not implemented yet!")
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
     num_particles = int(num_particles)

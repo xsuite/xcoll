@@ -805,6 +805,19 @@ class BaseCollimator(BaseBlock):
                 return co, [x, y]
 
     @property
+    def co_perp(self):
+        if self.optics_ready():
+            x = self.optics[self.align]['x'][0]
+            y = self.optics[self.align]['y'][0]
+            if hasattr(self, '_cos_zL'):
+                co_L = -x*self._sin_zL + y*self._cos_zL
+                co_R = -x*self._sin_zR + y*self._cos_zR
+                return [co_L, co_R], [x, y]
+            else:  # crystal
+                co = -x*self._sin_z + y*self._cos_z
+                return co, [x, y]
+
+    @property
     def divergence(self):
         if self.optics_ready():
             alfx = self.optics[self.align]['alfx'][0]
