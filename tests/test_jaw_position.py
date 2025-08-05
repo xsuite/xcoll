@@ -29,14 +29,19 @@ particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_everest(jaw, angle, tilt):
+    print(f"{jaw}-{angle}-{tilt}:")
     coll = xc.EverestCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material=xc.materials.MolybdenumGraphite)
+    impacts = None
+    if hasattr(jaw, '__iter__') and jaw[1] < 0:
+        # Store the impacts for some tests
+        impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True)
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=250_000, particle_ref=particle_ref)
     part = part_init.copy()
     coll.track(part)
-    _assert_valid_positions(part, hit_ids, not_hit_ids)
+    _assert_valid_positions(part, hit_ids, not_hit_ids, coll.length, impacts=impacts)
 
 
-# TODO: lhc_tdi and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
+# TODO: lhc_tdi, lhc_tcdq.., and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
 # @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
                                       'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
@@ -47,6 +52,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_fluka(jaw, angle, assembly):
+    print(f"{jaw}-{angle}-{assembly}:")
     tilt = 0
 
     # If a previous test failed, stop the server manually
@@ -55,6 +61,10 @@ def test_fluka(jaw, angle, assembly):
 
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
+    impacts = None
+    if assembly.startswith('hilumi'):
+        # Store the impacts for some tests
+        impacts = xc.InteractionRecord.start(elements=[coll], names='TCP', record_impacts=True)
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.start(elements=coll, capacity=10_000)
 
@@ -62,10 +72,11 @@ def test_fluka(jaw, angle, assembly):
                             _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
     part = part_init.copy()
     coll.track(part)
-    _assert_valid_positions(part, hit_ids, not_hit_ids)
 
     # Stop the FLUKA server
     xc.fluka.engine.stop(clean=True)
+
+    _assert_valid_positions(part, hit_ids, not_hit_ids, coll.length, impacts=impacts)
 
 
 def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1.e-6,
@@ -103,19 +114,37 @@ def _generate_particles(coll, num_part, particle_ref, _capacity=None, jaw_band=1
     return part_init, hit_ids, not_hit_ids
 
 
-def _assert_valid_positions(part, hit_ids, not_hit_ids, momentum_accuracy=1.e-12):
+def _assert_valid_positions(part, hit_ids, not_hit_ids, length, impacts=None, momentum_accuracy=1.e-12):
+    mask_alive = part.state > 0
     mask_hit = np.isin(part.parent_particle_id, hit_ids)
     mask_not_hit = np.isin(part.parent_particle_id, not_hit_ids)
+
+    # All alive particles should have reached the end of the collimator and should have the same state
+    assert np.allclose(part.s[mask_alive], length, atol=1e-12)
+    assert np.unique(part.state[mask_alive]).size == 1
 
     # Particles that are supposed to not have hit the collimator, but have a kick or are dead, are considered faulty
     assert not np.any(abs(part.px[mask_not_hit]) > momentum_accuracy)
     assert not np.any(abs(part.py[mask_not_hit]) > momentum_accuracy)
+    assert not np.any(abs(part.delta[mask_not_hit]) > momentum_accuracy)
     assert not np.any(part.state[mask_not_hit] < 1)
 
     # Particles that are supposed to have hit the collimator, but are alive and have no kick, are considered faulty
-    faulty =  mask_hit & (abs(part.px) < momentum_accuracy) & (abs(part.py) < momentum_accuracy)
-    faulty &= (part.state > 0)
+    faulty =  mask_hit & (part.state > 0)
+    faulty &= (abs(part.px) < momentum_accuracy) & (abs(part.py) < momentum_accuracy)
+    faulty &= (abs(part.delta) < momentum_accuracy)
     assert len(part.x[faulty]) <= 1  # We allow for a small margin of error
+
+    if impacts is not None:
+        df = impacts.to_pandas()
+        types = np.unique(df.interaction_type)
+        assert np.all([this_type in ['Enter Jaw L', 'Enter Jaw R'] for this_type in types])
+        # Every hit should be registered only once
+        assert len(df.id_before) == len(np.unique(df.id_before))
+        # Impacted particles should have been registered
+        assert np.all(np.isin(df.id_before, hit_ids))
+        # Missing particles should not have been registered
+        assert not np.any(np.isin(df.id_before, not_hit_ids))
 
 
 def _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids):

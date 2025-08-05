@@ -9,9 +9,9 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
-from ..scattering_routines.fluka import track, \
-                    FlukaPrototype, FlukaAssembly, create_generic_assembly
-from ..scattering_routines.fluka.engine import FlukaEngine
+from ..general import _pkg_root
+from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
+                                        FlukaPrototype, FlukaAssembly, create_generic_assembly
 
 
 class FlukaCollimator(BaseCollimator):
@@ -22,7 +22,6 @@ class FlukaCollimator(BaseCollimator):
         '_tracking':             xo.Int8,
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
-    _xofields.pop('_side')  # Defined by assembly
 
     isthick = True
     allow_track = True
@@ -36,6 +35,10 @@ class FlukaCollimator(BaseCollimator):
     _internal_record_class = BaseCollimator._internal_record_class
 
     _depends_on = [BaseCollimator, FlukaEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','fluka_collimator.h')
+    ]
 
     _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
@@ -144,9 +147,16 @@ class FlukaCollimator(BaseCollimator):
             if self.assembly.length is not None:
                 self.length_front = (self.assembly.length - self.length) / 2
                 self.length_back = self.assembly.length - self.length - self.length_front
+            if self.assembly.side is not None:
+                self._get_side_from_input(self.assembly.side)
 
     def track(self, part):
-        track(self, part)
+        track_pre(self, part)
+        ### part_init = part.copy()
+        ### super().track(part_init)
+        #part.state = part_init.state
+        track_core(self, part)
+        track_post(self, part)
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -184,7 +194,6 @@ class FlukaCollimator(BaseCollimator):
     def _get_side_from_input(self, side):
         BaseCollimator.side.fset(self, side)
         side = BaseCollimator.side.fget(self)
-        self._side = None # Cannot delete it, because by accessing the xofield of the BaseCollimator parent, it became a descriptor
         return side
 
 
@@ -213,6 +222,10 @@ class FlukaCrystal(BaseCrystal):
     _internal_record_class = BaseCrystal._internal_record_class
 
     _depends_on = [BaseCrystal, FlukaEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','fluka_crystal.h')
+    ]
 
     _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
@@ -350,7 +363,6 @@ class FlukaCrystal(BaseCrystal):
     def _get_side_from_input(self, side):
         BaseCrystal.side.fset(self, side)
         side = BaseCrystal.side.fget(self)
-        self._side = None # Cannot delete it, because by accessing the xofield of the BaseCrystal parent, it became a descriptor
         return side
 
     def _get_bending_radius_from_angle(self, bending_angle):

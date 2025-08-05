@@ -40,6 +40,8 @@ class FlukaEngine(BaseEngine):
     _num_input_files = 3
     _uses_run_folder = True
 
+    _depends_on = [BaseEngine]
+
     _extra_c_sources = [source]
 
     def __init__(self, **kwargs):
