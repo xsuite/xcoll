@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 import time
 start_time = time.time()
+import matplotlib.pyplot as plt
 
 import xobjects as xo
 import xtrack as xt
@@ -76,3 +77,6 @@ ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
 print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
+
+ThisLM.plot()
+plt.show()
