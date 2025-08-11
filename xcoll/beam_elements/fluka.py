@@ -151,18 +151,10 @@ class FlukaCollimator(BaseCollimator):
                 self._get_side_from_input(self.assembly.side)
 
     def track(self, part):
-        track_pre(self, part)
-        ### part_init = part.copy()
-        ### super().track(part_init)
-        #part.state = part_init.state
-        # if self.co is not None:
-        #     part.x -= self.co[1][0]
-        #     part.y -= self.co[1][1]
-        track_core(self, part)
-        if self.co is not None:
-            part.x += self.co[1][0]
-            part.y += self.co[1][1]
-        track_post(self, part)
+        if track_pre(self, part):
+            super().track(part)
+            track_core(self, part)
+            track_post(self, part)
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -271,10 +263,6 @@ class FlukaCrystal(BaseCrystal):
                     side = kwargs.pop('side', None)
                     if side is None:
                         raise ValueError('Need to provide side!')
-                    if 'width' in kwargs:
-                        width = kwargs.pop('width', None)
-                    if 'height' in kwargs:
-                        height = kwargs.pop('height', None)
                     generic = True
             super().__init__(**kwargs)
             for key, val in to_assign.items():
@@ -285,8 +273,7 @@ class FlukaCrystal(BaseCrystal):
                 side = self._get_side_from_input(side)
                 self.assembly = create_generic_assembly(is_crystal=True, material=material,
                                                         side=side, length=self.length,
-                                                        bending_radius=bending_radius,
-                                                        width=width, height=height)
+                                                        bending_radius=bending_radius)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
 
