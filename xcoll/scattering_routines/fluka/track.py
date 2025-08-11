@@ -61,10 +61,14 @@ def track_post(coll, particles):
     _drift(coll, particles, -coll.length_back)
 
 
-def _expand(arr, dtype=float):
+def _expand(arr, dtype=float, max_part=None):
     import xcoll as xc
-    max_part = xc.fluka.engine.capacity
+    # max_part = xc.fluka.engine.capacity
+    print(max_part)
+    print(arr.size)
     return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
+    # import pdb; pdb.set_trace()
+    # return np.concatenate((arr, np.zeros(max_part, dtype=dtype)))
 
 
 def track_core(coll, part):
@@ -77,9 +81,9 @@ def track_core(coll, part):
 
     coll_everest = xc.EverestCollimator(length=coll.length+coll.length_front+coll.length_back, material=xc.materials.MolybdenumGraphite)
     coll_everest.jaw = coll.jaw
-
+    coll_everest.angle = coll.angle
     part_everest = part.copy()
-    _drift(coll, part_everest, -coll.length_front)
+    # _drift(coll, part_everest, -coll.length_front)
     coll_everest.track(part_everest)
 
     mask_hit_base = (
@@ -96,17 +100,23 @@ def track_core(coll, part):
 
     send_to_fluka  = mask_hit_base # part.state == HIT_ON_FLUKA_COLL
 
+    if coll.co is not None:
+        part.x -= coll.co[1][0]
+        part.y -= coll.co[1][1]
+
     if not sum(send_to_fluka):
         _drift(coll, part, coll.length+coll.length_front+coll.length_back)
         return
-
     n_hit = mask_hit_base.sum()
-
+    
     suggested_max = 51 * n_hit
     capacity = xc.fluka.engine.capacity
-    max_part = suggested_max if suggested_max < capacity else capacity
-    max_part       = xc.fluka.engine.capacity
-    part.state[mask_hit_base] = HIT_ON_FLUKA_COLL
+    max_part = suggested_max 
+    if suggested_max <  part._num_active_particles:
+        max_part = capacity
+    # import pdb; pdb.set_trace()
+    # max_part       = xc.fluka.engine.capacity
+    # part.state[mask_hit_base] = HIT_ON_FLUKA_COLL
 
 
     #npart          = send_to_fluka.sum()
@@ -134,19 +144,19 @@ def track_core(coll, part):
 
     # Prepare arrays for FORTRAN
     data = {}
-    data['x']      = _expand(part.x[alive_at_entry] * 1000.)
-    data['xp']     = _expand(part.px[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
-    data['y']      = _expand(part.y[alive_at_entry] * 1000.)
-    data['yp']     = _expand(part.py[alive_at_entry] * part.rpp[alive_at_entry] * 1000.)
-    data['zeta']   = _expand(part.zeta[alive_at_entry] * 1000.)
-    data['e']      = _expand(part.energy[alive_at_entry] / 1.e6)
-    data['m']      = _expand(mass / 1.e6)
-    data['q']      = _expand(charge.astype(np.int16), dtype=np.int16)
-    data['A']      = _expand(A.astype(np.int32), dtype=np.int32)
-    data['Z']      = _expand(Z.astype(np.int32), dtype=np.int32)
-    data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32)
+    data['x']      = _expand(part.x[alive_at_entry] * 1000., max_part=max_part)
+    data['xp']     = _expand(part.px[alive_at_entry] * part.rpp[alive_at_entry] * 1000., max_part=max_part)
+    data['y']      = _expand(part.y[alive_at_entry] * 1000., max_part=max_part)
+    data['yp']     = _expand(part.py[alive_at_entry] * part.rpp[alive_at_entry] * 1000., max_part=max_part)
+    data['zeta']   = _expand(part.zeta[alive_at_entry] * 1000., max_part=max_part)
+    data['e']      = _expand(part.energy[alive_at_entry] / 1.e6, max_part=max_part)
+    data['m']      = _expand(mass / 1.e6, max_part=max_part)
+    data['q']      = _expand(charge.astype(np.int16), dtype=np.int16, max_part=max_part)
+    data['A']      = _expand(A.astype(np.int32), dtype=np.int32, max_part=max_part)
+    data['Z']      = _expand(Z.astype(np.int32), dtype=np.int32, max_part=max_part)
+    data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32, max_part=max_part)
     # FLUKA is 1-indexed
-    data['pid']    = _expand(part.particle_id[alive_at_entry].astype(np.int32) + 1, dtype=np.int32)
+    data['pid']    = _expand(part.particle_id[alive_at_entry].astype(np.int32) + 1, dtype=np.int32, max_part=max_part)
     # FLUKA does not use a parent ID, but a primary ID (hence not the direct parent but the first impact)
     # After one passage, there is no difference between parent ID and primary ID, but when a child gets
     # children in a second passage, we cannot trace them to the correct parent (only to the correct grand-
@@ -155,11 +165,11 @@ def track_core(coll, part):
     data['ppid']   = data['pid'].copy()
     old_pid        = part.particle_id[alive_at_entry]
     old_ppid       = part.parent_particle_id[alive_at_entry]
-    data['weight'] = _expand(part.weight[alive_at_entry])
+    data['weight'] = _expand(part.weight[alive_at_entry], max_part=max_part)
     # TODO: Hard-coded spin (currently not used)
-    data['spin_x'] = _expand(np.zeros(npart))
-    data['spin_y'] = _expand(np.zeros(npart))
-    data['spin_z'] = _expand(np.zeros(npart))
+    data['spin_x'] = _expand(np.zeros(npart), max_part=max_part)
+    data['spin_y'] = _expand(np.zeros(npart), max_part=max_part)
+    data['spin_z'] = _expand(np.zeros(npart), max_part=max_part)
 
     # Change npart to np.array to make it writable, store some initial data
     npart    = np.array(npart, dtype=np.int64)

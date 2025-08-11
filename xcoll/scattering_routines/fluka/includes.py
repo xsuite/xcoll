@@ -137,7 +137,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         if return_neutrinos is None:
             return_neutrinos = False
         if return_protons is None:
-            return_protons = _is_proton(particle_ref) or _is_ion(particle_ref)
+            return_protons = _is_proton(particle_ref) # or _is_ion(particle_ref)
         if return_neutrons is None:
             return_neutrons = False
         if return_ions is None:

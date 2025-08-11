@@ -155,7 +155,13 @@ class FlukaCollimator(BaseCollimator):
         ### part_init = part.copy()
         ### super().track(part_init)
         #part.state = part_init.state
+        # if self.co is not None:
+        #     part.x -= self.co[1][0]
+        #     part.y -= self.co[1][1]
         track_core(self, part)
+        if self.co is not None:
+            part.x += self.co[1][0]
+            part.y += self.co[1][1]
         track_post(self, part)
 
     def __setattr__(self, name, value):

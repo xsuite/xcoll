@@ -156,7 +156,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     elif ee.gap_R is not None:
                         nsig = ee.gap_R
                     half_gap = (ee._jaw_LU + ee._jaw_LD - ee._jaw_RU - ee._jaw_RD) / 4
-                    offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
+                    offset   = 0 # (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
         tilt_1 = 0 if ee.tilt_L is None else round(tilt_1, 9)
         tilt_2 = 0 if ee.tilt_R is None else round(tilt_2, 9)
         if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
