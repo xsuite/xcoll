@@ -30,9 +30,10 @@ server_log = "rfluka.log"
 
 class FlukaEngine(BaseEngine):
     _xofields = {**BaseEngine._xofields,
-        '_network_port':    xo.Int64,
-        '_timeout_sec':     xo.Int32,
-        '_max_particle_id': xo.Int64
+        '_network_port':      xo.Int64,
+        '_timeout_sec':       xo.Int32,
+        '_max_particle_id':   xo.Int64,
+        '_relative_capacity': xo.Int64,
     }
 
     _int32 = True
@@ -58,12 +59,34 @@ class FlukaEngine(BaseEngine):
         kwargs.setdefault('_timeout_sec', 36000)
         kwargs.setdefault('_network_port', -1)
         kwargs.setdefault('_max_particle_id', -1)
+        kwargs.setdefault('_relative_capacity', 2)
         super().__init__(**kwargs)
 
 
     # ======================
     # === New Properties ===
     # ======================
+
+    @property
+    def relative_capacity(self):
+        if self._relative_capacity == 0:
+            return None
+        else:
+            return int(self._relative_capacity)
+
+    @relative_capacity.setter
+    def relative_capacity(self, val):
+        if val is None:
+            val = 0
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`relative_capacity` has to be a positive integer!")
+        if val <= 1:
+            raise ValueError("`relative_capacity` has to be larger than 1!")
+        self._relative_capacity = int(val)
+
+    @relative_capacity.deleter
+    def relative_capacity(self):
+        self.relative_capacity = None
 
     @property
     def network_port(self):
@@ -144,6 +167,7 @@ class FlukaEngine(BaseEngine):
     def _set_engine_properties(self, **kwargs):
         kwargs = super()._set_engine_properties(**kwargs)
         self._set_property('timeout_sec', kwargs)
+        self._set_property('relative_capacity', kwargs)
         return kwargs
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):

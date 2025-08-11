@@ -28,7 +28,7 @@ def track_pre(coll, particles):
 
     if xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
                                 _necessary_attributes=['fluka_id']):
-        return
+        return False  # Stop tracking
 
     if not xc.fluka.engine._flukaio_connected:
         raise ValueError(f"FlukaEngine not yet running!\nPlease do this first, by calling "
@@ -39,6 +39,9 @@ def track_pre(coll, particles):
     if 1.4*npart > xc.fluka.engine.capacity:
         raise ValueError(f"Tracking {npart} particles but only {xc.fluka.engine.capacity} allocated in "
                        + f"FlukaEngine!\nRemember to leave room for secondaries...")
+    if xc.fluka.engine.relative_capacity == 2 and xc.fluka.engine.particle_ref.pdg_id[0] != 2212:
+        xc.fluka.engine._print("Warning: relative_capacity is set to 2. This is "
+                             + "probably not enough for anything except protons.")
 
     xc.fluka.engine.init_tracking(npart)
 
@@ -54,16 +57,18 @@ def track_pre(coll, particles):
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
     _drift(coll, particles, -coll.length_front)
+    return True  # Continue tracking
 
 
 def track_post(coll, particles):
     _drift(coll, particles, -coll.length_back)
+    alive_states = np.unique(particles.state[particles.state > 0])
+    assert len(alive_states) == 1, f"Unexpected alive particle states after tracking: {alive_states}"
+    assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
 
 
-def _expand(arr, dtype=float):
-    import xcoll as xc
-    max_part = xc.fluka.engine.capacity
-    return np.concatenate((arr, np.zeros(max_part-arr.size, dtype=dtype)))
+def _expand(arr, extra_capacity, dtype=float):
+    return np.concatenate((arr, np.zeros(extra_capacity, dtype=dtype)))
 
 
 def track_core(coll, part):
@@ -74,11 +79,12 @@ def track_core(coll, part):
         xc.fluka.engine._warn_pyfluka(error)
         return
 
-    max_part       = xc.fluka.engine.capacity
     send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
     npart          = send_to_fluka.sum()
-    max_id         = part.particle_id[part.state > 0].max()
+    max_id         = part.particle_id[part.state > -9999].max()
     assert npart  <= part._num_active_particles
+    if npart == 0:
+        return
 
     # Get particle data
     m0         = part.mass0
@@ -95,21 +101,30 @@ def track_core(coll, part):
     Z          = np.array([0 if pdgid < 0 else zz for zz, pdgid in zip(Z, pdg_id)])
     precision  = p0c * 2.22e-15  # To avoid numerical issues like negative enervy
 
+    # Decide how much extra capacity to send to FLUKA
+    extra_capacity = xc.fluka.engine.capacity - npart
+    extra_capacity = min(int(np.ceil((xc.fluka.engine.relative_capacity - 1)*npart)),
+                         extra_capacity)
+    extra_capacity = max(extra_capacity, 50) # Some minimum value to be safe
+
     # Prepare arrays for FORTRAN
     data = {}
-    data['x']      = _expand(part.x[send_to_fluka] * 1000.)
-    data['xp']     = _expand(part.px[send_to_fluka] * part.rpp[send_to_fluka] * 1000.)
-    data['y']      = _expand(part.y[send_to_fluka] * 1000.)
-    data['yp']     = _expand(part.py[send_to_fluka] * part.rpp[send_to_fluka] * 1000.)
-    data['zeta']   = _expand(part.zeta[send_to_fluka] * 1000.)
-    data['e']      = _expand(part.energy[send_to_fluka] / 1.e6)
-    data['m']      = _expand(mass / 1.e6)
-    data['q']      = _expand(charge.astype(np.int16), dtype=np.int16)
-    data['A']      = _expand(A.astype(np.int32), dtype=np.int32)
-    data['Z']      = _expand(Z.astype(np.int32), dtype=np.int32)
-    data['pdg_id'] = _expand(pdg_id.astype(np.int32), dtype=np.int32)
+    data['x']      = _expand(part.x[send_to_fluka] * 1000., extra_capacity)
+    data['xp']     = _expand(part.px[send_to_fluka] * part.rpp[send_to_fluka] * 1000.,
+                             extra_capacity)
+    data['y']      = _expand(part.y[send_to_fluka] * 1000., extra_capacity)
+    data['yp']     = _expand(part.py[send_to_fluka] * part.rpp[send_to_fluka] * 1000.,
+                             extra_capacity)
+    data['zeta']   = _expand(part.zeta[send_to_fluka] * 1000., extra_capacity)
+    data['e']      = _expand(part.energy[send_to_fluka] / 1.e6, extra_capacity)
+    data['m']      = _expand(mass / 1.e6, extra_capacity)
+    data['q']      = _expand(charge.astype(np.int16), extra_capacity, dtype=np.int16)
+    data['A']      = _expand(A.astype(np.int32), extra_capacity, dtype=np.int32)
+    data['Z']      = _expand(Z.astype(np.int32), extra_capacity, dtype=np.int32)
+    data['pdg_id'] = _expand(pdg_id.astype(np.int32), extra_capacity, dtype=np.int32)
     # FLUKA is 1-indexed
-    data['pid']    = _expand(part.particle_id[send_to_fluka].astype(np.int32) + 1, dtype=np.int32)
+    data['pid']    = _expand(part.particle_id[send_to_fluka].astype(np.int32) + 1,
+                             extra_capacity, dtype=np.int32)
     # FLUKA does not use a parent ID, but a primary ID (hence not the direct parent but the first impact)
     # After one passage, there is no difference between parent ID and primary ID, but when a child gets
     # children in a second passage, we cannot trace them to the correct parent (only to the correct grand-
@@ -118,11 +133,11 @@ def track_core(coll, part):
     data['ppid']   = data['pid'].copy()
     old_pid        = part.particle_id[send_to_fluka]
     old_ppid       = part.parent_particle_id[send_to_fluka]
-    data['weight'] = _expand(part.weight[send_to_fluka])
+    data['weight'] = _expand(part.weight[send_to_fluka], extra_capacity)
     # TODO: Hard-coded spin (currently not used)
-    data['spin_x'] = _expand(np.zeros(npart))
-    data['spin_y'] = _expand(np.zeros(npart))
-    data['spin_z'] = _expand(np.zeros(npart))
+    data['spin_x'] = _expand(np.zeros(npart), extra_capacity)
+    data['spin_y'] = _expand(np.zeros(npart), extra_capacity)
+    data['spin_z'] = _expand(np.zeros(npart), extra_capacity)
 
     # Change npart to np.array to make it writable, store some initial data
     npart    = np.array(npart, dtype=np.int64)
@@ -136,7 +151,7 @@ def track_core(coll, part):
                 fluka_id=coll.fluka_id,
                 length=coll.length + coll.length_front + coll.length_back,
                 alive_part=npart,
-                max_part=max_part,
+                max_part=npart + extra_capacity,
                 x_part=data['x'],
                 xp_part=data['xp'], # FLUKA uses director cosine. This is exactly equal to px / (1+delta)
                 y_part=data['y'],
@@ -182,6 +197,9 @@ def track_core(coll, part):
     # ===============================================================================================
     mask_existing = new_pid <= max_id
 
+    # Need to put this here, in case mask_existing is empty but mask_new is not
+    E_diff = np.zeros(len(part.x))
+
     if np.any(mask_existing):
         # TODO: this is slooooow
         idx_old  = np.array([np.where(part.particle_id==idx)[0][0]
@@ -194,7 +212,6 @@ def track_core(coll, part):
         assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)
 
         # Update momentum
-        E_diff = np.zeros(len(part.x))
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing] * 1.e6
         if np.any(E_diff < -precision):
             raise ValueError(f"FLUKA returned particle with energy higher than incoming particle!")
@@ -320,3 +337,6 @@ def track_core(coll, part):
 
     # Reshuffle
     part.reorganize()
+
+    # Give all particles the same s position to avoid numerical differences
+    part.s[part.state > 0] = s_in + coll.length + coll.length_front + coll.length_back

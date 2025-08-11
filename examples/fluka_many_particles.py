@@ -18,9 +18,8 @@ if xc.fluka.engine.is_running():
     xc.fluka.engine.stop()
 
 
-def run_many_particles(particle_ref, num_part, capacity=None, plot=False, showers=True):
-    if not capacity:
-        capacity = num_part*100
+def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=None,
+                       plot=False, showers=True):
 
     # Create a FLUKA collimator
     coll = xc.FlukaCollimator(length=0.4, assembly='fcc_tcp')
@@ -29,6 +28,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False, shower
     # Connect to FLUKA
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.capacity = capacity
+    xc.fluka.engine.relative_capacity = relative_capacity
     xc.fluka.engine.start(elements=coll, clean=True, verbose=False, return_all=True,
                           return_neutral=True, electron_lower_momentum_cut=1.e6,
                           include_showers=showers)
@@ -152,8 +152,10 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False, shower
 
 
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100, capacity=50_000, showers=False)
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, plot=True)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100,
+                   capacity=25_000, relative_capacity=250, showers=False)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, 
+                   capacity=50_000, relative_capacity=100, plot=True)
 
 
 # # Verify reference masses file

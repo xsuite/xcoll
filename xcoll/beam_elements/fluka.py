@@ -151,10 +151,10 @@ class FlukaCollimator(BaseCollimator):
                 self._get_side_from_input(self.assembly.side)
 
     def track(self, part):
-        track_pre(self, part)
-        super().track(part)
-        track_core(self, part)
-        track_post(self, part)
+        if track_pre(self, part):
+            super().track(part)
+            track_core(self, part)
+            track_post(self, part)
 
     def __setattr__(self, name, value):
         import xcoll as xc
