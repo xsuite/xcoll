@@ -39,22 +39,20 @@ static inline double phi_simplemoliere(double x, double theta,
 }
 
 
-static inline double x_simplemoliere(double z, double x, double theta, double bpc, double U_N, double beta_i, double a_TF,double E_T) {
+static inline double x_simplemoliere(double z, double x, double theta, double bpc, double U_N, double beta_i, double a_TF,double E_T, double phi) {
     double m1 = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double m1p = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double nu = nu_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double phi = phi_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double u = sqrt(m1)*(nu*z + phi);
     double sn, cn, dn, am;
     ellpj(u, m1p, &sn, &cn, &dn, &am);
     return -2.0 * a_TF / beta_i * asinh(sqrt(m1p) * sn / dn);
 }
 
-static inline double theta_simplemoliere(double z, double x, double theta, double bpc, double U_N, double beta_i, double a_TF,double E_T) {
+static inline double theta_simplemoliere(double z, double x, double theta, double bpc, double U_N, double beta_i, double a_TF, double E_T, double phi) {
     double m1 = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double m1p = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double nu = nu_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double phi = phi_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double u = sqrt(m1) * (nu * z + phi);
     double sn, cn, dn, am;
     ellpj(u, m1p, &sn, &cn, &dn, &am);
@@ -73,8 +71,9 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
         double theta0 = LocalParticle_get_xp(part);
         double z = length;
         double E_T=E_T_simplemoliere(x0,  theta0,  bpc,  U_N,  beta_i,  a_TF);
-        double x = x_simplemoliere(z, x0, theta0, bpc, U_N, beta_i, a_TF, E_T);
-        double theta = theta_simplemoliere(z, x0, theta0, bpc, U_N, beta_i, a_TF, E_T);
+        double phi = phi_simplemoliere(x0,  theta0,  bpc,  U_N,  beta_i,  a_TF, E_T);
+        double x = x_simplemoliere(z, x0, theta0, bpc, U_N, beta_i, a_TF, E_T, phi);
+        double theta = theta_simplemoliere(z, x0, theta0, bpc, U_N, beta_i, a_TF, E_T, phi);
 
         LocalParticle_set_x(part, x);
         LocalParticle_set_xp(part, theta);
