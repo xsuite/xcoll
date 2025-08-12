@@ -28,14 +28,12 @@ static inline double nu_simplemoliere(double x, double theta, double bpc, double
     return -copysign(1.0,theta)*beta_i/a_TF*sqrt(E_T/(2.0*bpc));
 }
 
-static inline double phi_simplemoliere(double x, double theta,
-                                       double bpc, double U_N,
-                                       double beta_i, double a_TF,double E_T) {
-    double arg = - (beta_i * x) / (2.0 * a_TF);
-    double phi_amplitude = atan(sinh(arg));
-    double m = E_T / (E_T + 2.0 * U_N);
-
-    return ellik(phi_amplitude, m);
+static inline double phi_simplemoliere(double x, double theta, double bpc, double U_N, double beta_i, double a_TF,double E_T) {
+    double m = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
+    double mp = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
+    double alpha = 1/sqrt(m*pow(sinh(x*beta_i / (2*a_TF)),2) + pow(theta*beta_i /(2*a_TF),2 ));
+    double phi_amplitude = asin(sqrt((1 - alpha*alpha)/mp));
+    return ellik(phi_amplitude, mp);
 }
 
 
