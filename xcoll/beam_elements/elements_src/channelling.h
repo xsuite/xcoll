@@ -10,12 +10,17 @@
 #include <math.h>
 #include <stdio.h>
 
-// Moliere functions 
+// Moliere functions
+
+/*gpufun*/
+double U_simplemoliere(double x, double U_N, double beta_i, double a_TF) {
+    return U_N*(cosh(beta_i/a_TF*x) - 1.0);
+}
 
 /*gpufun*/
 double E_T_simplemoliere(double x, double theta, double bpc, double U_N,
                          double beta_i, double a_TF) {
-    return bpc*theta*theta / 2.0+U_N*(cosh(beta_i/a_TF*x) - 1.0);
+    return bpc*theta*theta / 2.0 + U_simplemoliere(x, U_N, beta_i, a_TF);
 }
 
 /*gpufun*/
@@ -45,6 +50,7 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
                          double beta_i, double a_TF, double E_T) {
     double m = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double mp = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
+    double U = U_simplemoliere(x, U_N, beta_i, a_TF);
     double sign = -1;
     if (x < -1e-12) {
         sign = 1;
@@ -53,9 +59,7 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
         // If theta is very close to 0, we can avoid numerical issues with asin(1)
         return sign*sqrt(mp)*ellpk(mp);
     }
-    double alpha = 1/sqrt(m*pow(sinh(x*beta_i / (2*a_TF)), 2.) + pow(theta*beta_i /(2*a_TF*nu), 2.));
-    double phi_amplitude = asin(sqrt((1 - alpha*alpha)/mp));
-    if (sqrt((1 - alpha*alpha)/mp) > 1) { printf("yes");} else { printf("no");}
+    double phi_amplitude = asin(sqrt(m*U/(U+2*U_N)));
     return sign*sqrt(mp)*ellik(phi_amplitude, mp);
 }
 
