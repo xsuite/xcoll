@@ -55,7 +55,6 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
     }
     double alpha = 1/sqrt(m*pow(sinh(x*beta_i / (2*a_TF)), 2.) + pow(theta*beta_i /(2*a_TF*nu), 2.));
     double phi_amplitude = asin(sqrt((1 - alpha*alpha)/mp));
-    if (sqrt((1 - alpha*alpha)/mp) > 1) { printf("yes");} else { printf("no");}
     return sign*sqrt(mp)*ellik(phi_amplitude, mp);
 }
 

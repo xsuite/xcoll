@@ -27,7 +27,28 @@ static inline double p1evl(double x, const double coef[], int N) {
 }
 
 // ---- ellpk: complete elliptic integral of the first kind ----
-static inline double ellpk(double m1) {
+// Complete elliptic integral of the first kind K(m) with x = m1 = 1 - m.
+static inline double ellpk(double x) {
+    // log(4) constant used in the small-x asymptotic
+    const double MY_LOG4 = 1.3862943611198906188; // = log(4)
+
+    // Domain check, returns 0.0 on domain error)
+    if (x < 0.0 || x > 1.0) {
+        return 0.0;
+    }
+
+    // Small-x handling !!!!!!
+    if (x <= MY_MACHEP) {
+        if (x == 0.0) {
+            // Singular at m -> 1 (x -> 0)
+            return MY_MAXNUM;
+        } else {
+            // Asymptotic for very small x
+            return MY_LOG4 - 0.5 * log(x);
+        }
+    }
+
+    // Polynomial approximation: P(x) - log(x) Q(x)
     static const double P[] = {
         1.37982864606273237150E-4,
         2.28025724005875567385E-3,
@@ -55,15 +76,14 @@ static inline double ellpk(double m1) {
         4.99999999999999999821E-1
     };
 
-    if (m1 < 0.0 || m1 > 1.0)
-        return NAN;
-    if (m1 == 0.0)
+    if (x == 1.0) {
+        // K(0) = pi/2  ( m = 0)
         return MY_PIO2;
-    if (m1 == 1.0)
-        return MY_MAXNUM;
+    }
 
-    return polevl(m1, P, 10) - log(m1) * polevl(m1, Q, 10);
+    return polevl(x, P, 10) - log(x) * polevl(x, Q, 10);
 }
+
 
 // ---- ellik: incomplete elliptic integral of the first kind ----
 static inline double ellik(double phi, double m) {
@@ -73,30 +93,42 @@ static inline double ellik(double phi, double m) {
     double a = 1.0 - m;
     if (a == 0.0) {
         if (fabs(phi) >= MY_PIO2)
-            return MY_MAXNUM;
+            return MY_MAXNUM; 
         return log(tan((MY_PIO2 + phi) / 2.0));
     }
 
-    int npio2 = floor(phi / MY_PIO2);
+    int npio2 = (int)floor(phi / MY_PIO2);
     if (npio2 & 1) npio2 += 1;
 
-    double K = (npio2 ? ellpk(a) : 0.0);
-    phi -= npio2 * MY_PIO2;
+    double K;
+    if (npio2) {
+        K = ellpk(a);
+        phi = phi - npio2 * MY_PIO2;
+    } else {
+        K = 0.0;
+    }
 
-    int sign = (phi < 0.0) ? -1 : 0;
-    if (sign) phi = -phi;
+    int sign;
+    if (phi < 0.0) {
+        phi = -phi;
+        sign = -1;
+    } else {
+        sign = 0;
+    }
 
     double b = sqrt(a);
     double t = tan(phi);
 
     if (fabs(t) > 10.0) {
+        // avoid deep recursion   
         double e = 1.0 / (b * t);
         if (fabs(e) < 10.0) {
             e = atan(e);
             if (npio2 == 0)
                 K = ellpk(a);
             double temp = K - ellik(e, m);
-            return sign ? -(temp + npio2 * K) : temp + npio2 * K;
+            double out = (sign ? -1.0 : 1.0) * temp + npio2 * K;
+            return out;
         }
     }
 
@@ -106,30 +138,36 @@ static inline double ellik(double phi, double m) {
 
     while (fabs(c / a) > MY_MACHEP) {
         double temp = b / a;
-        phi += atan(t * temp) + mod * MY_PI;
-        mod = (int)((phi + MY_PIO2) / MY_PI);
+        phi = phi + atan(t * temp) + mod * MY_PI;
+        mod = (int)((phi + MY_PIO2) / MY_PI);  
+
         t = t * (1.0 + temp) / (1.0 - temp * t * t);
+
         c = (a - b) / 2.0;
-        b = sqrt(a * b);
-        a = (a + b) / 2.0;
+
+        double ab_sqrt = sqrt(a * b);
+        //double a_old = a;
+        a = (a + b) / 2.0;   
+        b = ab_sqrt;         //  update b
+
         d += d;
     }
 
     double temp = (atan(t) + mod * MY_PI) / (d * a);
-    temp = (sign < 0) ? -temp : temp;
+    if (sign < 0) temp = -temp;
     return temp + npio2 * K;
 }
+
 
 // ---- ellpj: Jacobi elliptic functions sn, cn, dn, am ----
 static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph) {
     if (m < 0.0 || m > 1.0) {
-        *sn = *cn = *ph = *dn = 0.0;
+        *sn = *cn = *dn = *ph = 0.0;
         return -1;
     }
 
     if (m < 1.0e-9) {
-        double t = sin(u);
-        double b = cos(u);
+        double t = sin(u), b = cos(u);
         double ai = 0.25 * m * (u - t * b);
         *sn = t - ai * b;
         *cn = b + ai * t;
@@ -160,7 +198,7 @@ static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, 
     int i = 0;
 
     while (fabs(c[i] / a[i]) > MY_MACHEP) {
-        if (i > 7) return -2; // overflow
+        if (i > 7) break;                     // Cephes OVERFLOW 
         ai = a[i];
         ++i;
         c[i] = (ai - b) / 2.0;
@@ -171,9 +209,11 @@ static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, 
     }
 
     phi = twon * a[i] * u;
-    while (--i >= 0) {
+
+    
+    for (; i > 0; --i) {
         t = c[i] * sin(phi) / a[i];
-        phi = (asin(t) + phi) / 2.0;
+        phi = 0.5 * (asin(t) + phi);
     }
 
     t = sin(phi);
