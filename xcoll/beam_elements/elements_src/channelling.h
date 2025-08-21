@@ -50,7 +50,7 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
                          double beta_i, double a_TF, double E_T) {
     double m = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
     double mp = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double U = U_simplemoliere(x, U_N, beta_i, a_TF);
+    # double U = U_simplemoliere(x, U_N, beta_i, a_TF);
     double sign = -1;
     if (x < -1e-12) {
         sign = 1;
@@ -59,7 +59,9 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
         // If theta is very close to 0, we can avoid numerical issues with asin(1)
         return sign*sqrt(mp)*ellpk(mp);
     }
-    double phi_amplitude = asin(sqrt(m*U/(U+2*U_N)));
+    # double phi_amplitude = asin(sqrt(m*U/(U+2*U_N)));
+    double alpha = 1/sqrt(m*pow(sinh(x*beta_i / (2*a_TF)), 2.) + pow(theta*beta_i /(2*a_TF*nu), 2.));
+    double phi_amplitude = asin(sqrt((1 - alpha*alpha)/mp));
     return sign*sqrt(mp)*ellik(phi_amplitude, mp);
 }
 
