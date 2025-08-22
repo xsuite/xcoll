@@ -24,20 +24,17 @@ double E_T_simplemoliere(double x, double theta, double bpc, double U_N,
 }
 
 /*gpufun*/
-double m1_simplemoliere(double x, double theta, double bpc, double U_N,
-                        double beta_i, double a_TF, double E_T ) {
+double m_simplemoliere(double U_N, double E_T ) {
     return 1.0 + 2.0*U_N /E_T;
 }
 
 /*gpufun*/
-double m1p_simplemoliere(double x, double theta, double bpc, double U_N,
-                         double beta_i, double a_TF, double E_T ) {
+double mp_simplemoliere(double U_N, double E_T ) {
     return E_T/(E_T + 2.0*U_N);
 }
 
 /*gpufun*/
-double nu_simplemoliere(double x, double theta, double bpc, double U_N,
-                        double beta_i, double a_TF, double E_T) {
+double nu_simplemoliere(double theta, double bpc, double beta_i, double a_TF, double E_T) {
     // in unit 1.E4
     double sign = -1;
     if (theta <= 0) {
@@ -48,9 +45,7 @@ double nu_simplemoliere(double x, double theta, double bpc, double U_N,
 
 /*gpufun*/
 double phi_simplemoliere(double x, double theta, double nu, double bpc, double U_N,
-                         double beta_i, double a_TF, double E_T) {
-    double m = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double mp = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
+                         double beta_i, double a_TF, double m, double mp) {
     double U = U_simplemoliere(x, U_N, beta_i, a_TF);
     double sign = -1;
     if (x <= 0) {
@@ -66,30 +61,40 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
     return sign*sqrt(mp)*ellik(phi_amplitude, mp);
 }
 
-
 /*gpufun*/
-double x_simplemoliere(double z, double x, double theta, double nu, double bpc, double U_N,
-                       double beta_i, double a_TF,double E_T, double phi) {
+void motion_parameters(double z, double nu, double beta_i, double a_TF, double phi, double m, double mp,
+    /*out*/ double* x_out, /*out*/ double* theta_out) {
+    double u = sqrt(m) * (nu * 1.0e4 * z + phi);
+    double sn, cn, dn, am;
+    ellpj(u, mp, &sn, &cn, &dn, &am);
+    
+    *x_out = -2.0 * a_TF / beta_i * asinh(sqrt(mp) * sn / dn);
+    *theta_out = -2.0 * a_TF / beta_i * nu * cn / dn;
+
+}
+
+
+
+
+// /*gpufun*/
+//double x_simplemoliere(double z, double x, double theta, double nu,
+ //                      double beta_i, double a_TF, double phi, double m, double mp) {
     // in Angstrom
-    double m1 = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double m1p = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double u = sqrt(m1) * (nu*1.E4 * z + phi);
-    double sn, cn, dn, am;
-    ellpj(u, m1p, &sn, &cn, &dn, &am);
-    return -2.0 * a_TF / beta_i * asinh(sqrt(m1p) * sn / dn);
-}
+    //double u = sqrt(m) * (nu*1.E4 * z + phi);
+    //double sn, cn, dn, am;
+    //ellpj(u, mp, &sn, &cn, &dn, &am);
+    //return -2.0 * a_TF / beta_i * asinh(sqrt(mp) * sn / dn);
+//}
 
-/*gpufun*/
-double theta_simplemoliere(double z, double x, double theta, double nu, double bpc, double U_N,
-                           double beta_i, double a_TF, double E_T, double phi) {
+///*gpufun*/
+//double theta_simplemoliere(double z, double x, double theta, double nu,
+ //                          double beta_i, double a_TF, double phi, double m, double mp) {
     // in urad
-    double m1 = m1_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double m1p = m1p_simplemoliere(x, theta, bpc, U_N, beta_i, a_TF, E_T);
-    double u = sqrt(m1) * (nu*1.E4 * z + phi);
-    double sn, cn, dn, am;
-    ellpj(u, m1p, &sn, &cn, &dn, &am);
-    return -2.0 * a_TF / beta_i * nu * cn / dn;
-}
+   // double u = sqrt(m) * (nu*1.E4 * z + phi);
+   // double sn, cn, dn, am;
+   // ellpj(u, mp, &sn, &cn, &dn, &am);
+  //  return -2.0 * a_TF / beta_i * nu * cn / dn;
+//}
 
 /*gpufun*/
 void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* part0) {
@@ -104,10 +109,14 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
         double theta0 = LocalParticle_get_xp(part);
         double z = length;
         double E_T = E_T_simplemoliere(x0,  theta0,  bpc,  U_N,  beta_i,  a_TF);
-        double nu = nu_simplemoliere(x0, theta0, bpc, U_N, beta_i, a_TF, E_T);
-        double phi = phi_simplemoliere(x0,  theta0, nu,  bpc,  U_N,  beta_i,  a_TF, E_T);
-        double x = x_simplemoliere(z, x0, theta0, nu, bpc, U_N, beta_i, a_TF, E_T, phi); // in Angstrom
-        double theta = theta_simplemoliere(z, x0, theta0, nu, bpc, U_N, beta_i, a_TF, E_T, phi); // in urad
+        double m = m_simplemoliere(U_N, E_T);
+        double mp = mp_simplemoliere(U_N, E_T);
+        double nu = nu_simplemoliere(theta0, bpc, beta_i, a_TF, E_T);
+        double phi = phi_simplemoliere(x0,  theta0, nu,  bpc,  U_N,  beta_i,  a_TF, m, mp);
+        double x, theta;
+        motion_parameters(z, nu, beta_i, a_TF, phi, m, mp, &x, &theta);
+        //double x = x_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in Angstrom
+        //double theta = theta_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in urad
 
         LocalParticle_set_x(part, x);
         LocalParticle_set_xp(part, theta);

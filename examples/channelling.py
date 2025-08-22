@@ -1,8 +1,13 @@
 #!/bin/env python
+import time
 import matplotlib.pyplot as plt
 import xtrack as xt
 import numpy as np
 import xcoll as xc
+
+
+t0_cpu = time.process_time()       
+t0_wall = time.perf_counter()      
 
 n_steps = 1000
 ch = xc.ChannellingDev(length=0.0004/n_steps)
@@ -18,6 +23,15 @@ for i in range(n_steps):
   x.append(part.x[0])
   xp.append(part.px[0])
   part = xt.Particles(x=x[-1], px=xp[-1])
+
+t1_cpu = time.process_time()
+t1_wall = time.perf_counter()
+
+print(f"CPU time passed: {t1_cpu - t0_cpu:.6f} s")
+print(f"Real time passed: {t1_wall - t0_wall:.6f} s")
+
+
+
 
 s = np.linspace(0, 0.0004, n_steps+1)
 fig, ax = plt.subplots(2, 1, figsize=(12, 8))
