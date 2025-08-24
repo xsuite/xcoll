@@ -75,5 +75,15 @@ def test_blow_up(beam, plane, test_context):
     mon2 = xc.EmittanceMonitor.from_json(file)
     dct1 = mon.to_dict()
     dct2 = mon2.to_dict()
+    # TODO: this compares ArrNFloat64 ids, however, should do to_nparray()
+    # assert xt.line._dicts_equal(dct1, dct2)
+    assert set(dct1.keys()) == set(dct2.keys())
+    assert set(dct1['data'].keys()) == set(dct2['data'].keys())
+    for kk in dct1['data'].keys():
+        assert np.allclose(dct1['data'][kk].to_nparray(), dct2['data'][kk].to_nparray(),
+                           rtol=1e-15, atol=1e-15)
+    dct1.pop('data')
+    dct2.pop('data')
     assert xt.line._dicts_equal(dct1, dct2)
+
     file.unlink()

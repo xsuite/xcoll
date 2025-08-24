@@ -246,7 +246,7 @@ class ParticleStatsMonitor(xt.BeamElement):
     @property
     def mass0(self):
         if not hasattr(self, '_mass0'):
-            self._mass0 = self.line.particle_ref.mass0[0]
+            self._mass0 = self.line.particle_ref.mass0
         return self._mass0
 
     @property

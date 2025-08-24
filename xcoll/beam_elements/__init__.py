@@ -8,7 +8,7 @@ from .absorber import BlackAbsorber, BlackCrystal
 from .transparent import TransparentCollimator, TransparentCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
 from .blowup import BlowUp
-from .monitor import EmittanceMonitor
+from .monitor import ParticleStatsMonitor, EmittanceMonitor
 
 block_classes = tuple(v for v in globals().values()
                       if isinstance(v, type) and issubclass(v, BaseBlock) and v != BaseBlock
