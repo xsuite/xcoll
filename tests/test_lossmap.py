@@ -18,7 +18,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     matplotlib_installed = False
 
-path = Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 
 @pytest.mark.skipif(not matplotlib_installed, reason="matplolib not installed")
@@ -49,7 +49,6 @@ def test_lossmap_everest_with_plot(beam, plane, npart, interpolation, ignore_cry
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 def test_lossmap_everest_without_plot(beam, plane, npart, interpolation, ignore_crystals, test_context):
     _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, False)
-
 
 def _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, do_plot):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
