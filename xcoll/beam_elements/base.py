@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -18,27 +18,13 @@ OPEN_GAP = 999
 
 
 class BaseXcoll(xt.BeamElement):
-    _xofields = {
-        'length': xo.Float64
-    }
-
-    isthick = True
-    needs_rng = False
     allow_track = False
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
-
     _extra_c_sources = [
         particle_states_src,
         _pkg_root.joinpath('headers','checks.h')
     ]
 
     _depends_on = [xt.RandomRutherford]  # Needed for checks
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
 
 class BaseBlock(xt.BeamElement):
@@ -51,7 +37,7 @@ class BaseBlock(xt.BeamElement):
     isthick = True
     needs_rng = False
     allow_track = False
-    allow_double_sided = True
+    allow_double_sided = False
     behaves_like_drift = True
     allow_rot_and_shift = False
     allow_loss_refinement = True
@@ -193,24 +179,13 @@ class BaseCollimator(BaseBlock):
         '_nemitt_y':      xo.Float64
     }
 
-    isthick = True
-    needs_rng = False
-    allow_track = False
     allow_double_sided = True
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
-
-    _noexpr_fields = {'align', 'side', 'name'}
-    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict,
-                         *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap',
-                         'side', 'align', 'emittance']
-
-    _depends_on = [BaseBlock]
-
-    _internal_record_class = BaseBlock._internal_record_class
+    _depends_on        = [BaseBlock]
+    _noexpr_fields     = BaseBlock._noexpr_fields | {'align', 'side'}
+    _skip_in_to_dict   = BaseBlock._skip_in_to_dict + \
+                         [f for f in _xofields if f.startswith('_')]
+    _store_in_to_dict  = BaseBlock._store_in_to_dict + \
+                         ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
 
 
     # This is an abstract class and cannot be instantiated
@@ -1112,24 +1087,13 @@ class BaseCrystal(BaseBlock):
         # 'thick':              xo.Float64
     }
 
-
-    isthick = True
-    needs_rng = False
-    allow_track = False
-    allow_double_sided = False
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
-
-    _noexpr_fields    = {'align', 'side', 'name'}
-    _skip_in_to_dict  = [*BaseBlock._skip_in_to_dict, *[f for f in _xofields if f.startswith('_')]]
-    _store_in_to_dict = [*BaseBlock._store_in_to_dict, 'angle', 'jaw', 'tilt', 'gap', 'side', 'align',
-                         'emittance', 'width', 'height', 'bending_radius', 'bending_angle']
-
-    _depends_on = [BaseCollimator]
-
-    _internal_record_class = BaseBlock._internal_record_class
+    _depends_on       = [BaseCollimator]
+    _noexpr_fields    = BaseBlock._noexpr_fields | {'align', 'side'}
+    _skip_in_to_dict  = BaseBlock._skip_in_to_dict + \
+                        [f for f in _xofields if f.startswith('_')]
+    _store_in_to_dict = BaseBlock._store_in_to_dict + \
+                        ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
+                         'width', 'height', 'bending_radius', 'bending_angle']
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):

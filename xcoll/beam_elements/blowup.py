@@ -25,11 +25,11 @@ class BlowUp(xt.BeamElement):
     }
 
     isthick = False
-    behaves_like_drift = False
-    allow_track = True
     needs_rng = True
-    skip_in_loss_location_refinement = True
+    allow_track = True
+    behaves_like_drift = False
     allow_loss_refinement = False
+    skip_in_loss_location_refinement = True
 
     _noexpr_fields    = {'plane', 'name', 'line'}
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
@@ -37,9 +37,7 @@ class BlowUp(xt.BeamElement):
 
     _depends_on = [BaseXcoll, xt.RandomUniform]
 
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','blowup.h')
-    ]
+    _extra_c_sources = [_pkg_root / 'beam_elements' / 'elements_src' / 'blowup.h']
 
     def __init__(self, **kwargs):
         to_assign = {}
