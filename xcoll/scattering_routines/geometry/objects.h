@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <headers/track.h>
+#include <xcoll/scattering_routines/geometry/segments.h>
 
 // Assumption for all objects: the particle at -inf is outside the object (otherwise some comparisons might give wrong results)
 
@@ -17,7 +19,7 @@
 // Collimator jaw
 // --------------
 
-/*gpufun*/
+GPUFUN
 Segment* create_jaw(double s_U, double x_U, double s_D, double x_D, double tilt_tan, int8_t side){
     Segment* segments= (Segment*) malloc(3*sizeof(Segment));
     segments[0] = (Segment) create_halfopen_line_segment(s_U, x_U, tilt_tan, side);
@@ -26,7 +28,7 @@ Segment* create_jaw(double s_U, double x_U, double s_D, double x_D, double tilt_
     return segments;
 }
 
-/*gpufun*/
+GPUFUN
 void destroy_jaw(Segment* segments){
     free((HalfOpenLineSegment) segments[0]);
     free((LineSegment)         segments[1]);
@@ -38,7 +40,7 @@ void destroy_jaw(Segment* segments){
 // Polygon
 // -------
 
-/*gpufun*/
+GPUFUN
 Segment* create_polygon(double* s_poly, double* x_poly, int8_t num_polys){
     Segment* segments= (Segment*) malloc((unsigned int) num_polys*sizeof(Segment));
     for (int8_t i=0; i<num_polys-1; i++){
@@ -49,7 +51,7 @@ Segment* create_polygon(double* s_poly, double* x_poly, int8_t num_polys){
     return segments;
 }
 
-/*gpufun*/
+GPUFUN
 void destroy_polygon(Segment* segments, int8_t num_polys){
     for (int8_t i=0; i<num_polys; i++) {
         free((LineSegment) segments[i]);
@@ -61,7 +63,7 @@ void destroy_polygon(Segment* segments, int8_t num_polys){
 // Open polygon
 // ------------
 
-/*gpufun*/
+GPUFUN
 Segment* create_open_polygon(double* s_poly, double* x_poly, int8_t num_polys, double tilt_tan, int8_t side){
     Segment* segments= (Segment*) malloc((num_polys+1)*sizeof(Segment));
     segments[0] = (Segment) create_halfopen_line_segment(s_poly[0], x_poly[0], tilt_tan, side);
@@ -73,7 +75,7 @@ Segment* create_open_polygon(double* s_poly, double* x_poly, int8_t num_polys, d
     return segments;
 }
 
-/*gpufun*/
+GPUFUN
 void destroy_open_polygon(Segment* segments, int8_t num_polys){
     free((HalfOpenLineSegment) segments[0]);
     for (int8_t i=1; i<num_polys; i++) {
@@ -89,7 +91,7 @@ void destroy_open_polygon(Segment* segments, int8_t num_polys){
 
 // The four corners A, B, C, D are such that AB is the front face, BC the curve furthest from the beam,
 // CD the back face, and DA the curve closest to the beam.
-/*gpufun*/
+GPUFUN
 Segment* create_crystal(double R, double width, double length, double jaw_U, double tilt_sin, double tilt_cos){
     Segment* segments= (Segment*) malloc(4*sizeof(Segment));
 
@@ -141,7 +143,7 @@ Segment* create_crystal(double R, double width, double length, double jaw_U, dou
     return segments;
 }
 
-/*gpufun*/
+GPUFUN
 void destroy_crystal(Segment* segments){
     free((LineSegment)     segments[0]);
     free((CircularSegment) segments[1]);

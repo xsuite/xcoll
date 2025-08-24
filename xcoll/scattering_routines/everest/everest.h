@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_EVEREST_ENGINE_H
@@ -9,6 +9,8 @@
 #define XCOLL_TRANSITION_VRCH
 #define XCOLL_TRANSITION_VRAM
 // #define XCOLL_TRANSITION_VRAM_OLD
+
+#include <headers/track.h>
 
 
 typedef struct EverestCollData_ {
@@ -69,7 +71,7 @@ typedef struct EverestData_ {
 typedef EverestData_ *EverestData;
 
 
-/*gpufun*/
+GPUFUN
 double LocalParticle_get_energy(LocalParticle* part){
     double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
     return (LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part) \
@@ -77,21 +79,21 @@ double LocalParticle_get_energy(LocalParticle* part){
 }
 
 
-/*gpufun*/
+GPUFUN
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
     double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
     return length * dzeta;
 }
 
-/*gpufun*/
+GPUFUN
 void Drift_single_particle_4d(LocalParticle* part, double length){
     double zeta = LocalParticle_get_zeta(part);
     Drift_single_particle(part, length);
     LocalParticle_set_zeta(part, zeta);
 }
 
-/*gpukern*/
+GPUKERN
 void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
     if (GeneralMaterialData_get__only_mcs(material)){
         RandomRutherford_set(ran, 1, 1, 0.0001, 0.01);

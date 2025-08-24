@@ -16,8 +16,8 @@ class BlackAbsorber(BaseCollimator):
     }
 
     allow_track      = True
-    _depends_on      = [BaseCollimator, XcollGeometry]
-    _extra_c_sources = [_pkg_root / 'beam_elements' / 'elements_src' / 'black_absorber.h']
+    _depends_on      = [XcollGeometry]
+    _extra_c_sources = ['#include <xcoll/beam_elements/elements_src/black_absorber.h>']
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -33,8 +33,8 @@ class BlackCrystal(BaseCrystal):
     }
 
     allow_track      = True
-    _depends_on      = [BaseCrystal, XcollGeometry]
-    _extra_c_sources = [_pkg_root / 'beam_elements' / 'elements_src' / 'black_crystal.h']
+    _depends_on      = [XcollGeometry]
+    _extra_c_sources = ['#include <xcoll/beam_elements/elements_src/black_crystal.h>']
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:

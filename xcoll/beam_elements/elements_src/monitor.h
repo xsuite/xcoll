@@ -10,7 +10,10 @@
 #define C_LIGHT 299792458.0
 #endif
 
-/*gpufun*/
+#include <headers/track.h>
+
+
+GPUFUN
 void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, LocalParticle* part0){
     ParticleStatsMonitorData_set__cached(el, 0);
     int64_t const start_at_turn = ParticleStatsMonitorData_get_start_at_turn(el);
@@ -29,7 +32,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
     int const monitor_longitudinal = (plane_selector >> 2) % 2;
     int const monitor_delta        = (plane_selector >> 3) % 2;
 
-    //start_per_particle_block(part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
         if (part_id_end < 0 || (part_id_start <= particle_id && particle_id < part_id_end)){
 
@@ -110,7 +113,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
                 }
             }
         }
-	//end_per_particle_block
+	END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XCOLL_MONITOR_H */

@@ -14,7 +14,5 @@ from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep
 from .lossmap import LossMap, MultiLossMap
 
-
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)
-

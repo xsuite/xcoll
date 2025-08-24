@@ -3,49 +3,20 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from ..general import _pkg_root
 
-LOST_ON_EVEREST_BLOCK   = -330
-LOST_ON_EVEREST_COLL    = -331
-LOST_ON_EVEREST_CRYSTAL = -332
 
-LOST_ON_FLUKA_BLOCK     = -333
-LOST_ON_FLUKA_COLL      = -334
-LOST_ON_FLUKA_CRYSTAL   = -335
+with open(_pkg_root / 'headers' / 'particle_states.h', 'r') as fid:
+    particle_states_source = fid.read()
 
-LOST_ON_GEANT4_BLOCK    = -336
-LOST_ON_GEANT4_COLL     = -337
-LOST_ON_GEANT4_CRYSTAL  = -338
+particle_states = {
+    line.split()[1][3:]: int(line.split()[2])
+    for line in particle_states_source.split('\n')
+    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
+}
 
-LOST_ON_ABSORBER        = -340
-
-MASSLESS_OR_NEUTRAL     = -341
-ACC_IONISATION_LOSS     = -342  # Not a real particle, but accumulation of some ionisation losses that are not accounted for (per collimator)
-VIRTUAL_ENERGY          = -343  # Not a real particle, but energy that is deposited
-
-ERR_INVALID_TRACK       = -390
-ERR_NOT_IMPLEMENTED     = -391
-ERR_INVALID_XOFIELD     = -392
-ERR                     = -399
-
-particle_states_src = f"""
-#ifndef XCOLL_STATES_H
-#define XCOLL_STATES_H
-#define  XC_LOST_ON_EVEREST_BLOCK   {LOST_ON_EVEREST_BLOCK}
-#define  XC_LOST_ON_EVEREST_COLL    {LOST_ON_EVEREST_COLL}
-#define  XC_LOST_ON_EVEREST_CRYSTAL {LOST_ON_EVEREST_CRYSTAL}
-#define  XC_LOST_ON_FLUKA_BLOCK     {LOST_ON_FLUKA_BLOCK}
-#define  XC_LOST_ON_FLUKA_COLL      {LOST_ON_FLUKA_COLL}
-#define  XC_LOST_ON_FLUKA_CRYSTAL   {LOST_ON_FLUKA_CRYSTAL}
-#define  XC_LOST_ON_GEANT4_BLOCK    {LOST_ON_GEANT4_BLOCK}
-#define  XC_LOST_ON_GEANT4_COLL     {LOST_ON_GEANT4_COLL}
-#define  XC_LOST_ON_GEANT4_CRYSTAL  {LOST_ON_GEANT4_CRYSTAL}
-#define  XC_LOST_ON_ABSORBER        {LOST_ON_ABSORBER}
-#define  XC_MASSLESS_OR_NEUTRAL     {MASSLESS_OR_NEUTRAL}
-#define  XC_ACC_IONISATION_LOSS     {ACC_IONISATION_LOSS}
-#define  XC_VIRTUAL_ENERGY          {VIRTUAL_ENERGY}
-#define  XC_ERR_INVALID_TRACK       {ERR_INVALID_TRACK}
-#define  XC_ERR_NOT_IMPLEMENTED     {ERR_NOT_IMPLEMENTED}
-#define  XC_ERR_INVALID_XOFIELD     {ERR_INVALID_XOFIELD}
-#define  XC_ERR                     {ERR}
-#endif /* XCOLL_STATES_H */
-"""
+def __getattr__(name):
+    if name in particle_states:
+        return particle_states[name]
+    else:
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

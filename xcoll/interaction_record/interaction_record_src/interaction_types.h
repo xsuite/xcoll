@@ -1,10 +1,8 @@
-# copyright ############################### #
-# This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
-# ######################################### #
+// copyright ############################### #
+// This file is part of the Xcoll package.   #
+// Copyright (c) CERN, 2025.                 #
+// ######################################### #
 
-
-source = r'''
 #ifndef XCOLL_INTERACTIONS_H
 #define XCOLL_INTERACTIONS_H
 
@@ -20,8 +18,8 @@ source = r'''
 #define  XC_PP_ELASTIC                     15        // PP   // point (no children)
 #define  XC_SINGLE_DIFFRACTIVE             16        // SD   // point (no children)
 #define  XC_COULOMB                        17        // C    // point (no children)
-#define  XC_CHANNELLING                    100       // CH   // continuous
-#define  XC_DECHANNELLING                  101       // DCH  // point (no children)
+#define  XC_CHANNELLING                   100        // CH   // continuous
+#define  XC_DECHANNELLING                 101        // DCH  // point (no children)
 #define  XC_VOLUME_REFLECTION_TRANS_CH    102        // VRCH // point (no children)    Transition region around +-xpcrit
 #define  XC_VOLUME_REFLECTION             103        // VR   // point (no children)
 #define  XC_VOLUME_REFLECTION_TRANS_MCS   104        // VRAM // point (no children)    Transition region around t_P
@@ -29,24 +27,3 @@ source = r'''
 #define  XC_VOLUME_CAPTURE                106        // VC   // point (no children)
 
 #endif /* XCOLL_INTERACTIONS_H */
-'''
-
-interactions = {
-    int(line.split()[2]): line.split()[1][3:].replace('_',' ').title().\
-                            replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
-                            replace(' Ch',' CH').replace(' Vr',' VR')
-    for line in source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}
-
-shortcuts = {
-    int(line.split()[2]): line.split()[4]
-    for line in source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}
-
-is_point = {
-    int(line.split()[2]): line.split()[6].lower() == 'point'
-    for line in source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}

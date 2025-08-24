@@ -29,11 +29,11 @@ class EverestBlock(BaseBlock):
 
     needs_rng         = True
     allow_track       = True
-    _depends_on       = [BaseBlock, EverestEngine]
+    _depends_on       = [EverestEngine]
     _noexpr_fields    = BaseBlock._noexpr_fields | {'material'}
     _skip_in_to_dict  = BaseBlock._skip_in_to_dict + ['_material']
     _store_in_to_dict = BaseBlock._store_in_to_dict + ['material']
-    _extra_c_sources  = [_pkg_root / 'beam_elements' / 'elements_src' / 'everest_block.h']
+    _extra_c_sources  = ['#include <xcoll/beam_elements/elements_src/everest_block.h>']
 
     _kernels = {
         'EverestBlock_set_material': xo.Kernel(
@@ -76,11 +76,11 @@ class EverestCollimator(BaseCollimator):
 
     needs_rng         = True
     allow_track       = True
-    _depends_on       = [BaseCollimator, EverestEngine]
+    _depends_on       = [EverestEngine]
     _noexpr_fields    = BaseCollimator._noexpr_fields | {'material'}
     _skip_in_to_dict  = BaseCollimator._skip_in_to_dict + ['_material']
     _store_in_to_dict = BaseCollimator._store_in_to_dict + ['material']
-    _extra_c_sources  = [_pkg_root / 'beam_elements' / 'elements_src' / 'everest_collimator.h']
+    _extra_c_sources  = ['#include <xcoll/beam_elements/elements_src/everest_collimator.h>']
 
     _kernels = {
         'EverestCollimator_set_material': xo.Kernel(
@@ -129,11 +129,11 @@ class EverestCrystal(BaseCrystal):
 
     needs_rng         = True
     allow_track       = True
-    _depends_on       = [BaseCrystal, EverestEngine]
+    _depends_on       = [EverestEngine]
     _noexpr_fields    = BaseCrystal._noexpr_fields | {'material', 'lattice'}
     _skip_in_to_dict  = BaseCrystal._skip_in_to_dict + ['_material', '_orient']
     _store_in_to_dict = BaseCrystal._store_in_to_dict + ['material', 'lattice']
-    _extra_c_sources  = [_pkg_root / 'beam_elements' / 'elements_src' / 'everest_crystal.h']
+    _extra_c_sources  = ['#include <xcoll/beam_elements/elements_src/everest_crystal.h>']
 
     _kernels = {
         'EverestCrystal_set_material': xo.Kernel(

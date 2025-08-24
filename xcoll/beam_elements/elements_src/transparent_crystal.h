@@ -6,24 +6,28 @@
 #ifndef XCOLL_TRANSPAREN_CRY_H
 #define XCOLL_TRANSPAREN_CRY_H
 
+#include <headers/track.h>
+#include <headers/checks.h>
+#include <xcoll/headers/particle_states.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t TransparentCrystalData_get_record_impacts(TransparentCrystalData el){
     return TransparentCrystalData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t TransparentCrystalData_get_record_exits(TransparentCrystalData el){
     return (TransparentCrystalData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t TransparentCrystalData_get_record_scatterings(TransparentCrystalData el){
     return (TransparentCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CrystalGeometry TransparentCrystal_init_geometry(TransparentCrystalData el, LocalParticle* part0){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     cg->length = TransparentCrystalData_get_length(el);
@@ -65,14 +69,14 @@ CrystalGeometry TransparentCrystal_init_geometry(TransparentCrystalData el, Loca
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void TransparentCrystal_free(CrystalGeometry restrict cg){
     destroy_crystal(cg->segments);
     free(cg);
 }
 
 
-/*gpufun*/
+GPUFUN
 void TransparentCrystal_track_local_particle(TransparentCrystalData el, LocalParticle* part0){
     int8_t active = TransparentCrystalData_get_active(el);
     active       *= TransparentCrystalData_get__tracking(el);
@@ -87,7 +91,7 @@ void TransparentCrystal_track_local_particle(TransparentCrystalData el, LocalPar
         }
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
             // Drift full length
             Drift_single_particle(part, length);
@@ -109,7 +113,7 @@ void TransparentCrystal_track_local_particle(TransparentCrystalData el, LocalPar
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         TransparentCrystal_free(cg);
     }

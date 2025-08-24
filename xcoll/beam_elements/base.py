@@ -9,22 +9,10 @@ import xobjects as xo
 import xtrack as xt
 
 from ..interaction_record import InteractionRecord
-from ..general import _pkg_root
-from ..headers.particle_states import particle_states_src
 
 
 OPEN_JAW = 3
 OPEN_GAP = 999
-
-
-class BaseXcoll(xt.BeamElement):
-    allow_track = False
-    _extra_c_sources = [
-        particle_states_src,
-        _pkg_root.joinpath('headers','checks.h')
-    ]
-
-    _depends_on = [xt.RandomRutherford]  # Needed for checks
 
 
 class BaseBlock(xt.BeamElement):
@@ -46,9 +34,6 @@ class BaseBlock(xt.BeamElement):
     _noexpr_fields = {'name'}
     _skip_in_to_dict  = ['_record_interactions']
     _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
-
-    _depends_on = [BaseXcoll]
-
     _internal_record_class = InteractionRecord
 
     # This is an abstract class and cannot be instantiated
@@ -180,7 +165,6 @@ class BaseCollimator(BaseBlock):
     }
 
     allow_double_sided = True
-    _depends_on        = [BaseBlock]
     _noexpr_fields     = BaseBlock._noexpr_fields | {'align', 'side'}
     _skip_in_to_dict   = BaseBlock._skip_in_to_dict + \
                          [f for f in _xofields if f.startswith('_')]
@@ -1087,7 +1071,6 @@ class BaseCrystal(BaseBlock):
         # 'thick':              xo.Float64
     }
 
-    _depends_on       = [BaseCollimator]
     _noexpr_fields    = BaseBlock._noexpr_fields | {'align', 'side'}
     _skip_in_to_dict  = BaseBlock._skip_in_to_dict + \
                         [f for f in _xofields if f.startswith('_')]

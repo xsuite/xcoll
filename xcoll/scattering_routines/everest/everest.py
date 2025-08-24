@@ -20,15 +20,7 @@ class EverestEngine(xt.BeamElement):
                    xt.RandomNormal, xt.RandomRutherford, xt.Drift, XcollGeometry]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('scattering_routines','geometry','rotation.h'),
-        _pkg_root.joinpath('scattering_routines','everest','constants.h'),
-        _pkg_root.joinpath('scattering_routines','everest','everest.h'),
-        _pkg_root.joinpath('scattering_routines','everest','properties.h'),
-        _pkg_root.joinpath('scattering_routines','everest','ionisation_loss.h'),
-        _pkg_root.joinpath('scattering_routines','everest','multiple_coulomb_scattering.h'),
-        _pkg_root.joinpath('scattering_routines','everest','nuclear_interaction.h'),
-        _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),
-        _pkg_root.joinpath('scattering_routines','everest','amorphous.h'),
-        _pkg_root.joinpath('scattering_routines','everest','jaw.h'),
-        _pkg_root.joinpath('scattering_routines','everest','channelling.h')
+        '#include <xcoll/scattering_routines/everest/amorphous.h>',
+        '#include <xcoll/scattering_routines/everest/jaw.h>',
+        '#include <xcoll/scattering_routines/everest/channelling.h>'
     ]

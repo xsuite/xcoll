@@ -8,9 +8,6 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
-from .base import BaseXcoll
-
 
 class BlowUp(xt.BeamElement):
     _xofields = {
@@ -35,9 +32,8 @@ class BlowUp(xt.BeamElement):
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
     _store_in_to_dict = ['amplitude', 'plane', 'calibration']
 
-    _depends_on = [BaseXcoll, xt.RandomUniform]
-
-    _extra_c_sources = [_pkg_root / 'beam_elements' / 'elements_src' / 'blowup.h']
+    _depends_on = [xt.RandomUniform]
+    _extra_c_sources = ['#include <xcoll/beam_elements/elements_src/blowup.h>']
 
     def __init__(self, **kwargs):
         to_assign = {}

@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_EVEREST_MCS_H
@@ -8,8 +8,12 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <headers/track.h>
+#include <xcoll/headers/particle_states.h>
+#include <xcoll/scattering_routines/everest/everest.h>
 
-/*gpufun*/
+
+GPUFUN
 double iterat(double a, double b, double dh, double s) {
     double ds = s;
     while (1) {
@@ -29,7 +33,7 @@ double iterat(double a, double b, double dh, double s) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double soln3(double a, double b, double dh, double smax) {
     double s;
     if (b == 0) {
@@ -77,7 +81,7 @@ double soln3(double a, double b, double dh, double smax) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double* result = (double*)malloc(2 * sizeof(double));
 
@@ -106,7 +110,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 }
 
 
-/*gpufun*/
+GPUFUN
 void mcs(EverestData restrict everest, LocalParticle* part, double length, double pc, int edge_check){
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;

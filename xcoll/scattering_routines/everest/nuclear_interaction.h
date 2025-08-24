@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_EVEREST_NUCL_H
@@ -8,8 +8,13 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <headers/track.h>
+#include <xcoll/headers/particle_states.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/properties.h>
 
-/*gpufun*/
+
+GPUFUN
 double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;

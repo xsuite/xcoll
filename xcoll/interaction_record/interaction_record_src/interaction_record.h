@@ -7,9 +7,13 @@
 #ifndef XCOLL_IMPACTS_H
 #define XCOLL_IMPACTS_H
 
+#include <headers/track.h>
+#include <xcoll/interaction_record/interaction_record_src/interaction_types.h>
+
+
 // TODO: do we need to pass RecordIndex?
 // probably can do RecordIndex record_index = InteractionRecordData_getp__index(record);  ?
-/*gpufun*/
+GPUFUN
 int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex record_index, LocalParticle* parent,
                                   int64_t interaction){
     // This can be used for a point-like interaction where there is no child (or because it's equal to the parent)
@@ -69,7 +73,7 @@ int64_t InteractionRecordData_log(InteractionRecordData record, RecordIndex reco
     return i_slot;
 }
 
-/*gpufun*/
+/*GPUFUN*/
 void InteractionRecordData_log_child(InteractionRecordData record, int64_t i_slot, LocalParticle* child){
     if (record && i_slot>=0){
         double charge_ratio = LocalParticle_get_charge_ratio(child);
