@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
+from .base import BaseBlock, BaseCollimator, BaseCrystal
 from ..scattering_routines.everest import Material, CrystalMaterial, EverestEngine
 from ..general import _pkg_root
 
@@ -17,8 +17,7 @@ from ..general import _pkg_root
 #      We want these elements to behave as if 'iscollective = True' when doing twiss etc (because they would ruin the CO),
 #      but as if 'iscollective = False' for normal tracking as it is natively in C...
 #      Currently this is achieved with the hack '_tracking' which defaults to False after installation in the line, and is
-#      only activated around the track command. Furthermore, because of 'iscollective = False' we need to specify
-#      get_backtrack_element. We want it nicer..
+#      only activated around the track command.
 
 
 class EverestBlock(BaseBlock):
@@ -84,10 +83,6 @@ class EverestBlock(BaseBlock):
             self._material = material
             self.EverestBlock_set_material(el=self)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length, _context=_context,
-                                 _buffer=_buffer, _offset=_offset)
-
 
 class EverestCollimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
@@ -150,10 +145,6 @@ class EverestCollimator(BaseCollimator):
         if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
             self._material = material
             self.EverestCollimator_set_material(el=self)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length, _context=_context,
-                            _buffer=_buffer, _offset=_offset)
 
 
 class EverestCrystal(BaseCrystal):
@@ -251,10 +242,3 @@ class EverestCrystal(BaseCrystal):
         else:
             raise ValueError(f"Illegal value {lattice} for 'lattice'! "
                             + "Only use 'strip' (110) or 'quasi-mosaic' (111).")
-
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length, _context=_context,
-                            _buffer=_buffer, _offset=_offset)
-
-

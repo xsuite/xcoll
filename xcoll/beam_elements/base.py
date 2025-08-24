@@ -17,7 +17,7 @@ OPEN_JAW = 3
 OPEN_GAP = 999
 
 
-class InvalidXcoll(xt.BeamElement):
+class BaseXcoll(xt.BeamElement):
     _xofields = {
         'length': xo.Float64
     }
@@ -30,7 +30,6 @@ class InvalidXcoll(xt.BeamElement):
     allow_loss_refinement = True
     skip_in_loss_location_refinement = True
 
-    # InvalidXcoll catches unallowed cases, like backtracking through a collimator
     _extra_c_sources = [
         particle_states_src,
         _pkg_root.joinpath('headers','checks.h')
@@ -40,10 +39,6 @@ class InvalidXcoll(xt.BeamElement):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class BaseBlock(xt.BeamElement):
@@ -66,7 +61,7 @@ class BaseBlock(xt.BeamElement):
     _skip_in_to_dict  = ['_record_interactions']
     _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
 
-    _depends_on = [InvalidXcoll]
+    _depends_on = [BaseXcoll]
 
     _internal_record_class = InteractionRecord
 
@@ -164,10 +159,6 @@ class BaseBlock(xt.BeamElement):
     def _verify_consistency(self):
         assert isinstance(self.active, bool) or self.active in [0, 1]
         assert self._record_interactions in list(range(8))
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class BaseCollimator(BaseBlock):

@@ -1,11 +1,11 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import xtrack as xt
 import xobjects as xo
-from .base import BaseCollimator, BaseCrystal, InvalidXcoll
+from .base import BaseCollimator, BaseCrystal
 from ..scattering_routines.geometry import XcollGeometry
 from ..general import _pkg_root
 
@@ -42,9 +42,6 @@ class TransparentCollimator(BaseCollimator):
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('TransparentCollimator is currently not supported on GPU.')
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class TransparentCrystal(BaseCrystal):
     _xofields = BaseCrystal._xofields | {
@@ -77,7 +74,3 @@ class TransparentCrystal(BaseCrystal):
         super().__init__(**kwargs)
         if not isinstance(self._context, xo.ContextCpu):
             raise ValueError('TransparentCrystal is currently not supported on GPU.')
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return InvalidXcoll(length=-self.length, _context=_context, _buffer=_buffer, _offset=_offset)
-

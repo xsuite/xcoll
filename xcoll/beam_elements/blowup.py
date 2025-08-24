@@ -9,10 +9,10 @@ import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-from .base import InvalidXcoll
+from .base import BaseXcoll
 
 
-class BlowUp(InvalidXcoll):
+class BlowUp(xt.BeamElement):
     _xofields = {
         '_plane':               xo.Int8,
         'start_at_turn':        xo.Int64,
@@ -35,7 +35,7 @@ class BlowUp(InvalidXcoll):
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
     _store_in_to_dict = ['amplitude', 'plane', 'calibration']
 
-    _depends_on = [InvalidXcoll, xt.RandomUniform]
+    _depends_on = [BaseXcoll, xt.RandomUniform]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','blowup.h')
@@ -88,9 +88,6 @@ class BlowUp(InvalidXcoll):
             idx = line.element_names.index(name) + 1
             line.insert_element(element=aper_downstream, name=f'{name}_aper_downstream', at=idx, s_tol=s_tol)
         return self
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return xt.Marker(_context=_context, _buffer=_buffer, _offset=_offset)
 
 
     @property
