@@ -26,11 +26,17 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
 
     int64_t max_slot = ParticleStatsMonitorRecord_len_count(record);
 
-    int const plane_selector = ParticleStatsMonitorData_get__plane_selector(el);
-    int const monitor_horizontal   =  plane_selector % 2;
-    int const monitor_vertical     = (plane_selector >> 1) % 2;
-    int const monitor_longitudinal = (plane_selector >> 2) % 2;
-    int const monitor_delta        = (plane_selector >> 3) % 2;
+    // Decode _selector
+    int16_t const _selector         = ParticleStatsMonitorData_get__selector(el);
+    int16_t const monitor_x         =  _selector % 2;
+    int16_t const monitor_px        = (_selector >> 1) % 2;
+    int16_t const monitor_y         = (_selector >> 2) % 2;
+    int16_t const monitor_py        = (_selector >> 3) % 2;
+    int16_t const monitor_zeta      = (_selector >> 4) % 2;
+    int16_t const monitor_pzeta     = (_selector >> 5) % 2;
+    int16_t const monitor_delta     = (_selector >> 6) % 2;
+    int16_t const monitor_mean      = (_selector >> 7) % 2;
+    int16_t const monitor_variance  = (_selector >> 8) % 2;
 
     START_PER_PARTICLE_BLOCK(part0, part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
@@ -48,68 +54,80 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
             double y = 0;
             double py = 0;
             double pzeta = 0;
+            double delta = 0;
 
-            // compute sample index
+            // Compute sample index
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
 
             if (slot >= 0 && slot < max_slot){
-                /*gpuglmem*/ double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
+                GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
 
-                if (monitor_horizontal){
-                    x  = LocalParticle_get_x(part);
-                    px = LocalParticle_get_px(part);
-                    /*gpuglmem*/ double *x_sum1     = ParticleStatsMonitorRecord_getp1_x_sum1(record, slot);     atomicAdd(x_sum1, x);
-                    /*gpuglmem*/ double *px_sum1    = ParticleStatsMonitorRecord_getp1_px_sum1(record, slot);    atomicAdd(px_sum1, px);
-                    /*gpuglmem*/ double *x_x_sum2   = ParticleStatsMonitorRecord_getp1_x_x_sum2(record, slot);   atomicAdd(x_x_sum2, x*x);
-                    /*gpuglmem*/ double *x_px_sum2  = ParticleStatsMonitorRecord_getp1_x_px_sum2(record, slot);  atomicAdd(x_px_sum2, x*px);
-                    /*gpuglmem*/ double *px_px_sum2 = ParticleStatsMonitorRecord_getp1_px_px_sum2(record, slot); atomicAdd(px_px_sum2, px*px);
-                }
-
-                if (monitor_vertical){
-                    y  = LocalParticle_get_y(part);
-                    py = LocalParticle_get_py(part);
-                    /*gpuglmem*/ double *y_sum1     = ParticleStatsMonitorRecord_getp1_y_sum1(record, slot);     atomicAdd(y_sum1, y);
-                    /*gpuglmem*/ double *py_sum1    = ParticleStatsMonitorRecord_getp1_py_sum1(record, slot);    atomicAdd(py_sum1, py);
-                    /*gpuglmem*/ double *y_y_sum2   = ParticleStatsMonitorRecord_getp1_y_y_sum2(record, slot);   atomicAdd(y_y_sum2, y*y);
-                    /*gpuglmem*/ double *y_py_sum2  = ParticleStatsMonitorRecord_getp1_y_py_sum2(record, slot);  atomicAdd(y_py_sum2, y*py);
-                    /*gpuglmem*/ double *py_py_sum2 = ParticleStatsMonitorRecord_getp1_py_py_sum2(record, slot); atomicAdd(py_py_sum2, py*py);
-                }
-
-                if (monitor_longitudinal){
-                    double const ptau  = LocalParticle_get_ptau(part);
+                // Read coordinates only if needed
+                if (monitor_x){ x = LocalParticle_get_x(part); }
+                if (monitor_px){ px = LocalParticle_get_px(part); }
+                if (monitor_y){ y = LocalParticle_get_y(part); }
+                if (monitor_py){ py = LocalParticle_get_py(part); }
+                if (monitor_pzeta){
+                    double const ptau = LocalParticle_get_ptau(part);
                     pzeta = ptau/beta0;
-                    /*gpuglmem*/ double *zeta_sum1        = ParticleStatsMonitorRecord_getp1_zeta_sum1(record, slot);        atomicAdd(zeta_sum1, zeta);
-                    /*gpuglmem*/ double *pzeta_sum1       = ParticleStatsMonitorRecord_getp1_pzeta_sum1(record, slot);       atomicAdd(pzeta_sum1, pzeta);
-                    /*gpuglmem*/ double *zeta_zeta_sum2   = ParticleStatsMonitorRecord_getp1_zeta_zeta_sum2(record, slot);   atomicAdd(zeta_zeta_sum2, zeta*zeta);
-                    /*gpuglmem*/ double *zeta_pzeta_sum2  = ParticleStatsMonitorRecord_getp1_zeta_pzeta_sum2(record, slot);  atomicAdd(zeta_pzeta_sum2, zeta*pzeta);
-                    /*gpuglmem*/ double *pzeta_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_pzeta_pzeta_sum2(record, slot); atomicAdd(pzeta_pzeta_sum2, pzeta*pzeta);
+                }
+                if (monitor_delta){ delta = LocalParticle_get_delta(part); }
+
+                // Store sums of the coordinates only if needed
+                if (monitor_mean){
+                    if (monitor_x){ GPUGLMEM double *x_sum1 = ParticleStatsMonitorRecord_getp1_x_sum1(record, slot); atomicAdd(x_sum1, x); }
+                    if (monitor_px){ GPUGLMEM double *px_sum1 = ParticleStatsMonitorRecord_getp1_px_sum1(record, slot); atomicAdd(px_sum1, px); }
+                    if (monitor_y){ GPUGLMEM double *y_sum1 = ParticleStatsMonitorRecord_getp1_y_sum1(record, slot); atomicAdd(y_sum1, y); }
+                    if (monitor_py){ GPUGLMEM double *py_sum1 = ParticleStatsMonitorRecord_getp1_py_sum1(record, slot); atomicAdd(py_sum1, py); }
+                    if (monitor_zeta){ GPUGLMEM double *zeta_sum1 = ParticleStatsMonitorRecord_getp1_zeta_sum1(record, slot); atomicAdd(zeta_sum1, zeta); }
+                    if (monitor_pzeta){ GPUGLMEM double *pzeta_sum1 = ParticleStatsMonitorRecord_getp1_pzeta_sum1(record, slot); atomicAdd(pzeta_sum1, pzeta); }
+                    if (monitor_delta){ GPUGLMEM double *delta_sum1 = ParticleStatsMonitorRecord_getp1_delta_sum1(record, slot); atomicAdd(delta_sum1, delta); }
                 }
 
-                if (monitor_delta){
-                    double const delta = LocalParticle_get_delta(part);
-                    /*gpuglmem*/ double *delta_sum1       = ParticleStatsMonitorRecord_getp1_delta_sum1(record, slot);       atomicAdd(delta_sum1, delta);
-                    /*gpuglmem*/ double *delta_delta_sum2 = ParticleStatsMonitorRecord_getp1_delta_delta_sum2(record, slot); atomicAdd(delta_delta_sum2, delta*delta);
-                }
-
-                if (monitor_horizontal && monitor_vertical){
-                    /*gpuglmem*/ double *x_y_sum2   = ParticleStatsMonitorRecord_getp1_x_y_sum2(record, slot);   atomicAdd(x_y_sum2, x*y);
-                    /*gpuglmem*/ double *x_py_sum2  = ParticleStatsMonitorRecord_getp1_x_py_sum2(record, slot);  atomicAdd(x_py_sum2, x*py);
-                    /*gpuglmem*/ double *px_y_sum2  = ParticleStatsMonitorRecord_getp1_px_y_sum2(record, slot);  atomicAdd(px_y_sum2, px*y);
-                    /*gpuglmem*/ double *px_py_sum2 = ParticleStatsMonitorRecord_getp1_px_py_sum2(record, slot); atomicAdd(px_py_sum2, px*py);
-                }
-
-                if (monitor_horizontal && monitor_longitudinal){
-                    /*gpuglmem*/ double *x_zeta_sum2   = ParticleStatsMonitorRecord_getp1_x_zeta_sum2(record, slot);   atomicAdd(x_zeta_sum2, x*zeta);
-                    /*gpuglmem*/ double *x_pzeta_sum2  = ParticleStatsMonitorRecord_getp1_x_pzeta_sum2(record, slot);  atomicAdd(x_pzeta_sum2, x*pzeta);
-                    /*gpuglmem*/ double *px_zeta_sum2  = ParticleStatsMonitorRecord_getp1_px_zeta_sum2(record, slot);  atomicAdd(px_zeta_sum2, px*zeta);
-                    /*gpuglmem*/ double *px_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_px_pzeta_sum2(record, slot); atomicAdd(px_pzeta_sum2, px*pzeta);
-                }
-
-                if (monitor_vertical && monitor_longitudinal){
-                    /*gpuglmem*/ double *y_zeta_sum2   = ParticleStatsMonitorRecord_getp1_y_zeta_sum2(record, slot);   atomicAdd(y_zeta_sum2, y*zeta);
-                    /*gpuglmem*/ double *y_pzeta_sum2  = ParticleStatsMonitorRecord_getp1_y_pzeta_sum2(record, slot);  atomicAdd(y_pzeta_sum2, y*pzeta);
-                    /*gpuglmem*/ double *py_zeta_sum2  = ParticleStatsMonitorRecord_getp1_py_zeta_sum2(record, slot);  atomicAdd(py_zeta_sum2, py*zeta);
-                    /*gpuglmem*/ double *py_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_py_pzeta_sum2(record, slot); atomicAdd(py_pzeta_sum2, py*pzeta);
+                // Store squared sums of the coordinates only if needed
+                if (monitor_variance){
+                    if (monitor_x){
+                        GPUGLMEM double *x_x_sum2 = ParticleStatsMonitorRecord_getp1_x_x_sum2(record, slot); atomicAdd(x_x_sum2, x*x);
+                        if (monitor_px){ GPUGLMEM double *x_px_sum2 = ParticleStatsMonitorRecord_getp1_x_px_sum2(record, slot); atomicAdd(x_px_sum2, x*px);}
+                        if (monitor_y){ GPUGLMEM double *x_y_sum2 = ParticleStatsMonitorRecord_getp1_x_y_sum2(record, slot); atomicAdd(x_y_sum2, x*y);}
+                        if (monitor_py){ GPUGLMEM double *x_py_sum2 = ParticleStatsMonitorRecord_getp1_x_py_sum2(record, slot); atomicAdd(x_py_sum2, x*py);}
+                        if (monitor_zeta){ GPUGLMEM double *x_zeta_sum2 = ParticleStatsMonitorRecord_getp1_x_zeta_sum2(record, slot); atomicAdd(x_zeta_sum2, x*zeta);}
+                        if (monitor_pzeta){ GPUGLMEM double *x_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_x_pzeta_sum2(record, slot); atomicAdd(x_pzeta_sum2, x*pzeta);}
+                        if (monitor_delta){ GPUGLMEM double *x_delta_sum2 = ParticleStatsMonitorRecord_getp1_x_delta_sum2(record, slot); atomicAdd(x_delta_sum2, x*delta);}
+                    }
+                    if (monitor_px){
+                        GPUGLMEM double *px_px_sum2 = ParticleStatsMonitorRecord_getp1_px_px_sum2(record, slot); atomicAdd(px_px_sum2, px*px);
+                        if (monitor_y){ GPUGLMEM double *px_y_sum2 = ParticleStatsMonitorRecord_getp1_px_y_sum2(record, slot); atomicAdd(px_y_sum2, px*y); }
+                        if (monitor_py){ GPUGLMEM double *px_py_sum2 = ParticleStatsMonitorRecord_getp1_px_py_sum2(record, slot); atomicAdd(px_py_sum2, px*py); }
+                        if (monitor_zeta){ GPUGLMEM double *px_zeta_sum2 = ParticleStatsMonitorRecord_getp1_px_zeta_sum2(record, slot); atomicAdd(px_zeta_sum2, px*zeta); }
+                        if (monitor_pzeta){ GPUGLMEM double *px_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_px_pzeta_sum2(record, slot); atomicAdd(px_pzeta_sum2, px*pzeta); }
+                        if (monitor_delta){ GPUGLMEM double *px_delta_sum2 = ParticleStatsMonitorRecord_getp1_px_delta_sum2(record, slot); atomicAdd(px_delta_sum2, px*delta); }
+                    }
+                    if (monitor_y){
+                        GPUGLMEM double *y_y_sum2 = ParticleStatsMonitorRecord_getp1_y_y_sum2(record, slot); atomicAdd(y_y_sum2, y*y);
+                        if (monitor_py){ GPUGLMEM double *y_py_sum2 = ParticleStatsMonitorRecord_getp1_y_py_sum2(record, slot); atomicAdd(y_py_sum2, y*py); }
+                        if (monitor_zeta){ GPUGLMEM double *y_zeta_sum2 = ParticleStatsMonitorRecord_getp1_y_zeta_sum2(record, slot); atomicAdd(y_zeta_sum2, y*zeta); }
+                        if (monitor_pzeta){ GPUGLMEM double *y_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_y_pzeta_sum2(record, slot); atomicAdd(y_pzeta_sum2, y*pzeta); }
+                        if (monitor_delta){ GPUGLMEM double *y_delta_sum2 = ParticleStatsMonitorRecord_getp1_y_delta_sum2(record, slot); atomicAdd(y_delta_sum2, y*delta); }
+                    }
+                    if (monitor_py){
+                        GPUGLMEM double *py_py_sum2 = ParticleStatsMonitorRecord_getp1_py_py_sum2(record, slot); atomicAdd(py_py_sum2, py*py);
+                        if (monitor_zeta){ GPUGLMEM double *py_zeta_sum2 = ParticleStatsMonitorRecord_getp1_py_zeta_sum2(record, slot); atomicAdd(py_zeta_sum2, py*zeta); }
+                        if (monitor_pzeta){ GPUGLMEM double *py_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_py_pzeta_sum2(record, slot); atomicAdd(py_pzeta_sum2, py*pzeta); }
+                        if (monitor_delta){ GPUGLMEM double *py_delta_sum2 = ParticleStatsMonitorRecord_getp1_py_delta_sum2(record, slot); atomicAdd(py_delta_sum2, py*delta); }
+                    }
+                    if (monitor_zeta){
+                        GPUGLMEM double *zeta_zeta_sum2 = ParticleStatsMonitorRecord_getp1_zeta_zeta_sum2(record, slot); atomicAdd(zeta_zeta_sum2, zeta*zeta);
+                        if (monitor_pzeta){ GPUGLMEM double *zeta_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_zeta_pzeta_sum2(record, slot); atomicAdd(zeta_pzeta_sum2, zeta*pzeta); }
+                        if (monitor_delta){ GPUGLMEM double *zeta_delta_sum2 = ParticleStatsMonitorRecord_getp1_zeta_delta_sum2(record, slot); atomicAdd(zeta_delta_sum2, zeta*delta); }
+                    }
+                    if (monitor_pzeta){
+                        GPUGLMEM double *pzeta_pzeta_sum2 = ParticleStatsMonitorRecord_getp1_pzeta_pzeta_sum2(record, slot); atomicAdd(pzeta_pzeta_sum2, pzeta*pzeta);
+                        if (monitor_delta){ GPUGLMEM double *pzeta_delta_sum2 = ParticleStatsMonitorRecord_getp1_pzeta_delta_sum2(record, slot); atomicAdd(pzeta_delta_sum2, pzeta*delta); }
+                    }
+                    if (monitor_delta){
+                        GPUGLMEM double *delta_delta_sum2 = ParticleStatsMonitorRecord_getp1_delta_delta_sum2(record, slot); atomicAdd(delta_delta_sum2, delta*delta);
+                    }
                 }
             }
         }
