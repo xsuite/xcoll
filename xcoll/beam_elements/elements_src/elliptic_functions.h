@@ -6,11 +6,16 @@
 // ---- Mathematical constants (renamed to avoid conflicts) ----
 #define MY_PI       3.14159265358979323846
 #define MY_PIO2     1.57079632679489661923
+//Cephes uses MACHEP 2^(-53) as a tight bound on relative rounding error in many formulas and stopping criteria.
 #define MY_MACHEP   1.11022302462515654042E-16
 #define MY_MAXNUM   1.7976931348623158E308
 
+
+// IS THIS POLYNOMIAL EVALUATION ENOUGH???
+//---------------------------------------
 // ---- Polynomial evaluation (Cephes) ----
-static inline double polevl(double x, const double coef[], int N) {
+/*gpufun*/
+double polevl(double x, const double coef[], int N) {
     double ans = coef[0];
     for (int i = 1; i <= N; ++i) {
         ans = ans * x + coef[i];
@@ -18,7 +23,8 @@ static inline double polevl(double x, const double coef[], int N) {
     return ans;
 }
 
-static inline double p1evl(double x, const double coef[], int N) {
+/*gpufun*/
+double p1evl(double x, const double coef[], int N) {
     double ans = x + coef[0];
     for (int i = 1; i < N; ++i) {
         ans = ans * x + coef[i];
@@ -26,9 +32,12 @@ static inline double p1evl(double x, const double coef[], int N) {
     return ans;
 }
 
+// ELLPK needs fixing????
+//-------------------
 // ---- ellpk: complete elliptic integral of the first kind ----
 // Complete elliptic integral of the first kind K(m) with x = m1 = 1 - m.
-static inline double ellpk(double x) {
+/*gpufun*/
+double ellpk(double x) {
     // log(4) constant used in the small-x asymptotic
     const double MY_LOG4 = 1.3862943611198906188; // = log(4)
 
@@ -86,7 +95,8 @@ static inline double ellpk(double x) {
 
 
 // ---- ellik: incomplete elliptic integral of the first kind ----
-static inline double ellik(double phi, double m) {
+/*gpufun*/
+double ellik(double phi, double m) {
     if (m == 0.0)
         return phi;
 
@@ -160,12 +170,13 @@ static inline double ellik(double phi, double m) {
 
 
 // ---- ellpj: Jacobi elliptic functions sn, cn, dn, am ----
-static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph) {
+ /*gpufun*/
+
+void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph) {
     if (m < 0.0 || m > 1.0) {
         *sn = *cn = *dn = *ph = 0.0;
-        return -1;
     }
-
+    // is it okay?
     if (m < 1.0e-9) {
         double t = sin(u), b = cos(u);
         double ai = 0.25 * m * (u - t * b);
@@ -173,7 +184,6 @@ static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, 
         *cn = b + ai * t;
         *ph = u - ai;
         *dn = 1.0 - 0.5 * m * t * t;
-        return 0;
     }
 
     if (m >= 0.9999999999) {
@@ -187,7 +197,6 @@ static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, 
         ai *= t * phi;
         *cn = phi - ai * (twon - u);
         *dn = phi + ai * (twon + u);
-        return 0;
     }
 
     double a[9], c[9], ai, b, phi, t, twon;
@@ -221,7 +230,6 @@ static inline int ellpj(double u, double m, double *sn, double *cn, double *dn, 
     *cn = cos(phi);
     *dn = sqrt(1.0 - m * t * t);
     *ph = phi;
-    return 0;
 }
 
 #endif // MYFUNCTIONS_H
