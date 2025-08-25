@@ -37,7 +37,7 @@ double mp_simplemoliere(double U_N, double E_T ) {
 double nu_simplemoliere(double theta, double bpc, double beta_i_over_a_TF, double E_T) {
     // in unit 1.E4
     double sign = -1;
-    if (theta <= 0) {
+    if (theta < 0) {
         sign = 1;
     }
     return sign*beta_i_over_a_TF*sqrt(E_T/(2.0*bpc));
@@ -48,13 +48,13 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
                          double beta_i_over_a_TF, double m, double mp, double sqrt_mp) {
     double U = U_simplemoliere(x, U_N, beta_i_over_a_TF);
     double sign = -1;
-    if (x <= 0) {
+    if (x < 0) {
         sign = 1;
     }
-    if (fabs(theta) < 1e-16) {
+    //if (fabs(theta)< 1e-14) {
         // If theta is very close to 0, we can avoid numerical issues with asin(1)
-        return sign*sqrt_mp*ellpk(mp);
-    }
+        //return sign*sqrt_mp*ellpk(mp);
+    //}
     double phi_amplitude = asin(sqrt(m*U/(U+2*U_N)));
     // double alpha = 1/sqrt(m*pow(sinh(x*beta_i / (2*a_TF)), 2.) + pow(theta*beta_i /(2*a_TF*nu), 2.));
     // double phi_amplitude = asin(sqrt((1 - alpha*alpha)/mp));
@@ -62,7 +62,7 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
 }
 
 /*gpufun*/
-void motion_parameters(double z, double nu, double twotimes_a_TF_over_beta_i, double phi, double m, double mp, double sqrt_mp,
+void motion_parameters(double x0, double theta0, double z, double nu, double E_T, double U_N, double twotimes_a_TF_over_beta_i, double phi, double m, double mp, double sqrt_mp,
     /*out*/ double* x_out, /*out*/ double* theta_out) {
     double u = sqrt(m) * (nu * 1.0e4 * z + phi);
     double sn, cn, dn, am;
@@ -70,7 +70,12 @@ void motion_parameters(double z, double nu, double twotimes_a_TF_over_beta_i, do
     
     *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
     *theta_out = -twotimes_a_TF_over_beta_i * nu * cn / dn;
-
+    //if (fabs(theta0) > 1e-1) {
+     //   *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
+   // } 
+    //else {
+    //    *x_out=twotimes_a_TF_over_beta_i/2*acosh(1+E_T/U_N);
+    //}
 }
 
 
@@ -124,7 +129,7 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
         double nu = nu_simplemoliere(theta0, bpc, beta_i_over_a_TF, E_T);
         double phi = phi_simplemoliere(x0,  theta0, nu,  bpc,  U_N,  beta_i_over_a_TF, m, mp, sqrt_mp);
         double x, theta;
-        motion_parameters(z, nu, twotimes_a_TF_over_beta_i, phi, m, mp, sqrt_mp, &x, &theta);
+        motion_parameters(x0, theta0, z, nu, E_T, U_N, twotimes_a_TF_over_beta_i, phi, m, mp, sqrt_mp, &x, &theta);
         //double x = x_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in Angstrom
         //double theta = theta_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in urad
 
