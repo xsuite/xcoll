@@ -27,8 +27,10 @@ def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=
 
     # Connect to FLUKA
     xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.capacity = capacity
-    xc.fluka.engine.relative_capacity = relative_capacity
+    if capacity:
+        xc.fluka.engine.capacity = capacity
+    if relative_capacity:
+        xc.fluka.engine.relative_capacity = relative_capacity
     xc.fluka.engine.start(elements=coll, clean=True, verbose=False, return_all=True,
                           return_neutral=True, electron_lower_momentum_cut=1.e6,
                           include_showers=showers)
@@ -151,10 +153,11 @@ def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=
         plt.show()
 
 
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12), 100,
+                   relative_capacity=25)
 run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82), 100,
-                   capacity=25_000, relative_capacity=250, showers=False)
-run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500, 
+                   capacity=50_000, relative_capacity=500, showers=False)
+run_many_particles(xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=200e9), 500,
                    capacity=50_000, relative_capacity=100, plot=True)
 
 

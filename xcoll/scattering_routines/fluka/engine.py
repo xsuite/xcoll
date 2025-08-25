@@ -59,6 +59,7 @@ class FlukaEngine(BaseEngine):
         kwargs.setdefault('_timeout_sec', 36000)
         kwargs.setdefault('_network_port', -1)
         kwargs.setdefault('_max_particle_id', -1)
+        kwargs.setdefault('_capacity', 5000)
         kwargs.setdefault('_relative_capacity', 2)
         super().__init__(**kwargs)
 
@@ -101,7 +102,7 @@ class FlukaEngine(BaseEngine):
         if val is None:
             val = 36000
         if not isinstance(Number) or val <= 60:
-            raise ValueError("`capacity` has to be an integer and larger than 60!")
+            raise ValueError("`timeout_sec` has to be an integer and larger than 60!")
         self._timeout_sec = val
 
     @property
