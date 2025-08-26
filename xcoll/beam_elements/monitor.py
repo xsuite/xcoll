@@ -13,7 +13,8 @@ from ..general import _pkg_root
 
 
 class ParticleStatsMonitorRecord(xo.Struct):
-    count            = xo.Float64[:]
+    count            = xo.Int64[:]  # TODO: once atomicadd in Xtrack is updated
+    # count            = xo.Float64[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
     y_sum1           = xo.Float64[:]
@@ -69,7 +70,7 @@ class ParticleStatsMonitor(xt.BeamElement):
 
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
-        xt._pkg_root.joinpath('headers/atomicadd.h'),
+        # xt._pkg_root.joinpath('headers/atomicadd.h'),  # TODO: once atomicadd in Xtrack is updated, this should be an include in the monitor file.
         '#include <xcoll/beam_elements/elements_src/monitor.h>'
     ]
 
@@ -261,10 +262,11 @@ class ParticleStatsMonitor(xt.BeamElement):
                 kwargs['data'] = {}
                 for field in ParticleStatsMonitorRecord._fields:
                     if field.name == 'count':
-                        kwargs['data'].update({field.name: np.zeros(size)})
+                        kwargs['data'].update({field.name: np.zeros(size, dtype=np.int64)})  # TODO: once atomicadd in Xtrack is updated
+                        # kwargs['data'].update({field.name: np.zeros(size)})
                     elif field.name.endswith('_sum1'):
                         if not monitor_mean:
-                            kwargs['data'].update({field.name: np.zeros(1)})
+                            kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
                         elif (field.name.startswith('x_') and monitor_x) or \
                              (field.name.startswith('px_') and monitor_px) or \
                              (field.name.startswith('y_') and monitor_y) or \
@@ -272,12 +274,12 @@ class ParticleStatsMonitor(xt.BeamElement):
                              (field.name.startswith('zeta_') and monitor_zeta) or \
                              (field.name.startswith('pzeta_') and monitor_pzeta) or \
                              (field.name.startswith('delta_') and monitor_delta):
-                            kwargs['data'].update({field.name: np.zeros(size)})
+                            kwargs['data'].update({field.name: np.zeros(size, dtype=np.float64)})
                         else:
-                            kwargs['data'].update({field.name: np.zeros(1)})
+                            kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
                     elif field.name.endswith('_sum2'):
                         if not monitor_variance:
-                            kwargs['data'].update({field.name: np.zeros(1)})
+                            kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
                         else:
                             coords = field.name[:-5].split('_')
                             if len(coords) != 2:
@@ -289,9 +291,9 @@ class ParticleStatsMonitor(xt.BeamElement):
                                ('zeta' in coords and not monitor_zeta) or \
                                ('pzeta' in coords and not monitor_pzeta) or \
                                ('delta' in coords and not monitor_delta):
-                                kwargs['data'].update({field.name: np.zeros(1)})
+                                kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
                             else:
-                                kwargs['data'].update({field.name: np.zeros(size)})
+                                kwargs['data'].update({field.name: np.zeros(size, dtype=np.float64)})
                     else:
                         raise ValueError(f"Unknown field {field.name} in ParticleStatsMonitorRecord!")
         super().__init__(**kwargs)

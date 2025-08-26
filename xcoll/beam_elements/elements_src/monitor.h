@@ -11,6 +11,7 @@
 #endif
 
 #include <headers/track.h>
+#include <headers/atomicadd.h> // TODO: once atomicadd in Xtrack is updated
 
 
 GPUFUN
@@ -49,7 +50,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
             double const beta0 = LocalParticle_get_beta0(part);
             double const at_turn = LocalParticle_get_at_turn(part);
 
-            double x =0;
+            double x = 0;
             double px = 0;
             double y = 0;
             double py = 0;
@@ -60,7 +61,8 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
 
             if (slot >= 0 && slot < max_slot){
-                GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
+                GPUGLMEM int64_t *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);  // TODO: once atomicadd in Xtrack is updated
+                // GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1.);
 
                 // Read coordinates only if needed
                 if (monitor_x){ x = LocalParticle_get_x(part); }
