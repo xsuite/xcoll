@@ -73,11 +73,11 @@ void motion_parameters(double x0, double theta0, double z, double nu, double E_T
         *theta_out=0;
     }
     else {
-        //double u = sqrt(m) * (nu * 1.0e4 * z + phi);
-        double u = sqrt(m)*(nu*z + phi);
+        double u = sqrt(m) * (nu * 1.e4 * z + phi);
+        // double u = sqrt(m)*(nu*z + phi);
         double sn, cn, dn, am;
         ellpj(u, mp, &sn, &cn, &dn, &am);
-    
+
         *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
         *theta_out = -twotimes_a_TF_over_beta_i * nu * cn / dn;
     }
@@ -118,20 +118,20 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
 
     double beta_i = 0.573481;
 
-    //double a_TF = 0.194;  // In Angstrom
+    double a_TF = 0.194;  // In Angstrom
     // !!!!!
-    double a_TF = 0.194e-10;
+    // double a_TF = 0.194e-10;
     // more constants, avoid calculations over and over 
     double twotimes_a_TF_over_beta_i = 2.0*a_TF/beta_i;
     double beta_i_over_a_TF = beta_i/a_TF;
 
     double U_N = 3.526347;
     // !!!!!
-    //double bpc = 0.150; // In TeV
-    double bpc = 150e9;
+    double bpc = 0.150; // In TeV
+    // double bpc = 150e9;
     //start_per_particle_block (part0->part)
-        double x0 = LocalParticle_get_x(part);
-        double theta0 = LocalParticle_get_xp(part);
+        double x0 = LocalParticle_get_x(part)*1.e10;     // to Angstrom
+        double theta0 = LocalParticle_get_xp(part)*1.e6; // to urad
         double z = length;
         double E_T = E_T_simplemoliere(x0,  theta0,  bpc,  U_N, beta_i_over_a_TF);
         double m = m_simplemoliere(U_N, E_T);
@@ -149,12 +149,8 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
         //double theta = theta_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in urad
 
 
-    
-
-
-
-        LocalParticle_set_x(part, x);
-        LocalParticle_set_xp(part, theta);
+        LocalParticle_set_x(part, x*1.e-10);
+        LocalParticle_set_xp(part, theta*1.e-6);
         //printf("ChannellingDev: x = %f, theta = %f, nu = %f, ET_before = %f", x, theta, nu, E_T);
     //end_per_particle_block
 }

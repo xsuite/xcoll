@@ -9,10 +9,10 @@ import xcoll as xc
 n_steps = 10000
 ch = xc.ChannellingDev(length=0.0004/n_steps)
 #x0 = -0.95 # in Angstrom
-x0 = -0.95e-12 # [m]
+x0 = -0.95e-10 # [m]
 #x0 = 0
 #theta0 = 12 # in urad
-theta0 = 1e-7 # [rad]
+theta0 = 12e-6 # [rad]
 
 # TODO: if x0 = 0 and theta0 = 0 we get NaNs
 
