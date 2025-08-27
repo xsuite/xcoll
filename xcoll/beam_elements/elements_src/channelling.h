@@ -14,7 +14,11 @@
 
 /*gpufun*/
 double U_simplemoliere(double x, double U_N, double beta_i_over_a_TF) {
-    return U_N*(cosh(beta_i_over_a_TF*x) - 1.0);
+    //return U_N*(cosh(beta_i_over_a_TF*x) - 1.0);
+    // In order to be stable near zero, I use the other form
+    double sinh_;
+    sinh_=sinh(beta_i_over_a_TF*x/2);
+    return 2*U_N*sinh_*sinh_;
 }
 
 /*gpufun*/
@@ -39,7 +43,7 @@ double nu_simplemoliere(double theta, double bpc, double beta_i_over_a_TF, doubl
     double sign = -1;
     if (theta < 0) {
         sign = 1;
-    }
+        }
     return sign*beta_i_over_a_TF*sqrt(E_T/(2.0*bpc));
 }
 
@@ -64,12 +68,19 @@ double phi_simplemoliere(double x, double theta, double nu, double bpc, double U
 /*gpufun*/
 void motion_parameters(double x0, double theta0, double z, double nu, double E_T, double U_N, double twotimes_a_TF_over_beta_i, double phi, double m, double mp, double sqrt_mp,
     /*out*/ double* x_out, /*out*/ double* theta_out) {
-    double u = sqrt(m) * (nu * 1.0e4 * z + phi);
-    double sn, cn, dn, am;
-    ellpj(u, mp, &sn, &cn, &dn, &am);
+    if (E_T == 0) {
+        *x_out = 0;
+        *theta_out=0;
+    }
+    else {
+        //double u = sqrt(m) * (nu * 1.0e4 * z + phi);
+        double u = sqrt(m)*(nu*z + phi);
+        double sn, cn, dn, am;
+        ellpj(u, mp, &sn, &cn, &dn, &am);
     
-    *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
-    *theta_out = -twotimes_a_TF_over_beta_i * nu * cn / dn;
+        *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
+        *theta_out = -twotimes_a_TF_over_beta_i * nu * cn / dn;
+    }
     //if (fabs(theta0) > 1e-1) {
      //   *x_out = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
    // } 
@@ -106,14 +117,18 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
     double length = ChannellingDevData_get_length(el);
 
     double beta_i = 0.573481;
-    double a_TF = 0.194;  // In Angstrom
 
+    //double a_TF = 0.194;  // In Angstrom
+    // !!!!!
+    double a_TF = 0.194e-10;
     // more constants, avoid calculations over and over 
     double twotimes_a_TF_over_beta_i = 2.0*a_TF/beta_i;
     double beta_i_over_a_TF = beta_i/a_TF;
 
     double U_N = 3.526347;
-    double bpc = 0.150; // In TeV
+    // !!!!!
+    //double bpc = 0.150; // In TeV
+    double bpc = 150e9;
     //start_per_particle_block (part0->part)
         double x0 = LocalParticle_get_x(part);
         double theta0 = LocalParticle_get_xp(part);
@@ -133,9 +148,14 @@ void ChannellingDev_track_local_particle(ChannellingDevData el, LocalParticle* p
         //double x = x_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in Angstrom
         //double theta = theta_simplemoliere(z, x0, theta0, nu, beta_i, a_TF, phi, m, mp); // in urad
 
+
+    
+
+
+
         LocalParticle_set_x(part, x);
         LocalParticle_set_xp(part, theta);
-        // printf("ChannellingDev: x = %f, theta = %f, ET_before = %f, ET_after = %f\n", x*1.e10, theta*1.e9, E_T, E_T_simplemoliere(x,  theta,  bpc,  U_N,  beta_i,  a_TF));
+        //printf("ChannellingDev: x = %f, theta = %f, nu = %f, ET_before = %f", x, theta, nu, E_T);
     //end_per_particle_block
 }
 

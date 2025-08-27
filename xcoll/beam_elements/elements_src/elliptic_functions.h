@@ -11,14 +11,223 @@
 #define MY_MAXNUM   1.7976931348623158E308
 
 
-// IS THIS POLYNOMIAL EVALUATION ENOUGH???
+//-------------mconf.h--------------------
+/* Define if the `long double' type works.  */
+#define HAVE_LONG_DOUBLE 1
+
+/* Define as the return type of signal handlers (int or void).  */
+#define RETSIGTYPE void
+
+/* Define if you have the ANSI C header files.  */
+#define STDC_HEADERS 1
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+/* #undef WORDS_BIGENDIAN */
+
+/* Define if floating point words are bigendian.  */
+/* #undef FLOAT_WORDS_BIGENDIAN */
+
+/* The number of bytes in a int.  */
+#define SIZEOF_INT 4
+
+/* Define if you have the <string.h> header file.  */
+#define HAVE_STRING_H 1
+
+/* Name of package */
+#define PACKAGE "cephes"
+
+/* Version number of package */
+#define VERSION "2.7"
+
+/* Constant definitions for math error conditions
+ */
+
+#define DOMAIN		1	/* argument domain error */
+#define SING		2	/* argument singularity */
+#define OVERFLOW	3	/* overflow range error */
+#define UNDERFLOW	4	/* underflow range error */
+#define TLOSS		5	/* total loss of precision */
+#define PLOSS		6	/* partial loss of precision */
+
+#define EDOM		33
+#define ERANGE		34
+/* Complex numeral.  */
+typedef struct
+	{
+	double r;
+	double i;
+	} cmplx;
+
+#ifdef HAVE_LONG_DOUBLE
+/* Long double complex numeral.  */
+typedef struct
+	{
+	long double r;
+	long double i;
+	} cmplxl;
+#endif
+
+
+/* Type of computer arithmetic */
+
+/* PDP-11, Pro350, VAX:
+ */
+/* #define DEC 1 */
+
+/* Intel IEEE, low order words come first:
+ */
+/* #define IBMPC 1 */
+
+/* Motorola IEEE, high order words come first
+ * (Sun 680x0 workstation):
+ */
+/* #define MIEEE 1 */
+
+/* UNKnown arithmetic, invokes coefficients given in
+ * normal decimal format.  Beware of range boundary
+ * problems (MACHEP, MAXLOG, etc. in const.c) and
+ * roundoff problems in pow.c:
+ * (Sun SPARCstation)
+ */
+#define UNK 1
+
+/* If you define UNK, then be sure to set BIGENDIAN properly. */
+#ifdef FLOAT_WORDS_BIGENDIAN
+#define BIGENDIAN 1
+#else
+#define BIGENDIAN 0
+#endif
+/* Define this `volatile' if your compiler thinks
+ * that floating point arithmetic obeys the associative
+ * and distributive laws.  It will defeat some optimizations
+ * (but probably not enough of them).
+ *
+ * #define VOLATILE volatile
+ */
+#define VOLATILE
+
+/* For 12-byte long doubles on an i386, pad a 16-bit short 0
+ * to the end of real constants initialized by integer arrays.
+ *
+ * #define XPD 0,
+ *
+ * Otherwise, the type is 10 bytes long and XPD should be
+ * defined blank (e.g., Microsoft C).
+ *
+ * #define XPD
+ */
+#define XPD 0,
+
+/* Define to support tiny denormal numbers, else undefine. */
+#define DENORMAL 1
+
+/* Define to ask for infinity support, else undefine. */
+/* #define INFINITIES 1 */
+
+/* Define to ask for support of numbers that are Not-a-Number,
+   else undefine.  This may automatically define INFINITIES in some files. */
+/* #define NANS 1 */
+
+/* Define to distinguish between -0.0 and +0.0.  */
+#define MINUSZERO 1
+
+/* Define 1 for ANSI C atan2() function
+   See atan.c and clog.c. */
+#define ANSIC 1
+
+/* Get ANSI function prototypes, if you want them. */
+#if 1
+/* #ifdef __STDC__ */
+#define ANSIPROT 1
+int mtherr ( char *, int );
+#else
+int mtherr();
+#endif
+
+/* Variable for error reporting.  See mtherr.c.  */
+extern int merror;
+
+
+//--------------mtherr.c----------------
+
+static int cephes_errno = 0;
+
+/* Notice: the order of appearance of the following
+ * messages is bound to the error codes defined
+ * in mconf.h.
+ */
+static const char *ermsg[] = {
+    "no error",
+    "domain",       /* error code 1 */
+    "singularity",  /* et seq.      */
+    "overflow",
+    "underflow",
+    "total loss of precision",
+    "partial loss of precision",
+    "unknown"
+};
+
+/* @name is supposed to be the name of the function in
+   which the error occurred; @code is an index into
+   the array of error messages above; @arg is the offending
+   argument, if @have_arg is non-zero, otherwise it is
+   ignored.
+*/
+
+/*gpufun*/
+int real_mtherr (char *name, int code, double arg,
+			int have_arg)
+{
+    fprintf(stderr, "%s ", name);
+
+    if (code <= 0 || code > PLOSS)
+	code = PLOSS;
+
+    cephes_errno = code;
+
+    if (have_arg) {
+	fprintf(stderr, "%s error (arg = %g)\n", ermsg[code], arg);
+    } else {
+	fprintf(stderr, "%s error\n", ermsg[code]);
+    }
+
+    return 0;
+}
+
+int mtherr_with_arg (char *name, int code, double arg)
+{
+    return real_mtherr(name, code, arg, 1);
+}
+
+int mtherr (char *name, int code)
+{
+    return real_mtherr(name, code, 0, 0);
+}
+
+int get_cephes_errno (void)
+{
+    int ret = cephes_errno;
+
+    cephes_errno = 0; /* clear the code */
+
+    return ret;
+}
+
+
+
+
+
+
+
+// IS THIS POLYNOMIAL EVALUATION ENOUGH? https://lost-contact.mit.edu/afs/lngs.infn.it/experiment/cuore/soft_node101/scipy-0.16.0/scipy/special/cephes/polevl.h
 //---------------------------------------
 // ---- Polynomial evaluation (Cephes) ----
 /*gpufun*/
 double polevl(double x, const double coef[], int N) {
     double ans = coef[0];
-    for (int i = 1; i <= N; ++i) {
-        ans = ans * x + coef[i];
+     for (int i = 1; i <= N; ++i) {
+     ans = ans * x + coef[i];
     }
     return ans;
 }
@@ -27,8 +236,9 @@ double polevl(double x, const double coef[], int N) {
 double p1evl(double x, const double coef[], int N) {
     double ans = x + coef[0];
     for (int i = 1; i < N; ++i) {
-        ans = ans * x + coef[i];
+    ans = ans * x + coef[i];
     }
+
     return ans;
 }
 
@@ -36,61 +246,123 @@ double p1evl(double x, const double coef[], int N) {
 //-------------------
 // ---- ellpk: complete elliptic integral of the first kind ----
 // Complete elliptic integral of the first kind K(m) with x = m1 = 1 - m.
-/*gpufun*/
-double ellpk(double x) {
-    // log(4) constant used in the small-x asymptotic
-    const double MY_LOG4 = 1.3862943611198906188; // = log(4)
 
-    // Domain check, returns 0.0 on domain error)
-    if (x < 0.0 || x > 1.0) {
-        return 0.0;
-    }
 
-    // Small-x handling !!!!!!
-    if (x <= MY_MACHEP) {
-        if (x == 0.0) {
-            // Singular at m -> 1 (x -> 0)
-            return MY_MAXNUM;
-        } else {
-            // Asymptotic for very small x
-            return MY_LOG4 - 0.5 * log(x);
-        }
-    }
+/* UNK (portable double) – canonical values */
+  const double ELLPK_P_UNK[11] = {
+ 1.37982864606273237150e-4, 2.28025724005875567385e-3,
+ 7.97404013220415179367e-3, 9.85821379021226008714e-3,
+ 6.87489687449949877925e-3, 6.18901033637687613229e-3,
+ 8.79078273952743772254e-3, 1.49380448916805252718e-2,
+ 3.08851465246711995998e-2, 9.65735902811690126535e-2,
+ 1.38629436111989062502e0
+};
+  const double ELLPK_Q_UNK[11] = {
+ 2.94078955048598507511e-5, 9.14184723865917226571e-4,
+ 5.94058303753167793257e-3, 1.54850516649762399335e-2,
+ 2.39089602715924892727e-2, 3.01204715227604046988e-2,
+ 3.73774314173823228969e-2, 4.88280347570998239232e-2,
+ 7.03124996963957469739e-2, 1.24999999999870820058e-1,
+ 4.99999999999999999821e-1
+};
 
-    // Polynomial approximation: P(x) - log(x) Q(x)
-    static const double P[] = {
-        1.37982864606273237150E-4,
-        2.28025724005875567385E-3,
-        7.97404013220415179367E-3,
-        9.85821379021226008714E-3,
-        6.87489687449949877925E-3,
-        6.18901033637687613229E-3,
-        8.79078273952743772254E-3,
-        1.49380448916805252718E-2,
-        3.08851465246711995998E-2,
-        9.65735902811690126535E-2,
-        1.38629436111989062502E0
-    };
-    static const double Q[] = {
-        2.94078955048598507511E-5,
-        9.14184723865917226571E-4,
-        5.94058303753167793257E-3,
-        1.54850516649762399335E-2,
-        2.39089602715924892727E-2,
-        3.01204715227604046988E-2,
-        3.73774314173823228969E-2,
-        4.88280347570998239232E-2,
-        7.03124996963957469739E-2,
-        1.24999999999870820058E-1,
-        4.99999999999999999821E-1
-    };
+/* For completeness, expose DEC/IBMPC/MIEEE “variants” as doubles too.
+   (They are numerically the same as UNK.) */
+   double ELLPK_P_DEC[11]    = { /* = UNK */ 
+ 1.37982864606273237150e-4, 2.28025724005875567385e-3,
+ 7.97404013220415179367e-3, 9.85821379021226008714e-3,
+ 6.87489687449949877925e-3, 6.18901033637687613229e-3,
+ 8.79078273952743772254e-3, 1.49380448916805252718e-2,
+ 3.08851465246711995998e-2, 9.65735902811690126535e-2,
+ 1.38629436111989062502e0
+};
+   double ELLPK_Q_DEC[11]    = { /* = UNK */
+ 2.94078955048598507511e-5, 9.14184723865917226571e-4,
+ 5.94058303753167793257e-3, 1.54850516649762399335e-2,
+ 2.39089602715924892727e-2, 3.01204715227604046988e-2,
+ 3.73774314173823228969e-2, 4.88280347570998239232e-2,
+ 7.03124996963957469739e-2, 1.24999999999870820058e-1,
+ 4.99999999999999999821e-1
+};
 
-    if (x == 1.0) {
-        // K(0) = pi/2  ( m = 0)
-        return MY_PIO2;
-    }
+   double ELLPK_P_IBMPC[11]  = { /* = UNK */
+ 1.37982864606273237150e-4, 2.28025724005875567385e-3,
+ 7.97404013220415179367e-3, 9.85821379021226008714e-3,
+ 6.87489687449949877925e-3, 6.18901033637687613229e-3,
+ 8.79078273952743772254e-3, 1.49380448916805252718e-2,
+ 3.08851465246711995998e-2, 9.65735902811690126535e-2,
+ 1.38629436111989062502e0
+};
+  double ELLPK_Q_IBMPC[11]  = { /* = UNK */
+ 2.94078955048598507511e-5, 9.14184723865917226571e-4,
+ 5.94058303753167793257e-3, 1.54850516649762399335e-2,
+ 2.39089602715924892727e-2, 3.01204715227604046988e-2,
+ 3.73774314173823228969e-2, 4.88280347570998239232e-2,
+ 7.03124996963957469739e-2, 1.24999999999870820058e-1,
+ 4.99999999999999999821e-1
+};
 
-    return polevl(x, P, 10) - log(x) * polevl(x, Q, 10);
+  double ELLPK_P_MIEEE[11]  = { /* = UNK */
+ 1.37982864606273237150e-4, 2.28025724005875567385e-3,
+ 7.97404013220415179367e-3, 9.85821379021226008714e-3,
+ 6.87489687449949877925e-3, 6.18901033637687613229e-3,
+ 8.79078273952743772254e-3, 1.49380448916805252718e-2,
+ 3.08851465246711995998e-2, 9.65735902811690126535e-2,
+ 1.38629436111989062502e0
+};
+   double ELLPK_Q_MIEEE[11]  = { /* = UNK */
+ 2.94078955048598507511e-5, 9.14184723865917226571e-4,
+ 5.94058303753167793257e-3, 1.54850516649762399335e-2,
+ 2.39089602715924892727e-2, 3.01204715227604046988e-2,
+ 3.73774314173823228969e-2, 4.88280347570998239232e-2,
+ 7.03124996963957469739e-2, 1.24999999999870820058e-1,
+ 4.99999999999999999821e-1
+};
+
+/* ---- Choose which set to use: define ELLPK_USE_{UNK,DEC,IBMPC,MIEEE} ---- */
+#if defined(ELLPK_USE_DEC)
+#  define ELLPK_P  ELLPK_P_DEC
+#  define ELLPK_Q  ELLPK_Q_DEC
+#elif defined(ELLPK_USE_IBMPC)
+#  define ELLPK_P  ELLPK_P_IBMPC
+#  define ELLPK_Q  ELLPK_Q_IBMPC
+#elif defined(ELLPK_USE_MIEEE)
+#  define ELLPK_P  ELLPK_P_MIEEE
+#  define ELLPK_Q  ELLPK_Q_MIEEE
+#else
+#  define ELLPK_P  ELLPK_P_UNK     /* default */
+#  define ELLPK_Q  ELLPK_Q_UNK
+#endif
+
+/* Optional: exact log(4) used in the small-x asymptotic path */
+#define C1 1.3862943611198906188
+
+double ellpk(x)
+double x;
+{
+
+if( (x < 0.0) || (x > 1.0) )
+	{
+	mtherr( "ellpk", DOMAIN );
+	return( 0.0 );
+	}
+
+if( x > MY_MACHEP )
+	{
+	return( polevl(x,ELLPK_P,10) - log(x) * polevl(x,ELLPK_Q,10) );
+	}
+else
+	{
+	if( x == 0.0 )
+		{
+		mtherr( "ellpk", SING );
+		return( MY_MAXNUM );
+		}
+	else
+		{
+		return( C1 - 0.5 * log(x) );
+		}
+	}
 }
 
 
