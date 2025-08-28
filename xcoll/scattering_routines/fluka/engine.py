@@ -7,6 +7,7 @@ import numpy as np
 from numbers import Number
 from subprocess import run, PIPE, Popen
 from time import sleep
+import socket
  
 import xobjects as xo
 import xtrack.particles.pdg as pdg
@@ -428,6 +429,16 @@ class FlukaEngine(BaseEngine):
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
+        # Check if the hostname has a valid IP address
+        try:
+            socket.inet_aton(host)
+        except socket.error:
+            self._print(f"Warning: Hostname {host} is not a valid IP address. Setting it to localhost.")
+            host = "localhost"
+        try:
+            host = socket.gethostbyname(host)
+        except socket.gaierror:
+            host = "localhost"
         with self._network_nfo.open('w') as fid:
             fid.write(f"{host}\n")
 
