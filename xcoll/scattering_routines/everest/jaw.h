@@ -8,14 +8,14 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
-// #include <xcoll/scattering_routines/everest/ionisation_loss.h>
-// #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+#include <headers/track.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/ionisation_loss.h>
+#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
+#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
 
 
-/*gpufun*/
+GPUFUN
 double jaw(EverestData restrict everest, LocalParticle* part, double pc, double length, int edge_check) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed

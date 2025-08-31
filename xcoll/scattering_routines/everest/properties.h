@@ -9,12 +9,12 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
-// #include <xcoll/scattering_routines/everest/constants.h>
+#include <headers/track.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/constants.h>
 
 
-/*gpufun*/
+GPUFUN
 void calculate_scattering(EverestData restrict everest, double pc) {
     if (everest->coll->only_mcs){   // TODO: this should be done smarter
         return;
@@ -96,7 +96,7 @@ void calculate_scattering(EverestData restrict everest, double pc) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double calculate_dechannelling_length(EverestData restrict everest, double pc) {
     // Material properties
     double const exenergy = everest->coll->exenergy;

@@ -1,14 +1,12 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-
-from ..general import _pkg_root
 
 
 class BlowUp(xt.BeamElement):
@@ -35,9 +33,8 @@ class BlowUp(xt.BeamElement):
     _store_in_to_dict = ['amplitude', 'plane', 'calibration']
 
     _depends_on = [xt.RandomUniform]
-    _extra_c_sources = [
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'beam_elements/elements_src/blowup.h']
+
+    _extra_c_sources = ['#include <xcoll/beam_elements/elements_src/blowup.h>']
 
     def __init__(self, **kwargs):
         to_assign = {}

@@ -9,12 +9,9 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
-
 
 class ParticleStatsMonitorRecord(xo.Struct):
-    # count            = xo.Int64[:]  # TODO: once atomicadd in Xtrack is updated
-    count            = xo.Float64[:]
+    count            = xo.Int64[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
     y_sum1           = xo.Float64[:]
@@ -70,8 +67,7 @@ class ParticleStatsMonitor(xt.BeamElement):
 
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
-        xt._pkg_root.joinpath('headers/atomicadd.h'),  # TODO: once atomicadd in Xtrack is updated, this should be an include in the monitor file.
-        _pkg_root.joinpath('beam_elements/elements_src/monitor.h')
+        '#include <xcoll/beam_elements/elements_src/monitor.h>'
     ]
 
     def __init__(self, **kwargs):
@@ -262,8 +258,7 @@ class ParticleStatsMonitor(xt.BeamElement):
                 kwargs['data'] = {}
                 for field in ParticleStatsMonitorRecord._fields:
                     if field.name == 'count':
-                        # kwargs['data'].update({field.name: np.zeros(size, dtype=np.int64)})  # TODO: once atomicadd in Xtrack is updated
-                        kwargs['data'].update({field.name: np.zeros(size)})
+                        kwargs['data'].update({field.name: np.zeros(size, dtype=np.int64)})
                     elif field.name.endswith('_sum1'):
                         if not monitor_mean:
                             kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
@@ -534,7 +529,7 @@ class EmittanceMonitor(ParticleStatsMonitor):
     _depends_on      = [ParticleStatsMonitor]
     _noexpr_fields   = ParticleStatsMonitor._noexpr_fields
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')
+        '#include <xcoll/beam_elements/elements_src/emittance_monitor.h>'
     ]
 
     def __init__(self, **kwargs):

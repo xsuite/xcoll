@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM_GET_S_H
@@ -10,15 +10,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/methods.h>
+#include <headers/track.h>
+#include <xcoll/scattering_routines/geometry/methods.h>
 
 // IMPORTANT:
 // These functions assume that the particle moves towards positive s!
 // (hence no backscattering/backtracking is allowed)
 
 
-/*gpufun*/
+GPUFUN
 double get_s_of_first_crossing(double part_x, double part_tan, Segment* segments, \
                                int8_t n_segments){
     int8_t n_hit = 0;
@@ -34,7 +34,7 @@ double get_s_of_first_crossing(double part_x, double part_tan, Segment* segments
     return result;
 }
 
-/*gpufun*/
+GPUFUN
 double get_s_of_crossing_after_s(double part_x, double part_tan, Segment* segments, \
                                  int8_t n_segments, double current_s){
     int8_t n_hit = 0;
@@ -52,7 +52,7 @@ double get_s_of_crossing_after_s(double part_x, double part_tan, Segment* segmen
     return S_MAX;
 }
 
-/*gpufun*/
+GPUFUN
 double get_s_of_first_crossing_with_vlimit(double part_x, double part_tan_x, \
                                 double part_y, double part_tan_y, Segment* segments, \
                                 int8_t n_segments, double y_min, double y_max){
@@ -70,7 +70,7 @@ double get_s_of_first_crossing_with_vlimit(double part_x, double part_tan_x, \
     return result;
 }
 
-/*gpufun*/
+GPUFUN
 double get_s_of_crossing_after_s_with_vlimit(double part_x, double part_tan_x, \
                                 double part_y, double part_tan_y, Segment* segments, \
                                 int8_t n_segments, double y_min, double y_max, double current_s){

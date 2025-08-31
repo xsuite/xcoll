@@ -8,27 +8,27 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/headers/checks.h>
-// #include <xcoll/headers/particle_states.h>
+#include <headers/track.h>
+#include <xcoll/headers/checks.h>
+#include <xcoll/headers/particle_states.h>
 
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCollimatorData_get_record_impacts(EverestCollimatorData el){
     return EverestCollimatorData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCollimatorData_get_record_exits(EverestCollimatorData el){
     return (EverestCollimatorData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCollimatorData_get_record_scatterings(EverestCollimatorData el){
     return (EverestCollimatorData_get__record_interactions(el) >> 2) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 void EverestCollimator_set_material(EverestCollimatorData el){
     MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
@@ -36,7 +36,7 @@ void EverestCollimator_set_material(EverestCollimatorData el){
 }
 
 
-/*gpufun*/
+GPUFUN
 CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, LocalParticle* part0){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     // Jaw corners (with tilts)
@@ -84,7 +84,7 @@ CollimatorGeometry EverestCollimator_init_geometry(EverestCollimatorData el, Loc
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void EverestCollimator_free(CollimatorGeometry restrict cg){
     if (cg->side != -1){
         destroy_jaw(cg->segments_L);
@@ -99,7 +99,7 @@ void EverestCollimator_free(CollimatorGeometry restrict cg){
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
 // Hmmmm this should be called whenever we change an xofield
-/*gpufun*/
+GPUFUN
 EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* part0){
     EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
     // Random generator and material
@@ -127,7 +127,7 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
 }
 
 
-/*gpufun*/
+GPUFUN
 EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData coll){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
@@ -140,7 +140,7 @@ EverestData EverestCollimator_init_data(LocalParticle* part, EverestCollData col
 }
 
 
-/*gpufun*/
+GPUFUN
 void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParticle* part0) {
     int8_t active = EverestCollimatorData_get_active(el);
     active       *= EverestCollimatorData_get__tracking(el);
@@ -155,7 +155,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
         cg = EverestCollimator_init_geometry(el, part0);
     }
 
-    //start_per_particle_block (part0->part);
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
             // Drift full length
             Drift_single_particle(part, length);
@@ -229,7 +229,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 }
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         EverestCollimator_free(cg);
         free(coll);

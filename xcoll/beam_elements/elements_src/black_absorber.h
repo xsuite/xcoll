@@ -6,24 +6,28 @@
 #ifndef XCOLL_ABSORBER_H
 #define XCOLL_ABSORBER_H
 
+#include <headers/track.h>
+#include <headers/checks.h>
+#include <xcoll/headers/particle_states.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t BlackAbsorberData_get_record_impacts(BlackAbsorberData el){
     return BlackAbsorberData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackAbsorberData_get_record_exits(BlackAbsorberData el){
     return (BlackAbsorberData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackAbsorberData_get_record_scatterings(BlackAbsorberData el){
     return (BlackAbsorberData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalParticle* part0){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     // Jaw corners (with tilts)
@@ -71,7 +75,7 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void BlackAbsorber_free(CollimatorGeometry restrict cg){
     if (cg->side != -1){
         destroy_jaw(cg->segments_L);
@@ -83,7 +87,7 @@ void BlackAbsorber_free(CollimatorGeometry restrict cg){
 }
 
 
-/*gpufun*/
+GPUFUN
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
     int8_t active = BlackAbsorberData_get_active(el);
     active       *= BlackAbsorberData_get__tracking(el);
@@ -97,7 +101,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         record_scatterings = BlackAbsorberData_get_record_scatterings(el);
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
             // Drift full length
             Drift_single_particle(part, length);
@@ -126,7 +130,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         BlackAbsorber_free(cg);
     }

@@ -1,16 +1,16 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2023.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_CHECKS_H
 #define XCOLL_CHECKS_H
 
-// #include <headers/track.h>
-// #include <headers/checks.h>
-// #include <headers/particle_states.h>
-// #include <random/random_src/rutherford.h>
-// #include <xcoll/headers/particle_states.h>
+#include <headers/track.h>
+#include <headers/checks.h>
+#include <headers/particle_states.h>
+#include <random/random_src/rutherford.h>
+#include <xcoll/headers/particle_states.h>
 
 // This is a quick macro to use inside a function body on a parameter that is not
 // used inside the function (this avoids throwing warnings at compilation time).
@@ -18,7 +18,7 @@
 #define UNUSED(expr) (void)(expr)
 #endif
 
-/*gpufun*/
+GPUFUN
 int8_t xcoll_check_particle_init(RandomRutherfordData rng, LocalParticle* part) {
     int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
     if (!is_tracking){

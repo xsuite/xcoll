@@ -9,12 +9,12 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/everest/constants.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
+#include <headers/track.h>
+#include <xcoll/scattering_routines/everest/constants.h>
+#include <xcoll/scattering_routines/everest/everest.h>
 
 
-/*gpufun*/
+GPUFUN
 void calculate_ionisation_properties(EverestData restrict everest, double pc) {
     if (everest->coll->only_mcs){   // TODO: this should be done smarter
         return;
@@ -72,7 +72,7 @@ void calculate_ionisation_properties(EverestData restrict everest, double pc) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double calcionloss(EverestData restrict everest, LocalParticle* part, double ionisation_length, double pc, double scale_factor) {
 
 #ifdef XCOLL_REFINE_ENERGY

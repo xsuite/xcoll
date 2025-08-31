@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM_SEGMENTS_H
@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/sort.h>
+#include <headers/track.h>
+#include <xcoll/scattering_routines/geometry/sort.h>
 
 // These functions compare a particle trajectory (straight line with slope part_tan going
 // through the point [0, part_x]) with a given segment of specific type.
@@ -49,7 +49,7 @@ typedef struct LineSegment_ {
 } LineSegment_;
 typedef LineSegment_* LineSegment;
 
-/*gpufun*/
+GPUFUN
 void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
     LineSegment seg = (LineSegment) self;
@@ -78,7 +78,7 @@ void get_s_of_crossing_with_line_segment(int8_t* n_hit, double* s, double part_x
     }
 }
 
-/*gpufun*/
+GPUFUN
 LineSegment create_line_segment(double point1_s, double point1_x, double point2_s, double point2_x){
     LineSegment seg = (LineSegment) malloc(sizeof(LineSegment_));
     seg->crossing = &get_s_of_crossing_with_line_segment;
@@ -110,7 +110,7 @@ typedef HalfOpenLineSegment_* HalfOpenLineSegment;
 
 // A half-open segment implies one of its points lies at +-inf.
 // In practice we just add a polygon point at the wall overflow (at 1km for the x-coordinate).
-/*gpufun*/
+GPUFUN
 void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
     HalfOpenLineSegment seg = (HalfOpenLineSegment) self;
@@ -144,7 +144,7 @@ void get_s_of_crossing_with_halfopen_line_segment(int8_t* n_hit, double* s, doub
     }
 }
 
-/*gpufun*/
+GPUFUN
 HalfOpenLineSegment create_halfopen_line_segment(double point_s, double point_x, double point_tan, int8_t side){
     HalfOpenLineSegment seg = (HalfOpenLineSegment) malloc(sizeof(HalfOpenLineSegment_));
     seg->crossing = &get_s_of_crossing_with_halfopen_line_segment;
@@ -172,7 +172,7 @@ typedef struct CircularSegment_ {
 } CircularSegment_;
 typedef CircularSegment_* CircularSegment;
 
-/*gpufun*/
+GPUFUN
 void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double part_x, double part_tan, void* self){
     // Get segment data
     CircularSegment seg = (CircularSegment) self;
@@ -212,7 +212,7 @@ void get_s_of_crossing_with_circular_segment(int8_t* n_hit, double* s, double pa
     }
 }
 
-/*gpufun*/
+GPUFUN
 CircularSegment create_circular_segment(double R, double centre_s, double centre_x, double point1_angle, double point2_angle){
     CircularSegment seg = (CircularSegment) malloc(sizeof(CircularSegment_));
     seg->crossing = &get_s_of_crossing_with_circular_segment;

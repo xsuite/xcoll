@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM_ROT_H
@@ -8,9 +8,9 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
+#include <headers/track.h>
 
-/*gpufun*/
+GPUFUN
 double YRotation_single_particle_rotate_only(LocalParticle* part, double s, double angle){
     double x   = LocalParticle_get_x(part);
     double rpp = LocalParticle_get_rpp(part);

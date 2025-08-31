@@ -6,10 +6,10 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
-// #include <headers/track.h>
+#include <headers/track.h>
 
 
-/*gpufun*/
+GPUFUN
 void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticle* part0){
     ParticleStatsMonitor_track_local_particle((ParticleStatsMonitorData) el, part0);
 }

@@ -3,13 +3,13 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import numpy as np
+import pandas as pd
+
 import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
-
-import numpy as np
-import pandas as pd
 
 
 with open(_pkg_root / 'interaction_record' / 'interaction_record_src' / 'interaction_types.h', 'r') as fid:
@@ -75,8 +75,7 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        _pkg_root / 'interaction_record/interaction_record_src/interaction_types.h',
-        _pkg_root / 'interaction_record/interaction_record_src/interaction_record.h'
+        '#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>'
     ]
 
 

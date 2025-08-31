@@ -9,16 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/headers/particle_states.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
-// #include <xcoll/scattering_routines/everest/ionisation_loss.h>
-// #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
-// #include <xcoll/scattering_routines/everest/crystal_parameters.h>
+#include <headers/track.h>
+#include <xcoll/headers/particle_states.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/ionisation_loss.h>
+#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
+#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+#include <xcoll/scattering_routines/everest/crystal_parameters.h>
 
 
-/*gpufun*/
+GPUFUN
 void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -52,7 +52,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 
 // Amorphous transport is just Multiple Coulomb scattering
-/*gpufun*/
+GPUFUN
 double amorphous_transport(EverestData restrict everest, LocalParticle* part, double pc, double length, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -95,6 +95,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
 double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
 double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
 
+GPUFUN
 double volume_interaction(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
 #ifdef XCOLL_REFINE_ENERGY
     calculate_VI_parameters(everest, part, pc);
@@ -124,7 +125,7 @@ double volume_interaction(EverestData restrict everest, LocalParticle* part, Cry
     return pc;
 }
 
-// /*gpufun*/
+// GPUFUN
 double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
 
     if (LocalParticle_get_state(part) < 1){
