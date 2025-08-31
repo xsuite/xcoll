@@ -33,8 +33,8 @@ def test_blow_up(beam, plane, test_context):
     tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
     adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
     adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
-                            stop_at_turn=num_turns, use_individual_kicks=True)
-    mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns)
+                            stop_at_turn=num_turns, use_individual_kicks=True, _context=test_context)
+    mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns, _context=test_context)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -43,7 +43,8 @@ def test_blow_up(beam, plane, test_context):
         adt.calibrate_by_emittance(nemitt=nemitt_y)
 
     part = xp.generate_matched_gaussian_bunch(num_particles=num_part, total_intensity_particles=1.6e11,
-                                              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
+                                              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line,
+                                              _context=test_context)
 
     adt.activate()
     line.track(part, num_turns=num_turns, with_progress=1)

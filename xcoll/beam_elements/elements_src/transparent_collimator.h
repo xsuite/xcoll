@@ -6,28 +6,28 @@
 #ifndef XCOLL_TRANSPARENT_COLL_H
 #define XCOLL_TRANSPARENT_COLL_H
 
-#include <headers/track.h>
-#include <headers/checks.h>
-#include <xcoll/headers/particle_states.h>
+// #include <headers/track.h>
+// #include <headers/checks.h>
+// #include <xcoll/headers/particle_states.h>
 
 
-GPUFUN
+/*gpufun*/
 int8_t TransparentCollimatorData_get_record_impacts(TransparentCollimatorData el){
     return TransparentCollimatorData_get__record_interactions(el) % 2;
 }
 
-GPUFUN
+/*gpufun*/
 int8_t TransparentCollimatorData_get_record_exits(TransparentCollimatorData el){
     return (TransparentCollimatorData_get__record_interactions(el) >> 1) % 2;
 }
 
-GPUFUN
+/*gpufun*/
 int8_t TransparentCollimatorData_get_record_scatterings(TransparentCollimatorData el){
     return (TransparentCollimatorData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-GPUFUN
+/*gpufun*/
 CollimatorGeometry TransparentCollimator_init_geometry(TransparentCollimatorData el, LocalParticle* part0){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     // Jaw corners (with tilts)
@@ -75,7 +75,7 @@ CollimatorGeometry TransparentCollimator_init_geometry(TransparentCollimatorData
     return cg;
 }
 
-GPUFUN
+/*gpufun*/
 void TransparentCollimator_free(CollimatorGeometry restrict cg){
     if (cg->side != -1){
         destroy_jaw(cg->segments_L);
@@ -87,7 +87,7 @@ void TransparentCollimator_free(CollimatorGeometry restrict cg){
 }
 
 
-GPUFUN
+/*gpufun*/
 void TransparentCollimator_track_local_particle(TransparentCollimatorData el, LocalParticle* part0){
     int8_t active = TransparentCollimatorData_get_active(el);
     active       *= TransparentCollimatorData_get__tracking(el);
@@ -99,7 +99,7 @@ void TransparentCollimator_track_local_particle(TransparentCollimatorData el, Lo
         cg = TransparentCollimator_init_geometry(el, part0);
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
+    //start_per_particle_block (part0->part);
         if (!active){
             // Drift full length
             Drift_single_particle(part, length);
@@ -121,7 +121,7 @@ void TransparentCollimator_track_local_particle(TransparentCollimatorData el, Lo
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    END_PER_PARTICLE_BLOCK;
+    //end_per_particle_block
     if (active){
         TransparentCollimator_free(cg);
     }

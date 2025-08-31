@@ -8,10 +8,10 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <headers/track.h>
-#include <xcoll/headers/particle_states.h>
-#include <xcoll/scattering_routines/geometry/get_s.h>
-#include <xcoll/scattering_routines/geometry/rotation.h>
+// #include <headers/track.h>
+// #include <xcoll/headers/particle_states.h>
+// #include <xcoll/scattering_routines/geometry/get_s.h>
+// #include <xcoll/scattering_routines/geometry/rotation.h>
 
 typedef struct CollimatorGeometry_ {
     // Collimator jaws (with tilts)
@@ -48,7 +48,7 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
-GPUFUN
+/*gpufun*/
 int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry restrict cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
@@ -169,7 +169,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 }
 
 
-GPUFUN
+/*gpufun*/
 void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
     if (is_hit != 0 && LocalParticle_get_state(part) > 0){
         if (cg->record_exits){

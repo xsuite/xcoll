@@ -5,6 +5,7 @@
 
 from ..beam_elements import *
 
+
 DEFAULT_XCOLL_ELEMENTS = [
     BlackAbsorber,
     BlackCrystal,

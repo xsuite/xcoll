@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <headers/track.h>
-#include <xcoll/scattering_routines/everest/everest.h>
+// #include <headers/track.h>
+// #include <xcoll/scattering_routines/everest/everest.h>
 
 
-GPUFUN
+/*gpufun*/
 void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
     double R = cg->bending_radius;
     double s = LocalParticle_get_s(part);
@@ -26,7 +26,7 @@ void calculate_initial_angle(EverestData restrict everest, LocalParticle* part, 
 }
 
 
-GPUFUN
+/*gpufun*/
 void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg){
     double t    = cg->bending_angle;
     double xd   = cg->width;
@@ -78,7 +78,7 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
 }
 
 
-GPUFUN
+/*gpufun*/
 double _critical_angle0(EverestCollData restrict coll, double pc){
     // Define typical angles/probabilities for orientation 110
     double eum = coll->eum;
@@ -86,7 +86,7 @@ double _critical_angle0(EverestCollData restrict coll, double pc){
     return sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals    // pc is actually beta pc
 }
 
-GPUFUN
+/*gpufun*/
 double _critical_radius(EverestCollData restrict coll, double pc){
     // Define typical angles/probabilities for orientation 110
     double eum = coll->eum;
@@ -95,7 +95,7 @@ double _critical_radius(EverestCollData restrict coll, double pc){
     return pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]   // pc is actually beta pc
 }
 
-GPUFUN
+/*gpufun*/
 double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_over_R){
     double t_c = 0;
     if (Rc_over_R <= 1.) {
@@ -108,7 +108,7 @@ double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_ove
     return t_c;
 }
 
-GPUFUN
+/*gpufun*/
 void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc){
     // Define typical angles/probabilities for orientation 110
     everest->t_c0  = _critical_angle0(everest->coll, pc);
@@ -118,7 +118,7 @@ void calculate_critical_angle(EverestData restrict everest, LocalParticle* part,
 }
 
 
-GPUFUN
+/*gpufun*/
 void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, double pc){
 
     double ratio = everest->Rc_over_R;

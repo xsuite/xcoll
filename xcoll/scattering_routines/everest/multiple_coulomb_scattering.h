@@ -8,12 +8,12 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <headers/track.h>
-#include <xcoll/headers/particle_states.h>
-#include <xcoll/scattering_routines/everest/everest.h>
+// #include <headers/track.h>
+// #include <xcoll/headers/particle_states.h>
+// #include <xcoll/scattering_routines/everest/everest.h>
 
 
-GPUFUN
+/*gpufun*/
 double iterat(double a, double b, double dh, double s) {
     double ds = s;
     while (1) {
@@ -33,7 +33,7 @@ double iterat(double a, double b, double dh, double s) {
 }
 
 
-GPUFUN
+/*gpufun*/
 double soln3(double a, double b, double dh, double smax) {
     double s;
     if (b == 0) {
@@ -81,7 +81,7 @@ double soln3(double a, double b, double dh, double smax) {
 }
 
 
-GPUFUN
+/*gpufun*/
 double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double* result = (double*)malloc(2 * sizeof(double));
 
@@ -110,7 +110,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 }
 
 
-GPUFUN
+/*gpufun*/
 void mcs(EverestData restrict everest, LocalParticle* part, double length, double pc, int edge_check){
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;

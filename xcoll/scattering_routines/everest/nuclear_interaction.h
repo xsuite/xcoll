@@ -8,13 +8,13 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <headers/track.h>
-#include <xcoll/headers/particle_states.h>
-#include <xcoll/scattering_routines/everest/everest.h>
-#include <xcoll/scattering_routines/everest/properties.h>
+// #include <headers/track.h>
+// #include <xcoll/headers/particle_states.h>
+// #include <xcoll/scattering_routines/everest/everest.h>
+// #include <xcoll/scattering_routines/everest/properties.h>
 
 
-GPUFUN
+/*gpufun*/
 double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;

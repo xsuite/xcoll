@@ -8,27 +8,27 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <headers/track.h>
-#include <xcoll/headers/checks.h>
-#include <xcoll/headers/particle_states.h>
+// #include <headers/track.h>
+// #include <xcoll/headers/checks.h>
+// #include <xcoll/headers/particle_states.h>
 
 
-GPUFUN
+/*gpufun*/
 int8_t EverestBlockData_get_record_impacts(EverestBlockData el){
     return EverestBlockData_get__record_interactions(el) % 2;
 }
 
-GPUFUN
+/*gpufun*/
 int8_t EverestBlockData_get_record_exits(EverestBlockData el){
     return (EverestBlockData_get__record_interactions(el) >> 1) % 2;
 }
 
-GPUFUN
+/*gpufun*/
 int8_t EverestBlockData_get_record_scatterings(EverestBlockData el){
     return (EverestBlockData_get__record_interactions(el) >> 2) % 2;
 }
 
-GPUFUN
+/*gpufun*/
 void EverestBlock_set_material(EverestBlockData el){
     MaterialData material = EverestBlockData_getp__material(el);
     RandomRutherfordData rng = EverestBlockData_getp_rutherford_rng(el);
@@ -36,7 +36,7 @@ void EverestBlock_set_material(EverestBlockData el){
 }
 
 
-GPUFUN
+/*gpufun*/
 EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int8_t active){
     EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
@@ -67,7 +67,7 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
 }
 
 
-GPUFUN
+/*gpufun*/
 EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
@@ -80,7 +80,7 @@ EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
 }
 
 
-GPUFUN
+/*gpufun*/
 void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0) {
     int8_t active = EverestBlockData_get__tracking(el);
     active       *= EverestBlockData_get_active(el);
@@ -90,7 +90,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestBlock_init(el, part0, active);
 
-    START_PER_PARTICLE_BLOCK(part0, part);
+    //start_per_particle_block (part0->part);
         if (!active){
             // Drift full length
             Drift_single_particle(part, length);
@@ -153,7 +153,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 }
             }
         }
-    END_PER_PARTICLE_BLOCK;
+    //end_per_particle_block
     free(coll);
 }
 

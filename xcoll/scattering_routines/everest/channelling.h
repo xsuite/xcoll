@@ -9,15 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <headers/track.h>
-#include <xcoll/headers/particle_states.h>
-#include <xcoll/scattering_routines/everest/everest.h>
-#include <xcoll/scattering_routines/everest/constants.h>
-#include <xcoll/scattering_routines/everest/ionisation_loss.h>
-#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
-#include <xcoll/scattering_routines/everest/crystal_parameters.h>
-#include <xcoll/scattering_routines/everest/amorphous.h>
+// #include <headers/track.h>
+// #include <xcoll/headers/particle_states.h>
+// #include <xcoll/scattering_routines/everest/everest.h>
+// #include <xcoll/scattering_routines/everest/constants.h>
+// #include <xcoll/scattering_routines/everest/ionisation_loss.h>
+// #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
+// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+// #include <xcoll/scattering_routines/everest/crystal_parameters.h>
+// #include <xcoll/scattering_routines/everest/amorphous.h>
 
 
 // Convention:
@@ -27,7 +27,7 @@
 //       r: radius from position to bending centre (including t_I):  L = t*r
 
 
-GPUFUN
+/*gpufun*/
 double channelling_average_density(EverestData restrict everest, CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
@@ -83,7 +83,7 @@ double channelling_average_density(EverestData restrict everest, CrystalGeometry
 }
 
 
-GPUFUN
+/*gpufun*/
 double* channel_transport(EverestData restrict everest, LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)

@@ -10,11 +10,11 @@
 #define C_LIGHT 299792458.0
 #endif
 
-#include <headers/track.h>
-#include <headers/atomicadd.h> // TODO: once atomicadd in Xtrack is updated
+// #include <headers/track.h>
+// #include <headers/atomicadd.h>
 
 
-GPUFUN
+/*gpufun*/
 void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, LocalParticle* part0){
     ParticleStatsMonitorData_set__cached(el, 0);
     int64_t const start_at_turn = ParticleStatsMonitorData_get_start_at_turn(el);
@@ -39,7 +39,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
     int16_t const monitor_mean      = (_selector >> 7) % 2;
     int16_t const monitor_variance  = (_selector >> 8) % 2;
 
-    START_PER_PARTICLE_BLOCK(part0, part);
+    //start_per_particle_block (part0->part);
         int64_t particle_id = LocalParticle_get_particle_id(part);
         if (part_id_end < 0 || (part_id_start <= particle_id && particle_id < part_id_end)){
 
@@ -61,8 +61,8 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
 
             if (slot >= 0 && slot < max_slot){
-                GPUGLMEM int64_t *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);  // TODO: once atomicadd in Xtrack is updated
-                // GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1.);
+                // GPUGLMEM int64_t *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);  // TODO: once atomicadd in Xtrack is updated
+                GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1.);
 
                 // Read coordinates only if needed
                 if (monitor_x){ x = LocalParticle_get_x(part); }
@@ -133,7 +133,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
                 }
             }
         }
-	END_PER_PARTICLE_BLOCK;
+	//end_per_particle_block
 }
 
 #endif /* XCOLL_MONITOR_H */

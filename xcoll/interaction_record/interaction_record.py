@@ -75,7 +75,8 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        '#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>'
+        _pkg_root / 'interaction_record/interaction_record_src/interaction_types.h',
+        _pkg_root / 'interaction_record/interaction_record_src/interaction_record.h'
     ]
 
 
