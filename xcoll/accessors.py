@@ -67,9 +67,9 @@ class XcollAccessor:
     def __contains__(self, key):
         return key in self.names
 
-    @property
-    def properties(self):
-        return {attr for ddd in self.values() for attr in ddd.keys()}
+    # @property   # This only works if the underlying db is a dict...
+    # def properties(self):
+    #     return {attr for ddd in self.values() for attr in ddd.keys()}
 
     def __getattr__(self, attr):
         properties = {}
@@ -94,6 +94,7 @@ class XcollAccessor:
         return properties
 
     def __setattr__(self, attr, value):
+        _ = getattr(self, attr) # Just to check that the attribute exists
         if isinstance(value, dict):
             for el, val in value.items():
                 if el not in self.names:
@@ -133,9 +134,10 @@ class XcollAccessor:
         if len(self.names) == 0:
             return ''
         res = [f'{self._typename.capitalize()}s:']
+        name_len = max(len(name) for name in self.names)
         for name in self.names:
             cls_name = self._eltype or self._element_dict[name].__class__.__name__
-            res.append(f"    {name:<16} ({cls_name})")
+            res.append(f"    {name:<{name_len}}  ({cls_name})  {self[name]}")
         return "\n".join(res)
 
     def show(self):
@@ -171,9 +173,10 @@ class XcollFamilyAccessor(XcollAccessor):
         res = []
         if len(self.families) > 0:
             res.append('Families:')
+            name_len = max(len(name) for name in self.family_names)
             for family, names in self.families.items():
                 ff = f'{family}:'
-                res.append(f"    {ff:<16} {', '.join(names)}")
+                res.append(f"    {ff:<{name_len}}  {', '.join(names)}")
             res.append('')
         res.append(super().__str__())
         return "\n".join(res)
