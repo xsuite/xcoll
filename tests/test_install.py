@@ -14,7 +14,7 @@ from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
 
-path = Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 
 @for_all_test_contexts(

@@ -11,8 +11,11 @@ import json
 import xobjects as xo
 import xcoll as xc
 
-sys.path.insert(1, (xc._pkg_root.parent / 'tests' / 'data').as_posix())
+
+path = xc._pkg_root.parent / 'tests' / 'data'
+sys.path.insert(1, path.as_posix())
 from xcoll_geometry_test import XcollGeometryTest
+
 
 def _init_kernels():
     geom = XcollGeometryTest()
@@ -20,7 +23,7 @@ def _init_kernels():
     return geom._context.kernels
 
 def _generate_polygon_points(num_poly, tilt_L=0, tilt_R=0):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         rans = json.load(fp)['rans']
     len_between = num_poly-4
     between = [[(i+1)/(len_between+1) + rans[i]*0.15-0.075, rans[i+len_between]*0.15+0.025]
@@ -58,7 +61,7 @@ def _plot_poly(part_x, part_tan, poly_s_L, poly_x_L, poly_s_R=None, poly_x_R=Non
     plt.show()
 
 def _loop_1jaw_1partdim(name, func, num_polys):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt in expected_s.keys():
         tilt_tan = np.tan(np.deg2rad(int(tilt)))
@@ -74,7 +77,7 @@ def _loop_1jaw_1partdim(name, func, num_polys):
                     assert np.isclose(s, expected_s[tilt][part_ang][part_x_cm])
 
 def _loop_cry_1jaw_1partdim(name, func):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt in expected_s.keys():
         tilt_sin = np.sin(np.deg2rad(int(tilt)))
@@ -91,7 +94,7 @@ def _loop_cry_1jaw_1partdim(name, func):
                         assert np.isclose(s, expected_s[tilt][R][part_ang][part_x_cm])
 
 def _loop_1jaw_2partdim(name, func, num_polys):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt in expected_s.keys():
         tilt_tan = np.tan(np.deg2rad(int(tilt)))
@@ -111,7 +114,7 @@ def _loop_1jaw_2partdim(name, func, num_polys):
                             assert np.isclose(s, expected_s[tilt][part_ang_x][part_ang_y][part_x_cm][part_y_cm])
 
 def _loop_cry_1jaw_2partdim(name, func):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt in expected_s.keys():
         tilt_sin = np.sin(np.deg2rad(int(tilt)))
@@ -132,7 +135,7 @@ def _loop_cry_1jaw_2partdim(name, func):
                                 assert np.isclose(s, expected_s[tilt][R][part_ang_x][part_ang_y][part_x_cm][part_y_cm])
 
 def _loop_2jaw_1partdim(name, func, num_polys):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt_L in expected_s.keys():
         tilt_tan_L = np.tan(np.deg2rad(int(tilt_L)))
@@ -152,7 +155,7 @@ def _loop_2jaw_1partdim(name, func, num_polys):
                         assert np.isclose(s, expected_s[tilt_L][tilt_R][part_ang][part_x_cm])
 
 def _loop_doublejaw_2partdim(name, func, num_polys):
-    with open(xc._pkg_root.parent / "tests" / "data" / "geometry.json", "r") as fp:
+    with open(path / "geometry.json", "r") as fp:
         expected_s = json.load(fp)[name]
     for tilt_LR in expected_s.keys():
         tilt_L, tilt_R = tilt_LR.strip('][').split(', ')

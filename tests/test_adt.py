@@ -14,10 +14,12 @@ from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 import xobjects as xo
 
+
 num_turns = 25
 num_part = 5000
 nemitt_x = 3.5e-6
 nemitt_y = 2.5e-6
+path = xc._pkg_root.parent / 'examples' / 'machines'
 
 
 @retry()
@@ -25,7 +27,7 @@ nemitt_y = 2.5e-6
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blow_up(beam, plane, test_context):
-    line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+    line = xt.Line.from_json(path / f'lhc_run3_b{beam}_no_aper.json')
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
     name = f'adtk{plane.lower()}.{pos}.b{beam}'
