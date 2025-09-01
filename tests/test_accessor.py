@@ -7,7 +7,7 @@ import pytest
 
 import xtrack as xt
 import xcoll as xc
-from xcoll.accessors import XcollAccessor, XcollFamilyAccessor
+from xcoll.accessors import XcollAccessor
 
 
 class InnerClass:
@@ -224,15 +224,15 @@ def test_accessor_family(outer_is_instance, inner_is_instance, extra_elements):
     # Create the accessor:
     if outer_is_instance:
         _dbtype = 'test class'
-        acc = XcollFamilyAccessor(db=db, names=['el1', 'el2', 'el3', 'el4'],
-                                  _dbtype=_dbtype, _typename='test element')
+        acc = XcollAccessor(db=db, names=['el1', 'el2', 'el3', 'el4'],
+                            _dbtype=_dbtype, _typename='test element')
     else:
         _dbtype = 'test dict'
         if extra_elements:
-            acc = XcollFamilyAccessor(db=db, names=['el1', 'el2', 'el3', 'el4'],
-                                      _dbtype=_dbtype, _typename='test element')
+            acc = XcollAccessor(db=db, names=['el1', 'el2', 'el3', 'el4'],
+                                _dbtype=_dbtype, _typename='test element')
         else:
-            acc = XcollFamilyAccessor(db=db, _dbtype=_dbtype, _typename='test element')
+            acc = XcollAccessor(db=db, _dbtype=_dbtype, _typename='test element')
 
     # Check the families
     assert acc.family_names == ['A', 'B']

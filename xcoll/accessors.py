@@ -17,15 +17,17 @@ class XcollAccessor:
     to specify which elements can be addressed by the accessor. If not specified,
     all elements in the db are considered (names is equal to self._db.keys()).
 
-    Note that attributes cannot be set in the child class' methods (otherwise
-    you'll get a RecursionError). Instead, they should be passed via
-    super().__init__(**kwargs_to_set) in the child class __init__ method.
+    Additionally, each element can have an attribute 'family' that gives
+    the name of the family it belongs to, and 'non_family_attributes' which
+    lists its attributes that will not be updated when the family attribute is
+    set. This will auto-generate a families dict, and sub-accessors when
+    accessing by family name.
     '''
 
     # These are only used for printing and error messages:
     _typename = 'element'   # What are we accessing? (e.g. elements, collimators, ..)
-    _dbtype = 'line'        # What is the underlying db? (e.g. line, colldb, ..)
-    _eltype = None          # What type of elements are we accessing? (e.g. BeamElement, settings, ..)
+    _dbtype   = 'line'      # What is the underlying db? (e.g. line, colldb, ..)
+    _eltype   = None        # What type of elements are we accessing? (e.g. BeamElement, settings, ..)
 
     def __init__(self, db, names=None, **kwargs_to_set):
         super().__setattr__('_db', db)
@@ -36,10 +38,58 @@ class XcollAccessor:
             super().__setattr__('names', list(db.keys()))
         for key, value in kwargs_to_set.items():
             super().__setattr__(key, value)
+        self._check_family_consistency()
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
+             + f"to see the content)>"
+
+    def __str__(self):
+        if len(self.names) == 0:
+            return ''
+        res = []
+        if len(self.families) > 0:
+            res.append('Families:')
+            name_len = max(max(len(name) for name in self.family_names) + 1, 10)
+            for family, names in self.families.items():
+                ff = f'{family}:'
+                res.append(f"    {ff:<{name_len}}  {', '.join(names)}")
+            nofam_names = set(self.names) - {vvv for vv in self.families.values() for vvv in vv}
+            res.append(f"    {'no family:':<{name_len}}  {', '.join(nofam_names)}")
+            res.append('')
+        res.append(f'{self._typename.capitalize()}s:')
+        name_len = max(len(name) for name in self.names)
+        for name in self.names:
+            cls_name = self._eltype or self._element_dict[name].__class__.__name__
+            res.append(f"    {name:<{name_len}}  ({cls_name})  {self[name]}")
+        return "\n".join(res)
+
+    def show(self):
+        """Print the content of the accessor."""
+        print(self)
 
     @property
     def _element_dict(self):
         return {name: self._db.get(name) for name in self.names}
+
+    @property
+    def families(self):
+        families = {}
+        try:
+            prop_families = self.family
+        except AttributeError:
+            return families
+        else:
+            for name in self.names:
+                if name in prop_families:
+                    if prop_families[name] not in families:
+                        families[prop_families[name]] = []
+                    families[prop_families[name]].append(name)
+            return families
+
+    @property
+    def family_names(self):
+        return list(self.families.keys())
 
     def keys(self):
         return self._element_dict.keys()
@@ -161,45 +211,14 @@ class XcollAccessor:
                     self._set_element_attr(name, attr, value)
 
     def __getitem__(self, name):
-        return self._get_db_element(name)
+        # We can getitem by name or family, so we overwrite the super method
+        if name in self.families:
+            return XcollAccessor(db=self._db, names=self.families[name], _typename=self._typename,
+                                 _dbtype=self._dbtype, _is_family_sub_accessor=True)
+        else:
+            return self._get_db_element(name)
 
     # TODO: implement __setitem__ for setting as update (do not delete other attributes)
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
-             + f"to see the content)>"
-
-    def __str__(self):
-        if len(self.names) == 0:
-            return ''
-        res = [f'{self._typename.capitalize()}s:']
-        name_len = max(len(name) for name in self.names)
-        for name in self.names:
-            cls_name = self._eltype or self._element_dict[name].__class__.__name__
-            res.append(f"    {name:<{name_len}}  ({cls_name})  {self[name]}")
-        return "\n".join(res)
-
-    def show(self):
-        """Print the content of the accessor."""
-        print(self)
-
-
-class XcollFamilyAccessor(XcollAccessor):
-    '''This class can be used as a parent to provide a uniform way to access
-    collimators from an underlying database (like a settings dictionary or an
-    xtrack.Line). It works similarily to the parent XcollAccessor class.
-    Additionally, each collimator can have an attribute 'family' that gives
-    the name of the family it belongs to, and 'non_family_attributes' which
-    lists its attributes that will not be updated when the family attribute is
-    set.
-    '''
-
-    # These are only used for printing and error messages:
-    _typename = 'collimator'
-
-    def __init__(self, db, names=None, **kwargs_to_set):
-        super().__init__(db=db, names=names, **kwargs_to_set)
-        self._check_family_consistency()
 
     def _check_family_consistency(self):
         for name, el in self.items():
@@ -230,46 +249,3 @@ class XcollFamilyAccessor(XcollAccessor):
                         raise ValueError(f"{self._typename.capitalize()} "
                           + f"`{name}` has `non_family_attributes` in "
                           + f"`non_family_attributes`!")
-
-    def __str__(self):
-        res = []
-        if len(self.families) > 0:
-            res.append('Families:')
-            name_len = max(max(len(name) for name in self.family_names) + 1, 10)
-            for family, names in self.families.items():
-                ff = f'{family}:'
-                res.append(f"    {ff:<{name_len}}  {', '.join(names)}")
-            nofam_names = set(self.names) - {vvv for vv in self.families.values() for vvv in vv}
-            res.append(f"    {'no family:':<{name_len}}  {', '.join(nofam_names)}")
-            res.append('')
-        res.append(super().__str__())
-        return "\n".join(res)
-
-    @property
-    def families(self):
-        families = {}
-        try:
-            prop_families = self.family
-        except AttributeError:
-            return families
-        else:
-            for name in self.names:
-                if name in prop_families:
-                    if prop_families[name] not in families:
-                        families[prop_families[name]] = []
-                    families[prop_families[name]].append(name)
-            return families
-
-    @property
-    def family_names(self):
-        return list(self.families.keys())
-
-    def __getitem__(self, name):
-        # We can getitem by name or family, so we overwrite the super method
-        if name in self.families:
-            return XcollAccessor(db=self._db, names=self.families[name], _typename=self._typename,
-                                 _dbtype=self._dbtype, _is_family_sub_accessor=True)
-        elif name in self.names:
-            return self._element_dict[name]
-        else:
-            raise KeyError(f"Neither family nor {self._typename} `{name}` found in {self._dbtype}!")

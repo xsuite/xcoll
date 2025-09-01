@@ -12,7 +12,7 @@ from pathlib import Path
 
 import xtrack as xt
 
-from .accessors import XcollFamilyAccessor
+from .accessors import XcollAccessor
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
                            BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
@@ -64,7 +64,7 @@ def _get_coll_dct_by_beam(coll, beam):
     return coll
 
 
-class CollimatorDatabase(XcollFamilyAccessor):
+class CollimatorDatabase(XcollAccessor):
 
     def __init__(self, **kwargs_to_set):
         # Get all arguments
