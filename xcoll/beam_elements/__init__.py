@@ -10,6 +10,7 @@ from .everest import EverestBlock, EverestCollimator, EverestCrystal
 from .blowup import BlowUp
 from .monitor import EmittanceMonitor
 from .channelling import ChannellingDev
+from .channelling import BentChannellingDev
 
 block_classes = tuple(v for v in globals().values()
                       if isinstance(v, type) and issubclass(v, BaseBlock) and v != BaseBlock
@@ -21,4 +22,4 @@ collimator_classes = tuple(v for v in globals().values()
 crystal_classes = tuple(v for v in globals().values()
                         if isinstance(v, type) and issubclass(v, BaseCrystal) and v != BaseCrystal)
 
-element_classes = block_classes + (BlowUp, EmittanceMonitor, ChannellingDev)
+element_classes = block_classes + (BlowUp, EmittanceMonitor, ChannellingDev, BentChannellingDev)

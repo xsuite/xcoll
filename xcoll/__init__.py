@@ -7,7 +7,8 @@ from .general import _pkg_root, __version__, citation
 
 from .beam_elements import BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal, \
                            EverestBlock, EverestCollimator, EverestCrystal, BlowUp, EmittanceMonitor, \
-                           ChannellingDev, collimator_classes, crystal_classes, element_classes
+                           ChannellingDev, BentChannellingDev, collimator_classes, crystal_classes, element_classes
+ 
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
