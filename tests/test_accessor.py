@@ -101,21 +101,14 @@ def test_accessor(outer_is_instance, inner_is_instance, extra_elements):
     with pytest.raises(KeyError) as err:
         acc['el4']
     assert str(err.value) == f"'Test element `el4` not found in {_dbtype}!'"
-    with pytest.raises(KeyError) as err:
-        acc['non_existing']
-    assert str(err.value) == f"'Test element `non_existing` not found in {_dbtype}!'"
-    with pytest.raises(TypeError) as err:
-        acc['el4'] = 8
-    assert str(err.value) == "'XcollAccessor' object does not support item assignment"
-
     if extra_elements:
         assert isinstance(db.get('el4'), inner) # Should not have been modified
     else:
         with pytest.raises(KeyError):           # Should not have been added
             _ = db['el4'] if outer == dict else db.get('el4')
-    with pytest.raises(TypeError) as err:
-        acc['non_existing'] = 8
-    assert str(err.value) == "'XcollAccessor' object does not support item assignment"
+    with pytest.raises(KeyError) as err:
+        acc['non_existing']
+    assert str(err.value) == f"'Test element `non_existing` not found in {_dbtype}!'"
     with pytest.raises(KeyError):  # Should not have been added
         _ = db['non_existing'] if outer == dict else db.get('non_existing')
 
@@ -199,6 +192,43 @@ def test_accessor(outer_is_instance, inner_is_instance, extra_elements):
     assert db.get('el3').get('d') == 10
     if extra_elements:
         assert db.get('el4').get('e') == 23
+
+    # Setting attributes by item assignment (non-specified attributes should
+    # be left unchanged, and new attributes should be added):
+    acc['el1'] = {'a': -10, 'd': -10, 'f': -999}
+    assert db.get('el1').get('a') == -10
+    assert db.get('el2').get('a') == 30
+    assert db.get('el3').get('a') == 5
+    assert db.get('el1').get('b') == 5000
+    assert db.get('el2').get('b') == 5000
+    if extra_elements:
+        assert db.get('el4').get('b') == 7
+    assert db.get('el3').get('c') == 6
+    assert db.get('el1').get('d') == -10
+    assert db.get('el2').get('d') == 10
+    assert db.get('el3').get('d') == 10
+    if extra_elements:
+        assert db.get('el4').get('e') == 23
+    assert db.get('el1').get('f') == -999
+
+    # Setting attributes by item assignment can only be done with a dict:
+    with pytest.raises(ValueError) as err:
+        acc['el1'] = 8
+    assert str(err.value) == "Can only set test element `el1` to a settings dict!"
+    assert db.get('el1').get('a') == -10
+    assert db.get('el2').get('a') == 30
+    assert db.get('el3').get('a') == 5
+    assert db.get('el1').get('b') == 5000
+    assert db.get('el2').get('b') == 5000
+    if extra_elements:
+        assert db.get('el4').get('b') == 7
+    assert db.get('el3').get('c') == 6
+    assert db.get('el1').get('d') == -10
+    assert db.get('el2').get('d') == 10
+    assert db.get('el3').get('d') == 10
+    if extra_elements:
+        assert db.get('el4').get('e') == 23
+    assert db.get('el1').get('f') == -999
 
 
 @pytest.mark.parametrize("outer_is_instance", [False, True
@@ -300,3 +330,100 @@ def test_accessor_family(outer_is_instance, inner_is_instance, extra_elements):
     assert db.get('el4').get('d') == 10
     if extra_elements:
         assert db.get('el5').get('e') == 23
+
+    # Setting family attributes by item assignment:
+    acc['A'] = {'a': -1000, 'b': -5000, 'c': -200, 'f': -999}
+    # Check the db is updated correctly:
+    assert db.get('el1').get('a') == -1000
+    assert db.get('el2').get('a') == 3
+    assert db.get('el3').get('a') == -1000
+    assert db.get('el4').get('a') == 9
+    assert db.get('el1').get('b') == -5000
+    assert db.get('el2').get('b') == 4
+    assert db.get('el3').get('b') == 19
+    if extra_elements:
+        assert db.get('el5').get('b') == 7
+    assert db.get('el1').get('c') == -200
+    assert db.get('el3').get('c') == -200
+    assert db.get('el1').get('d') == 10
+    assert db.get('el2').get('d') == 10
+    assert db.get('el3').get('d') == 10
+    assert db.get('el4').get('d') == 10
+    if extra_elements:
+        assert db.get('el5').get('e') == 23
+    assert db.get('el1').get('f') == -999
+    assert db.get('el3').get('f') == -999
+
+    # Setting attributes by item assignment can only be done with a dict:
+    with pytest.raises(ValueError) as err:
+        acc['A'] = 8
+    assert str(err.value) == "Can only set family `A` to a settings dict!"
+    # Check the db is unchanged:
+    assert db.get('el1').get('a') == -1000
+    assert db.get('el2').get('a') == 3
+    assert db.get('el3').get('a') == -1000
+    assert db.get('el4').get('a') == 9
+    assert db.get('el1').get('b') == -5000
+    assert db.get('el2').get('b') == 4
+    assert db.get('el3').get('b') == 19
+    if extra_elements:
+        assert db.get('el5').get('b') == 7
+    assert db.get('el1').get('c') == -200
+    assert db.get('el3').get('c') == -200
+    assert db.get('el1').get('d') == 10
+    assert db.get('el2').get('d') == 10
+    assert db.get('el3').get('d') == 10
+    assert db.get('el4').get('d') == 10
+    if extra_elements:
+        assert db.get('el5').get('e') == 23
+    assert db.get('el1').get('f') == -999
+    assert db.get('el3').get('f') == -999
+
+
+def test_accessor_family_inconsistency():
+    el1 = {'a': 1, 'b': 2, 'd': 10, 'family': 'A'}
+    el2 = {'a': 3, 'b': 4, 'd': 10, 'family': 'B'}
+    el3 = {'a': 5, 'b': 19, 'c': 6, 'd': 10, 'family': 'A', 'non_family_attributes': ['b']}
+
+    el2['family'] = 7
+    with pytest.raises(ValueError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el2` has a `family` attribute that is not a string!"
+
+    el2['family'] = 'B'
+    el3.pop('family')
+    with pytest.raises(AttributeError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el3` has `non_family_attributes` but no `family` attribute!"
+
+    el3['family'] = 'A'
+    el3['non_family_attributes'] = 'b'  # This is OK
+    acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                        _dbtype='test dict', _typename='test element')
+    assert acc['el3']['non_family_attributes'] == ['b']
+    assert el3['non_family_attributes'] == ['b']
+    el3['non_family_attributes'] = 8  # This is not
+    with pytest.raises(ValueError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el3` has `non_family_attributes` but it is not iterable!"
+
+    el3['non_family_attributes'] = ['f']
+    with pytest.raises(AttributeError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el3` has attribute `f` in `non_family_attributes` but it is not present!"
+
+    el3['non_family_attributes'] = ['family']
+    with pytest.raises(ValueError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el3` has `family` in `non_family_attributes`!"
+
+    el3['non_family_attributes'] = ['non_family_attributes']
+    with pytest.raises(ValueError) as err:
+        acc = XcollAccessor(db={'el1': el1, 'el2': el2, 'el3': el3},
+                            _dbtype='test dict', _typename='test element')
+    assert str(err.value) == "Test element `el3` has `non_family_attributes` in `non_family_attributes`!"

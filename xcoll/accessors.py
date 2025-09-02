@@ -144,15 +144,15 @@ class XcollAccessor:
             except:
                 return default
 
-    def _set_element_attr(self, name, attr, value, allow_missing=True):
+    def _set_element_attr(self, name, attr, value, allow_missing=True, add_new=False):
         el = self._get_db_element(name)
         if isinstance(el, dict):
-            if attr in el:
+            if attr in el or add_new:
                 el[attr] = value
             elif not allow_missing:
                 raise AttributeError(f"Attribute `{attr}` not found in "
                                      + f"{self._typename} `{name}`!")
-        elif hasattr(el, attr):
+        elif hasattr(el, attr) or add_new:
             setattr(el, attr, value)
         else:
             try:
@@ -165,12 +165,15 @@ class XcollAccessor:
     def _get_element_non_family_attributes(self, name):
         return self._get_element_attr(name, 'non_family_attributes', default=[])
 
+    def _element_has_attr(self, name, attr):
+        prop = self._get_element_attr(name, attr, default='__xc_acc_not_found__')
+        return prop != '__xc_acc_not_found__'
+
     def __getattr__(self, attr):
         properties = {}
         for name, el in self.items():
-            prop = self._get_element_attr(name, attr, default='__xc_acc_not_found__')
-            if prop != '__xc_acc_not_found__':
-                properties[name] = prop
+            if self._element_has_attr(name, attr):
+                properties[name] = self._get_element_attr(name, attr)
         if len(properties) == 0:
             raise AttributeError(f"Attribute `{attr}` not found in {self._dbtype}!")
         # If all values are the same, return a single value
@@ -218,27 +221,48 @@ class XcollAccessor:
         else:
             return self._get_db_element(name)
 
-    # TODO: implement __setitem__ for setting as update (do not delete other attributes)
+    def __setitem__(self, name, value):
+        # Set attributes of a single element. This is the only way to add new
+        # attributes to an element.
+        if name in self.families:
+            # Set attributes for all family members
+            if not isinstance(value, dict):
+                raise ValueError(f"Can only set family `{name}` to a "
+                               + f"settings dict!")
+            for el_name in self.families[name]:
+                for attr, val in value.items():
+                    if attr in self._get_element_non_family_attributes(el_name):
+                        # This attribute is non-family, so ignore it when setting the family
+                        continue
+                    self._set_element_attr(el_name, attr, val, add_new=True)
+        else:
+            if not isinstance(value, dict):
+                raise ValueError(f"Can only set {self._typename} `{name}` to a "
+                               + f"settings dict!")
+            # Set attributes for this element
+            for attr, val in value.items():
+                self._set_element_attr(name, attr, val, add_new=True)
 
     def _check_family_consistency(self):
         for name, el in self.items():
-            if hasattr(el, 'family') and not isinstance(el.family, str):
-                raise TypeError(f"{self._typename.capitalize()} `{name}` has "
+            fam = self._get_element_attr(name, 'family')
+            if fam is not None and not isinstance(fam, str):
+                raise ValueError(f"{self._typename.capitalize()} `{name}` has "
                                 f"a `family` attribute that is not a string!")
-            if hasattr(el, 'non_family_attributes'):
-                if not hasattr(el, 'family'):
+            nf = self._get_element_non_family_attributes(name)
+            if nf:
+                if fam is None:
                     raise AttributeError(f"{self._typename.capitalize()} "
                         + f"`{name}` has `non_family_attributes` but no "
                         + f"`family` attribute!")
-                if isinstance(el.non_family_attributes, str):
-                    el.non_family_attributes = [el.non_family_attributes]
-                elif not hasattr(el.non_family_attributes, '__iter__'):
-                    raise TypeError(f"{self._typename.capitalize()} `{name}` "
-                                  + f"has `non_family_attributes` but it is "
-                                  + f"not iterable!")
-                for attr in el.non_family_attributes:
-                    if not (isinstance(el, dict) and attr in el) \
-                    and not hasattr(el, attr):
+                if isinstance(nf, str):
+                    self._set_element_attr(name, 'non_family_attributes', [nf])
+                elif not hasattr(nf, '__iter__'):
+                    raise ValueError(f"{self._typename.capitalize()} `{name}` "
+                                     + f"has `non_family_attributes` but it is "
+                                     + f"not iterable!")
+                for attr in nf:
+                    if not self._element_has_attr(name, attr):
                         raise AttributeError(f"{self._typename.capitalize()} "
                           + f"`{name}` has attribute `{attr}` in "
                           + f"`non_family_attributes` but it is not present!")
