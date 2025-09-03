@@ -11,7 +11,7 @@ from .beam_elements import BlackAbsorber, BlackCrystal, TransparentCollimator, T
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
-from .rf_sweep import RFSweep
+from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 
 
