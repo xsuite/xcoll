@@ -50,6 +50,7 @@ class RFSweep:
             raise ValueError("Either `sweep` or `sweep_per_turn` must be provided.")
         self._get_cavity_data(self.sweep_per_turn)
         self._install_zeta_shift()
+        self.tw = self.line.twiss()
         self.reset() # Initialize rf_sweep_df
         self.env['rf_sweep'].dzeta = f"{self.L} * rf_sweep_df / ({self.f_RF} + rf_sweep_df)"
         for cavs in self.cavities:
@@ -66,7 +67,6 @@ class RFSweep:
     def reset(self):
         if self.sweep_per_turn is None:
             raise ValueError("RFSweep not prepared. Call `prepare` first.")
-        self.tw = self.line.twiss()
         t_turn = self.tw.T_rev0
         current_time = self.env['t_turn_s']
         if current_time == 0:

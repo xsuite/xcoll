@@ -14,12 +14,18 @@ from xobjects.test_helpers import for_all_test_contexts
 path = Path(__file__).parent / 'data'
 
 @for_all_test_contexts
-@pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2]],
-                         ids=["DP pos", "DP neg"])
+@pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2], [3500, 3]],
+                         ids=["DP pos LHC", "DP neg LHC", "DP neg SPS"])
 def test_rf_sweep(sweep, beam, test_context):
     num_turns = 6000
     num_particles = 5
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    if beam == 3:
+        line = xt.load(path / f'sequence_sps_q20_inj.json')['sps']
+        line.insert('markkk', xt.Marker(), at=2822)
+        tt_c = line.get_table().rows['ac.*']
+        assert 'ThickSliceCavity' in tt_c.element_type
+    else:
+        line = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
 
     line.build_tracker()
 
