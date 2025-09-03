@@ -12,6 +12,7 @@ from pathlib import Path
 
 import xtrack as xt
 
+from .accessors import XcollAccessor
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
                            BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
@@ -63,22 +64,22 @@ def _get_coll_dct_by_beam(coll, beam):
     return coll
 
 
-class CollimatorDatabase:
+class CollimatorDatabase(XcollAccessor):
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs_to_set):
         # Get all arguments
         for key in ['collimator_dict', 'nemitt_x', 'nemitt_y']:
-            if key not in kwargs.keys():
+            if key not in kwargs_to_set.keys():
                 raise ValueError(f"CollimatorDatabase is missing required argument '{key}'!")
 
-        self._parse_dict(kwargs['collimator_dict'],
-                         kwargs.get('family_dict', {}),
-                         kwargs.get('beam', None),
-                         kwargs.get('_yaml_merged', False),
-                         kwargs.get('ignore_crystals', True))
-        self.nemitt_x = kwargs['nemitt_x']
-        self.nemitt_y = kwargs['nemitt_y']
-        self._elements = {}
+        coll, fam = self._parse_dict(kwargs_to_set.pop('collimator_dict'),
+                         kwargs_to_set.pop('family_dict', {}),
+                         kwargs_to_set.get('beam', None),
+                         kwargs_to_set.pop('_yaml_merged', False),
+                         kwargs_to_set.pop('ignore_crystals', True))
+        kwargs_to_set['_elements'] = {}
+        kwargs_to_set['_eltype'] = 'settings'
+        super().__init__(db=coll, family_db=fam, **kwargs_to_set)
 
 
     def _parse_dict(self, coll, fam, beam=None, _yaml_merged=False, ignore_crystals=True):
@@ -140,8 +141,7 @@ class CollimatorDatabase:
                 collimator[key] = val.lower() if isinstance(val, str) else val
             _initialise_None(collimator)
 
-        self._collimator_dict = coll
-        self._family_dict = fam
+        return coll, fam
 
     # =======================================
     # ====== Loading/dumping functions ======
@@ -356,14 +356,14 @@ class CollimatorDatabase:
 
 
     def to_pandas(self):
-        return pd.DataFrame(self._collimator_dict).transpose()
+        return pd.DataFrame(self._db).transpose()
 
 
     def to_dict(self):
         default_values = {}
         _initialise_None(default_values)
         colls = {}
-        for coll, vals in self._collimator_dict.items():
+        for coll, vals in self._db.items():
             colls[coll] = {}
             for kk, vv in vals.items():
                 if kk == 'overwritten_keys':
@@ -372,12 +372,12 @@ class CollimatorDatabase:
                     colls[coll][kk] = vv
                 elif vv != default_values.get(kk):
                     if 'family' in vals and vals['family']:
-                        if kk not in self._family_dict[vals['family']]:
+                        if kk not in self._family_db[vals['family']]:
                             colls[coll][kk] = vv
                     else:
                         colls[coll][kk] = vv
         return {
-            'families': self._family_dict,
+            'families': self._family_db,
             'emittance': {'x': self.nemitt_x, 'y': self.nemitt_y},
             'collimators': colls
         }
@@ -417,7 +417,7 @@ class CollimatorDatabase:
 
     def _get_names_from_line(self, line, names, families):
         if names is None and families is None:
-            names = self.collimator_names
+            names = self.names
         elif names is None:
             names = self.get_collimators_from_family(families)
         elif families is not None:
@@ -489,46 +489,5 @@ class CollimatorDatabase:
     # ==================================
 
     @property
-    def collimator_names(self):
-        return list(self._collimator_dict.keys())
-
-    @property
-    def collimator_families(self):
-        families = {fam: [] for fam in self._family_dict.keys()}
-        families["no family"] = []
-        for name in self.collimator_names:
-            if 'family' not in self[name] or self[name]['family'].lower() == 'unknown':
-                families["no family"].append(name)
-            else:
-                families[self[name]['family']].append(name)
-        return families
-
-    def get_collimators_from_family(self, family):
-        if not hasattr(family, '__iter__') and not isinstance(family, str):
-            family = [family]
-        result = []
-        for fam in family:
-            if fam not in self.collimator_families:
-                raise ValueError(f"Family '{fam}' not found in CollimatorDatabase!")
-            result += self.collimator_families[fam]
-        return result
-
-    @property
     def properties(self):
-        return {attr for d in self._collimator_dict.values() for attr in d.keys()}
-
-    def __getattr__(self, attr):
-        if attr in self.properties:
-            # TODO: include families
-            return {kk: vv.get(attr, None) for kk, vv in self._collimator_dict.items()}
-        else:
-            raise ValueError(f"Property `{attr}` not present in CollimatorDatabase!")
-
-    def __getitem__(self, name):
-        if name in self._family_dict:
-            return self._family_dict[name]
-        elif name in self._collimator_dict:
-            return self._collimator_dict[name]
-        else:
-            raise ValueError(f"Family nor collimator `{name}` found in CollimatorDatabase!")
-
+        return {attr for d in self._db.values() for attr in d.keys()}

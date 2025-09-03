@@ -8,7 +8,7 @@ from warnings import warn
 
 import xtrack as xt
 
-from .accessors import XcollAccessor, XcollCollimatorAccessor
+from .accessors import XcollAccessor
 from .beam_elements import element_classes, collimator_classes, block_classes
 
 
@@ -54,7 +54,7 @@ class XcollScatteringAPI(XcollAccessor):
                     el.disable_scattering()
 
 
-class XcollCollimatorAPI(XcollCollimatorAccessor):
+class XcollCollimatorAPI(XcollAccessor):
 
     def __init__(self, line):
         super().__init__(db=line, _line=line)

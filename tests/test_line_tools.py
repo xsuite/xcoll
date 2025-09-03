@@ -11,7 +11,10 @@ import xpart as xp
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
+
 path = xc._pkg_root.parent / 'tests' / 'data'
+
+
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )

@@ -18,7 +18,8 @@ try:
 except (ImportError, ModuleNotFoundError):
     matplotlib_installed = False
 
-path = Path(__file__).parent / 'data'
+
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 
 @pytest.mark.skipif(not matplotlib_installed, reason="matplolib not installed")

@@ -9,7 +9,7 @@ import xcoll as xc
 import pandas as pd
 
 
-path =  Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 
 def test_loading():
