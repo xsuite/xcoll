@@ -59,10 +59,6 @@ line.build_tracker()
 line.collimators.assign_optics()
 
 
-# Optimise the line
-line.optimize_for_tracking()
-
-
 # Generate initial matched bunch
 part = xp.generate_matched_gaussian_bunch(nemitt_x=colldb.nemitt_x,
                                           nemitt_y=colldb.nemitt_y,
@@ -77,12 +73,13 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 # Print some info of the RF sweep
 rf_sweep = xc.RFSweep(line)
-rf_sweep.info(sweep=sweep, num_turns=num_turns)
+rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
+rf_sweep.info()
 
 
 # Track during RF sweep:
 line.scattering.enable()
-rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
+line.track(particles=part, num_turns=num_turns, time=True, with_progress=5)
 line.scattering.disable()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 

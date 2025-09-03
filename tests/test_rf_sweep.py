@@ -27,8 +27,10 @@ def test_rf_sweep(sweep, beam, test_context):
                                 x_norm=0, px_norm=0, y_norm=0, py_norm=0)
 
     rf_sweep = xc.RFSweep(line)
+    rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
+    rf_sweep.info()
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away
-    rf_sweep.track(sweep=sweep, num_turns=num_turns, particles=part)
+    line.track(particles=part, num_turns=num_turns)
 
     # negative sweep => positive off-momentum etc
     if sweep < 0:
