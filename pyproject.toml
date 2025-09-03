@@ -15,7 +15,9 @@ authors = [
 ]
 readme = "README.md"
 license = {text="Apache-2.0"}
-exclude = ["xcoll/lib", "xcoll/config"]
+exclude = [
+    {path="xcoll/lib"}, {path="xcoll/config"}
+]
 
 requires-python = ">=3.10"
 
