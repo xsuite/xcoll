@@ -32,6 +32,9 @@ class ChannellingDev(InvalidXcoll):
 class BentChannellingDev(InvalidXcoll):
     _xofields = {
         'length': xo.Float64,
+        'method' : xo.Int64,  # 2, 3, 4
+        'variant': xo.Int64,  # 1 or 2
+        'order'  : xo.Int64,  # 2,4,6,8,10,12
     }
 
     isthick = True
@@ -45,7 +48,6 @@ class BentChannellingDev(InvalidXcoll):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','elliptic_functions.h'),
-        _pkg_root.joinpath('beam_elements','elements_src','channelling.h'),
         _pkg_root.joinpath('beam_elements','elements_src','bent_channelling.h')
     ]
 
