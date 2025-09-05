@@ -19,7 +19,13 @@ void BoundingBox_set_params(BoundingBox box, double rC, double sin_tC, double co
 }
 
 /*gpufun*/
-int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
+// OverlapIntervals overlap;
+//if (BoundingBox_overlaps(b1, b2, &overlap)) {
+//    // now overlap contains all 4 intervals
+//    launch_numerical_method(overlap);
+//}
+
+int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2, OverlapIntervals* overlap){
     // v1-v4 are the four vertices of the first box in counterclockwise order
     // w1-w4 are the four vertices of the second box in counterclockwise order
     // e1-e2 are the two axes of the first box
@@ -56,6 +62,9 @@ int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(proj_l_b1, proj_l_b1 + l_b1, projs[0], projs[3])){
         return 0;
+    } else {
+        overlap->min_e1 = fmax(proj_l_b1, projs[0]);
+        overlap->max_e1 = fmin(proj_l_b1 + l_b1, projs[3]);
     }
 
     // length of projection of vertices of box 2 on the width axis of box 1 (e2)
@@ -66,6 +75,9 @@ int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(proj_w_b1, proj_w_b1 + w_b1, projs[0], projs[3])){ 
         return 0;
+    } else {
+        overlap->min_e2 = fmax(proj_w_b1, projs[0]);
+        overlap->max_e2 = fmin(proj_w_b1 + w_b1, projs[3]);
     }
 
     // length of projection of vertices of box 1 on the length axis of box 2 (f1)
@@ -77,6 +89,9 @@ int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(proj_l_b2, proj_l_b2 + l_b2, projs[0], projs[3])){ 
         return 0;
+    } else {
+        overlap->min_f1 = fmax(proj_l_b2, projs[0]);
+        overlap->max_f1 = fmin(proj_l_b2 + l_b2, projs[3]);
     }
 
     // length of projection of vertices of box 1 on the width axis of box 2 (f2)
@@ -87,6 +102,9 @@ int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){
     sort_array_of_4_double(projs);
     if (!INTERVALS_OVERLAP(proj_w_b2, proj_w_b2 + w_b2, projs[0], projs[3])){ 
         return 0;
+    } else {
+        overlap->min_f2 = fmax(proj_w_b2, projs[0]);
+        overlap->max_f2 = fmin(proj_w_b2 + w_b2, projs[3]);
     }
     return 1;
 }
