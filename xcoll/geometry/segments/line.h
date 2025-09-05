@@ -67,7 +67,7 @@ void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, 
         sin_tC = x1 / rC;                                         // angle of the position vector to the first vertex
         cos_tC = s1 / rC;
     }
-    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t)
+    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
 }
 
 // /*gpufun*/

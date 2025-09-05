@@ -71,17 +71,17 @@ void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, do
     double sin_t0 = DriftTrajectory_get_sin_t0(traj);
     double cos_t0 = DriftTrajectory_get_cos_t0(traj);
     double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    double w = 0.;                                                // width of the box 
+    double w = 0.0;                                                // width of the box 
     double rC = sqrt(s1*s1 + x1*x1);
     double sin_tb = sin_t0;                                       // orientation of the box (angle of length wrt horizontal)
     double cos_tb = cos_t0;
     double sin_tC, cos_tC;                                        // angle of the position vector to the first vertex
     if (rC == 0.){
-        double sin_tC = 0.0;                                      // angle of the position vector to the first vertex
-        double cos_tC = 1.0;
+        sin_tC = 0.0;                                      // angle of the position vector to the first vertex
+        cos_tC = 1.0;
     } else {
-        double sin_tC = x1 / rC;                                  // angle of the position vector to the first vertex
-        double cos_tC = s1 / rC;
+        sin_tC = x1 / rC;                                  // angle of the position vector to the first vertex
+        cos_tC = s1 / rC;
     }
     BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t0, cos_t0);
 }
