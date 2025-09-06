@@ -17,6 +17,7 @@ double aTF = 1.94e-11; //m
 double uT = 7.5e-12; //m
 double dp = 1.92e-10; //m
 double pc = 4.0e11; //eV
+double bpc = 150.0e9; // 150 GeV 
 double U0mol = 23.9037; //eV
 double U0 = 21.34; //eV
 double alpha_i = 0.722452;
@@ -52,13 +53,13 @@ double UN(double U0mol, double alpha_i, double beta_i, double aTF, double dp){
 
 /*gpufun*/ 
 double U(double dp, double uT, double U0mol, double alpha_i, double beta_i,
-                                     double aTF, double pc){
+                                     double aTF, double bpc){
     double x_c = xc(dp, uT);
     double eta_ = eta(dp, uT);
     double d_ = d(beta_i, aTF, dp);
     double UN_ = UN(U0mol, alpha_i, beta_i, aTF, dp);
     // 1/m^2
-    return (UN_/pc) * eta_ * (d_/x_c) * (d_/x_c);
+    return (UN_/bpc) * eta_ * (d_/x_c) * (d_/x_c);
 }
 
 
@@ -68,27 +69,27 @@ double U(double dp, double uT, double U0mol, double alpha_i, double beta_i,
 
 
 /*gpufun*/
-double Rc(double dp, double uT,double U0, double pc){
+double Rc(double dp, double uT,double U0, double bpc){
     double eta_ = eta(dp, uT);
     double x_c = xc(dp, uT);
-    return (pc/(2.0*eta_*U0)) * x_c; //m
+    return (bpc/(2.0*eta_*U0)) * x_c; //m
     }
 
 
 /*gpufun*/
-double lambda(double dp, double uT,double U0, double pc){
+double lambda(double dp, double uT,double U0, double bpc){
     double x_c = xc(dp, uT);
-    double R_c = Rc(dp, uT, U0, pc);
+    double R_c = Rc(dp, uT, U0, bpc);
     return 2.0*PI*sqrt(x_c*R_c); //m
     }
 /*gpufun*/
-double L(double dp, double uT, double U0, double pc){
-    return 6.0*lambda(dp, uT, U0, pc); //m
+double L(double dp, double uT, double U0, double bpc){
+    return 6.0*lambda(dp, uT, U0, bpc); //m
     }
 
 /*gpufun*/    
-double theta_c(double dp, double uT, double U0, double pc){
-    return sqrt((2.0*eta(dp, uT)*U0)/pc) * (1.0 - Rc(dp, uT, U0, pc)/R); //rad
+double theta_c(double dp, double uT, double U0, double bpc){
+    return sqrt((2.0*eta(dp, uT)*U0)/bpc) * (1.0 - Rc(dp, uT, U0, pc)/R); //rad
     }
 
 
@@ -119,192 +120,22 @@ double chi0_12 = -1.139131439265076;
 
 /*gpufun*/
 void fM2H0(double x0,double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i,
-                                     double aTF, double pc, double* x, double* theta) {
-    double sqrt_U = sqrt(U(dp, uT, U0mol, alpha_i, beta_i, aTF, pc));
+                                     double aTF, double bpc, double* x, double* theta) {
+    double sqrt_U = sqrt(U(dp, uT, U0mol, alpha_i, beta_i, aTF, bpc));
     double u=sqrt_U*s;
     *x = x0*cos(u)+theta0/sqrt_U*sin(u);
     *theta = -x0*sqrt_U*sin(u)+theta0*cos(u);
     }
 
 /*gpufun*/
-void fM2H1(double x0,double theta0, double s, double dp, double uT, double beta_i, double aTF, double R, double* x, double* theta){
+void fM2H1(double x0,double theta0, double s, double dp, double uT, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
     double d_=d(beta_i, aTF, dp);
     double sqrt_eta = sqrt(eta(dp, uT));
     double D = sqrt_eta*d_;
-    double U_ = U(dp, uT, U0mol, alpha_i, beta_i, aTF, pc);
+    double U_ = U(dp, uT, U0mol, alpha_i, beta_i, aTF, bpc);
     double x_c = xc(dp, uT);
     *x = x0;
     *theta = theta0 + U_*x0*s-U_*x_c/D*sinh(D*x0/x_c)*s-s/R;
-    }
-
-/*gpufun*/
-void fM2O2v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    double half = 0.5 * s;
-
-    // 1) drift: (x,θ) <- H0(s/2)(x0,θ0)
-    double x1, th1;
-    fM2H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, &x1, &th1);
-
-    // 2) kick: (x,θ) <- H1(s)(x1,θ1)
-    double x2, th2;
-    fM2H1(x1, th1, s, dp, uT, beta_i, aTF, R, &x2, &th2);
-
-    // 3) drift: (x,θ) <- H0(s/2)(x2,θ2)
-    fM2H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, x, theta);
-    }
-
-
-/*gpufun*/ 
-void fM2O2v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    double half = 0.5 * s;
-
-    // 1) kick
-    double x1, th1;
-    fM2H1(x0, theta0, half, dp, uT, beta_i, aTF, R, &x1, &th1);
-
-    // 2) drift
-    double x2, th2;
-    fM2H0(x1, th1, s,dp, uT, U0mol, alpha_i, beta_i, aTF, pc, &x2, &th2);
-
-    // 3) kick
-    fM2H1(x2, th2, half, dp, uT, beta_i, aTF, R, x, theta); 
-    }
-
-
-// ===================== Version 1 - Higher Orders ====================== 
-
-/*gpufun*/  
-void fM2O4v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    // 1) drift-kick-drift
-    double x1, th1;
-    fM2O2v1(x0, theta0, chi1_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1); 
-    // 2) drift-kick-drift
-    double x2, th2;
-    fM2O2v1(x1, th1, chi0_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2); 
-    // 3) drift-kick-drift
-    fM2O2v1(x2, th2, chi1_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta); 
-    }
-
-
-/*gpufun*/ 
-void fM2O6v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    // 1)
-    double x1, th1;
-    fM2O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);  
-
-    // 2)
-    double x2, th2;
-    fM2O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    // 3)
-    fM2O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-/*gpufun*/  
-void fM2O8v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    double x1, th1;
-    fM2O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-/*gpufun*/  
-void fM2O10v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    double x1, th1;
-    fM2O8v1(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O8v1(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O8v1(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-/*gpufun*/  
-void fM2O12v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-
-    double x1, th1;
-    fM2O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-// ====================== Version 2 - Higher Orders ======================
-
-/*gpufun*/  
-void fM2O4v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-
-    double x1, th1;
-    fM2O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);  // kick-drift-kick
-
-    double x2, th2;
-    fM2O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-/*gpufun*/  
-void fM2O6v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-    
-    double x1, th1;
-    fM2O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-/*gpufun*/ 
-void fM2O8v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-
-    double x1, th1;
-    fM2O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-
-/*gpufun*/  
-void fM2O10v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-
-    double x1, th1;
-    fM2O8v2(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O8v2(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O8v2(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
-    }
-
-/*gpufun*/
-void fM2O12v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double pc, double R, double* x, double* theta){
-
-    double x1, th1;
-    fM2O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM2O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM2O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, x, theta);
     }
 
 
@@ -317,10 +148,10 @@ void fM2O12v2(double x0, double theta0, double s, double dp, double uT, double U
 /*gpufun*/
 void fM3H0(double x0, double theta0, double s,
            double dp, double uT, double U0mol, double alpha_i, double beta_i,
-           double aTF, double pc, double R,
+           double aTF, double bpc, double R,
            double* x, double* theta)
 {
-    double sqrt_U = sqrt(U(dp, uT, U0mol, alpha_i, beta_i, aTF, pc));
+    double sqrt_U = sqrt(U(dp, uT, U0mol, alpha_i, beta_i, aTF, bpc));
     double u = sqrt_U * s;
 
     double inv_UR  = 1.0 / ( (sqrt_U*sqrt_U) * R );
@@ -333,201 +164,17 @@ void fM3H0(double x0, double theta0, double s,
 /*gpufun*/
 void fM3H1(double x0, double theta0, double s,
            double dp, double uT, double U0mol, double alpha_i, double beta_i,
-           double aTF, double pc,
+           double aTF, double bpc,
            double* x, double* theta)
 {
     double d_        = d(beta_i, aTF, dp);
     double sqrt_eta_ = sqrt(eta(dp, uT));
     double D         = sqrt_eta_ * d_;
-    double U_        = U(dp, uT, U0mol, alpha_i, beta_i, aTF, pc);
+    double U_        = U(dp, uT, U0mol, alpha_i, beta_i, aTF, bpc);
     double x_c       = xc(dp, uT);
 
     *x     = x0;
     *theta = theta0 + ( U_ * x0 - U_ * x_c / D * sinh(D * x0 / x_c) ) * s;
-}
-
-/*gpufun*/
-void fM3O2v1(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double half = 0.5 * s;
-
-    double x1, th1;
-    fM3H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3H1(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, pc,      &x2, &th2);
-
-    fM3H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,     x,  theta);
-}
-
-/*gpufun*/
-void fM3O2v2(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double half = 0.5 * s;
-
-    double x1, th1;
-    fM3H1(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc,      &x1, &th1);
-
-    double x2, th2;
-    fM3H0(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,      &x2, &th2);
-
-    fM3H1(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc,           x,  theta);
-}
-
-/*gpufun*/
-void fM3O4v1(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O2v1(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O2v1(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O2v1(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O6v1(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O8v1(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O10v1(double x0, double theta0, double s,
-              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
-              double* x, double* theta)
-{
-    double x1, th1;
-    fM3O8v1(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O8v1(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O8v1(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O12v1(double x0, double theta0, double s,
-              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
-              double* x, double* theta)
-{
-    double x1, th1;
-    fM3O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O4v2(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O6v2(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O8v2(double x0, double theta0, double s,
-             double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
-             double* x, double* theta)
-{
-    double x1, th1;
-    fM3O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O10v2(double x0, double theta0, double s,
-              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
-              double* x, double* theta)
-{
-    double x1, th1;
-    fM3O8v2(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O8v2(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O8v2(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
-}
-
-/*gpufun*/
-void fM3O12v2(double x0, double theta0, double s,
-              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
-              double* x, double* theta)
-{
-    double x1, th1;
-    fM3O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-
-    double x2, th2;
-    fM3O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-
-    fM3O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,  theta);
 }
 
 //================================================
@@ -611,11 +258,10 @@ void motion_parameters(double x0, double theta0, double z, double nu, double E_T
 /*gpufun*/
 void fM4H0(double x0, double theta0, double s,
            double dp, double uT, double U0mol, double alpha_i, double beta_i,
-           double aTF, double pc, double R, // R and pc unused
+           double aTF, double bpc, double R, 
            double* x, double* theta)
 {
     // Precompute constants in the exact same style as your working code
-    const double bpc = 150.0e9;                     // 150 GeV in eV
     const double beta_i_over_a_TF = beta_i / aTF;
     const double U_N = UN(U0mol, alpha_i, beta_i, aTF, dp);
 
@@ -647,7 +293,7 @@ void fM4H0(double x0, double theta0, double s,
 /*gpufun*/
 void fM4H1(double x0, double theta0, double s,
            double dp, double uT, double U0mol, double alpha_i, double beta_i,
-           double aTF, double pc, double R,
+           double aTF, double bpc, double R,
            double* x, double* theta)
 {
     // Pure bending kick for Method-4
@@ -656,98 +302,459 @@ void fM4H1(double x0, double theta0, double s,
 }
 
 
+
+
+//----------Integrators for method 2-----------
+/*gpufun*/
+void fM2O2v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    double half = 0.5 * s;
+
+    // 1) drift: (x,θ) <- H0(s/2)(x0,θ0)
+    double x1, th1;
+    fM2H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, &x1, &th1);
+
+    // 2) kick: (x,θ) <- H1(s)(x1,θ1)
+    double x2, th2;
+    fM2H1(x1, th1, s, dp, uT, beta_i, aTF, bpc, R, &x2, &th2);
+
+    // 3) drift: (x,θ) <- H0(s/2)(x2,θ2)
+    fM2H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, x, theta);
+    }
+
+
+/*gpufun*/ 
+void fM2O2v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    double half = 0.5 * s;
+
+    // 1) kick
+    double x1, th1;
+    fM2H1(x0, theta0, half, dp, uT, beta_i, aTF, bpc, R, &x1, &th1);
+
+    // 2) drift
+    double x2, th2;
+    fM2H0(x1, th1, s,dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, &x2, &th2);
+
+    // 3) kick
+    fM2H1(x2, th2, half, dp, uT, beta_i, aTF, bpc, R, x, theta); 
+    }
+
+
+// ===================== Version 1 - Higher Orders ====================== 
+
+/*gpufun*/  
+void fM2O4v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    // 1) drift-kick-drift
+    double x1, th1;
+    fM2O2v1(x0, theta0, chi1_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1); 
+    // 2) drift-kick-drift
+    double x2, th2;
+    fM2O2v1(x1, th1, chi0_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2); 
+    // 3) drift-kick-drift
+    fM2O2v1(x2, th2, chi1_4*s, dp,  uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta); 
+    }
+
+
+/*gpufun*/ 
+void fM2O6v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    // 1)
+    double x1, th1;
+    fM2O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);  
+
+    // 2)
+    double x2, th2;
+    fM2O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    // 3)
+    fM2O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+/*gpufun*/  
+void fM2O8v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    double x1, th1;
+    fM2O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+/*gpufun*/  
+void fM2O10v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    double x1, th1;
+    fM2O8v1(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O8v1(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O8v1(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+/*gpufun*/  
+void fM2O12v1(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+
+    double x1, th1;
+    fM2O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+// ====================== Version 2 - Higher Orders ======================
+
+/*gpufun*/  
+void fM2O4v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+
+    double x1, th1;
+    fM2O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);  // kick-drift-kick
+
+    double x2, th2;
+    fM2O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+/*gpufun*/  
+void fM2O6v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+    
+    double x1, th1;
+    fM2O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+/*gpufun*/ 
+void fM2O8v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+
+    double x1, th1;
+    fM2O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+/*gpufun*/  
+void fM2O10v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+
+    double x1, th1;
+    fM2O8v2(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O8v2(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O8v2(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+/*gpufun*/
+void fM2O12v2(double x0, double theta0, double s, double dp, double uT, double U0mol, double alpha_i, double beta_i, double aTF, double bpc, double R, double* x, double* theta){
+
+    double x1, th1;
+    fM2O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM2O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM2O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+    }
+
+
+
+//----------Integrators for method 3--------------
+/*gpufun*/
+void fM3O2v1(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double half = 0.5 * s;
+
+    double x1, th1;
+    fM3H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3H1(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, &x2, &th2);
+
+    fM3H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, x, theta);
+}
+
+/*gpufun*/
+void fM3O2v2(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double half = 0.5 * s;
+
+    double x1, th1;
+    fM3H1(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, &x1, &th1);
+
+    double x2, th2;
+    fM3H0(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3H1(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, x, theta);
+}
+
+/*gpufun*/
+void fM3O4v1(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O2v1(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O2v1(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O2v1(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O6v1(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O8v1(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O10v1(double x0, double theta0, double s,
+              double dp, double uT, double U0mol, double alpha_i, double beta_i,
+              double aTF, double bpc, double R,
+              double* x, double* theta)
+{
+    double x1, th1;
+    fM3O8v1(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O8v1(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O8v1(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O12v1(double x0, double theta0, double s,
+              double dp, double uT, double U0mol, double alpha_i, double beta_i,
+              double aTF, double bpc, double R,
+              double* x, double* theta)
+{
+    double x1, th1;
+    fM3O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O4v2(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O6v2(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O8v2(double x0, double theta0, double s,
+             double dp, double uT, double U0mol, double alpha_i, double beta_i,
+             double aTF, double bpc, double R,
+             double* x, double* theta)
+{
+    double x1, th1;
+    fM3O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O10v2(double x0, double theta0, double s,
+              double dp, double uT, double U0mol, double alpha_i, double beta_i,
+              double aTF, double bpc, double R,
+              double* x, double* theta)
+{
+    double x1, th1;
+    fM3O8v2(x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O8v2(x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O8v2(x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+/*gpufun*/
+void fM3O12v2(double x0, double theta0, double s,
+              double dp, double uT, double U0mol, double alpha_i, double beta_i,
+              double aTF, double bpc, double R,
+              double* x, double* theta)
+{
+    double x1, th1;
+    fM3O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+
+    double x2, th2;
+    fM3O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+
+    fM3O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,  theta);
+}
+
+//---------- Integrators for method 4-----------------------
 /*gpufun*/
 void fM4O2v2(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
     double half = 0.5 * s;
 
     // 1) kick
     double x1, th1;
-    fM4H1(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
+    fM4H1(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
 
     // 2) drift
     double x2, th2;
-    fM4H0(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
+    fM4H0(x1, th1, s,    dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
 
     // 3) kick
-    fM4H1(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    fM4H1(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
-/* ===================== Higher Orders v1 (drift–kick–drift inside) ===================== */
+// ===================== Higher Orders v1  ===================== 
 
 /*gpufun*/
 void fM4O2v1(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
     double half = 0.5 * s;
 
     double x1, th1;
-    fM4H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
+    fM4H0(x0, theta0, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
 
     double x2, th2;
-    fM4H1(x1, th1, s,   dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
+    fM4H1(x1, th1, s,   dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
 
-    fM4H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    fM4H0(x2, th2, half, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O4v1(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O2v1(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O2v1(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O2v1(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O2v1(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O2v1(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O2v1(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O6v1(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O4v1(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O4v1(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O4v1(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O8v1(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O6v1(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O6v1(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O6v1(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O10v1(double x0, double theta0, double s,
               double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
+              double aTF, double bpc, double R,
               double* x, double* theta)
 {
-    double x1, th1; fM4O8v1 (x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O8v1 (x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O8v1 (x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O8v1 (x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O8v1 (x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O8v1 (x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O12v1(double x0, double theta0, double s,
               double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
+              double aTF, double bpc, double R,
               double* x, double* theta)
 {
-    double x1, th1; fM4O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O10v1(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O10v1(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O10v1(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /* ====================== Higher Orders v2 (kick–drift–kick inside) ====================== */
@@ -755,63 +762,63 @@ void fM4O12v1(double x0, double theta0, double s,
 /*gpufun*/
 void fM4O4v2(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O2v2(x0, theta0, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O2v2(x1, th1, chi0_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O2v2(x2, th2, chi1_4 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O6v2(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O4v2(x0, theta0, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O4v2(x1, th1, chi0_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O4v2(x2, th2, chi1_6 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O8v2(double x0, double theta0, double s,
              double dp, double uT, double U0mol, double alpha_i, double beta_i,
-             double aTF, double pc, double R,
+             double aTF, double bpc, double R,
              double* x, double* theta)
 {
-    double x1, th1; fM4O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O6v2(x0, theta0, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O6v2(x1, th1, chi0_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O6v2(x2, th2, chi1_8 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O10v2(double x0, double theta0, double s,
               double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
+              double aTF, double bpc, double R,
               double* x, double* theta)
 {
-    double x1, th1; fM4O8v2 (x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O8v2 (x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O8v2 (x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O8v2 (x0, theta0, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O8v2 (x1, th1, chi0_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O8v2 (x2, th2, chi1_10 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void fM4O12v2(double x0, double theta0, double s,
               double dp, double uT, double U0mol, double alpha_i, double beta_i,
-              double aTF, double pc, double R,
+              double aTF, double bpc, double R,
               double* x, double* theta)
 {
-    double x1, th1; fM4O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x1, &th1);
-    double x2, th2; fM4O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x2, &th2);
-                    fM4O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R,  x,   theta);
+    double x1, th1; fM4O10v2(x0, theta0, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x1, &th1);
+    double x2, th2; fM4O10v2(x1, th1, chi0_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x2, &th2);
+                    fM4O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
 /*gpufun*/
 void choose_method(
     double x0, double theta0, double s,
     double dp, double uT, double U0mol, double alpha_i, double beta_i,
-    double aTF, double pc, double R,
+    double aTF, double bpc, double R,
     int meth_sel, int var_sel, int ord_sel,
     double* x, double* theta)
 {
@@ -829,21 +836,21 @@ void choose_method(
 
         if (var_sel == 1) {
             switch (ord_sel) {
-                case 12: fM2O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM2O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM2O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM2O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM2O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM2O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM2O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case 10: fM2O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  8: fM2O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  6: fM2O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  4: fM2O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                default: fM2O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
             }
         } else {
             switch (ord_sel) {
-                case 12: fM2O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM2O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM2O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM2O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM2O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM2O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM2O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case 10: fM2O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  8: fM2O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  6: fM2O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  4: fM2O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                default: fM2O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
             }
         }
 
@@ -851,21 +858,21 @@ void choose_method(
 
         if (var_sel == 1) {
             switch (ord_sel) {
-                case 12: fM3O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM3O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM3O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM3O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM3O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM3O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM3O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case 10: fM3O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  8: fM3O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  6: fM3O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  4: fM3O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                default: fM3O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
             }
         } else {
             switch (ord_sel) {
-                case 12: fM3O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM3O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM3O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM3O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM3O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM3O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM3O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case 10: fM3O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  8: fM3O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  6: fM3O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  4: fM3O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                default: fM3O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
             }
         }
 
@@ -873,21 +880,21 @@ void choose_method(
 
         if (var_sel == 1) {
             switch (ord_sel) {
-                case 12: fM4O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM4O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM4O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM4O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM4O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM4O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM4O12v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case 10: fM4O10v1(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  8: fM4O8v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  6: fM4O6v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                case  4: fM4O4v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
+                default: fM4O2v1 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,bpc,R,x,theta); break;
             }
         } else {
             switch (ord_sel) {
-                case 12: fM4O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case 10: fM4O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  8: fM4O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  6: fM4O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                case  4: fM4O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
-                default: fM4O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF,pc,R,x,theta); break;
+                case 12: fM4O12v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
+                case 10: fM4O10v2(x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
+                case  8: fM4O8v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
+                case  6: fM4O6v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
+                case  4: fM4O4v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
+                default: fM4O2v2 (x0,theta0,s,dp,uT,U0mol,alpha_i,beta_i,aTF, bpc,R,x,theta); break;
             }
         }
     }
@@ -895,7 +902,7 @@ void choose_method(
 
 
 
-// -------- Initial conditions (example) --------
+// -------- Initial conditions --------
 //double x0 = 0.97*xc; //m
 //double theta0 = 0.0; //rad
 
@@ -913,9 +920,9 @@ void BentChannellingDev_track_local_particle(BentChannellingDevData el, LocalPar
         double theta;
         double s = length;
 
-        //fM2O12v1(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x, &theta);
-        //fM4O12v1(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, &x, &theta);
-        choose_method(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, pc, R, method, variant, order, &x, &theta);
+        //fM2O12v1(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x, &theta);
+        //fM4O12v1(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, &x, &theta);
+        choose_method(x0, theta0, s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R, method, variant, order, &x, &theta);
 
         LocalParticle_set_x(part, x);
         LocalParticle_set_xp(part, theta);
