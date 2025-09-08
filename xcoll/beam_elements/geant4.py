@@ -146,6 +146,12 @@ class Geant4CollimatorTip(Geant4Collimator):
         'tip_thickness': xo.Float64
     }
 
+    isthick = True
+    allow_track = True
+    iscollective = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
     ]
