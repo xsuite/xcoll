@@ -8,11 +8,25 @@ import xcoll as xc
 L_tot   = 0.0004
 n_steps = 100
 ds      = L_tot / n_steps
-x0      = 3.6e-11
-theta0  = 4.4e-7
+#case01 x0 = 0; theta0 = 12e-6
+#case02 x0 = 0; theta0 = -12e-6
+#case03 x0 = 9.1e-11; theta0 = 0
+#case04 x0 = -9.1e-11; theta0 = 0
+
+#case05 x0 = 8.5e-11; theta0 = 4.4e-7
+#case06 x0 = 8.5e-11; theta0 = -4.4e-7
+#case07 x0 = -8.5e-11; theta0 = 4.4e-7
+#case08 x0 = -8.5e-11; theta0 = -4.4e-7
+
+#case09 x0 = 3.6e-11; theta0 = 5.2e-6
+#case10 x0 = 3.6e-11; theta0 = -5.2e-6
+#case11 x0 = -3.6e-11; theta0 = 5.2e-6
+#case12 x0 = -3.6e-11; theta0 = -5.2e-6
+
+x0 = 0; theta0 = 12e-6
 s_axis  = np.linspace(0.0, L_tot, n_steps+1)
 
-def run_with(ch, method, variant=2, order=12):
+def run_with(ch, method, variant=2, order=8):
     ch.method  = method
     ch.variant = variant
     ch.order   = order
@@ -20,6 +34,7 @@ def run_with(ch, method, variant=2, order=12):
     part = xt.Particles(x=x0, px=theta0)
     xs  = [x0]
     xps = [theta0]
+
     for _ in range(n_steps):
         ch.track(part)           
         xs.append(part.x[0])
@@ -28,14 +43,14 @@ def run_with(ch, method, variant=2, order=12):
     return np.array(xs), np.array(xps)
 
 
-ch = xc.BentChannellingDev(length=ds, method=4, variant=2, order=12)
+ch = xc.BentChannellingDev(length=ds, method=4, variant=2, order=8)
 
 x_M2, px_M2 = run_with(ch, 2)
 x_M3, px_M3 = run_with(ch, 3)
 x_M4, px_M4 = run_with(ch, 4)
 
 
-s_csv, x_csv, px_csv = np.loadtxt("bent_channelling_reference_functions/solution3.6_4.4.csv",
+s_csv, x_csv, px_csv = np.loadtxt("bent_channelling_reference_functions/solution_case01.csv",
     delimiter=",",
     skiprows=1,   
     unpack=True)
