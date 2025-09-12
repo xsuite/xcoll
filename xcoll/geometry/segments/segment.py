@@ -51,8 +51,8 @@ class LocalSegment(xo.UnionRef):
     _reftypes = all_segments
     _methods = list(segment_methods.values())
 
-    def __init__(self, *args, **kwargs):
-        raise ValueError("LocalSegment is an abstract class and should not be instantiated")
+    #def __init__(self, *args, **kwargs):
+    #    raise ValueError("LocalSegment is an abstract class and should not be instantiated")
 
     @classmethod
     def from_dict(cls, dct, **kwargs):

@@ -46,8 +46,8 @@ class LocalTrajectory(xo.UnionRef):
     _reftypes = all_trajectories
     _methods = list(trajectory_methods.values())
 
-    def __init__(self, *args, **kwargs):
-        raise ValueError("LocalTrajectory is an abstract class and should not be instantiated")
+    #def __init__(self, *args, **kwargs):
+    #    raise ValueError("LocalTrajectory is an abstract class and should not be instantiated")
 
     @classmethod
     def from_dict(cls, dct, **kwargs):
