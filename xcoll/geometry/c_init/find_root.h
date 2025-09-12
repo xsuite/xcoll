@@ -52,61 +52,70 @@
 // }
 
 // // --------------------------------------------------------------------------------------------
-
+/*gpufun*/
 void LocalCrossing_func(LocalTrajectory traj, LocalSegment seg, double TS[2], double l, double t){
-     // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
-     // TSs = Ts(l) - Ss(t)
-     // TSx = Tx(l) - Sx(t)
-     TS[0] = LocalTrajectory_func_s(traj, l) - LocalSegment_func_s(seg, t);
-     TS[1] = LocalTrajectory_func_x(traj, l) - LocalSegment_func_x(seg, t);
+    // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
+    // TSs = Ts(l) - Ss(t)
+    // TSx = Tx(l) - Sx(t)
+    TS[0] = LocalTrajectory_func_s(traj, l) - LocalSegment_func_s(seg, t);
+    TS[1] = LocalTrajectory_func_x(traj, l) - LocalSegment_func_x(seg, t);
 }
-
-void LocalCrossing_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], int8_t* success, double l, double t){
-     double J[2][2];
-     // get derivatives
+/*gpufun*/
+void LocalCrossing_inv_J(LocalTrajectory traj, LocalSegment seg, double J_inv[2][2], double success[1], double l, double t){
+    double J[2][2];
+    // get derivatives
     J[0][0] = LocalTrajectory_deriv_s(traj, l); // get deriv. dsT/dl LocalTrajectory_deriv_s
     J[0][1] = -LocalSegment_deriv_s(seg, t);     // get deriv. dsS/dt LocalSegment_deriv_s
     J[1][0] = LocalTrajectory_deriv_x(traj, l); // get deriv. dxT/dl LocalTrajectory_deriv_x
     J[1][1] = -LocalSegment_deriv_x(seg, t);     // get deriv. dxS/dt LocalSegment_deriv_x
-
     double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
     if (fabs(det) < XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL){
-        *success = 1;
-        return;
+        success[0] = 1;
+        return; 
     }
     J_inv[0][0] =  J[1][1] / det;
     J_inv[0][1] = -J[0][1] / det;
     J_inv[1][0] = -J[1][0] / det;
     J_inv[1][1] =  J[0][0] / det;
-}
+    }
 
-void newton(LocalTrajectory traj, LocalSegment seg, double* guess_l, double* guess_t, int8_t* success){
+/*gpufun*/
+void find_root_newton(find_root finder, LocalTrajectory traj, LocalSegment seg, double guess_l, double guess_t){
     // success = 0 means success, success = 1 means failure
     double J_inv[2][2];
     double TS[2];
-
+    double success[1] = {0};
+    double corr0, corr1;
+    double new_t, new_l;
     for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
-        LocalCrossing_func(traj, seg, TS, *guess_l, *guess_t);
-        LocalCrossing_inv_J(traj, seg, J_inv, success, *guess_l, *guess_t);
-        if (*success){
+        LocalCrossing_func(traj, seg, TS, guess_l, guess_t);
+        LocalCrossing_inv_J(traj, seg, J_inv, success, guess_l, guess_t);
+        if (success[0]){
+            printf("Jacobian is singular. Stopping Newton's method.\n");
             return;
         }
-        double new_t = *guess_t - (J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]);
-        double new_l = *guess_l - (J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]);
-
         // Residual convergence check
         if (fabs(TS[0]) < XC_GEOM_ROOT_NEWTON_EPSILON && fabs(TS[1]) < XC_GEOM_ROOT_NEWTON_EPSILON) {
+            find_root_set_solution_l(finder, guess_l);
+            find_root_set_solution_t(finder, guess_t);
             return;
         }
+        corr0 = J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]; // delta for l
+        corr1 = J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]; // delta for t
+        new_t = guess_t - corr1;
+        new_l = guess_l - corr0;
         // Check for parameter update convergence
-        if ((fabs(new_t -  *guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - *guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
+        if ((fabs(new_t -  guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
+            find_root_set_solution_l(finder, guess_l);
+            find_root_set_solution_t(finder, guess_t);
             return;
         }
         // Update the guesses for the next iteration
-        *guess_t = new_t;  // Keep *t updated
-        *guess_l = new_l;  // Keep *l updated
+        guess_t = new_t;  // Keep *t updated
+        guess_l = new_l;  // Keep *l updated
     }
-    *success = 1;
+    printf("Warning: Newton's method did not converge within the maximum number of iterations (%d).\n", XC_GEOM_ROOT_NEWTON_MAX_ITER);
+    success[0] = 1;
 }
 
 // int8_t LocalCrossing_box_has_root(double TS_UL[2], double TS_UR[2], double TS_DL[2], double TS_DR[2]){
