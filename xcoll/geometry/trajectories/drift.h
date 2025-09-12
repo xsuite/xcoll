@@ -73,8 +73,6 @@ void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, do
     double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
     double w = 0.0;                                                // width of the box 
     double rC = sqrt(s1*s1 + x1*x1);
-    double sin_tb = sin_t0;                                       // orientation of the box (angle of length wrt horizontal)
-    double cos_tb = cos_t0;
     double sin_tC, cos_tC;                                        // angle of the position vector to the first vertex
     if (rC == 0.){
         sin_tC = 0.0;                                      // angle of the position vector to the first vertex

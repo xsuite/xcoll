@@ -55,11 +55,9 @@ void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, 
     double sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
     double cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
     double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    double w = 0.;                                                // width of the box cannot be 0 for (0,0)
-    double rC = sqrt(s1*s1 + x1*x1);                              // length of the position vector to the first vertex
-    double sin_tb = sin_t;                                        // orientation of the box (angle of length wrt horizontal)
-    double cos_tb = cos_t;
+    double w = 0.0;                                                // width of the box cannot be 0 for (0,0)
     double sin_tC, cos_tC;                                        // angle of the position vector to the first vertex
+    double rC = sqrt(s1*s1 + x1*x1);                              // length of the position vector to the first vertex
     if (rC == 0.0){
         sin_tC = 0.0;                                             // angle of the position vector to the first vertex
         cos_tC = 1.0;

@@ -54,9 +54,6 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
     double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));    // length of the box
     double w = 0.0;                                                // width of the box 
     double rC = sqrt(s1*s1 + x1*x1);                               // length of the position vector to the first vertex
-    double rC = BoundingBox_get_rC(box);
-    double sin_tb = sin_t;                                               // orientation of the box (angle of length wrt horizontal)
-    double cos_tb = cos_t;
     double sin_tC, cos_tC;                                   // angle of the position vector to the first vertex
     if (rC == 0.){
         sin_tC = 0.0;  // angle of the position vector to the first vertex

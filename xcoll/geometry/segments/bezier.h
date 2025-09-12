@@ -115,8 +115,8 @@ void BezierSegment_init_bounding_box(BezierSegment seg, BoundingBox box, double 
     double rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
     double sin_tC = xmin / rC; // angle of position vector to first vertex
     double cos_tC = smin / rC;
-    double proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    double proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    //double proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    //double proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
     double l = smax - smin;  // length of the box
     double w = xmax - xmin;  // width of the box
     double sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
