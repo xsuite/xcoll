@@ -43,7 +43,6 @@ class BoundingBox(xo.Struct):
         define_src,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
         _pkg_root / 'geometry' / 'c_init' / 'methods.h',
-        _pkg_root / 'geometry' / 'c_init' / 'find_root.h',
         _pkg_root / 'geometry' / 'c_init' / 'bounding_box.h',
     ]
 
