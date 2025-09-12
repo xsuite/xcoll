@@ -30,6 +30,8 @@ class DriftTrajectory(xo.Struct):
     sin_t0 = xo.Float64
     cos_t0 = xo.Float64
     tan_t0 = xo.Float64
+    _l1 = xo.Float64  # start parameter along trajectory (default 0)
+    _l2 = xo.Float64  # end parameter along trajectory (default 10)
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'drift.h']
@@ -55,6 +57,8 @@ class DriftTrajectory(xo.Struct):
         l1 = kwargs.pop('l1', 0.)
         l2 = kwargs.pop('l2', 10.)
         super().__init__(*args, **kwargs)
+        self._l1 = l1
+        self._l2 = l2
         if xp is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=xp)
         elif theta0 is not False:
@@ -72,3 +76,25 @@ class DriftTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
+    
+    @property
+    def l1(self):
+        return self._l1
+
+    @l1.setter
+    def l1(self, val):
+        if val >= self._l2:
+            raise ValueError("l1 must be smaller than l2!")
+        self._l1 = val
+        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
+
+    @property
+    def l2(self):
+        return self._l2
+
+    @l2.setter
+    def l2(self, val):
+        if val <= self._l1:
+            raise ValueError("l2 must be larger than l1!")
+        self._l2 = val
+        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
