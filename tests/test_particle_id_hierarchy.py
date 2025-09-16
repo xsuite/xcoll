@@ -3,13 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import pytest
 import numpy as np
+
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
-import pytest
 from xobjects.test_helpers import for_all_test_contexts
-
+try:
+    import rpyc
+except ImportError as e:
+    rpyc = None
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
@@ -19,6 +23,7 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 def test_geant4_ppid(test_context):
     coll = xc.Geant4Collimator(length=0.001, jaw=0.001, material='Ti', _context=test_context)
     xc.geant4.engine.particle_ref = particle_ref

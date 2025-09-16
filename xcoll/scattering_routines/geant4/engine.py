@@ -28,6 +28,7 @@ class Geant4Engine(BaseEngine):
     _xofields = {**BaseEngine._xofields,
         '_relative_energy_cut':        xo.Float64,
         '_bdsim_config_file':          xo.String,
+        '_already_started':  xo.Int8,
         '_reentry_protection_enabled': xo.Int8
         # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
@@ -45,6 +46,7 @@ class Geant4Engine(BaseEngine):
         self._server = None # remove after geant4 bugfix
         self._conn = None # remove after geant4 bugfix
         kwargs['_bdsim_config_file'] = ''.ljust(256)
+        kwargs['_already_started'] = False
         super().__init__(**kwargs)
         self.relative_energy_cut = None # To set default value
         self.bdsim_config_file = None   # To set default value
@@ -88,12 +90,17 @@ class Geant4Engine(BaseEngine):
 
     @reentry_protection_enabled.setter
     def reentry_protection_enabled(self, val):
-        if val is None:
-            val = True
         if val is False:
             print("Warning: Disabling re-entry protection can lead to crashes!")
             print("         Only disable if you know what you are doing.")
-        if not isinstance(val, bool):
+        elif val is None:
+            try:
+                import rpyc
+            except ImportError as e:
+                val is False
+            else:
+                val = True
+        elif not isinstance(val, bool):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
@@ -146,16 +153,19 @@ class Geant4Engine(BaseEngine):
                                         relativeEnergyCut=self.relative_energy_cut,
                                         seed=self.seed, batchMode=True)
         else:
+            if self._already_started:
+                raise RuntimeError("Cannot restart Geant4 engine in non-reentry-safe mode. "
+                                 + "Please exit this Python process. Pip install rpyc to avoid this limitation.")
             try:
                 import collimasim as cs
             except ImportError as e:
                 raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
             else:
                 self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                                referencePdgId=self.particle_ref.pdg_id,
-                                                referenceEk=Ekin / 1e9, ### BDSIM expects GeV
-                                                relativeEnergyCut=self.relative_energy_cut,
-                                                seed=self.seed, batchMode=True)
+                                                  referencePdgId=self.particle_ref.pdg_id,
+                                                  referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                                  relativeEnergyCut=self.relative_energy_cut,
+                                                  seed=self.seed, batchMode=True)
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side
@@ -171,6 +181,7 @@ class Geant4Engine(BaseEngine):
                                     xOffset=0, yOffset=0, side=side,
                                     jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
                                     isACrystal=isinstance(el, BaseCrystal))
+        self._already_started = True
 
     def _stop_engine(self, **kwargs):
         self._g4link = None

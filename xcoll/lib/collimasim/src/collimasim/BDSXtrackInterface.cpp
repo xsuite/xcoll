@@ -872,7 +872,7 @@ py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
 
         if (!prim_survied) // Primary didn't survive - set inactive
         {
-            state_prod_ptr[i] = -333; // inactive
+            state_prod_ptr[i] = -300; // inactive
             // Correct the energy of the lost primary particle to account for the production of secondaries
             // The effective delta is such that the lost particle has the effective delta
             // which corresponds to the energy in - energy out for this primary

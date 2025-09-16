@@ -9,7 +9,10 @@ import pytest
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
-
+try:
+    import rpyc
+except ImportError as e:
+    rpyc = None
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 
@@ -40,6 +43,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 def test_geant4(jaw, angle, tilt):
     num_part = 25_000
     if xc.geant4.engine.is_running():

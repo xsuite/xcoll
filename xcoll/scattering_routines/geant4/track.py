@@ -4,10 +4,11 @@
 # ######################################### #
 
 import numpy as np
-import xobjects as xo
 import xpart as xp
 import time
 import io
+
+from ...headers.particle_states import LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL, EXCITED_ION_STATE
 
 
 def track(coll, particles):
@@ -54,7 +55,6 @@ def track_core(coll, part):
         result_buf = io.BytesIO(result_blob) # Deserialize
         products = np.load(result_buf)
     else:
-        revert after geant4 bug fixed
         coords = [part.x, part.y, part.px, part.py,
                   part.zeta, delta_temp, part.chi,
                   part.charge_ratio, part.s,
@@ -107,4 +107,8 @@ def track_core(coll, part):
 
     # Set the state of excited ions - not supported (will fail in BDSIM when resent)
     mask = (part.pdg_id > 999999999) & ((part.pdg_id % 10) != 0)
-    part.state[mask] = -4000
+    part.state[mask] = EXCITED_ION_STATE
+
+    # Set the dead state
+    mask = part.state == LOST_WITHOUT_SPEC
+    part.state[mask] = LOST_ON_GEANT4_COLL
