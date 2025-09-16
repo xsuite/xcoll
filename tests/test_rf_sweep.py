@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from pathlib import Path
 import numpy as np
 import pytest
 
@@ -11,7 +10,7 @@ import xtrack as xt
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
-path = Path(__file__).parent / 'data'
+path = xc._pkg_root.parent / 'tests' / 'data'
 
 @for_all_test_contexts
 @pytest.mark.parametrize("sweep, beam", [[-300, 1], [300, 2], [3500, 3]],
@@ -23,7 +22,7 @@ def test_rf_sweep(sweep, beam, test_context):
         bh = 3.5e-3
         sweep *= 25
         line = xt.load(path / f'sequence_sps_q20_inj.json')['sps']
-        line.insert('markkk', xt.Marker(), at=2822)
+        line.insert('cavity_mid', xt.Marker(), at=2822) # Inside thick cavity as to slice it
         tt_c = line.get_table().rows['ac.*']
         assert 'ThickSliceCavity' in tt_c.element_type
     else:

@@ -18,8 +18,8 @@ def prepare_rf_sweep(line, *, cavities=None, sweep=None, sweep_per_turn=None, nu
 class RFSweep:
     def __init__(self, line, cavities=None):
         self.line = line
-        if line._var_management is None:
-            raise ValueError("Line must have a `var_management` to use RFSweep!" \
+        if line.env.ref_manager is None:
+            raise ValueError("Environment must have a `ref_manager` to use RFSweep!" \
                            + "Do not use `optimize_for_tracking` as it will "
                            + "disable expressions, which are needed for RFSweep.")
         line.enable_time_dependent_vars = False  # To be able to twiss in the prepare step
