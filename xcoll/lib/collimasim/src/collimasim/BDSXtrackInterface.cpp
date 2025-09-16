@@ -147,7 +147,7 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 {
     SetErrorHandler(MyRootErrorHandler);
     RedirectGeant4();
-    static FDRedirect fdredir("engine.out","engine.err");
+    fdredir = std::make_unique<FDRedirect>("engine.out","engine.err");
 
     stp = new BDSBunchSixTrackLink();
     bds = new BDSIMLink(stp);
@@ -226,6 +226,7 @@ XtrackInterface::~XtrackInterface()
     delete bds;
     delete stp;
     delete refParticleDefinition;
+    fdredir.reset();
 }
 
 

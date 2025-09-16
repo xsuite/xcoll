@@ -11,6 +11,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from subprocess import Popen # remove after geant4 bugfix
 import socket # remove after geant4 bugfix
 import time # remove after geant4 bugfix
+from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
 
@@ -20,15 +21,6 @@ try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
-
-
-def get_open_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("",0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
 
 
 class Geant4Engine(BaseEngine):
@@ -131,38 +123,35 @@ class Geant4Engine(BaseEngine):
 
         ### remove the following lines after geant4 bug fixed
         import rpyc
-        port = get_open_port()
-        with open("rpyc.out", "a", buffering=1) as fp, open("rpyc.err", "a", buffering=1) as fperr:
-            self._server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'], stdout=fp, stderr=fperr, text=True)
-            time.sleep(5) # ping to check when open
-            self._conn = rpyc.classic.connect('localhost', port=port)
-            self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
-            self._conn.execute('import sys')
-            self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
-            self._conn.execute('import engine_server')
-            self._conn.execute('import collimasim as cs')
-            self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-            self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                        referencePdgId=self.particle_ref.pdg_id,
-                                        referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                        relativeEnergyCut=self.relative_energy_cut,
-                                        seed=self.seed, batchMode=True)
-            ### remove down to here after geant4 bug fixed
+        self._server, port = launch_rpyc_with_port(log_path="rpyc.out")
+        self._conn = rpyc.classic.connect('localhost', port=port)
+        self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
+        self._conn.execute('import sys')
+        self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
+        self._conn.execute('import engine_server')
+        self._conn.execute('import collimasim as cs')
+        self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
+        self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                    referencePdgId=self.particle_ref.pdg_id,
+                                    referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                    relativeEnergyCut=self.relative_energy_cut,
+                                    seed=self.seed, batchMode=True)
+        ### remove down to here after geant4 bug fixed
 
-            for el in self._element_dict.values():
-                side = 2 if el._side == -1 else el._side
-                jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
-                jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
-                tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
-                tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-                # TODO: should geant4_id be a string or an int?
-                self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
-                                        apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
-                                        apertureRight=-jaw_R-1.e-9,
-                                        rotation=np.deg2rad(el.angle),
-                                        xOffset=0, yOffset=0, side=side,
-                                        jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                        isACrystal=isinstance(el, BaseCrystal))
+        for el in self._element_dict.values():
+            side = 2 if el._side == -1 else el._side
+            jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
+            jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
+            tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
+            tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
+            # TODO: should geant4_id be a string or an int?
+            self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
+                                    apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
+                                    apertureRight=-jaw_R-1.e-9,
+                                    rotation=np.deg2rad(el.angle),
+                                    xOffset=0, yOffset=0, side=side,
+                                    jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                    isACrystal=isinstance(el, BaseCrystal))
 
     def _stop_engine(self, **kwargs):
         self._g4link = None
