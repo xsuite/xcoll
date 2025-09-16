@@ -17,6 +17,8 @@ class LineSegment(xo.Struct):
     x1 = xo.Float64
     s2 = xo.Float64
     x2 = xo.Float64
+    _t1 = xo.Float64  # parameter along line for first point (default 0)
+    _t2 = xo.Float64  # parameter along line for second point (default 1
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'line.h']
@@ -32,6 +34,8 @@ class LineSegment(xo.Struct):
         t1 = kwargs.pop('t1', 0.)
         t2 = kwargs.pop('t2', 1.)
         super().__init__(*args, **kwargs)
+        self._t1 = t1
+        self._t2 = t2
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
@@ -60,3 +64,29 @@ class LineSegment(xo.Struct):
         self.s2 = new_s2
         self.x2 = new_x2
         self._translate_inplace(ps, px)
+
+    @property
+    def t1(self):
+        return self._t1
+
+    @t1.setter
+    def t1(self, val):
+        if val >= self._t2:
+            raise ValueError("t1 must be smaller than t2!")
+        if val < 0 or val > 1:
+            raise ValueError("t1 must be in [0, 1]!")
+        self._t1 = val
+        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)
+
+    @property
+    def t2(self):
+        return self._t2
+
+    @t2.setter
+    def t2(self, val):
+        if val <= self._t1:
+            raise ValueError("t2 must be larger than t1!")
+        if val < 0 or val > 1:
+            raise ValueError("t2 must be in [0, 1]!")
+        self._t2 = val
+        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)

@@ -39,6 +39,8 @@ class MultipleCoulombTrajectory(xo.Struct):
     Xt0 = xo.Float64  #  X0 𝛽^2 / q^2
     A0 = xo.Float64   # (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (𝛽 pc)
     B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (𝛽 pc)
+    _l1 = xo.Float64  # start parameter along trajectory (default -5)
+    _l2 = xo.Float64  # end parameter along trajectory (default 5)
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'mcs.h']
@@ -76,6 +78,8 @@ class MultipleCoulombTrajectory(xo.Struct):
         l1 = kwargs.pop('l1', -5.)
         l2 = kwargs.pop('l2', 5.)
         super().__init__(*args, **kwargs)
+        self._l1 = l1
+        self._l2 = l2
         if pc is not False and beta is not False and q is not False and X0 is not False\
         and ran_1 is not False and ran_2 is not False:
             if xp is not False:
@@ -96,3 +100,25 @@ class MultipleCoulombTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
+
+    @property
+    def l1(self):
+        return self._l1
+
+    @l1.setter
+    def l1(self, val):
+        if val >= self._l2:
+            raise ValueError("l1 must be smaller than l2!")
+        self._l1 = val
+        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
+
+    @property
+    def l2(self):
+        return self._l2
+
+    @l2.setter
+    def l2(self, val):
+        if val <= self._l1:
+            raise ValueError("l2 must be larger than l1!")
+        self._l2 = val
+        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)

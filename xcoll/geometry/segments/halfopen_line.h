@@ -49,27 +49,51 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
     double x1 = HalfOpenLineSegment_func_x(seg, t1);
     double x2 = HalfOpenLineSegment_func_x(seg, t2);
-    double sin_t = HalfOpenLineSegment_get_sin_t1(seg); // angle of the line wrt horizontal
+    double sin_t = HalfOpenLineSegment_get_sin_t1(seg);            // angle of the line wrt horizontal
     double cos_t = HalfOpenLineSegment_get_cos_t1(seg);
-    BoundingBox_set_l(box, sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1)));    // length of the box
-    BoundingBox_set_w(box, 0.0);      // width of the box 
-    double w = BoundingBox_get_w(box);                                     
-    BoundingBox_set_rC(box, sqrt(s1*s1 + x1*x1)); // length of the position vector to the first vertex
-    double rC = BoundingBox_get_rC(box);
-    BoundingBox_set_sin_tb(box, sin_t);  // orientation of the box (angle of length wrt horizontal)
-    BoundingBox_set_cos_tb(box, cos_t);
-    if (BoundingBox_get_rC(box) == 0.){
-        BoundingBox_set_sin_tC(box, 0.0);  // angle of the position vector to the first vertex
-        BoundingBox_set_cos_tC(box, 1.0);
+    double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));    // length of the box
+    double w = 0.0;                                                // width of the box 
+    double rC = sqrt(s1*s1 + x1*x1);                               // length of the position vector to the first vertex
+    double sin_tC, cos_tC;                                   // angle of the position vector to the first vertex
+    if (rC == 0.){
+        sin_tC = 0.0;  // angle of the position vector to the first vertex
+        cos_tC = 1.0;
     } else {
-        BoundingBox_set_sin_tC(box, x1 / rC);  // angle of the position vector to the first vertex
-        BoundingBox_set_cos_tC(box, s1 / rC);
+        sin_tC = x1 / rC;  // angle of the position vector to the first vertex
+        cos_tC = s1 / rC;
     }
-    BoundingBox_set_proj_l(box, rC * (cos_t*s1/rC + sin_t*x1/rC)); // projection of the position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    BoundingBox_set_proj_w(box, rC * (cos_t*x1/rC - sin_t*s1/rC)); // projection of position vector on width: rC * (cos_t*sin_tC - sin_t*cos_tC)
+    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
 }
 
+double HalfOpenLineSegment_prepare_newton(HalfOpenLineSegment seg, BoundingBox MCSbox, double tol){
+    // Prepare initial guess for Newton-Raphson root finding
+    double org_t1 = HalfOpenLineSegment_get__t1(seg);
+    double org_t2 = HalfOpenLineSegment_get__t2(seg);
+    while ((HalfOpenLineSegment_get__t2(seg) -  HalfOpenLineSegment_get__t1(seg)) > tol){
+        double t1_old = HalfOpenLineSegment_get__t1(seg);
+        double t2_old = HalfOpenLineSegment_get__t2(seg);
+        double t_middle = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
 
+        // first half
+        HalfOpenLineSegment_set__t2(seg, t_middle);
+        double overlap_lower = BoundingBox_overlaps(MCSbox, 
+                                                    HalfOpenLineSegment_getp_box(seg));
+        // second half
+        HalfOpenLineSegment_set__t2(seg, t2_old);
+        HalfOpenLineSegment_set__t1(seg, t_middle);
+        double overlap_upper = BoundingBox_overlaps(MCSbox, 
+                                                    HalfOpenLineSegment_getp_box(seg));
+        if (overlap_lower && !overlap_upper){
+            HalfOpenLineSegment_set__t1(seg, t1_old);
+            HalfOpenLineSegment_set__t2(seg, t_middle);
+        }
+    }
+    double guess_t = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
+    // Reset to original values
+    HalfOpenLineSegment_set__t1(seg, org_t1);
+    HalfOpenLineSegment_set__t2(seg, org_t2);
+    return guess_t;
+}
 
 
 

@@ -112,15 +112,16 @@ void BezierSegment_init_bounding_box(BezierSegment seg, BoundingBox box, double 
         xmin = MIN(x1, x2);
         xmax = MAX(x1, x2);
     }
-    BoundingBox_set_rC(box, sqrt(smin*smin + smax*smax)); // length of position vector to first vertex
-    BoundingBox_set_sin_tC(box, xmin / BoundingBox_get_rC(box)); // angle of position vector to first vertex
-    BoundingBox_set_cos_tC(box, smin / BoundingBox_get_rC(box));
-    BoundingBox_set_proj_l(box, smin);    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    BoundingBox_set_proj_w(box, xmin);    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-    BoundingBox_set_l(box, smax - smin);  // length of the box
-    BoundingBox_set_w(box, xmax - xmin);  // width of the box
-    BoundingBox_set_sin_tb(box, 0);       // orientation of the box (angle of length wrt horizontal)
-    BoundingBox_set_cos_tb(box, 1);
+    double rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
+    double sin_tC = xmin / rC; // angle of position vector to first vertex
+    double cos_tC = smin / rC;
+    //double proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
+    //double proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
+    double l = smax - smin;  // length of the box
+    double w = xmax - xmin;  // width of the box
+    double sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
+    double cos_tb = 1;
+    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
 
@@ -189,7 +190,35 @@ void BezierSegment_calculate_extrema(BezierSegment seg){
 }
 
 
+double BezierSegment_prepare_newton(BezierSegment seg, BoundingBox MCSbox, double tol){
+    // Prepare initial guess for Newton-Raphson root finding
+    double org_t1 = BezierSegment_get__t1(seg);
+    double org_t2 = BezierSegment_get__t2(seg);
+    while ((BezierSegment_get__t2(seg) -  BezierSegment_get__t1(seg)) > tol){
+        double t1_old = BezierSegment_get__t1(seg);
+        double t2_old = BezierSegment_get__t2(seg);
+        double t_middle = 0.5 * (BezierSegment_get__t2(seg) + BezierSegment_get__t1(seg));
 
+        // first half
+        BezierSegment_set__t2(seg, t_middle);
+        double overlap_lower = BoundingBox_overlaps(MCSbox, 
+                                                    BezierSegment_getp_box(seg));
+        // second half
+        BezierSegment_set__t2(seg, t2_old);
+        BezierSegment_set__t1(seg, t_middle);
+        double overlap_upper = BoundingBox_overlaps(MCSbox, 
+                                                    BezierSegment_getp_box(seg));
+        if (overlap_lower && !overlap_upper){
+            BezierSegment_set__t1(seg, t1_old);
+            BezierSegment_set__t2(seg, t_middle);
+        }
+    }
+    double guess_t = 0.5 * (BezierSegment_get__t2(seg) + BezierSegment_get__t1(seg));
+    // Reset to original values
+    BezierSegment_set__t1(seg, org_t1);
+    BezierSegment_set__t2(seg, org_t2);
+    return guess_t;
+}
 // /*gpufun*/
 // void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
 //     double s1  = BezierSegment_get_s1(seg);
