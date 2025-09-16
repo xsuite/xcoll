@@ -3,7 +3,5 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from xcoll import __version__
-
-def test_version():
-    assert __version__ == '0.6.4.dev1+geant4'
+from .elements import DEFAULT_XCOLL_ELEMENTS
+from .element_inits import XCOLL_ELEMENTS_INIT_DEFAULTS

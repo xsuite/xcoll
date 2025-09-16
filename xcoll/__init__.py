@@ -12,7 +12,7 @@ from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
-from .rf_sweep import RFSweep
+from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 
 # Initialise Geant4 environment
