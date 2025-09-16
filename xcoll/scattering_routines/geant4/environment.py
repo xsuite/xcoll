@@ -27,7 +27,7 @@ class Geant4Environment(BaseEnvironment):
         except (ModuleNotFoundError, ImportError):
             self._collimasim = None
         else:
-            self._collimasim = FsPath(cs.__path__)
+            self._collimasim = FsPath(cs.__path__[0])
         super().__init__()
 
     @property
