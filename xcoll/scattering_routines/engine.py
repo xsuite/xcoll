@@ -4,6 +4,7 @@
 # ######################################### #
 
 import os
+import sys
 import numpy as np
 from numbers import Number
 from functools import wraps
@@ -121,6 +122,8 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             self._particle_ref = xt.Particles()
         else:
+            if isinstance(val, xt.line.LineParticleRef):
+                val = val._resolved
             if not isinstance(val, xt.Particles):
                 raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
