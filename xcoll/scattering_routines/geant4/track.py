@@ -28,42 +28,42 @@ def track_core(coll, part):
     npart = part._num_active_particles
     ndead = part._num_lost_particles
 
-    ### revert after geant4 bug fixed
-    ### coords = [part.x, part.y, part.px, part.py,
-    ###           part.zeta, delta_temp, part.chi,
-    ###           part.charge_ratio, part.s,
-    ###           part.pdg_id,part.particle_id, part.state,
-    ###           part.at_element, part.at_turn]
-    ### xc.geant4.engine._g4link.addParticles(coords)
-    ### xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
-    ### xc.geant4.engine._g4link.collimate()
-    ### products = xc.geant4.engine._g4link.collimateReturn(coords)
-
-    ### remove the following lines after geant4 bug fixed
-    coords = {
-        'x': part.x,
-        'y': part.y,
-        'px': part.px,
-        'py': part.py,
-        'zeta': part.zeta,
-        'delta': delta_temp,
-        'chi': part.chi,
-        'charge_ratio': part.charge_ratio,
-        's': part.s,
-        'pdg_id': part.pdg_id,
-        'particle_id': part.particle_id,
-        'state': part.state,
-        'at_element': part.at_element,
-        'at_turn': part.at_turn
-    }
-    buf = io.BytesIO() # Use numpy.savez to serialize
-    np.savez(buf, **coords)
-    buf.seek(0)
-    result_blob = xc.geant4.engine._g4link.add_particles_and_collimate_return(
-                                            buf.getvalue(), f'{coll.geant4_id}') # TODO: should geant4_id be a string or an int?
-    result_buf = io.BytesIO(result_blob) # Deserialize
-    products = np.load(result_buf)
-    ### remove down to here after geant4 bug fixed
+    if xc.geant4.engine.reentry_protection_enabled:
+        ### remove this part after geant4 bug fixed
+        coords = {
+            'x': part.x,
+            'y': part.y,
+            'px': part.px,
+            'py': part.py,
+            'zeta': part.zeta,
+            'delta': delta_temp,
+            'chi': part.chi,
+            'charge_ratio': part.charge_ratio,
+            's': part.s,
+            'pdg_id': part.pdg_id,
+            'particle_id': part.particle_id,
+            'state': part.state,
+            'at_element': part.at_element,
+            'at_turn': part.at_turn
+        }
+        buf = io.BytesIO() # Use numpy.savez to serialize
+        np.savez(buf, **coords)
+        buf.seek(0)
+        result_blob = xc.geant4.engine._g4link.add_particles_and_collimate_return(
+                                                buf.getvalue(), f'{coll.geant4_id}') # TODO: should geant4_id be a string or an int?
+        result_buf = io.BytesIO(result_blob) # Deserialize
+        products = np.load(result_buf)
+    else:
+        revert after geant4 bug fixed
+        coords = [part.x, part.y, part.px, part.py,
+                  part.zeta, delta_temp, part.chi,
+                  part.charge_ratio, part.s,
+                  part.pdg_id,part.particle_id, part.state,
+                  part.at_element, part.at_turn]
+        xc.geant4.engine._g4link.addParticles(coords)
+        xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
+        xc.geant4.engine._g4link.collimate()
+        products = xc.geant4.engine._g4link.collimateReturn(coords)
 
     npartsAliveAndDead = npart+ndead
     part.x[:npartsAliveAndDead] = products['x'][:npartsAliveAndDead]

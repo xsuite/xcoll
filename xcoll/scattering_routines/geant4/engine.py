@@ -26,9 +26,10 @@ except (ImportError, ModuleNotFoundError):
 class Geant4Engine(BaseEngine):
 
     _xofields = {**BaseEngine._xofields,
-        '_relative_energy_cut': xo.Float64,
-        '_bdsim_config_file':   xo.String
-#         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
+        '_relative_energy_cut':        xo.Float64,
+        '_bdsim_config_file':          xo.String,
+        '_reentry_protection_enabled': xo.Int8
+        # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
     _int32 = True
@@ -47,6 +48,7 @@ class Geant4Engine(BaseEngine):
         super().__init__(**kwargs)
         self.relative_energy_cut = None # To set default value
         self.bdsim_config_file = None   # To set default value
+        self.reentry_protection_enabled = None # To set default value
 
 
     # ======================
@@ -80,6 +82,21 @@ class Geant4Engine(BaseEngine):
                 raise ValueError("`bdsim_config_file` has to be a string or Path!")
             self._bdsim_config_file = FsPath(val).expanduser().resolve().as_posix()
 
+    @property
+    def reentry_protection_enabled(self):
+        return self._reentry_protection_enabled
+
+    @reentry_protection_enabled.setter
+    def reentry_protection_enabled(self, val):
+        if val is None:
+            val = True
+        if val is False:
+            print("Warning: Disabling re-entry protection can lead to crashes!")
+            print("         Only disable if you know what you are doing.")
+        if not isinstance(val, bool):
+            raise ValueError("`reentry_protection_enabled` has to be a boolean!")
+        self._reentry_protection_enabled = val
+
 
     # =================================
     # === Base methods to overwrite ===
@@ -109,34 +126,36 @@ class Geant4Engine(BaseEngine):
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
         pdg_id = self.particle_ref.pdg_id
 
-        ### revert after geant4 bug fixed
-        ### try:
-        ###     import collimasim as cs
-        ### except ImportError as e:
-        ###     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        ### else:
-        ###     self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-        ###                                       referencePdgId=self.particle_ref.pdg_id,
-        ###                                       referenceEk=Ekin / 1e9, ### BDSIM expects GeV
-        ###                                       relativeEnergyCut=self.relative_energy_cut,
-        ###                                       seed=self.seed, batchMode=True)
-
-        ### remove the following lines after geant4 bug fixed
-        import rpyc
-        self._server, port = launch_rpyc_with_port(log_path="rpyc.out")
-        self._conn = rpyc.classic.connect('localhost', port=port)
-        self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
-        self._conn.execute('import sys')
-        self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
-        self._conn.execute('import engine_server')
-        self._conn.execute('import collimasim as cs')
-        self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-        self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                    referencePdgId=self.particle_ref.pdg_id,
-                                    referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                    relativeEnergyCut=self.relative_energy_cut,
-                                    seed=self.seed, batchMode=True)
-        ### remove down to here after geant4 bug fixed
+        if self.reentry_protection_enabled:
+            ### remove this part after geant4 bug fixed
+            try:
+                import rpyc
+            except ImportError as e:
+                raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.")
+            self._server, port = launch_rpyc_with_port(log_path="rpyc.out")
+            self._conn = rpyc.classic.connect('localhost', port=port)
+            self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
+            self._conn.execute('import sys')
+            self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
+            self._conn.execute('import engine_server')
+            self._conn.execute('import collimasim as cs')
+            self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
+            self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                        referencePdgId=self.particle_ref.pdg_id,
+                                        referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                        relativeEnergyCut=self.relative_energy_cut,
+                                        seed=self.seed, batchMode=True)
+        else:
+            try:
+                import collimasim as cs
+            except ImportError as e:
+                raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+            else:
+                self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                                referencePdgId=self.particle_ref.pdg_id,
+                                                referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                                relativeEnergyCut=self.relative_energy_cut,
+                                                seed=self.seed, batchMode=True)
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side
@@ -155,7 +174,7 @@ class Geant4Engine(BaseEngine):
 
     def _stop_engine(self, **kwargs):
         self._g4link = None
-        if self._server: # remove after geant4 bugfix
+        if self.reentry_protection_enabled and self._server: # remove after geant4 bugfix
             self._server.terminate() # remove after geant4 bugfix
             self._server = None # remove after geant4 bugfix
         return kwargs
