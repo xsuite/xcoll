@@ -6,6 +6,85 @@
 #include <vector>
 #include <string>
 
+#include "TSystem.h"
+#include "TError.h"
+#include "G4UImanager.hh"
+#include "G4UIsession.hh"
+#include <fstream>
+#include <unistd.h>
+#include <fcntl.h>
+
+
+// ------------------------------------------ //
+// Logging functionality for Geant4 and BDSIM //
+// ------------------------------------------ //
+
+class XcollLogFileSession : public G4UIsession {
+public:
+  XcollLogFileSession()
+  : logfile("geant4.out"), errfile("geant4.err") {}
+
+  virtual ~XcollLogFileSession() { logfile.close(); errfile.close();}
+
+  G4int ReceiveG4cout(const G4String& msg) override {
+    logfile << msg;
+    return 0;
+  }
+  G4int ReceiveG4cerr(const G4String& msg) override {
+    errfile << msg;
+    return 0;
+  }
+
+private:
+  std::ofstream logfile;
+  std::ofstream errfile;
+};
+
+void RedirectGeant4() {
+  auto ui = G4UImanager::GetUIpointer();
+  static XcollLogFileSession session;
+  ui->SetCoutDestination(&session);
+}
+
+static std::ofstream rootInfoLog("root.out");
+static std::ofstream rootErrLog("root.err");
+
+static void MyRootErrorHandler(int level, Bool_t abort, const char *location, const char *msg)
+{
+    if (level >= kError) {
+        rootErrLog << location << ": " << msg << '\n';
+    } else {
+        rootInfoLog << location << ": " << msg << '\n';
+    }
+    // mimic ROOT's abort behaviour if requested
+    if (abort) ::abort();
+}
+
+class FDRedirect {
+    int saved_out{-1}, saved_err{-1}, out_fd{-1}, err_fd{-1};
+public:
+    FDRedirect(const char* out_path, const char* err_path=nullptr) {
+        saved_out = dup(STDOUT_FILENO);
+        saved_err = dup(STDERR_FILENO);
+        out_fd = ::open(out_path, O_WRONLY|O_CREAT|O_APPEND, 0644);
+        if (!err_path) err_path = out_path;
+        err_fd = ::open(err_path, O_WRONLY|O_CREAT|O_APPEND, 0644);
+        dup2(out_fd, STDOUT_FILENO);
+        dup2(err_fd, STDERR_FILENO);
+    }
+    ~FDRedirect() {
+        fsync(STDOUT_FILENO);
+        fsync(STDERR_FILENO);
+        dup2(saved_out, STDOUT_FILENO); close(saved_out); close(out_fd);
+        dup2(saved_err, STDERR_FILENO); close(saved_err); close(err_fd);
+    }
+};
+
+
+// --------------------------- //
+// Xcoll BDSIM implementations //
+// --------------------------- //
+
 BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
                                                   double kineticEnergyIn, double ionChargeIn)
 {
@@ -66,14 +145,17 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
         relativeEnergyCut(relativeEnergyCutIn),
         seed(seedIn)
 {
+    SetErrorHandler(MyRootErrorHandler);
+    RedirectGeant4();
+    static FDRedirect fdredir("engine.out","engine.err");
+
     stp = new BDSBunchSixTrackLink();
     bds = new BDSIMLink(stp);
 
-	for (char* arg : argv) {
+	for (char* arg : argv){
 		free(arg);  // Free dynamically allocated memory
 	}
 	argv.clear();  // Clear the vector
-
 
     std::string seedStr = std::to_string(seed);
     std::vector<std::string> arguments = {"--verbose",
@@ -84,12 +166,10 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
                                           "--seed=" + seedStr,
                                           "--outfile=output_" + seedStr};
 
-    for(auto & argument : arguments)
-    {
+    for(auto & argument : arguments){
         argv.push_back(strdup(argument.c_str()));
     }
-    if (batchMode)
-    {
+    if (batchMode){
         std::string batch_flag = "--batch";
         argv.push_back(strdup(batch_flag.c_str()));
         argv.push_back(strdup(batch_flag.c_str()));
@@ -112,15 +192,11 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 
 	// Print arguments
 	std::cout << "Initialise called with arguments: " << std::endl;
-	std::cout << "hejsan" << std::endl;
 	std::cout << "argc: " << argv.size() - 1 << std::endl;
 	for (size_t i = 0; i < argv.size(); i++) {
 		std::cout << "argv[" << i << "]: " << argv[i] << std::endl;
 	}
 	G4cout << "minimumEK / CLHEP::GeV: " << minimumEK / CLHEP::GeV << G4endl;
-	std::cout.flush();
-	std::cout << "hejsan" << std::endl;
-	std::cout << "hejsan" << std::endl;
 	std::cout.flush();
 
     try
