@@ -6,16 +6,10 @@
 import numpy as np
 import pytest
 
-import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
-import time
 
-try:
-    import collimasim as cs
-except ImportError:
-    cs = None
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 
@@ -45,7 +39,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
-@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled is None, reason="BDSIM+Geant4 installation not found")
 def test_geant4(jaw, angle, tilt):
     num_part = 25_000
     if xc.geant4.engine.is_running():

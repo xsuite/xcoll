@@ -13,13 +13,6 @@ import xcoll as xc
 
 from xobjects.test_helpers import for_all_test_contexts
 
-# try the import here and skip tests if missing
-# also need the import here in case of pytest --forked
-try:
-    import collimasim as cs
-except ImportError:
-    cs = None
-
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
@@ -28,7 +21,7 @@ particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled is None, reason="BDSIM+Geant4 installation not found")
 def test_reload_bdsim(test_context):
     num_part = 1000
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti', _context=test_context)
@@ -59,7 +52,7 @@ def test_reload_bdsim(test_context):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled is None, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
     n_part = 10000
     angles=[0,45,90]

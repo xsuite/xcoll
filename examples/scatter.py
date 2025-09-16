@@ -16,12 +16,8 @@ _capacity = 2*num_part
 particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=7e12)
 
 everest_coll = xc.EverestCollimator(length=1.0, material=xc.materials.MolybdenumGraphite, jaw=[0.01, -0.01])
-
-fluka_coll = xc.FlukaCollimator(length=1.0, jaw=[0.01, -0.01])
-xc.FlukaEngine.start(elements=fluka_coll, names='tcp.c6l7.b1', debug_level=1, _capacity=_capacity, cwd='temp_scratch')
-xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
-
-# g4_coll = xc.Geant4Collimator(length=1.0, material='mogr', jaw=[0.1, -0.1], geant4_id='g4_coll')
+# fluka_coll = xc.FlukaCollimator(length=1.0, jaw=[0.01, -0.01])
+g4_coll = xc.Geant4Collimator(length=1.0, material='mogr', jaw=[0.1, -0.1], geant4_id='g4_coll')
 
 
 # Plotting function
@@ -81,25 +77,27 @@ x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
 part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=_capacity))
 
 
-# Fluka
-# -----
+# # Fluka
+# # -----
 
-part_fluka = []
-for this_part_init in part_init:
-    this_part = this_part_init.copy()
-    t_start = time.time()
-    fluka_coll.track(this_part)
-    t_end = time.time()
+# xc.FlukaEngine.start(elements=fluka_coll, names='tcp.c6l7.b1', debug_level=1, _capacity=_capacity, cwd='temp_scratch')
+# xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
+# part_fluka = []
+# for this_part_init in part_init:
+#     this_part = this_part_init.copy()
+#     t_start = time.time()
+#     fluka_coll.track(this_part)
+#     t_end = time.time()
 
-    print(f"FLUKA execution time: {t_end - t_start} s")
-    print(f"Survived in FLUKA: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
-    this_part.sort(interleave_lost_particles=True)
-    part_fluka.append(this_part)
+#     print(f"FLUKA execution time: {t_end - t_start} s")
+#     print(f"Survived in FLUKA: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
+#     this_part.sort(interleave_lost_particles=True)
+#     part_fluka.append(this_part)
 
-xc.FlukaEngine.stop()
+# xc.FlukaEngine.stop()
 
-for idx in range(3):
-    plot_scatters(part_init[idx], part_fluka[idx], f'fluka_collimator_{idx}.png', show_colorbar=True)
+# for idx in range(3):
+#     plot_scatters(part_init[idx], part_fluka[idx], f'fluka_collimator_{idx}.png', show_colorbar=True)
 
 
 # Everest
@@ -125,24 +123,24 @@ for idx in range(3):
     plot_scatters(part_init[idx], part_everest[idx], f'everest_collimator_{idx}.png', show_colorbar=True)
 
 
-# # Geant4
-# # ------
+# Geant4
+# ------
 
-# xc.Geant4Engine.start(elements=[g4_coll], seed=1993, bdsim_config_file='settings_protons.gmad', particle_ref=particle_ref)
+xc.Geant4Engine.start(elements=g4_coll, seed=1993, bdsim_config_file='settings_protons.gmad', particle_ref=particle_ref)
 
-# part_g4 = []
-# for this_part_init in part_init:
-#     this_part = this_part_init.copy()
-#     t_start = time.time()
-#     g4_coll.track(this_part)
-#     t_end = time.time()
+part_g4 = []
+for this_part_init in part_init:
+    this_part = this_part_init.copy()
+    t_start = time.time()
+    g4_coll.track(this_part)
+    t_end = time.time()
 
-#     print(f"Geant4 execution time: {t_end - t_start} s")
-#     print(f"Survived in Geant4: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
-#     this_part.sort(interleave_lost_particles=True)
-#     part_g4.append(this_part)
+    print(f"Geant4 execution time: {t_end - t_start} s")
+    print(f"Survived in Geant4: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
+    this_part.sort(interleave_lost_particles=True)
+    part_g4.append(this_part)
 
-# xc.Geant4Engine.stop()
+xc.Geant4Engine.stop()
 
-# for idx in range(3):
-#     plot_scatters(part_init[idx], part_g4[idx], f'g4_collimator_{idx}.png', show_colorbar=True)
+for idx in range(3):
+    plot_scatters(part_init[idx], part_g4[idx], f'g4_collimator_{idx}.png', show_colorbar=True)
