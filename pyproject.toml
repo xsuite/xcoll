@@ -19,6 +19,7 @@ license = {text="Apache-2.0"}
 requires-python = ">=3.10"
 
 dependencies = [
+    "packaging",
     "ruamel-yaml (>=0.17.31,<0.18.15)",
     "numpy>=1.0",
     "pandas>=1.4",
