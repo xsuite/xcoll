@@ -115,7 +115,7 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot()
+ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
 plt.show()
 
 
