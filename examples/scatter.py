@@ -13,7 +13,7 @@ import xcoll as xc
 
 num_part = 100000
 _capacity = 2*num_part
-particle_ref = xp.Particles.reference_from_pdg_id(pdg_id='proton', p0c=7e12)
+particle_ref = xp.Particles('proton', p0c=7e12)
 
 everest_coll = xc.EverestCollimator(length=1.0, material=xc.materials.MolybdenumGraphite, jaw=[0.01, -0.01])
 # fluka_coll = xc.FlukaCollimator(length=1.0, jaw=[0.01, -0.01])

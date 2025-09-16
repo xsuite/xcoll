@@ -91,7 +91,6 @@ def test_lossmap_geant4(do_plot, test_context):
     line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
 
-    xc.geant4.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.geant4.engine.start(line=line, bdsim_config_file=path / 'geant4_protons.gmad')
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"

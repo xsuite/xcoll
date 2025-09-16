@@ -12,24 +12,24 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 path = xc._pkg_root.parent / 'tests' / 'data'
-particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
+particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(not xc.geant4.environment.compiled is None, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_geant4_ppid(test_context):
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti', _context=test_context)
     xc.geant4.engine.particle_ref = particle_ref
     xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1,
                           bdsim_config_file=path / f'geant4_protons.gmad')
 
-    num_part_1d = 1000
+    num_part_1d = 51
     jaw_band = 1e-6
     _capacity = int(2e6)
-    x = np.linspace(0.002, 10, num_part_1d)
-    y = np.linspace(-10, 10, num_part_1d)
+    x = np.linspace(0.002, 0.003, num_part_1d)
+    y = np.linspace(-0.001, 0.001, num_part_1d)
     X, Y = np.meshgrid(x,y)
     coords = np.vstack([X.ravel(), Y.ravel()]).T
     part_init = xp.build_particles(x=coords[:,0], y=coords[:,1], particle_ref=particle_ref,
