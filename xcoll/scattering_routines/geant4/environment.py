@@ -44,4 +44,4 @@ class Geant4Environment(BaseEnvironment):
 
     @property
     def compiled(self):
-        return self.geant4_config is not None and self.bdsim is not None and self.collimasim is not None
+        return self.geant4 is not None and self.bdsim is not None and self.collimasim is not None
