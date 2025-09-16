@@ -31,6 +31,8 @@ class BezierSegment(xo.Struct):
     _es2 = xo.Float64  # Value of second extremum in s
     _ex1 = xo.Float64  # Value of first extremum in x
     _ex2 = xo.Float64  # Value of second extremum in x
+    _t1 = xo.Float64  # parameter along curve for first point (default 0)
+    _t2 = xo.Float64  # parameter along curve for second point (default
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
@@ -63,6 +65,8 @@ class BezierSegment(xo.Struct):
         t2 = kwargs.pop('t2', 1.)
         super().__init__(**kwargs)
         self.calculate_extrema()
+        self._t1 = t1
+        self._t2 = t2
         self.box = BoundingBox()
         self.init_bounding_box(box=self.box, t1=t1, t2=t2)
 
@@ -179,3 +183,29 @@ class BezierSegment(xo.Struct):
     def cx2(self, value):
         self._cx2 = value
         self.calculate_extrema()
+
+    @property
+    def t1(self):
+        return self._t1
+
+    @t1.setter
+    def t1(self, val):
+        if val >= self._t2:
+            raise ValueError("t1 must be smaller than t2!")
+        if val < 0 or val > 1:
+            raise ValueError("t1 must be in [0, 1]!")
+        self._t1 = val
+        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)
+
+    @property
+    def t2(self):
+        return self._t2
+
+    @t2.setter
+    def t2(self, val):
+        if val <= self._t1:
+            raise ValueError("t2 must be larger than t1!")
+        if val < 0 or val > 1:
+            raise ValueError("t2 must be in [0, 1]!")
+        self._t2 = val
+        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)

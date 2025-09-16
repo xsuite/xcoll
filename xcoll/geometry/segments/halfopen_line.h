@@ -65,7 +65,35 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
     BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
 }
 
+double HalfOpenLineSegment_prepare_newton(HalfOpenLineSegment seg, BoundingBox MCSbox, double tol){
+    // Prepare initial guess for Newton-Raphson root finding
+    double org_t1 = HalfOpenLineSegment_get__t1(seg);
+    double org_t2 = HalfOpenLineSegment_get__t2(seg);
+    while ((HalfOpenLineSegment_get__t2(seg) -  HalfOpenLineSegment_get__t1(seg)) > tol){
+        double t1_old = HalfOpenLineSegment_get__t1(seg);
+        double t2_old = HalfOpenLineSegment_get__t2(seg);
+        double t_middle = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
 
+        // first half
+        HalfOpenLineSegment_set__t2(seg, t_middle);
+        double overlap_lower = BoundingBox_overlaps(MCSbox, 
+                                                    HalfOpenLineSegment_getp_box(seg));
+        // second half
+        HalfOpenLineSegment_set__t2(seg, t2_old);
+        HalfOpenLineSegment_set__t1(seg, t_middle);
+        double overlap_upper = BoundingBox_overlaps(MCSbox, 
+                                                    HalfOpenLineSegment_getp_box(seg));
+        if (overlap_lower && !overlap_upper){
+            HalfOpenLineSegment_set__t1(seg, t1_old);
+            HalfOpenLineSegment_set__t2(seg, t_middle);
+        }
+    }
+    double guess_t = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
+    // Reset to original values
+    HalfOpenLineSegment_set__t1(seg, org_t1);
+    HalfOpenLineSegment_set__t2(seg, org_t2);
+    return guess_t;
+}
 
 
 

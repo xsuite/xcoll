@@ -190,7 +190,35 @@ void BezierSegment_calculate_extrema(BezierSegment seg){
 }
 
 
+double BezierSegment_prepare_newton(BezierSegment seg, BoundingBox MCSbox, double tol){
+    // Prepare initial guess for Newton-Raphson root finding
+    double org_t1 = BezierSegment_get__t1(seg);
+    double org_t2 = BezierSegment_get__t2(seg);
+    while ((BezierSegment_get__t2(seg) -  BezierSegment_get__t1(seg)) > tol){
+        double t1_old = BezierSegment_get__t1(seg);
+        double t2_old = BezierSegment_get__t2(seg);
+        double t_middle = 0.5 * (BezierSegment_get__t2(seg) + BezierSegment_get__t1(seg));
 
+        // first half
+        BezierSegment_set__t2(seg, t_middle);
+        double overlap_lower = BoundingBox_overlaps(MCSbox, 
+                                                    BezierSegment_getp_box(seg));
+        // second half
+        BezierSegment_set__t2(seg, t2_old);
+        BezierSegment_set__t1(seg, t_middle);
+        double overlap_upper = BoundingBox_overlaps(MCSbox, 
+                                                    BezierSegment_getp_box(seg));
+        if (overlap_lower && !overlap_upper){
+            BezierSegment_set__t1(seg, t1_old);
+            BezierSegment_set__t2(seg, t_middle);
+        }
+    }
+    double guess_t = 0.5 * (BezierSegment_get__t2(seg) + BezierSegment_get__t1(seg));
+    // Reset to original values
+    BezierSegment_set__t1(seg, org_t1);
+    BezierSegment_set__t2(seg, org_t2);
+    return guess_t;
+}
 // /*gpufun*/
 // void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
 //     double s1  = BezierSegment_get_s1(seg);
