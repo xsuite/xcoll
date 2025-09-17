@@ -188,7 +188,7 @@ class FlukaEngine(BaseEngine):
         return kwargs
 
 
-    def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
+    def _start_engine(self, touches=False, fortran_debug_level=0, **kwargs):
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
         self._create_touches(touches)

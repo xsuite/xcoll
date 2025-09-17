@@ -22,6 +22,7 @@ def _drift(coll, particles, length):
 def track_pre(coll, particles):
     import xcoll as xc
 
+
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
@@ -43,7 +44,8 @@ def track_pre(coll, particles):
         xc.fluka.engine._print("Warning: relative_capacity is set to 2. This is "
                              + "probably not enough for anything except protons.")
 
-    xc.fluka.engine.init_tracking(npart)
+    #xc.fluka.engine.init_tracking(npart)
+    xc.fluka.engine.init_tracking(npart+particles._num_lost_particles)
 
     if particles.particle_id.max() > xc.fluka.engine.max_particle_id:
         raise ValueError(f"Some particles have an id ({particles.particle_id.max()}) "
@@ -63,8 +65,9 @@ def track_pre(coll, particles):
 def track_post(coll, particles):
     _drift(coll, particles, -coll.length_back)
     alive_states = np.unique(particles.state[particles.state > 0])
-    assert len(alive_states) == 1, f"Unexpected alive particle states after tracking: {alive_states}"
-    assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
+    if alive_states:
+        assert len(alive_states) == 1, f"Unexpected alive particle states after tracking: {alive_states}"
+        assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
 
 
 def _expand(arr, extra_capacity, dtype=float):
