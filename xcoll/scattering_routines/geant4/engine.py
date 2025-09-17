@@ -184,10 +184,8 @@ class Geant4Engine(xo.HybridClass):
             if line is None or line.particle_ref is None:
                 raise ValueError("Line has no reference particle! "
                                + "Please provide one using `particle_ref`.")
-            if isinstance(line.particle_ref, xt.Particles):
-                particle_ref = line.particle_ref
-            elif isinstance(line.particle_ref, xt.line.LineParticleRef):
-                particle_ref = line.particle_ref._resolved
+            if isinstance(line.particle_ref, xt.Particles) or isinstance(line.particle_ref, xt.line.LineParticleRef):
+                particle_ref = line.particle_ref.copy()
         elif isinstance(particle_ref, xt.Particles):
             if particle_ref._capacity > 1:
                 raise ValueError("`particle_ref` has to be a single particle!")
