@@ -274,7 +274,7 @@ class LossMap:
                         part.state[idx] = LOST_ON_FLUKA_CRYSTAL
                     elif what_type == 'Geant4Block':
                         part.state[idx] = LOST_ON_GEANT4_BLOCK
-                    elif what_type == 'Geant4Collimator':
+                    elif what_type == 'Geant4Collimator' or what_type == 'Geant4CollimatorTip':
                         part.state[idx] = LOST_ON_GEANT4_COLL
                     elif what_type == 'Geant4Crystal':
                         part.state[idx] = LOST_ON_GEANT4_CRYSTAL
