@@ -251,7 +251,7 @@ void XtrackInterface::addCollimator(const std::string&   name,
 
         bool isTipped = !tipMaterial.empty() && tipThickness > 0.0;
 
-        if (isTipped):
+        if (isTipped)
         {
             bds->AddLinkCollimatorTipJaw(name,
                                          material,
