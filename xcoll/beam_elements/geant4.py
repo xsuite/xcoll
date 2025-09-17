@@ -20,7 +20,7 @@ from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack
 
 
 class Geant4Collimator(BaseCollimator):
-    
+
     _xofields = BaseCollimator._xofields | {
         'geant4_id': xo.Int16,
         '_material': xo.String,
