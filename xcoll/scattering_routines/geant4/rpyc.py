@@ -5,7 +5,6 @@
 
 import re
 import os
-import sys
 import time
 import threading
 import subprocess
@@ -24,7 +23,7 @@ def extract_port(line):
 
 
 # Thread-safe launch of rpyc server on a free port
-def launch_rpyc_with_port(log_path="rpyc.out", timeout=10.0):
+def launch_rpyc_with_port(log_path="rpyc.log", timeout=10.0):
     exe = which("rpyc_classic")
     if not exe:
         raise RuntimeError("rpyc_classic not on PATH; install rpyc in this env")

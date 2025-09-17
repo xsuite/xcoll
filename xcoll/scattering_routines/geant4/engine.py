@@ -138,7 +138,7 @@ class Geant4Engine(BaseEngine):
                 import rpyc
             except ImportError as e:
                 raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.")
-            self._server, port = launch_rpyc_with_port(log_path="rpyc.out")
+            self._server, port = launch_rpyc_with_port()
             self._conn = rpyc.classic.connect('localhost', port=port)
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
@@ -200,6 +200,7 @@ class Geant4Engine(BaseEngine):
     def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is None:
             return []
-        files_to_delete = ['rpyc.out', 'rpyc.err', 'geant4.out', 'geant4.err',
-                           'engine.out', 'engine.err']
+        files_to_delete = ['rpyc.log', 'geant4.out', 'geant4.err',
+                           'engine.out', 'engine.err', 'root.out',
+                           'root.err']
         return [cwd / f for f in files_to_delete]

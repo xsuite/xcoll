@@ -5,6 +5,7 @@
 
 import pytest
 import numpy as np
+from pathlib import Path
 
 import xtrack as xt
 import xpart as xp
@@ -29,18 +30,40 @@ def test_reload_bdsim(test_context):
     num_part = 1000
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti', _context=test_context)
     xc.geant4.engine.particle_ref = particle_ref
-    part_init = xp.build_particles(x=np.random.normal(coll.jaw_L, num_part),
+    part_init = xp.build_particles(x=np.random.normal(coll.jaw_L + 1e-4, 1.e-4, num_part),
                                    particle_ref=particle_ref, _capacity=4*num_part)
     part = []
     for _ in range(3):
         part.append(part_init.copy())
+        cwd = Path.cwd()
         xc.geant4.engine.start(elements=coll, seed=1993,
                                bdsim_config_file=path / 'geant4_protons.gmad')
+        assert cwd != Path.cwd()
+        temp_cwd = xc.geant4.engine._cwd
+        assert temp_cwd == Path.cwd()
+        assert xc.geant4.engine._already_started
+        assert Path('rpyc.log').exists()
+        assert Path('geant4.out').exists()
+        assert Path('geant4.err').exists()
+        assert Path('engine.out').exists()
+        assert Path('engine.err').exists()
+
         coll.track(part[-1])
         assert (part[-1].state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
         assert (part[-1].state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
         assert (part[-1].state == 1).sum() > 0                                               # Some particles should have survived
-        xc.geant4.engine.stop()
+
+        xc.geant4.engine.stop(clean=True)
+        assert cwd == Path.cwd()
+        assert not temp_cwd.exists()
+        assert xc.geant4.engine._cwd is None
+        assert xc.geant4.engine._g4link is None
+        assert xc.geant4.engine._already_started
+        assert not Path('rpyc.log').exists()
+        assert not Path('geant4.out').exists()
+        assert not Path('geant4.err').exists()
+        assert not Path('engine.out').exists()
+        assert not Path('engine.err').exists()
 
     # Check that the particles are the same
     for i in range(1, 3):
@@ -78,17 +101,40 @@ def test_serial_bdsim(pytestconfig):
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti')
     xc.geant4.engine.particle_ref = particle_ref
     xc.geant4.engine.reentry_protection_enabled = False
-    part = xp.build_particles(x=np.random.normal(coll.jaw_L, num_part),
-                                   particle_ref=particle_ref, _capacity=4*num_part)
+    part = xp.build_particles(x=np.random.normal(coll.jaw_L + 1e-4, 1e-4, num_part),
+                              particle_ref=particle_ref, _capacity=4*num_part)
+
+    cwd = Path.cwd()
     xc.geant4.engine.start(elements=coll, seed=1993,
                            bdsim_config_file=path / 'geant4_protons.gmad')
+    assert cwd != Path.cwd()
+    temp_cwd = xc.geant4.engine._cwd
+    assert temp_cwd == Path.cwd()
     assert xc.geant4.engine._already_started
+    assert not Path('rpyc.log').exists()
+    assert Path('geant4.out').exists()
+    assert Path('geant4.err').exists()
+    assert Path('engine.out').exists()
+    assert Path('engine.err').exists()
+    assert xc.geant4.engine._already_started
+
     coll.track(part)
     assert (part.state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
     assert (part.state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
     assert (part.state == 1).sum() > 0
-    xc.geant4.engine.stop()
+
+    xc.geant4.engine.stop(clean=True)
+    assert cwd == Path.cwd()
+    assert not temp_cwd.exists()
+    assert xc.geant4.engine._cwd is None
+    assert xc.geant4.engine._g4link is None
     assert xc.geant4.engine._already_started
+    assert not Path('rpyc.log').exists()
+    assert not Path('geant4.out').exists()
+    assert not Path('geant4.err').exists()
+    assert not Path('engine.out').exists()
+    assert not Path('engine.err').exists()
+
     with pytest.raises(RuntimeError, match="Cannot restart Geant4 engine in non-reentry-safe mode"):
         xc.geant4.engine.start(elements=coll, seed=1993,
                                bdsim_config_file=path / 'geant4_protons.gmad')
