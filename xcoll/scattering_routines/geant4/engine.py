@@ -14,7 +14,7 @@ import xtrack.particles.pdg as pdg
 class Geant4Engine(xo.HybridClass):
 
     _xofields = {
-        'particle_ref':        xp.Particles,
+        'particle_ref':        xt.Particles,
         'seed':                xo.Int64,
         'relative_energy_cut': xo.Float64,
         'bdsim_config_file':   xo.String
@@ -37,7 +37,7 @@ class Geant4Engine(xo.HybridClass):
                 setattr(self, kk, vv)
             return
         if '_xobject' not in kwargs:
-            kwargs.setdefault('particle_ref', xp.Particles())
+            kwargs.setdefault('particle_ref', xt.Particles())
             kwargs.setdefault('seed', -1)
             kwargs.setdefault('relative_energy_cut', -1)
             kwargs.setdefault('bdsim_config_file', ''.ljust(256))  # Limit to pathnames of 256 characters
@@ -184,15 +184,18 @@ class Geant4Engine(xo.HybridClass):
             if line is None or line.particle_ref is None:
                 raise ValueError("Line has no reference particle! "
                                + "Please provide one using `particle_ref`.")
-            particle_ref = line.particle_ref
-        elif isinstance(particle_ref, xp.Particles):
+            if isinstance(line.particle_ref, xt.Particles):
+                particle_ref = line.particle_ref
+            elif isinstance(line.particle_ref, xt.line.LineParticleRef):
+                particle_ref = line.particle_ref._resolved
+        elif isinstance(particle_ref, xt.Particles):
             if particle_ref._capacity > 1:
                 raise ValueError("`particle_ref` has to be a single particle!")
         elif p0c is not None:
-                particle_ref = xp.Particles.reference_from_pdg_id(particle_ref, p0c=p0c)
+                particle_ref = xt.Particles.reference_from_pdg_id(particle_ref, p0c=p0c)
         else:
             raise ValueError("When providing `particle_ref`, it should be an "
-                             "xp.Particles object or a PDG ID. In the latter case, "
+                             "xt.Particles object or a PDG ID. In the latter case, "
                              "provide `p0c` as well.")
 
         if particle_ref.pdg_id == 0:
@@ -212,7 +215,7 @@ class Geant4Engine(xo.HybridClass):
 
 
     def _has_particle_ref(self):
-        initial = xp.Particles().to_dict()
+        initial = xt.Particles().to_dict()
         current = self.particle_ref.to_dict()
         return not xt.line._dicts_equal(initial, current)
 
