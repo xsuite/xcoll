@@ -10,11 +10,13 @@ import numpy as np
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
+
 from xobjects.test_helpers import for_all_test_contexts
 try:
     import rpyc
 except ImportError as e:
     rpyc = None
+
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
@@ -51,7 +53,8 @@ def test_geant4(test_context):
     t_start = time.time()
     for _ in range(num_slices):
         coll.track(part)
-    print(f"Time per track: {(time.time()-t_start)/num_slices*1e3:.2f} ms")
+    print(f"Time per track: {(time.time()-t_start)/num_slices*1e3:.2f}ms for "
+        + f"{len(part_init.x)} protons through {coll.length:.2f}m")
 
     xc.geant4.engine.stop(clean=True)
 

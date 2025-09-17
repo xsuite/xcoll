@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import time
 import pytest
 import numpy as np
 from pathlib import Path
@@ -50,7 +51,10 @@ def test_reload_bdsim(test_context):
         assert Path('engine.out').exists()
         assert Path('engine.err').exists()
 
+        t_start = time.time()
         coll.track(part[-1])
+        print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+            + f"{num_part} protons through {coll.length:.2f}m")
         assert (part[-1].state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
         assert (part[-1].state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
         assert (part[-1].state == 1).sum() > 0                                               # Some particles should have survived
@@ -123,7 +127,11 @@ def test_serial_bdsim(pytestconfig):
     assert Path('engine.out').exists()
     assert Path('engine.err').exists()
 
+
+    t_start = time.time()
     coll.track(part)
+    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+        + f"{num_part} protons through {coll.length:.2f}m")
     assert (part.state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
     assert (part.state == xc.headers.particle_states.LOST_ON_GEANT4_COLL).sum() > 0  # Some particles should have died in the collimator
     assert (part.state == 1).sum() > 0

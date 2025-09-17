@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import time
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -102,8 +103,12 @@ def test_lossmap_geant4(do_plot, test_context):
     part = line[tcp].generate_pencil(npart)
 
     line.scattering.enable()
+    t_start = time.time()
     line.track(part, num_turns=2)
+    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+        + f"{npart} protons through LHC (1.2 turns)")
     line.scattering.disable()
+
     xc.geant4.engine.stop(clean=True)
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-geant4"
     ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'Geant4Collimator', 'Geant4Crystal', this_id)
