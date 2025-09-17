@@ -40,7 +40,7 @@ class Geant4Engine(BaseEngine):
     def __init__(self, **kwargs):
         # Set element classes dynamically
         from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
-        self.__class__._element_classes = (Geant4Collimator, Geant4CollimatorTip, Geant4Crystal)
+        self.__class__._element_classes = (Geant4Collimator, Geant4Crystal)
         # Initialise geant4-only defaults
         self._g4link = None
         self._server = None # remove after geant4 bugfix
