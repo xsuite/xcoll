@@ -20,6 +20,7 @@ from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack
 
 
 class Geant4Collimator(BaseCollimator):
+    
     _xofields = BaseCollimator._xofields | {
         'geant4_id': xo.Int16,
         '_material': xo.String,
@@ -138,6 +139,80 @@ class Geant4Collimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
+
+class Geant4CollimatorTip(Geant4Collimator):
+
+    _xofields = Geant4Collimator._xofields | {
+        '_tip_material': xo.String,
+        'tip_thickness': xo.Float64
+    }
+
+    isthick = True
+    allow_track = True
+    iscollective = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
+    ]
+
+    _depends_on = [*Geant4Collimator._depends_on]
+
+    _skip_in_to_dict = [*Geant4Collimator._skip_in_to_dict, '_tip_material']
+    _store_in_to_dict = [*Geant4Collimator._store_in_to_dict, 'tip_material']
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    def __new__(cls, *args, **kwargs):
+        with cls._in_constructor():
+            self = super().__new__(cls, *args, **kwargs)
+        return self
+
+    def __init__(self, **kwargs):
+        with self.__class__._in_constructor():
+            to_assign = {}
+            if '_xobject' not in kwargs:
+                to_assign['tip_material'] = kwargs.pop('tip_material', None)
+                kwargs['_tip_material'] = ''.ljust(16)  # Default empty string
+            super().__init__(**kwargs)
+            for key, val in to_assign.items():
+                setattr(self, key, val)
+
+    @property
+    def tip_material(self):
+        return self._tip_material
+
+    @tip_material.setter
+    def tip_material(self, val):
+        # TODO: better material handling
+        if isinstance(val, Material):
+            self._tip_material = SixTrack_from_xcoll(val)
+        elif not isinstance(val, str):
+            raise ValueError("Tip material should be an Everest `Material` or a string.")
+        else:
+            val = val.strip()
+            if val.lower() == "va":
+                raise ValueError("SixTrack material 'VA' not supported. Use a drift.")
+            elif val.lower() == "bl":
+                raise ValueError("SixTrack material 'BL' not supported. Use a BlackAbsorber.")
+
+        geant4_materials = {
+            'c':    'AC150GPH',
+            'si':   'Si',
+            'cu':   'Cu',
+            'mogr': 'MG6403Fc',
+            'mo':   'Mo',
+            'cucd': 'CUDIAM75',
+            'iner': 'INERM180',
+            'w':    'W',
+            'ta':   'Ta',
+            'ti':   'Ti'
+        }
+
+        if val.lower() not in geant4_materials:
+            raise ValueError(f"Tip material {val} not yet supported.")
+
+        self._tip_material = geant4_materials[val.lower()]
 
 
 class Geant4Crystal(BaseCrystal):

@@ -39,8 +39,8 @@ class Geant4Engine(BaseEngine):
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
-        from ...beam_elements import Geant4Collimator, Geant4Crystal
-        self.__class__._element_classes = (Geant4Collimator, Geant4Crystal)
+        from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
+        self.__class__._element_classes = (Geant4Collimator, Geant4CollimatorTip, Geant4Crystal)
         # Initialise geant4-only defaults
         self._g4link = None
         self._server = None # remove after geant4 bugfix
@@ -126,7 +126,7 @@ class Geant4Engine(BaseEngine):
         return kwargs
 
     def _start_engine(self, **kwargs):
-        from ...beam_elements import BaseCrystal
+        from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, BaseCrystal
         if self.bdsim_config_file is None:
             raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
 
@@ -168,19 +168,34 @@ class Geant4Engine(BaseEngine):
                                                   seed=self.seed, batchMode=True)
 
         for el in self._element_dict.values():
+            if isinstance(el, Geant4CollimatorTip):
+                # Geant4CollimatorTip is a subclass of Geant4Collimator.
+                # An instance of Geant4CollimatorTip is also an instance of Geant4Collimator,
+                # but an instance of Geant4Collimator is NOT an instance of Geant4CollimatorTip.
+                # Therefore, we check for the more specific subclass (Geant4CollimatorTip) first
+                # to avoid incorrectly matching a Geant4CollimatorTip instance as a Geant4Collimator.
+                tip_material = el.tip_material
+                tip_thickness = el.tip_thickness
+            elif isinstance(el, Geant4Collimator):
+                tip_material = ""
+                tip_thickness = -1.0
             side = 2 if el._side == -1 else el._side
             jaw_L = 0.1 if el.jaw_L is None else el.jaw_L
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
             # TODO: should geant4_id be a string or an int?
-            self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
-                                    apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
-                                    apertureRight=-jaw_R-1.e-9,
-                                    rotation=np.deg2rad(el.angle),
-                                    xOffset=0, yOffset=0, side=side,
-                                    jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                    isACrystal=isinstance(el, BaseCrystal))
+            self._g4link.addCollimator(name=f'{el.geant4_id}',
+                                       material=el.material,
+                                       tipMaterial=tip_material,
+                                       tipThickness=tip_thickness,
+                                       length=el.length,
+                                       apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
+                                       apertureRight=-jaw_R-1.e-9,
+                                       rotation=np.deg2rad(el.angle),
+                                       xOffset=0, yOffset=0, side=side,
+                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                       isACrystal=isinstance(el, BaseCrystal))
         self._already_started = True
 
     def _stop_engine(self, **kwargs):
