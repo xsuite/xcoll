@@ -3,18 +3,18 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
+import os
+import sys
 import numpy as np
 from pathlib import Path
 from numbers import Number
-from contextlib import redirect_stdout, redirect_stderr
 
 from subprocess import Popen # remove after geant4 bugfix
-import socket # remove after geant4 bugfix
-import time # remove after geant4 bugfix
 from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
 
+from .std_redirect import pin_python_stdio
 from ..engine import BaseEngine
 from ...general import _pkg_root
 try:
@@ -97,7 +97,7 @@ class Geant4Engine(BaseEngine):
             try:
                 import rpyc
             except ImportError as e:
-                val is False
+                val = False
             else:
                 val = True
         elif not isinstance(val, bool):
@@ -131,7 +131,6 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
-        pdg_id = self.particle_ref.pdg_id
 
         if self.reentry_protection_enabled:
             ### remove this part after geant4 bug fixed
@@ -154,13 +153,18 @@ class Geant4Engine(BaseEngine):
                                         seed=self.seed, batchMode=True)
         else:
             if self._already_started:
+                self.stop(clean=True)
                 raise RuntimeError("Cannot restart Geant4 engine in non-reentry-safe mode. "
-                                 + "Please exit this Python process. Pip install rpyc to avoid this limitation.")
+                                 + "Please exit this Python process. Do pip install rpyc "
+                                 + "to avoid this limitation.")
             try:
                 import collimasim as cs
             except ImportError as e:
                 raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-            else:
+
+            # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
+            # to avoid python output being redirected by FDRedirect in C
+            with pin_python_stdio():
                 self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
                                                   referencePdgId=self.particle_ref.pdg_id,
                                                   referenceEk=Ekin / 1e9, ### BDSIM expects GeV
@@ -192,3 +196,10 @@ class Geant4Engine(BaseEngine):
 
     def _is_running(self):
         return self._g4link is not None
+
+    def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
+        if cwd is None:
+            return []
+        files_to_delete = ['rpyc.out', 'rpyc.err', 'geant4.out', 'geant4.err',
+                           'engine.out', 'engine.err']
+        return [cwd / f for f in files_to_delete]
