@@ -62,6 +62,10 @@ def track(coll, particles):
     particles._delta[:len(delta_temp)] = delta_temp
     particles.update_delta(delta_temp)
 
+    # Filter out from products neutral particles - cannot be handled by Xtrack
+    is_neutral = products['charge_ratio'] == 0
+    products = {kk: vv[~is_neutral] for kk, vv in products.items()}
+
     if products is None or products['x'].size == 0:
         particles.reorganize()
     else:
