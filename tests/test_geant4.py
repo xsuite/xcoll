@@ -43,6 +43,8 @@ def test_reload_bdsim(test_context):
         assert temp_cwd == Path.cwd()
         assert xc.geant4.engine._already_started
         assert Path('rpyc.log').exists()
+        assert Path('root.out').exists()
+        assert Path('root.err').exists()
         assert Path('geant4.out').exists()
         assert Path('geant4.err').exists()
         assert Path('engine.out').exists()
@@ -60,6 +62,8 @@ def test_reload_bdsim(test_context):
         assert xc.geant4.engine._g4link is None
         assert xc.geant4.engine._already_started
         assert not Path('rpyc.log').exists()
+        assert not Path('root.out').exists()
+        assert not Path('root.err').exists()
         assert not Path('geant4.out').exists()
         assert not Path('geant4.err').exists()
         assert not Path('engine.out').exists()
@@ -112,11 +116,12 @@ def test_serial_bdsim(pytestconfig):
     assert temp_cwd == Path.cwd()
     assert xc.geant4.engine._already_started
     assert not Path('rpyc.log').exists()
+    assert Path('root.out').exists()
+    assert Path('root.err').exists()
     assert Path('geant4.out').exists()
     assert Path('geant4.err').exists()
     assert Path('engine.out').exists()
     assert Path('engine.err').exists()
-    assert xc.geant4.engine._already_started
 
     coll.track(part)
     assert (part.state == xc.headers.particle_states.LOST_WITHOUT_SPEC).sum() == 0   # No particles should be lost without specification
@@ -130,6 +135,8 @@ def test_serial_bdsim(pytestconfig):
     assert xc.geant4.engine._g4link is None
     assert xc.geant4.engine._already_started
     assert not Path('rpyc.log').exists()
+    assert not Path('root.out').exists()
+    assert not Path('root.err').exists()
     assert not Path('geant4.out').exists()
     assert not Path('geant4.err').exists()
     assert not Path('engine.out').exists()

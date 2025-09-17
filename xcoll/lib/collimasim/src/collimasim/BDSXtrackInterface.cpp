@@ -1,4 +1,6 @@
 #include "BDSXtrackInterface.hh"
+#include "xcoll_logging.h"
+
 #include <cstring>
 #include <cmath>
 #include <BDSSamplerCustom.hh>
@@ -6,88 +8,9 @@
 #include <vector>
 #include <string>
 
-#include "TSystem.h"
-#include "TError.h"
-#include "G4UImanager.hh"
-#include "G4UIsession.hh"
-#include <fstream>
-#include <unistd.h>
-#include <fcntl.h>
-
-
-// ------------------------------------------ //
-// Logging functionality for Geant4 and BDSIM //
-// ------------------------------------------ //
-
-class XcollLogFileSession : public G4UIsession {
-public:
-  XcollLogFileSession()
-  : logfile("geant4.out"), errfile("geant4.err") {}
-
-  virtual ~XcollLogFileSession() { logfile.close(); errfile.close();}
-
-  G4int ReceiveG4cout(const G4String& msg) override {
-    logfile << msg;
-    return 0;
-  }
-  G4int ReceiveG4cerr(const G4String& msg) override {
-    errfile << msg;
-    return 0;
-  }
-
-private:
-  std::ofstream logfile;
-  std::ofstream errfile;
-};
-
-void RedirectGeant4() {
-  auto ui = G4UImanager::GetUIpointer();
-  static XcollLogFileSession session;
-  ui->SetCoutDestination(&session);
-}
-
-static std::ofstream rootInfoLog("root.out");
-static std::ofstream rootErrLog("root.err");
-
-static void MyRootErrorHandler(int level, Bool_t abort, const char *location, const char *msg)
-{
-    if (level >= kError) {
-        rootErrLog << location << ": " << msg << '\n';
-    } else {
-        rootInfoLog << location << ": " << msg << '\n';
-    }
-    // mimic ROOT's abort behaviour if requested
-    if (abort) ::abort();
-}
-
-class FDRedirect {
-    int saved_out{-1}, saved_err{-1}, out_fd{-1}, err_fd{-1};
-public:
-    FDRedirect(const char* out_path, const char* err_path=nullptr) {
-        saved_out = dup(STDOUT_FILENO);
-        saved_err = dup(STDERR_FILENO);
-        out_fd = ::open(out_path, O_WRONLY|O_CREAT|O_APPEND, 0644);
-        if (!err_path) err_path = out_path;
-        err_fd = ::open(err_path, O_WRONLY|O_CREAT|O_APPEND, 0644);
-        dup2(out_fd, STDOUT_FILENO);
-        dup2(err_fd, STDERR_FILENO);
-    }
-    ~FDRedirect() {
-        fsync(STDOUT_FILENO);
-        fsync(STDERR_FILENO);
-        dup2(saved_out, STDOUT_FILENO); close(saved_out); close(out_fd);
-        dup2(saved_err, STDERR_FILENO); close(saved_err); close(err_fd);
-    }
-};
-
-
-// --------------------------- //
-// Xcoll BDSIM implementations //
-// --------------------------- //
 
 BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
-                                                  double kineticEnergyIn, double ionChargeIn)
-{
+                                                  double kineticEnergyIn, double ionChargeIn){
     G4int pdgID = (G4int) pdgIDIn;
 
     G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
@@ -99,8 +22,7 @@ BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double 
     BDSIonDefinition* ionDef = nullptr;
 
     // PDG for ions = 10LZZZAAAI
-    if (pdgID > 1000000000) // is an ion
-    {   
+    if (pdgID > 1000000000){ // is an ion
 
         G4IonTable* ionTable = particleTable->GetIonTable();
         particleDefGeant = ionTable->GetIon(pdgID);
@@ -123,9 +45,7 @@ BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double 
 
         particleDefinition = new BDSParticleDefinition(bdsimPartName, mass, charge, 0, 
                                                        kineticEnergyIn, momentumIn, 1, ionDef, pdgID);
-    }
-    else
-    {
+    } else {
         particleDefGeant = particleTable->FindParticle(pdgID);
         if (!particleDefGeant)
         {throw BDSException("BDSXtrackInterface> Particle \"" + std::to_string(pdgID) + "\" not found");}
@@ -143,10 +63,12 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
                                  int                 referenceIonChargeIn,
                                  bool                batchMode):
         relativeEnergyCut(relativeEnergyCutIn),
-        seed(seedIn)
-{
-    SetErrorHandler(MyRootErrorHandler);
+        seed(seedIn){
+    // Redirect ROOT messages to file
+    rootlog::init("root.out", "root.err", /*append=*/true);
+    // Redirect Geant4 messages to file
     RedirectGeant4();
+    // Redirect stdout and stderr to file (everything else like BDSIM)
     fdredir = std::make_unique<FDRedirect>("engine.out","engine.err");
 
     stp = new BDSBunchSixTrackLink();
@@ -212,9 +134,7 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 }
 
 
-XtrackInterface::~XtrackInterface()
-{
-
+XtrackInterface::~XtrackInterface(){
 	// Clean up dynamically allocated memory in argv
 	for (char* arg : argv) {
 		free(arg);
@@ -241,8 +161,7 @@ void XtrackInterface::addCollimator(const std::string&   name,
                                     double jawTiltLeft,
                                     double jawTiltRight,
                                     int    side,
-                                    bool isACrystal)
-    {
+                                    bool isACrystal){
 
         bool buildLeft  = side == 0 || side == 1;
         bool buildRight = side == 0 || side == 2;
@@ -275,8 +194,7 @@ void XtrackInterface::addParticle(double xIn,
                                   double sIn,
                                   int64_t pdgIDIn,
                                   int64_t trackidIn
-                                  )
-{
+                                  ){
 
     auto x  = (G4double) xIn;
     auto y  = (G4double) yIn;
@@ -324,8 +242,7 @@ void XtrackInterface::addParticle(double xIn,
 }
 
 
-void XtrackInterface::addParticles(const py::list& coordinates)
-{
+void XtrackInterface::addParticles(const py::list& coordinates){
     //TODO get the charge and mass ratios
     // Obtain the arrays from the list and cast them to the correct array type
     py::array_t<double> x = py::cast<py::array>(coordinates[0]);
@@ -430,14 +347,12 @@ void XtrackInterface::addParticles(const py::list& coordinates)
 }
 
 
-void XtrackInterface::collimate()
-{
+void XtrackInterface::collimate(){
     bds->BeamOn((G4int)stp->Size());
 }
 
 
-void XtrackInterface::selectCollimator(const std::string& collimatorName)
-{
+void XtrackInterface::selectCollimator(const std::string& collimatorName){
     currentCollimatorName = collimatorName;
     // This doesn't throw an error if the element doesn't exist
     bds->SelectLinkElement(collimatorName);
@@ -448,8 +363,7 @@ void XtrackInterface::selectCollimator(const std::string& collimatorName)
 }
 
 
-void XtrackInterface::clearData()
-{
+void XtrackInterface::clearData(){
     bds->ClearSamplerHits();
     // A malloc error about freeing a pointer not allocated is thrown if the run is terminated after
     // the bunch is manually cleared. Consider using an alternative to vector.clear() in the BDSIM bunch class:
@@ -471,8 +385,7 @@ void XtrackInterface::clearData()
 }
 
 
-py::dict XtrackInterface::collimateReturn(const py::list& coordinates)
-{
+py::dict XtrackInterface::collimateReturn(const py::list& coordinates){
     // Prepare the buffers for modifying the primary particle coordinates in place
 
     // Obtain the arrays from the list and cast them to the correct array type
