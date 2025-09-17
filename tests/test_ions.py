@@ -58,5 +58,6 @@ def test_bdsim_ions(test_context):
         E = part.energy[mask & (part.pdg_id==pdg_id)]
         en = f"{E[~np.isnan(E)].mean():.1e} ± {E[~np.isnan(E)].std():.1e} eV"
         print(f"  {num:6} {name:12}{en:21}  (PDG ID: {pdg_id}, mass: {mass} eV)")
+
     # Check that we have some fission products (PDG ID > 1 billion
     assert np.sum((pdg_ids > 1000000000) & (pdg_ids < 1000942390)) > 0
