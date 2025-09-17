@@ -5,14 +5,14 @@
 
 import json
 from pathlib import Path
+
 import numpy as np
 import xpart as xp
 import xcoll as xc
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
 
 
-path = Path(__file__).parent / 'data_test_everest'
+path = xc._pkg_root.parent / 'tests' / 'data_test_everest'
 
 
 materials_b1 = {

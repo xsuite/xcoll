@@ -3,17 +3,18 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
+import os
+import sys
 import numpy as np
 from pathlib import Path
 from numbers import Number
+
 from subprocess import Popen # remove after geant4 bugfix
-import socket # remove after geant4 bugfix
-import time # remove after geant4 bugfix
+from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
-import xtrack as xt
-import xpart as xp
 
+from .std_redirect import pin_python_stdio
 from ..engine import BaseEngine
 from ...general import _pkg_root
 try:
@@ -22,26 +23,19 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 
-def get_open_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("",0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
-
-
 class Geant4Engine(BaseEngine):
 
     _xofields = {**BaseEngine._xofields,
-        '_relative_energy_cut': xo.Float64,
-        '_bdsim_config_file':   xo.String
-#         'random_freeze_state':    xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
+        '_relative_energy_cut':        xo.Float64,
+        '_bdsim_config_file':          xo.String,
+        '_already_started':  xo.Int8,
+        '_reentry_protection_enabled': xo.Int8
+        # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
     _int32 = True
     # _uses_input_file = True
-    # _uses_run_folder = True
+    _uses_run_folder = True
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
@@ -52,9 +46,11 @@ class Geant4Engine(BaseEngine):
         self._server = None # remove after geant4 bugfix
         self._conn = None # remove after geant4 bugfix
         kwargs['_bdsim_config_file'] = ''.ljust(256)
+        kwargs['_already_started'] = False
         super().__init__(**kwargs)
         self.relative_energy_cut = None # To set default value
         self.bdsim_config_file = None   # To set default value
+        self.reentry_protection_enabled = None # To set default value
 
 
     # ======================
@@ -88,6 +84,26 @@ class Geant4Engine(BaseEngine):
                 raise ValueError("`bdsim_config_file` has to be a string or Path!")
             self._bdsim_config_file = FsPath(val).expanduser().resolve().as_posix()
 
+    @property
+    def reentry_protection_enabled(self):
+        return self._reentry_protection_enabled
+
+    @reentry_protection_enabled.setter
+    def reentry_protection_enabled(self, val):
+        if val is False:
+            print("Warning: Disabling re-entry protection can lead to crashes!")
+            print("         Only disable if you know what you are doing.")
+        elif val is None:
+            try:
+                import rpyc
+            except ImportError as e:
+                val = False
+            else:
+                val = True
+        elif not isinstance(val, bool):
+            raise ValueError("`reentry_protection_enabled` has to be a boolean!")
+        self._reentry_protection_enabled = val
+
 
     # =================================
     # === Base methods to overwrite ===
@@ -115,38 +131,45 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
-        pdg_id = self.particle_ref.pdg_id
 
-        ### revert after geant4 bug fixed
-        ### try:
-        ###     import collimasim as cs
-        ### except ImportError as e:
-        ###     raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
-        ### else:
-        ###     self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-        ###                                       referencePdgId=self.particle_ref.pdg_id,
-        ###                                       referenceEk=Ekin / 1e9, ### BDSIM expects GeV
-        ###                                       relativeEnergyCut=self.relative_energy_cut,
-        ###                                       seed=self.seed, batchMode=True)
+        if self.reentry_protection_enabled:
+            ### remove this part after geant4 bug fixed
+            try:
+                import rpyc
+            except ImportError as e:
+                raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.")
+            self._server, port = launch_rpyc_with_port()
+            self._conn = rpyc.classic.connect('localhost', port=port)
+            self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
+            self._conn.execute('import sys')
+            self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
+            self._conn.execute('import engine_server')
+            self._conn.execute('import collimasim as cs')
+            self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
+            self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                        referencePdgId=self.particle_ref.pdg_id,
+                                        referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                        relativeEnergyCut=self.relative_energy_cut,
+                                        seed=self.seed, batchMode=True)
+        else:
+            if self._already_started:
+                self.stop(clean=True)
+                raise RuntimeError("Cannot restart Geant4 engine in non-reentry-safe mode. "
+                                 + "Please exit this Python process. Do pip install rpyc "
+                                 + "to avoid this limitation.")
+            try:
+                import collimasim as cs
+            except ImportError as e:
+                raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
 
-        ### remove the following lines after geant4 bug fixed
-        import rpyc
-        port = get_open_port()
-        self._server = Popen(['rpyc_classic', '-m', 'oneshot', '-p', f'{port}'])
-        time.sleep(5) # ping to check when open
-        self._conn = rpyc.classic.connect('localhost', port=port)
-        self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
-        self._conn.execute('import sys')
-        self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
-        self._conn.execute('import engine_server')
-        self._conn.execute('import collimasim as cs')
-        self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-        self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                    referencePdgId=self.particle_ref.pdg_id,
-                                    referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                    relativeEnergyCut=self.relative_energy_cut,
-                                    seed=self.seed, batchMode=True)
-        ### remove down to here after geant4 bug fixed
+            # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
+            # to avoid python output being redirected by FDRedirect in C
+            with pin_python_stdio():
+                self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                                  referencePdgId=self.particle_ref.pdg_id,
+                                                  referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                                  relativeEnergyCut=self.relative_energy_cut,
+                                                  seed=self.seed, batchMode=True)
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side
@@ -156,19 +179,28 @@ class Geant4Engine(BaseEngine):
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
             # TODO: should geant4_id be a string or an int?
             self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
-                                       apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
-                                       apertureRight=-jaw_R-1.e-9,
-                                       rotation=np.deg2rad(el.angle),
-                                       xOffset=0, yOffset=0, side=side,
-                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                       isACrystal=isinstance(el, BaseCrystal))
+                                    apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
+                                    apertureRight=-jaw_R-1.e-9,
+                                    rotation=np.deg2rad(el.angle),
+                                    xOffset=0, yOffset=0, side=side,
+                                    jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                    isACrystal=isinstance(el, BaseCrystal))
+        self._already_started = True
 
     def _stop_engine(self, **kwargs):
         self._g4link = None
-        if self._server: # remove after geant4 bugfix
+        if self.reentry_protection_enabled and self._server: # remove after geant4 bugfix
             self._server.terminate() # remove after geant4 bugfix
             self._server = None # remove after geant4 bugfix
         return kwargs
 
     def _is_running(self):
         return self._g4link is not None
+
+    def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
+        if cwd is None:
+            return []
+        files_to_delete = ['rpyc.log', 'geant4.out', 'geant4.err',
+                           'engine.out', 'engine.err', 'root.out',
+                           'root.err']
+        return [cwd / f for f in files_to_delete]

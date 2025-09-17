@@ -65,8 +65,11 @@ class BaseEnvironment:
                     res.append(f"    {path:<20} {value.as_posix()}")
             for path in self._read_only_paths.keys():
                 value = getattr(self, path)
-                path = f'{path} (read-only):'
-                res.append(f"    {path:<20} {value.as_posix()}")
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (read-only)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (read-only)")
             if self._old_sys_path and self._old_os_env:
                 res.append("")
                 res.append("Custom environment stored:")

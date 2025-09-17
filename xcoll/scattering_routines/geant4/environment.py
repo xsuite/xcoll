@@ -3,36 +3,45 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import os
-import json
-from pathlib import Path
 from subprocess import run
 
+try:
+    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
+except (ImportError, ModuleNotFoundError):
+    from ...xaux import FsPath
+
 from ..environment import BaseEnvironment
-from ...general import _pkg_root
 
 
 class Geant4Environment(BaseEnvironment):
+    _read_only_paths = {'bdsim': 0, 'geant4': 0, 'collimasim': 0}
 
     def __init__(self):
-        super().__init__()
-
-    def geant4_found(self):
         cmd = run(['which', 'geant4-config'], capture_output=True)
-        return cmd.returncode == 0
-
-    def bdsim_found(self):
+        self._geant4 = FsPath(cmd.stdout.decode().strip()) if cmd.returncode == 0 else None
         cmd = run(['which', 'bdsim'], capture_output=True)
-        return cmd.returncode == 0
-
-    def collimasim_found(self):
+        self._bdsim = FsPath(cmd.stdout.decode().strip()) if cmd.returncode == 0 else None
         try:
             from collimasim import XtrackInterface
+            import collimasim as cs
         except (ModuleNotFoundError, ImportError):
-            return False
+            self._collimasim = None
         else:
-            return True
+            self._collimasim = FsPath(cs.__path__[0])
+        super().__init__()
+
+    @property
+    def geant4(self):
+        return self._geant4
+
+    @property
+    def bdsim(self):
+        return self._bdsim
+
+    @property
+    def collimasim(self):
+        return self._collimasim
 
     @property
     def compiled(self):
-        return self.geant4_found() and self.bdsim_found() and self.collimasim_found()
+        return self.geant4 is not None and self.bdsim is not None and self.collimasim is not None

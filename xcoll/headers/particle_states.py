@@ -4,6 +4,8 @@
 # ######################################### #
 
 
+LOST_WITHOUT_SPEC       = -300
+
 LOST_ON_EVEREST_BLOCK   = -330
 LOST_ON_EVEREST_COLL    = -331
 LOST_ON_EVEREST_CRYSTAL = -332
@@ -21,6 +23,7 @@ LOST_ON_ABSORBER        = -340
 MASSLESS_OR_NEUTRAL     = -341
 ACC_IONISATION_LOSS     = -342  # Not a real particle, but accumulation of some ionisation losses that are not accounted for (per collimator)
 VIRTUAL_ENERGY          = -343  # Not a real particle, but energy that is deposited
+EXCITED_ION_STATE       = -350  # An excited state of an ion; not supported by BDSIM
 
 ERR_INVALID_TRACK       = -390
 ERR_NOT_IMPLEMENTED     = -391

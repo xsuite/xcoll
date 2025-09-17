@@ -49,6 +49,8 @@ struct XtrackCoordinates{
 BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
                                                   double kineticEnergyIn, double ionChargeIn);
 
+class FDRedirect;
+
 /// TODO: make a base class for the interface classes as there is a lot of shared functionality
 class XtrackInterface
 {
@@ -102,6 +104,7 @@ public:
     py::dict collimateReturn(const py::list& coordinates);
 
 private:
+    std::unique_ptr<FDRedirect> fdredir;
     BDSIMLink* bds = nullptr;
     BDSBunchSixTrackLink* stp = nullptr;
     std::vector<char *> argv;

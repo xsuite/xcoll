@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import time
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -18,45 +19,31 @@ try:
 except (ImportError, ModuleNotFoundError):
     plt = None
 try:
-    import collimasim as cs
-except ImportError:
-    cs = None
+    import rpyc
+except ImportError as e:
+    rpyc = None
 
 
 path = Path(__file__).parent / 'data'
 
 
-@pytest.mark.skipif(plt is None, reason="matplotlib not installed")
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
-@retry()
+@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
                             [1, 'H', 2500, 0.2, True],
                             [2, 'V', 500, 0.3, True],
                             [1, 'V', 3500, False, False],
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_lossmap_everest_with_plot(beam, plane, npart, interpolation, ignore_crystals, test_context):
-    _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, True)
-
-
-@pytest.mark.skipif(plt is not None, reason="matplolib installed")
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
 @retry()
-@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
-                            [1, 'H', 2500, 0.2, True],
-                            [2, 'V', 500, 0.3, True],
-                            [1, 'V', 3500, False, False],
-                            [2, 'H', 30000, 0.15, False]
-                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-def test_lossmap_everest_without_plot(beam, plane, npart, interpolation, ignore_crystals, test_context):
-    _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, False)
+def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+    if do_plot and plt is None:
+        pytest.skip("matplotlib not installed")
+    if not do_plot and plt is not None:
+        pytest.skip("matplotlib installed")
 
-
-def _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, test_context, do_plot):
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                     beam=beam, ignore_crystals=ignore_crystals)
@@ -78,9 +65,14 @@ def _test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, te
         Path(f"test-{this_id}.jpg").unlink()
 
 
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @retry()
-@pytest.mark.skipif(cs is None, reason="Geant4 tests need collimasim installed")
-def test_lossmap_geant4():
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+def test_lossmap_geant4(do_plot, test_context):
     # If a previous test failed, stop the server manually
     if xc.geant4.engine.is_running():
         xc.geant4.engine.stop(clean=True)
@@ -88,26 +80,42 @@ def test_lossmap_geant4():
     npart = 5000
     beam = 2
     plane = 'H'
+    interpolation = 0.1
+    ignore_crystals = True
+    do_plot = True
+
+    if do_plot and plt is None:
+        pytest.skip("matplotlib not installed")
+    if not do_plot and plt is not None:
+        pytest.skip("matplotlib installed")
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_geant4_collimators(line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
 
-    xc.geant4.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.geant4.engine.start(line=line, bdsim_config_file=path / 'geant4_protons.gmad')
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
 
     line.scattering.enable()
+    t_start = time.time()
     line.track(part, num_turns=2)
+    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+        + f"{npart} protons through LHC (1.2 turns)")
     line.scattering.disable()
+
     xc.geant4.engine.stop(clean=True)
-    _assert_lossmap(beam, npart, line, part, tcp, 0.1, True, 'Geant4Collimator', 'Geant4Crystal', 'geant4')
+    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-geant4"
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'Geant4Collimator', 'Geant4Crystal', this_id)
+    if do_plot:
+        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
+        assert Path(f"test-{this_id}.jpg").exists()
+        Path(f"test-{this_id}.jpg").unlink()
 
 
 def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):

@@ -1,52 +1,63 @@
-[tool.poetry]
+[project]
 name = "xcoll"
-version = "0.6.2.dev1+geant4"
+version = "0.7.0.dev1+geant4"
 description = "Xsuite collimation package"
-homepage = "https://github.com/xsuite/xcoll"
-repository = "https://github.com/xsuite/xcoll"
 authors = [
-           "Frederik F. Van der Veken <frederik@cern.ch>",
-           "Simone O. Solstrand <simone.otelie.solstrand@cern.ch>",
-           "Björn Lindstrom <bjorn.lindstrom@cern.ch>",
-           "Giacomo Broggi <giacomo.broggi@cern.ch>",
-           "André Donadon Servelle <andre.donadon.servelle@cern.ch>",
-           "Dora E. Veres <dora.erzsebet.veres@cern.ch>",
-           "Despina Demetriadou <despina.demetriadou@cern.ch>",
-           "Andrey Abramov <andrey.abramov@cern.ch>",
-           "Giovanni Iadarola <giovanni.iadarola@cern.ch>"
+    {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
+    {name="Simone O. Solstrand",       email="simone.otelie.solstrand@cern.ch"},
+    {name="Björn Lindstrom",           email="bjorn.lindstrom@cern.ch"},
+    {name="Giacomo Broggi",            email="giacomo.broggi@cern.ch"},
+    {name="André Donadon Servelle",    email="andre.donadon.servelle@cern.ch"},
+    {name="Dora E. Veres",             email="dora.erzsebet.veres@cern.ch"},
+    {name="Despina Demetriadou",       email="despina.demetriadou@cern.ch"},
+    {name="Andrey Abramov",            email="andrey.abramov@cern.ch"},
+    {name="Giovanni Iadarola",         email="giovanni.iadarola@cern.ch"}
 ]
 readme = "README.md"
-license = "Apache 2.0"
+license = {text="Apache-2.0"}
+
+requires-python = ">=3.10"
+
+dependencies = [
+    "ruamel-yaml (>=0.17.31,<0.18.15)",
+    "numpy>=1.0",
+    "pandas>=1.4",
+    "xobjects>=0.5.2",
+    "xdeps>=0.10.6",
+    "xpart>=0.23.1",
+    "xtrack>=0.90.1",
+]
+
+[project.optional-dependencies]
+tests = ["pytest", "pytest-html", "pytest-xdist"]
+
+[project.urls]
+homepage = "https://github.com/xsuite/xcoll"
+repository = "https://github.com/xsuite/xcoll"
+documentation = "https://xsuite.readthedocs.io/"
+"Bug Tracker" = "https://github.com/xsuite/xsuite/issues"
+download = "https://pypi.python.org/pypi/xcoll"
+
+[project.entry-points.xobjects]
+include = "xcoll"
+
+[tool.poetry]
 exclude = ["xcoll/lib", "xcoll/config"]
-
-
-[tool.poetry.dependencies]
-python = ">=3.8"
-ruamel-yaml = { version = "^0.17.31", optional = true }
-numpy = ">=1.0"
-pandas = ">=1.4"
-xobjects = ">=0.5.0"
-xdeps = ">=0.10.5"
-xpart = ">=0.23.0"
-xtrack = ">=0.84.8"
 
 [poetry.group.dev.dependencies]
 pytest = ">=7.3"
-xaux = ">=0.3.5"
-
-[tool.poetry.extras]
-tests = ["pytest", "ruamel-yaml", "pytest-html", "pytest-xdist"]
+xaux = ">=0.3.6"
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
-requires = ["poetry-core>=1.0.8"]
+requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
 
 # pyproject.toml
-[tool.pytest.ini_options]
-addopts = "-ra --durations=10 --durations-min=1"
-python_functions = ["test_"]
-testpaths = [
-    "tests",
-]
+#[tool.pytest.ini_options]
+#addopts = "-ra --durations=10 --durations-min=1"
+#python_functions = ["test_"]
+#testpaths = [
+#    "tests",
+#]
 

@@ -82,8 +82,11 @@ class Geant4Collimator(BaseCollimator):
     @material.setter
     def material(self, val):
         # TODO: better material handling
+        if val is None:
+            self._material = ''
+            return
         if isinstance(val, Material):
-            self._material = SixTrack_from_xcoll(val)
+            val = SixTrack_from_xcoll(val)
         elif not isinstance(val, str):
             raise ValueError("Material should be an Everest `Material` or a string.")
         else:

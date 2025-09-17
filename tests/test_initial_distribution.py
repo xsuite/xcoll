@@ -4,17 +4,16 @@
 # ######################################### #
 
 import numpy as np
-from pathlib import Path
 import pytest
 from scipy import stats
 
 import xtrack as xt
 import xcoll as xc
 from xpart.test_helpers import flaky_assertions, retry
-from xobjects.test_helpers import for_all_test_contexts
 
 
 path = xc._pkg_root.parent / 'tests' / 'data'
+
 
 # TODO:  we are not checking the angles of the pencil!
 
