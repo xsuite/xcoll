@@ -232,6 +232,8 @@ XtrackInterface::~XtrackInterface()
 
 void XtrackInterface::addCollimator(const std::string&   name,
                                     const std::string&   material,
+                                    const std::string&   tipMaterial,
+                                    double tipThickness,
                                     double lengthIn,
                                     double apertureLeftIn,
                                     double apertureRightIn,
@@ -247,20 +249,42 @@ void XtrackInterface::addCollimator(const std::string&   name,
         bool buildLeft  = side == 0 || side == 1;
         bool buildRight = side == 0 || side == 2;
 
-        bds->AddLinkCollimatorJaw(name,
-                                  material,
-                                  lengthIn * CLHEP::m,
-                                  apertureLeftIn * CLHEP::m,
-                                  apertureRightIn * CLHEP::m,
-                                  rotationIn * CLHEP::rad,
-                                  xOffsetIn * CLHEP::m,
-                                  yOffsetIn * CLHEP::m,
-                                  jawTiltLeft * CLHEP::rad,
-                                  jawTiltRight * CLHEP::rad,
-                                  buildLeft,
-                                  buildRight,
-                                  isACrystal,
-                                  0);
+        bool isTipped = !tipMaterial.empty() && tipThickness > 0.0;
+
+        if (isTipped):
+        {
+            bds->AddLinkCollimatorTipJaw(name,
+                                         material,
+                                         tipMaterial,
+                                         tipThickness * CLHEP::m,
+                                         lengthIn * CLHEP::m,
+                                         apertureLeftIn * CLHEP::m,
+                                         apertureRightIn * CLHEP::m,
+                                         rotationIn * CLHEP::rad,
+                                         xOffsetIn * CLHEP::m,
+                                         yOffsetIn * CLHEP::m,
+                                         jawTiltLeft * CLHEP::rad,
+                                         jawTiltRight * CLHEP::rad,
+                                         buildLeft,
+                                         buildRight);
+        }
+        else
+        {
+            bds->AddLinkCollimatorJaw(name,
+                                      material,
+                                      lengthIn * CLHEP::m,
+                                      apertureLeftIn * CLHEP::m,
+                                      apertureRightIn * CLHEP::m,
+                                      rotationIn * CLHEP::rad,
+                                      xOffsetIn * CLHEP::m,
+                                      yOffsetIn * CLHEP::m,
+                                      jawTiltLeft * CLHEP::rad,
+                                      jawTiltRight * CLHEP::rad,
+                                      buildLeft,
+                                      buildRight,
+                                      isACrystal,
+                                      0);
+        }
     }
 
 
