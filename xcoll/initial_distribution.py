@@ -29,7 +29,8 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
     num_particles = int(num_particles)
     if _capacity is None and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
-        _capacity = 2*num_particles
+        import xcoll as xc
+        _capacity = cap if (cap := xc.geant4.engine.capacity) else 2*num_particles
 
     # Define the plane
     angle = coll.angle
@@ -156,7 +157,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                pencil_spread, twiss=None, _capacity=None, **kwargs):
+                                pencil_spread, twiss=None, **kwargs):
     coll = line[name]
     beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
 
