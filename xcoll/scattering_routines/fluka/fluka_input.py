@@ -211,6 +211,7 @@ def _fluka_builder(collimator_dict):
 
     with open('linebuilder.log', 'w') as f:
         with redirect_stdout(f):
+            # input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True, verbose=True)
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state
