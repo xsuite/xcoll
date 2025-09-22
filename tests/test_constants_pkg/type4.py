@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from xcoll.headers.constants import Constants, constant, group
+from xcoll.xoconstants import Constants, constant, group
 
 from .type1 import VAR4
 

@@ -5,10 +5,10 @@
 
 import pytest
 
-from xcoll.headers.constants import (Constants, constant, group, ConstantSpec, GroupSpec, _IntMixin,
-                                     _FloatMixin, _TupleMixin, _XO_CONST_GLOBAL_NAME_REG,
-                                     _XO_CONST_GLOBAL_UNIQUE_VALUE_REG, _XO_CONST_GLOBAL_TYPE_REG,
-                                     _XO_CONST_GLOBAL_COUNT_REG)
+from xcoll.xoconstants import (Constants, constant, group, ConstantSpec, GroupSpec, _IntMixin,
+                               _FloatMixin, _TupleMixin, _XO_CONST_GLOBAL_NAME_REG,
+                               _XO_CONST_GLOBAL_UNIQUE_VALUE_REG, _XO_CONST_GLOBAL_TYPE_REG,
+                               _XO_CONST_GLOBAL_COUNT_REG)
 import test_constants_pkg as tt
 import test_constants_pkg.type1 as tt1
 import test_constants_pkg.type4 as tt4

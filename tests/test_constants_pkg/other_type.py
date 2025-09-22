@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from xcoll.headers.constants import Constants, constant, group
+from xcoll.xoconstants import Constants, constant, group
 
 from .type1 import GR1
 from .type4 import TestType4, GR2, THING_OTHER, YAY_NO_META_2, YAY_NO_META_3
