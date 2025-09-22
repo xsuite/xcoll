@@ -6,7 +6,7 @@
 import xobjects as xo
 import xtrack as xt
 
-from .interaction_types import source, interactions, shortcuts, is_point
+from .interaction_types import interactions_src, interaction_names, shortcuts
 from ..general import _pkg_root
 from ..headers.particle_states import particle_states_src
 
@@ -53,7 +53,7 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        source,
+        interactions_src,
         particle_states_src,
         _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
@@ -185,7 +185,7 @@ class InteractionRecord(xt.BeamElement):
 
     @property
     def interaction_type(self):
-        return np.array([interactions[inter] for inter in self._inter])
+        return np.array([interaction_names[inter] for inter in self._inter])
 
     def _collimator_name(self, element_id):
         if not hasattr(self, '_coll_names'):
@@ -216,7 +216,7 @@ class InteractionRecord(xt.BeamElement):
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]],
+                'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
                 **{
                     f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
                     for p in ['before', 'after']

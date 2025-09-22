@@ -14,13 +14,12 @@ from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
-from .headers import particle_states
+
+from .constants import particle_states, particle_state_names, interactions, interaction_names
 
 # Initialise Geant4 environment
 from .scattering_routines.geant4.wrapper import Geant4Wrapper as _Geant4Wrapper
 geant4 = _Geant4Wrapper()
 
-
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)
-

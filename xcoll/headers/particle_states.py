@@ -3,52 +3,50 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+from ..xoconstants import Constants, constant, group
 
-LOST_WITHOUT_SPEC       = -300
+class XcollParticleStates(Constants):
+    __category__ = "particle_state" # auto-plural -> "particle_states"
+    __reverse__  = "unique"         # builds particle_state_names
+    __c_prefix__ = "XC"
 
-LOST_ON_EVEREST_BLOCK   = -330
-LOST_ON_EVEREST_COLL    = -331
-LOST_ON_EVEREST_CRYSTAL = -332
+    LOST_WITHOUT_SPEC       = constant(-300, "Lost in Xcoll but no specific cause recorded.")
 
-LOST_ON_FLUKA_BLOCK     = -333
-LOST_ON_FLUKA_COLL      = -334
-LOST_ON_FLUKA_CRYSTAL   = -335
+    LOST_ON_EVEREST_BLOCK   = constant(-330, "Everest: absorbed by bulk material.")
+    LOST_ON_EVEREST_COLL    = constant(-331, "Everest: collimator jaw absorption.")
+    LOST_ON_EVEREST_CRYSTAL = constant(-332, "Everest: crystal absorption.")
 
-LOST_ON_GEANT4_BLOCK    = -336
-LOST_ON_GEANT4_COLL     = -337
-LOST_ON_GEANT4_CRYSTAL  = -338
+    LOST_ON_FLUKA_BLOCK     = constant(-333, "FLUKA: absorbed by bulk material.")
+    LOST_ON_FLUKA_COLL      = constant(-334, "FLUKA: collimator jaw absorption.")
+    LOST_ON_FLUKA_CRYSTAL   = constant(-335, "FLUKA: crystal absorption.")
 
-LOST_ON_ABSORBER        = -340
+    LOST_ON_GEANT4_BLOCK    = constant(-336, "Geant4: absorbed by bulk material.")
+    LOST_ON_GEANT4_COLL     = constant(-337, "Geant4: collimator jaw absorption.")
+    LOST_ON_GEANT4_CRYSTAL  = constant(-338, "Geant4: crystal absorption.")
 
-MASSLESS_OR_NEUTRAL     = -341
-ACC_IONISATION_LOSS     = -342  # Not a real particle, but accumulation of some ionisation losses that are not accounted for (per collimator)
-VIRTUAL_ENERGY          = -343  # Not a real particle, but energy that is deposited
-EXCITED_ION_STATE       = -350  # An excited state of an ion; not supported by BDSIM
+    LOST_ON_BLACK_ABSORBER  = constant(-340, "Lost on black absorber.")
+    LOST_ON_BLACK_CRYSTAL   = constant(-341, "Lost on black crystal.")
 
-ERR_INVALID_TRACK       = -390
-ERR_NOT_IMPLEMENTED     = -391
-ERR_INVALID_XOFIELD     = -392
-ERR                     = -399
+    MASSLESS_OR_NEUTRAL     = constant(-350, "Massless or neutral particle.")
+    ACC_IONISATION_LOSS     = constant(-351, "Not a real particle: Accumulated ionisation loss.")
+    VIRTUAL_ENERGY          = constant(-352, "Not a real particle: Virtual energy deposition.")
+    EXCITED_ION_STATE       = constant(-353, "An excited state of an ion (not supported by BDSIM or FLUKA).")
 
-particle_states_src = f"""
-#ifndef XCOLL_STATES_H
-#define XCOLL_STATES_H
-#define  XC_LOST_ON_EVEREST_BLOCK   {LOST_ON_EVEREST_BLOCK}
-#define  XC_LOST_ON_EVEREST_COLL    {LOST_ON_EVEREST_COLL}
-#define  XC_LOST_ON_EVEREST_CRYSTAL {LOST_ON_EVEREST_CRYSTAL}
-#define  XC_LOST_ON_FLUKA_BLOCK     {LOST_ON_FLUKA_BLOCK}
-#define  XC_LOST_ON_FLUKA_COLL      {LOST_ON_FLUKA_COLL}
-#define  XC_LOST_ON_FLUKA_CRYSTAL   {LOST_ON_FLUKA_CRYSTAL}
-#define  XC_LOST_ON_GEANT4_BLOCK    {LOST_ON_GEANT4_BLOCK}
-#define  XC_LOST_ON_GEANT4_COLL     {LOST_ON_GEANT4_COLL}
-#define  XC_LOST_ON_GEANT4_CRYSTAL  {LOST_ON_GEANT4_CRYSTAL}
-#define  XC_LOST_ON_ABSORBER        {LOST_ON_ABSORBER}
-#define  XC_MASSLESS_OR_NEUTRAL     {MASSLESS_OR_NEUTRAL}
-#define  XC_ACC_IONISATION_LOSS     {ACC_IONISATION_LOSS}
-#define  XC_VIRTUAL_ENERGY          {VIRTUAL_ENERGY}
-#define  XC_ERR_INVALID_TRACK       {ERR_INVALID_TRACK}
-#define  XC_ERR_NOT_IMPLEMENTED     {ERR_NOT_IMPLEMENTED}
-#define  XC_ERR_INVALID_XOFIELD     {ERR_INVALID_XOFIELD}
-#define  XC_ERR                     {ERR}
-#endif /* XCOLL_STATES_H */
-"""
+    ERR_INVALID_TRACK       = constant(-390, "Invalid track through Xcoll element.")
+    ERR_NOT_IMPLEMENTED     = constant(-391, "Not implemented in Xcoll.")
+    ERR_INVALID_XOFIELD     = constant(-392, "Invalid xofield in Xcoll element.")
+    ERR                     = constant(-399, "Unknown Xcoll error.")
+
+    # groups
+    LOST_ON_BLOCK           = group(LOST_ON_EVEREST_BLOCK, LOST_ON_FLUKA_BLOCK, LOST_ON_GEANT4_BLOCK,
+                                    info="Lost on any block")
+    LOST_ON_COLL            = group(LOST_ON_EVEREST_COLL, LOST_ON_FLUKA_COLL, LOST_ON_GEANT4_COLL,
+                                    info="Lost on any collimator")
+    LOST_ON_CRYSTAL         = group(LOST_ON_EVEREST_CRYSTAL, LOST_ON_FLUKA_CRYSTAL, LOST_ON_GEANT4_CRYSTAL,
+                                    info="Lost on any crystal")
+    LOST_ON_ABSORBER        = group(LOST_ON_BLACK_ABSORBER, LOST_ON_BLACK_CRYSTAL,
+                                    info="Lost on any absorber")
+    LOST_AS_SPECIAL_STATE   = group(MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS, VIRTUAL_ENERGY, EXCITED_ION_STATE,
+                                    info="Special states or unsupported particles.")
+    USE_IN_LOSSMAP          = group(LOST_ON_BLOCK, LOST_ON_COLL, LOST_ON_CRYSTAL, LOST_ON_ABSORBER, LOST_AS_SPECIAL_STATE,
+                                    info="All states that should be used in loss maps.")

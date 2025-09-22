@@ -14,12 +14,11 @@ import xobjects as xo
 from .beam_elements import collimator_classes, crystal_classes
 from .general import __version__
 from .plot import _plot_lossmap_base
-from .headers.particle_states import (
+from .constants import (USE_IN_LOSSMAP,
     LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
     LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
     LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
-    LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
-    VIRTUAL_ENERGY)
+    LOST_ON_BLACK_ABSORBER, LOST_ON_BLACK_CRYSTAL,)
 
 
 class LossMap:
@@ -279,7 +278,9 @@ class LossMap:
                     elif what_type == 'Geant4Crystal':
                         part.state[idx] = LOST_ON_GEANT4_CRYSTAL
                     elif what_type == 'BlackAbsorber':
-                        part.state[idx] = LOST_ON_ABSORBER
+                        part.state[idx] = LOST_ON_BLACK_ABSORBER
+                    elif what_type == 'BlackCrystal':
+                        part.state[idx] = LOST_ON_BLACK_CRYSTAL
                     else:
                         raise ValueError(f"Unknown collimator type {what_type}")
 
@@ -307,7 +308,7 @@ class LossMap:
         ]
 
         names = line.get_elements_of_type(collimator_classes)[1]
-        coll_mask = (part.state <= max(all_lost_states)) & (part.state >= min(all_lost_states))
+        coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
                                   for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
