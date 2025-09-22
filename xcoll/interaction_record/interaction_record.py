@@ -13,6 +13,11 @@ from ..headers.particle_states import particle_states_src
 import numpy as np
 import pandas as pd
 
+interaction_names = {kk: vv.replace('_', ' ').title().\
+                            replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
+                            replace(' Ch',' CH').replace(' Vr',' VR')
+                     for kk, vv in interaction_names.items()}
+
 
 class InteractionRecord(xt.BeamElement):
     _xofields = {

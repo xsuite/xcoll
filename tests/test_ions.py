@@ -11,7 +11,7 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 import xtrack.particles.pdg as pdg
-from  xcoll import particle_states as xps
+from  xcoll import constants as xps
 
 from xobjects.test_helpers import for_all_test_contexts
 try:

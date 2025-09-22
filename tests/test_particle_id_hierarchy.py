@@ -34,7 +34,7 @@ def test_geant4(test_context):
     xc.geant4.engine.particle_ref = particle_ref
     # xc.geant4.engine.reentry_protection_enabled = False
     xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1,
-                          bdsim_config_file=path / f'geant4_protons.gmad')
+                           bdsim_config_file=path / f'geant4_protons.gmad')
 
     step = 2e-5
     _capacity = 25_000

@@ -201,8 +201,10 @@ def test_black_absorbers(test_context):
     part.sort(interleave_lost_particles=True)
     part_ba.sort(interleave_lost_particles=True)
 
-    assert np.all(part.filter(part.state==1).particle_id 
-                  == part_ba.filter(part_ba.state==1).particle_id)
+    mask = part.state==1
+    mask_ba = part_ba.state==1
+    assert mask.sum() == mask_ba.sum()
+    assert np.all(part.particle_id[mask] == part_ba.particle_id[mask_ba])
 
     # Stop the Geant4 connection
     xc.geant4.engine.stop(clean=True)

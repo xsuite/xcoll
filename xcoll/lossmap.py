@@ -300,13 +300,6 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        all_lost_states = [LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
-                           LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
-                           LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
-                           LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
-                           VIRTUAL_ENERGY
-        ]
-
         names = line.get_elements_of_type(collimator_classes)[1]
         coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
