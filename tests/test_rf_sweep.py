@@ -6,6 +6,7 @@
 import numpy as np
 import pytest
 
+import xobjects as xo
 import xtrack as xt
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
@@ -41,6 +42,7 @@ def test_rf_sweep(sweep, beam, test_context):
 
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away
     # negative sweep => positive off-momentum etc
+    part.move(_context=xo.ContextCpu())
     if sweep < 0:
         assert np.all(part.delta > 3*bh)
     else:
@@ -67,4 +69,5 @@ def test_rf_sweep_old_style():
 
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away
     # negative sweep => positive off-momentum etc
+    part.move(_context=xo.ContextCpu())
     assert np.all(part.delta > 1.5e-3)
