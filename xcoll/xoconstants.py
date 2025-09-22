@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from enum import Enum
+from warnings import warn
 from types import MappingProxyType, ModuleType
 from typing import Dict, Mapping, Optional, Union, Tuple, Type, List
 
@@ -20,6 +21,7 @@ __all__ = ["constant", "group", "Constants"]
 # ---- global registries (cross-module uniqueness) ----------------------------
 _XO_CONST_GLOBAL_TYPE_REG: Dict[str, List[Type[Constants]]] = {}    # category -> [defining classes]
 _XO_CONST_GLOBAL_NAME_REG: Dict[str, str] = {}                      # NAME -> module
+_XO_CONST_GLOBAL_CNAME_REG: Dict[str, Tuple[str,str]] = {}          # c_name -> (NAME, module)
 _XO_CONST_GLOBAL_UNIQUE_VALUE_REG: Dict[str, Dict[Union[int, float], Tuple[str, str]]] = {}  # category -> value -> (NAME, module)
 _XO_CONST_GLOBAL_COUNT_REG: Dict[str, int] = {}  # For unnamed constants in groups and include guards in C source
 
@@ -63,7 +65,8 @@ def _to_c_header(meta, include_guard, contents: Optional[List[str]] = None) -> s
     lines.append("")
     return "\n".join(lines)
 
-def _merge_map(mod: ModuleType, attr: str, new_items: Mapping, can_extend_vals: bool = False) -> None:
+def _merge_map(mod: ModuleType, attr: str, new_items: Mapping,
+               extend_values_when_duplicate: bool = False) -> None:
     existing = getattr(mod, attr, None)
     if existing is None:
         merged = dict(new_items)  # preserve insertion
@@ -74,7 +77,7 @@ def _merge_map(mod: ModuleType, attr: str, new_items: Mapping, can_extend_vals: 
         merged = dict(existing)
         for nk, nv in new_items.items():
             if nk in merged and merged[nk] != nv:
-                if can_extend_vals:
+                if extend_values_when_duplicate:
                     merged[nk] = tuple(dict.fromkeys(merged[nk] + nv))  # merge groups, preserve order
                 else:
                     raise ValueError(f"Duplicate {attr}[{nk!r}] in {mod.__name__}: {merged[nk]} vs {nv}")
@@ -88,7 +91,7 @@ def _merge_c_header(mod: ModuleType, attr: str, src: str, include_guard: str) ->
         mod_src = getattr(mod, attr).splitlines()
         new_src = ['  ' + ll for ll in src.splitlines()]
         # We need a wrapper around the individual sources to avoid clashes
-        if mod_src[2].startswith(f"  #ifndef"):
+        if len(mod_src) > 2 and mod_src[2].startswith(f"  #ifndef"):
             # Wrapper exists already
             new_src = "\n".join([*mod_src[:-1], *new_src, mod_src[-1], ''])
         else:
@@ -122,8 +125,10 @@ def constant(value: ConstantType, info: str = "", *,
 
 class GroupSpec:
     __slots__ = ("names", "py_values", "info", "name")
-    def __init__(self, names: Tuple[Union[ConstantSpec, GroupSpec, Enum, str], ...],
-                 info: str = "", py_values: Optional[Tuple[ConstantType, ...]] = None,
+    def __init__(self,
+                 names: Tuple[Union[ConstantSpec, GroupSpec, _IntMixin, _FloatMixin, _TupleMixin, str], ...],
+                 info: str = "",
+                 py_values: Optional[Tuple[ConstantType, ...]] = None,
                  name: Optional[str] = None):
         if not names:
             raise ValueError("group(...) needs at least one constant name")
@@ -148,12 +153,9 @@ class _IntMixin(int):
     def __init__(self, value, info: str = "", c_name: Optional[str] = None):
         self.info = info
         self.c_name = c_name
-        try:
-            doc = [self.info] if self.info != '' else []
-            c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
-            self.__doc__ = ' '.join([*doc, *c_name])
-        except Exception:
-            pass
+        doc = [self.info] if self.info != '' else []
+        c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
+        self.__doc__ = ' '.join([*doc, *c_name])
 
 class _FloatMixin(float):
     def __new__(cls, value, info: str = "", c_name: Optional[str] = None):
@@ -161,12 +163,9 @@ class _FloatMixin(float):
     def __init__(self, value, info: str = "", c_name: Optional[str] = None):
         self.info = info
         self.c_name = c_name
-        try:
-            doc = [self.info] if self.info != '' else []
-            c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
-            self.__doc__ = ' '.join([*doc, *c_name])
-        except Exception:
-            pass
+        doc = [self.info] if self.info != '' else []
+        c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
+        self.__doc__ = ' '.join([*doc, *c_name])
 
 class _TupleMixin(tuple):
     def __new__(cls, *args):
@@ -178,18 +177,16 @@ class _TupleMixin(tuple):
         self.names = args[-1]
         if len(self.names) != len(self):
             raise ValueError("Tuple names length does not match values length.")
-        try:
-            self.__doc__ = f"{self.info} Represents the following constants: {self.names}."
-        except Exception:
-            pass
+        self.__doc__ = f"{self.info} Represents the following constants: {self.names}."
 
 
 # ---- enum member builder (returns *members*, not necessarily one enum) ------
 def _build_members(module_name: str,
-                   items: Dict[str, Tuple[ConstantType, str, Optional[str]]],
+                   items: Mapping[str, ConstantSpec],
                    c_prefix: str,
                    allow_mixed: bool,
-                   enum_type_name: str) -> Dict[str, Enum]:
+                   enum_type_name: str
+    ) -> Dict[str, Union[Enum, bool]]:  # Returned Enums are f"{enum_type_name}Int" for ints, f"{enum_type_name}Float" for floats
     """
     Create enum members for ints and floats separately, keep bools as True/False.
     Returns: mapping name -> member (int-enum, float-enum, or True/False).
@@ -238,8 +235,9 @@ def _build_members(module_name: str,
 
 
 def _build_group_members(module_name: str,
-                   items: Dict[str, Tuple[ConstantType, str, Optional[str]]],
-                   enum_type_name: str) -> Dict[str, Enum]:
+                         items: Mapping[str, GroupSpec],
+                         enum_type_name: str
+    ) -> Dict[str, Enum]:   # Returned Enums are f"{enum_type_name}Tuple"
 
     members: Dict[str, object] = {}
     tup_enum = Enum(f"{enum_type_name}Tuple", {k: (*spec.py_values, spec.info, spec.names)
@@ -336,6 +334,15 @@ class _ConstantsMeta(type):
         for const_name in {**own_specs, **own_group_specs}:
             _XO_CONST_GLOBAL_NAME_REG[const_name] = mod_name
 
+        # Check for C name collisions
+        for nm, spec in own_specs.items():
+            cn = spec.c_name
+            if cn in _XO_CONST_GLOBAL_CNAME_REG and _XO_CONST_GLOBAL_CNAME_REG[cn] != (nm, mod_name):
+                other = _XO_CONST_GLOBAL_CNAME_REG[cn]
+                raise ValueError(f"C macro {cn!r} collides between {other} and {(nm, mod_name)}")
+            _XO_CONST_GLOBAL_CNAME_REG[cn] = (nm, mod_name)
+
+        # Check for value uniqueness if requested
         if reverse == "unique":
             if category not in _XO_CONST_GLOBAL_UNIQUE_VALUE_REG:
                 _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category] = {}
@@ -405,8 +412,8 @@ class _ConstantsMeta(type):
                         _XO_CONST_GLOBAL_COUNT_REG[kk] += 1
                         new_name = f"{category.upper()}_UNNAMED_{_XO_CONST_GLOBAL_COUNT_REG[kk]}"
                         names.append(new_name)
-                        print(f"Warning: group {gname!r} in {mod_name} contains constant value {nm!r}. "
-                            + f"Name of member is lost. Named it {new_name!r}.")
+                        warn(f"Group {gname!r} in {mod_name} contains literal {nm!r}. "
+                            + f"Name lost, assigned {new_name!r}.", UserWarning)
                         continue
                     raise KeyError(f"Group {gname!r} references unknown constant {nm!r}")
                 # Ensure no duplicates and sort
@@ -482,7 +489,7 @@ class _ConstantsMeta(type):
         if reverse == "unique":
             _merge_map(mod, f"{category}_names", cls._names)
         elif reverse == "multi":
-            _merge_map(mod, f"{category}_names", cls._names, can_extend_vals=True)
+            _merge_map(mod, f"{category}_names", cls._names, extend_values_when_duplicate=True)
         if include_meta:
             _merge_map(mod, f"{plural}_meta", cls._meta)
         if include_src:
