@@ -22,10 +22,10 @@ dependencies = [
     "ruamel-yaml (>=0.17.31,<0.18.15)",
     "numpy>=1.0",
     "pandas>=1.4",
-    "xobjects>=0.5.2",
+    "xobjects>=0.5.3",
     "xdeps>=0.10.6",
     "xpart>=0.23.1",
-    "xtrack>=0.90.1",
+    "xtrack>=0.90.2",
 ]
 
 [project.optional-dependencies]
