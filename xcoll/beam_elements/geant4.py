@@ -99,16 +99,17 @@ class Geant4Collimator(BaseCollimator):
             elif val.lower() == "bl":
                 raise ValueError("SixTrack material 'BL' not supported. Use a BlackAbsorber.")
         geant4_materials = {
-            'c':    'AC150GPH',
-            'si':   'Si',
-            'cu':   'Cu',
-            'mogr': 'MG6403Fc',
-            'mo':   'Mo',
-            'cucd': 'CUDIAM75',
-            'iner': 'INERM180',
-            'w':    'W',
-            'ta':   'Ta',
-            'ti':   'Ti'
+            'c':      'AC150GPH',
+            'si':     'Si',
+            'cu':     'Cu',
+            'mogr':   'MG6403Fc',
+            'mo':     'Mo',
+            'cucd':   'CUDIAM75',
+            'iner':   'INERM180',
+            'w':      'W',
+            'ta':     'Ta',
+            'ti':     'Ti',
+            'vacuum': 'G4_Galactic'
         }
         if val.lower() not in geant4_materials:
             # TODO: need to check with BDSIM configuration file etc
