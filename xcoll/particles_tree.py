@@ -20,6 +20,9 @@ class ParticlesTree:
           - ParticlesTree(part, mask=...)               # custom boolean mask
         """
 
+        print("WARNING: ParticlesTree is an experimental feature and the API "
+              "will most probably change in future releases.")
+
         # ---- Accept either arrays or an xtrack.Particles-like object ----
         if parent_ids is None and hasattr(particle_ids, "particle_id") and hasattr(particle_ids, "parent_particle_id"):
             part = particle_ids
