@@ -74,7 +74,7 @@ def track_core(coll, part):
     part.charge_ratio[:npartsAliveAndDead] = products['charge_ratio'][:npartsAliveAndDead]
     part.s[:npartsAliveAndDead] = products['s'][:npartsAliveAndDead]
     part.pdg_id[:npartsAliveAndDead] = products['pdg_id'][:npartsAliveAndDead]
-    part.parent_particle_id[:npartsAliveAndDead] = products['parent_particle_id'][:npartsAliveAndDead]
+    # parent particle id should NOT be updated for particles that were sent in
     part.at_element[:npartsAliveAndDead] = products['at_element'][:npartsAliveAndDead]
     part.at_turn[:npartsAliveAndDead] = products['at_turn'][:npartsAliveAndDead]
     part.state[:npartsAliveAndDead] = products['state'][:npartsAliveAndDead]

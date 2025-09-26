@@ -59,8 +59,26 @@ def test_geant4(test_context):
     xc.geant4.engine.stop(clean=True)
 
     mask_child = part.particle_id > parents.max()
-    assert not np.any(part.parent_particle_id[mask_child] == part.particle_id[mask_child])
+    child_id   = part.particle_id[mask_child]
+    assert not np.any(part.parent_particle_id[mask_child] == child_id)
+    assert np.all(part.parent_particle_id[~mask_child] == part.particle_id[~mask_child])
 
+    ppart = xc.ParticlesTree(part)
+    child_idx  = ppart.indices_of(child_id)     # vectorised lookup
+    primary_id = ppart.root_ids[child_idx]      # roots per child, fast
+    assert np.all(primary_id <= parents.max())
+    assert np.all(np.isin(primary_id, parents))
+
+    id_to_index = {pid_val: idx for idx, pid_val in enumerate(part.particle_id)}
+
+    mask1 = np.array([id_to_index[p] for p in child_id])
+    mask2 = np.array([id_to_index[p] for p in primary_id])
+    dx = part_init.x[primary_id] - part.x[mask2]
+    dy = part_init.y[primary_id] - part.y[mask2]
+    distance = np.sqrt(dx*dx + dy*dy)
+    
+    
+    
     # mask = part.parent_particle_id != part.particle_id
 
     # xdiffs = []
