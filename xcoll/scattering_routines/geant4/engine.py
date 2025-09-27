@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
+import json
 import os
 import sys
 import numpy as np
@@ -143,6 +144,13 @@ class Geant4Engine(BaseEngine):
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
+            try:
+                package_dir = self.environment.compile()
+            except Exception as exc:
+                raise ImportError("Failed to compile the Geant4 interface.") from exc
+            module_path = package_dir.parent.as_posix()
+            self.environment.ensure_python_path()
+            self._conn.execute(f'sys.path.insert(0, {json.dumps(module_path)})')
             self._conn.execute('import engine_server')
             self._conn.execute('import collimasim as cs')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
@@ -158,9 +166,9 @@ class Geant4Engine(BaseEngine):
                                  + "Please exit this Python process. Do pip install rpyc "
                                  + "to avoid this limitation.")
             try:
-                import collimasim as cs
+                cs = self.environment.load_collimasim()
             except ImportError as e:
-                raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
+                raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.") from e
 
             # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
             # to avoid python output being redirected by FDRedirect in C

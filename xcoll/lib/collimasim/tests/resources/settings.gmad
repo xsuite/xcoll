@@ -1,3 +1,0 @@
-beam, particle="e+", momentum=182.5*GeV;
-!option, physicsList = "em";
-option, physicsList = "g4FTFP_BERT";

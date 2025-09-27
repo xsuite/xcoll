@@ -1,13 +1,12 @@
 #!/bin/bash
 
-path=xcoll/lib
-collimasim_path=$path/collimasim
+set -euo pipefail
 
-# conda install -c conda-forge compilers clang clangxx clang-tools ninja make cmake bdsim-g4
-# pip install rpyc
+python - <<'PY'
+from xcoll.scattering_routines.geant4.environment import Geant4Environment
 
-# If compilation fails, one can try to do (before running this script):
-# export CMAKE_GENERATOR="Unix Makefiles"
-
-echo "Preparing $collimasim_path"
-python -m pip install --user --editable $collimasim_path || (echo; echo; echo "Failed compiling collimasim!"; echo)
+env = Geant4Environment()
+print("Compiling Geant4 interface ...")
+env.compile(force=True)
+print("Compilation completed. Built module located in:", env.collimasim)
+PY
