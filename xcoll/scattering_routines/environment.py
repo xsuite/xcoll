@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
 
 
 class BaseEnvironment:
-    _pkg_root
     _config_dir = FsPath(_pkg_root / 'config').resolve()
     _data_dir   = FsPath(_pkg_root / 'lib').resolve()
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
@@ -245,7 +244,7 @@ class BaseEnvironment:
             self._cmake_installed = False
             raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
 
-    def assert_gcc_isntalled(self, verbose=False):
+    def assert_gcc_installed(self, verbose=False):
         if hasattr(self, '_gcc_installed'):
             return self._gcc_installed
         try:
