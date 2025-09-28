@@ -6,6 +6,7 @@
 import os
 import sys
 import numpy as np
+from pathlib import Path
 from numbers import Number
 from functools import wraps
 
@@ -227,6 +228,20 @@ class BaseEngine(xo.HybridClass):
 
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
         self._tracking_initialised = False
+
+        # Resolve input file path before changing cwd
+        if input_file:
+            if not isinstance(input_file, (str,Path)):
+                raise ValueError("`input_file` has to be a string or Path!")
+            if self._num_input_files > 1:
+                input_file = [FsPath(f).expanduser().resolve() for f in input_file]
+                for f in input_file:
+                    if not f.exists():
+                        raise ValueError(f"Input file {f} does not exist!")
+            else:
+                input_file = FsPath(input_file).expanduser().resolve()
+                if not input_file.exists():
+                    raise ValueError(f"Input file {input_file} does not exist!")
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
         kwargs = self._set_engine_properties(**kwargs)
