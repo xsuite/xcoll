@@ -137,12 +137,17 @@ class BaseEnvironment:
     def save(self):
         if not self._config_dir.exists():
             self._config_dir.mkdir(parents=True, exist_ok=True)
-        data = {}
+        data = {'paths': {}, 'read_only_paths': {}}
         for path in self._paths.keys():
             value = getattr(self, path, None)
             if value:
                 value = FsPath(value).as_posix()
-            data[path] = value
+            data['paths'][path] = value
+        for path in self._read_only_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['read_only_paths'][path] = value
         with open(self._config_file, 'w') as fid:
             json.dump(data, fid, indent=4)
 
@@ -151,8 +156,10 @@ class BaseEnvironment:
             self.save()
         with open(self._config_file, 'r') as fid:
             data = json.load(fid)
-        for key, value in data.items():
+        for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)
+        for key, value in data['read_only_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
 
     def store_environment(self):
         self._old_sys_path = sys.path.copy()
@@ -191,7 +198,7 @@ class BaseEnvironment:
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
     def __getattr__(self, key):
-        if key in self._paths.keys():
+        if key in self._paths | self._read_only_paths:
             value = getattr(self, f'_{key}', None)
             if value:
                 return FsPath(value)
@@ -204,7 +211,12 @@ class BaseEnvironment:
                 value = FsPath(value)
                 if not self._in_constructor:
                     self.brute_force_path(value)
-            setattr(self, f'_{key}', value)
+            super().__setattr__(f'_{key}', value)
+            if not self._in_constructor:
+                self.save()
+        elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
+            # Read-only attribute can only be set internally
+            super().__setattr__(key, value)
             if not self._in_constructor:
                 self.save()
         elif key in self._read_only_paths.keys():
