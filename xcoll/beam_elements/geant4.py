@@ -141,4 +141,5 @@ class Geant4Collimator(BaseCollimator):
 
 
 class Geant4Crystal(BaseCrystal):
-    pass
+    def __init__(self, **kwargs):
+        raise NotImplementedError("Geant4Crystal not yet implemented.")
