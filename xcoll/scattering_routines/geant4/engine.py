@@ -9,7 +9,6 @@ import numpy as np
 from pathlib import Path
 from numbers import Number
 
-from subprocess import Popen # remove after geant4 bugfix
 from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
@@ -110,9 +109,9 @@ class Geant4Engine(BaseEngine):
     # =================================
 
     def _set_engine_properties(self, **kwargs):
-        kwargs = super()._set_engine_properties(**kwargs)
         self._set_property('relative_energy_cut', kwargs)
         self._set_property('bdsim_config_file', kwargs)
+        kwargs = super()._set_engine_properties(**kwargs)
         return kwargs
 
     def _use_input_file(self, input_file=None, **kwargs):
@@ -131,20 +130,26 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
+        try:
+            from g4interface import XtrackInterface
+        except (ModuleNotFoundError, ImportError) as error:
+            self.stop(clean=True)
+            self._warn(error)
+            return
 
         if self.reentry_protection_enabled:
             ### remove this part after geant4 bug fixed
             try:
                 import rpyc
-            except ImportError as e:
-                raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.")
+            except (ModuleNotFoundError, ImportError) as e:
+                raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.") from e
             self._server, port = launch_rpyc_with_port()
             self._conn = rpyc.classic.connect('localhost', port=port)
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
+            self._conn.execute(f'sys.path.append("{self._environment.data_dir.as_posix()}")')  # For g4interface on server
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
             self._conn.execute('import engine_server')
-            self._conn.execute('import collimasim as cs')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
             self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
                                         referencePdgId=self.particle_ref.pdg_id,
@@ -157,19 +162,15 @@ class Geant4Engine(BaseEngine):
                 raise RuntimeError("Cannot restart Geant4 engine in non-reentry-safe mode. "
                                  + "Please exit this Python process. Do pip install rpyc "
                                  + "to avoid this limitation.")
-            try:
-                import collimasim as cs
-            except ImportError as e:
-                raise ImportError("Failed to import collimasim. Cannot connect to BDSIM.")
 
             # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
             # to avoid python output being redirected by FDRedirect in C
             with pin_python_stdio():
-                self._g4link = cs.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                                  referencePdgId=self.particle_ref.pdg_id,
-                                                  referenceEk=Ekin / 1e9, ### BDSIM expects GeV
-                                                  relativeEnergyCut=self.relative_energy_cut,
-                                                  seed=self.seed, batchMode=True)
+                self._g4link = XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                                               referencePdgId=self.particle_ref.pdg_id,
+                                               referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                               relativeEnergyCut=self.relative_energy_cut,
+                                               seed=self.seed, batchMode=True)
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side

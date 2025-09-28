@@ -15,12 +15,12 @@ class BDSIMServer:
 
     def XtrackInterface(self,bdsimConfigFile=None,referencePdgId=None,referenceEk=None,
                         relativeEnergyCut=None,seed=None,batchMode=None):
-        import collimasim as cs
-        self.g4link = cs.XtrackInterface(bdsimConfigFile=bdsimConfigFile,
-                                        referencePdgId=referencePdgId,
-                                        referenceEk=referenceEk, # BDSIM expects GeV
-                                        relativeEnergyCut=relativeEnergyCut,
-                                        seed=seed, batchMode=batchMode)
+        from g4interface import XtrackInterface
+        self.g4link = XtrackInterface(bdsimConfigFile=bdsimConfigFile,
+                                      referencePdgId=referencePdgId,
+                                      referenceEk=referenceEk, # BDSIM expects GeV
+                                      relativeEnergyCut=relativeEnergyCut,
+                                      seed=seed, batchMode=batchMode)
 
 
     def addCollimator(self,geant4_id,material,length,apertureLeft=None,apertureRight=None,
