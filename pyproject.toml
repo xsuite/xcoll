@@ -1,6 +1,6 @@
 [project]
 name = "xcoll"
-version = "0.6.6"
+version = "0.6.7"
 description = "Xsuite collimation package"
 authors = [
     {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
@@ -25,7 +25,7 @@ dependencies = [
     "xobjects>=0.5.3",
     "xdeps>=0.10.6",
     "xpart>=0.23.1",
-    "xtrack>=0.90.2",
+    "xtrack>=0.93.0",
 ]
 
 [project.optional-dependencies]
@@ -46,7 +46,7 @@ exclude = ["xcoll/lib", "xcoll/config"]
 
 [poetry.group.dev.dependencies]
 pytest = ">=7.3"
-xaux = ">=0.3.6"
+xaux = ">=0.3.7"
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)

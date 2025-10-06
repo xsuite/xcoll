@@ -36,7 +36,7 @@ def _dict_keys_to_lower(dct):
     else:
         return dct
 
-
+# TODO: need better handling of beam argument (not hardcoded 'b1' and 'b2' strings)
 def _get_coll_dct_by_beam(coll, beam):
     # The dictionary can be a CollimatorDatabase for a single beam (beam=None)
     # or for both beams (beam='b1' or beam='b2)
@@ -51,7 +51,7 @@ def _get_coll_dct_by_beam(coll, beam):
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
         return coll[beam]
 
-    elif len(beam_in_db) == 1:
+    elif len(beam_in_db) == 1 and beam_in_db[0].lower() in ['b1','b2']:
         if beam is None:
             beam = beam_in_db[0].lower()
         elif beam != beam_in_db[0].lower():
@@ -551,7 +551,8 @@ class CollimatorDatabase:
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
-        if 'family' in self[name] and self[name]['family'].lower() != 'unknown':
+        if 'family' in self[name] and self[name]['family'] \
+        and self[name]['family'].lower() != 'unknown':
             if self[name]['family'] == name:
                 raise ValueError(f"Collimator {name} has the same name as its family!")
             el.family = self[name]['family']
