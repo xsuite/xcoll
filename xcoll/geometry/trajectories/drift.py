@@ -30,8 +30,6 @@ class DriftTrajectory(xo.Struct):
     sin_t0 = xo.Float64
     cos_t0 = xo.Float64
     tan_t0 = xo.Float64
-    _l1 = xo.Float64  # start parameter along trajectory (default 0)
-    _l2 = xo.Float64  # end parameter along trajectory (default 10)
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'drift.h']
@@ -43,28 +41,23 @@ class DriftTrajectory(xo.Struct):
                                       xo.Arg(xo.Float64, name="x0"),
                                       xo.Arg(xo.Float64, name="xp")],
                                 ret=None),
-                'init_bounding_box': xo.Kernel(
-                                c_name='DriftTrajectory_init_bounding_box',
+                'update_box': xo.Kernel(
+                                c_name='DriftTrajectory_update_box',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
-                                      xo.Arg(BoundingBox, name="box"),
                                       xo.Arg(xo.Float64, name="l1"),
-                                      xo.Arg(xo.Float64, name="l2")], # this is not parameters of mcs??
+                                      xo.Arg(xo.Float64, name="l2")],
                                 ret=None)}
 
     def __init__(self, *args, **kwargs):
         xp = kwargs.pop('xp', False)
         theta0 = kwargs.pop('theta0', False)
-        l1 = kwargs.pop('l1', 0.)
-        l2 = kwargs.pop('l2', 10.)
         super().__init__(*args, **kwargs)
-        self._l1 = l1
-        self._l2 = l2
         if xp is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=xp)
         elif theta0 is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=np.tan(theta0))
         self.box = BoundingBox()
-        self.init_bounding_box(box=self.box, l1=l1, l2=l2)
+        self.update_box(box=self.box, l1=0., l2=1.)
 
     def __str__(self):
         return f"DriftTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
@@ -76,25 +69,12 @@ class DriftTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
-    
-    @property
-    def l1(self):
-        return self._l1
 
-    @l1.setter
-    def l1(self, val):
-        if val >= self._l2:
+    def update_box(self, l1, l2):
+        if l1 >= l2:
             raise ValueError("l1 must be smaller than l2!")
-        self._l1 = val
-        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
-
-    @property
-    def l2(self):
-        return self._l2
-
-    @l2.setter
-    def l2(self, val):
-        if val <= self._l1:
-            raise ValueError("l2 must be larger than l1!")
-        self._l2 = val
-        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
+        if l1 < 0 or l1 > 1:
+            raise ValueError("l1 must be in [0, 1]!")
+        if l2 < 0 or l2 > 1:
+            raise ValueError("l2 must be in [0, 1]!")
+        self.update_box(box=self.box, l1=l1, l2=l2)

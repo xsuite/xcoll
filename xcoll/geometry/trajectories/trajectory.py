@@ -37,7 +37,12 @@ trajectory_methods = {
     'deriv_x': xo.Method(
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="l")],
-        ret=xo.Arg(xo.Float64, name="x"))
+        ret=xo.Arg(xo.Float64, name="x")),
+    'update_box': xo.Method(
+        c_name=f"update_box",
+        args=[xo.Arg(xo.Float64, name="l1"),
+              xo.Arg(xo.Float64, name="l2")],
+        ret=None)
 }
 
 

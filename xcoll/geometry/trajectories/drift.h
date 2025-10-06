@@ -63,7 +63,26 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 }
 
 /*gpufun*/
-void DriftTrajectory_init_bounding_box(DriftTrajectory traj, BoundingBox box, double l1, double l2){
+void DriftTrajectory_update_box(DriftTrajectory traj, double l1, double l2){
+    // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    if (l1 >= l2){
+        printf("l1 must be smaller than l2!\n");
+        fflush(stdout);
+        return;
+    }
+    if (l1 < 0 || l1 > 1){
+        printf("l1 must be in [0, 1]!\n");
+        fflush(stdout);
+        return;
+    }
+    if (l2 < 0 || l2 > 1){
+        printf("l2 must be in [0, 1]!\n");
+        fflush(stdout);
+        return;
+    }
+    _SCALE_FACTOR = 10;
+    l2 = l2*_SCALE_FACTOR;
+    BoundingBox box = DriftTrajectory_getp_box(seg);
     double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
     double x1 = DriftTrajectory_func_x(traj, l1);

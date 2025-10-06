@@ -35,6 +35,11 @@ segment_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="t")],
         ret=xo.Arg(xo.Float64, name="x")),
+    'update_box': xo.Method(
+        c_name=f"update_box",
+        args=[xo.Arg(xo.Float64, name="t1"),
+              xo.Arg(xo.Float64, name="t2")],
+        ret=None),
     'bounded_below': xo.Method(
         c_name=f"bounded_below",
         args=[],

@@ -44,10 +44,27 @@ double LineSegment_deriv_x(LineSegment seg, double t){
 }
 
 /*gpufun*/
-void LineSegment_init_bounding_box(LineSegment seg, BoundingBox box, double t1, double t2){
-    //Calculate the bounding box of a line segment.
-    //Theta is the angle of the line wrt the horizontal. 
-    //Phi is the angle from s1 to the first vertex (in the frame of the box).
+void LineSegment_update_box(LineSegment seg, double t1, double t2){
+    // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    if (t1 >= t2){
+        printf("t1 must be smaller than t2!\n");
+        fflush(stdout);
+        return;
+    }
+    if (t1 < 0 || t1 > 1){
+        printf("t1 must be in [0, 1]!\n");
+        fflush(stdout);
+        return;
+    }
+    if (t2 < 0 || t2 > 1){
+        printf("t2 must be in [0, 1]!\n");
+        fflush(stdout);
+        return;
+    }
+    // Calculate the bounding box of a line segment.
+    // Theta is the angle of the line wrt the horizontal.
+    // Phi is the angle from s1 to the first vertex (in the frame of the box).
+    BoundingBox box = LineSegment_getp_box(seg);
     double s1 = LineSegment_func_s(seg, t1);
     double s2 = LineSegment_func_s(seg, t2);
     double x1 = LineSegment_func_x(seg, t1);
