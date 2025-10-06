@@ -551,7 +551,8 @@ class CollimatorDatabase:
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
-        if 'family' in self[name] and self[name]['family'].lower() != 'unknown':
+        if 'family' in self[name] and self[name]['family'] \
+        and self[name]['family'].lower() != 'unknown':
             if self[name]['family'] == name:
                 raise ValueError(f"Collimator {name} has the same name as its family!")
             el.family = self[name]['family']
