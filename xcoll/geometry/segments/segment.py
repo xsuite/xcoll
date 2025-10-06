@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -40,6 +40,10 @@ segment_methods = {
         args=[xo.Arg(xo.Float64, name="t1"),
               xo.Arg(xo.Float64, name="t2")],
         ret=None),
+    'getp_box': xo.Method(
+        c_name=f"getp_box",
+        args=[],
+        ret=xo.Arg(BoundingBox, name="box")),
     'bounded_below': xo.Method(
         c_name=f"bounded_below",
         args=[],

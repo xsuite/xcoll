@@ -116,37 +116,6 @@ void LineSegment_update_box(LineSegment seg, double t1, double t2){
 //     }
 // }
 
-/*gpufun*/
-double LineSegment_prepare_newton(LineSegment seg, BoundingBox MCSbox, double tol){
-    // Prepare initial guess for Newton-Raphson root finding
-    double org_t1 = LineSegment_get__t1(seg);
-    double org_t2 = LineSegment_get__t2(seg);
-    while ((LineSegment_get__t2(seg) -  LineSegment_get__t1(seg)) > tol){
-        double t1_old = LineSegment_get__t1(seg);
-        double t2_old = LineSegment_get__t2(seg);
-        double t_middle = 0.5 * (LineSegment_get__t2(seg) + LineSegment_get__t1(seg));
-
-        // first half
-        LineSegment_set__t2(seg, t_middle);
-        double overlap_lower = BoundingBox_overlaps(MCSbox, 
-                                                    LineSegment_getp_box(seg));
-        // second half
-        LineSegment_set__t2(seg, t2_old);
-        LineSegment_set__t1(seg, t_middle);
-        double overlap_upper = BoundingBox_overlaps(MCSbox, 
-                                                    LineSegment_getp_box(seg));
-        if (overlap_lower && !overlap_upper){
-            LineSegment_set__t1(seg, t1_old);
-            LineSegment_set__t2(seg, t_middle);
-        }
-    }
-    double t = 0.5 * (LineSegment_get__t2(seg) + LineSegment_get__t1(seg));
-    // Reset to original values
-    LineSegment_set__t1(seg, org_t1);
-    LineSegment_set__t2(seg, org_t2);
-    return t;
-}
-
 // /*gpufun*/ 
 // void LineSegment_crossing_mcs(LineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo, void* params){
 //     return grid_search_and_newton();

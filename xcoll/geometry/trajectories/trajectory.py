@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 from .drift import DriftTrajectory
 from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
@@ -42,7 +42,11 @@ trajectory_methods = {
         c_name=f"update_box",
         args=[xo.Arg(xo.Float64, name="l1"),
               xo.Arg(xo.Float64, name="l2")],
-        ret=None)
+        ret=None),
+    'getp_box': xo.Method(
+        c_name=f"getp_box",
+        args=[],
+        ret=xo.Arg(BoundingBox, name="box"))
 }
 
 
