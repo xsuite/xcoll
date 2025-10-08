@@ -2,15 +2,18 @@ import numpy as np
 
 import xobjects as xo
 
-from ..segments import LocalSegment
-from ..trajectories import LocalTrajectory
-from ..c_init import define_src, PyMethod
+from ..segments.segment import LocalSegment
+from ..trajectories.trajectory import LocalTrajectory
+from ..c_init import PyMethod, define_src
+
 from ...general import _pkg_root
 
 # Kernel for root finder
 class FindRoot(xo.Struct):
     solution_t    = xo.Float64[:]
     solution_l    = xo.Float64[:]
+    guess_t       = xo.Float64[:]
+    guess_l       = xo.Float64[:] 
     converged     = xo.Int8[:]
     num_solutions = xo.Int16
     max_solutions = xo.Int8
@@ -22,8 +25,9 @@ class FindRoot(xo.Struct):
                                 xo.Arg(xo.ThisClass, name="finder"),
                                 xo.Arg(LocalSegment, name="seg"),
                                 xo.Arg(LocalTrajectory, name="traj"),
-                                xo.Arg(xo.Float64, pointer=True, name="guess_t"),
-                                xo.Arg(xo.Float64, pointer=True, name="guess_l"),
+                                xo.Arg(xo.Float64, pointer=False, name="guess_t"),
+                                xo.Arg(xo.Float64, pointer=False, name="guess_l"),
+                                xo.Arg(xo.Int8, name="num"),
                             ], ret=None),
                 'find_crossing': xo.Kernel(
                             c_name="FindRoot_find_crossing",
