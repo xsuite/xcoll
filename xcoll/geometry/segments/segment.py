@@ -11,11 +11,11 @@ from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
-from .circular import CircularSegment
+#from .circular import CircularSegment
 from .bezier import BezierSegment
 
 
-all_segments = (LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment)
+all_segments = (LineSegment, HalfOpenLineSegment, BezierSegment) #CircularSegment
 
 
 segment_methods = {

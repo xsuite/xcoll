@@ -10,11 +10,11 @@ import xobjects as xo
 
 from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 from .drift import DriftTrajectory
-from .circular import CircularTrajectory
+#from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
 
 
-all_trajectories = [DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory]
+all_trajectories = [DriftTrajectory, MultipleCoulombTrajectory] # CircularTrajectory
 
 
 trajectory_methods = {
@@ -101,8 +101,8 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
         fig, ax  = plt.subplots(figsize=(8, 8))
     else:
         fig = ax.figure
-    if self.__class__.__name__ == 'CircularTrajectory':
-        ax.scatter(self.sR, self.xR, c='r', label='Center of Circle')
+    #if self.__class__.__name__ == 'CircularTrajectory':
+    #    ax.scatter(self.sR, self.xR, c='r', label='Center of Circle')
     if (self.__class__.__name__ == 'DriftTrajectory') or (self.__class__.__name__ == 'MultipleCoulombTrajectory'):
         ax.scatter(self.s0, self.x0, c='r', label='Start')
     l_values = np.linspace(l1, l2, 100)
@@ -134,8 +134,8 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
     all_kwargs = kwargs
     all_kwargs['l1'] = [0, 1, 0] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 0]
     all_kwargs['l2'] = [0, 1, 1] if cls.__name__ == 'MultipleCoulombTrajectory' else [-5, 5, 1]
-    all_kwargs['l1'] = [0, 2*np.pi, 0.] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l1']
-    all_kwargs['l2'] = [0, 2*np.pi, np.pi] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l2']
+    #all_kwargs['l1'] = [0, 2*np.pi, 0.] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l1']
+    #all_kwargs['l2'] = [0, 2*np.pi, np.pi] if cls.__name__ == 'CircularTrajectory' else all_kwargs['l2']
     fig, ax = cls(**{kk: vv[-1] for kk, vv in kwargs.items()}).plot(
                         plot_bounding_box=plot_bounding_box, l1=all_kwargs['l1'][2], l2=all_kwargs['l2'][2])
     plt.subplots_adjust(left=0.1, bottom=0.1+0.025*len(kwargs)) # slider space
