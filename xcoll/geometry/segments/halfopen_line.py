@@ -17,15 +17,13 @@ class HalfOpenLineSegment(xo.Struct):
     x1 = xo.Float64
     sin_t1 = xo.Float64 # angle (wrt s-axis) towards inf
     cos_t1 = xo.Float64
-    _t1 = xo.Float64  # parameter along line for first point (default 0)
-    _t2 = xo.Float64  # parameter along line for second point (default
     box = BoundingBox
 
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
-    _kernels = {'init_bounding_box': xo.Kernel(
-                                        c_name='HalfOpenLineSegment_init_bounding_box',
+    _kernels = {'update_box': xo.Kernel(
+                                        c_name='HalfOpenLineSegment_update_box',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                              xo.Arg(BoundingBox, name="box"),
+                                              #xo.Arg(BoundingBox, name="box"),
                                               xo.Arg(xo.Float64, name="t1"),
                                               xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                                         ret=None)}
@@ -40,13 +38,11 @@ class HalfOpenLineSegment(xo.Struct):
             kwargs['cos_t1'] = np.sqrt(1 - kwargs['sin_t1']**2)
         elif 'cos_t1' in kwargs and 'sin_t1' not in kwargs:
             kwargs['sin_t1'] = np.sqrt(1 - kwargs['cos_t1']**2)
-        t1     = kwargs.pop('t1', 0.)
-        t2     = kwargs.pop('t2', 10.)
+        #t1     = kwargs.pop('t1', 0.)
+        #t2     = kwargs.pop('t2', 10.)
         super().__init__(*args, **kwargs)
-        self._t1 = t1
-        self._t2 = t2
         self.box = BoundingBox()
-        self.init_bounding_box(box=self.box, t1=t1, t2=t2)
+        self.init_box(t1=0, t2=10.)
 
     def __str__(self):
         return f"HalfOpenLineSegment(({self.s1:.3}, {self.x1:.3}) -- " \
@@ -86,25 +82,12 @@ class HalfOpenLineSegment(xo.Struct):
             value -= 2*np.pi
         self.sin_t1 = np.sin(value)
         self.cos_t1 = np.cos(value)
-
-    @property
-    def t1(self):
-        return self._t1
-
-    @t1.setter
-    def t1(self, val):
-        if val >= self._t2:
+    
+    def init_box(self, t1, t2):
+        if t1 >= t2:
             raise ValueError("t1 must be smaller than t2!")
-        self._t1 = val
-        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)
-
-    @property
-    def t2(self):
-        return self._t2
-
-    @t2.setter
-    def t2(self, val):
-        if val <= self._t1:
-            raise ValueError("t2 must be larger than t1!")
-        self._t2 = val
-        self.init_bounding_box(box=self.box, t1=self._t1, t2=self._t2)
+        if t1 < 0 or t1 > 10:
+            raise ValueError("t1 must be in [0, 10]!")
+        if t2 < 0 or t2 > 10:
+            raise ValueError("t2 must be in [0, 10]!")
+        self.update_box(seg=self, t1=t1, t2=t2)

@@ -57,7 +57,7 @@ class DriftTrajectory(xo.Struct):
         elif theta0 is not False:
             self.set_params(s0=self.s0, x0=self.x0, xp=np.tan(theta0))
         self.box = BoundingBox()
-        self.update_box(box=self.box, l1=0., l2=1.)
+        self.init_box(l1=0., l2=10.)
 
     def __str__(self):
         return f"DriftTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
@@ -70,11 +70,11 @@ class DriftTrajectory(xo.Struct):
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
 
-    def update_box(self, l1, l2):
+    def init_box(self, l1, l2):
         if l1 >= l2:
-            raise ValueError("l1 must be smaller than l2!")
-        if l1 < 0 or l1 > 1:
-            raise ValueError("l1 must be in [0, 1]!")
-        if l2 < 0 or l2 > 1:
-            raise ValueError("l2 must be in [0, 1]!")
-        self.update_box(box=self.box, l1=l1, l2=l2)
+            raise ValueError("l1 must be smaller than l0!")
+        if l1 < 0 or l1 > 10:
+            raise ValueError("l1 must be in [0, 10]!")
+        if l2 < 0 or l2 > 10:
+            raise ValueError("l2 must be in [0, 10]!")
+        self.update_box(traj=self, l1=l1, l2=l2)

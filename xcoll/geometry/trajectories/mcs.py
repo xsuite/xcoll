@@ -58,12 +58,11 @@ class MultipleCoulombTrajectory(xo.Struct):
                                       xo.Arg(xo.Float64, name="beta"),
                                       xo.Arg(xo.Float64, name="q")],
                                 ret=None),
-                'init_bounding_box': xo.Kernel(
-                                c_name='MultipleCoulombTrajectory_init_bounding_box',
+                'update_box': xo.Kernel(
+                                c_name='MultipleCoulombTrajectory_update_box',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
-                                      xo.Arg(BoundingBox, name="box"),
                                       xo.Arg(xo.Float64, name="l1"),
-                                      xo.Arg(xo.Float64, name="l2")], # this is not parameters of mcs??
+                                      xo.Arg(xo.Float64, name="l2")],
                                 ret=None)}
 
     def __init__(self, *args, **kwargs):
@@ -75,11 +74,9 @@ class MultipleCoulombTrajectory(xo.Struct):
         pc = kwargs.pop('pc', False)
         beta = kwargs.pop('beta', False)
         q = kwargs.pop('q', False)
-        l1 = kwargs.pop('l1', -5.)
-        l2 = kwargs.pop('l2', 5.)
+        #l1 = kwargs.pop('l1', -5.)
+        #l2 = kwargs.pop('l2', 5.)
         super().__init__(*args, **kwargs)
-        self._l1 = l1
-        self._l2 = l2
         if pc is not False and beta is not False and q is not False and X0 is not False\
         and ran_1 is not False and ran_2 is not False:
             if xp is not False:
@@ -89,7 +86,7 @@ class MultipleCoulombTrajectory(xo.Struct):
                 self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0,
                                 xp=np.tan(theta0), pc=pc, beta=beta, q=q)
         self.box = BoundingBox()
-        self.init_bounding_box(box=self.box, l1=l1, l2=l2)
+        self.init_box(l1=0., l2=10.)
     def __str__(self):
         return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
 
@@ -101,24 +98,12 @@ class MultipleCoulombTrajectory(xo.Struct):
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
 
-    @property
-    def l1(self):
-        return self._l1
-
-    @l1.setter
-    def l1(self, val):
-        if val >= self._l2:
+    def init_box(self, l1, l2):
+        if l1 >= l2:
             raise ValueError("l1 must be smaller than l2!")
-        self._l1 = val
-        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
+        if l1 < 0 or l1 > 10: # this also used to be [-5, 5] ? 
+            raise ValueError("l1 must be in [0, 10]!")
+        if l2 < 0 or l2 > 10:
+            raise ValueError("l2 must be in [0, 10]!")
+        self.update_box(traj=self, l1=l1, l2=l2)
 
-    @property
-    def l2(self):
-        return self._l2
-
-    @l2.setter
-    def l2(self, val):
-        if val <= self._l1:
-            raise ValueError("l2 must be larger than l1!")
-        self._l2 = val
-        self.init_bounding_box(box=self.box, l1=self._l1, l2=self._l2)
