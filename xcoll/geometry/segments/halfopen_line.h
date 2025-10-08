@@ -33,18 +33,36 @@ double HalfOpenLineSegment_func_x(HalfOpenLineSegment seg, double t){
 
 /*gpufun*/
 double HalfOpenLineSegment_deriv_s(HalfOpenLineSegment seg, double t){
-    UNUSED(t);
+    //UNUSED(t);
     return HalfOpenLineSegment_get_cos_t1(seg);
 }
 
 /*gpufun*/
 double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
-    UNUSED(t);
+    //UNUSED(t);
     return HalfOpenLineSegment_get_sin_t1(seg);
 }
 
 /*gpufun*/
-void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox box, double t1, double t2){
+void HalfOpenLineSegment_update_box(HalfOpenLineSegment seg, double t1, double t2){
+    // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    if (t1 >= t2){
+        printf("t1 must be smaller than t2!\n");
+        fflush(stdout);
+        return;
+    }
+    if (t1 < 0 || t1 > 10){
+        printf("t1 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
+    }
+    if (t2 < 0 || t2 > 10){
+        printf("t2 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
+    }
+    int8_t _SCALE_FACTOR = 10.;
+    t2 = t2 /_SCALE_FACTOR;
     double s1 = HalfOpenLineSegment_func_s(seg, t1);
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
     double x1 = HalfOpenLineSegment_func_x(seg, t1);
@@ -62,74 +80,6 @@ void HalfOpenLineSegment_init_bounding_box(HalfOpenLineSegment seg, BoundingBox 
         sin_tC = x1 / rC;  // angle of the position vector to the first vertex
         cos_tC = s1 / rC;
     }
-    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
+    BoundingBox_set_params(HalfOpenLineSegment_getp_box(seg), rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
 }
-
-double HalfOpenLineSegment_prepare_newton(HalfOpenLineSegment seg, BoundingBox MCSbox, double tol){
-    // Prepare initial guess for Newton-Raphson root finding
-    double org_t1 = HalfOpenLineSegment_get__t1(seg);
-    double org_t2 = HalfOpenLineSegment_get__t2(seg);
-    while ((HalfOpenLineSegment_get__t2(seg) -  HalfOpenLineSegment_get__t1(seg)) > tol){
-        double t1_old = HalfOpenLineSegment_get__t1(seg);
-        double t2_old = HalfOpenLineSegment_get__t2(seg);
-        double t_middle = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
-
-        // first half
-        HalfOpenLineSegment_set__t2(seg, t_middle);
-        double overlap_lower = BoundingBox_overlaps(MCSbox, 
-                                                    HalfOpenLineSegment_getp_box(seg));
-        // second half
-        HalfOpenLineSegment_set__t2(seg, t2_old);
-        HalfOpenLineSegment_set__t1(seg, t_middle);
-        double overlap_upper = BoundingBox_overlaps(MCSbox, 
-                                                    HalfOpenLineSegment_getp_box(seg));
-        if (overlap_lower && !overlap_upper){
-            HalfOpenLineSegment_set__t1(seg, t1_old);
-            HalfOpenLineSegment_set__t2(seg, t_middle);
-        }
-    }
-    double guess_t = 0.5 * (HalfOpenLineSegment_get__t2(seg) + HalfOpenLineSegment_get__t1(seg));
-    // Reset to original values
-    HalfOpenLineSegment_set__t1(seg, org_t1);
-    HalfOpenLineSegment_set__t2(seg, org_t2);
-    return guess_t;
-}
-
-
-
-// /*gpufun*/
-// void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
-//     // Get segment data
-//     double s1 = HalfOpenLineSegment_get_s(seg);
-//     double x1 = HalfOpenLineSegment_get_x(seg);
-//     double s2 = s1 + cos(HalfOpenLineSegment_get_t(seg));
-//     double x2 = x1 + sin(HalfOpenLineSegment_get_t(seg));
-//     double denom = (x2 - x1) - (s2 - s1)*xm;
-//     if (fabs(denom) < XC_EPSILON){
-//         // Trajectory is parallel to the segment
-//         if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_EPSILON){
-//             // Trajectory overlaps with the segment
-//             // TODO: This is situational; we should return s1 if get_s_first and current_s if after current_s
-//             //       For now we hit twice (because we go nor IN nor OUT)
-//             s[*n_hit] = s1;
-//             (*n_hit)++;
-//             s[*n_hit] = s1;
-//             (*n_hit)++;
-//         } else {
-//             // No hit
-//             return;
-//         }
-//     } else {
-//         double t = (x0 - x1 - (s0 - s1)*xm) / denom;
-//         if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
-//             s[*n_hit] = s1*(1-t) + s2*t;
-//             (*n_hit)++;
-//         }
-//     }
-// }
-
-// /*gpufun*/
-// void HalfOpenLineSegment_crossing_mcs(HalfOpenLineSegment seg, int8_t* n_hit, double* s, const double* Ax, const double Xo){
-//    return grid_search_and_newton();
-// }  
 #endif /* XCOLL_GEOM_SEG_HALFOPENLINE_H */

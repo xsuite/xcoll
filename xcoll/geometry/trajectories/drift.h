@@ -46,19 +46,19 @@ double DriftTrajectory_func_x(DriftTrajectory traj, double l){
 
 /*gpufun*/
 double DriftTrajectory_func_xp(DriftTrajectory traj, double l){
-    UNUSED(l);
+    //UNUSED(l);
     return DriftTrajectory_get_tan_t0(traj);
 }
 
 /*gpufun*/
 double DriftTrajectory_deriv_s(DriftTrajectory traj, double l){
-    UNUSED(l);
+    //UNUSED(l);
     return DriftTrajectory_get_cos_t0(traj);
 }
 
 /*gpufun*/
 double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
-    UNUSED(l);
+    //UNUSED(l);
     return DriftTrajectory_get_sin_t0(traj);
 }
 
@@ -70,19 +70,18 @@ void DriftTrajectory_update_box(DriftTrajectory traj, double l1, double l2){
         fflush(stdout);
         return;
     }
-    if (l1 < 0 || l1 > 1){
-        printf("l1 must be in [0, 1]!\n");
+    if (l1 < 0 || l1 > 10){
+        printf("l1 must be in [0, 10]!\n");
         fflush(stdout);
         return;
     }
-    if (l2 < 0 || l2 > 1){
-        printf("l2 must be in [0, 1]!\n");
+    if (l2 < 0 || l2 > 10){
+        printf("l2 must be in [0, 10]!\n");
         fflush(stdout);
         return;
     }
-    _SCALE_FACTOR = 10;
-    l2 = l2*_SCALE_FACTOR;
-    BoundingBox box = DriftTrajectory_getp_box(seg);
+    int8_t _SCALE_FACTOR = 10.;
+    l2 = l2/_SCALE_FACTOR;
     double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
     double x1 = DriftTrajectory_func_x(traj, l1);
@@ -100,7 +99,7 @@ void DriftTrajectory_update_box(DriftTrajectory traj, double l1, double l2){
         sin_tC = x1 / rC;                                  // angle of the position vector to the first vertex
         cos_tC = s1 / rC;
     }
-    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l, w, sin_t0, cos_t0);
+    BoundingBox_set_params(DriftTrajectory_getp_box(traj), rC, sin_tC, cos_tC, l, w, sin_t0, cos_t0);
 }
 
 

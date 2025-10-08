@@ -120,7 +120,25 @@ double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double 
 }
 
 /*gpufun*/
-void MultipleCoulombTrajectory_init_bounding_box(MultipleCoulombTrajectory traj, BoundingBox box, double l1, double l2){
+void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, double l1, double l2){
+    // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    if (l1 >= l2){
+        printf("l1 must be smaller than l2!\n");
+        fflush(stdout);
+        return;
+    }
+    if (l1 < 0 || l1 > 10){
+        printf("l1 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
+    }
+    if (l2 < 0 || l2 > 10){
+        printf("l2 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
+    }
+    int8_t _SCALE_FACTOR = 10.;
+    l2 = l2/_SCALE_FACTOR;
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
     double omega_norm_l1 = MultipleCoulombTrajectory_get_normalised_omega(traj, l1);
     double omega_norm_l2 = MultipleCoulombTrajectory_get_normalised_omega(traj, l2);
@@ -141,40 +159,8 @@ void MultipleCoulombTrajectory_init_bounding_box(MultipleCoulombTrajectory traj,
     double sin_tC = x1 / rC; // angle of position vector to first vertex
     double cos_tC = s1 / rC;
     double shift_x = (l2*omega_norm_l2 - l1*omega_norm_l1)*A0; // displacement in x in frame of initial angle
-    BoundingBox_set_params(box, rC, sin_tC, cos_tC, l2 - l1, fabs(shift_x), sin_t0, cos_t0);
+    BoundingBox_set_params(MultipleCoulombTrajectory_getp_box(traj), rC, sin_tC, cos_tC, l2 - l1, fabs(shift_x), sin_t0, cos_t0);
 }
-
-/*gpufun*/
-double MultipleCoulombTrajectory_prepare_newton(MultipleCoulombTrajectory traj, BoundingBox SegmentBox, double tol){
-    // Prepare initial guess for Newton-Raphson root finding
-    double org_l1 = MultipleCoulombTrajectory_get__l1(traj);
-    double org_l2 = MultipleCoulombTrajectory_get__l2(traj);
-    while ((MultipleCoulombTrajectory_get__l2(traj) -  MultipleCoulombTrajectory_get__l1(traj)) > tol){
-        double l1_old = MultipleCoulombTrajectory_get__l1(traj);
-        double l2_old = MultipleCoulombTrajectory_get__l2(traj);
-        double l_middle = 0.5 * (MultipleCoulombTrajectory_get__l2(traj) + MultipleCoulombTrajectory_get__l1(traj));
-
-        // first half
-        MultipleCoulombTrajectory_set__l2(traj, l_middle);
-        double overlap_lower = BoundingBox_overlaps(SegmentBox, 
-                                                    MultipleCoulombTrajectory_getp_box(traj));
-        // second half
-        MultipleCoulombTrajectory_set__l2(traj, l2_old);
-        MultipleCoulombTrajectory_set__l1(traj, l_middle);
-        double overlap_upper = BoundingBox_overlaps(SegmentBox, 
-                                                    MultipleCoulombTrajectory_getp_box(traj));
-        if (overlap_lower && !overlap_upper){
-            MultipleCoulombTrajectory_set__l1(traj, l1_old);
-            MultipleCoulombTrajectory_set__l2(traj, l_middle);
-        }
-    }
-    double l = 0.5 * (MultipleCoulombTrajectory_get__l2(traj) + MultipleCoulombTrajectory_get__l1(traj));
-    // Reset to original values
-    MultipleCoulombTrajectory_set__l1(traj, org_l1);
-    MultipleCoulombTrajectory_set__l2(traj, org_l2);
-    return l;
-}
-
 // // MULTIPLE COULOMB SCATTERING VLIMIT ----------------------------------------------------------------------
 
 // /*gpufun*/
