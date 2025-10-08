@@ -137,8 +137,6 @@ void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, double
         fflush(stdout);
         return;
     }
-    int8_t _SCALE_FACTOR = 10.;
-    l2 = l2/_SCALE_FACTOR;
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
     double omega_norm_l1 = MultipleCoulombTrajectory_get_normalised_omega(traj, l1);
     double omega_norm_l2 = MultipleCoulombTrajectory_get_normalised_omega(traj, l2);

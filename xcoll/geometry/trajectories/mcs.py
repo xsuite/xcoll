@@ -74,8 +74,8 @@ class MultipleCoulombTrajectory(xo.Struct):
         pc = kwargs.pop('pc', False)
         beta = kwargs.pop('beta', False)
         q = kwargs.pop('q', False)
-        #l1 = kwargs.pop('l1', -5.)
-        #l2 = kwargs.pop('l2', 5.)
+        l1 = kwargs.pop('l1', 0.)
+        l2 = kwargs.pop('l2', 10.)
         super().__init__(*args, **kwargs)
         if pc is not False and beta is not False and q is not False and X0 is not False\
         and ran_1 is not False and ran_2 is not False:
@@ -86,7 +86,7 @@ class MultipleCoulombTrajectory(xo.Struct):
                 self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0,
                                 xp=np.tan(theta0), pc=pc, beta=beta, q=q)
         self.box = BoundingBox()
-        self.init_box(l1=0., l2=10.)
+        self.init_box(l1=l1, l2=l2)
     def __str__(self):
         return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
 

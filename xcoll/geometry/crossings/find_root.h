@@ -229,11 +229,12 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
             FindRoot_set_converged(finder, num, converged);
             continue;
         }
-        // Residual convergence check
+        // Residual convergence checks
         if (fabs(TS[0]) < XC_GEOM_ROOT_NEWTON_EPSILON && fabs(TS[1]) < XC_GEOM_ROOT_NEWTON_EPSILON) {
             FindRoot_set_solution_t(finder, num, guess_t);
             FindRoot_set_solution_l(finder, num, guess_l);
-            continue;
+            FindRoot_set_converged(finder, num, converged);
+            return;
         }
         corr0 = J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]; // delta for l
         corr1 = J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]; // delta for t
@@ -243,13 +244,15 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
         if ((fabs(new_t -  guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
             FindRoot_set_solution_t(finder, num, guess_t);
             FindRoot_set_solution_l(finder, num, guess_l);
-            continue;
+            FindRoot_set_converged(finder, num, converged);
+            return;
         }
         // Update the guesses for the next iteration
         guess_t = new_t;  // Keep *t updated
         guess_l = new_l;  // Keep *l updated
     }
     printf("Warning: Newton's method did not converge within the maximum number of iterations (%d).\n", XC_GEOM_ROOT_NEWTON_MAX_ITER);
+    printf("Last guess: t = %f, l = %f\n", guess_t, guess_l);
     FindRoot_set_solution_t(finder, num, 1.e21);
     FindRoot_set_solution_l(finder, num, 1.e21);
     FindRoot_set_converged(finder, num, converged);
@@ -266,15 +269,14 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
     BoundingBox box_traj = LocalTrajectory_getp_box(traj);
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
-    //double* solution_t = FindRoot_getp_solution_t(finder);
-    //double* solution_l = FindRoot_getp_solution_l(finder);
     double t, l;
     int16_t num;
+    //int16_t _SCALE_FACTOR = 10.;
     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
         t = t1 + i * t_step;
+        LocalSegment_update_box(seg, t, t + t_step);
         for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
             l = l1 + j * l_step;
-            LocalSegment_update_box(seg, t, t + t_step);
             LocalTrajectory_update_box(traj, l, l + l_step);
             if (BoundingBox_overlaps(box_seg, box_traj)){
                 if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
@@ -299,12 +301,12 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
 
 /*gpufun*/
 void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
+    printf("Finding crossing approximately...\n");
     slice_before_newton(finder, seg, traj, 0, 1, 0, 1, 0);
     // int8_t num_found = FindRoot_get_num_solutions(finder);
     for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){
         double guess_t = FindRoot_get_guess_t(finder, i);
         double guess_l = FindRoot_get_guess_l(finder, i);
-        printf("Initial guess %d: t = %f, l = %f\n", i, guess_t, guess_l);
         FindRoot_newton(finder, seg, traj, guess_t, guess_l, i);
     }
 }
@@ -312,14 +314,16 @@ void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajector
 void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory traj){ //, double guess_l, double guess_t){
 // this will act as the crossing main function - C magic
 // First we check for the analytical solutions by checking what trajectory we have
+    printf("Finding crossing...\n");
+    fflush(stdout);
     switch (LocalTrajectory_typeid(traj)){
         case LocalTrajectory_DriftTrajectory_t:
+            printf("Using analytical crossing method for drift trajectory.\n");
             double sin = DriftTrajectory_get_sin_t0((DriftTrajectory) LocalTrajectory_member(traj));
             double cos = DriftTrajectory_get_cos_t0((DriftTrajectory) LocalTrajectory_member(traj));
             double xp  = sin / cos;
             double s0  = DriftTrajectory_get_s0((DriftTrajectory) LocalTrajectory_member(traj));
             double x0  = DriftTrajectory_get_x0((DriftTrajectory) LocalTrajectory_member(traj));
-
             switch (LocalSegment_typeid(seg)){
                 case LocalSegment_LineSegment_t:
                     LineSegment_crossing_drift(finder, (LineSegment) LocalSegment_member(seg), s0, x0, xp);
@@ -358,6 +362,7 @@ void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory t
         //     }
         //     break;
     default:
+        printf("Using approximate crossing method.\n");
         return find_crossing_approximate(finder, seg, traj);
     }
 } 
