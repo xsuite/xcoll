@@ -24,8 +24,11 @@ void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, double s0, dou
             // TODO: This is situational; we should return s1 if <get_s_first and current_s if after current_s
             //       For now we hit twice (because we go nor IN nor OUT)
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder)+1, 1.0);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+2);
+            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
+            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
+            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 1.0);
+            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
+            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         } else {
             // No crossing
             return;
@@ -34,6 +37,7 @@ void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, double s0, dou
         double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0 && t <= 1){
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         }
     }
@@ -43,13 +47,14 @@ void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg
     // Get segment data
     double s1 = HalfOpenLineSegment_get_s1(seg);
     double x1 = HalfOpenLineSegment_get_x1(seg);
-    double s2 = s1 + 10*HalfOpenLineSegment_get_cos_t1(seg); //TODO: replace 10 with a parameter
-    double x2 = x1 + 10*HalfOpenLineSegment_get_sin_t1(seg);
+    double s2 = s1 + HalfOpenLineSegment_get_cos_t1(seg); //TODO: replace 10 with a parameter
+    double x2 = x1 + HalfOpenLineSegment_get_sin_t1(seg);
     double denom = (x2 - x1) - (s2 - s1)*xm;
     if (fabs(denom) < XC_GEOM_EPSILON){
         // Trajectory is parallel to the segment
         if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_GEOM_EPSILON){
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
+            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             // We do not add t=1 as it is a half-open segment
         } else {
@@ -60,6 +65,7 @@ void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg
         double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         }
     }
@@ -259,7 +265,7 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
 }
 // TODO: make this more clean pls
 int8_t XC_SLICING_NUM_STEPS = 4;
-int8_t XC_SLICING_MAX_NEST_LEVEL = 8;
+int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 
 /*gpufun*/
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
@@ -271,7 +277,6 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double t, l;
     int16_t num;
-    //int16_t _SCALE_FACTOR = 10.;
     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
         t = t1 + i * t_step;
         LocalSegment_update_box(seg, t, t + t_step);
@@ -290,6 +295,8 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
                     FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
                     FindRoot_set_num_solutions(finder, num + 1);
+                    t_step = (t2 - t) / XC_SLICING_NUM_STEPS; // reset t_step in order to avoid duplicates due to size of boxes
+                    l_step = (l2 - l) / XC_SLICING_NUM_STEPS; // reset l_step
                 } else {
                     slice_before_newton(finder, seg, traj, t, t + t_step, l, l + l_step, nest_level + 1);
                 }
