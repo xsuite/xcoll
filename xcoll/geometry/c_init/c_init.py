@@ -13,6 +13,7 @@ XC_GEOM_ROOT_NEWTON_MAX_ITER = 100         # Maximum number of iterations in New
 XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL = 1e-10 # Threshold for small derivative
 XC_GEOM_ROOT_GRID_MAX_INTER = 10           # Maximum number of intervals for grid search
 XC_GEOM_ROOT_GRID_POINTS = 1000            # Number of points to search in grid
+XC_GEOM_SIMPSON_SUBINTERVALS = 500
 
 define_src = f"""
 #ifndef XCOLL_GEOM_DEFINES_H
@@ -48,6 +49,9 @@ define_src = f"""
 
 #ifndef XC_GEOM_ROOT_GRID_POINTS
 #define XC_GEOM_ROOT_GRID_POINTS {XC_GEOM_ROOT_GRID_POINTS}
+
+#ifndef XC_GEOM_SIMPSON_SUBINTERVALS
+#define XC_GEOM_SIMPSON_SUBINTERVALS {XC_GEOM_SIMPSON_SUBINTERVALS}
 #endif
 
 

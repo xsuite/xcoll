@@ -11,12 +11,13 @@ from ...general import _pkg_root
 # Kernel for root finder
 class FindRoot(xo.Struct):
     solution_t    = xo.Float64[:]
-    solution_l    = xo.Float64[:]
+    solution_l    = xo.Float64[:] # REMEMBER TO EDIT SO THAT SOLUTION T IS UPDATED AFTER NUCLEAR
     guess_t       = xo.Float64[:]
     guess_l       = xo.Float64[:] 
     converged     = xo.Int8[:]
     num_solutions = xo.Int16
     max_solutions = xo.Int8
+    path_length   = xo.Float64
 
     _depends_on = [LocalTrajectory, LocalSegment]
     _kernels = {'newton': xo.Kernel(
@@ -35,18 +36,28 @@ class FindRoot(xo.Struct):
                                 xo.Arg(xo.ThisClass, name="finder"),
                                 xo.Arg(LocalSegment, name="seg"),
                                 xo.Arg(LocalTrajectory, name="traj"),
+                            ], ret=None),
+                'find_path_length': xo.Kernel(
+                            c_name="FindRoot_find_path_length",
+                            args=[
+                                xo.Arg(xo.ThisClass, name="finder"),
+                                xo.Arg(LocalTrajectory, name="traj"),
                             ], ret=None)}
     _needs_compilation = True
     _extra_c_sources = [
         define_src,
-        _pkg_root / 'geometry' / 'crossings' / 'find_root.h']
+        _pkg_root / 'geometry' / 'crossings' / 'find_root.h',
+        _pkg_root / 'geometry' / 'crossings' / 'path_length.h']
 
     def __init__(self, **kwargs):
         kwargs.setdefault('max_solutions', 100)
         kwargs.setdefault('num_solutions', 0)
-        kwargs.setdefault('solution_t', np.zeros(kwargs['max_solutions'], dtype=np.float64))
-        kwargs.setdefault('solution_l', np.zeros(kwargs['max_solutions'], dtype=np.float64))
-        kwargs.setdefault('converged',  np.zeros(kwargs['max_solutions'], dtype=np.int8))
+        kwargs.setdefault('solution_t', np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
+        kwargs.setdefault('solution_l', np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
+        kwargs.setdefault('guess_t',    np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
+        kwargs.setdefault('guess_l',    np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
+        kwargs.setdefault('converged',  np.full(kwargs['max_solutions'], 1e21, dtype=np.int8))
+        kwargs.setdefault('path_length', 0)
         super().__init__(**kwargs)
 
     def __getattr__(self, attr):

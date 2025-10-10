@@ -208,7 +208,6 @@ int8_t LocalCrossing_inv_J(LocalSegment seg, LocalTrajectory traj, double J_inv[
     J_inv[1][1] =  J[0][0] / det;
     return 1; // Success
 }
-
 /*gpufun*/
 void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double guess_t, double guess_l,
                      int8_t num){
@@ -218,13 +217,7 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
     double corr0, corr1;
     double new_t, new_l;
     int8_t converged;
-    //int8_t num_found   = FindRoot_get_num_solutions(finder);
-    //double solution_t = FindRoot_get_solution_t(finder);
-    //double solution_l = FindRoot_get_solution_l(finder);
-    //int8_t* converged  = FindRoot_get_converged(finder);
-    //for (int i = 0; i < *num_found; i++){
-        //guess_t = solution_t[i];
-        //guess_l = solution_l[i];
+
     for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
         LocalCrossing_func(seg, traj, TS, guess_t, guess_l);
         converged = LocalCrossing_inv_J(seg, traj, J_inv, guess_t, guess_l);
@@ -309,7 +302,7 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
 /*gpufun*/
 void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
     printf("Finding crossing approximately...\n");
-    slice_before_newton(finder, seg, traj, 0, 1, 0, 1, 0);
+    slice_before_newton(finder, seg, traj, 0, 1, 0, 10, 0); // this does not work, its a bad solution beacause scaling changed other stuff
     // int8_t num_found = FindRoot_get_num_solutions(finder);
     for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){
         double guess_t = FindRoot_get_guess_t(finder, i);
@@ -341,36 +334,14 @@ void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory t
                     break;
                 case LocalSegment_BezierSegment_t:
                     return BezierSegment_crossing_drift(finder, (BezierSegment) LocalSegment_member(seg), s0, x0, xp);
-                // case LocalSegment_CircularSegment_t:
-                //     return crossing_drift_circular(traj, seg);
-                //     break;
                 default:
                     // Custom segment
                     return find_crossing_approximate(finder, seg, traj);
             }
             break;
-        // case LocalTrajectory_CircularTrajectory_t:
-        //     switch (LocalSegment_typeid(seg)){
-        //         // case LocalSegment_LineSegment_t:
-        //         //     return crossing_circ_line(traj, seg);
-        //         //     break;
-        //         // case LocalSegment_HalfOpenLineSegment_t:
-        //         //     return crossing_circ_halfline(traj, seg);
-        //         //     break;
-        //         // // case LocalSegment_CircularSegment_t:
-        //         // //     return crossing_circ_circular(traj, seg);
-        //         // //     break;
-        //         // case LocalSegment_BezierSegment_t:
-        //         //     return crossing_circ_bezier(traj, seg);
-        //         //     break;
-        //         default:
-        //             // Custom segment
-        //             return find_crossing_approximate(finder, seg, traj);
-        //     }
-        //     break;
     default:
         printf("Using approximate crossing method.\n");
         return find_crossing_approximate(finder, seg, traj);
     }
-} 
+}
 #endif /* XCOLL_GEOM_FIND_ROOT_H */
