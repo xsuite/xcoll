@@ -41,6 +41,7 @@ class FindRoot(xo.Struct):
                             c_name="FindRoot_find_path_length",
                             args=[
                                 xo.Arg(xo.ThisClass, name="finder"),
+                                xo.Arg(LocalSegment, name="seg"),
                                 xo.Arg(LocalTrajectory, name="traj"),
                             ], ret=None)}
     _needs_compilation = True

@@ -54,18 +54,16 @@ void find_path_length_analytic(FindRoot finder, LocalTrajectory traj){
     // only for drift for now
 }
 /*gpufun*/
-void FindRoot_find_path_length(FindRoot finder, LocalTrajectory traj){
-    // TODO: we should find a find to classify if we are actually INSIDE or NOT. Drift outside dont need path length.
-    switch (LocalTrajectory_typeid(traj)){
-        case LocalTrajectory_DriftTrajectory_t:
-            // TODO: Check with Frederik. I assume we always use the first solution as the second solution might not
-            // even be relevant (say out - in again, then we actually never go in again. IN-OUT -> we change to mcs before out)
-            //find_path_length_analytic(finder, traj);
-            return;
-            break;
-        default:
-            printf("Using approximate crossing method.\n");
-            return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
-        }
+void FindRoot_find_path_length(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
+    if (LocalSegment_typeid(seg) == LocalSegment_BezierSegment_t){
+        return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
+    }
+    // TODO: Check with Frederik. I assume we always use the first solution as the second solution might not
+    // even be relevant (say out - in again, then we actually never go in again. IN-OUT -> we change to mcs before out)
+    if (LocalTrajectory_typeid(traj) == LocalTrajectory_DriftTrajectory_t){
+        return find_path_length_analytic(finder, traj);
+    } else {
+        return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
+    }
 }
 #endif /* XCOLL_GEOM_SIMPSON_H */

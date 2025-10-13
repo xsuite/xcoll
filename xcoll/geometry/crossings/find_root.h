@@ -10,7 +10,15 @@
 #include <stdio.h>
 
 /*gpufun*/
-void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, double s0, double x0, double xm){
+void DriftTrajectory_analytical_solution_l(FindRoot finder, DriftTrajectory traj, double s, double x){
+    if (DriftTrajectory_get_cos_t0(traj) - DriftTrajectory_get_cos_t0(traj) < XC_GEOM_EPSILON){
+        FindRoot_set_solution_l(finder, FindRoot_get_num_solutions(finder), (x - DriftTrajectory_get_x0(traj)) / DriftTrajectory_get_sin_t0(traj));
+    } else {
+        FindRoot_set_solution_l(finder, FindRoot_get_num_solutions(finder), (s - DriftTrajectory_get_s0(traj)) / DriftTrajectory_get_cos_t0(traj));}
+}
+
+/*gpufun*/
+void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
     // Get segment data
     double s1 = LineSegment_get_s1(seg);
     double x1 = LineSegment_get_x1(seg);
@@ -24,9 +32,12 @@ void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, double s0, dou
             // TODO: This is situational; we should return s1 if <get_s_first and current_s if after current_s
             //       For now we hit twice (because we go nor IN nor OUT)
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
+            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, 0.0), LineSegment_func_x(seg, 0.0));
             FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
+
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 1.0);
+            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, 1.0), LineSegment_func_x(seg, 1.0));
             FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         } else {
@@ -37,13 +48,14 @@ void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, double s0, dou
         double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0 && t <= 1){
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, t), LineSegment_func_x(seg, t));
             FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         }
     }
 }
 /*gpufun*/
-void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg, double s0, double x0, double xm){
+void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
     // Get segment data
     double s1 = HalfOpenLineSegment_get_s1(seg);
     double x1 = HalfOpenLineSegment_get_x1(seg);
@@ -54,6 +66,7 @@ void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg
         // Trajectory is parallel to the segment
         if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_GEOM_EPSILON){
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
+            DriftTrajectory_analytical_solution_l(finder, traj, HalfOpenLineSegment_func_s(seg, 0.0), HalfOpenLineSegment_func_x(seg, 0.0));
             FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             // We do not add t=1 as it is a half-open segment
@@ -65,6 +78,7 @@ void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg
         double t = (x0 - x1 - (s0 - s1)*xm) / denom;
         if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
             FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+            DriftTrajectory_analytical_solution_l(finder, traj, HalfOpenLineSegment_func_s(seg, t), HalfOpenLineSegment_func_x(seg, t));
             FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
             FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
         }
@@ -285,6 +299,8 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
                         return;
                     }
                     num = FindRoot_get_num_solutions(finder);
+                    printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
+                    fflush(stdout);
                     FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
                     FindRoot_set_num_solutions(finder, num + 1);
@@ -326,11 +342,11 @@ void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory t
             double x0  = DriftTrajectory_get_x0((DriftTrajectory) LocalTrajectory_member(traj));
             switch (LocalSegment_typeid(seg)){
                 case LocalSegment_LineSegment_t:
-                    LineSegment_crossing_drift(finder, (LineSegment) LocalSegment_member(seg), s0, x0, xp);
+                    LineSegment_crossing_drift(finder, (LineSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
                     return;
                     break;
                 case LocalSegment_HalfOpenLineSegment_t:
-                    return HalfOpenLineSegment_crossing_drift(finder, (HalfOpenLineSegment) LocalSegment_member(seg), s0, x0, xp);
+                    return HalfOpenLineSegment_crossing_drift(finder, (HalfOpenLineSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
                     break;
                 case LocalSegment_BezierSegment_t:
                     return BezierSegment_crossing_drift(finder, (BezierSegment) LocalSegment_member(seg), s0, x0, xp);
@@ -339,9 +355,9 @@ void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory t
                     return find_crossing_approximate(finder, seg, traj);
             }
             break;
-    default:
-        printf("Using approximate crossing method.\n");
-        return find_crossing_approximate(finder, seg, traj);
+        default:
+            printf("Using approximate crossing method.\n");
+            return find_crossing_approximate(finder, seg, traj);
     }
 }
 #endif /* XCOLL_GEOM_FIND_ROOT_H */
