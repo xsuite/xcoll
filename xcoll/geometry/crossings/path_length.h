@@ -42,8 +42,7 @@ void simpson(FindRoot finder, LocalTrajectory traj, int32_t subintervals) {
 
 /*gpufun*/
 void find_path_length_analytic(FindRoot finder, LocalTrajectory traj){
-    // analytical drift does not save l2, so we need to compute it here
-    double l2  = FindRoot_get_solution_l(finder, 0); // THIS DOES NOT EXIST FOR ANALYTICAL SOLUTIONS; EITHER FIX OR WE NEVER NEED THIS
+    double l2  = FindRoot_get_solution_l(finder, 0); // We assume we only care for the first solution
     double s0  = LocalTrajectory_func_s(traj, 0);  // l1 = 0
     double x0  = LocalTrajectory_func_x(traj, 0);  
     double s1  = LocalTrajectory_func_s(traj, l2); // l2 = solution for l
