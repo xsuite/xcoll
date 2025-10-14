@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import BoundingBox
+from ..c_init import BoundingBoxTest
 from ..c_init.c_init import define_src
 
 class LineSegment(xo.Struct):
@@ -17,21 +17,19 @@ class LineSegment(xo.Struct):
     x1 = xo.Float64
     s2 = xo.Float64
     x2 = xo.Float64
-    box = BoundingBox
 
     _extra_c_sources = [define_src,
                         _pkg_root / 'geometry' / 'segments' / 'line.h']
     _kernels = {'update_box': xo.Kernel(
-                                        c_name='LineSegment_update_box',
+                                        c_name='LineSegment_update_testbox',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                              #xo.Arg(BoundingBox, name="box"),
+                                              xo.Arg(BoundingBoxTest, name="box"),
                                               xo.Arg(xo.Float64, name="t1"),
                                               xo.Arg(xo.Float64, name="t2")],
                                         ret=None)}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.box = BoundingBox()
         self.init_box(t1=0., t2=1.)
 
     def __str__(self):

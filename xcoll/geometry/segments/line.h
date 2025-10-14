@@ -44,7 +44,7 @@ double LineSegment_deriv_x(LineSegment seg, double t){
 }
 
 /*gpufun*/
-void LineSegment_update_box(LineSegment seg, double t1, double t2){
+void LineSegment_update_box(LineSegment seg, BoundingBox box, double t1, double t2){
     // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
     if (t1 >= t2){
         printf("t1 must be smaller than t2!\n");
@@ -64,24 +64,32 @@ void LineSegment_update_box(LineSegment seg, double t1, double t2){
     // Calculate the bounding box of a line segment.
     // Theta is the angle of the line wrt the horizontal.
     // Phi is the angle from s1 to the first vertex (in the frame of the box).
-    //BoundingBox box = LineSegment_get_box(seg);
     double s1 = LineSegment_func_s(seg, t1);
     double s2 = LineSegment_func_s(seg, t2);
     double x1 = LineSegment_func_x(seg, t1);
     double x2 = LineSegment_func_x(seg, t2);
-    double sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    double cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    double w = 0.0;                                                // width of the box cannot be 0 for (0,0)
-    double sin_tC, cos_tC;                                        // angle of the position vector to the first vertex
-    double rC = sqrt(s1*s1 + x1*x1);                              // length of the position vector to the first vertex
-    if (rC == 0.0){
-        sin_tC = 0.0;                                             // angle of the position vector to the first vertex
-        cos_tC = 1.0;
+    box->sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    box->cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    box->l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));
+    box->w = 0.0; // line segment has no width
+    box->rC = sqrt(s1*s1 + x1*x1);
+    if (box->rC == 0.0){
+        box->sin_tC = 0.0;
+        box->cos_tC = 1.0;
     } else {
-        sin_tC = x1 / rC;                                         // angle of the position vector to the first vertex
-        cos_tC = s1 / rC;
+        box->sin_tC = x1 / box->rC;
+        box->cos_tC = s1 / box->rC;
     }
-    BoundingBox_set_params(LineSegment_getp_box(seg), rC, sin_tC, cos_tC, l, w, sin_t, cos_t);
+    BoundingBox_sync(box);
 }
+
+
+// Expose functions to Xobject test interface
+// ------------------------------------------
+void LineSegment_update_testbox(LineSegment seg, BoundingBoxTest box, double t1, double t2){
+    BoundingBox_s box1;
+    LineSegment_update_box(seg, &box1, t1, t2);
+    BoundingBox_to_BoundingBoxTest(&box1, box);
+}
+
 #endif /* XCOLL_GEOM_SEG_LINE_H */
