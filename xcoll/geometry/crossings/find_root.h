@@ -278,18 +278,18 @@ int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
                          double t1, double t2, double l1, double l2, int8_t nest_level){
     // Prepare initial guess for Newton-Raphson root finding
-    BoundingBox box_seg = LocalSegment_getp_box(seg); // 
-    BoundingBox box_traj = LocalTrajectory_getp_box(traj);
+    BoundingBox_s box_seg;
+    BoundingBox_s box_traj;
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double t, l;
     int16_t num;
     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
         t = t1 + i * t_step;
-        LocalSegment_update_box(seg, t, t + t_step);
+        LocalSegment_update_box(seg, box_seg, t, t + t_step);
         for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
             l = l1 + j * l_step;
-            LocalTrajectory_update_box(traj, l, l + l_step);
+            LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
             if (BoundingBox_overlaps(box_seg, box_traj)){
                 if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
                     // We reached the maximum nesting level, return the midpoint of the current t-interval
