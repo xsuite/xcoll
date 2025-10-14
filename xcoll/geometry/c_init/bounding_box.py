@@ -11,7 +11,7 @@ from ...general import _pkg_root
 from .c_init import define_src, PyMethod
 
 
-class BoundingBox(xo.Struct):
+class BoundingBoxTest(xo.Struct):
     rC = xo.Float64        # length of position vector to first vertex
     sin_tC = xo.Float64    # angle of position vector to first vertex, [radians]
     cos_tC = xo.Float64
@@ -23,12 +23,12 @@ class BoundingBox(xo.Struct):
     cos_tb = xo.Float64
 
     _kernels = {'overlaps': xo.Kernel(
-                                c_name='BoundingBox_overlaps',
+                                c_name='BoundingBoxTest_overlaps',
                                 args=[xo.Arg(xo.ThisClass, name="b1"),
                                       xo.Arg(xo.ThisClass, name="b2")],
                                 ret=xo.Arg(xo.Int8, name="overlaps")),
                 'set_params': xo.Kernel(
-                                c_name='BoundingBox_set_params',
+                                c_name='BoundingBoxTest_set_params',
                                 args=[xo.Arg(xo.ThisClass, name="box"),
                                       xo.Arg(xo.Float64, name="rC"),
                                       xo.Arg(xo.Float64, name="sin_tC"),
