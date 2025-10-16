@@ -356,7 +356,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 print(f"Warning: Removed active element {element_name} "
                     + f"at location inside collimator {name}!")
             length = self.line[element_name].length if hasattr(self.line[element_name], 'length') else 0
-            self.line.element_dict[element_name] = xt.Drift(length=length)
+            self.line.env.elements.remove(element_name)
+            self.line.env.elements[element_name] = xt.Drift(length=length)
 
     def get_optics_at(self, names, *, twiss=None, tw=None):
         if tw is not None:
