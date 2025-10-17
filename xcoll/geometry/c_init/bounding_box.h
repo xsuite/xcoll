@@ -2,8 +2,9 @@
 // This file is part of the Xcoll package.   #
 // Copyright (c) CERN, 2025.                 #
 // ######################################### #
+#ifndef XCOLL_GEOM_BOUNDING_BOX_H
 
-
+// BoundingBox structure -------------------------------------------------------------------------------------------------------------------
 typedef struct BoundingBox_s {
     double rC;        // length of position vector to first vertex
     double sin_tC;    // angle of position vector to first vertex, [radians]
@@ -132,3 +133,5 @@ int8_t BoundingBoxTest_overlaps(BoundingBoxTest b1, BoundingBoxTest b2){
     BoundingBoxTest_to_BoundingBox(b2, &box2);
     return BoundingBox_overlaps(&box1, &box2);
 }
+
+#endif /* XCOLL_GEOM_BOUNDING_BOX_H */

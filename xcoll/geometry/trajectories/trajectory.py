@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBoxTest
 from .drift import DriftTrajectory
 #from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
@@ -38,15 +38,16 @@ trajectory_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'update_box': xo.Method(
-        c_name=f"update_box",
-        args=[xo.Arg(xo.Float64, name="l1"),
+    'update_testbox': xo.Method(
+        c_name=f"update_testbox",
+        args=[xo.Arg(BoundingBoxTest, name="box"),
+              xo.Arg(xo.Float64, name="l1"),
               xo.Arg(xo.Float64, name="l2")],
         ret=None),
-    'getp_box': xo.Method(
-        c_name=f"getp_box",
-        args=[],
-        ret=xo.Arg(BoundingBox, name="box"))
+    # 'getp_box': xo.Method(
+    #     c_name=f"getp_box",
+    #     args=[],
+    #     ret=xo.Arg(BoundingBox, name="box"))
 }
 
 
@@ -114,8 +115,10 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
 
     # Get and plot the bounding box
     if plot_bounding_box:
-        vertices = np.vstack([np.array(self.box.vertices), 
-                              np.array(self.box.vertices)[0]])
+        box = BoundingBoxTest()
+        self.update_testbox(box=box, l1=l1, l2=l2)
+        vertices = np.vstack([np.array(box.vertices), 
+                              np.array(box.vertices)[0]])
         ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
     ax.set_xlabel('s')
     ax.set_ylabel('x')

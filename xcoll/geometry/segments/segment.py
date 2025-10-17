@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBoxTest
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -35,15 +35,16 @@ segment_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="t")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'update_box': xo.Method(
-        c_name=f"update_box",
-        args=[xo.Arg(xo.Float64, name="t1"),
+    'update_testbox': xo.Method(
+        c_name=f"update_testbox",
+        args=[xo.Arg(BoundingBoxTest, name="box"),
+              xo.Arg(xo.Float64, name="t1"),
               xo.Arg(xo.Float64, name="t2")],
         ret=None),
-    'getp_box': xo.Method(
-        c_name=f"getp_box",
-        args=[],
-        ret=xo.Arg(BoundingBox, name="box")),
+    # 'getp_box': xo.Method(
+    #     c_name=f"getp_box",
+    #     args=[],
+    #     ret=xo.Arg(BoundingBox, name="box")),
     'bounded_below': xo.Method(
         c_name=f"bounded_below",
         args=[],
@@ -171,8 +172,10 @@ def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=
     if not self.is_open():
         t2 = min(t2, 1)
     if plot_bounding_box:
-        vertices = np.vstack([np.array(self.box.vertices), 
-                              np.array(self.box.vertices)[0]])
+        box = BoundingBoxTest()
+        self.update_testbox(box=box, t1=t1, t2=t2)
+        vertices = np.vstack([np.array(box.vertices), 
+                              np.array(box.vertices)[0]])
         ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
 
     # Get vertices and control points

@@ -8,8 +8,8 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import BoundingBox
-from ..trajectories import DriftTrajectory, CircularTrajectory, MultipleCoulombTrajectory
+from ..c_init.bounding_box import BoundingBoxTest
+from ..trajectories import DriftTrajectory, MultipleCoulombTrajectory #,CircularTrajectory
 
 # Quartic vs Cubic Bezier
 
@@ -31,23 +31,24 @@ class BezierSegment(xo.Struct):
     _es2 = xo.Float64  # Value of second extremum in s
     _ex1 = xo.Float64  # Value of first extremum in x
     _ex2 = xo.Float64  # Value of second extremum in x
-    box = BoundingBox
 
+    _depends_on = [BoundingBoxTest]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'bezier.h']
 
     _kernels = {'calculate_extrema': xo.Kernel(
                                 c_name='BezierSegment_calculate_extrema',
                                 args=[xo.Arg(xo.ThisClass, name="seg")],
                                 ret=None),
-                'update_box': xo.Kernel(
-                        c_name='BezierSegment_update_box',
+                'update_testbox': xo.Kernel(
+                        c_name='BezierSegment_update_testbox',
                         args=[xo.Arg(xo.ThisClass, name="seg"),
+                              xo.Arg(BoundingBoxTest, name="box"),
                               xo.Arg(xo.Float64, name="t1"),
                               xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
                         ret=None)
                 }   
 
-    _max_crossings = {DriftTrajectory: 3, CircularTrajectory: 6, MultipleCoulombTrajectory: 6}
+    _max_crossings = {DriftTrajectory: 3, MultipleCoulombTrajectory: 6} #CircularTrajectory: 6
 
     def __init__(self, *, s1, x1, s2, x2, cs1, cx1, cs2, cx2, **kwargs):
         kwargs['_s1'] = s1
@@ -62,8 +63,9 @@ class BezierSegment(xo.Struct):
         t2 = kwargs.pop('t2', 1.)
         super().__init__(**kwargs)
         self.calculate_extrema()
-        self.box = BoundingBox()
-        self.init_box(t1=0., t2=1.)
+        if 'test_box' in kwargs:
+            test_box = BoundingBoxTest()
+            self.init_box(t1=t1, t2=t2, test_box=test_box)
 
     def __str__(self):
         return f"BezierSegment(({self.s1:.3}, {self.x1:.3})-c-({self.cs1:.3}, {self.cx1:.3}) -- " \
@@ -179,11 +181,11 @@ class BezierSegment(xo.Struct):
         self._cx2 = value
         self.calculate_extrema()
 
-    def init_box(self, t1, t2):
+    def init_box(self, t1, t2, test_box):
         if t1 >= t2:
             raise ValueError("t1 must be smaller than t2!")
         if t1 < 0 or t1 > 1:
             raise ValueError("t1 must be in [0, 1]!")
         if t2 < 0 or t2 > 1:
             raise ValueError("t2 must be in [0, 1]!")
-        self.update_box(seg=self, t1=t1, t2=t2)
+        self.update_testbox(seg=self, box=test_box, t1=t1, t2=t2)

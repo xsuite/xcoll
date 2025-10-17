@@ -68,8 +68,8 @@ void LineSegment_update_box(LineSegment seg, BoundingBox box, double t1, double 
     double s2 = LineSegment_func_s(seg, t2);
     double x1 = LineSegment_func_x(seg, t1);
     double x2 = LineSegment_func_x(seg, t2);
-    box->sin_t = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    box->cos_t = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    box->sin_tb = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    box->cos_tb = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
     box->l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));
     box->w = 0.0; // line segment has no width
     box->rC = sqrt(s1*s1 + x1*x1);

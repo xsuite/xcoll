@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init import BoundingBox
+from ..c_init.bounding_box import BoundingBoxTest
 
 
 class MultipleCoulombTrajectory(xo.Struct):
@@ -41,8 +41,8 @@ class MultipleCoulombTrajectory(xo.Struct):
     B0 = xo.Float64   # 𝜉2 (13.6 MeV) / (𝛽 pc)
     _l1 = xo.Float64  # start parameter along trajectory (default -5)
     _l2 = xo.Float64  # end parameter along trajectory (default 5)
-    box = BoundingBox
 
+    _depends_on = [BoundingBoxTest]
     _extra_c_sources = [_pkg_root / 'geometry' / 'trajectories' / 'mcs.h']
 
     _kernels = {'set_params': xo.Kernel(
@@ -58,9 +58,10 @@ class MultipleCoulombTrajectory(xo.Struct):
                                       xo.Arg(xo.Float64, name="beta"),
                                       xo.Arg(xo.Float64, name="q")],
                                 ret=None),
-                'update_box': xo.Kernel(
-                                c_name='MultipleCoulombTrajectory_update_box',
+                'update_testbox': xo.Kernel(
+                                c_name='MultipleCoulombTrajectory_update_testbox',
                                 args=[xo.Arg(xo.ThisClass, name="traj"),
+                                      xo.Arg(BoundingBoxTest, name="box"),
                                       xo.Arg(xo.Float64, name="l1"),
                                       xo.Arg(xo.Float64, name="l2")],
                                 ret=None)}
@@ -85,8 +86,9 @@ class MultipleCoulombTrajectory(xo.Struct):
             elif theta0 is not False:
                 self.set_params(X0=X0, ran_1=ran_1, ran_2=ran_2, s0=self.s0, x0=self.x0,
                                 xp=np.tan(theta0), pc=pc, beta=beta, q=q)
-        self.box = BoundingBox()
-        self.init_box(l1=l1, l2=l2)
+        if 'test_box' in kwargs:
+            test_box = BoundingBoxTest()
+            self.init_box(test_box=test_box, l1=l1, l2=l2)
     def __str__(self):
         return f"MultipleCoulombTrajectory(s0={self.s0}, x0={self.x0}, xp={self.xp})"
 
@@ -98,12 +100,12 @@ class MultipleCoulombTrajectory(xo.Struct):
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
 
-    def init_box(self, l1, l2):
+    def init_box(self, test_box, l1, l2):
         if l1 >= l2:
             raise ValueError("l1 must be smaller than l2!")
         if l1 < 0 or l1 > 10: # this also used to be [-5, 5] ? 
             raise ValueError("l1 must be in [0, 10]!")
         if l2 < 0 or l2 > 10:
             raise ValueError("l2 must be in [0, 10]!")
-        self.update_box(traj=self, l1=l1, l2=l2)
+        self.update_testbox(traj=self, box=test_box, l1=l1, l2=l2)
 

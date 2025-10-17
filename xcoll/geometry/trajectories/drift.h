@@ -63,7 +63,7 @@ double DriftTrajectory_deriv_x(DriftTrajectory traj, double l){
 }
 
 /*gpufun*/
-void DriftTrajectory_update_box(DriftTrajectory traj, double l1, double l2){
+void DriftTrajectory_update_box(DriftTrajectory traj, BoundingBox box, double l1, double l2){
     // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
     if (l1 >= l2){
         printf("l1 must be smaller than l2!\n");
@@ -86,22 +86,27 @@ void DriftTrajectory_update_box(DriftTrajectory traj, double l1, double l2){
     double s2 = DriftTrajectory_func_s(traj, l2);
     double x1 = DriftTrajectory_func_x(traj, l1);
     double x2 = DriftTrajectory_func_x(traj, l2);
-    double sin_t0 = DriftTrajectory_get_sin_t0(traj);
-    double cos_t0 = DriftTrajectory_get_cos_t0(traj);
-    double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    double w = 0.0;                                                // width of the box 
-    double rC = sqrt(s1*s1 + x1*x1);
-    double sin_tC, cos_tC;                                        // angle of the position vector to the first vertex
-    if (rC == 0.){
-        sin_tC = 0.0;                                      // angle of the position vector to the first vertex
-        cos_tC = 1.0;
+    box->sin_tb = DriftTrajectory_get_sin_t0(traj);
+    box->cos_tb = DriftTrajectory_get_cos_t0(traj);
+    box->l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
+    box->w = 0.0;                                                // width of the box 
+    box->rC = sqrt(s1*s1 + x1*x1);
+    if (box->rC == 0.){
+        box->sin_tC = 0.0;                                      // angle of the position vector to the first vertex
+        box->cos_tC = 1.0;
     } else {
-        sin_tC = x1 / rC;                                  // angle of the position vector to the first vertex
-        cos_tC = s1 / rC;
+        box->sin_tC = x1 / box->rC;                                  // angle of the position vector to the first vertex
+        box->cos_tC = s1 / box->rC;
     }
-    BoundingBox_set_params(DriftTrajectory_getp_box(traj), rC, sin_tC, cos_tC, l, w, sin_t0, cos_t0);
+    BoundingBox_sync(box);
 }
-
+// Expose functions to Xobject test interface
+// ------------------------------------------
+void DriftTrajectory_update_testbox(DriftTrajectory traj, BoundingBoxTest box, double l1, double l2){
+    BoundingBox_s box1;
+    DriftTrajectory_update_box(traj, &box1, l1, l2);
+    BoundingBox_to_BoundingBoxTest(&box1, box);
+}
 
 
 /*gpufun*/
