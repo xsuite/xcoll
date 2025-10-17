@@ -123,6 +123,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
                 t = -d/c;
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
             }
@@ -138,6 +139,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
                 t = (-c + sgnD*sqrt(fabs(disc)))/(2*b);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
             }
@@ -153,6 +155,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
                 t = -b/(3*a);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
             } else {
@@ -160,11 +163,13 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
                 t = 3*q/p - b/(3*a);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
                 t = -3*q/(2*p) - b/(3*a);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
             }
@@ -173,6 +178,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
             t = cbrt(-q/2 + sqrt(fabs(disc))) + cbrt(-q/2 - sqrt(fabs(disc))) - b/(3*a);
             if (0 <= t && t <= 1){
                 FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                 FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             }
         } else {
@@ -181,16 +187,19 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0,
             t = 2*sqrt(fabs(p/3))*cos(phi/3) - b/(3*a);
             if (0 <= t && t <= 1){
                 FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                 FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             }
             t = 2*sqrt(fabs(p/3))*cos((phi + 2*M_PI)/3) - b/(3*a);
             if (0 <= t && t <= 1){
                 FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                 FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             }
             t = 2*sqrt(fabs(p/3))*cos((phi + 4*M_PI)/3) - b/(3*a);
             if (0 <= t && t <= 1){
                 FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
+                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                 FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
             }
         }
