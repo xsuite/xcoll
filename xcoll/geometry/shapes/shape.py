@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import xobjects as xo
 
 from ..c_init import XC_GEOM_EPSILON, PyMethod
-from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, CircularSegment, get_max_crossings
+from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, get_max_crossings
 from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
 
@@ -344,13 +344,13 @@ def is_clockwise(vertices):
 
 def _interpolate(segment, coords, smooth_points):
     if smooth_points:
-        if isinstance(segment, CircularSegment):
-            t1 = segment.t1
-            t2 = segment.t2
-            if t2 < t1:
-                t2 += 2*np.pi
-            t = np.linspace(t1, t2, smooth_points)
-        elif isinstance(segment, (LineSegment, HalfOpenLineSegment)):
+        # if isinstance(segment, CircularSegment):
+        #     t1 = segment.t1
+        #     t2 = segment.t2
+        #     if t2 < t1:
+        #         t2 += 2*np.pi
+        #     t = np.linspace(t1, t2, smooth_points)
+        if isinstance(segment, (LineSegment, HalfOpenLineSegment)):
             return
         else:
             t = np.linspace(0, 1, smooth_points)

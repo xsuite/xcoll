@@ -7,7 +7,7 @@ from .general import _pkg_root, __version__, citation
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestBlock, EverestCollimator, EverestCrystal, \
                            BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, element_classes
-from .geometry import LineSegment, HalfOpenLineSegment, CircularSegment, BezierSegment, Shape2D, Shape2DV, \
+from .geometry import LineSegment, HalfOpenLineSegment, BezierSegment, Shape2D, Shape2DV, \
                       create_jaw, create_polygon, create_polygon_jaw, create_crystal
 from .scattering_routines.everest import materials, Material, CrystalMaterial
 from .colldb import CollimatorDatabase

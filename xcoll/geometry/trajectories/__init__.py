@@ -5,6 +5,6 @@
 
 from .drift import DriftTrajectory
 from .mcs import MultipleCoulombTrajectory
-from .circular import CircularTrajectory
+# from .circular import CircularTrajectory
 from .trajectory import all_trajectories, \
                         args_cross_h, args_cross_v, args_vlimit  # OLD
