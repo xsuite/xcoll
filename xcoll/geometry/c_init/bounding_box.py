@@ -73,7 +73,7 @@ class BoundingBox(xo.Struct):
 
     @property
     def s2(self):
-        return self.rC * self.cos_tC + self.l * (self.cos_tb)
+        return self.rC * self.cos_tC + self.l * self.cos_tb
 
     @property
     def x2(self):
@@ -81,7 +81,7 @@ class BoundingBox(xo.Struct):
 
     @property
     def s3(self):
-        return self.rC * self.cos_tC + self.l * (self.cos_tb) - self.w * self.sin_tb
+        return self.rC * self.cos_tC + self.l * self.cos_tb - self.w * self.sin_tb
 
     @property
     def x3(self):

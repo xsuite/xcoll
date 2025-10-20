@@ -156,7 +156,7 @@ void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, Boundi
     double rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
     double sin_tC = x1 / rC; // angle of position vector to first vertex
     double cos_tC = s1 / rC;
-    double w = (l2*omega_norm_l2 - l1*omega_norm_l1)*A0; // displacement in x in frame of initial angle
+    double w = fabs((l2*omega_norm_l2 - l1*omega_norm_l1)*A0); // displacement in x in frame of initial angle
     double l = l2-l1;
     BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }

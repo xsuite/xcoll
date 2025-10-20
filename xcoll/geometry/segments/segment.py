@@ -35,8 +35,8 @@ segment_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="t")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'update_testbox': xo.Method(
-        c_name=f"update_testbox",
+    'update_box': xo.Method(
+        c_name=f"update_box",
         args=[xo.Arg(BoundingBox, name="box"),
               xo.Arg(xo.Float64, name="t1"),
               xo.Arg(xo.Float64, name="t2")],
@@ -153,15 +153,21 @@ def rotate(self, ps, px, angle, *, inplace=False):
         new_seg._rotate_inplace(ps, px, angle)
         return new_seg
 
-def get_box(self, t1, t2):
+def get_box(self, t1=0, t2=1):
     box = BoundingBox()
     if t1 >= t2:
         raise ValueError("t1 must be smaller than t2!")
-    if t1 < 0 or t1 > 1:
-        raise ValueError("t1 must be in [0, 1]!!")
-    if t2 < 0 or t2 > 1:
-        raise ValueError("t2 must be in [0, 1]!!")
-    self.update_box(seg=self, box=box,t1=t1, t2=t2)
+    if self.__class__.__name__ == 'HalfOpenLineSegment':
+        if t2 < 0 or t2 > 10:
+            raise ValueError("t2 must be in [0, 10] for HalfOpenLineSegment!")
+        if t1 < 0 or t1 > 10:
+            raise ValueError("t1 must be in [0, 10] for HalfOpenLineSegment!")
+    else:
+        if t1 < 0 or t1 > 1:
+            raise ValueError("t1 must be in [0, 1]!!")
+        if t2 < 0 or t2 > 1:
+            raise ValueError("t2 must be in [0, 1]!!")
+    self.update_box(seg=self, box=box, t1=t1, t2=t2)
     return box
 
 def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=True):

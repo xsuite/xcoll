@@ -37,8 +37,8 @@ trajectory_methods = {
         c_name=f"deriv_x",
         args=[xo.Arg(xo.Float64, name="l")],
         ret=xo.Arg(xo.Float64, name="x")),
-    'update_testbox': xo.Method(
-        c_name=f"update_testbox",
+    'update_box': xo.Method(
+        c_name=f"update_box",
         args=[xo.Arg(BoundingBox, name="box"),
               xo.Arg(xo.Float64, name="l1"),
               xo.Arg(xo.Float64, name="l2")],
@@ -94,15 +94,15 @@ for traj in all_trajectories:
     traj._needs_compilation = True
 
 # Define common methods for all trajectories
-def get_box(self, l1, l2):
+def get_box(self, l1=0, l2=5):
     box = BoundingBox()
     if l1 >= l2:
         raise ValueError("l1 must be smaller than l2!")
-    if l1 < 0 or l1 > 1:
-        raise ValueError("l1 must be in [0, 1]!!")
-    if l2 < 0 or l2 > 1:
-        raise ValueError("l2 must be in [0, 1]!!")
-    self.update_box(seg=self, box=box,l1=l1, l2=l2)
+    if l1 < 0 or l1 > 10:
+        raise ValueError("l1 must be in [0, 10]!!")
+    if l2 < 0 or l2 > 10:
+        raise ValueError("l2 must be in [0, 10]!!")
+    self.update_box(traj=self, box=box, l1=l1, l2=l2)
     return box
 
 def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):

@@ -85,7 +85,7 @@ void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg
     }
 }
 /*gpufun*/
-void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, double s0, double x0, double xm){
+void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
     // Get segment data
     double s1  = BezierSegment_get__s1(seg);
     double x1  = BezierSegment_get__x1(seg);
@@ -287,9 +287,9 @@ int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
                          double t1, double t2, double l1, double l2, int8_t nest_level){
     // Prepare initial guesses for Newton-Raphson root finding
-    BoundingBox_ _box_seg;
-    BoundingBox_ _box_traj;
-    BoundingBox box_seg = &_box_seg;
+    BoundingBox_ _box_seg = {0};
+    BoundingBox_ _box_traj = {0};
+    BoundingBox box_seg  = &_box_seg;
     BoundingBox box_traj = &_box_traj;
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
@@ -360,7 +360,7 @@ void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory t
                     return HalfOpenLineSegment_crossing_drift(finder, (HalfOpenLineSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
                     break;
                 case LocalSegment_BezierSegment_t:
-                    return BezierSegment_crossing_drift(finder, (BezierSegment) LocalSegment_member(seg), s0, x0, xp);
+                    return BezierSegment_crossing_drift(finder, (BezierSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
                 default:
                     // Custom segment
                     return find_crossing_approximate(finder, seg, traj);
