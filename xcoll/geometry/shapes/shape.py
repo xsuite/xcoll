@@ -5,8 +5,6 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import xobjects as xo
 
@@ -195,6 +193,7 @@ class Shape2D(xo.Struct):
 
     def plot(self, *, axes=None, smooth_points=100, scale_open_points=0.6):
         """Returns (fig, axes) with a plot of the shape. Axes can optionally be provided."""
+        import matplotlib.pyplot as plt
         if axes is None:
             _, axes = plt.subplots(clear=True)
         colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -211,6 +210,8 @@ class Shape2D(xo.Struct):
 
     def plot3d(self, *, axes=None, smooth_points=100, scale_open_points=0.6):
         """Returns (fig, axes) with a 3d plot of the shape. Axes can optionally be provided."""
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         if axes is None:
             fig = plt.figure(clear=True)
             axes = fig.add_subplot(projection='3d')
@@ -365,6 +366,7 @@ def _interpolate(segment, coords, smooth_points):
 class ShapeMalformedError(ValueError):
     def __init__(self, shape=None, message='', bad_seg=[]):
         if shape:
+            import matplotlib.pyplot as plt
             segs = {i: seg for i, seg in enumerate(shape)}
             message += "\n" + "\n".join([f"{i}: {seg}" for i, seg in segs.items()])
             if not hasattr(bad_seg, '__iter__'):
