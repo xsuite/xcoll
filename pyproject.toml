@@ -1,6 +1,6 @@
 [project]
 name = "xcoll"
-version = "0.6.7"
+version = "0.6.8rc0"
 description = "Xsuite collimation package"
 authors = [
     {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
