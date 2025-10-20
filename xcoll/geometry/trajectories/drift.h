@@ -86,26 +86,20 @@ void DriftTrajectory_update_box(DriftTrajectory traj, BoundingBox box, double l1
     double s2 = DriftTrajectory_func_s(traj, l2);
     double x1 = DriftTrajectory_func_x(traj, l1);
     double x2 = DriftTrajectory_func_x(traj, l2);
-    box->sin_tb = DriftTrajectory_get_sin_t0(traj);
-    box->cos_tb = DriftTrajectory_get_cos_t0(traj);
-    box->l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
-    box->w = 0.0;                                                // width of the box 
-    box->rC = sqrt(s1*s1 + x1*x1);
-    if (box->rC == 0.){
-        box->sin_tC = 0.0;                                      // angle of the position vector to the first vertex
-        box->cos_tC = 1.0;
+    double sin_tb = DriftTrajectory_get_sin_t0(traj);
+    double cos_tb = DriftTrajectory_get_cos_t0(traj);
+    double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));   // length of the box
+    double w = 0.0;                                               // width of the box
+    double rC = sqrt(s1*s1 + x1*x1);
+    double sin_tC, cos_tC;
+    if (rC == 0.){
+        sin_tC = 0.0;                                      // angle of the position vector to the first vertex
+        cos_tC = 1.0;
     } else {
-        box->sin_tC = x1 / box->rC;                                  // angle of the position vector to the first vertex
-        box->cos_tC = s1 / box->rC;
+        sin_tC = x1 / rC;                                  // angle of the position vector to the first vertex
+        cos_tC = s1 / rC;
     }
-    BoundingBox_sync(box);
-}
-// Expose functions to Xobject test interface
-// ------------------------------------------
-void DriftTrajectory_update_testbox(DriftTrajectory traj, BoundingBoxTest box, double l1, double l2){
-    BoundingBox_s box1;
-    DriftTrajectory_update_box(traj, &box1, l1, l2);
-    BoundingBox_to_BoundingBoxTest(&box1, box);
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
 

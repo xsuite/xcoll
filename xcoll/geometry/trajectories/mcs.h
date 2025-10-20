@@ -140,8 +140,8 @@ void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, Boundi
     double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
     double omega_norm_l1 = MultipleCoulombTrajectory_get_normalised_omega(traj, l1);
     double omega_norm_l2 = MultipleCoulombTrajectory_get_normalised_omega(traj, l2);
-    box->sin_tb = MultipleCoulombTrajectory_get_sin_t0(traj);
-    box->cos_tb = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double sin_tb = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_tb = MultipleCoulombTrajectory_get_cos_t0(traj);
     double s1, x1;
     if (A0 >= 0) {
         s1 = MultipleCoulombTrajectory_func_s(traj, l1);
@@ -150,22 +150,15 @@ void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, Boundi
         // Different lower left corner
         double s0 = MultipleCoulombTrajectory_get_s0(traj);
         double x0 = MultipleCoulombTrajectory_get_x0(traj);
-        s1 = s0 + l1*box->cos_tb - l2*A0*omega_norm_l2*box->sin_tb;
-        x1 = x0 + l1*box->sin_tb + l2*A0*omega_norm_l2*box->cos_tb;
+        s1 = s0 + l1*cos_tb - l2*A0*omega_norm_l2*sin_tb;
+        x1 = x0 + l1*sin_tb + l2*A0*omega_norm_l2*cos_tb;
     }
-    box->rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
-    box->sin_tC = x1 / box->rC; // angle of position vector to first vertex
-    box->cos_tC = s1 / box->rC;
-    box->w = (l2*omega_norm_l2 - l1*omega_norm_l1)*A0; // displacement in x in frame of initial angle
-    box->l = l2-l1;
-    BoundingBox_sync(box);
-}
-// Expose functions to Xobject test interface
-// ------------------------------------------
-void MultipleCoulombTrajectory_update_testbox(MultipleCoulombTrajectory traj, BoundingBoxTest box, double l1, double l2){
-    BoundingBox_s box1;
-    MultipleCoulombTrajectory_update_box(traj, &box1, l1, l2);
-    BoundingBox_to_BoundingBoxTest(&box1, box);
+    double rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
+    double sin_tC = x1 / rC; // angle of position vector to first vertex
+    double cos_tC = s1 / rC;
+    double w = (l2*omega_norm_l2 - l1*omega_norm_l1)*A0; // displacement in x in frame of initial angle
+    double l = l2-l1;
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
 // // MULTIPLE COULOMB SCATTERING VLIMIT ----------------------------------------------------------------------

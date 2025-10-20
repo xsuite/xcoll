@@ -4,11 +4,10 @@
 # ######################################### #
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBoxTest
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 from .drift import DriftTrajectory
 #from .circular import CircularTrajectory
 from .mcs import MultipleCoulombTrajectory
@@ -40,7 +39,7 @@ trajectory_methods = {
         ret=xo.Arg(xo.Float64, name="x")),
     'update_testbox': xo.Method(
         c_name=f"update_testbox",
-        args=[xo.Arg(BoundingBoxTest, name="box"),
+        args=[xo.Arg(BoundingBox, name="box"),
               xo.Arg(xo.Float64, name="l1"),
               xo.Arg(xo.Float64, name="l2")],
         ret=None),
@@ -94,10 +93,21 @@ for traj in all_trajectories:
     traj.__getattr__ = __getattr
     traj._needs_compilation = True
 
-
 # Define common methods for all trajectories
+def get_box(self, l1, l2):
+    box = BoundingBox()
+    if l1 >= l2:
+        raise ValueError("l1 must be smaller than l2!")
+    if l1 < 0 or l1 > 1:
+        raise ValueError("l1 must be in [0, 1]!!")
+    if l2 < 0 or l2 > 1:
+        raise ValueError("l2 must be in [0, 1]!!")
+    self.update_box(seg=self, box=box,l1=l1, l2=l2)
+    return box
+
 def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
     """Plot the trajectory and its bounding box"""
+    import matplotlib.pyplot as plt
     if ax is None:
         fig, ax  = plt.subplots(figsize=(8, 8))
     else:
@@ -115,8 +125,7 @@ def plot(self, l1=0, l2=1, plot_bounding_box=True, ax=None):
 
     # Get and plot the bounding box
     if plot_bounding_box:
-        box = BoundingBoxTest()
-        self.update_testbox(box=box, l1=l1, l2=l2)
+        box = self.get_box(l1=l1, l2=l2)
         vertices = np.vstack([np.array(box.vertices), 
                               np.array(box.vertices)[0]])
         ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
@@ -132,6 +141,7 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
     Useful for testing. Kwargs needs to have all arguments as keys, and val should be
     [min, max, initial_value].
     '''''
+    import matplotlib.pyplot as plt
     from matplotlib.widgets import Slider
     plt.ion()  # This enables interactive mode
     all_kwargs = kwargs
@@ -151,7 +161,7 @@ def _inspect(cls, plot_bounding_box=True, **kwargs):
         fig, state['ax'] = cls(**these_kwargs).plot(l1=sliders['l1'].val, l2=sliders['l2'].val, ax=state['ax'],
                         plot_bounding_box=plot_bounding_box)
         plt.draw()
-    
+
     ax_sliders = {arg: plt.axes([0.1, 0.025*(len(all_kwargs)-i-1), 0.8, 0.03], facecolor='lightgrey')
                   for i, arg in enumerate(all_kwargs)}
     sliders = {arg: Slider(ax_sliders[arg], arg, val[0], val[1], valinit=val[2])
@@ -203,6 +213,7 @@ for traj in all_trajectories:
     traj.from_dict = from_dict
     traj.copy = __copy
     traj.round = __round
+    traj.get_box = get_box
     traj.plot = plot
     traj._inspect = _inspect
 
