@@ -11,7 +11,7 @@ from ...general import _pkg_root
 from .c_init import define_src, PyMethod
 
 
-class BoundingBoxTest(xo.Struct):
+class BoundingBox(xo.Struct):
     rC = xo.Float64        # length of position vector to first vertex
     sin_tC = xo.Float64    # angle of position vector to first vertex, [radians]
     cos_tC = xo.Float64
@@ -23,12 +23,12 @@ class BoundingBoxTest(xo.Struct):
     cos_tb = xo.Float64
 
     _kernels = {'overlaps': xo.Kernel(
-                                c_name='BoundingBoxTest_overlaps',
+                                c_name='BoundingBox_overlaps',
                                 args=[xo.Arg(xo.ThisClass, name="b1"),
                                       xo.Arg(xo.ThisClass, name="b2")],
                                 ret=xo.Arg(xo.Int8, name="overlaps")),
-                'set_params': xo.Kernel(
-                                c_name='BoundingBoxTest_set_params',
+                'set': xo.Kernel(
+                                c_name='BoundingBox_set',
                                 args=[xo.Arg(xo.ThisClass, name="box"),
                                       xo.Arg(xo.Float64, name="rC"),
                                       xo.Arg(xo.Float64, name="sin_tC"),
@@ -42,7 +42,6 @@ class BoundingBoxTest(xo.Struct):
     _extra_c_sources = [
         define_src,
         _pkg_root / 'geometry' / 'c_init' / 'sort.h',
-       # _pkg_root / 'geometry' / 'c_init' / 'methods.h',
         _pkg_root / 'geometry' / 'c_init' / 'bounding_box.h',
     ]
 
@@ -103,3 +102,11 @@ class BoundingBoxTest(xo.Struct):
     @property
     def vertices(self):
         return (self.s1, self.x1), (self.s2, self.x2), (self.s3, self.x3), (self.s4, self.x4)
+
+_size = BoundingBox._size
+_typedef = f"""
+#ifndef XCOLL_GEOM_BOUNDING_BOX_DEF
+typedef struct BoundingBox_s {{ char _data[{_size}];}} BoundingBox_;
+#endif /* XCOLL_GEOM_BOUNDING_BOX_DEF */
+"""
+BoundingBox._extra_c_sources.insert(1, _typedef)
