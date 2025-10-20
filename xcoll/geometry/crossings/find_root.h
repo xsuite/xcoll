@@ -286,9 +286,11 @@ int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 /*gpufun*/
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
                          double t1, double t2, double l1, double l2, int8_t nest_level){
-    // Prepare initial guess for Newton-Raphson root finding
-    BoundingBox_s box_seg;
-    BoundingBox_s box_traj;
+    // Prepare initial guesses for Newton-Raphson root finding
+    BoundingBox_ _box_seg;
+    BoundingBox_ _box_traj;
+    BoundingBox box_seg = &_box_seg;
+    BoundingBox box_traj = &_box_traj;
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double t, l;
