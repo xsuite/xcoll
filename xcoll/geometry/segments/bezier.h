@@ -112,24 +112,14 @@ void BezierSegment_update_box(BezierSegment seg, BoundingBox box, double t1, dou
         xmin = MIN(x1, x2);
         xmax = MAX(x1, x2);
     }
-    box->rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
-    box->sin_tC = xmin / box->rC; // angle of position vector to first vertex
-    box->cos_tC = smin / box->rC;
-    //double proj_l = smin;    // projection of position vector on length: rC * (cos_t*cos_tC + sin_t*sin_tC)
-    //double proj_w = xmin;    // projection of position vector on width:  rC * (cos_t*sin_tC - sin_t*cos_tC)
-    box->l = smax - smin;  // length of the box
-    box->w = xmax - xmin;  // width of the box
-    box->sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
-    box->cos_tb = 1;
-    BoundingBox_sync(box);
-}
-
-// Expose functions to Xobject test interface
-// ------------------------------------------
-void BezierSegment_update_testbox(BezierSegment seg, BoundingBoxTest box, double t1, double t2){
-    BoundingBox_s box1;
-    BezierSegment_update_box(seg, &box1, t1, t2);
-    BoundingBox_to_BoundingBoxTest(&box1, box);
+    double rC = sqrt(smin*smin + smax*smax); // length of position vector to first vertex
+    double sin_tC = xmin / rC; // angle of position vector to first vertex
+    double cos_tC = smin / rC;
+    double l = smax - smin;  // length of the box
+    double w = xmax - xmin;  // width of the box
+    double sin_tb = 0;       // orientation of the box (angle of length wrt horizontal)
+    double cos_tb = 1;
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
 /*gpufun*/

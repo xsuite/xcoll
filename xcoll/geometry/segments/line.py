@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init.bounding_box import BoundingBoxTest
+from ..c_init.bounding_box import BoundingBox
 from ..c_init.c_init import define_src
 
 class LineSegment(xo.Struct):
@@ -18,22 +18,19 @@ class LineSegment(xo.Struct):
     s2 = xo.Float64
     x2 = xo.Float64
 
-    _depends_on = [BoundingBoxTest]
+    _depends_on = [BoundingBox]
     _extra_c_sources = [define_src,
                         _pkg_root / 'geometry' / 'segments' / 'line.h']
-    _kernels = {'update_testbox': xo.Kernel(
-                                        c_name='LineSegment_update_testbox',
+    _kernels = {'update_box': xo.Kernel(
+                                        c_name='LineSegment_update_box',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                              xo.Arg(BoundingBoxTest, name="box"),
+                                              xo.Arg(BoundingBox, name="box"),
                                               xo.Arg(xo.Float64, name="t1"),
                                               xo.Arg(xo.Float64, name="t2")],
                                         ret=None)}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if 'test_box' in kwargs:
-            test_box = BoundingBoxTest()
-            self.init_box(t1=0., t2=1., test_box=test_box)
 
     def __str__(self):
         return f"LineSegment(({self.s1:.3}, {self.x1:.3}) -- ({self.s2:.3}, {self.x2:.3}))"
@@ -60,12 +57,3 @@ class LineSegment(xo.Struct):
         self.s2 = new_s2
         self.x2 = new_x2
         self._translate_inplace(ps, px)
-
-    def init_box(self, t1, t2, test_box):
-        if t1 >= t2:
-            raise ValueError("t1 must be smaller than t2!")
-        if t1 < 0 or t1 > 1:
-            raise ValueError("t1 must be in [0, 1]!!")
-        if t2 < 0 or t2 > 1:
-            raise ValueError("t2 must be in [0, 1]!!")
-        self.update_testbox(seg=self, box=test_box,t1=t1, t2=t2)

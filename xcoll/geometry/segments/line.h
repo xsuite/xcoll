@@ -68,28 +68,20 @@ void LineSegment_update_box(LineSegment seg, BoundingBox box, double t1, double 
     double s2 = LineSegment_func_s(seg, t2);
     double x1 = LineSegment_func_x(seg, t1);
     double x2 = LineSegment_func_x(seg, t2);
-    box->sin_tb = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    box->cos_tb = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
-    box->l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));
-    box->w = 0.0; // line segment has no width
-    box->rC = sqrt(s1*s1 + x1*x1);
-    if (box->rC == 0.0){
-        box->sin_tC = 0.0;
-        box->cos_tC = 1.0;
+    double sin_tb = (x2 - x1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    double cos_tb = (s2 - s1) / sqrt((x2 - x1)*(x2 - x1) + (s2 - s1)*(s2 - s1));
+    double l = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));
+    double w = 0.0; // line segment has no width
+    double rC = sqrt(s1*s1 + x1*x1);
+    double sin_tC, cos_tC;
+    if (rC == 0.0){
+        sin_tC = 0.0;
+        cos_tC = 1.0;
     } else {
-        box->sin_tC = x1 / box->rC;
-        box->cos_tC = s1 / box->rC;
+        sin_tC = x1 / rC;
+        cos_tC = s1 / rC;
     }
-    BoundingBox_sync(box);
-}
-
-
-// Expose functions to Xobject test interface
-// ------------------------------------------
-void LineSegment_update_testbox(LineSegment seg, BoundingBoxTest box, double t1, double t2){
-    BoundingBox_s box1;
-    LineSegment_update_box(seg, &box1, t1, t2);
-    BoundingBox_to_BoundingBoxTest(&box1, box);
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
 #endif /* XCOLL_GEOM_SEG_LINE_H */

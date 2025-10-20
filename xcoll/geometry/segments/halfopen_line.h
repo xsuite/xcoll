@@ -67,26 +67,20 @@ void HalfOpenLineSegment_update_box(HalfOpenLineSegment seg, BoundingBox box, do
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
     double x1 = HalfOpenLineSegment_func_x(seg, t1);
     double x2 = HalfOpenLineSegment_func_x(seg, t2);
-    box->sin_tb = HalfOpenLineSegment_get_sin_t1(seg);                // angle of the line wrt horizontal
-    box->cos_tb = HalfOpenLineSegment_get_cos_t1(seg);
-    box->l    = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));     // length of the box
-    box->w    = 0.0;                                                 // width of the box 
-    box->rC   = sqrt(s1*s1 + x1*x1);                                 // length of the position vector to the first vertex
-    if (box->rC == 0.){
-        box->sin_tC = 0.0;  // angle of the position vector to the first vertex
-        box->cos_tC = 1.0;
+    double sin_tb = HalfOpenLineSegment_get_sin_t1(seg);                // angle of the line wrt horizontal
+    double cos_tb = HalfOpenLineSegment_get_cos_t1(seg);
+    double l  = sqrt((s2 - s1)*(s2 - s1) + (x2 - x1)*(x2 - x1));     // length of the box
+    double w  = 0.0;                                                 // width of the box 
+    double rC = sqrt(s1*s1 + x1*x1);                                 // length of the position vector to the first vertex
+    double sin_tC, cos_tC;
+    if (rC == 0.){
+        sin_tC = 0.0;  // angle of the position vector to the first vertex
+        cos_tC = 1.0;
     } else {
-        box->sin_tC = x1 / box->rC;  // angle of the position vector to the first vertex
-        box->cos_tC = s1 / box->rC;
+        sin_tC = x1 / rC;  // angle of the position vector to the first vertex
+        cos_tC = s1 / rC;
     }
-    BoundingBox_sync(box);
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
-// Expose functions to Xobject test interface
-// ------------------------------------------
-void HalfOpenLineSegment_update_testbox(HalfOpenLineSegment seg, BoundingBoxTest box, double t1, double t2){
-    BoundingBox_s box1;
-    HalfOpenLineSegment_update_box(seg, &box1, t1, t2);
-    BoundingBox_to_BoundingBoxTest(&box1, box);
-}
 #endif /* XCOLL_GEOM_SEG_HALFOPENLINE_H */

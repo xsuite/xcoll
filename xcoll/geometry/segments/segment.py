@@ -7,7 +7,7 @@ import numpy as np
 
 import xobjects as xo
 
-from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBoxTest
+from ..c_init import PyMethod, XC_GEOM_EPSILON, BoundingBox
 
 from .line import LineSegment
 from .halfopen_line import HalfOpenLineSegment
@@ -37,7 +37,7 @@ segment_methods = {
         ret=xo.Arg(xo.Float64, name="x")),
     'update_testbox': xo.Method(
         c_name=f"update_testbox",
-        args=[xo.Arg(BoundingBoxTest, name="box"),
+        args=[xo.Arg(BoundingBox, name="box"),
               xo.Arg(xo.Float64, name="t1"),
               xo.Arg(xo.Float64, name="t2")],
         ret=None),
@@ -153,6 +153,17 @@ def rotate(self, ps, px, angle, *, inplace=False):
         new_seg._rotate_inplace(ps, px, angle)
         return new_seg
 
+def get_box(self, t1, t2):
+    box = BoundingBox()
+    if t1 >= t2:
+        raise ValueError("t1 must be smaller than t2!")
+    if t1 < 0 or t1 > 1:
+        raise ValueError("t1 must be in [0, 1]!!")
+    if t2 < 0 or t2 > 1:
+        raise ValueError("t2 must be in [0, 1]!!")
+    self.update_box(seg=self, box=box,t1=t1, t2=t2)
+    return box
+
 def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=True):
     """Plot the segment and its bounding box"""
     import matplotlib.pyplot as plt
@@ -172,8 +183,7 @@ def plot(self, t1=0, t2=1, ax=None, plot_bounding_box=True, plot_control_points=
     if not self.is_open():
         t2 = min(t2, 1)
     if plot_bounding_box:
-        box = BoundingBoxTest()
-        self.update_testbox(box=box, t1=t1, t2=t2)
+        box = self.get_box(t1=t1, t2=t2)
         vertices = np.vstack([np.array(box.vertices), 
                               np.array(box.vertices)[0]])
         ax.plot(vertices.T[0], vertices.T[1], 'k--', label='Bounding Box')
@@ -259,6 +269,7 @@ for seg in all_segments:
     seg.is_connected_to = is_connected_to
     seg.translate = translate
     seg.rotate = rotate
+    seg.get_box = get_box
     seg.plot = plot
     seg._inspect = _inspect
 

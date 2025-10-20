@@ -8,7 +8,7 @@ import numpy as np
 import xobjects as xo
 
 from ...general import _pkg_root
-from ..c_init.bounding_box import BoundingBoxTest
+from ..c_init.bounding_box import BoundingBox
 
 
 class HalfOpenLineSegment(xo.Struct):
@@ -18,14 +18,14 @@ class HalfOpenLineSegment(xo.Struct):
     sin_t1 = xo.Float64 # angle (wrt s-axis) towards inf
     cos_t1 = xo.Float64
 
-    _depends_on = [BoundingBoxTest]
+    _depends_on = [BoundingBox]
     _extra_c_sources = [_pkg_root / 'geometry' / 'segments' / 'halfopen_line.h']
-    _kernels = {'update_testbox': xo.Kernel(
-                                        c_name='HalfOpenLineSegment_update_testbox',
+    _kernels = {'update_box': xo.Kernel(
+                                        c_name='HalfOpenLineSegment_update_box',
                                         args=[xo.Arg(xo.ThisClass, name="seg"),
-                                              xo.Arg(BoundingBoxTest, name="box"),
+                                              xo.Arg(BoundingBox, name="box"),
                                               xo.Arg(xo.Float64, name="t1"),
-                                              xo.Arg(xo.Float64, name="t2")], # this is not parameters of mcs??
+                                              xo.Arg(xo.Float64, name="t2")],
                                         ret=None)}
     def __init__(self, *args, **kwargs):
         if not ('theta1' in kwargs or 'sin_t1' in kwargs or 'cos_t1' in kwargs):
@@ -38,12 +38,7 @@ class HalfOpenLineSegment(xo.Struct):
             kwargs['cos_t1'] = np.sqrt(1 - kwargs['sin_t1']**2)
         elif 'cos_t1' in kwargs and 'sin_t1' not in kwargs:
             kwargs['sin_t1'] = np.sqrt(1 - kwargs['cos_t1']**2)
-        #t1     = kwargs.pop('t1', 0.)
-        #t2     = kwargs.pop('t2', 10.)
         super().__init__(*args, **kwargs)
-        if 'test_box' in kwargs:
-            test_box = BoundingBoxTest()
-            self.init_box(t1=0., t2=10., test_box=test_box)
 
     def __str__(self):
         return f"HalfOpenLineSegment(({self.s1:.3}, {self.x1:.3}) -- " \
@@ -83,12 +78,3 @@ class HalfOpenLineSegment(xo.Struct):
             value -= 2*np.pi
         self.sin_t1 = np.sin(value)
         self.cos_t1 = np.cos(value)
-    
-    def init_box(self, t1, t2, test_box):
-        if t1 >= t2:
-            raise ValueError("t1 must be smaller than t2!")
-        if t1 < 0 or t1 > 10:
-            raise ValueError("t1 must be in [0, 10]!")
-        if t2 < 0 or t2 > 10:
-            raise ValueError("t2 must be in [0, 10]!")
-        self.update_testbox(seg=self, box=test_box, t1=t1, t2=t2)
