@@ -254,7 +254,8 @@ class LossMap:
                     prev_elem = len(line.element_names) - 1
                 else:
                     prev_elem = elem - 1
-                if line.element_names[prev_elem] in coll_elements:
+                if line.element_names[prev_elem] in coll_elements \
+                and line[prev_elem].active:
                     if verbose:
                         print(f"Found at {line.element_names[elem]}, "
                             + f"moved to {line.element_names[elem-1]}")
