@@ -94,7 +94,7 @@ for traj in all_trajectories:
     traj._needs_compilation = True
 
 # Define common methods for all trajectories
-def get_box(self, l1=0, l2=5):
+def get_box(self, l1=0, l2=10):
     box = BoundingBox()
     if l1 >= l2:
         raise ValueError("l1 must be smaller than l2!")

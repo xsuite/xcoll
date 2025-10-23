@@ -105,7 +105,14 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
     double c = 3*(xm*s1 - x1) - 3*(xm*cs1 - cx1);
     double d = (xm*s0 - x0) - (xm*s1 - x1);
     double t;
-    // Edge cases
+    // printf("I am here now?\n");
+    // printf("xm: %f, s0: %f, x0: %f\n", xm, s0, x0);
+    // printf("x1: %f, x2: %f, cx1: %f, cx2: %f\n", x1, x2, cx1, cx2);
+    // printf("s1: %f, s2: %f, cs1: %f, cs2: %f\n", s1, s2, cs1, cs2);
+    // printf("Cubic coefficients: a: %.15f, b: %.15f, c: %.15f, d: %.15f\n", a, b, c, d);
+    // // Edge cases
+    // printf("a: %-15f, b: %.15f, c: %.15f, d: %.15f\n", a, b, c, d);
+    // printf("XC_GEOM_EPSILON: %e\n", XC_GEOM_EPSILON);
     if (fabs(a) < XC_GEOM_EPSILON){
         if (fabs(b) < XC_GEOM_EPSILON){
             if (fabs(c) < XC_GEOM_EPSILON){
@@ -115,6 +122,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
                     //       Adapt if these ever would be implemented.
                     return;
                 } else {
+                    // printf("No solutions\n"); 
                     // No solutions
                     return;
                 }
@@ -130,6 +138,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
         } else {
             // This is a quadratic equation
             double disc = c*c - 4*b*d;
+            // printf("disc: %f\n", disc);
             if (disc < 0){
                 // No solutions
                 return;
@@ -137,6 +146,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
             for (int8_t i = 0; i < 2; i++) {
                 double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
                 t = (-c + sgnD*sqrt(fabs(disc)))/(2*b);
+                // printf("t: %f\n", t);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
                     DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
@@ -145,14 +155,17 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
             }
         }
     } else {
+        // printf("Going to full cubic solution\n");
         // Full cubic equation. Coefficients for the depressed cubic t^3 + p*t + q = 0:
         double p = (3*a*c - b*b)/(3*a*a);
         double q = (2*b*b*b - 9*a*b*c + 27*a*a*d)/(27*a*a*a);
         double disc = -p*p*p/27 - q*q/4;  // This is the discriminant of the depressed cubic but divided by (4*27)
+        // printf("p: %f, q: %f, disc: %f\n", p, q, disc);
         if (fabs(disc) < XC_GEOM_EPSILON){
             if (fabs(p) < XC_GEOM_EPSILON){
                 // One real root with multiplicity 3
                 t = -b/(3*a);
+                // printf("t : %f\n", t);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
                     DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
@@ -161,12 +174,14 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
             } else {
                 // Two real roots (one simple and one with multiplicity 2)
                 t = 3*q/p - b/(3*a);
+                // printf("real root t1: %f\n", t);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
                     DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
                     FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
                 }
                 t = -3*q/(2*p) - b/(3*a);
+                // printf("real root t2: %f\n", t);
                 if (0 <= t && t <= 1){
                     FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
                     DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
@@ -174,8 +189,10 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
                 }
             }
         } else if (disc < 0){
+            // printf("one real root case\n");
             // One real root
             t = cbrt(-q/2 + sqrt(fabs(disc))) + cbrt(-q/2 - sqrt(fabs(disc))) - b/(3*a);
+            // printf("real root t: %f\n", t);
             if (0 <= t && t <= 1){
                 FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
                 DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
@@ -183,6 +200,7 @@ void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTraje
             }
         } else {
             // Three real roots
+            // printf("three real roots case\n");
             double phi = acos(3*q/(2*p)*sqrt(fabs(3/p)));
             t = 2*sqrt(fabs(p/3))*cos(phi/3) - b/(3*a);
             if (0 <= t && t <= 1){
@@ -210,6 +228,7 @@ void LocalCrossing_func(LocalSegment seg, LocalTrajectory traj, double TS[2], do
     // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
     // TSs = Ts(l) - Ss(t)
     // TSx = Tx(l) - Sx(t)
+    //printf("Localcross: LocalSegment s: %f, x: %f\n", LocalSegment_func_s(seg, t), LocalSegment_func_x(seg, t));
     TS[0] = LocalTrajectory_func_s(traj, l) - LocalSegment_func_s(seg, t);
     TS[1] = LocalTrajectory_func_x(traj, l) - LocalSegment_func_x(seg, t);
 }
@@ -222,6 +241,10 @@ int8_t LocalCrossing_inv_J(LocalSegment seg, LocalTrajectory traj, double J_inv[
     J[1][0] = LocalTrajectory_deriv_x(traj, l); // get deriv. dxT/dl LocalTrajectory_deriv_x
     J[1][1] = -LocalSegment_deriv_x(seg, t);     // get deriv. dxS/dt LocalSegment_deriv_x
     double det = J[0][0] * J[1][1] - J[1][0]*J[0][1];
+    //printf("Determinant of Jacobian: %f\n", det);
+    //printf("Jacobian matrix:\n");
+    // printf("[[%f, %f],\n", J[0][0], J[0][1]);
+    // printf(" [%f, %f]]\n", J[1][0], J[1][1]);
     if (fabs(det) < XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL){
         return 0; // Failure, Jacobian is singular
     }
@@ -242,7 +265,11 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
     int8_t converged;
 
     for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
+        // if (i == 3){
+        //     return;
+        // }
         LocalCrossing_func(seg, traj, TS, guess_t, guess_l);
+        //printf("Iteration %d: t = %f, l = %f, TSs = %f, TSx = %f\n", i, guess_t, guess_l, TS[0], TS[1]);
         converged = LocalCrossing_inv_J(seg, traj, J_inv, guess_t, guess_l);
         if (converged != 1){
             printf("Jacobian is singular. Stopping Newton's method.\n");
@@ -277,49 +304,120 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
     printf("Last guess: t = %f, l = %f\n", guess_t, guess_l);
     FindRoot_set_solution_t(finder, num, 1.e21);
     FindRoot_set_solution_l(finder, num, 1.e21);
+    FindRoot_set_num_solutions(finder, 0);
     FindRoot_set_converged(finder, num, converged);
 }
 // TODO: make this more clean pls
 int8_t XC_SLICING_NUM_STEPS = 4;
 int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 
+// /*gpufun*/
+// void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
+//                          double t1, double t2, double l1, double l2, int8_t nest_level){
+//     // Prepare initial guesses for Newton-Raphson root finding
+//     BoundingBox_ _box_seg = {0};
+//     BoundingBox_ _box_traj = {0};
+//     BoundingBox box_seg  = &_box_seg;
+//     BoundingBox box_traj = &_box_traj;
+//     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
+//     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
+//     double t, l;
+//     int16_t num;
+//     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
+//         t = t1 + i * t_step;
+//         LocalSegment_update_box(seg, box_seg, t, t + t_step);
+//         for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
+//             l = l1 + j * l_step;
+//             LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
+//             if (BoundingBox_overlaps(box_seg, box_traj)){
+//                 if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
+//                     // We reached the maximum nesting level, return the midpoint of the current t-interval
+//                     if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+//                         printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
+//                         fflush(stdout);
+//                         return;
+//                     }
+//                     num = FindRoot_get_num_solutions(finder);
+//                     printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
+//                     fflush(stdout);
+//                     FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
+//                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
+//                     FindRoot_set_num_solutions(finder, num + 1);
+//                     //t_step = (t2 - t) / XC_SLICING_NUM_STEPS; // reset t_step in order to avoid duplicates due to size of boxes
+//                     //l_step = (l2 - l) / XC_SLICING_NUM_STEPS; // reset l_step
+//                 } else {
+//                     slice_before_newton(finder, seg, traj, t, t + t_step, l, l + l_step, nest_level + 1);
+//                 }
+//             }
+//         }
+//     }
+//     return;
+// }
+
 /*gpufun*/
-void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
-                         double t1, double t2, double l1, double l2, int8_t nest_level){
+void _slice_before_newton_t(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
+                         double t1, double t2, BoundingBox box_seg, BoundingBox box_traj, int8_t nest_level_t, int16_t num){
+    double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
+    double t;
+    //int16_t num;
+    for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
+        t = t1 + i * t_step;
+        if (t > 1.0){
+            printf("t exceeded 1.0: t = %f\n", t);
+        }
+        LocalSegment_update_box(seg, box_seg, t, t + t_step);
+        if (BoundingBox_overlaps(box_seg, box_traj)){
+            if (nest_level_t >= XC_SLICING_MAX_NEST_LEVEL - 1){
+                // We reached the maximum nesting level, return the midpoint of the current t-interval
+                if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+                    printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
+                    fflush(stdout);
+                    return;
+                }
+                num = FindRoot_get_num_solutions(finder);
+                FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
+                //FindRoot_set_num_solutions(finder, num + 1);
+            } else {
+                _slice_before_newton_t(finder, seg, traj, t, t + t_step, box_seg, box_traj, nest_level_t + 1, num);
+            }
+        }
+    }
+    return;
+}
+/*gpufun*/
+void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double l1, double l2, int8_t nest_level){
     // Prepare initial guesses for Newton-Raphson root finding
+    // ideally we would want to check with an overlap first, but difficult due to initiation of boxes here.
     BoundingBox_ _box_seg = {0};
     BoundingBox_ _box_traj = {0};
     BoundingBox box_seg  = &_box_seg;
     BoundingBox box_traj = &_box_traj;
-    double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
+    LocalSegment_update_box(seg, box_seg, 0, 1);
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
-    double t, l;
+    double l;
     int16_t num;
-    for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
-        t = t1 + i * t_step;
-        LocalSegment_update_box(seg, box_seg, t, t + t_step);
-        for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
-            l = l1 + j * l_step;
-            LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
-            if (BoundingBox_overlaps(box_seg, box_traj)){
-                if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
-                    // We reached the maximum nesting level, return the midpoint of the current t-interval
-                    if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
-                        printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
-                        fflush(stdout);
-                        return;
-                    }
-                    num = FindRoot_get_num_solutions(finder);
-                    printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
+    for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
+        l = l1 + j * l_step;
+        LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
+        if (BoundingBox_overlaps(box_seg, box_traj)){
+            if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
+                // We reached the maximum nesting level, return the midpoint of the current l-interval
+                if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+                    printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
                     fflush(stdout);
-                    FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
+                    return;
+                }
+                num = FindRoot_get_num_solutions(finder);
+                // the box is around the intersection found with l, so there is no risk of mixing the solutions.
+                _slice_before_newton_t(finder, seg, traj, 0, 1., box_seg, box_traj, 0, num);
+                if (FindRoot_get_guess_t(finder, num) > 1e20){
+                    continue;
+                } else {
                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
                     FindRoot_set_num_solutions(finder, num + 1);
-                    t_step = (t2 - t) / XC_SLICING_NUM_STEPS; // reset t_step in order to avoid duplicates due to size of boxes
-                    l_step = (l2 - l) / XC_SLICING_NUM_STEPS; // reset l_step
-                } else {
-                    slice_before_newton(finder, seg, traj, t, t + t_step, l, l + l_step, nest_level + 1);
                 }
+            } else {
+                slice_before_newton(finder, seg, traj, l, l + l_step, nest_level + 1);
             }
         }
     }
@@ -329,9 +427,10 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
 /*gpufun*/
 void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
     printf("Finding crossing approximately...\n");
-    slice_before_newton(finder, seg, traj, 0, 1, 0, 10, 0); // this does not work, its a bad solution beacause scaling changed other stuff
+    slice_before_newton(finder, seg, traj, 0, 1, 0); // this does not work, its a bad solution beacause scaling changed other stuff
+    printf("Number of initial guesses found: %d\n", FindRoot_get_num_solutions(finder));
     // int8_t num_found = FindRoot_get_num_solutions(finder);
-    for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){
+    for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){ //Todo use something else than num solutions so that we can update in newton
         double guess_t = FindRoot_get_guess_t(finder, i);
         double guess_l = FindRoot_get_guess_l(finder, i);
         FindRoot_newton(finder, seg, traj, guess_t, guess_l, i);

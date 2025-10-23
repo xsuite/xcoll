@@ -164,9 +164,9 @@ def get_box(self, t1=0, t2=1):
             raise ValueError("t1 must be in [0, 10] for HalfOpenLineSegment!")
     else:
         if t1 < 0 or t1 > 1:
-            raise ValueError("t1 must be in [0, 1]!!")
+            raise ValueError(f"t1 must be in [0, 1], not {t1}!")
         if t2 < 0 or t2 > 1:
-            raise ValueError("t2 must be in [0, 1]!!")
+            raise ValueError(f"t2 must be in [0, 1], not {t2}!")
     self.update_box(seg=self, box=box, t1=t1, t2=t2)
     return box
 
