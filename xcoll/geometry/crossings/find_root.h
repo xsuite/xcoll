@@ -263,7 +263,7 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
     double corr0, corr1;
     double new_t, new_l;
     int8_t converged;
-
+    printf("Initial guess l: %f, t: %f\n", guess_l, guess_t);
     for (int i = 0; i < XC_GEOM_ROOT_NEWTON_MAX_ITER; i++){
         // if (i == 3){
         //     return;
@@ -309,128 +309,134 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
 }
 // TODO: make this more clean pls
 int8_t XC_SLICING_NUM_STEPS = 4;
-int8_t XC_SLICING_MAX_NEST_LEVEL = 4;
+int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
+
+/*gpufun*/
+void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
+                         double t1, double t2, double l1, double l2, int8_t nest_level){
+    // Prepare initial guesses for Newton-Raphson root finding
+    BoundingBox_ _box_seg = {0};
+    BoundingBox_ _box_traj = {0};
+    BoundingBox box_seg  = &_box_seg;
+    BoundingBox box_traj = &_box_traj;
+    double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
+    double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
+    double t, l;
+    int16_t num;
+    for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
+        t = t1 + i * t_step;
+        LocalSegment_update_box(seg, box_seg, t, t + t_step);
+        for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
+            l = l1 + j * l_step;
+            LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
+            if (BoundingBox_overlaps(box_seg, box_traj)){
+                if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
+                    // We reached the maximum nesting level, return the midpoint of the current t-interval
+                    if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+                        printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
+                        fflush(stdout);
+                        return;
+                    }
+                    num = FindRoot_get_num_solutions(finder);
+                    printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
+                    fflush(stdout);
+                    int8_t is_duplicate = 1;
+                    for (int k = 0; k < num; k++) {
+                        double dt = fabs(FindRoot_get_guess_t(finder, k) - (t + 0.5 * t_step));
+                        double dl = fabs(FindRoot_get_guess_l(finder, k) - (l + 0.5 * l_step));
+                        printf("dt, dl, t + t_step, l + l_step: %f, %f, %f, %f\n", dt, dl, 0.5 * t_step, 0.5 * l_step);
+                        if (dt < (0.5 * t_step) || dl < (0.5 * l_step)) { // same region
+                            is_duplicate = 0;
+                            printf("Duplicate guess found (dt: %f, dl: %f). Skipping.\n", dt, dl);
+                            break;
+                        }
+                    }
+                    if (is_duplicate == 0){
+                        printf("should not save this guess at (i,j) = (%d, %d)\n", i, j);
+                        continue;
+                    } else {
+                        printf("saved guess t = %f, l = %f at index %d\n", t + 0.5 * t_step, l + 0.5 * l_step, num);
+                        FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
+                        FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
+                        FindRoot_set_num_solutions(finder, num + 1);
+                    } 
+                    //t_step = (t2 - t) / XC_SLICING_NUM_STEPS; // reset t_step in order to avoid duplicates due to size of boxes
+                    //l_step = (l2 - l) / XC_SLICING_NUM_STEPS; // reset l_step
+                } else {
+                    slice_before_newton(finder, seg, traj, t, t + t_step, l, l + l_step, nest_level + 1);
+                }
+            }
+        }
+    }
+    return;
+}
 
 // /*gpufun*/
-// void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
-//                          double t1, double t2, double l1, double l2, int8_t nest_level){
-//     // Prepare initial guesses for Newton-Raphson root finding
-//     BoundingBox_ _box_seg = {0};
-//     BoundingBox_ _box_traj = {0};
-//     BoundingBox box_seg  = &_box_seg;
-//     BoundingBox box_traj = &_box_traj;
+// void _slice_before_newton_t(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
+//                          double t1, double t2, BoundingBox box_seg, BoundingBox box_traj, int8_t nest_level_t, int16_t num){
 //     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
-//     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
-//     double t, l;
-//     int16_t num;
+//     double t;
+//     //int16_t num;
 //     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
 //         t = t1 + i * t_step;
 //         LocalSegment_update_box(seg, box_seg, t, t + t_step);
-//         for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
-//             l = l1 + j * l_step;
-//             LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
-//             if (BoundingBox_overlaps(box_seg, box_traj)){
-//                 if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
-//                     // We reached the maximum nesting level, return the midpoint of the current t-interval
-//                     if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
-//                         printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
-//                         fflush(stdout);
-//                         return;
-//                     }
-//                     num = FindRoot_get_num_solutions(finder);
-//                     printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
+//         if (BoundingBox_overlaps(box_seg, box_traj)){
+//             if (nest_level_t >= XC_SLICING_MAX_NEST_LEVEL - 1){
+//                 // We reached the maximum nesting level, return the midpoint of the current t-interval
+//                 if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+//                     printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
 //                     fflush(stdout);
-//                     bool is_duplicate = false;
-//                     for (int k = 0; k < num; k++) {
-//                         double dt = fabs(FindRoot_get_guess_t(finder, k) - (t + 0.5 * t_step));
-//                         double dl = fabs(FindRoot_get_guess_l(finder, k) - (l + 0.5 * l_step));
-//                         if (dt < 0.5 * t_step && dl < 0.5 * l_step) { // same region
-//                             is_duplicate = true;
-//                             break;
-//                         }
-//                     }
-//                     if (is_duplicate)
-//                         continue;
-//                     FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
-//                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
-//                     FindRoot_set_num_solutions(finder, num + 1);
-//                     //t_step = (t2 - t) / XC_SLICING_NUM_STEPS; // reset t_step in order to avoid duplicates due to size of boxes
-//                     //l_step = (l2 - l) / XC_SLICING_NUM_STEPS; // reset l_step
-//                 } else {
-//                     slice_before_newton(finder, seg, traj, t, t + t_step, l, l + l_step, nest_level + 1);
+//                     return;
 //                 }
+//                 num = FindRoot_get_num_solutions(finder);
+//                 FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
+//                 //FindRoot_set_num_solutions(finder, num + 1);
+//             } else {
+//                 _slice_before_newton_t(finder, seg, traj, t, t + t_step, box_seg, box_traj, nest_level_t + 1, num);
 //             }
 //         }
 //     }
 //     return;
 // }
-
-/*gpufun*/
-void _slice_before_newton_t(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
-                         double t1, double t2, BoundingBox box_seg, BoundingBox box_traj, int8_t nest_level_t, int16_t num){
-    double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
-    double t;
-    //int16_t num;
-    for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
-        t = t1 + i * t_step;
-        LocalSegment_update_box(seg, box_seg, t, t + t_step);
-        if (BoundingBox_overlaps(box_seg, box_traj)){
-            if (nest_level_t >= XC_SLICING_MAX_NEST_LEVEL - 1){
-                // We reached the maximum nesting level, return the midpoint of the current t-interval
-                if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
-                    printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
-                    fflush(stdout);
-                    return;
-                }
-                num = FindRoot_get_num_solutions(finder);
-                FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
-                //FindRoot_set_num_solutions(finder, num + 1);
-            } else {
-                _slice_before_newton_t(finder, seg, traj, t, t + t_step, box_seg, box_traj, nest_level_t + 1, num);
-            }
-        }
-    }
-    return;
-}
-/*gpufun*/
-void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double l1, double l2, double t2, int8_t nest_level){
-    // Prepare initial guesses for Newton-Raphson root finding
-    // ideally we would want to check with an overlap first, but difficult due to initiation of boxes here.
-    BoundingBox_ _box_seg = {0};
-    BoundingBox_ _box_traj = {0};
-    BoundingBox box_seg  = &_box_seg;
-    BoundingBox box_traj = &_box_traj;
-    LocalSegment_update_box(seg, box_seg, 0, t2);
-    double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
-    double l;
-    int16_t num;
-    for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
-        l = l1 + j * l_step;
-        LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
-        if (BoundingBox_overlaps(box_seg, box_traj)){
-            if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
-                // We reached the maximum nesting level, return the midpoint of the current l-interval
-                if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
-                    printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
-                    fflush(stdout);
-                    return;
-                }
-                num = FindRoot_get_num_solutions(finder);
-                // the box is around the intersection found with l, so there is no risk of mixing the solutions.
-                _slice_before_newton_t(finder, seg, traj, 0, t2, box_seg, box_traj, 0, num);
-                if (FindRoot_get_guess_t(finder, num) > 1e20){
-                    continue;
-                } else {
-                    FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
-                    FindRoot_set_num_solutions(finder, num + 1);
-                }
-            } else {
-                slice_before_newton(finder, seg, traj, l, l + l_step, t2, nest_level + 1);
-            }
-        }
-    }
-    return;
-}
+// /*gpufun*/
+// void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double l1, double l2, double t2, int8_t nest_level){
+//     // Prepare initial guesses for Newton-Raphson root finding
+//     // ideally we would want to check with an overlap first, but difficult due to initiation of boxes here.
+//     BoundingBox_ _box_seg = {0};
+//     BoundingBox_ _box_traj = {0};
+//     BoundingBox box_seg  = &_box_seg;
+//     BoundingBox box_traj = &_box_traj;
+//     LocalSegment_update_box(seg, box_seg, 0, t2);
+//     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
+//     double l;
+//     int16_t num;
+//     for (int j = 0; j < XC_SLICING_NUM_STEPS; j++){
+//         l = l1 + j * l_step;
+//         LocalTrajectory_update_box(traj, box_traj, l, l + l_step);
+//         if (BoundingBox_overlaps(box_seg, box_traj)){
+//             if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
+//                 // We reached the maximum nesting level, return the midpoint of the current l-interval
+//                 if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
+//                     printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
+//                     fflush(stdout);
+//                     return;
+//                 }
+//                 num = FindRoot_get_num_solutions(finder);
+//                 // the box is around the intersection found with l, so there is no risk of mixing the solutions.
+//                 _slice_before_newton_t(finder, seg, traj, 0, t2, box_seg, box_traj, 0, num);
+//                 if (FindRoot_get_guess_t(finder, num) > 1e20){
+//                     continue;
+//                 } else {
+//                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
+//                     FindRoot_set_num_solutions(finder, num + 1);
+//                 }
+//             } else {
+//                 slice_before_newton(finder, seg, traj, l, l + l_step, t2, nest_level + 1);
+//             }
+//         }
+//     }
+//     return;
+// }
 
 /*gpufun*/
 void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
@@ -444,7 +450,7 @@ void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajector
             t2 = 1.0;
             break;
     }
-    slice_before_newton(finder, seg, traj, 0, 10, t2, 0); // this does not work, its a bad solution beacause scaling changed other stuff
+    slice_before_newton(finder, seg, traj, 0, 10, 0, 1, 0);// t2, 0); // this does not work, its a bad solution beacause scaling changed other stuff
     printf("Number of initial guesses found: %d\n", FindRoot_get_num_solutions(finder));
     // int8_t num_found = FindRoot_get_num_solutions(finder);
     for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){ //Todo use something else than num solutions so that we can update in newton
