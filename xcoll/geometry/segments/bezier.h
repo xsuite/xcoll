@@ -41,7 +41,10 @@ double BezierSegment_deriv_s(BezierSegment seg, double t){
     double s2  = BezierSegment_get__s2(seg);
     double cs1 = BezierSegment_get__cs1(seg);
     double cs2 = BezierSegment_get__cs2(seg);
-    return -3*(1-t)*(1-t)*s1 + (1-t)*(1-3*t)*cs1 + (2-3*t)*t*cs2 + 3*t*t*s2;
+    //printf("inside bezier.h, s1: %f, s2: %f, cs1: %f, cs2: %f, t: %f\n", s1, s2, cs1, cs2, t);
+    //printf("and the return is: %f\n", -3*(1-t)*(1-t)*s1 + (1-t)*(1-3*t)*cs1 + (2-3*t)*t*cs2 + 3*t*t*s2);
+    //return -3*(1-t)*(1-t)*s1 + (1-t)*(1-3*t)*cs1 + (2-3*t)*t*cs2 + 3*t*t*s2;
+    return 3 * s2 * t * t - 3 * cs2 * t * t + 6 * cs2 * (1 - t) * t - 6 * cs1 * (1 - t) * t - 3 * s1 * (1 - t) * (1 - t) + 3 * cs1 * (1 - t) * (1 - t);
 }
 
 /*gpufun*/
@@ -50,7 +53,8 @@ double BezierSegment_deriv_x(BezierSegment seg, double t){
     double x2  = BezierSegment_get__x2(seg);
     double cx1 = BezierSegment_get__cx1(seg);
     double cx2 = BezierSegment_get__cx2(seg);
-    return -3*(1-t)*(1-t)*x1 + (1-t)*(1-3*t)*cx1 + (2-3*t)*t*cx2 + 3*t*t*x2;
+    //return -3*(1-t)*(1-t)*x1 + (1-t)*(1-3*t)*cx1 + (2-3*t)*t*cx2 + 3*t*t*x2;
+    return 3 * x2 * t * t - 3 * cx2 * t * t + 6 * cx2 * (1 - t) * t - 6 * cx1 * (1 - t) * t - 3 * x1 * (1 - t) * (1 - t) + 3 * cx1 * (1 - t) * (1 - t);
 }
 
 /*gpufun*/
