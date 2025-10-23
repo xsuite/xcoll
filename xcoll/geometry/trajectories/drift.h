@@ -80,8 +80,6 @@ void DriftTrajectory_update_box(DriftTrajectory traj, BoundingBox box, double l1
         fflush(stdout);
         return;
     }
-    int8_t _SCALE_FACTOR = 10.;
-    l2 = l2/_SCALE_FACTOR;
     double s1 = DriftTrajectory_func_s(traj, l1);
     double s2 = DriftTrajectory_func_s(traj, l2);
     double x1 = DriftTrajectory_func_x(traj, l1);

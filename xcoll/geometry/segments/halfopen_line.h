@@ -46,6 +46,7 @@ double HalfOpenLineSegment_deriv_x(HalfOpenLineSegment seg, double t){
 /*gpufun*/
 void HalfOpenLineSegment_update_box(HalfOpenLineSegment seg, BoundingBox box, double t1, double t2){
     // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    printf("t1: %f, t2: %f\n", t1, t2);
     if (t1 >= t2){
         printf("t1 must be smaller than t2!\n");
         fflush(stdout);
@@ -61,8 +62,6 @@ void HalfOpenLineSegment_update_box(HalfOpenLineSegment seg, BoundingBox box, do
         fflush(stdout);
         return;
     }
-    int8_t _SCALE_FACTOR = 10.;
-    t2 = t2 /_SCALE_FACTOR;
     double s1 = HalfOpenLineSegment_func_s(seg, t1);
     double s2 = HalfOpenLineSegment_func_s(seg, t2);
     double x1 = HalfOpenLineSegment_func_x(seg, t1);

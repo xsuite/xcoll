@@ -309,7 +309,7 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
 }
 // TODO: make this more clean pls
 int8_t XC_SLICING_NUM_STEPS = 4;
-int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
+int8_t XC_SLICING_MAX_NEST_LEVEL = 4;
 
 // /*gpufun*/
 // void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
@@ -340,6 +340,17 @@ int8_t XC_SLICING_MAX_NEST_LEVEL = 3;
 //                     num = FindRoot_get_num_solutions(finder);
 //                     printf("Guess found at i,j: %d, %d (nest level %d). t = %f, l = %f\n", i, j, nest_level, t + 0.5 * t_step, l + 0.5 * l_step);
 //                     fflush(stdout);
+//                     bool is_duplicate = false;
+//                     for (int k = 0; k < num; k++) {
+//                         double dt = fabs(FindRoot_get_guess_t(finder, k) - (t + 0.5 * t_step));
+//                         double dl = fabs(FindRoot_get_guess_l(finder, k) - (l + 0.5 * l_step));
+//                         if (dt < 0.5 * t_step && dl < 0.5 * l_step) { // same region
+//                             is_duplicate = true;
+//                             break;
+//                         }
+//                     }
+//                     if (is_duplicate)
+//                         continue;
 //                     FindRoot_set_guess_t(finder, num, t + 0.5 * t_step);
 //                     FindRoot_set_guess_l(finder, num, l + 0.5 * l_step);
 //                     FindRoot_set_num_solutions(finder, num + 1);
@@ -362,9 +373,6 @@ void _slice_before_newton_t(FindRoot finder, LocalSegment seg, LocalTrajectory t
     //int16_t num;
     for (int i = 0; i < XC_SLICING_NUM_STEPS; i++){
         t = t1 + i * t_step;
-        if (t > 1.0){
-            printf("t exceeded 1.0: t = %f\n", t);
-        }
         LocalSegment_update_box(seg, box_seg, t, t + t_step);
         if (BoundingBox_overlaps(box_seg, box_traj)){
             if (nest_level_t >= XC_SLICING_MAX_NEST_LEVEL - 1){
@@ -385,14 +393,14 @@ void _slice_before_newton_t(FindRoot finder, LocalSegment seg, LocalTrajectory t
     return;
 }
 /*gpufun*/
-void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double l1, double l2, int8_t nest_level){
+void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, double l1, double l2, double t2, int8_t nest_level){
     // Prepare initial guesses for Newton-Raphson root finding
     // ideally we would want to check with an overlap first, but difficult due to initiation of boxes here.
     BoundingBox_ _box_seg = {0};
     BoundingBox_ _box_traj = {0};
     BoundingBox box_seg  = &_box_seg;
     BoundingBox box_traj = &_box_traj;
-    LocalSegment_update_box(seg, box_seg, 0, 1);
+    LocalSegment_update_box(seg, box_seg, 0, t2);
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double l;
     int16_t num;
@@ -409,7 +417,7 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
                 }
                 num = FindRoot_get_num_solutions(finder);
                 // the box is around the intersection found with l, so there is no risk of mixing the solutions.
-                _slice_before_newton_t(finder, seg, traj, 0, 1., box_seg, box_traj, 0, num);
+                _slice_before_newton_t(finder, seg, traj, 0, t2, box_seg, box_traj, 0, num);
                 if (FindRoot_get_guess_t(finder, num) > 1e20){
                     continue;
                 } else {
@@ -417,7 +425,7 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
                     FindRoot_set_num_solutions(finder, num + 1);
                 }
             } else {
-                slice_before_newton(finder, seg, traj, l, l + l_step, nest_level + 1);
+                slice_before_newton(finder, seg, traj, l, l + l_step, t2, nest_level + 1);
             }
         }
     }
@@ -427,7 +435,16 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
 /*gpufun*/
 void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
     printf("Finding crossing approximately...\n");
-    slice_before_newton(finder, seg, traj, 0, 1, 0); // this does not work, its a bad solution beacause scaling changed other stuff
+    double t2;
+    switch (LocalSegment_typeid(seg)){
+        case LocalSegment_HalfOpenLineSegment_t:
+            t2 = 10; // Half-open segment, we set an arbitrary large value
+            break;
+        default:
+            t2 = 1.0;
+            break;
+    }
+    slice_before_newton(finder, seg, traj, 0, 10, t2, 0); // this does not work, its a bad solution beacause scaling changed other stuff
     printf("Number of initial guesses found: %d\n", FindRoot_get_num_solutions(finder));
     // int8_t num_found = FindRoot_get_num_solutions(finder);
     for (int i = 0; i < FindRoot_get_num_solutions(finder); i++){ //Todo use something else than num solutions so that we can update in newton
