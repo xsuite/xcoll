@@ -65,7 +65,7 @@ def track_pre(coll, particles):
 def track_post(coll, particles):
     _drift(coll, particles, -coll.length_back)
     alive_states = np.unique(particles.state[particles.state > 0])
-    if alive_states:
+    if alive_states.size>0:
         assert len(alive_states) == 1, f"Unexpected alive particle states after tracking: {alive_states}"
         assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
 
