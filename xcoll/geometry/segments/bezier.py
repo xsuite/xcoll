@@ -50,15 +50,15 @@ class BezierSegment(xo.Struct):
 
     _max_crossings = {DriftTrajectory: 3, MultipleCoulombTrajectory: 6} #CircularTrajectory: 6
 
-    def __init__(self, *, s1, x1, s2, x2, cs1, cx1, cs2, cx2, **kwargs):
-        kwargs['_s1'] = s1
-        kwargs['_x1'] = x1
-        kwargs['_s2'] = s2
-        kwargs['_x2'] = x2
-        kwargs['_cs1'] = cs1
-        kwargs['_cx1'] = cx1
-        kwargs['_cs2'] = cs2
-        kwargs['_cx2'] = cx2
+    def __init__(self, *args, **kwargs):#*, s1, x1, s2, x2, cs1, cx1, cs2, cx2, **kwargs):
+        kwargs['_s1'] = kwargs['s1']
+        kwargs['_x1'] = kwargs['x1']
+        kwargs['_s2'] = kwargs['s2']
+        kwargs['_x2'] = kwargs['x2']
+        kwargs['_cs1'] = kwargs['cs1']
+        kwargs['_cx1'] = kwargs['cx1']
+        kwargs['_cs2'] = kwargs['cs2']
+        kwargs['_cx2'] = kwargs['cx2']
         super().__init__(**kwargs)
         self.calculate_extrema()
 
