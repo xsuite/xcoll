@@ -1,36 +1,142 @@
 #include <stdint.h>
-#ifndef XOBJ_TYPEDEF_Arr2Float64
-#define XOBJ_TYPEDEF_Arr2Float64
-typedef   struct Arr2Float64_s * Arr2Float64;
- static inline Arr2Float64 Arr2Float64_getp(Arr2Float64 restrict  obj){
+#ifndef XOBJ_TYPEDEF_BoundingBox
+#define XOBJ_TYPEDEF_BoundingBox
+typedef   struct BoundingBox_s * BoundingBox;
+ static inline BoundingBox BoundingBox_getp(BoundingBox restrict  obj){
   int64_t offset=0;
-  return (Arr2Float64)(( char*) obj+offset);
+  return (BoundingBox)(( char*) obj+offset);
 }
- static inline int64_t Arr2Float64_len(Arr2Float64 restrict  obj){
-  return 2;
-}
- static inline double Arr2Float64_get(const Arr2Float64 restrict  obj, int64_t i0){
+ static inline double BoundingBox_get_rC(const BoundingBox restrict  obj){
   int64_t offset=0;
-  offset+=i0*8;
   return *( double*)(( char*) obj+offset);
 }
- static inline void Arr2Float64_set(Arr2Float64 restrict  obj, int64_t i0, double value){
+ static inline void BoundingBox_set_rC(BoundingBox restrict  obj, double value){
   int64_t offset=0;
-  offset+=i0*8;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* Arr2Float64_getp1(Arr2Float64 restrict  obj, int64_t i0){
+ static inline  double* BoundingBox_getp_rC(BoundingBox restrict  obj){
   int64_t offset=0;
-  offset+=i0*8;
   return ( double*)(( char*) obj+offset);
 }
-#endif
-#ifndef XOBJ_TYPEDEF_GeomCInit
-#define XOBJ_TYPEDEF_GeomCInit
-typedef   struct GeomCInit_s * GeomCInit;
- static inline GeomCInit GeomCInit_getp(GeomCInit restrict  obj){
+ static inline double BoundingBox_get_sin_tC(const BoundingBox restrict  obj){
   int64_t offset=0;
-  return (GeomCInit)(( char*) obj+offset);
+  offset+=8;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_sin_tC(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=8;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_sin_tC(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=8;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_cos_tC(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=16;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_cos_tC(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=16;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_cos_tC(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=16;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_proj_l(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=24;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_proj_l(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=24;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_proj_l(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=24;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_proj_w(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=32;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_proj_w(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=32;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_proj_w(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=32;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_l(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=40;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_l(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=40;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_l(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=40;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_w(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=48;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_w(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=48;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_w(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=48;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_sin_tb(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=56;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_sin_tb(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=56;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_sin_tb(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=56;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double BoundingBox_get_cos_tb(const BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=64;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void BoundingBox_set_cos_tb(BoundingBox restrict  obj, double value){
+  int64_t offset=0;
+  offset+=64;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* BoundingBox_getp_cos_tb(BoundingBox restrict  obj){
+  int64_t offset=0;
+  offset+=64;
+  return ( double*)(( char*) obj+offset);
 }
 #endif
 
@@ -41,19 +147,49 @@ typedef   struct GeomCInit_s * GeomCInit;
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef XC_EPSILON
-#define XC_EPSILON 1e-15
+#ifndef XC_GEOM_EPSILON
+#define XC_GEOM_EPSILON 1e-15
 #endif
 
-#ifndef XC_S_MAX
-#define XC_S_MAX 1e+21
+#ifndef XC_GEOM_S_MAX
+#define XC_GEOM_S_MAX 1e+21
 #endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_EPSILON
+#define XC_GEOM_ROOT_NEWTON_EPSILON 1e-10
+#endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_MAX_ITER
+#define XC_GEOM_ROOT_NEWTON_MAX_ITER 100
+#endif
+
+#ifndef XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL
+#define XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL 1e-10
+#endif
+
+#ifndef XC_GEOM_ROOT_GRID_MAX_INTER
+#define XC_GEOM_ROOT_GRID_MAX_INTER 10
+#endif
+
+#ifndef XC_GEOM_ROOT_GRID_POINTS
+#define XC_GEOM_ROOT_GRID_POINTS 1000
+#endif
+
+#ifndef XC_GEOM_SIMPSON_SUBINTERVALS
+#define XC_GEOM_SIMPSON_SUBINTERVALS 500
+#endif
+
 
 #endif /* XCOLL_GEOM_DEFINES_H */
 
+
+#ifndef XCOLL_GEOM_BOUNDING_BOX_DEF
+typedef struct BoundingBox_s { char _data[72];} BoundingBox_;
+#endif /* XCOLL_GEOM_BOUNDING_BOX_DEF */
+
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
 #ifndef XCOLL_GEOM_SORT_H
@@ -82,6 +218,11 @@ typedef   struct GeomCInit_s * GeomCInit;
 #define SWAP(d,x,y) ({const __typeof__(*d) _x = MIN(d[x], d[y]); \
                       const __typeof__(*d) _y = MAX(d[x], d[y]); \
                       d[x] = _x; d[y] = _y; })
+#ifdef INTERVALS_OVERLAP
+#undef INTERVALS_OVERLAP
+#pragma message ("Xcoll geometry: Compiler macro INTERVALS_OVERLAP redefined")
+#endif
+#define INTERVALS_OVERLAP(minA, maxA, minB, maxB) (((maxA) >= (minB)) && ((maxB) >= (minA)))
 
 
 // Fast methods
@@ -233,1331 +374,535 @@ static inline void sort_array_of_int64(int64_t* arr, int64_t length){
 #endif /* XCOLL_GEOM_SORT_H */
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
-#ifndef XCOLL_GEOM_METHODS_H
-#define XCOLL_GEOM_METHODS_H
+#ifndef XCOLL_GEOM_BOUNDING_BOX_H
 
-// This function calculates the overlap between an array and a given interval.
-// The array comes in pairs of points, e.g. in-out-in-out... or out-in-out-in...
-// IMPORTANT:
-// The array and interval are assumed to be sorted!
-// Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
-// This is always true for the arrays created by get_s, as we create them with 2*n_segments slots.
+
  static inline
-void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
-    if (arr[0] > interval[1]){
-        // No overlap
-        *length = 0;
-    }
-    if ((*length)%2 == 1){
-        // Special case: last interval of array is open until infinity,
-        // so we add an extra point at the end to represent infinity.
-        arr[*length] = XC_S_MAX*0.1;
-        (*length)++;
-    } else if (arr[*length-1] < interval[0]){
-        // No overlap
-        *length = 0;
-    }
-    int8_t i_start = 0;
-    // Find the start of overlap
-    for (int8_t i=0; i<*length; i++){
-        if (arr[i] >= interval[0]){
-            if (i%2 == 0){
-                // This is the first point of overlap
-                i_start = i;
-            } else {
-                // The vertical restriction is the first point of overlap
-                i_start = i-1;
-                arr[i_start] = interval[0];
-            }
-            break;
-        }
-    }
-    // Find the end of overlap
-    int8_t i_stop = *length - 1;
-    for (int8_t i=0; i<*length; i++){
-        if (arr[i] >= interval[1]){
-            if (i%2 == 0){
-                // The previous point is the last point of overlap
-                i_stop = i-1;
-            } else {
-                // The vertical restriction is the first point of overlap
-                i_stop = i;
-                arr[i_stop] = interval[1];
-            }
-            break;
-        }
-    }
-    *length = i_stop - i_start + 1;
-    if (i_start > 0){
-        for (int8_t i=0; i<*length; i++){
-            arr[i] = arr[i+i_start];
-        }
-    }
+void BoundingBox_sync(BoundingBox box){
+    double rC     = BoundingBox_get_rC(box);
+    double sin_tb = BoundingBox_get_sin_tb(box);
+    double cos_tb = BoundingBox_get_cos_tb(box);
+    double sin_tC = BoundingBox_get_sin_tC(box);
+    double cos_tC = BoundingBox_get_cos_tC(box);
+    double proj_l = rC * (cos_tb*cos_tC + sin_tb*sin_tC); // projection of position vector on length
+    BoundingBox_set_proj_l(box, proj_l);
+    double proj_w = rC * (cos_tb*sin_tC - sin_tb*cos_tC); // projection of position vector on width
+    BoundingBox_set_proj_w(box, proj_w);
 }
 
 
-#endif /* XCOLL_GEOM_METHODS_H */
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
-
-#ifndef XCOLL_GEOM_FIND_ROOT_H
-#define XCOLL_GEOM_FIND_ROOT_H
-
-#define XC_NEWTON_EPSILON 1.e-10
-#define XC_NEWTON_MAX_ITER 100  // Maximum number of iterations
-#define XC_NEWTON_DERIVATIVE_TOL 1e-10  // Threshold for small derivative
-
-
-// Function to compute the value of the cubic equation at t
  static inline
-double _bezier_cubic(double t, double a, double b, double c, double d) {
-    return a*t*t*t + b*t*t + c*t + d;
+void BoundingBox_set(BoundingBox box, double rC, double sin_tC, double cos_tC,
+                     double l, double w, double sin_tb, double cos_tb){
+    BoundingBox_set_rC(box, rC);
+    BoundingBox_set_sin_tC(box, sin_tC);
+    BoundingBox_set_cos_tC(box, cos_tC);
+    BoundingBox_set_l(box, l);
+    BoundingBox_set_w(box, w);
+    BoundingBox_set_sin_tb(box, sin_tb);
+    BoundingBox_set_cos_tb(box, cos_tb);
+    BoundingBox_sync(box);
 }
 
-// Derivative of the cubic function
+
  static inline
-double _bezier_cubic_prime(double t, double a, double b, double c) {
-    return 3*a*t*t + 2*b*t + c;
-}
+int8_t BoundingBox_overlaps(BoundingBox b1, BoundingBox b2){ // double overlaps[8]){
+    // v1-v4 are the four vertices of the first box in counterclockwise order
+    // w1-w4 are the four vertices of the second box in counterclockwise order
+    // e1-e2 are the two axes of the first box
+    // f1-f2 are the two axes of the second box
+    // 1 : overlap, 0: no overlap
+    // overlaps = [min_e1, max_e1, min_e2, max_e2, min_f1, max_f1, min_f2, max_f2]
 
-// Newton's method to solve the cubic equation with safety checks
-// TODO: This finds one root, but we want all. Need to find a smart combination of newton and bisection
-// TODO: Need to find a way to catch oscillatory behaviour and start from another guess..
-//       Example: f(x) = x3 − 2x + 2 will oscillate between 0 and 1
-// TODO: Need a catch for undefined values (e.g. when derivative has a 1/x).
-//       Similarily, the iteration can send itself beyond the valid domain
-//       Example: f(x) = ln x  => x_(n+1) = xn(1- ln xn). If one starts at x >= e, it will get NaN
- static inline
-double newton_method(double a, double b, double c, double d, double initial_guess, int *status) {
-    double t = initial_guess;
-    double t_new;
-    int iter = 0;
+    double rC1     = BoundingBox_get_rC(b1);
+    double l1      = BoundingBox_get_l(b1);
+    double w1      = BoundingBox_get_w(b1);
+    double proj_l1 = BoundingBox_get_proj_l(b1);
+    double proj_w1 = BoundingBox_get_proj_w(b1);
+    double sin_tb1 = BoundingBox_get_sin_tb(b1);
+    double cos_tb1 = BoundingBox_get_cos_tb(b1);
+    double sin_tC1 = BoundingBox_get_sin_tC(b1);
+    double cos_tC1 = BoundingBox_get_cos_tC(b1);
 
-    while (fabs(_bezier_cubic(t, a, b, c, d)) > XC_NEWTON_EPSILON) {
-        double derivative = _bezier_cubic_prime(t, a, b, c);
+    double rC2     = BoundingBox_get_rC(b2);
+    double l2      = BoundingBox_get_l(b2);
+    double w2      = BoundingBox_get_w(b2);
+    double proj_l2 = BoundingBox_get_proj_l(b2);
+    double proj_w2 = BoundingBox_get_proj_w(b2);
+    double sin_tb2 = BoundingBox_get_sin_tb(b2);
+    double cos_tb2 = BoundingBox_get_cos_tb(b2);
+    double sin_tC2 = BoundingBox_get_sin_tC(b2);
+    double cos_tC2 = BoundingBox_get_cos_tC(b2);
 
-        // Check if the derivative is too small
-        if (fabs(derivative) < XC_NEWTON_DERIVATIVE_TOL) {
-            *status = -1;  // Indicate failure due to small derivative
-            return t;       // Return the best guess we have
-        }
-
-        t_new = t - _bezier_cubic(t, a, b, c, d) / derivative;
-
-        // Check if the change in t is very small
-        if (fabs(t_new - t) < XC_NEWTON_EPSILON) break;
-
-        t = t_new;
-        iter++;
-
-        // Check if we exceed maximum iterations
-        if (iter >= XC_NEWTON_MAX_ITER) {
-            *status = -2;  // Indicate failure due to max iterations
-            return t;
-        }
+    double projs[4];
+    double cos_tb1_tb2 = cos_tb1 * cos_tb2 + sin_tb1 * sin_tb2;  // cos (tb1 - tb2)
+    double sin_tb1_tb2 = sin_tb1 * cos_tb2 - cos_tb1 * sin_tb2;  // sin (tb1 - tb2)
+    // The length of the projection of vector W on E is given by: |W| cos(theta) where theta is the angle between W and E
+    // projection of vertices of box 2 on the length axis of box 1 (e1)
+    projs[0] = rC2 * (cos_tb1 * cos_tC2 + sin_tb1 * sin_tC2);  // first vertex w1:  |w1| cos (tb1 - tc2)
+    projs[1] = projs[0] + l2 * cos_tb1_tb2; // second vertex w2 = w1 + f1
+    projs[2] = projs[1] + w2 * sin_tb1_tb2; // third vertex w3 = w1 + f1 + f2
+    projs[3] = projs[0] + w2 * sin_tb1_tb2; // fourth vertex w4 = w1 + f2
+    sort_array_of_4_double(projs);
+    if (!INTERVALS_OVERLAP(proj_l1, proj_l1 + l1, projs[0], projs[3])){
+        return 0;
     }
-
-    *status = 0;  // Indicate success
-    return t;
-}
-
-// Bisection method to find root in an interval [t1, t2]
- static inline
-double bisection_method(double a, double b, double c, double d, double t1, double t2) {
-    double mid;
-
-    while ((t2 - t1) >= XC_NEWTON_EPSILON) {
-        mid = (t1 + t2) / 2;
-
-        // Check if the middle point is a root
-        if (fabs(_bezier_cubic(mid, a, b, c, d)) < XC_NEWTON_EPSILON) return mid;
-
-        // Decide the side to repeat the steps
-        if (_bezier_cubic(mid, a, b, c, d) * _bezier_cubic(t1, a, b, c, d) < 0)
-            t2 = mid;
-        else
-            t1 = mid;
+    // length of projection of vertices of box 2 on the width axis of box 1 (e2)
+    projs[0] = rC2 * (cos_tb1 * sin_tC2 - sin_tb1 * cos_tC2);  // first vertex w1:  |w1| cos(tb1 + pi/2 - tc2)
+    projs[1] = projs[0] - l2 * sin_tb1_tb2; // second vertex w2 = w1 + f1 TODO: check sign
+    projs[2] = projs[1] + w2 * cos_tb1_tb2; // third vertex w3 = w1 + f1 + f2
+    projs[3] = projs[0] + w2 * cos_tb1_tb2; // fourth vertex w4 = w1 + f2
+    sort_array_of_4_double(projs);
+    if (!INTERVALS_OVERLAP(proj_w1, proj_w1 + w1, projs[0], projs[3])){
+        return 0;
     }
-
-    return mid;
+    // length of projection of vertices of box 1 on the length axis of box 2 (f1)
+    sin_tb1_tb2 = - sin_tb1_tb2; // due to sin being asymmetric
+    projs[0] = rC1 * (cos_tb2 * cos_tC1 + sin_tb2 * sin_tC1);  // first vertex v1:  |v1| cos (tb1 - tc2)
+    projs[1] = projs[0] + l1 * cos_tb1_tb2; // second vertex v2 = v1 + e1
+    projs[2] = projs[1] + w1 * sin_tb1_tb2; // third vertex v3 = v1 + e1 + e2
+    projs[3] = projs[0] + w1 * sin_tb1_tb2; // fourth vertex v4 = v1 + e2
+    sort_array_of_4_double(projs);
+    if (!INTERVALS_OVERLAP(proj_l2, proj_l2 + l2, projs[0], projs[3])){
+        return 0;
+    }
+    // length of projection of vertices of box 1 on the width axis of box 2 (f2)
+    projs[0] = rC1 * (cos_tb2 * sin_tC1 - sin_tb2 * cos_tC1);  // first vertex v1:  |v1| cos(tb1 + pi/2 - tc2)
+    projs[1] = projs[0] - l1 * sin_tb1_tb2; // second vertex v2 = v1 + e1
+    projs[2] = projs[1] + w1 * cos_tb1_tb2; // third vertex v3 = v1 + e1 + e2
+    projs[3] = projs[0] + w1 * cos_tb1_tb2; // fourth vertex v4 = v1 + e2
+    sort_array_of_4_double(projs);
+    if (!INTERVALS_OVERLAP(proj_w2, proj_w2 + w2, projs[0], projs[3])){
+        return 0;
+    }
+    return 1;
 }
 
-#endif /* XCOLL_GEOM_FIND_ROOT_H */
-#ifndef XOBJ_TYPEDEF_DriftTrajectory
-#define XOBJ_TYPEDEF_DriftTrajectory
-typedef   struct DriftTrajectory_s * DriftTrajectory;
- static inline DriftTrajectory DriftTrajectory_getp(DriftTrajectory restrict  obj){
+#endif /* XCOLL_GEOM_BOUNDING_BOX_H */
+#ifndef XOBJ_TYPEDEF_MultipleCoulombTrajectory
+#define XOBJ_TYPEDEF_MultipleCoulombTrajectory
+typedef   struct MultipleCoulombTrajectory_s * MultipleCoulombTrajectory;
+ static inline MultipleCoulombTrajectory MultipleCoulombTrajectory_getp(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
-  return (DriftTrajectory)(( char*) obj+offset);
+  return (MultipleCoulombTrajectory)(( char*) obj+offset);
 }
-#endif
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
-
-#ifndef XCOLL_COLL_GEOM_DRIFT_H
-#define XCOLL_COLL_GEOM_DRIFT_H
-
-
- static inline
-int8_t DriftTrajectory_vlimit(double* restrict_s, double s0, double y0, double ym, double ymin, double ymax){
-    if (fabs(ym) < XC_EPSILON){
-        // Trajectory parallel to s axis
-        if (y0 < ymin || y0 > ymax){
-            return 0;  // Completely outside - no crossing possible
-        } else {
-            return -1; // Completely inside - no vertical check needed
-        }
-    } else {
-        restrict_s[0] = (ymin - y0)/ym + s0;
-        restrict_s[1] = (ymax - y0)/ym + s0;
-        SWAP(restrict_s, 0, 1);   // To make sure these are sorted
-        return 1;  // Default behavior: check overlap with horizontal crossings
-    }
-}
-
-
-// Curve length is int_s1^s2 sqrt(1 + (dx/ds)^2 + (dy/ds)^2) ds
-
- static inline
-double DriftTrajectory_length(double s0, double x0, double xm, double y0, double ym, double s1, double s2){
-    (void) s0;  // Avoid unused parameter warning
-    (void) x0;  // Avoid unused parameter warning
-    (void) y0;  // Avoid unused parameter warning
-    return (s2-s1)*sqrt(1 + xm*xm + ym*ym);
-}
-
-
-// The following functions do not need to be redefined for the other trajectories
-
- static inline
-double Trajectory_get_first(int8_t n_hit, double* s){
-    if (n_hit>0){
-        return s[0];
-    }
-    return XC_S_MAX;
-}
-
- static inline
-double Trajectory_get_before_s(int8_t n_hit, double* s, double before_s){
-    for (int8_t i=n_hit-1; i>=0; i--){
-        if (s[i] <= before_s){
-            return s[i];
-        }
-    }
-    return XC_S_MAX;
-}
-
- static inline
-double Trajectory_get_after_s(int8_t n_hit, double* s, double after_s){
-    for (int8_t i=0; i<n_hit; i++){
-        if (s[i] >= after_s){
-            return s[i];
-        }
-    }
-    return XC_S_MAX;
-}
-
- static inline
-double Trajectory_get_last(int8_t n_hit, double* s){
-    if (n_hit>0){
-        return s[n_hit-1];
-    }
-    return XC_S_MAX;
-}
-
-#endif /* XCOLL_COLL_GEOM_DRIFT_H */
-#ifndef XOBJ_TYPEDEF_LineSegment
-#define XOBJ_TYPEDEF_LineSegment
-typedef   struct LineSegment_s * LineSegment;
- static inline LineSegment LineSegment_getp(LineSegment restrict  obj){
-  int64_t offset=0;
-  return (LineSegment)(( char*) obj+offset);
-}
- static inline double LineSegment_get_s1(const LineSegment restrict  obj){
+ static inline double MultipleCoulombTrajectory_get_s0(const MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   return *( double*)(( char*) obj+offset);
 }
- static inline void LineSegment_set_s1(LineSegment restrict  obj, double value){
+ static inline void MultipleCoulombTrajectory_set_s0(MultipleCoulombTrajectory restrict  obj, double value){
   int64_t offset=0;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* LineSegment_getp_s1(LineSegment restrict  obj){
+ static inline  double* MultipleCoulombTrajectory_getp_s0(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   return ( double*)(( char*) obj+offset);
 }
- static inline double LineSegment_get_x1(const LineSegment restrict  obj){
+ static inline double MultipleCoulombTrajectory_get_x0(const MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=8;
   return *( double*)(( char*) obj+offset);
 }
- static inline void LineSegment_set_x1(LineSegment restrict  obj, double value){
+ static inline void MultipleCoulombTrajectory_set_x0(MultipleCoulombTrajectory restrict  obj, double value){
   int64_t offset=0;
   offset+=8;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* LineSegment_getp_x1(LineSegment restrict  obj){
+ static inline  double* MultipleCoulombTrajectory_getp_x0(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=8;
   return ( double*)(( char*) obj+offset);
 }
- static inline double LineSegment_get_s2(const LineSegment restrict  obj){
+ static inline double MultipleCoulombTrajectory_get_sin_t0(const MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=16;
   return *( double*)(( char*) obj+offset);
 }
- static inline void LineSegment_set_s2(LineSegment restrict  obj, double value){
+ static inline void MultipleCoulombTrajectory_set_sin_t0(MultipleCoulombTrajectory restrict  obj, double value){
   int64_t offset=0;
   offset+=16;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* LineSegment_getp_s2(LineSegment restrict  obj){
+ static inline  double* MultipleCoulombTrajectory_getp_sin_t0(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=16;
   return ( double*)(( char*) obj+offset);
 }
- static inline double LineSegment_get_x2(const LineSegment restrict  obj){
+ static inline double MultipleCoulombTrajectory_get_cos_t0(const MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=24;
   return *( double*)(( char*) obj+offset);
 }
- static inline void LineSegment_set_x2(LineSegment restrict  obj, double value){
+ static inline void MultipleCoulombTrajectory_set_cos_t0(MultipleCoulombTrajectory restrict  obj, double value){
   int64_t offset=0;
   offset+=24;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* LineSegment_getp_x2(LineSegment restrict  obj){
+ static inline  double* MultipleCoulombTrajectory_getp_cos_t0(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=24;
   return ( double*)(( char*) obj+offset);
 }
-#endif
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
-
-#ifndef XCOLL_COLL_GEOM_LINESEG_H
-#define XCOLL_COLL_GEOM_LINESEG_H
-
- static inline
-void LineSegment_crossing_drift(LineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    // Get segment data
-    double s1 = LineSegment_get_s1(seg);
-    double x1 = LineSegment_get_x1(seg);
-    double s2 = LineSegment_get_s2(seg);
-    double x2 = LineSegment_get_x2(seg);
-    double denom = (x2 - x1) - (s2 - s1)*xm;
-    if (fabs(denom) < XC_EPSILON){
-        // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_EPSILON){
-            // Trajectory overlaps with the segment
-            // TODO: This is situational; we should return s1 if get_s_first and current_s if after current_s
-            //       For now we hit twice (because we go nor IN nor OUT)
-            s[*n_hit] = s1;
-            (*n_hit)++;
-            s[*n_hit] = s2;
-            (*n_hit)++;
-        } else {
-            // No crossing
-            return;
-        }
-    } else {
-        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
-        if (t >= 0 && t <= 1){
-            s[*n_hit] = s1*(1-t) + s2*t;
-            (*n_hit)++;
-        }
-    }
-}
-
-#endif /* XCOLL_COLL_GEOM_LINESEG_H */
-#ifndef XOBJ_TYPEDEF_HalfOpenLineSegment
-#define XOBJ_TYPEDEF_HalfOpenLineSegment
-typedef   struct HalfOpenLineSegment_s * HalfOpenLineSegment;
- static inline HalfOpenLineSegment HalfOpenLineSegment_getp(HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  return (HalfOpenLineSegment)(( char*) obj+offset);
-}
- static inline double HalfOpenLineSegment_get_s(const HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void HalfOpenLineSegment_set_s(HalfOpenLineSegment restrict  obj, double value){
-  int64_t offset=0;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* HalfOpenLineSegment_getp_s(HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double HalfOpenLineSegment_get_x(const HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void HalfOpenLineSegment_set_x(HalfOpenLineSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=8;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* HalfOpenLineSegment_getp_x(HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double HalfOpenLineSegment_get_t(const HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void HalfOpenLineSegment_set_t(HalfOpenLineSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=16;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* HalfOpenLineSegment_getp_t(HalfOpenLineSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return ( double*)(( char*) obj+offset);
-}
-#endif
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
-
-#ifndef XCOLL_COLL_GEOM_HALFOPENLINESEG_H
-#define XCOLL_COLL_GEOM_HALFOPENLINESEG_H
-
- static inline
-void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    // Get segment data
-    double s1 = HalfOpenLineSegment_get_s(seg);
-    double x1 = HalfOpenLineSegment_get_x(seg);
-    double s2 = s1 + cos(HalfOpenLineSegment_get_t(seg));
-    double x2 = x1 + sin(HalfOpenLineSegment_get_t(seg));
-    double denom = (x2 - x1) - (s2 - s1)*xm;
-    if (fabs(denom) < XC_EPSILON){
-        // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_EPSILON){
-            // Trajectory overlaps with the segment
-            // TODO: This is situational; we should return s1 if get_s_first and current_s if after current_s
-            //       For now we hit twice (because we go nor IN nor OUT)
-            s[*n_hit] = s1;
-            (*n_hit)++;
-            s[*n_hit] = s1;
-            (*n_hit)++;
-        } else {
-            // No hit
-            return;
-        }
-    } else {
-        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
-        if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
-            s[*n_hit] = s1*(1-t) + s2*t;
-            (*n_hit)++;
-        }
-    }
-}
-
-#endif /* XCOLL_COLL_GEOM_HALFOPENLINESEG_H */
-#ifndef XOBJ_TYPEDEF_CircularSegment
-#define XOBJ_TYPEDEF_CircularSegment
-typedef   struct CircularSegment_s * CircularSegment;
- static inline CircularSegment CircularSegment_getp(CircularSegment restrict  obj){
-  int64_t offset=0;
-  return (CircularSegment)(( char*) obj+offset);
-}
- static inline double CircularSegment_get_R(const CircularSegment restrict  obj){
-  int64_t offset=0;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void CircularSegment_set_R(CircularSegment restrict  obj, double value){
-  int64_t offset=0;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* CircularSegment_getp_R(CircularSegment restrict  obj){
-  int64_t offset=0;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double CircularSegment_get_s(const CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void CircularSegment_set_s(CircularSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=8;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* CircularSegment_getp_s(CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double CircularSegment_get_x(const CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void CircularSegment_set_x(CircularSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=16;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* CircularSegment_getp_x(CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double CircularSegment_get_t1(const CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void CircularSegment_set_t1(CircularSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=24;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* CircularSegment_getp_t1(CircularSegment restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double CircularSegment_get_t2(const CircularSegment restrict  obj){
+ static inline double MultipleCoulombTrajectory_get_tan_t0(const MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=32;
   return *( double*)(( char*) obj+offset);
 }
- static inline void CircularSegment_set_t2(CircularSegment restrict  obj, double value){
+ static inline void MultipleCoulombTrajectory_set_tan_t0(MultipleCoulombTrajectory restrict  obj, double value){
   int64_t offset=0;
   offset+=32;
   *( double*)(( char*) obj+offset)=value;
 }
- static inline  double* CircularSegment_getp_t2(CircularSegment restrict  obj){
+ static inline  double* MultipleCoulombTrajectory_getp_tan_t0(MultipleCoulombTrajectory restrict  obj){
   int64_t offset=0;
   offset+=32;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double MultipleCoulombTrajectory_get_Xt0(const MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=40;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void MultipleCoulombTrajectory_set_Xt0(MultipleCoulombTrajectory restrict  obj, double value){
+  int64_t offset=0;
+  offset+=40;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* MultipleCoulombTrajectory_getp_Xt0(MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=40;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double MultipleCoulombTrajectory_get_A0(const MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=48;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void MultipleCoulombTrajectory_set_A0(MultipleCoulombTrajectory restrict  obj, double value){
+  int64_t offset=0;
+  offset+=48;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* MultipleCoulombTrajectory_getp_A0(MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=48;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double MultipleCoulombTrajectory_get_B0(const MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=56;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void MultipleCoulombTrajectory_set_B0(MultipleCoulombTrajectory restrict  obj, double value){
+  int64_t offset=0;
+  offset+=56;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* MultipleCoulombTrajectory_getp_B0(MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=56;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double MultipleCoulombTrajectory_get__l1(const MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=64;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void MultipleCoulombTrajectory_set__l1(MultipleCoulombTrajectory restrict  obj, double value){
+  int64_t offset=0;
+  offset+=64;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* MultipleCoulombTrajectory_getp__l1(MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=64;
+  return ( double*)(( char*) obj+offset);
+}
+ static inline double MultipleCoulombTrajectory_get__l2(const MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=72;
+  return *( double*)(( char*) obj+offset);
+}
+ static inline void MultipleCoulombTrajectory_set__l2(MultipleCoulombTrajectory restrict  obj, double value){
+  int64_t offset=0;
+  offset+=72;
+  *( double*)(( char*) obj+offset)=value;
+}
+ static inline  double* MultipleCoulombTrajectory_getp__l2(MultipleCoulombTrajectory restrict  obj){
+  int64_t offset=0;
+  offset+=72;
   return ( double*)(( char*) obj+offset);
 }
 #endif
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
+// Copyright (c) CERN, 2025.                 #
 // ######################################### #
 
-#ifndef XCOLL_COLL_GEOM_CIRCULARSEG_H
-#define XCOLL_COLL_GEOM_CIRCULARSEG_H
+#ifndef XCOLL_GEOM_TRAJ_MCS_H
+#define XCOLL_GEOM_TRAJ_MCS_H
+
+#include <stdio.h>
+#include <math.h>
+
+
+#define MCS_AVERAGE_MOMENTUM 13.6e6
+#define MCS_LOG_SCALE 3.821791440748616e-2
+#define MCS_DERIV_LOG_SCALE 1.910895720374308e-2
+#define MCS_DERIV_LOG_SHIFT 5.382179144074862e-1
+#define MCS_RAN1_SCALE 2.886751345948129e-1  // 1/sqrt(12)
+#define MCS_RAN2_SCALE 0.5
+
+
+//  static inline
+// void MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
+//                                         double ran_1, double ran_2, LocalParticle part){
+//     MultipleCoulombTrajectory_set_s0(traj, LocalParticle_get_s(part));
+//     MultipleCoulombTrajectory_set_x0(traj, LocalParticle_get_s(part));
+//     double xp = LocalParticle_get_exact_xp(part)
+//     MultipleCoulombTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));
+//     MultipleCoulombTrajectory_set_cos_t0(traj, 1. / sqrt(1+xp*xp));
+//     MultipleCoulombTrajectory_set_tan_t0(traj, xp);
+//     double beta = LocalParticle_get_rvv(part)*LocalParticle_get_beta0(part);
+//     double q = LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);
+//     MultipleCoulombTrajectory_set_Xt0(traj, X0*beta*beta / (q*q));
+//     double pc = LocalParticle_get_p0c(part) * LocalParticle_get_charge_ratio(part) \
+//                 / LocalParticle_get_chi(part) / LocalParticle_get_rpp(part); 
+//     MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN1_SCALE) * MCS_AVERAGE_MOMENTUM / pc);
+//     MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / pc);
+// }
+
 
  static inline
-void CircularSegment_crossing_drift(CircularSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    // Get segment data
-    double R  = CircularSegment_get_R(seg);
-    double sC = CircularSegment_get_s(seg);
-    double xC = CircularSegment_get_x(seg);
-    double t1 = CircularSegment_get_t1(seg);
-    double t2 = CircularSegment_get_t2(seg);
-    // Move the angles to [-pi, pi]
-    int8_t reversed = 0, full_circle = 0;
-    if (fabs(fabs(t2 - t1) - 2*M_PI) < XC_EPSILON){
-        full_circle = 1;
+void MultipleCoulombTrajectory_set_params(MultipleCoulombTrajectory traj, double X0,
+                                            double ran_1, double ran_2, double s0, double x0,
+                                            double xp, double pc, double beta, double q){
+    MultipleCoulombTrajectory_set_s0(traj, s0);
+    MultipleCoulombTrajectory_set_x0(traj, x0);
+    MultipleCoulombTrajectory_set_sin_t0(traj, xp / sqrt(1+xp*xp));
+    MultipleCoulombTrajectory_set_cos_t0(traj, 1. / sqrt(1+xp*xp));
+    MultipleCoulombTrajectory_set_tan_t0(traj, xp);
+    MultipleCoulombTrajectory_set_Xt0(traj, X0*beta*beta / (q*q));
+    MultipleCoulombTrajectory_set_A0(traj, (ran_1*MCS_RAN1_SCALE + ran_2*MCS_RAN2_SCALE) * MCS_AVERAGE_MOMENTUM / (beta*pc));
+    MultipleCoulombTrajectory_set_B0(traj, ran_2 * MCS_AVERAGE_MOMENTUM / (beta*pc));
+}
+
+ static inline
+double MultipleCoulombTrajectory_get_normalised_omega(MultipleCoulombTrajectory traj, double l){
+    if (l < XC_GEOM_EPSILON){
+        return 0.;
+    } else {
+        double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
+        return sqrt(l/Xt0) * (1. + MCS_LOG_SCALE * log(l/Xt0));
     }
-    while (t1 < -M_PI){
-        t1 += 2*M_PI;
+}
+
+ static inline
+double MultipleCoulombTrajectory_get_normalised_omega_deriv(MultipleCoulombTrajectory traj, double l){
+    if (l < XC_GEOM_EPSILON){
+        return 0.;
+    } else {
+        double Xt0 = MultipleCoulombTrajectory_get_Xt0(traj);  //  X0 𝛽^2 / q^2
+        return sqrt(l/Xt0) * (MCS_DERIV_LOG_SHIFT + MCS_DERIV_LOG_SCALE * log(l/Xt0)) / l;
     }
-    while (t1 > M_PI){
-        t1 -= 2*M_PI;
-    }
-    while (t2 < -M_PI){
-        t2 += 2*M_PI;
-    }
-    while (t2 > M_PI){
-        t2 -= 2*M_PI;
-    }
-    if (t2 < t1){
-        reversed = 1;
-    }
-    // Calculate crossings
-    double a = 1 + xm*xm;
-    double bb = sC - xm*(x0 - xC - xm*s0); // This is -b/2 with b from the quadratic formula
-    double c = sC*sC + (x0 - xC - xm*s0)*(x0 - xC - xm*s0) - R*R;
-    double disc = bb*bb - a*c; // This is  2*discriminant**2
-    if (disc < 0){
-        // No crossing
+}
+
+ static inline
+double MultipleCoulombTrajectory_func_s(MultipleCoulombTrajectory traj, double l){
+    double s0 = MultipleCoulombTrajectory_get_s0(traj);
+    double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    return s0 + l*cos_t0 - l*A0*omega_norm*sin_t0;
+}
+
+ static inline
+double MultipleCoulombTrajectory_func_x(MultipleCoulombTrajectory traj, double l){
+    double x0 = MultipleCoulombTrajectory_get_x0(traj);
+    double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    return x0 + l*sin_t0 + l*A0*omega_norm*cos_t0;
+}
+
+ static inline
+double MultipleCoulombTrajectory_func_xp(MultipleCoulombTrajectory traj, double l){
+    double tan_t0 = MultipleCoulombTrajectory_get_tan_t0(traj);
+    double B0 = MultipleCoulombTrajectory_get_B0(traj);    // 𝜉2 (13.6 MeV) / (pc)
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    return (tan_t0 + tan(B0*omega_norm)) / (1. - tan_t0*tan(B0*omega_norm));
+}
+
+ static inline
+double MultipleCoulombTrajectory_deriv_s(MultipleCoulombTrajectory traj, double l){
+    double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, l);
+    return cos_t0 - A0*omega_norm*sin_t0 - l*A0*omega_norm_deriv*sin_t0;
+}
+
+ static inline
+double MultipleCoulombTrajectory_deriv_x(MultipleCoulombTrajectory traj, double l){
+    double sin_t0 = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_t0 = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
+    double omega_norm = MultipleCoulombTrajectory_get_normalised_omega(traj, l);
+    double omega_norm_deriv = MultipleCoulombTrajectory_get_normalised_omega_deriv(traj, l);
+    return sin_t0 + A0*omega_norm*cos_t0 + l*A0*omega_norm_deriv*cos_t0;
+}
+
+ static inline
+void MultipleCoulombTrajectory_update_box(MultipleCoulombTrajectory traj, BoundingBox box, double l1, double l2){
+    // These ifs will be removed later when we know that the code works and never produces invalid t1, t2
+    if (l1 >= l2){
+        printf("l1 must be smaller than l2!\n");
+        fflush(stdout);
         return;
     }
-    for (int8_t i = 0; i < 2; i++) {
-        double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
-        double new_s = (bb + sgnD*sqrt(fabs(disc)))/a;
-        double new_x = x0 + (new_s - s0)*xm;
-        double t = atan2(new_x - xC, new_s - sC);
-        if (full_circle){
-            // Full circle, so always hit
-            s[*n_hit] = new_s;
-            (*n_hit)++;
-        } else if (reversed){
-            // t2 < t1, so we are looking at the inverted region of angles
-            if (t1 <= t || t <= t2){
-                s[*n_hit] = new_s;
-                (*n_hit)++;
-            }
-        } else {
-            if (t1 <= t && t <= t2){
-                s[*n_hit] = new_s;
-                (*n_hit)++;
-            }
-        }
+    if (l1 < 0 || l1 > 10){
+        printf("l1 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
     }
-}
-
-#endif /* XCOLL_COLL_GEOM_CIRCULARSEG_H */
-#ifndef XOBJ_TYPEDEF_BezierSegment
-#define XOBJ_TYPEDEF_BezierSegment
-typedef   struct BezierSegment_s * BezierSegment;
- static inline BezierSegment BezierSegment_getp(BezierSegment restrict  obj){
-  int64_t offset=0;
-  return (BezierSegment)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_s1(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_s1(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_s1(BezierSegment restrict  obj){
-  int64_t offset=0;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_x1(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_x1(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=8;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_x1(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_s2(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_s2(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=16;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_s2(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_x2(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_x2(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=24;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_x2(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_cs1(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=32;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_cs1(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=32;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_cs1(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=32;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_cx1(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=40;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_cx1(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=40;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_cx1(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=40;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_cs2(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=48;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_cs2(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=48;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_cs2(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=48;
-  return ( double*)(( char*) obj+offset);
-}
- static inline double BezierSegment_get_cx2(const BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=56;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void BezierSegment_set_cx2(BezierSegment restrict  obj, double value){
-  int64_t offset=0;
-  offset+=56;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* BezierSegment_getp_cx2(BezierSegment restrict  obj){
-  int64_t offset=0;
-  offset+=56;
-  return ( double*)(( char*) obj+offset);
-}
-#endif
-// copyright ############################### #
-// This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2024.                 #
-// ######################################### #
-
-#ifndef XCOLL_COLL_GEOM_BEZIERSEG_H
-#define XCOLL_COLL_GEOM_BEZIERSEG_H
-
- static inline
-void _hit_s_bezier(BezierSegment seg, double t, double multiplicity, int8_t* n_hit, double* s){
-    double s1  = BezierSegment_get_s1(seg);
-    double s2  = BezierSegment_get_s2(seg);
-    double cs1 = BezierSegment_get_cs1(seg);
-    double cs2 = BezierSegment_get_cs2(seg);
-    double new_s = (1-t)*(1-t)*(1-t)*s1 + 3*(1-t)*(1-t)*t*cs1 + 3*(1-t)*t*t*cs2 + t*t*t*s2;
-    for (int8_t i = 0; i < multiplicity; i++) {
-        s[*n_hit] = new_s;
-        (*n_hit)++;
+    if (l2 < 0 || l2 > 10){
+        printf("l2 must be in [0, 10]!\n");
+        fflush(stdout);
+        return;
     }
-}
-
- static inline
-void BezierSegment_crossing_drift(BezierSegment seg, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    // Get segment data
-    double s1  = BezierSegment_get_s1(seg);
-    double x1  = BezierSegment_get_x1(seg);
-    double s2  = BezierSegment_get_s2(seg);
-    double x2  = BezierSegment_get_x2(seg);
-    double cs1 = BezierSegment_get_cs1(seg);
-    double cx1 = BezierSegment_get_cx1(seg);
-    double cs2 = BezierSegment_get_cs2(seg);
-    double cx2 = BezierSegment_get_cx2(seg);
-    // The Bézier curve is defined by the parametric equations (with t in [0, 1]):
-    // s(t) = (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2
-    // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
-    // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
-    // The solutions for t (which we get by Cardano's method) are valid if in [0, 1]
-    double a = (xm*s1 - x1) - (xm*s2 - x2) - 3*(xm*cs1 - cx1) + 3*(xm*cs2 - cx2);
-    double b = 6*(xm*cs1 - cx1) - 3*(xm*cs2 - cx2) - 3*(xm*s1 - x1);
-    double c = 3*(xm*s1 - x1) - 3*(xm*cs1 - cx1);
-    double d = (xm*s0 - x0) - (xm*s1 - x1);
-    double t;
-    // Edge cases
-    if (fabs(a) < XC_EPSILON){
-        if (fabs(b) < XC_EPSILON){
-            if (fabs(c) < XC_EPSILON){
-                if (fabs(d) < XC_EPSILON){
-                    // The trajectory is on the Bézier curve
-                    // TODO: This cannot happen because we don't have a cubic trajectory.
-                    //       Adapt if these ever would be implemented.
-                    return;
-                } else {
-                    // No solutions
-                    return;
-                }
-            } else {
-                // This is a linear equation
-                t = -d/c;
-                if (0 <= t && t <= 1){
-                    _hit_s_bezier(seg, t, 1, n_hit, s);
-                }
-            }
-        } else {
-            // This is a quadratic equation
-            double disc = c*c - 4*b*d;
-            if (disc < 0){
-                // No solutions
-                return;
-            }
-            for (int8_t i = 0; i < 2; i++) {
-                double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
-                t = (-c + sgnD*sqrt(fabs(disc)))/(2*b);
-                if (0 <= t && t <= 1){
-                    _hit_s_bezier(seg, t, 1, n_hit, s);
-                }
-            }
-        }
+    double A0 = MultipleCoulombTrajectory_get_A0(traj);    // (𝜉1/√12 + 𝜉2/2) (13.6 MeV) / (pc)
+    double omega_norm_l1 = MultipleCoulombTrajectory_get_normalised_omega(traj, l1);
+    double omega_norm_l2 = MultipleCoulombTrajectory_get_normalised_omega(traj, l2);
+    double sin_tb = MultipleCoulombTrajectory_get_sin_t0(traj);
+    double cos_tb = MultipleCoulombTrajectory_get_cos_t0(traj);
+    double s1, x1;
+    if (A0 >= 0) {
+        s1 = MultipleCoulombTrajectory_func_s(traj, l1);
+        x1 = MultipleCoulombTrajectory_func_x(traj, l1);
     } else {
-        // Full cubic equation. Coefficients for the depressed cubic t^3 + p*t + q = 0:
-        double p = (3*a*c - b*b)/(3*a*a);
-        double q = (2*b*b*b - 9*a*b*c + 27*a*a*d)/(27*a*a*a);
-        double disc = -p*p*p/27 - q*q/4;  // This is the discriminant of the depressed cubic but divided by (4*27)
-        if (fabs(disc) < XC_EPSILON){
-            if (fabs(p) < XC_EPSILON){
-                // One real root with multiplicity 3
-                t = -b/(3*a);
-                if (0 <= t && t <= 1){
-                    _hit_s_bezier(seg, t, 3, n_hit, s);
-                }
-            } else {
-                // Two real roots (one simple and one with multiplicity 2)
-                t = 3*q/p - b/(3*a);
-                if (0 <= t && t <= 1){
-                    _hit_s_bezier(seg, t, 1, n_hit, s);
-                }
-                t = -3*q/(2*p) - b/(3*a);
-                if (0 <= t && t <= 1){
-                    _hit_s_bezier(seg, t, 2, n_hit, s);
-                }
-            }
-        } else if (disc < 0){
-            // One real root
-            t = cbrt(-q/2 + sqrt(fabs(disc))) + cbrt(-q/2 - sqrt(fabs(disc))) - b/(3*a);
-            if (0 <= t && t <= 1){
-                _hit_s_bezier(seg, t, 1, n_hit, s);
-            }
-        } else {
-            // Three real roots
-            double phi = acos(3*q/(2*p)*sqrt(fabs(3/p)));
-            t = 2*sqrt(fabs(p/3))*cos(phi/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                _hit_s_bezier(seg, t, 1, n_hit, s);
-            }
-            t = 2*sqrt(fabs(p/3))*cos((phi + 2*M_PI)/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                _hit_s_bezier(seg, t, 1, n_hit, s);
-            }
-            t = 2*sqrt(fabs(p/3))*cos((phi + 4*M_PI)/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                _hit_s_bezier(seg, t, 1, n_hit, s);
-            }
-        }
+        // Different lower left corner
+        double s0 = MultipleCoulombTrajectory_get_s0(traj);
+        double x0 = MultipleCoulombTrajectory_get_x0(traj);
+        s1 = s0 + l1*cos_tb - l2*A0*omega_norm_l2*sin_tb;
+        x1 = x0 + l1*sin_tb + l2*A0*omega_norm_l2*cos_tb;
     }
+    double rC = sqrt(s1*s1 + x1*x1); // length of position vector to first vertex
+    double sin_tC = x1 / rC; // angle of position vector to first vertex
+    double cos_tC = s1 / rC;
+    double w = fabs((l2*omega_norm_l2 - l1*omega_norm_l1)*A0); // displacement in x in frame of initial angle
+    double l = l2-l1;
+    BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
-#endif /* XCOLL_COLL_GEOM_BEZIERSEG_H */
-#ifndef XOBJ_TYPEDEF_LocalSegment
-#define XOBJ_TYPEDEF_LocalSegment
-typedef   struct LocalSegment_s * LocalSegment;
-enum LocalSegment_e{LocalSegment_LineSegment_t,LocalSegment_HalfOpenLineSegment_t,LocalSegment_CircularSegment_t,LocalSegment_BezierSegment_t};
- static inline LocalSegment LocalSegment_getp(LocalSegment restrict  obj){
-  int64_t offset=0;
-  return (LocalSegment)(( char*) obj+offset);
-}
- static inline int64_t LocalSegment_typeid(const LocalSegment restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline  void* LocalSegment_member(const LocalSegment restrict  obj){
-  int64_t offset=0;
-  offset+=*( int64_t*)(( char*) obj+offset);
- return ( void*)(( char*) obj+offset);
-}
- static inline void LocalSegment_crossing_drift(const LocalSegment restrict  obj,  int8_t* restrict  n_hit,  double* restrict  s, double s0, double x0, double xm){
-   void* member = LocalSegment_member(obj);
-  switch (LocalSegment_typeid(obj)){
-        #ifndef LOCALSEGMENT_SKIP_LINESEGMENT
-        case LocalSegment_LineSegment_t:
-            return LineSegment_crossing_drift((LineSegment) member,n_hit,s,s0,x0,xm);
-            break;
-        #endif
-        #ifndef LOCALSEGMENT_SKIP_HALFOPENLINESEGMENT
-        case LocalSegment_HalfOpenLineSegment_t:
-            return HalfOpenLineSegment_crossing_drift((HalfOpenLineSegment) member,n_hit,s,s0,x0,xm);
-            break;
-        #endif
-        #ifndef LOCALSEGMENT_SKIP_CIRCULARSEGMENT
-        case LocalSegment_CircularSegment_t:
-            return CircularSegment_crossing_drift((CircularSegment) member,n_hit,s,s0,x0,xm);
-            break;
-        #endif
-        #ifndef LOCALSEGMENT_SKIP_BEZIERSEGMENT
-        case LocalSegment_BezierSegment_t:
-            return BezierSegment_crossing_drift((BezierSegment) member,n_hit,s,s0,x0,xm);
-            break;
-        #endif
-  }
-  return;
-}
-#endif
-#ifndef XOBJ_TYPEDEF_ArrNLocalSegment
-#define XOBJ_TYPEDEF_ArrNLocalSegment
-typedef   struct ArrNLocalSegment_s * ArrNLocalSegment;
- static inline ArrNLocalSegment ArrNLocalSegment_getp(ArrNLocalSegment restrict  obj){
-  int64_t offset=0;
-  return (ArrNLocalSegment)(( char*) obj+offset);
-}
- static inline int64_t ArrNLocalSegment_len(ArrNLocalSegment restrict  obj){
-  int64_t offset=0;
-   int64_t* arr = ( int64_t*)(( char*) obj+offset);
-  return arr[1];
-}
- static inline LocalSegment ArrNLocalSegment_getp1(ArrNLocalSegment restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16+i0*16;
-  return (LocalSegment)(( char*) obj+offset);
-}
- static inline int64_t ArrNLocalSegment_typeid(const ArrNLocalSegment restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16+i0*16;
-  offset+=8;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline  void* ArrNLocalSegment_member(const ArrNLocalSegment restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16+i0*16;
-  offset+=*( int64_t*)(( char*) obj+offset);
- return ( void*)(( char*) obj+offset);
-}
-#endif
-#ifndef XOBJ_TYPEDEF_Shape2D
-#define XOBJ_TYPEDEF_Shape2D
-typedef   struct Shape2D_s * Shape2D;
- static inline Shape2D Shape2D_getp(Shape2D restrict  obj){
-  int64_t offset=0;
-  return (Shape2D)(( char*) obj+offset);
-}
- static inline ArrNLocalSegment Shape2D_getp_segments(Shape2D restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-  return (ArrNLocalSegment)(( char*) obj+offset);
-}
- static inline int64_t Shape2D_len_segments(Shape2D restrict  obj){
-  int64_t offset=0;
-  offset+=16;
-   int64_t* arr = ( int64_t*)(( char*) obj+offset);
-  return arr[1];
-}
- static inline LocalSegment Shape2D_getp1_segments(Shape2D restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16;
-  offset+=16+i0*16;
-  return (LocalSegment)(( char*) obj+offset);
-}
- static inline int64_t Shape2D_typeid_segments(const Shape2D restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16;
-  offset+=16+i0*16;
-  offset+=8;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline  void* Shape2D_member_segments(const Shape2D restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=16;
-  offset+=16+i0*16;
-  offset+=*( int64_t*)(( char*) obj+offset);
- return ( void*)(( char*) obj+offset);
-}
- static inline int64_t Shape2D_get__seg_id(const Shape2D restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline void Shape2D_set__seg_id(Shape2D restrict  obj, int64_t value){
-  int64_t offset=0;
-  offset+=8;
-  *( int64_t*)(( char*) obj+offset)=value;
-}
- static inline  int64_t* Shape2D_getp__seg_id(Shape2D restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return ( int64_t*)(( char*) obj+offset);
-}
-#endif
+// // MULTIPLE COULOMB SCATTERING VLIMIT ----------------------------------------------------------------------
 
- static inline
-void Shape2D_crossing_drift(Shape2D shape, int8_t* n_hit, double* s, double s0, double x0, double xm){
-    int64_t n_segments = Shape2D_len_segments(shape);
-    for (int8_t i=0; i<n_segments;i++) {
-        LocalSegment seg = Shape2D_getp1_segments(shape, i);
-        LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
-    }
-    sort_array_of_double(s, (int64_t) *n_hit);
-}
+//  static inline
+// double MultipleCoulomb_y(double s, McsVlimitParams params){
+//     double y  = McsVlimitParams_get_y(params);
+//     double Ax = McsVlimitParams_get_Ax(params);
+//     double Xo = McsVlimitParams_get_Xo(params);
 
- static inline
-double Shape2D_crossing_drift_first(Shape2D shape, double s0, double x0, double xm){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2D_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_first*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_first(n_hit, s);
-        }
-        case 1: {  // SIZE: 15
-            double s[15];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_first(n_hit, s);
-        }
-        case 2: {  // SIZE: 4
-            double s[4];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_first(n_hit, s);
-        }
-        case 3: {  // SIZE: 2
-            double s[2];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_first(n_hit, s);
-        }
-        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_first*/
-        default:
-            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+//     double mcs = Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo)); // just for clarity
+//     return mcs - y;
+// }
 
- static inline
-double Shape2D_crossing_drift_before_s(Shape2D shape, double s0, double x0, double xm, double before_s){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2D_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_before_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        case 1: {  // SIZE: 15
-            double s[15];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        case 2: {  // SIZE: 4
-            double s[4];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        case 3: {  // SIZE: 2
-            double s[2];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_before_s*/
-        default:
-            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+//  static inline
+// double MultipleCoulombDeriv_y(double s, McsVlimitParams params){
+//     double Ax = McsVlimitParams_get_Ax(params);
+//     double Xo = McsVlimitParams_get_Xo(params);
 
- static inline
-double Shape2D_crossing_drift_after_s(Shape2D shape, double s0, double x0, double xm, double after_s){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2D_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_after_s*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        case 1: {  // SIZE: 15
-            double s[15];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        case 2: {  // SIZE: 4
-            double s[4];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        case 3: {  // SIZE: 2
-            double s[2];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_after_s*/
-        default:
-            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+//     double mcs_deriv = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo)); // just for clarity
+//     return mcs_deriv;
+// }
+//  static inline
+// int8_t MultipleCoulombTrajectory_vlimit(double* restrict_s, double s0, const double* Ax, const double Xo, double ymin, double ymax){
+ 
+//     // int number_of_roots_min = 0;
+//     // int number_of_roots_max = 0;
+//     // double roots_min[1];
+//     // double roots_max[1]; // can this be done smarter? 
+//     // double s_max = 2.0;  // are we in this frame? I need coll length?  
 
- static inline
-double Shape2D_crossing_drift_last(Shape2D shape, double s0, double x0, double xm){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2D_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2D_DriftTrajectory_last*/
-        case 0: {  // SIZE: 8
-            double s[8];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_last(n_hit, s);
-        }
-        case 1: {  // SIZE: 15
-            double s[15];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_last(n_hit, s);
-        }
-        case 2: {  // SIZE: 4
-            double s[4];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_last(n_hit, s);
-        }
-        case 3: {  // SIZE: 2
-            double s[2];
-            Shape2D_crossing_drift(shape, &n_hit, s, s0, x0, xm);
-            return Trajectory_get_last(n_hit, s);
-        }
-        /*END_SEG_ID_CASES_Shape2D_DriftTrajectory_last*/
-        default:
-            printf("Unknown seg_id for Shape2D: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
-#ifndef XOBJ_TYPEDEF_Shape2DV
-#define XOBJ_TYPEDEF_Shape2DV
-typedef   struct Shape2DV_s * Shape2DV;
- static inline Shape2DV Shape2DV_getp(Shape2DV restrict  obj){
-  int64_t offset=0;
-  return (Shape2DV)(( char*) obj+offset);
-}
- static inline ArrNLocalSegment Shape2DV_getp_segments(Shape2DV restrict  obj){
-  int64_t offset=0;
-  offset+=32;
-  return (ArrNLocalSegment)(( char*) obj+offset);
-}
- static inline int64_t Shape2DV_len_segments(Shape2DV restrict  obj){
-  int64_t offset=0;
-  offset+=32;
-   int64_t* arr = ( int64_t*)(( char*) obj+offset);
-  return arr[1];
-}
- static inline LocalSegment Shape2DV_getp1_segments(Shape2DV restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=32;
-  offset+=16+i0*16;
-  return (LocalSegment)(( char*) obj+offset);
-}
- static inline int64_t Shape2DV_typeid_segments(const Shape2DV restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=32;
-  offset+=16+i0*16;
-  offset+=8;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline  void* Shape2DV_member_segments(const Shape2DV restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=32;
-  offset+=16+i0*16;
-  offset+=*( int64_t*)(( char*) obj+offset);
- return ( void*)(( char*) obj+offset);
-}
- static inline Arr2Float64 Shape2DV_getp_vlimit(Shape2DV restrict  obj){
-  int64_t offset=0;
-  offset+=8;
-  return (Arr2Float64)(( char*) obj+offset);
-}
- static inline int64_t Shape2DV_len_vlimit(Shape2DV restrict  obj){
-  return 2;
-}
- static inline double Shape2DV_get_vlimit(const Shape2DV restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=8;
-  offset+=i0*8;
-  return *( double*)(( char*) obj+offset);
-}
- static inline void Shape2DV_set_vlimit(Shape2DV restrict  obj, int64_t i0, double value){
-  int64_t offset=0;
-  offset+=8;
-  offset+=i0*8;
-  *( double*)(( char*) obj+offset)=value;
-}
- static inline  double* Shape2DV_getp1_vlimit(Shape2DV restrict  obj, int64_t i0){
-  int64_t offset=0;
-  offset+=8;
-  offset+=i0*8;
-  return ( double*)(( char*) obj+offset);
-}
- static inline int64_t Shape2DV_get__seg_id(const Shape2DV restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return *( int64_t*)(( char*) obj+offset);
-}
- static inline void Shape2DV_set__seg_id(Shape2DV restrict  obj, int64_t value){
-  int64_t offset=0;
-  offset+=24;
-  *( int64_t*)(( char*) obj+offset)=value;
-}
- static inline  int64_t* Shape2DV_getp__seg_id(Shape2DV restrict  obj){
-  int64_t offset=0;
-  offset+=24;
-  return ( int64_t*)(( char*) obj+offset);
-}
-#endif
+//     // grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_max, 1, &params_max, &number_of_roots_max);
+//     // grid_search_and_newton(MultipleCoulomb_y, MultipleCoulombDeriv_y, s0, s_max, roots_min, 1, &params_min, &number_of_roots_min);
 
- static inline
-void Shape2DV_crossing_drift(Shape2DV shape, int8_t* n_hit, double* s, double s0, double x0, double xm, double y0, double ym){
-    double restrict_s[2];
-    double ymin = Shape2DV_get_vlimit(shape, 0);
-    double ymax = Shape2DV_get_vlimit(shape, 1);
-    int8_t v_result = DriftTrajectory_vlimit(restrict_s, s0, y0, ym, ymin, ymax);
-    if (v_result == 0){
-        return;  // Completely outside - no crossing possible
-    } else {
-        int64_t n_segments = Shape2DV_len_segments(shape);
-        for (int8_t i=0; i<n_segments;i++) {
-            LocalSegment seg = Shape2DV_getp1_segments(shape, i);
-            LocalSegment_crossing_drift(seg, n_hit, s, s0, x0, xm);
-        }
-        sort_array_of_double(s, (int64_t) *n_hit);
-        if (v_result == 1){
-            calculate_overlap_array_interval(s, n_hit, restrict_s);
-        }
-    }
-}
+//     // restrict_s[0] = roots_min[0];
+//     // restrict_s[1] = roots_max[0];
+//     // SWAP(restrict_s, 0, 1);   // To make sure these are sorted
+//     // return 1;  // Default behavior: check overlap with horizontal crossings
+//     // // }
+// }
 
- static inline
-double Shape2DV_crossing_drift_first(Shape2DV shape, double s0, double x0, double xm, double y0, double ym){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2DV_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
-        case 0: {  // SIZE: 21
-            double s[21];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_first(n_hit, s);
-        }
-        case 1: {  // SIZE: 6
-            double s[6];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_first(n_hit, s);
-        }
-        case 2: {  // SIZE: 15
-            double s[15];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_first(n_hit, s);
-        }
-        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_first*/
-        default:
-            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+// // MULTIPLE COULOMB SCATTERING TRAJECTORY ------------------------------------------------------------------
 
- static inline
-double Shape2DV_crossing_drift_before_s(Shape2DV shape, double s0, double x0, double xm, double y0, double ym, double before_s){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2DV_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
-        case 0: {  // SIZE: 21
-            double s[21];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        case 1: {  // SIZE: 6
-            double s[6];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        case 2: {  // SIZE: 15
-            double s[15];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_before_s(n_hit, s, before_s);
-        }
-        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_before_s*/
-        default:
-            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+// void generate_gaussian_random_numbers(double* z1, double* z2) {
+//     // get z1 and z2 from Box-Muller transform
+//     double v1, v2, r2;
+//     do {
+//         v1 = 2 * ((double)rand() / RAND_MAX) - 1;
+//         v2 = 2 * ((double)rand() / RAND_MAX) - 1;
+//         r2 = v1 * v1 + v2 * v2;
+//     } while (r2 >= 1 || r2 == 0);
+//     double a = sqrt(-2 * log(r2) / r2);
+//     *z1 = v1 * a;
+//     *z2 = v2 * a;
+// }
 
- static inline
-double Shape2DV_crossing_drift_after_s(Shape2DV shape, double s0, double x0, double xm, double y0, double ym, double after_s){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2DV_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
-        case 0: {  // SIZE: 21
-            double s[21];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        case 1: {  // SIZE: 6
-            double s[6];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        case 2: {  // SIZE: 15
-            double s[15];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_after_s(n_hit, s, after_s);
-        }
-        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_after_s*/
-        default:
-            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+// void A(double Xo, double p, double* Ax, double* Ay) {
+//     // z1, z2 are gaussian random numbers. Xo is the radiation length, p is the momentum
+//     double z1, z2;
+//     generate_gaussian_random_numbers(&z1, &z2);
+//     *Ax = (z1 / sqrt(12) + z2 / 2.0) * Xo * 13.6e-3 / p * 0.038;
+//     *Ay = (z1 / sqrt(12) + z2 / 2.0) * Xo * 13.6e-3 / p * 0.038;
+// }
 
- static inline
-double Shape2DV_crossing_drift_last(Shape2DV shape, double s0, double x0, double xm, double y0, double ym){
-    int8_t n_hit = 0;
-    int64_t seg_id = Shape2DV_get__seg_id(shape);
-    switch (seg_id){
-        /*START_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
-        case 0: {  // SIZE: 21
-            double s[21];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_last(n_hit, s);
-        }
-        case 1: {  // SIZE: 6
-            double s[6];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_last(n_hit, s);
-        }
-        case 2: {  // SIZE: 15
-            double s[15];
-            Shape2DV_crossing_drift(shape, &n_hit, s, s0, x0, xm, y0, ym);
-            return Trajectory_get_last(n_hit, s);
-        }
-        /*END_SEG_ID_CASES_Shape2DV_DriftTrajectory_last*/
-        default:
-            printf("Unknown seg_id for Shape2DV: %ld\nPlease recompile.", seg_id); fflush(stdout);  //only_for_context cpu_serial
-            (void) n_hit;  // Avoid warning
-            return XC_S_MAX;
-    }
-}
+// // void B(double* B) {
+// //     *B = 1.0/0.038// + log(q**2/beta**2) // do we approx beta to one in the old code 
+// // }
+
+// // double MultipleCoulombTrajectory(double s, double const Xo, const double Ax){
+// //     // MCS trajectory form PDG rewritted in terms of A, B and s/Xo. 
+// //     return Ax * pow(sqrt(s/Xo),3.0) * (1.0/0.038 + log(s/Xo));
+// // }
+
+// // double MultipleCoulombTrajectory_prime_x(double s, double const Xo, const double Ax){ 
+// //     return Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
+// // }
+
+// // CURVE LENGTH ---------------------------------------------------------------------------------------------
+// // Curve length is int_s1^s2 sqrt(1 + (dx/ds)^2 + (dy/ds)^2) ds
+// double integrand_curve(double s, void *params) {
+//     // Extract Ax, Ay, Xo from the params. Note: s is particle s.
+//     double *p = (double *)params;
+//     const double Ax = p[0];
+//     const double Ay = p[1];
+//     const double Xo = p[2];
+//     double x;
+//     double y;
+
+//     x = Ax/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
+//     y = Ay/Xo * (sqrt(s/Xo)*3.0/2.0*log(s/Xo)+1.0/0.038 + sqrt(s/Xo));
+//     return sqrt(1 + x*x + y*y);
+// }
+
+//  static inline
+// double MultipleCoulombTrajectory_length(double s0, double x0, double y0, const double s1, const double s2, 
+//                                         const double* Ax, const double* Ay, const double Xo){
+//     (void) s0;  // Avoid unused parameter warning
+//     (void) x0;  // Avoid unused parameter warning
+//     (void) y0;  // Avoid unused parameter warning, why do we have this though?
+//     double n = 1000; // number of subintervals, must be even
+//     double params[3] = {*Ax, *Ay, Xo}; // should i make Xo pointer for consistency?
+
+//     // compare with adaptive gauss/kronrod quadrature later! 
+//     double length = simpson(integrand_curve, s1, s2, n, params); // shold avoid magic numbers
+//     return length;
+// }
+
+#endif /* XCOLL_GEOM_TRAJ_MCS_H */
