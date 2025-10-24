@@ -7,6 +7,7 @@ import numpy as np
 from numbers import Number
 from subprocess import run, PIPE, Popen
 from time import sleep
+import socket
  
 import xobjects as xo
 import xtrack.particles.pdg as pdg
@@ -59,6 +60,7 @@ class FlukaEngine(BaseEngine):
         kwargs.setdefault('_timeout_sec', 36000)
         kwargs.setdefault('_network_port', -1)
         kwargs.setdefault('_max_particle_id', -1)
+        kwargs.setdefault('_capacity', 5000)
         kwargs.setdefault('_relative_capacity', 2)
         super().__init__(**kwargs)
 
@@ -101,7 +103,7 @@ class FlukaEngine(BaseEngine):
         if val is None:
             val = 36000
         if not isinstance(Number) or val <= 60:
-            raise ValueError("`capacity` has to be an integer and larger than 60!")
+            raise ValueError("`timeout_sec` has to be an integer and larger than 60!")
         self._timeout_sec = val
 
     @property
@@ -432,6 +434,16 @@ class FlukaEngine(BaseEngine):
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
+        # Check if the hostname has a valid IP address
+        try:
+            socket.inet_aton(host)
+        except socket.error:
+            self._print(f"Warning: Hostname {host} is not a valid IP address. Setting it to localhost.")
+            host = "localhost"
+        try:
+            host = socket.gethostbyname(host)
+        except socket.gaierror:
+            host = "localhost"
         with self._network_nfo.open('w') as fid:
             fid.write(f"{host}\n")
 

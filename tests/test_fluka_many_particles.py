@@ -23,10 +23,11 @@ def test_protons(hit):
     print(f"Testing protons with hit={hit}")
     num_part = 500
     p0c = 6.8e12
-    capacity = num_part*100
+    capacity = num_part*2
+    relative_capacity = 2
     _stop_engine()
     particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=p0c)
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     if hit:
         part, part_init = _init_particles(num_part)
     else:
@@ -46,13 +47,14 @@ def test_lead(hit):
     num_part = 100
     p0c = 6.8e12*82
     capacity = 500_000
+    relative_capacity = 500
     _stop_engine()
     if hit:
         kwargs_ref = {}
     else:
         kwargs_ref = {'x': 0, 'px': 0}
     particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=p0c)
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     tol=1e-12
@@ -69,7 +71,8 @@ def test_antiprotons(proton_ref, hit):
     print(f"Testing antiprotons with hit={hit} and proton_ref={proton_ref}")
     num_part = 100
     p0c = 6.8e12
-    capacity = num_part*100
+    capacity = num_part*2
+    relative_capacity = 2
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -83,7 +86,7 @@ def test_antiprotons(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antiproton', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -100,6 +103,7 @@ def test_electrons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -115,7 +119,7 @@ def test_electrons(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='electron', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -132,6 +136,7 @@ def test_positrons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -147,7 +152,7 @@ def test_positrons(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -164,6 +169,7 @@ def test_muons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -179,7 +185,7 @@ def test_muons(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='muon', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -196,6 +202,7 @@ def test_antimuons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -211,7 +218,7 @@ def test_antimuons(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='antimuon', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -227,6 +234,7 @@ def test_positive_pions(proton_ref, hit):
     num_part = 500
     p0c = 450e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -242,7 +250,7 @@ def test_positive_pions(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi+', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -259,6 +267,7 @@ def test_negative_pions(proton_ref, hit):
     num_part = 500
     p0c = 450e9
     capacity = num_part*100
+    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -274,7 +283,7 @@ def test_negative_pions(proton_ref, hit):
     else:
         particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='pi-', p0c=p0c)
         tol=1e-12
-    coll = _init_fluka(particle_ref, capacity)
+    coll = _init_fluka(particle_ref, capacity, relative_capacity)
     part, part_init = _init_particles(num_part, **kwargs_ref)
     _track_particles(coll, part)
     if hit:
@@ -289,11 +298,12 @@ def _stop_engine():
         xc.fluka.engine.stop(clean=True)
 
 
-def _init_fluka(particle_ref, capacity):
+def _init_fluka(particle_ref, capacity, relative_capacity):
     coll = xc.FlukaCollimator(length=0.4, assembly='fcc_tcp')
     coll.jaw = 0.002
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.capacity = capacity
+    xc.fluka.engine.relative_capacity = relative_capacity
     xc.fluka.engine.start(elements=coll, clean=True, verbose=True, return_all=True,
                         return_neutral=True, electron_lower_momentum_cut=1.e6)
     return coll
