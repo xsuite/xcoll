@@ -3,20 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import random
-import string
 from contextlib import contextmanager
 
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
 from .base import BaseCollimator, BaseCrystal
+from ..general import _pkg_root
 from ..scattering_routines.geometry import XcollGeometry
 from ..scattering_routines.geant4 import Geant4Engine
 from ..scattering_routines.geant4 import track as track_in_python
-from ..scattering_routines.everest.materials import _SixTrack_to_xcoll, SixTrack_from_xcoll, \
-                                            SixTrack_from_xcoll_crystal, Material, CrystalMaterial
+from ..materials import Material, CrystalMaterial, RefMaterial, db as material_db
 
 
 class Geant4Collimator(BaseCollimator):
@@ -80,37 +77,17 @@ class Geant4Collimator(BaseCollimator):
         return self._material
 
     @material.setter
-    def material(self, val):
-        # TODO: better material handling
-        if val is None:
-            self._material = ''
-            return
-        if isinstance(val, Material):
-            val = SixTrack_from_xcoll(val)
-        elif not isinstance(val, str):
-            raise ValueError("Material should be an Everest `Material` or a string.")
-        else:
-            val = val.strip()
-            if val.lower() == "va":
-                raise ValueError("SixTrack material 'VA' not supported. Use a drift.")
-            elif val.lower() == "bl":
-                raise ValueError("SixTrack material 'BL' not supported. Use a BlackAbsorber.")
-        geant4_materials = {
-            'c':    'AC150GPH',
-            'si':   'Si',
-            'cu':   'Cu',
-            'mogr': 'MG6403Fc',
-            'mo':   'Mo',
-            'cucd': 'CUDIAM75',
-            'iner': 'INERM180',
-            'w':    'W',
-            'ta':   'Ta',
-            'ti':   'Ti'
-        }
-        if val.lower() not in geant4_materials:
-            # TODO: need to check with BDSIM configuration file etc
-            raise ValueError(f"Material {val} not yet supported.")
-        self._material = geant4_materials[val.lower()]
+    def material(self, material):
+        if material is None:
+            material = Material()
+        elif isinstance(material, dict):
+            material = Material.from_dict(material)
+        elif isinstance(material, str):
+            material = material_db[material]
+        if not isinstance(material, Material):
+            raise ValueError("Invalid material!")
+        if self.material != material:
+            self._material = material
 
 
     def track(self, part):

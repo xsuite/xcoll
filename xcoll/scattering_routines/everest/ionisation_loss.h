@@ -10,16 +10,17 @@
 #include <stdio.h>
 
 /*gpufun*/
-void calculate_ionisation_properties(EverestData restrict everest, double pc) {
-    if (everest->coll->only_mcs){   // TODO: this should be done smarter
+void calculate_ionisation_properties(EverestData restrict everest, MaterialData restrict material, double pc) {
+    double exenergy = MaterialData_get__excitation_energy(material);
+    if (exenergy < 0){
+        // Unsupported material for ionisation loss
         return;
     }
 
     // Material properties
-    double const exenergy = everest->coll->exenergy*1.0e3; // [MeV]
-    double const rho      = everest->coll->rho;
-    double const anuc     = everest->coll->anuc;
-    double const zatom    = everest->coll->zatom;
+    exenergy *= 1.0e-6; // [MeV]
+    double const rho     = MaterialData_get__density(material);
+    double const ZA_mean = MaterialData_get__ZA_mean(material);
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]
@@ -32,12 +33,12 @@ void calculate_ionisation_properties(EverestData restrict everest, double pc) {
     // tmax is max energy loss from kinematics
     // mep = mass_electron / mass_beam
     double tmax = 2.*XC_ELECTRON_MASS*pow(bgr, 2.)/ (1. + 2.*gammar*mep + pow(mep, 2.));  // [MeV]
-    double plen = sqrt(rho*zatom/anuc)*28.816e-6; // [MeV]
+    double plen = sqrt(rho*ZA_mean)*28.816e-6; // [MeV]
 
     // TODO: Bete-Bloch needs to be adapted for high energy (more loss due to delta ray radiation)
     //       and low energy (nuclear scattering)
     // TODO: should scale with z^2 (incoming charge)
-    double BB_fac = XC_BETHE_BLOCH/2*zatom/anuc/betar/betar;  // [MeV*cm^2/g]
+    double BB_fac = XC_BETHE_BLOCH/2*ZA_mean/betar/betar;  // [MeV*cm^2/g]
     everest->energy_loss_xi_m = BB_fac*rho*1.0e-1; // [GeV/m]   xi per meter
     double e_ionisation = log(2.*XC_ELECTRON_MASS*bgr*bgr/exenergy);
     double density = 2*log(plen/exenergy) + 2*log(bgr) - 1;
@@ -68,10 +69,15 @@ void calculate_ionisation_properties(EverestData restrict everest, double pc) {
 
 
 /*gpufun*/
-double calcionloss(EverestData restrict everest, LocalParticle* part, double ionisation_length, double pc, double scale_factor) {
+double calcionloss(EverestData restrict everest, MaterialData restrict material, LocalParticle* part,
+                   double ionisation_length, double pc, double scale_factor) {
+    if (MaterialData_get__excitation_energy(material) < 0){
+        // Unsupported material for ionisation loss
+        return;
+    }
 
 #ifdef XCOLL_REFINE_ENERGY
-    calculate_ionisation_properties(everest, pc);
+    calculate_ionisation_properties(everest, material, pc);
 #endif
 
     double ionisation_loss;

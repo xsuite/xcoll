@@ -28,7 +28,7 @@ int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
 void EverestCrystal_set_material(EverestCrystalData el){
     CrystalMaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
-    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+    RandomRutherford_set_by_xcoll_material(rng, (MaterialData) material);
 }
 
 
@@ -123,25 +123,8 @@ void EverestCrystal_free(CrystalGeometry restrict cg){
 /*gpufun*/
 EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
     EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
-    // Random generator and material
+    // Random generator
     coll->rng = EverestCrystalData_getp_rutherford_rng(el);
-    CrystalMaterialData material = EverestCrystalData_getp__material(el);
-    coll->exenergy = CrystalMaterialData_get_excitation_energy(material)*1.0e3; // MeV
-    coll->rho      = CrystalMaterialData_get_density(material);
-    coll->anuc     = CrystalMaterialData_get_A(material);
-    coll->zatom    = CrystalMaterialData_get_Z(material);
-    coll->bnref    = CrystalMaterialData_get_nuclear_elastic_slope(material);
-    coll->csref[0] = CrystalMaterialData_get_cross_section(material, 0);
-    coll->csref[1] = CrystalMaterialData_get_cross_section(material, 1);
-    coll->csref[5] = CrystalMaterialData_get_cross_section(material, 5);
-    coll->only_mcs = CrystalMaterialData_get__only_mcs(material);
-    coll->dlri     = CrystalMaterialData_get_crystal_radiation_length(material);
-    coll->dlyi     = CrystalMaterialData_get_crystal_nuclear_length(material);
-    coll->ai       = CrystalMaterialData_get_crystal_plane_distance(material);
-    coll->eum      = CrystalMaterialData_get_crystal_potential(material);
-    coll->collnt   = CrystalMaterialData_get_nuclear_collision_length(material);
-    coll->eta      = 0.9;  // Hard-coded channeling saturation factor
-    coll->orient   = EverestCrystalData_get__orient(el);
     // Impact table
     coll->record = EverestCrystalData_getp_internal_record(el, part0);
     coll->record_index = NULL;
@@ -154,15 +137,16 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
 
 
 /*gpufun*/
-EverestData EverestCrystal_init_data(LocalParticle* part, EverestCollData restrict coll, CrystalGeometry restrict cg){
+EverestData EverestCrystal_init_data(LocalParticle* part, CrystalMaterialData restrict material,
+        EverestCollData restrict coll, CrystalGeometry restrict cg){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
     // Preinitialise scattering parameters
     double energy = LocalParticle_get_energy(part) / 1e9; // energy in GeV
-    calculate_scattering(everest, energy);
-    calculate_ionisation_properties(everest, energy);
-    calculate_critical_angle(everest, part, cg, energy);
+    calculate_scattering(everest, (MaterialData) material, energy);
+    calculate_ionisation_properties(everest, (MaterialData) material, energy);
+    calculate_critical_angle(everest, material, part, cg, energy);
     calculate_VI_parameters(everest, part, energy);
     return everest;
 }
@@ -233,8 +217,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
-                    EverestData everest = EverestCrystal_init_data(part, coll, cg);
-                    pc_out = do_crystal(everest, part, cg, pc_in/1.e9, remaining_length)*1.e9;
+                    CrystalMaterialData material = EverestCrystalData_getp__material(el);
+                    EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
+                    pc_out = do_crystal(everest, part, cg, pc_in/1.e9, remaining_length, material)*1.e9;
                     free(everest);
                 }
 
