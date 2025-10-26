@@ -21,7 +21,7 @@ Carbon180 = Carbon.adapt(name='Carbon180', density=1.80, fluka_name='CC_1_80')
 Carbon185 = Carbon.adapt(name='Carbon185', density=1.85, fluka_name='CC_1_85')
 Diamond   = Carbon.adapt(name='Diamond', density=3.52, excitation_energy=88.5)
 GraphiteR4550 = Carbon.adapt(name='GraphiteR4550', density=1.83, excitation_energy=78.0,
-                             nuclear_radius=0.25, nuclear_elastic_slope=70.0,
+                             nuclear_radius=0.25, nuclear_elastic_slope=70.0, hcut=0.02,
                              cross_section=[0.337, 0.232, 0, 0, 0, 0.0076e-2], fluka_name='GRAR4550')
 CarbonFibreCarbon = GraphiteR4550.adapt(name='CarbonFibreCarbon', density=1.67, fluka_name='AC150GPH')
 db['CFC'] = CarbonFibreCarbon

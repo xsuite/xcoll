@@ -85,15 +85,15 @@ print(f"{MolybdenumGraphite6400.Z=}  {MolybdenumGraphite6400.A=}  {MolybdenumGra
 print(f"{MolybdenumGraphite.Z=}  {MolybdenumGraphite.A=}  {MolybdenumGraphite.excitation_energy=}  {MolybdenumGraphite.radiation_length=}")
 print(f"{CopperDiamond.Z=}  {CopperDiamond.A=}  {CopperDiamond.excitation_energy=}  {CopperDiamond.radiation_length=}")
 MolybdenumGraphite.adapt(inplace=True, excitation_energy=87.1, radiation_length=0.1193, nuclear_radius=0.25,
-                         nuclear_elastic_slope=76.7, cross_section=[0.362, 0.247, 0, 0, 0, 0.0094e-2])
+                         nuclear_elastic_slope=76.7, cross_section=[0.362, 0.247, 0, 0, 0, 0.0094e-2], hcut=0.02)
 CopperDiamond.adapt(inplace=True, excitation_energy=152.9, radiation_length=0.0316, nuclear_radius=0.308,
-                    nuclear_elastic_slope=115.0, cross_section=[0.572, 0.370, 0, 0, 0, 0.0279e-2])
+                    nuclear_elastic_slope=115.0, cross_section=[0.572, 0.370, 0, 0, 0, 0.0279e-2], hcut=0.02)
 print(f"{GlidCop15.Z=}  {GlidCop15.A=}  {GlidCop15.excitation_energy=}  {GlidCop15.radiation_length=}")
 print(f"{Inermet180.Z=}  {Inermet180.A=}  {Inermet180.excitation_energy=}  {Inermet180.radiation_length=}")
 GlidCop15.adapt(inplace=True, excitation_energy=320.8e-9, radiation_length=0.0144, nuclear_radius=0.418,
-                nuclear_elastic_slope=208.7, cross_section=[1.246, 0.765, 0, 0, 0, 0.1390e-2])
+                nuclear_elastic_slope=208.7, cross_section=[1.246, 0.765, 0, 0, 0, 0.1390e-2], hcut=0.02)
 Inermet180.adapt(inplace=True, excitation_energy=682.2e-9, radiation_length=0.00385, nuclear_radius=0.578,
-                 nuclear_elastic_slope=392.1, cross_section=[2.548, 1.473, 0, 0, 0, 0.5740e-2])
+                 nuclear_elastic_slope=392.1, cross_section=[2.548, 1.473, 0, 0, 0, 0.5740e-2], hcut=0.02)
 
 
 # Metadata for database

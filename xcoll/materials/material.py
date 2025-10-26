@@ -69,22 +69,20 @@ class Material(xo.HybridClass):
             super().__init__(**kwargs)
             return
 
-        # Create xobject
+        # Create xobject with all invalid values (-1)
         xokwargs = kwargs.pop('_xokwargs', {})
-        # Default values (will be calulated later if not provided)
         xokwargs['_ZA_mean'] = kwargs.pop('_ZA_mean', -1.)
         xokwargs['_Z2_eff'] = kwargs.pop('_Z2_eff', -1.)
         xokwargs['_radiation_length'] = kwargs.pop('_radiation_length', -1.)
         xokwargs['_excitation_energy'] = kwargs.pop('_excitation_energy', -1.)
         xokwargs['_atoms_per_volume'] = kwargs.pop('_atoms_per_volume', -1.)
         xokwargs['_num_nucleons_eff'] = kwargs.pop('_num_nucleons_eff', -1.)
+        xokwargs['_density'] = kwargs.get('_density', -1.)
+        xokwargs['_nuclear_radius'] = kwargs.pop('_nuclear_radius', -1.)
+        xokwargs['_nuclear_elastic_slope'] = kwargs.pop('_nuclear_elastic_slope', -1.)
+        xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
+        xokwargs['_hcut'] = kwargs.pop('_hcut', -1.)
         xokwargs['_context'] = kwargs.pop('_context', _materials_context)  # This is needed to get all materials in the same buffer (otherwise Xtrack tests fail)
-        # Provided values
-        xokwargs['_density'] = kwargs.get('density', -1.)
-        xokwargs['_nuclear_radius'] = kwargs.pop('nuclear_radius', -1.)
-        xokwargs['_nuclear_elastic_slope'] = kwargs.pop('nuclear_elastic_slope', -1.)
-        xokwargs['_cross_section'] = kwargs.pop('cross_section', [-1., -1., -1., -1., -1., -1.])
-        xokwargs['_hcut'] = kwargs.pop('hcut', 0.02)
         super().__init__(**xokwargs)
 
         # Set python-side defaults
@@ -95,6 +93,10 @@ class Material(xo.HybridClass):
         self._mass_fractions = None
         self._radiation_length_set_manually = False
         self._excitation_energy_set_manually = False
+        self._state = None
+        self._temperature = None
+        self._pressure = None
+        self._info = None
         self._name = None
         self._short_name = None
         self._fluka_name = None
@@ -129,20 +131,21 @@ class Material(xo.HybridClass):
                     "materials.")
 
         # Calculate dependent properties
-        self.density = kwargs.pop('density', None)
+        self.density = kwargs.pop('density', None)                     # Can be provided for more precision (obligatory for elements)
         self.radiation_length = kwargs.pop('radiation_length', None)   # Can be provided for more precision
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
 
         # Assign optional properties
-        self.state = kwargs.pop('state', None)
-        self.temperature = kwargs.pop('temperature', None)
-        self.pressure = kwargs.pop('pressure', None)
-        self.info = kwargs.pop('info', None)
-        self.name = kwargs.pop('name', None)
-        self.short_name = kwargs.pop('short_name', None)
-        self.geant4_name = kwargs.pop('geant4_name', None)
-        self.fluka_name = kwargs.pop('fluka_name', None)
+        for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut']:
+            if kk in kwargs:
+                setattr(self, kk, kwargs.pop(kk))
+        for kk in ['state', 'temperature', 'pressure', 'info']:
+            if kk in kwargs:
+                setattr(self, kk, kwargs.pop(kk))
+        for kk in ['name', 'short_name', 'fluka_name', 'geant4_name']:
+            if kk in kwargs:
+                setattr(self, kk, kwargs.pop(kk))
 
         # Check for unused kwargs
         if len(kwargs) > 0:
@@ -157,7 +160,7 @@ class Material(xo.HybridClass):
             raise ValueError('Z must be provided for an elemental Material')
         if self.A is None:
             raise ValueError('A must be provided for an elemental Material')
-        if self.density is None:
+        if 'density' not in kwargs:
             raise ValueError('density must be provided for an elemental Material')
 
 
@@ -398,6 +401,18 @@ class Material(xo.HybridClass):
                 setattr(self, kk, vv)
             return self
         return self.__class__(**thisdict)
+
+    def invalidate(self):
+        self.Z = None
+        self.A = None
+        self._components = None
+        self._n_atoms = None
+        self._mass_fractions = None
+        self.density = None
+        self.name = None
+        self.short_name = None
+        self.fluka_name = None
+        self.geant4_name = None
 
     def __hash__(self):
         if self.name is None:
@@ -734,13 +749,14 @@ class Material(xo.HybridClass):
 
     @property
     def hcut(self):
-        return self._hcut
+        if self._hcut > 0:
+            return self._hcut
 
     @hcut.setter
     def hcut(self, val):
         self._assert_not_frozen('hcut')
         if val is None:
-            self._hcut = 0.02
+            self._hcut = -1
         else:
             if val <= 0:
                 raise ValueError('hcut must be strictly positive')
@@ -789,24 +805,21 @@ class Material(xo.HybridClass):
         self._assert_not_frozen('state')
         if val is None:
             self._state = None
-            return
-        if val.lower() not in ['solid', 'liquid', 'gas']:
+        elif val.lower() not in ['solid', 'liquid', 'gas']:
             raise ValueError("Attribute `state` must be one of 'solid', "
                              "'liquid', 'gas', or None")
-        self._state = val.lower()
+        else:
+            self._state = val.lower()
 
     @property
     def temperature(self):
-        # In Kelvin
-        if self._temperature <= 0:
-            return None
         return self._temperature
 
     @temperature.setter
     def temperature(self, val):
         self._assert_not_frozen('temperature')
         if val is None:
-            self._temperature = -1
+            self._temperature = None
         elif val <= 0:
             raise ValueError('Temperature must be in Kelvin and strictly positive')
         else:
@@ -815,15 +828,13 @@ class Material(xo.HybridClass):
     @property
     def pressure(self):
         # In atm = 101.325 kPa
-        if self._pressure <= 0:
-            return None
         return self._pressure
 
     @pressure.setter
     def pressure(self, val):
         self._assert_not_frozen('pressure')
         if val is None:
-            self._pressure = -1
+            self._pressure = None
         elif val <= 0:
             raise ValueError('Pressure must be in Pascal and strictly positive')
         else:
@@ -982,6 +993,12 @@ class CrystalMaterial(Material):
     }
 
     _depends_on = [Material]
+    _skip_in_to_dict  = Material._skip_in_to_dict + [
+                         '_crystal_plane_distance', '_crystal_potential',
+                         '_nuclear_collision_length', '_eta']
+    _store_in_to_dict = Material._store_in_to_dict + [
+                         'crystal_plane_distance', 'crystal_potential',
+                         'nuclear_collision_length', 'eta']
 
     def __init__(self, **kwargs):
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
@@ -989,10 +1006,9 @@ class CrystalMaterial(Material):
             return
         xokwargs = {}
         for kk in ('crystal_plane_distance',
-                   'crystal_potential',
+                   'crystal_potential', 'eta',
                    'nuclear_collision_length'):
             xokwargs[f'_{kk}'] = kwargs.pop(kk, -1.)
-        xokwargs['_eta'] = 0.9
         kwargs['_xokwargs'] = xokwargs
         super().__init__(**kwargs)
 
@@ -1007,6 +1023,63 @@ class CrystalMaterial(Material):
         thisdict.pop('geant4_name', None)  # Need to define how to deal with these
         return cls(**thisdict)
 
+    @property
+    def crystal_plane_distance(self):
+        if self._crystal_plane_distance > 0:
+            return self._crystal_plane_distance
+
+    @crystal_plane_distance.setter
+    def crystal_plane_distance(self, val):
+        self._assert_not_frozen('crystal_plane_distance')
+        if val is None:
+            self._crystal_plane_distance = -1
+        elif val <= 0:
+            raise ValueError('`crystal_plane_distance` must be strictly positive')
+        self._crystal_plane_distance = val
+
+    @property
+    def crystal_potential(self):
+        if self._crystal_potential > 0:
+            return self._crystal_potential
+
+    @crystal_potential.setter
+    def crystal_potential(self, val):
+        self._assert_not_frozen('crystal_potential')
+        if val is None:
+            self._crystal_potential = -1
+        elif val <= 0:
+            raise ValueError('`crystal_potential` must be strictly positive')
+        self._crystal_potential = val
+
+    @property
+    def nuclear_collision_length(self):
+        if self._nuclear_collision_length > 0:
+            return self._nuclear_collision_length
+
+    @nuclear_collision_length.setter
+    def nuclear_collision_length(self, val):
+        self._assert_not_frozen('nuclear_collision_length')
+        if val is None:
+            self._nuclear_collision_length = -1
+        elif val <= 0:
+            raise ValueError('`nuclear_collision_length` must be strictly positive')
+        self._nuclear_collision_length = val
+
+    @property
+    def eta(self):
+        if self._eta > 0:
+            return self._eta
+
+    @eta.setter
+    def eta(self, val):
+        self._assert_not_frozen('eta')
+        if val is None:
+            self._eta = -1
+        elif val <= 0:
+            raise ValueError('`eta` must be strictly positive')
+        self._eta = val
+
+
 
 class RefMaterial(Material):
     ''' A string to pass a material that exists in Geant4 or FLUKA.'''
@@ -1017,12 +1090,15 @@ class RefMaterial(Material):
             if 'name' not in kwargs:
                 raise ValueError("ReferenceMaterial must have a name.")
             name = kwargs.pop('name')
+            # Fake values to pass initialisation
             kwargs['Z'] = 1
             kwargs['A'] = 1
+            kwargs['density'] = 1
         super().__init__(**kwargs)
-        self._Z = -1
-        self._A = -1
-        self._name = name # to avoid syncing with database
+        # Invalidate all properties
+        self.invalidate()
+        # Set name only now to avoid syncing with database
+        self._name = name
         self._frozen = True  # ReferenceMaterial is always frozen
 
     def __str__(self):
@@ -1030,10 +1106,6 @@ class RefMaterial(Material):
 
 
 _DEFAULT_MATERIAL = Material(Z=1, A=1, density=1)
-_DEFAULT_MATERIAL.Z = None
-_DEFAULT_MATERIAL.A = None
-_DEFAULT_MATERIAL.density = None
+_DEFAULT_MATERIAL.invalidate()
 _DEFAULT_CRYSTALMATERIAL = CrystalMaterial(Z=1, A=1, density=1)
-_DEFAULT_CRYSTALMATERIAL.Z = None
-_DEFAULT_CRYSTALMATERIAL.A = None
-_DEFAULT_CRYSTALMATERIAL.density = None
+_DEFAULT_CRYSTALMATERIAL.invalidate()
