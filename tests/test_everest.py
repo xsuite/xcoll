@@ -151,7 +151,6 @@ def test_crystals():
 
 
 def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
-    print(f"Testing {name}")
     if _context is None:
         _context = xo.ContextCpu()
 #     _context._cffi_verbose = True
