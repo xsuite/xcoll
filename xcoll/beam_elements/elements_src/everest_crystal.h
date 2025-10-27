@@ -162,15 +162,17 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // Initialise collimator data
     EverestCollData coll;
     CrystalGeometry cg;
+    CrystalMaterialData material;
     if (active){
         // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
         coll = EverestCrystal_init(el, part0);
         cg   = EverestCrystal_init_geometry(el, part0);
+        material = EverestCrystalData_getp__material(el);
 
         // For info
         double const e0 = LocalParticle_get_energy0(part0);
-        double t_c0  = _critical_angle0(coll, e0);
-        double Rcrit = _critical_radius(coll, e0);
+        double t_c0  = _critical_angle0(material, e0);
+        double Rcrit = _critical_radius(material, e0);
         double t_c = _critical_angle(coll, t_c0, Rcrit / fabs(cg->bending_radius));
         EverestCrystalData_set__critical_radius(el, Rcrit);
         EverestCrystalData_set__critical_angle(el, t_c);
@@ -218,7 +220,6 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
-                    CrystalMaterialData material = EverestCrystalData_getp__material(el);
                     EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
                     pc_out = do_crystal(everest, material, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);

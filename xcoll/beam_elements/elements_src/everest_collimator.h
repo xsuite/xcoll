@@ -135,9 +135,11 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll;
     CollimatorGeometry cg;
+    MaterialData material;
     if (active){
         coll = EverestCollimator_init(el, part0);
         cg = EverestCollimator_init_geometry(el, part0);
+        material = EverestCollimatorData_getp__material(el);
     }
 
     //start_per_particle_block (part0->part)
@@ -178,7 +180,6 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     // Hit one of the jaws, so scatter
                     double remaining_length = length - LocalParticle_get_s(part);
                     // Scatter
-                    MaterialData material = EverestCollimatorData_getp__material(el);
                     EverestData everest = EverestCollimator_init_data(part, material, coll);
                     pc_out = jaw(everest, material, part, pc_in, remaining_length, 1);
                     free(everest);

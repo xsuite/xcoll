@@ -74,6 +74,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestBlock_init(el, part0, active);
+    MaterialData material = EverestBlockData_getp__material(el);
 
     //start_per_particle_block (part0->part)
         if (!active){
@@ -106,7 +107,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double const pc_in   = (1 + delta)*p0c*qq0/chi;
                 double pc_out;
 
-                MaterialData material = EverestBlockData_getp__material(el);
                 EverestData everest = EverestBlock_init_data(part, material, coll);
                 pc_out = jaw(everest, material, part, pc_in, length, 0);
                 free(everest);

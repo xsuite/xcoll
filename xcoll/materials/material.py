@@ -83,6 +83,10 @@ class Material(xo.HybridClass):
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
         xokwargs['_hcut'] = kwargs.pop('_hcut', -1.)
         xokwargs['_context'] = kwargs.pop('_context', _materials_context)  # This is needed to get all materials in the same buffer (otherwise Xtrack tests fail)
+        xokwargs['__class__'] = kwargs.pop('__class__', Material)
+        xokwargs['_buffer'] = kwargs.pop('_buffer', None)
+        xokwargs['_offset'] = kwargs.pop('_offset', None)
+        xokwargs['_kwargs_name_check'] = kwargs.pop('_kwargs_name_check', None)
         super().__init__(**xokwargs)
 
         # Set python-side defaults
