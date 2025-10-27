@@ -22,7 +22,7 @@ double channelling_average_density(EverestData restrict everest, CrystalMaterial
                                    CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
-    double const atoms = MaterialData_get__atoms_per_volume(material);
+    double const atoms = MaterialData_get__atoms_per_volume((MaterialData)material);
     double const eum  = CrystalMaterialData_get__crystal_potential(material);
 
     double bend_r = cg->bending_radius;

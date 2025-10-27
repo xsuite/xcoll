@@ -17,6 +17,7 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
+    int8_t orient;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;
 

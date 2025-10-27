@@ -73,7 +73,7 @@ double calcionloss(EverestData restrict everest, MaterialData restrict material,
                    double ionisation_length, double pc, double scale_factor) {
     if (MaterialData_get__excitation_energy(material) < 0){
         // Unsupported material for ionisation loss
-        return;
+        return 0;
     }
 
 #ifdef XCOLL_REFINE_ENERGY

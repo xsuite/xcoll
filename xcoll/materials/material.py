@@ -299,7 +299,7 @@ class Material(xo.HybridClass):
         molar_fractions /= molar_fractions.sum()
         molar_masses = np.array([el.molar_mass or el.average_molar_mass
                                  for el in components])
-        mass_fractions = np.array([mf * el.molar_mass for el, mf in
+        mass_fractions = np.array([mf * mm for mm, mf in
                                     zip(molar_masses, molar_fractions)])
         self._resolve_mass_fractions(components, mass_fractions)
 

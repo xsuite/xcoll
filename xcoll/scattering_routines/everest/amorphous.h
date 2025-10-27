@@ -56,7 +56,7 @@ double amorphous_transport(EverestData restrict everest, CrystalMaterialData res
     // Accumulated effect of mcs on the angles (with initial energy)
     // TODO: pc is energy
     // TODO: missing factor (1 + 0.038*log( L / radl) )  ( *Z if not protons)
-    double radl = CrystalMaterialData_get_radiation_length(material);
+    double radl = CrystalMaterialData_get__radiation_length(material);
     double dya = (13.6/pc)*sqrt(length/radl)*1.0e-3; // RMS of coloumb scattering MCS (rad)
     double kxmcs, kymcs;
 
@@ -74,7 +74,7 @@ double amorphous_transport(EverestData restrict everest, CrystalMaterialData res
     Drift_single_particle_4d(part, length);
 
     // Energy lost because of ionisation process[GeV]
-    pc = calcionloss(everest, (Material) material, part, length, pc, 1);
+    pc = calcionloss(everest, (MaterialData) material, part, length, pc, 1);
 
     // Store new angles
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
@@ -208,7 +208,7 @@ double Amorphous(EverestData restrict everest, CrystalMaterialData restrict mate
         // MCS to nuclear interaction
         pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
         // interact
-        pc = nuclear_interaction(everest, (Material) material, part, pc);
+        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
         if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {

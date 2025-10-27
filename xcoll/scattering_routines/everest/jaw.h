@@ -43,7 +43,7 @@ double jaw(EverestData restrict everest, MaterialData restrict material, LocalPa
             break;
         }
 
-        pc = nuclear_interaction(everest, part, pc);
+        pc = nuclear_interaction(everest, material, part, pc);
         if (LocalParticle_get_state(part) < 1){
             // Particle was absorbed
             break;
