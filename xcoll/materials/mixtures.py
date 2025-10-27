@@ -57,6 +57,19 @@ TiGr2               = Material(components=[Titanium, Iron, Carbon, Oxygen, Nitro
                                mass_fractions=[0.99325, 0.003, 0.0008, 0.0025, 0.0003, 0.00015], density=4.51)
 
 
+# Extra parameters for Everest
+# ============================
+
+MolybdenumGraphite.adapt(inplace=True, nuclear_radius=0.25, nuclear_elastic_slope=76.7,
+                         cross_section=[0.362, 0.247, 0, 0, 0, 0.0094e-2], hcut=0.02)
+CopperDiamond.adapt(inplace=True, nuclear_radius=0.308, nuclear_elastic_slope=115.0,
+                    cross_section=[0.572, 0.370, 0, 0, 0, 0.0279e-2], hcut=0.02)
+Glidcop15.adapt(inplace=True, nuclear_radius=0.418, nuclear_elastic_slope=208.7,
+                cross_section=[1.246, 0.765, 0, 0, 0, 0.1390e-2], hcut=0.02)
+Inermet180.adapt(inplace=True, nuclear_radius=0.578, nuclear_elastic_slope=392.1,
+                 cross_section=[2.548, 1.473, 0, 0, 0, 0.5740e-2], hcut=0.02)
+
+
 # Metadata for database
 # =====================
 

@@ -133,23 +133,25 @@ Tennessine    = Material(Z=117,   A=294,      state='solid',   density=7.2)     
 Oganesson     = Material(Z=118,   A=294,      state='solid',   density=5.0)     # Only unstable isotopes
 
 
-# # Extra parameters for Everest
-# Beryllium.adapt(inplace=True,  nuclear_radius=0.22, nuclear_elastic_slope=74.7,
-#                                cross_section=[0.271, 0.192, 0, 0, 0, 0.0035e-2], hcut=0.02)
-# Aluminium.adapt(inplace=True,  nuclear_radius=0.302, nuclear_elastic_slope=120.3,
-#                                cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2], hcut=0.02)
-# Silicon.adapt(inplace=True,    nuclear_radius=0.441, nuclear_elastic_slope=120.14,
-#                                cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02)
-# Copper.adapt(inplace=True,     nuclear_radius=0.366, nuclear_elastic_slope=217.8,
-#                                cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2], hcut=0.01)
-# Germanium.adapt(inplace=True,  nuclear_radius=0.605, nuclear_elastic_slope=226.35,
-#                                cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02)
-# Molybdenum.adapt(inplace=True, nuclear_radius=0.481, nuclear_elastic_slope=273.9,
-#                                cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2], hcut=0.02)
-# Tungsten.adapt(inplace=True,   nuclear_radius=0.520, nuclear_elastic_slope=440.3,
-#                                cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01)
-# Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3,
-#                                cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2], hcut=0.01)
+# Extra parameters for Everest
+# ============================
+
+Beryllium.adapt(inplace=True,  nuclear_radius=0.22, nuclear_elastic_slope=74.7,
+                               cross_section=[0.271, 0.192, 0, 0, 0, 0.0035e-2], hcut=0.02)
+Aluminium.adapt(inplace=True,  nuclear_radius=0.302, nuclear_elastic_slope=120.3,
+                               cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2], hcut=0.02)
+Silicon.adapt(inplace=True,    nuclear_radius=0.441, nuclear_elastic_slope=120.14,
+                               cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02)
+Copper.adapt(inplace=True,     nuclear_radius=0.366, nuclear_elastic_slope=217.8,
+                               cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2], hcut=0.01)
+Germanium.adapt(inplace=True,  nuclear_radius=0.605, nuclear_elastic_slope=226.35,
+                               cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02)
+Molybdenum.adapt(inplace=True, nuclear_radius=0.481, nuclear_elastic_slope=273.9,
+                               cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2], hcut=0.02)
+Tungsten.adapt(inplace=True,   nuclear_radius=0.520, nuclear_elastic_slope=440.3,
+                               cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01)
+Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3,
+                               cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2], hcut=0.01)
 
 
 # Metadata for database
