@@ -83,11 +83,6 @@ class EverestBlock(BaseBlock):
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
             raise ValueError("Invalid material!")
-        # Default to old-style SixTrack material if possible   --- TODO: remove some day
-        if material is not None:
-            name = material.name
-            if name and f"K2{name}" in material_db:
-                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -159,11 +154,6 @@ class EverestCollimator(BaseCollimator):
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
             raise ValueError("Invalid material!")
-        # Default to old-style SixTrack material if possible   --- TODO: remove some day
-        if material is not None:
-            name = material.name
-            if name and f"K2{name}" in material_db:
-                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -247,11 +237,6 @@ class EverestCrystal(BaseCrystal):
                     material = material_db[f'{material.name}Crystal']
             else:
                 raise ValueError("Not a CrystalMaterial!")
-        # Default to old-style SixTrack material if possible   --- TODO: remove some day
-        if material is not None:
-            name = material.name
-            if name and f"K2{name}" in material_db:
-                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)
