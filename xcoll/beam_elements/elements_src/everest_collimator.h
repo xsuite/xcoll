@@ -107,6 +107,7 @@ EverestCollData EverestCollimator_init(EverestCollimatorData el, LocalParticle* 
         coll->record_index = InteractionRecordData_getp__index(coll->record);
         coll->record_scatterings = EverestCollimatorData_get_record_scatterings(el);
     }
+    coll->orient = 0;
     return coll;
 }
 
@@ -179,7 +180,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                     // Scatter
                     MaterialData material = EverestCollimatorData_getp__material(el);
                     EverestData everest = EverestCollimator_init_data(part, material, coll);
-                    pc_out = jaw(everest, part, pc_in, remaining_length, material, 1);
+                    pc_out = jaw(everest, material, part, pc_in, remaining_length, 1);
                     free(everest);
                 }
 

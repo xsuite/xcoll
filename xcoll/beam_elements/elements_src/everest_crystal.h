@@ -132,6 +132,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
         coll->record_index = InteractionRecordData_getp__index(coll->record);
         coll->record_scatterings = EverestCrystalData_get_record_scatterings(el);
     }
+    coll->orient = EverestCrystalData_get__orient(el);
     return coll;
 }
 
@@ -219,7 +220,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                     // Scatter
                     CrystalMaterialData material = EverestCrystalData_getp__material(el);
                     EverestData everest = EverestCrystal_init_data(part, material, coll, cg);
-                    pc_out = do_crystal(everest, part, cg, pc_in/1.e9, remaining_length, material)*1.e9;
+                    pc_out = do_crystal(everest, material, part, cg, pc_in/1.e9, remaining_length)*1.e9;
                     free(everest);
                 }
 

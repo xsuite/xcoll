@@ -47,6 +47,7 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
             coll->record_scatterings = EverestBlockData_get_record_scatterings(el);
         }
     }
+    coll->orient = 0;
     return coll;
 }
 
@@ -107,7 +108,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
 
                 MaterialData material = EverestBlockData_getp__material(el);
                 EverestData everest = EverestBlock_init_data(part, material, coll);
-                pc_out = jaw(everest, part, pc_in, length, material, 0);
+                pc_out = jaw(everest, material, part, pc_in, length, 0);
                 free(everest);
                 LocalParticle_add_to_s(part, s_block);
 
