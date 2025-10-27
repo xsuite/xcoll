@@ -875,6 +875,8 @@ class Material(xo.HybridClass):
         else:
             if old_name is None:
                 mdb[name] = self
+            elif old_name == name:
+                mdb.update_material(name, self)
             else:
                 mdb.rename_material(old_name, name)
 

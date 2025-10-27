@@ -23,3 +23,7 @@ GermaniumCrystal = CrystalMaterial.from_material(Germanium, crystal_plane_distan
 TungstenCrystal  = CrystalMaterial.from_material(Tungsten, crystal_plane_distance=0.56e-7,
                                     crystal_potential=21.0, nuclear_collision_length=0,
                                     eta=0.9)
+
+# Clean up namespace
+del CarbonFibreCarbon, Silicon, Germanium, Tungsten
+del CrystalMaterial

@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from xtrack.particles.pdg import get_element_name_from_Z, get_element_full_name_from_Z
+from xtrack.particles import pdg
 
 from .material import Material
 from .database import db
@@ -133,35 +133,37 @@ Tennessine    = Material(Z=117,   A=294,      state='solid',   density=7.2)     
 Oganesson     = Material(Z=118,   A=294,      state='solid',   density=5.0)     # Only unstable isotopes
 
 
-# Extra parameters for Everest
-Beryllium.adapt(inplace=True,  nuclear_radius=0.22, nuclear_elastic_slope=74.7,
-                               cross_section=[0.271, 0.192, 0, 0, 0, 0.0035e-2], hcut=0.02)
-Aluminium.adapt(inplace=True,  nuclear_radius=0.302, nuclear_elastic_slope=120.3,
-                               cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2], hcut=0.02)
-Silicon.adapt(inplace=True,    nuclear_radius=0.441, nuclear_elastic_slope=120.14,
-                               cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02)
-Copper.adapt(inplace=True,     nuclear_radius=0.366, nuclear_elastic_slope=217.8,
-                               cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2], hcut=0.01)
-Germanium.adapt(inplace=True,  nuclear_radius=0.605, nuclear_elastic_slope=226.35,
-                               cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02)
-Molybdenum.adapt(inplace=True, nuclear_radius=0.481, nuclear_elastic_slope=273.9,
-                               cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2], hcut=0.02)
-Tungsten.adapt(inplace=True,   nuclear_radius=0.520, nuclear_elastic_slope=440.3,
-                               cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01)
-Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3,
-                               cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2], hcut=0.01)
+# # Extra parameters for Everest
+# Beryllium.adapt(inplace=True,  nuclear_radius=0.22, nuclear_elastic_slope=74.7,
+#                                cross_section=[0.271, 0.192, 0, 0, 0, 0.0035e-2], hcut=0.02)
+# Aluminium.adapt(inplace=True,  nuclear_radius=0.302, nuclear_elastic_slope=120.3,
+#                                cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2], hcut=0.02)
+# Silicon.adapt(inplace=True,    nuclear_radius=0.441, nuclear_elastic_slope=120.14,
+#                                cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02)
+# Copper.adapt(inplace=True,     nuclear_radius=0.366, nuclear_elastic_slope=217.8,
+#                                cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2], hcut=0.01)
+# Germanium.adapt(inplace=True,  nuclear_radius=0.605, nuclear_elastic_slope=226.35,
+#                                cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02)
+# Molybdenum.adapt(inplace=True, nuclear_radius=0.481, nuclear_elastic_slope=273.9,
+#                                cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2], hcut=0.02)
+# Tungsten.adapt(inplace=True,   nuclear_radius=0.520, nuclear_elastic_slope=440.3,
+#                                cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01)
+# Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3,
+#                                cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2], hcut=0.01)
 
 
-# Give name and store in database
+# Metadata for database
+# =====================
+
 for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
-    if isinstance(obj, Material):
+    if isinstance(obj, Material) and obj.name is None:
         obj.name = name
         if name == 'Aluminium':
             assert obj.Z == 13
         else:
-            assert get_element_full_name_from_Z(obj.Z).lower() == name.lower(), \
-            f'Inconsistency between material name {name} and Z={obj.Z} ({get_element_full_name_from_Z(obj.Z)})'
-        obj.short_name = get_element_name_from_Z(obj.Z)
+            assert pdg.get_element_full_name_from_Z(obj.Z).lower() == name.lower(), \
+            f'Inconsistency between material name {name} and Z={obj.Z} ({pdg.get_element_full_name_from_Z(obj.Z)})'
+        obj.short_name = pdg.get_element_name_from_Z(obj.Z)
         if obj.state == 'gas':
             obj.temperature = 273.15
             obj.pressure = 1
@@ -179,3 +181,10 @@ db['Aluminum'] = Aluminium  # Allow American spelling
 
 Aluminium.fluka_name = 'ALUMINUM'
 Phosphorus.fluka_name = 'PHOSPHO'
+
+
+# Clean up namespace
+del name, obj
+del pdg
+del Material
+del db

@@ -30,34 +30,44 @@ class MaterialsDatabase:
     def _str(self, format, full=True):
         res = []
         padding = 36
-        for typ in ["Atomic Elements", "Compounds", "Mixtures", "Crystal Materials"]:
+        for typ in ["Atomic Elements", "Compounds", "Mixtures", "Crystal Materials",
+                    "Old Sixtrack Materials"]:
             header  = style(f'{typ}', bold=True, colour='navy', enabled=format)
-            header += style('  (aliases', italic=True, colour='navy', enabled=format)
-            if full:
-                header += style(' <case-insensitive>', dim=True, colour='navy', enabled=format)
-            header += style(' | ', italic=True, colour='navy', enabled=format)
-            header += style('FLUKA-only aliases', italic=True, colour='forest_green', enabled=format)
-            if full:
-                header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
-            header += style(' | ', italic=True, colour='navy', enabled=format)
-            header += style('Geant4-only aliases', italic=True, colour='crimson', enabled=format)
-            if full:
-                header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
-            header += style(')', italic=True, colour='navy', enabled=format)
+            if typ == "Old Sixtrack Materials":
+                header += style('   (still default from colldb)', dim=True, colour='navy', enabled=format)
+            else:
+                header += style('  (aliases', italic=True, colour='navy', enabled=format)
+                if full:
+                    header += style(' <case-insensitive>', dim=True, colour='navy', enabled=format)
+                header += style(' | ', italic=True, colour='navy', enabled=format)
+                header += style('FLUKA-only aliases', italic=True, colour='forest_green', enabled=format)
+                if full:
+                    header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
+                header += style(' | ', italic=True, colour='navy', enabled=format)
+                header += style('Geant4-only aliases', italic=True, colour='crimson', enabled=format)
+                if full:
+                    header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
+                header += style(')', italic=True, colour='navy', enabled=format)
             res.append(header)
             for name, mat in self._materials.items():
                 this_mat = mat['material']
-                if typ == "Atomic Elements" and (not this_mat.is_elemental \
-                or isinstance(this_mat, CrystalMaterial)):
+                if typ == "Atomic Elements" and (not this_mat.is_elemental
+                or isinstance(this_mat, CrystalMaterial)
+                or this_mat.name.startswith('K2')):
                         continue
-                if typ == "Compounds" and (not this_mat.is_compound \
-                or isinstance(this_mat, CrystalMaterial)):
+                if typ == "Compounds" and (not this_mat.is_compound
+                or isinstance(this_mat, CrystalMaterial)
+                or this_mat.name.startswith('K2')):
                         continue
-                if typ == "Mixtures" and (not this_mat.is_mixture \
-                or isinstance(this_mat, CrystalMaterial)):
+                if typ == "Mixtures" and (not this_mat.is_mixture
+                or isinstance(this_mat, CrystalMaterial)
+                or this_mat.name.startswith('K2')):
                         continue
-                if typ == "Crystal Materials" \
-                and not isinstance(this_mat, CrystalMaterial):
+                if typ == "Crystal Materials" and (this_mat.name.startswith('K2')
+                or not isinstance(this_mat, CrystalMaterial)):
+                    continue
+                if typ == "Old Sixtrack Materials" \
+                and not this_mat.name.startswith('K2'):
                     continue
                 mess_name = style(mat['name'], bold=True, colour='navy', enabled=format)
                 names = []
@@ -201,6 +211,13 @@ class MaterialsDatabase:
                 to_delete.append(geant4_name)
         for geant4_name in to_delete:
             del self._geant4_names[geant4_name]
+
+    def update_material(self, old_material, new_material):
+        old_material = self._resolve(old_material)
+        old_name = self._find_name_by_material(old_material)
+        if old_name is None:
+            raise ValueError("Material not found in database.")
+        self._set(old_name, new_material)
 
     def rename_material(self, material, new_name):
         material = self._resolve(material)

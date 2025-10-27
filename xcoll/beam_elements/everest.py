@@ -83,6 +83,11 @@ class EverestBlock(BaseBlock):
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
             raise ValueError("Invalid material!")
+        # Default to old-style SixTrack material if possible   --- TODO: remove some day
+        if material is not None:
+            name = material.name
+            if name and f"K2{name}" in material_db:
+                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -154,6 +159,11 @@ class EverestCollimator(BaseCollimator):
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
             raise ValueError("Invalid material!")
+        # Default to old-style SixTrack material if possible   --- TODO: remove some day
+        if material is not None:
+            name = material.name
+            if name and f"K2{name}" in material_db:
+                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -226,11 +236,22 @@ class EverestCrystal(BaseCrystal):
         if material is None:
             material = _DEFAULT_CRYSTALMATERIAL
         elif isinstance(material, dict):
-            material = CrystalMaterial.from_dict(material)
+            material = Material.from_dict(material)
         elif isinstance(material, str):
             material = material_db[material]
         if not isinstance(material, CrystalMaterial):
-            raise ValueError("Not a CrystalMaterial!")
+            if isinstance(material, Material):
+                if material.name == 'CarbonFibreCarbon':
+                    material = material_db['CarbonCrystal']
+                else:
+                    material = material_db[f'{material.name}Crystal']
+            else:
+                raise ValueError("Not a CrystalMaterial!")
+        # Default to old-style SixTrack material if possible   --- TODO: remove some day
+        if material is not None:
+            name = material.name
+            if name and f"K2{name}" in material_db:
+                material = material_db[f"K2{name}"]
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)

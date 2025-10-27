@@ -8,6 +8,8 @@ from .material import (Material, CrystalMaterial, RefMaterial,
 from .atoms import *
 from .allotropes import *
 from .compounds import *
+from .mixtures import *
+from .sixtrack import *
 from .crystals import *
 
 # Freeze all material instances (to prevent accidental modification)
