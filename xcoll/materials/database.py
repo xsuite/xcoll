@@ -15,6 +15,8 @@ class MaterialsDatabase:
         self._aliases = {}      # Case-insensitive keys, aliases to _materials. Each entry is a dict with 'refname' and 'name' keys; the latter is meant to keep formatting for easier recognition when printing
         self._fluka_names = {}  # Case-sensitive keys, aliases to _materials
         self._geant4_names = {} # Case-sensitive keys, aliases to _materials
+        self._iter_index = 0
+        self._iter_names = []
 
     def __repr__(self):
         return f"<{self.__class__.__name__} at {hex(id(self))} (use .show() " \
@@ -159,28 +161,6 @@ class MaterialsDatabase:
         if material.name is None:
             material.name = name
 
-    def __contains__(self, name):
-        if name is None:
-            return False
-        elif self._strip(name) in self._materials:
-            return True
-        elif self._strip(name) in self._aliases:
-            return True
-        else:
-            return False
-
-    def items(self):
-        for name, mat in self._materials.items():
-            yield name, mat['material']
-
-    def keys(self):
-        for name in self._materials.keys():
-            yield name
-
-    def values(self):
-        for mat in self._materials.values():
-            yield mat['material']
-
     def remove_material(self, material):
         material = self._resolve(material)
         # Delete from the main database
@@ -267,6 +247,43 @@ class MaterialsDatabase:
         refname = self._aliases.pop(self._strip(name))['refname']
         self._aliases[self._strip(new_name)] = {'name': new_name, 'refname': refname}
 
+    def __contains__(self, name):
+        if name is None:
+            return False
+        elif self._strip(name) in self._materials:
+            return True
+        elif self._strip(name) in self._aliases:
+            return True
+        else:
+            return False
+
+    def __iter__(self):
+        self._iter_index = 0
+        self._iter_names = list(self._materials.keys())
+        return self
+
+    def __next__(self):
+        if self._iter_index >= len(self._iter_names):
+            raise StopIteration
+        value = self._materials[self._iter_names[self._iter_index]]['material']
+        self._iter_index += 1
+        return value
+
+    def __len__(self):
+        return len(self._materials)
+
+    def items(self):
+        for name, mat in self._materials.items():
+            yield name, mat['material']
+
+    def keys(self):
+        for name in self._materials.keys():
+            yield name
+
+    def values(self):
+        for mat in self._materials.values():
+            yield mat['material']
+
     # ----- Helpers -----
 
     def _strip(self, name):
@@ -307,6 +324,8 @@ class MaterialsSubDatabase:
         self.names = names
         self.db = db
         self.typename = typename
+        self._iter_index = 0
+        self._iter_names = []
 
     def __getitem__(self, name):
         if name in self.names:
@@ -336,6 +355,21 @@ class MaterialsSubDatabase:
 
     def __contains__(self, name):
         return name in self.names
+
+    def __iter__(self):
+        self._iter_index = 0
+        self._iter_names = list(self.names.keys())
+        return self
+
+    def __next__(self):
+        if self._iter_index >= len(self._iter_names):
+            raise StopIteration
+        value = self.names[self._iter_names[self._iter_index]]
+        self._iter_index += 1
+        return value
+
+    def __len__(self):
+        return len(self.names)
 
     def items(self):
         for name, mat in self.names.items():
