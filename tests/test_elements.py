@@ -255,10 +255,10 @@ def test_black_crystal(test_context):
 )
 def test_everest_block(test_context):
     # Test instantiation
-    elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     assert np.isclose(elem.length, 1.3)
     assert elem._tracking == True
-    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
+    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
     assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
@@ -277,7 +277,7 @@ def test_everest_block(test_context):
 )
 def test_everest(test_context):
     # Test instantiation
-    elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     _check_all_elements(elem, everest_fields, everest_dict_fields, everest_user_fields, \
                         everest_user_fields_read_only)
 
