@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 
 import xpart as xp
 import xtrack as xt
@@ -14,7 +15,7 @@ try:
 except ImportError as e:
     rpyc = None
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 # TODO: particle angles

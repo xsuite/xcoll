@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 
 import xobjects as xo
 import xtrack as xt
@@ -12,7 +13,7 @@ import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 @for_all_test_contexts

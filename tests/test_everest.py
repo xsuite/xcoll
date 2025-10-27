@@ -12,7 +12,7 @@ import xcoll as xc
 import xobjects as xo
 
 
-path = xc._pkg_root.parent / 'tests' / 'data_test_everest'
+path = Path(__file__).parent / 'data_test_everest'
 
 
 materials_b1 = {

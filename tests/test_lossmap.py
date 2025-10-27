@@ -5,12 +5,13 @@
 
 import json
 import time
+import pytest
 import numpy as np
 import pandas as pd
 from pathlib import Path
+
 import xtrack as xt
 import xcoll as xc
-import pytest
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 

@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 
 import xtrack as xt
 import xpart as xp
@@ -14,7 +15,7 @@ from xobjects.test_helpers import for_all_test_contexts
 
 num_part = 50000
 num_turns = 3
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 @for_all_test_contexts(

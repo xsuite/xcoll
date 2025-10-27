@@ -6,6 +6,7 @@
 import time
 import pytest
 import numpy as np
+from pathlib import Path
 
 import xpart as xp
 import xtrack as xt
@@ -18,7 +19,7 @@ except ImportError as e:
     rpyc = None
 
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 

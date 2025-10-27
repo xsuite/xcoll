@@ -18,7 +18,7 @@ try:
 except ImportError as e:
     rpyc = None
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
