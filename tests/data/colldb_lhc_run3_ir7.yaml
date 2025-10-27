@@ -4,8 +4,8 @@ All:
   - &ALL     { parking: 0.025 }
 
 Families:
-  - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: C,     length: 0.6    }
-  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: C,     length: 1      }
+  - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: CFC,   length: 0.6    }
+  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1      }
   - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004,   side: left,  crystal: strip }
 
 emittance:

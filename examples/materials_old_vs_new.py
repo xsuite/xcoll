@@ -81,30 +81,17 @@ def plot_material_scattering(mat1, mat2, length, p0c, n_points=100000, savefig=N
     plt.show()
 
 
-plot_material_scattering(xc.materials.MolybdenumGraphite, xc.materials.K2MolybdenumGraphite,
-                         0.1, 450e9, 10_000_000, 'scattering_mogr_0.1.png')
-plot_material_scattering(xc.materials.MolybdenumGraphite, xc.materials.K2MolybdenumGraphite,
-                         0.25, 450e9, 10_000_000, 'scattering_mogr_0.25.png')
-plot_material_scattering(xc.materials.MolybdenumGraphite, xc.materials.K2MolybdenumGraphite,
-                         1.2, 450e9, 10_000_000, 'scattering_mogr_1.2.png')
-
-plot_material_scattering(xc.materials.CopperDiamond, xc.materials.K2CopperDiamond,
-                         0.1, 450e9, 10_000_000, 'scattering_cucd_0.1.png')
-plot_material_scattering(xc.materials.CopperDiamond, xc.materials.K2CopperDiamond,
-                         0.25, 450e9, 10_000_000, 'scattering_cucd_0.25.png')
-plot_material_scattering(xc.materials.CopperDiamond, xc.materials.K2CopperDiamond,
-                         1.2, 450e9, 10_000_000, 'scattering_cucd_1.2.png')
-
-plot_material_scattering(xc.materials.Glidcop15, xc.materials.K2Glidcop15,
-                         0.1, 450e9, 10_000_000, 'scattering_glid_0.1.png')
-plot_material_scattering(xc.materials.Glidcop15, xc.materials.K2Glidcop15,
-                         0.25, 450e9, 10_000_000, 'scattering_glid_0.25.png')
-plot_material_scattering(xc.materials.Glidcop15, xc.materials.K2Glidcop15,
-                         1.2, 450e9, 10_000_000, 'scattering_glid_1.2.png')
-
-plot_material_scattering(xc.materials.Inermet180, xc.materials.K2Inermet180,
-                         0.1, 450e9, 10_000_000, 'scattering_iner_0.1.png')
-plot_material_scattering(xc.materials.Inermet180, xc.materials.K2Inermet180,
-                         0.25, 450e9, 10_000_000, 'scattering_iner_0.25.png')
-plot_material_scattering(xc.materials.Inermet180, xc.materials.K2Inermet180,
-                         1.2, 450e9, 10_000_000, 'scattering_iner_1.2.png')
+for length in [0.1, 0.25, 1.2]:
+    for energy in [20e9, 450e9, 7e12]:
+        plot_material_scattering(xc.materials.MolybdenumGraphite, xc.materials.K2MolybdenumGraphite,
+                                 length, energy, 1_000_000,
+                                 f'scattering_mogr_{length}m_{int(energy/1e9)}GeV.png')
+        plot_material_scattering(xc.materials.CopperDiamond, xc.materials.K2CopperDiamond,
+                                 length, energy, 1_000_000,
+                                 f'scattering_cucd_{length}m_{int(energy/1e9)}GeV.png')
+        plot_material_scattering(xc.materials.Glidcop15, xc.materials.K2Glidcop15,
+                                 length, energy, 1_000_000,
+                                 f'scattering_glid_{length}m_{int(energy/1e9)}GeV.png')
+        plot_material_scattering(xc.materials.Inermet180, xc.materials.K2Inermet180,
+                                 length, energy, 1_000_000,
+                                 f'scattering_iner_{length}m_{int(energy/1e9)}GeV.png')

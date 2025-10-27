@@ -6,6 +6,7 @@
 import io
 import re
 import json
+import warnings
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,8 +14,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           Geant4Collimator, BaseCollimator, BaseCrystal, collimator_classes
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
+                           Geant4Collimator, collimator_classes
 
 
 def _initialise_None(dct):
@@ -472,14 +472,16 @@ class CollimatorDatabase:
     def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll(self[name]['material'])
+            mat = self[name]['material']
+            if mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']):
-                self._create_collimator(EverestCrystal, line, name, material=mat[1],
-                                        verbose=verbose)
+                self._create_collimator(EverestCrystal, line, name, material=mat, verbose=verbose)
             else:
-                self._create_collimator(EverestCollimator, line, name, material=mat[0],
-                                        verbose=verbose)
+                self._create_collimator(EverestCollimator, line, name, material=mat, verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 

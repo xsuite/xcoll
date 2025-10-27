@@ -2,20 +2,20 @@
 ---
 families:
   # Momentum cleaning
-  - &TCP3    { gap: 15,    stage: primary,    material: C,     length: 0.6,               parking: 0.025 }
-  - &TCSG3   { gap: 18,    stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
+  - &TCP3    { gap: 15,    stage: primary,    material: CFC,   length: 0.6,               parking: 0.025 }
+  - &TCSG3   { gap: 18,    stage: secondary,  material: CFC,   length: 1,                 parking: 0.025 }
   - &TCLA3   { gap: 20,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   # Betatron cleaning
-  - &TCP7    { gap: 5,     stage: Primary,    material: C,     length: 0.6,               parking: 0.025 }
-  - &TCSG7   { gap: 6.5,   stage: secondary,  material: C,     length: 1,                 parking: 0.025 }
+  - &TCP7    { gap: 5,     stage: Primary,    material: CFC,   length: 0.6,               parking: 0.025 }
+  - &TCSG7   { gap: 6.5,   stage: secondary,  material: CFC,   length: 1,                 parking: 0.025 }
   - &TCLA7   { gap: 10,    stage: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }
   - &CRY7    { gap: null,  stage: special,    material: Si,    length: 0.004,             parking: 0.025, side: left,  crystal: strip }
   # Injection protection
-  - &TCLI    { Gap: null,  stage: tertiary,   material: C,     length: 1,      angle: 90, parking: 0.025 }
+  - &TCLI    { Gap: null,  stage: tertiary,   material: CFC,   length: 1,      angle: 90, parking: 0.025 }
   - &TDI     { gap: null,  stage: tertiary,   material: CU,    length: 1.565,  angle: 90, parking: 0.025 }
   # Dump protection
-  - &TCDQ    { gap: 7.3,   stage: tertiary,   material: C,     length: 3,      angle: 0,  parking: 0.025, side: left }
-  - &TCSP    { gap: 7.3,   stage: SECONDARY,  material: C,     Length: 1,      angle: 0,  parking: 0.025 }
+  - &TCDQ    { gap: 7.3,   stage: tertiary,   material: CFC,   length: 3,      angle: 0,  parking: 0.025, side: left }
+  - &TCSP    { gap: 7.3,   stage: SECONDARY,  material: CFC,   Length: 1,      angle: 0,  parking: 0.025 }
   # Triplet protection
   - &TCT15   { gap: 8.5,   stage: tertiary,   material: Iner,  length: 1,                 parking: 0.020 }
   - &TCT2    { gap: 37,    STAGE: tertiary,   material: Iner,  length: 1,                 parking: 0.025 }

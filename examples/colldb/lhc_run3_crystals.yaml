@@ -28,20 +28,20 @@ All:
 
 families:
   # Momentum cleaning
-  - &TCP3    { <<: *ALL,  gap: 15,    stage: primary,    material: C,     length: 0.6    }
-  - &TCSG3   { <<: *ALL,  gap: 18,    stage: secondary,  material: C,     length: 1      }
+  - &TCP3    { <<: *ALL,  gap: 15,    stage: primary,    material: CFC,   length: 0.6    }
+  - &TCSG3   { <<: *ALL,  gap: 18,    stage: secondary,  material: CFC,   length: 1      }
   - &TCLA3   { <<: *ALL,  gap: 20,    stage: tertiary,   material: Iner,  length: 1      }
   # Betatron cleaning
-  - &TCP7    { <<: *ALL,  gap: 6,     stage: primary,    material: C,     length: 0.6    }
-  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: C,     length: 1      }
+  - &TCP7    { <<: *ALL,  gap: 6,     stage: primary,    material: CFC,   length: 0.6    }
+  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1      }
   - &TCLA7   { <<: *ALL,  gap: 8,     stage: tertiary,   material: Iner,  length: 1      }
   - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip, active: true}
   # Injection protection
-  - &TCLI    { <<: *ALL,  gap: null,  stage: tertiary,   material: C,     length: 1,     angle: 90 }
+  - &TCLI    { <<: *ALL,  gap: null,  stage: tertiary,   material: CFC,   length: 1,     angle: 90 }
   - &TDI     { <<: *ALL,  gap: null,  stage: tertiary,   material: CU,    length: 1.565, angle: 90 }
   # Dump protection
-  - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: C,     length: 3,     angle: 0,  side: left }
-  - &TCSP    { <<: *ALL,  gap: 7.3,   stage: secondary,  material: C,     length: 1,     angle: 0 }
+  - &TCDQ    { <<: *ALL,  gap: 7.3,   stage: tertiary,   material: CFC,   length: 3,     angle: 0,  side: left }
+  - &TCSP    { <<: *ALL,  gap: 7.3,   stage: secondary,  material: CFC,   length: 1,     angle: 0 }
   # Triplet protection
   - &TCT15   { <<: *ALL,  gap: 9.5,   stage: tertiary,   material: Iner,  length: 1,     parking: 0.020 }
   - &TCT2    { <<: *ALL,  gap: 37,    stage: tertiary,   material: Iner,  length: 1,     }

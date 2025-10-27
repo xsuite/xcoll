@@ -41,14 +41,14 @@ tctpv.4l2.b1                                                 TCT2 Iner      1.00
 tdisa.a4l2.b1                                                 TDI CU        1.565     90.0         0.
 tdisb.a4l2.b1                                                 TDI CU        1.565     90.0         0.
 tdisc.a4l2.b1                                                 TDI CU        1.565     90.0         0.
-tclia.4r2                                                    TCLI C         1.000     90.0         0.
-tclib.6r2.b1                                                 TCLI C         1.000     90.0         0.
+tclia.4r2                                                    TCLI CFC       1.000     90.0         0.
+tclib.6r2.b1                                                 TCLI CFC       1.000     90.0         0.
 tcld.a11r2.b1                                                TCLD Iner      0.600      0.0         0.
-tcp.6l3.b1                                                   TCP3 C         0.600      0.0         0.
-tcsg.5l3.b1                                                 TCSG3 C         1.000      0.0         0.
-tcsg.4r3.b1                                                 TCSG3 C         1.000      0.0         0.
-tcsg.a5r3.b1                                                TCSG3 C         1.000    170.7         0.
-tcsg.b5r3.b1                                                TCSG3 C         1.000     10.8         0.
+tcp.6l3.b1                                                   TCP3 CFC       0.600      0.0         0.
+tcsg.5l3.b1                                                 TCSG3 CFC       1.000      0.0         0.
+tcsg.4r3.b1                                                 TCSG3 CFC       1.000      0.0         0.
+tcsg.a5r3.b1                                                TCSG3 CFC       1.000    170.7         0.
+tcsg.b5r3.b1                                                TCSG3 CFC       1.000     10.8         0.
 tcla.a5r3.b1                                                TCLA3 Iner      1.000     90.0         0.
 tcla.b5r3.b1                                                TCLA3 Iner      1.000      0.0         0.
 tcla.6r3.b1                                                 TCLA3 Iner      1.000      0.0         0.
@@ -58,22 +58,22 @@ tctpv.4l5.b1                                                TCT15 Iner      1.00
 tcl.4r5.b1                                                   TCL4 CU        1.000      0.0         0.
 tcl.5r5.b1                                                   TCL5 CU        1.000      0.0         0.
 tcl.6r5.b1                                                   TCL6 Iner      1.000      0.0         0.
-tcdqa.a4r6.b1                                                TCDQ C         3.000      0.0         0.
-tcdqa.c4r6.b1                                                TCDQ C         3.000      0.0         0.
-tcdqa.b4r6.b1                                                TCDQ C         3.000      0.0         0.
-tcsp.a4r6.b1                                                 TCSP C         1.000      0.0         0.
+tcdqa.a4r6.b1                                                TCDQ CFC       3.000      0.0         0.
+tcdqa.c4r6.b1                                                TCDQ CFC       3.000      0.0         0.
+tcdqa.b4r6.b1                                                TCDQ CFC       3.000      0.0         0.
+tcsp.a4r6.b1                                                 TCSP CFC       1.000      0.0         0.
 tcp.d6l7.b1                                                  TCP7 MoGR      0.600     90.0         0.
 tcp.c6l7.b1                                                  TCP7 MoGR      0.600      0.0         0.
-tcp.b6l7.b1                                                  TCP7 C         0.600    127.5         0.
-tcsg.a6l7.b1                                                TCSG7 C         1.000    141.1         0.
-tcsg.b5l7.b1                                                TCSG7 C         1.000    143.5         0.
-tcsg.a5l7.b1                                                TCSG7 C         1.000     40.7         0.
+tcp.b6l7.b1                                                  TCP7 CFC       0.600    127.5         0.
+tcsg.a6l7.b1                                                TCSG7 CFC       1.000    141.1         0.
+tcsg.b5l7.b1                                                TCSG7 CFC       1.000    143.5         0.
+tcsg.a5l7.b1                                                TCSG7 CFC       1.000     40.7         0.
 tcsg.d4l7.b1                                                TCSG7 MoGR      1.000     90.0         0.
 tcspm.b4l7.b1                                               TCSG7 MoGR      1.000      0.0         0.
-tcsg.a4l7.b1                                                TCSG7 C         1.000    134.6         0.
-tcsg.a4r7.b1                                                TCSG7 C         1.000     46.3         0.
-tcsg.b5r7.b1                                                TCSG7 C         1.000    141.5         0.
-tcsg.d5r7.b1                                                TCSG7 C         1.000     51.4         0.
+tcsg.a4l7.b1                                                TCSG7 CFC       1.000    134.6         0.
+tcsg.a4r7.b1                                                TCSG7 CFC       1.000     46.3         0.
+tcsg.b5r7.b1                                                TCSG7 CFC       1.000    141.5         0.
+tcsg.d5r7.b1                                                TCSG7 CFC       1.000     51.4         0.
 tcspm.e5r7.b1                                               TCSG7 MoGR      1.000    130.5         0.
 tcspm.6r7.b1                                                TCSG7 MoGR      1.000      0.5         0.
 tcla.a6r7.b1                                                TCLA7 Iner      1.000     90.0         0.
@@ -89,9 +89,9 @@ tcpcv.a6l7.b1                                                CRY7 Si        0.00
 tcpch.a4l7.b1                                                CRY7 Si        0.004      0.0         0.
 #
 # Old collimators still present in the machine but not in normal use:
-tcsg.b4l7.b1                                                999.0 C         1.000      0.0         0.
-tcsg.e5r7.b1                                                999.0 C         1.000    130.5         0.
-tcsg.6r7.b1                                                 999.0 C         1.000      0.5         0.
+tcsg.b4l7.b1                                                999.0 CFC       1.000      0.0         0.
+tcsg.e5r7.b1                                                999.0 CFC       1.000    130.5         0.
+tcsg.6r7.b1                                                 999.0 CFC       1.000      0.5         0.
 #
 #
 #
