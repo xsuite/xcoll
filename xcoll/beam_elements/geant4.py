@@ -109,8 +109,10 @@ class Geant4Collimator(BaseCollimator):
 
     @classmethod
     @contextmanager
-    def _in_constructor(cls):
+    def _in_constructor(cls, self=None):
         original_setattr = cls.__setattr__
+        if self is not None:
+            self._being_constructed_ = True
         def new_setattr(self, *args, **kwargs):
             return super().__setattr__( *args, **kwargs)
         cls.__setattr__ = new_setattr
@@ -118,6 +120,14 @@ class Geant4Collimator(BaseCollimator):
             yield
         finally:
             cls.__setattr__ = original_setattr
+            if self is not None:
+                self._being_constructed_ = False
+
+    def _being_constructed(self):
+        if hasattr(self, '_being_constructed_'):
+            return self._being_constructed_
+        else:
+            return False
 
 
 class Geant4Crystal(BaseCrystal):
