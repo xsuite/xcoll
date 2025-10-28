@@ -250,9 +250,11 @@ class MaterialsDatabase:
     def __contains__(self, name):
         if name is None:
             return False
-        elif self._strip(name) in self._materials:
+        elif isinstance(name, Material):
+            return name in self.values()
+        elif isinstance(name, str) and self._strip(name) in self._materials:
             return True
-        elif self._strip(name) in self._aliases:
+        elif isinstance(name, str) and self._strip(name) in self._aliases:
             return True
         else:
             return False

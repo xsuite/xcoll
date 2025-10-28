@@ -247,8 +247,9 @@ class Material(xo.HybridClass):
             # Composition is defined by mass fractions of each element
             self._resolve_mass_fractions(self.components, mass_fractions)
         else:
-            raise ValueError("One of `n_atoms`, `mass_fractions` or "
-                             "`volume_fractions` must be provided")
+            raise ValueError("One of `n_atoms`, `mass_fractions`, "
+                             "`volume_fractions`, or `molar_fractions` "
+                             "must be provided")
 
     def _resolve_n_atoms(self, components, n_atoms):
         if any([nn <= 0 for nn in n_atoms]):
@@ -604,7 +605,7 @@ class Material(xo.HybridClass):
     def molar_fractions(self):
         if self.n_atoms is not None:
             return self.n_atoms / sum(self.n_atoms)
-        else:
+        elif self.components is not None:
             # Use molar_mass such that this can be used for nested compounds
             mf = np.array([fr / el.molar_mass for el, fr
                                 in zip(self.components, self.mass_fractions)])
@@ -612,13 +613,15 @@ class Material(xo.HybridClass):
 
     @property
     def atomic_fractions(self):
-        return self.molar_fractions
+        if self.components is not None:
+            return self.molar_fractions
 
     @property
     def volume_fractions(self):
-        vf = np.array([fr / el.density for el, fr
-                                in zip(self.components, self.mass_fractions)])
-        return vf / vf.sum()
+        if self.components is not None:
+            vf = np.array([fr / el.density for el, fr
+                                    in zip(self.components, self.mass_fractions)])
+            return vf / vf.sum()
 
     @property
     def molar_mass(self):
@@ -768,17 +771,19 @@ class Material(xo.HybridClass):
 
     @property
     def electron_density(self):
-        return self._ZA_mean * sc.Avogadro # [electrons/g]
+        if self._ZA_mean > 0:
+            return self._ZA_mean * sc.Avogadro # [electrons/g]
 
     @property
     def plasma_energy(self):
-        return np.sqrt(self._ZA_mean * self.density) * 28.816
+        if self._ZA_mean > 0 and self.density is not None:
+            return np.sqrt(self._ZA_mean * self.density) * 28.816
 
     @property
     def atoms_per_volume(self):
         # TODO: do we want to use a different A? Maybe an average instead of molar mass?
         mass = self.molar_mass or self.average_molar_mass
-        if self.density and mass:
+        if self.density is not None and mass is not None:
             return self.density * 1.e6 * sc.Avogadro / mass # [atoms/m^3]
 
     @property
@@ -792,7 +797,7 @@ class Material(xo.HybridClass):
         elif self.components is not None:
             A1_3 = sum([mf * (el.A**(1./3.)) for el, mf
                             in zip(self.components, self.molar_fractions)])
-        if A1_3:
+        if A1_3 is not None:
             return 2*np.pi*dn*(3/4/np.pi)**(1/3) * A1_3
 
 
