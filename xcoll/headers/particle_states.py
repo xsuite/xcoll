@@ -37,6 +37,14 @@ class XcollParticleStates(Constants):
     ERR_INVALID_XOFIELD     = constant(-392, "Invalid xofield in Xcoll element.")
     ERR                     = constant(-399, "Unknown Xcoll error.")
 
+    HIT_ON_FLUKA_BLOCK      = constant(333, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_FLUKA_COLL       = constant(334, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_FLUKA_CRYSTAL    = constant(335, "Temporary variable to register hits. Should not be present in final states.")
+
+    HIT_ON_GEANT4_BLOCK     = constant(336, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_GEANT4_COLL      = constant(337, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_GEANT4_CRYSTAL   = constant(338, "Temporary variable to register hits. Should not be present in final states.")
+
     # groups
     LOST_ON_BLOCK           = group(LOST_ON_EVEREST_BLOCK, LOST_ON_FLUKA_BLOCK, LOST_ON_GEANT4_BLOCK,
                                     info="Lost on any block")

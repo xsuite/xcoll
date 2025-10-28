@@ -94,26 +94,56 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
     // Collimator active and length
     int8_t active = Geant4CollimatorData_get_active(el);
     active       *= Geant4CollimatorData_get__tracking(el);
-    double const length = Geant4CollimatorData_get_length(el);
 
     // Get geometry
-    CollimatorGeometry cg     = Geant4Collimator_init_geometry(el, part0, active);
+    CollimatorGeometry cg = Geant4Collimator_init_geometry(el, part0, active);
 
     //start_per_particle_block (part0->part)
         if (!active){
             // Drift full length
-            Drift_single_particle(part, length);
-
+#ifdef XCOLL_USE_EXACT
+            Drift_single_particle(part, cg->length);
+#else
+            Drift_single_particle_expanded(part, cg->length);
+#endif
         } else {
             // Check collimator initialisation
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
 
             if (is_tracking) {
+                // Store s-location of start of collimator
+                double s_coll = LocalParticle_get_s(part);
                 LocalParticle_set_s(part, 0);
 
                 // Check if hit on jaws
-                int8_t is_hit = hit_jaws_check_and_transform(part, cg);
-                (void) is_hit;
+                int8_t is_hit;
+                if (cg->record_impacts){
+                    // Check with transformation (to log impacts).
+                    // Particle will be at impact position or at end.
+                    is_hit = hit_jaws_check_and_transform(part, cg);
+                    if (is_hit != 0){
+                        // Particle needs to return to start position.
+                        hit_jaws_return(is_hit, part, cg);
+                    }
+
+                } else {
+                    // Only check. Particle will be at start position.
+                    is_hit = hit_jaws_check(part, cg);
+                    if (is_hit == 0){
+                        // Drift to end.
+#ifdef XCOLL_USE_EXACT
+                        Drift_single_particle(part, cg->length);
+#else
+                        Drift_single_particle_expanded(part, cg->length);
+#endif
+                    }
+                }
+
+                // if (is_hit != 0){
+                //     // Mark for GEANT4 processing.
+                //     LocalParticle_set_state(part, XC_HIT_ON_GEANT4_COLL);
+                // }
+                LocalParticle_add_to_s(part, s_coll);
             }
         }
     //end_per_particle_block

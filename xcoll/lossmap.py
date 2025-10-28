@@ -11,7 +11,7 @@ import json
 import xtrack as xt
 import xobjects as xo
 
-from .beam_elements import collimator_classes, crystal_classes
+from .beam_elements import collimator_classes, crystal_classes, Geant4Collimator, Geant4Crystal
 from .general import __version__
 from .plot import _plot_lossmap_base
 from .constants import (USE_IN_LOSSMAP,
@@ -24,6 +24,9 @@ from .constants import (USE_IN_LOSSMAP,
 class LossMap:
     def __init__(self, line, part, *, line_is_reversed, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
+        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
+        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
+            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length() if line else None
         self._interpolation = interpolation
@@ -317,8 +320,13 @@ class LossMap:
         coll_weights = weights[coll_mask]
         nabs = [coll_weights[coll_losses == name].sum()
                 for name in names]
+
+        deposited_energy = {name: line[name]._acc_ionisation_loss
+                                  if hasattr(line[name], '_acc_ionisation_loss')
+                                  else 0.
+                            for name in names}
         energy_weights = coll_weights * part.energy[coll_mask]
-        eabs = [energy_weights[coll_losses == name].sum()
+        eabs = [energy_weights[coll_losses == name].sum() + deposited_energy[name]
                 for name in names]
         self._do_collimator_adding(coll_s=coll_pos, coll_name=names, coll_nabs=nabs,
                                    coll_eabs=eabs, coll_length=coll_lengths,

@@ -8,44 +8,84 @@ import xpart as xp
 import time
 import io
 
-from ...headers.particle_states import LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL, EXCITED_ION_STATE
+from ...headers.particle_states import (LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL,
+    EXCITED_ION_STATE, MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY, HIT_ON_GEANT4_COLL)
 
 
-def track(coll, particles):
+# def _drift(coll, particles, length):
+#     old_length = coll._equivalent_drift.length
+#     coll._equivalent_drift.length = length
+#     coll._equivalent_drift.track(particles)
+#     coll._equivalent_drift.length = old_length
+
+def track_pre(coll, particles):
     import xcoll as xc
-    xc.geant4.engine.assert_ready_to_track_or_skip(coll, particles, _necessary_attributes=['geant4_id'])
-    track_core(coll, particles)
+
+    # Initialize ionisation loss accumulation variable
+    if coll._acc_ionisation_loss < 0:
+        coll._acc_ionisation_loss = 0.
+
+    if not xc.geant4.engine.assert_ready_to_track_or_skip(
+        coll, particles, _necessary_attributes=['geant4_id']):
+        return False  # Stop tracking
+
+    npart = particles._num_active_particles
+    if 1.4*npart > xc.geant4.engine.capacity:
+        raise ValueError(f"Tracking {npart} particles but only {xc.geant4.engine.capacity} allocated in "
+                       + f"Geant4Engine!\nRemember to leave room for secondaries...")
+    if xc.geant4.engine.relative_capacity <= 2 and xc.geant4.engine.particle_ref.pdg_id[0] != 2212:
+        xc.geant4.engine._print("Warning: relative_capacity is set to <= 2. This is "
+                              + "probably not enough for anything except protons.")
+
+    return True  # Continue tracking
+
+
+def track_post(coll, particles):
+    alive_states = np.unique(particles.state[particles.state > 0])
+    assert len(alive_states) == 1, f"Unexpected alive particle states after tracking: {alive_states}"
+    assert alive_states[0] == 1, f"Unexpected alive particle state after tracking: {alive_states[0]}"
+
+
+# TODO: need to rework this logic with HIT_ON_GEANT4_COLL
 
 
 def track_core(coll, part):
     import xcoll as xc
     xc.geant4.engine._g4link.clearData() # Clear the old data - bunch particles and hits
 
+    # send_to_geant4 = part.state == HIT_ON_GEANT4_COLL
+    send_to_geant4 = part.state < 1.e21 # Temporary: send all particles to Geant4
+    # npart          = send_to_geant4.sum()
+    # max_id         = part.particle_id[part.state > -9999].max()
+    # assert npart  <= part._num_active_particles
+    # if npart == 0:
+    #     return
+
     # This temp delta is necessary because for primary particles, the coordinates are
     # modified in place. But for the longitudinal plane there are 3 coordinates that must
     # be updated, so pass a copy of the delta for the update in place and trigger the
     # correct update of the 3 coordinates later
-    delta_temp = part._delta.copy()
+    delta_temp = part._delta[send_to_geant4].copy()
     npart = part._num_active_particles
     ndead = part._num_lost_particles
 
     if xc.geant4.engine.reentry_protection_enabled:
         ### remove this part after geant4 bug fixed
         coords = {
-            'x': part.x,
-            'y': part.y,
-            'px': part.px,
-            'py': part.py,
-            'zeta': part.zeta,
+            'x': part.x[send_to_geant4],
+            'y': part.y[send_to_geant4],
+            'px': part.px[send_to_geant4],
+            'py': part.py[send_to_geant4],
+            'zeta': part.zeta[send_to_geant4],
             'delta': delta_temp,
-            'chi': part.chi,
-            'charge_ratio': part.charge_ratio,
-            's': part.s,
-            'pdg_id': part.pdg_id,
-            'particle_id': part.particle_id,
-            'state': part.state,
-            'at_element': part.at_element,
-            'at_turn': part.at_turn
+            'chi': part.chi[send_to_geant4],
+            'charge_ratio': part.charge_ratio[send_to_geant4],
+            's': part.s[send_to_geant4],
+            'pdg_id': part.pdg_id[send_to_geant4],
+            'particle_id': part.particle_id[send_to_geant4],
+            'state': part.state[send_to_geant4],     # TODO:  does collimasim work if states are HIT_ON_GEANT4_COLL?
+            'at_element': part.at_element[send_to_geant4],
+            'at_turn': part.at_turn[send_to_geant4]
         }
         buf = io.BytesIO() # Use numpy.savez to serialize
         np.savez(buf, **coords)
@@ -55,11 +95,11 @@ def track_core(coll, part):
         result_buf = io.BytesIO(result_blob) # Deserialize
         products = np.load(result_buf)
     else:
-        coords = [part.x, part.y, part.px, part.py,
-                  part.zeta, delta_temp, part.chi,
-                  part.charge_ratio, part.s,
-                  part.pdg_id,part.particle_id, part.state,
-                  part.at_element, part.at_turn]
+        coords = [part.x[send_to_geant4], part.y[send_to_geant4], part.px[send_to_geant4], part.py[send_to_geant4],
+                  part.zeta[send_to_geant4], delta_temp, part.chi[send_to_geant4],
+                  part.charge_ratio[send_to_geant4], part.s[send_to_geant4],
+                  part.pdg_id[send_to_geant4], part.particle_id[send_to_geant4], part.state[send_to_geant4],
+                  part.at_element[send_to_geant4], part.at_turn[send_to_geant4]]
         xc.geant4.engine._g4link.addParticles(coords)
         xc.geant4.engine._g4link.selectCollimator(f'{coll.geant4_id}')  # TODO: should geant4_id be a string or an int?
         xc.geant4.engine._g4link.collimate()

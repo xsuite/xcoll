@@ -8,12 +8,14 @@ import sys
 import numpy as np
 from pathlib import Path
 from numbers import Number
-from functools import wraps
 
 import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
+from .geometry import XcollGeometry
+from ..materials import Material, CrystalMaterial
+from ..interaction_record import InteractionRecord
 try:
     # TODO: once xaux is in Xsuite keep only this
     from xaux import FsPath, ranID
@@ -23,9 +25,10 @@ except (ImportError, ModuleNotFoundError):
 
 class BaseEngine(xo.HybridClass):
     _xofields = {
-        '_particle_ref': xt.Particles._XoStruct,
-        '_seed':         xo.UInt64,
-        '_capacity':     xo.Int64,
+        '_particle_ref':      xt.Particles._XoStruct,
+        '_seed':              xo.UInt64,
+        '_capacity':          xo.Int64,
+        '_relative_capacity': xo.Int64,
     }
 
     _int32 = False
@@ -34,6 +37,10 @@ class BaseEngine(xo.HybridClass):
     _uses_input_file = False
     _num_input_files = 1
     _uses_run_folder = False
+
+    _depends_on = [Material, CrystalMaterial, InteractionRecord, xt.RandomUniform,
+                   xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford,
+                   xt.Drift, XcollGeometry]
 
     def __init__(self, **kwargs):
         if self._element_classes is None:
@@ -164,6 +171,27 @@ class BaseEngine(xo.HybridClass):
     @capacity.deleter
     def capacity(self):
         self.capacity = None
+
+    @property
+    def relative_capacity(self):
+        if self._relative_capacity == 0:
+            return None
+        else:
+            return int(self._relative_capacity)
+
+    @relative_capacity.setter
+    def relative_capacity(self, val):
+        if val is None:
+            val = 0
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`relative_capacity` has to be a positive integer!")
+        if val <= 1:
+            raise ValueError("`relative_capacity` has to be larger than 1!")
+        self._relative_capacity = int(val)
+
+    @relative_capacity.deleter
+    def relative_capacity(self):
+        self.relative_capacity = None
 
     @property
     def seed(self):
@@ -329,11 +357,11 @@ class BaseEngine(xo.HybridClass):
 
         if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
             coll._equivalent_drift.track(particles)
-            return True
+            return False
 
         npart = particles._num_active_particles
         if npart == 0:
-            return True
+            return False
         if not isinstance(particles._buffer.context, xo.ContextCpu):
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
@@ -357,7 +385,7 @@ class BaseEngine(xo.HybridClass):
             if particles._num_active_particles + particles._num_lost_particles == particles._capacity:
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
-        return False
+        return True
 
 
     def clean(self, **kwargs):

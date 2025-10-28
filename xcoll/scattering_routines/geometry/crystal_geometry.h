@@ -43,6 +43,46 @@ typedef CrystalGeometry_* CrystalGeometry;
 
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
+/*gpufun*/
+int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry restrict cg){
+    double part_x, part_tan_x, part_y, part_tan_y;
+    double s = 1.e21;
+
+    // Crystal should be single-sided
+    if (cg->side == 0){
+        LocalParticle_kill_particle(part, XC_ERR_NOT_IMPLEMENTED);
+        return 0;
+    }
+
+    SRotation_single_particle(part, cg->sin_z, cg->cos_z);
+    part_x = LocalParticle_get_x(part);
+#ifdef XCOLL_USE_EXACT
+    part_tan_x = LocalParticle_get_exact_xp(part);
+#else
+    part_tan_x = LocalParticle_get_xp(part);
+#endif
+    part_y = LocalParticle_get_y(part);
+#ifdef XCOLL_USE_EXACT
+    part_tan_y = LocalParticle_get_exact_yp(part);
+#else
+    part_tan_y = LocalParticle_get_yp(part);
+#endif
+    s = get_s_of_first_crossing_with_vlimit(part_x, part_tan_x, part_y, part_tan_y, cg->segments, 4, -cg->height/2, cg->height/2);
+
+    // Rotate back to lab frame
+    SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
+
+    if (s < S_MAX){
+        return cg->side;
+
+    } else {
+        return 0;
+    }
+}
+
+
+// This function checks if a particle hits a jaw (and which).
+// Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
 /*gpufun*/
@@ -111,6 +151,35 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
         Drift_single_particle_expanded(part, cg->length);
 #endif
         return 0;
+    }
+}
+
+
+// Return to start position after having logged the impact.
+/*gpufun*/
+void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
+    if (is_hit != 0){
+        if (cg->side == -1){
+            // Mirror back
+            LocalParticle_scale_x(part, -1);
+#ifdef XCOLL_USE_EXACT
+            LocalParticle_scale_exact_xp(part, -1);
+#else
+            LocalParticle_scale_xp(part, -1);
+#endif
+        }
+        // Rotate back from tilt
+        double new_s = YRotation_single_particle_rotate_only(part, LocalParticle_get_s(part), -asin(cg->sin_y));
+        LocalParticle_set_s(part, new_s);
+        // Shift the reference frame back from jaw corner U
+        XYShift_single_particle(part, -cg->jaw_U, 0);
+        // Drift back to start of element
+#ifdef XCOLL_USE_EXACT
+        Drift_single_particle_exact(part, -LocalParticle_get_s(part));
+#else
+        Drift_single_particle_expanded(part, -LocalParticle_get_s(part));
+#endif
+        SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
     }
 }
 
