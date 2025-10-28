@@ -12,7 +12,7 @@ from xtrack.line import _dicts_equal
 
 from .parameters import (_approximate_radiation_length, _default_excitation_energies,
                          _combine_radiation_lengths, _combine_excitation_energies,
-                         _average_Z_over_A, _effective_Z2, _estimate_density)
+                         _average_Z_over_A, _effective_Z2)
 
 
 _materials_context = xo.ContextCpu()
@@ -134,8 +134,10 @@ class Material(xo.HybridClass):
                     "`molar_fractions`, or `atomic_fractions` for compound "
                     "materials.")
 
-        # Calculate dependent properties
-        self.density = kwargs.pop('density', None)                     # Can be provided for more precision (obligatory for elements)
+        # Required properties
+        if 'density' not in kwargs:
+            raise ValueError('density must be provided for Material')
+        self.density = kwargs.pop('density')
         self.radiation_length = kwargs.pop('radiation_length', None)   # Can be provided for more precision
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
@@ -164,8 +166,6 @@ class Material(xo.HybridClass):
             raise ValueError('Z must be provided for an elemental Material')
         if self.A is None:
             raise ValueError('A must be provided for an elemental Material')
-        if 'density' not in kwargs:
-            raise ValueError('density must be provided for an elemental Material')
 
 
     def _init_compound(self, kwargs):
@@ -556,8 +556,10 @@ class Material(xo.HybridClass):
     @Z.setter
     def Z(self, val):
         self._assert_not_frozen('Z')
-        if self.components is not None:
+        if self.is_compound:
             raise ValueError('Cannot set Z for a compound material')
+        elif self.is_mixture:
+            raise ValueError('Cannot set Z for a mixture material')
         if val is None:
             self._Z = None
         else:
@@ -573,8 +575,10 @@ class Material(xo.HybridClass):
     @A.setter
     def A(self, val):
         self._assert_not_frozen('A')
-        if self.components is not None:
+        if self.is_compound:
             raise ValueError('Cannot set A for a compound material')
+        elif self.is_mixture:
+            raise ValueError('Cannot set A for a mixture material')
         if val is None:
             self._A = None
         else:
@@ -648,11 +652,7 @@ class Material(xo.HybridClass):
     def density(self, val):
         self._assert_not_frozen('density')
         if val is None:
-            if self.components is not None:
-                self._density = _estimate_density(self.components,
-                                                  self.mass_fractions)
-            else:
-                self._density = -1
+            self._density = -1
         else:
             if val <= 0:
                 raise ValueError('density must be strictly positive')
@@ -668,16 +668,16 @@ class Material(xo.HybridClass):
     def radiation_length(self, val):
         self._assert_not_frozen('radiation_length')
         if val is None:
-            if self.components is not None:
+            if self.components is not None and self.mass_fractions is not None \
+            and self.density is not None:
                 self._radiation_length = _combine_radiation_lengths(
                             self.components, self.mass_fractions, self.density)
-            else:
-                if self.Z is not None and self.A is not None \
-                and self.density is not None:
-                    self._radiation_length = _approximate_radiation_length(
+            elif self.Z is not None and self.A is not None \
+            and self.density is not None:
+                self._radiation_length = _approximate_radiation_length(
                                                 self.Z, self.A, self.density)
-                else:
-                    self._radiation_length = -1
+            else:
+                self._radiation_length = -1
             self._radiation_length_set_manually = False
         else:
             if val <= 0:
@@ -953,8 +953,19 @@ class Material(xo.HybridClass):
     # === Code Generation ===
     # =======================
 
-    # The largest atomic number that can be handled by FLUKA is 100.
-
+# The largest atomic number that can be handled by FLUKA is 100.
+# *...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+...
+# MATERIAL        AAAA                BBBB                          CCCCHYDROGEN
+# MAT-PROP        DDDD                EEEE  HYDROGEN
+# AAAA: Atomic number (0 for compounds/mixtures
+# BBBB: density in g/cm3
+# CCCCL: optional, specify isotope (A) but only integers allowed
+# DDDD: optional, pressure if gas in atm
+# EEEE: optional, ionisation potential in eV
+#
+# Composition of compounds and mixtures is defined in FLUKA input files:
+# Negative values -> mass fractions
+# Positive values -> number of atoms / atomic ratios
 # * Antico
 # * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+..
 # MATERIAL                             2.7                              ANTICO

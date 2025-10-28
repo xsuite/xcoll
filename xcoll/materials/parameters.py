@@ -59,10 +59,6 @@ def _f_coulomb(Z):
 
 # --- Mixture rules ------------------------------------------------------------
 
-def _estimate_density(components, mass_fractions):
-    return _inverse_weighted_mean([el.density for el in components],
-                                   mass_fractions)
-
 def _average_Z_over_A(components, mass_fractions):
     return sum([fr * el.Z / el.A for el, fr in zip(components,
                                                    mass_fractions)])

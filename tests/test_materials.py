@@ -21,7 +21,7 @@ def test_elemental_material_creation():
         Material()
     with pytest.raises(ValueError, match="A must be provided for an elemental Material"):
         Material(Z=4)
-    with pytest.raises(ValueError, match="density must be provided for an elemental Material"):
+    with pytest.raises(ValueError, match="density must be provided for Material"):
         Material(Z=4, A=3)
 
     # Create a simple material
@@ -422,17 +422,18 @@ def test_compound_material_creation():
 
     # Remove density
     mat.density = None
-    assert np.isclose(mat.density, 0.0005868941544003443) # automatic estimate; very bad
+    assert np.isclose(mat._density, -1)
     assert all(mat.components == [mdb['C'], mdb['H'], mdb['O']])
     assert all(mat.n_atoms == [2, 6, 1])
     assert np.allclose(mat.mass_fractions, [0.52143524, 0.13128134, 0.34728342])
     assert np.isclose(mat._ZA_mean, 0.5643708350517702)
     assert np.isclose(mat._Z2_eff, 15.777777777777777)
-    assert np.isclose(mat.radiation_length, 697.2288034303192) # automatic estimate; very bad
+    assert mat.radiation_length is None
+    assert np.isclose(mat._radiation_length, -1)
     assert np.isclose(mat.excitation_energy, 61.02615629345832)
-    assert np.isclose(mat.plasma_energy, 0.5244400724774108)
-    assert np.isclose(mat.atoms_per_volume, 7.671881762182914e+24)
-    assert np.isclose(mat._atoms_per_volume, mat.atoms_per_volume)
+    assert mat.plasma_energy is None
+    assert mat.atoms_per_volume is None
+    assert np.isclose(mat._atoms_per_volume, -1)
     assert np.isclose(mat.num_effective_nucleons, 2.3573500951095088)
     assert np.isclose(mat._num_nucleons_eff, mat.num_effective_nucleons)
 
@@ -648,7 +649,7 @@ def test_different_fractions():
     assert np.allclose(Ethanol_v0.mass_fractions, Ethanol_v3.mass_fractions)
     assert np.allclose(Ethanol_v0.volume_fractions, Ethanol_v3.volume_fractions)
     assert np.allclose(Ethanol_v0.molar_fractions, Ethanol_v3.molar_fractions)
-    StrongBooze = Material(components=['Ethanol_v0', 'Water'], volume_fractions=[0.76, 0.24])
+    StrongBooze = Material(components=['Ethanol_v0', 'Water'], volume_fractions=[0.76, 0.24], density=1.2)
     assert StrongBooze.composition == [['C', 0.3724505492185721],
                                        ['H', 0.12574562181545387],
                                        ['O', 0.5018038289659741]]
