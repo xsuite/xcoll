@@ -394,6 +394,7 @@ class Material(xo.HybridClass):
         thisdict.pop('short_name', None)
         thisdict.pop('fluka_name', None)
         thisdict.pop('geant4_name', None)
+        thisdict.pop('info', None)
         thisdict.update(kwargs)
         if inplace:
             for kk, vv in thisdict.items():

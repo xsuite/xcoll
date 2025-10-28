@@ -37,44 +37,53 @@ for mat in xc.materials.db:
 # Plotting scattering differences between old and new material definitions
 # ========================================================================
 
-def plot_material_scattering(mat1, mat2, length, p0c, n_points=100000, savefig=None):
-    coll1 = xc.EverestBlock(length=length, material=mat1)
-    coll2 = xc.EverestBlock(length=length, material=mat2)
+def plot_material_scattering(materials, length, p0c, n_points=100000, savefig=None):
+    colls = {}
+    for mat in materials:
+        colls[mat.name] = xc.EverestBlock(length=length, material=mat)
     part_init = xt.Particles(x=np.zeros(n_points), p0c=p0c)
     part_init._init_random_number_generator()
 
-    part1 = part_init.copy()
-    part2 = part_init.copy()
-    coll1.track(part1)
-    coll2.track(part2)
-
-    mask1 = part1.state > 0
-    mask2 = part2.state > 0
+    parts = {}
+    masks = {}
+    for mat in materials:
+        parts[mat.name] = part_init.copy()
+        colls[mat.name].track(parts[mat.name])
+        masks[mat.name] = parts[mat.name].state > 0
 
     fig, ax = plt.subplots(3, 1, figsize=(12, 5))
-    r1 = np.sqrt(part1.x[mask1]**2 + part1.y[mask1]**2)
-    r2 = np.sqrt(part2.x[mask2]**2 + part2.y[mask2]**2)
-    ax[0].hist(r1, bins=np.logspace(-8, -3.4, 1000), density=True, histtype='step', label=mat1.name)
-    ax[0].hist(r2, bins=np.logspace(-8, -3.4, 1000), density=True, histtype='step', label=mat2.name)
-    ax[0].set_xlabel(r'$\Delta r$ [$\mu$m]')
-    ax[0].set_ylabel('Density')
-    ax[0].set_xscale('log')
-    ax[0].legend()
-    phi1 = np.arctan2(part1.y[mask1], part1.x[mask1])
-    phi2 = np.arctan2(part2.y[mask2], part2.x[mask2])
-    ax[1].hist(phi1, bins=1000, range=(-np.pi, np.pi), density=True, histtype='step', label=mat1.name)
-    ax[1].hist(phi2, bins=1000, range=(-np.pi, np.pi), density=True, histtype='step', label=mat2.name)
-    ax[1].set_xlabel(r'$\Delta \phi$ [rad]')
-    ax[1].set_ylabel('Density')
-    ax[1].legend()
-    ax[2].hist(-part1.delta[mask1], bins=np.logspace(-4, -2, 1000), density=True, histtype='step', label=mat1.name)
-    ax[2].hist(-part2.delta[mask2], bins=np.logspace(-4, -2, 1000), density=True, histtype='step', label=mat2.name)
-    ax[2].set_xlabel(r'$-\delta$ [-]')
-    ax[2].set_ylabel('Density')
-    ax[2].set_xscale('log')
-    ax[2].legend()
-    fig.suptitle(f"{mat1.name} ({mask1.sum()/n_points:.2%} survived) vs {mat2.name} ({mask2.sum()/n_points:.2%} survived)",
-                 fontsize=11)
+    title = []
+    for mat, part in parts.items():
+        mask = masks[mat]
+        # Plot radial deflection
+        r = np.sqrt(part.x[mask]**2 + part.y[mask]**2)
+        r_sorted = np.sort(r)
+        low = np.log10(r_sorted[int(0.005*len(r_sorted))])
+        high = np.log10(r_sorted[int(0.985*len(r_sorted))])
+        low -= 0.3*(high - low)
+        ax[0].hist(r, bins=np.logspace(low, high, 1000), density=True, histtype='step', label=mat)
+        ax[0].set_xlabel(r'$\Delta r$ [$\mu$m]')
+        ax[0].set_ylabel('Density')
+        ax[0].set_xscale('log')
+        ax[0].legend()
+        # Plot angular deflection
+        phi = np.arctan2(part.y[mask], part.x[mask])
+        ax[1].hist(phi, bins=1000, range=(-np.pi, np.pi), density=True, histtype='step', label=mat)
+        ax[1].set_xlabel(r'$\Delta \phi$ [rad]')
+        ax[1].set_ylabel('Density')
+        ax[1].legend()
+        # Plot energy loss
+        delta_sorted = np.sort(np.array(-part.delta[mask]))
+        low  = np.log10(delta_sorted[int(0.005*len(delta_sorted))])
+        high = np.log10(delta_sorted[int(0.985*len(delta_sorted))])
+        low -= 0.3*(high - low)
+        ax[2].hist(-part.delta[mask], bins=np.logspace(low, high, 1000), density=True, histtype='step', label=mat)
+        ax[2].set_xlabel(r'$-\delta$ [-]')
+        ax[2].set_ylabel('Density')
+        ax[2].set_xscale('log')
+        ax[2].legend()
+        title.append(f"{mat} ({mask.sum()/n_points:.2%} surv.)")
+    fig.suptitle(f"{length}m {int(energy/1e9)}GeV " + ' vs '.join(title), fontsize=11)
     plt.tight_layout()
     if savefig is not None:
         plt.savefig(savefig, dpi=300)
@@ -83,15 +92,15 @@ def plot_material_scattering(mat1, mat2, length, p0c, n_points=100000, savefig=N
 
 for length in [0.1, 0.25, 1.2]:
     for energy in [20e9, 450e9, 7e12]:
-        plot_material_scattering(xc.materials.MolybdenumGraphite, xc.materials.K2MolybdenumGraphite,
-                                 length, energy, 1_000_000,
+        plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MolybdenumGraphite6400, xc.materials.K2MolybdenumGraphite],
+                                 length, energy, 10_000_000,
                                  f'scattering_mogr_{length}m_{int(energy/1e9)}GeV.png')
-        plot_material_scattering(xc.materials.CopperDiamond, xc.materials.K2CopperDiamond,
-                                 length, energy, 1_000_000,
+        plot_material_scattering([xc.materials.CopperDiamond, xc.materials.K2CopperDiamond],
+                                 length, energy, 10_000_000,
                                  f'scattering_cucd_{length}m_{int(energy/1e9)}GeV.png')
-        plot_material_scattering(xc.materials.Glidcop15, xc.materials.K2Glidcop15,
-                                 length, energy, 1_000_000,
+        plot_material_scattering([xc.materials.Glidcop15, xc.materials.K2Glidcop15],
+                                 length, energy, 10_000_000,
                                  f'scattering_glid_{length}m_{int(energy/1e9)}GeV.png')
-        plot_material_scattering(xc.materials.Inermet180, xc.materials.K2Inermet180,
-                                 length, energy, 1_000_000,
+        plot_material_scattering([xc.materials.Inermet180, xc.materials.K2Inermet180],
+                                 length, energy, 10_000_000,
                                  f'scattering_iner_{length}m_{int(energy/1e9)}GeV.png')

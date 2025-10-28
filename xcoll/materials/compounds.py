@@ -19,11 +19,11 @@ Water         = Material(components=[Hydrogen, Oxygen], n_atoms=[2,1], density=1
 # Compound definitions from FLUKA
 # ===============================
 
-BoronNitride  = Material(components=[Boron, Nitrogen],            n_atoms=[1, 1],             density=2.25, state='solid')
-Silica        = Material(components=[Silicon, Oxygen],            n_atoms=[1, 2],             density=1.92, state='solid')
-BoronTrioxide = Material(components=[Boron, Oxygen],              n_atoms=[2, 3],             density=2.46, state='solid')
-AluminumOxide = Material(components=[Aluminium, Oxygen],          n_atoms=[2, 3],             density=3.98, state='solid')
-NiZnFerrite   = Material(components=[Nickel, Zinc, Iron, Oxygen], n_atoms=[0.45, 0.55, 2, 4], density=5.2,  state='solid')
+BoronNitride   = Material(components=[Boron, Nitrogen],            n_atoms=[1, 1],             density=2.25, state='solid')
+Silica         = Material(components=[Silicon, Oxygen],            n_atoms=[1, 2],             density=1.92, state='solid')
+BoronTrioxide  = Material(components=[Boron, Oxygen],              n_atoms=[2, 3],             density=2.46, state='solid')
+AluminiumOxide = Material(components=[Aluminium, Oxygen],          n_atoms=[2, 3],             density=3.98, state='solid')
+NiZnFerrite    = Material(components=[Nickel, Zinc, Iron, Oxygen], n_atoms=[0.45, 0.55, 2, 4], density=5.2,  state='solid')
 
 
 # Metadata for database
@@ -40,7 +40,7 @@ Water.fluka_name = 'WATER'
 BoronNitride.fluka_name = 'hBNpure'
 Silica.fluka_name = 'SiO2'
 BoronTrioxide.fluka_name = 'B2O3'
-AluminumOxide.fluka_name = 'Al2O3'
+AluminiumOxide.fluka_name = 'Al2O3'
 NiZnFerrite.fluka_name = 'NIZNFER2'
 
 

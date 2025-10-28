@@ -166,6 +166,7 @@ for name, obj in list(globals().items()):  # Have to wrap in list to take a snap
             assert pdg.get_element_full_name_from_Z(obj.Z).lower() == name.lower(), \
             f'Inconsistency between material name {name} and Z={obj.Z} ({pdg.get_element_full_name_from_Z(obj.Z)})'
         obj.short_name = pdg.get_element_name_from_Z(obj.Z)
+        obj.info = f'Elemental {obj.name.lower()}'
         if obj.state == 'gas':
             obj.temperature = 273.15
             obj.pressure = 1

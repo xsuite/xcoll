@@ -151,6 +151,20 @@ class MaterialsDatabase:
             if self._get(self._get_alias(name)) == material:
                 return  # Already in database
             raise ValueError(f"Material with name '{name}' already exists in the database.")
+        # Check if name already in FLUKA names
+        elif self._strip(name) in [self._strip(nn) for nn in self.fluka.keys()]:
+            for nn in self.fluka.keys():
+                if self._strip(nn) == self._strip(name):
+                    if self.fluka[nn] == material:
+                        return  # Already in database
+            raise ValueError(f"Material with name '{name}' already exists in the FLUKA sub-database.")
+        # Check if name already in Geant4 names
+        elif self._strip(name) in [self._strip(nn) for nn in self.geant4.keys()]:
+            for nn in self.geant4.keys():
+                if self._strip(nn) == self._strip(name):
+                    if self.geant4[nn] == material:
+                        return  # Already in database
+            raise ValueError(f"Material with name '{name}' already exists in the Geant4 sub-database.")
         # Check if material already exists (by identity, not by value).
         existing_name = self._find_name_by_material(material)
         if existing_name is not None:
@@ -255,6 +269,10 @@ class MaterialsDatabase:
         elif isinstance(name, str) and self._strip(name) in self._materials:
             return True
         elif isinstance(name, str) and self._strip(name) in self._aliases:
+            return True
+        elif isinstance(name, str) and self._strip(name) in [self._strip(nn) for nn in self.fluka.keys()]:
+            return True
+        elif isinstance(name, str) and self._strip(name) in [self._strip(nn) for nn in self.geant4.keys()]:
             return True
         else:
             return False

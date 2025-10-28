@@ -82,7 +82,7 @@ class EverestBlock(BaseBlock):
             material = material_db[material]
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
-            raise ValueError("Invalid material!")
+            raise ValueError(f"Invalid material of type {type(material)}!")
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -153,7 +153,7 @@ class EverestCollimator(BaseCollimator):
             material = material_db[material]
         if not isinstance(material, Material) \
         or isinstance(material, CrystalMaterial):
-            raise ValueError("Invalid material!")
+            raise ValueError(f"Invalid material of type {type(material)}!")
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -236,7 +236,7 @@ class EverestCrystal(BaseCrystal):
                 else:
                     material = material_db[f'{material.name}Crystal']
             else:
-                raise ValueError("Not a CrystalMaterial!")
+                raise ValueError(f"Invalid material of type {type(material)}!")
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)

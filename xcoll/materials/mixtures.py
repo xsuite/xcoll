@@ -9,7 +9,7 @@ from .atoms import (Carbon, Oxygen, Argon, Hydrogen, Boron, Nitrogen, Silicon,
                     Aluminium, Iron, Nickel, Cobalt, Zinc, Chromium, Titanium,
                     Zirconium, Manganese, Phosphorus, Sulfur, Copper, Molybdenum,
                     Tungsten, Calcium, Niobium, Magnesium, Tantalum)
-from .compounds import CarbonDioxide, BoronNitride, Silica, BoronTrioxide, AluminumOxide, NiZnFerrite
+from .compounds import CarbonDioxide, BoronNitride, Silica, BoronTrioxide, AluminiumOxide, NiZnFerrite
 
 
 # TODO: add more from Geant4: https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/Appendix/materialNames.html
@@ -21,8 +21,11 @@ from .compounds import CarbonDioxide, BoronNitride, Silica, BoronTrioxide, Alumi
 # By molar fractions (like number of atoms but not a compound)
 CopperDiamond          = Material(components=[Copper, Carbon, Boron], molar_fractions=[0.2359, 0.7548, 0.0093], density=5.4, state='solid')
 TiZrMo                 = Material(components=[Molybdenum, Carbon, Titanium, Zirconium], molar_fractions=[0.98762, 0.00158, 0.00996, 0.00084], density=10.22, state='solid')
-MolybdenumGraphite6400 = Material(components=[Molybdenum, Carbon], molar_fractions=[0.0146, 0.9854], density=2.48, state='solid')
 MolybdenumGraphite     = Material(components=[Molybdenum, Carbon, Titanium], molar_fractions=[0.0184, 0.9809, 0.0007], density=2.55, state='solid')
+MolybdenumGraphite6400 = Material(components=[Molybdenum, Carbon], molar_fractions=[0.0146, 0.9854], density=2.48, state='solid')
+
+MolybdenumGraphite.info     = 'Molybdenum-Graphite composite used in LHC collimators.'
+MolybdenumGraphite6400.info = 'Molybdenum-Graphite composite. Candidate material for LHC collimators, but not used'
 
 # By mass fractions
 Air                 = Material(components=[Nitrogen, Oxygen, Argon, CarbonDioxide], state='gas', pressure=1, temperature=288.15,
@@ -31,7 +34,7 @@ BoronNitride5000    = Material(components=[BoronNitride, Silica, Oxygen, BoronTr
                                mass_fractions=[0.929, 0.002, 0.04, 0.004, 0.025], density=1.925)
 FeNiCo              = Material(components=[Iron, Nickel, Cobalt], state='solid',
                                mass_fractions=[0.54, 0.29, 0.17], density=8.35)
-Glidcop15           = Material(components=[Copper, AluminumOxide], state='solid',
+Glidcop15           = Material(components=[Copper, AluminiumOxide], state='solid',
                                mass_fractions=[0.9985, 0.0015], density=8.93)
 CuNiFeMn            = Material(components=[Copper, Nickel, Iron, Manganese], state='solid',
                                mass_fractions=[0.875, 0.1, 0.015, 0.01], density=8.87)
@@ -70,12 +73,27 @@ Inermet180.adapt(inplace=True, nuclear_radius=0.578, nuclear_elastic_slope=392.1
                  cross_section=[2.548, 1.473, 0, 0, 0, 0.5740e-2], hcut=0.02)
 
 
+# Existing FLUKA mixtures
+# =======================
+
+# POLYSTYR Polystyrene 1.06
+# PLASCINT Plastic scintillator 1.032
+# PMMA Polymethyl methacrylate, Plexiglas, Lucite, Perspex 1.19
+# BONECOMP Compact bone 1.85
+# BONECORT Cortical bone 1.85
+# MUSCLESK Skeletal muscle 1.04
+# MUSCLEST Striated muscle 1.04
+# ADTISSUE Adipose tissue 0.92
+# KAPTON Kapton polyimide film 1.42
+# POLYETHY Polyethylene 0.94
+
+
 # Metadata for database
 # =====================
 
 del Carbon, Oxygen, Argon, Hydrogen, Boron, Nitrogen, Silicon, Aluminium, Iron, Nickel, Cobalt, Zinc, Chromium, Titanium
 del Zirconium, Manganese, Phosphorus, Sulfur, Copper, Molybdenum, Tungsten, Calcium, Niobium, Magnesium, Tantalum
-del CarbonDioxide, BoronNitride, Silica, BoronTrioxide, AluminumOxide, NiZnFerrite
+del CarbonDioxide, BoronNitride, Silica, BoronTrioxide, AluminiumOxide, NiZnFerrite
 for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
     if isinstance(obj, Material) and obj.name is None:
         obj.name = name
@@ -84,6 +102,7 @@ CopperDiamond.fluka_name = 'CUDIAM75'
 MolybdenumGraphite.fluka_name = 'MG6403Fc'
 MolybdenumGraphite6400.fluka_name = 'MoGRMG64'
 TiZrMo.fluka_name = 'TZM'
+Air.fluka_name = 'AIR'
 BoronNitride5000.fluka_name = 'BN5000'
 FeNiCo.fluka_name = 'ASTMF-15'
 Glidcop15.fluka_name = 'GLIDCP15'

@@ -35,6 +35,12 @@ for name, obj in list(globals().items()):  # Have to wrap in list to take a snap
     if isinstance(obj, Material) and obj.name is None:
         obj.name = name
 
+Carbon140.info         = 'Carbon-based material. Used in LHC dump.'
+Carbon175.info         = 'Carbon-based material. Used in LHC dump.'
+Carbon180.info         = 'Carbon-based material. Used in LHC dump.'
+Carbon185.info         = 'Carbon-based material. Used in LHC dump.'
+GraphiteR4550.info     = 'Graphite material. Was a candidate for LHC collimators.'
+CarbonFibreCarbon.info = 'Carbon-fibre composite. Used in LHC collimators.'
 
 # Clean up namespace
 del name, obj
