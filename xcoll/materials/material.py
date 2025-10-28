@@ -1110,9 +1110,12 @@ class RefMaterial(Material):
     _depends_on = [Material]
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            if 'name' not in kwargs:
-                raise ValueError("ReferenceMaterial must have a name.")
-            name = kwargs.pop('name')
+            if 'fluka_name' not in kwargs and 'geant4_name' not in kwargs:
+                raise ValueError("ReferenceMaterial must have a fluka_name or geant4_name.")
+            fluka_name = kwargs.pop('fluka_name', None)
+            geant4_name = kwargs.pop('geant4_name', None)
+            if fluka_name is not None and geant4_name is not None:
+                raise ValueError("ReferenceMaterial can have only one of fluka_name or geant4_name.")
             # Fake values to pass initialisation
             kwargs['Z'] = 1
             kwargs['A'] = 1
@@ -1121,7 +1124,11 @@ class RefMaterial(Material):
         # Invalidate all properties
         self.invalidate()
         # Set name only now to avoid syncing with database
-        self._name = name
+        self._name = fluka_name or geant4_name
+        if fluka_name is not None:
+            self._fluka_name = fluka_name
+        if geant4_name is not None:
+            self._geant4_name = geant4_name
         self._frozen = True  # ReferenceMaterial is always frozen
 
     def __str__(self):

@@ -8,7 +8,7 @@ from .general import _pkg_root, __version__, citation
 from .beam_elements import BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal, \
                            EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator, Geant4Crystal, \
                            BlowUp, EmittanceMonitor, collimator_classes, crystal_classes, element_classes
-from .materials import Material, CrystalMaterial
+from .materials import Material, CrystalMaterial, RefMaterial
 from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
