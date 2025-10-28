@@ -18,6 +18,7 @@ try:
 except ImportError as e:
     rpyc = None
 
+
 path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
@@ -25,8 +26,8 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_reload_bdsim(test_context):
     num_part = 1000
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti', _context=test_context)
@@ -85,7 +86,7 @@ def test_reload_bdsim(test_context):
         assert np.all(part[0].particle_id == part[i].particle_id)
         assert np.all(part[0].parent_particle_id == part[i].parent_particle_id)
 
-
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_serial_bdsim(pytestconfig):
     # Skip if Geant4Engine has already been started
     if xc.geant4.engine._already_started:
@@ -158,8 +159,8 @@ def test_serial_bdsim(pytestconfig):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
     n_part = 10000
     angles=[0,45,90]

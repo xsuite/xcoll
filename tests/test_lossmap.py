@@ -71,8 +71,8 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
 )
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @retry()
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_lossmap_geant4(do_plot, test_context):
     # If a previous test failed, stop the server manually
     if xc.geant4.engine.is_running():

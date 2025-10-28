@@ -26,8 +26,8 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_geant4(test_context):
     length = 1.2
     num_slices = 2000

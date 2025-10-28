@@ -29,6 +29,7 @@ particle_ref = xt.Particles('Pu-239', p0c=94*7.0e12)
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_bdsim_ions(test_context):
     num_part = 500
     coll = xc.Geant4Collimator(length=0.01, jaw=0.001, material='Ti', _context=test_context)

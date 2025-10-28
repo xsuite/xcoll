@@ -43,8 +43,8 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_geant4(jaw, angle, tilt):
     num_part = 25_000
     if xc.geant4.engine.is_running():
