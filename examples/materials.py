@@ -100,7 +100,7 @@ print(f"HeavyGas in database: {'HeavyGas' in xc.materials.db}")
 # Compounds are defined by specifying their components as a chemical formula,
 # and hence the fields `components` and `n_atoms`:
 Ethanol = xc.Material(components=['C', 'H', 'O'], n_atoms=[2, 6, 1], density=0.78945, name='Ethanol',
-                  state='liquid', temperature=293.15)
+                      state='liquid', temperature=293.15)
 print(Ethanol)
 print(Ethanol.composition)
 # Any doubled components are automatically combined:
@@ -121,8 +121,14 @@ print(Concrete.to_dict())
 
 # It is possible to combine any previously defined material as components of a mixture
 # (even mixtures themselves). The code will recursively resolve the elemental composition:
-Booze = xc.Material(components=[Ethanol, xc.materials.Water],
-                   volume_fractions=[0.4, 0.6], name='Booze', density=0.918, state='liquid')
-print(Booze)
-print(Booze.composition)
-print(Booze.to_dict())
+Glucose      = xc.Material(components=['C', 'H', 'O'], n_atoms=[6, 12, 6], density=1.54, name='Glucose')
+Anethole     = xc.Material(components=['C', 'H', 'O'], n_atoms=[10, 12, 1], density=1.05, name='Anethole',
+                           info="Main flavor component (anise) of absinthe.")
+components=[Ethanol, xc.materials.Water, Glucose, Anethole]
+volume_fractions=[0.7, 0.25, 0.045, 0.005]
+FakeAbsinthe = xc.Material(components=components, volume_fractions=volume_fractions,
+                           density = sum([vf * el.density for el, vf in zip(components, volume_fractions)]),
+                           name='FakeAbsinthe', state='liquid')
+print(FakeAbsinthe)
+print(FakeAbsinthe.composition)
+print(FakeAbsinthe.to_dict())
