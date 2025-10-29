@@ -29,14 +29,6 @@ def track_pre(coll, particles):
         coll, particles, _necessary_attributes=['geant4_id']):
         return False  # Stop tracking
 
-    npart = particles._num_active_particles
-    if 1.4*npart > xc.geant4.engine.capacity:
-        raise ValueError(f"Tracking {npart} particles but only {xc.geant4.engine.capacity} allocated in "
-                       + f"Geant4Engine!\nRemember to leave room for secondaries...")
-    if xc.geant4.engine.relative_capacity <= 2 and xc.geant4.engine.particle_ref.pdg_id[0] != 2212:
-        xc.geant4.engine._print("Warning: relative_capacity is set to <= 2. This is "
-                              + "probably not enough for anything except protons.")
-
     return True  # Continue tracking
 
 

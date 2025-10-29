@@ -14,6 +14,7 @@ from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 import xobjects as xo
 
 from .std_redirect import pin_python_stdio
+from .bdsim_config import create_bdsim_config_file, get_collimators_from_input_file
 from ..engine import BaseEngine
 from ...general import _pkg_root
 try:
@@ -26,15 +27,16 @@ class Geant4Engine(BaseEngine):
 
     _xofields = {**BaseEngine._xofields,
         '_relative_energy_cut':        xo.Float64,
-        '_bdsim_config_file':          xo.String,
-        '_already_started':  xo.Int8,
+        '_already_started':            xo.Int8,
         '_reentry_protection_enabled': xo.Int8
         # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
     _int32 = True
-    # _uses_input_file = True
+    _uses_input_file = True
     _uses_run_folder = True
+
+    _depends_on = [BaseEngine]
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
@@ -44,7 +46,6 @@ class Geant4Engine(BaseEngine):
         self._g4link = None
         self._server = None # remove after geant4 bugfix
         self._conn = None # remove after geant4 bugfix
-        kwargs['_bdsim_config_file'] = ''.ljust(256)
         kwargs['_already_started'] = False
         super().__init__(**kwargs)
         self.relative_energy_cut = None # To set default value
@@ -69,21 +70,6 @@ class Geant4Engine(BaseEngine):
         self._relative_energy_cut = val
 
     @property
-    def bdsim_config_file(self):
-        if self._bdsim_config_file == '':
-            return None
-        return FsPath(self._bdsim_config_file)
-
-    @bdsim_config_file.setter
-    def bdsim_config_file(self, val):
-        if val is None:
-            self._bdsim_config_file = ''
-        else:
-            if not isinstance(val, (str,Path)):
-                raise ValueError("`bdsim_config_file` has to be a string or Path!")
-            self._bdsim_config_file = FsPath(val).expanduser().resolve().as_posix()
-
-    @property
     def reentry_protection_enabled(self):
         return self._reentry_protection_enabled
 
@@ -104,30 +90,44 @@ class Geant4Engine(BaseEngine):
         self._reentry_protection_enabled = val
 
 
+    # ============================
+    # === Overwrite Properties ===
+    # ============================
+
+    @property
+    def capacity(self):
+        return None  # Geant4 capacity is dynamic
+
+    @property
+    def relative_capacity(self):
+        return None  # Geant4 capacity is dynamic
+
+
     # =================================
     # === Base methods to overwrite ===
     # =================================
 
     def _set_engine_properties(self, **kwargs):
         self._set_property('relative_energy_cut', kwargs)
-        self._set_property('bdsim_config_file', kwargs)
         kwargs = super()._set_engine_properties(**kwargs)
         return kwargs
 
-    def _use_input_file(self, input_file=None, **kwargs):
-        # Temporary hack to set geant4 IDs at the correct moment (before the setting of attributes is locked,
-        # but after the engine has assigned the element_dict). When the gmad input file is auto-generated,
-        # that script can also set the IDs.
+    def _pre_input(self, **kwargs):
         coll_id = 1
         for el in self._element_dict.values():
-            el.geant4_id = coll_id # TODO: will be provided by new BDSIM interface
+            el.geant4_id = f'XcollG4.{coll_id}'  # TODO: will be provided by new BDSIM interface
             coll_id += 1
         return kwargs
 
+    def _generate_input_file(self, **kwargs):
+        input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
+                                particle_ref=self.particle_ref, verbose=self.verbose,
+                                **kwargs)
+        # The only thing left in kwargs are parameters to start the engine
+        return input_file, kwargs
+
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal
-        if self.bdsim_config_file is None:
-            raise ValueError("`bdsim_config_file` must be set before starting the Geant4 engine!")
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
         try:
@@ -151,11 +151,11 @@ class Geant4Engine(BaseEngine):
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
             self._conn.execute('import engine_server')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-            self._g4link.XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
-                                        referencePdgId=self.particle_ref.pdg_id,
-                                        referenceEk=Ekin / 1e9, # BDSIM expects GeV
-                                        relativeEnergyCut=self.relative_energy_cut,
-                                        seed=self.seed, batchMode=True)
+            self._g4link.XtrackInterface(bdsimConfigFile='geant4_input.gmad',
+                                         referencePdgId=self.particle_ref.pdg_id,
+                                         referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                         relativeEnergyCut=self.relative_energy_cut,
+                                         seed=self.seed, batchMode=True)
         else:
             if self._already_started:
                 self.stop(clean=True)
@@ -166,7 +166,7 @@ class Geant4Engine(BaseEngine):
             # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
             # to avoid python output being redirected by FDRedirect in C
             with pin_python_stdio():
-                self._g4link = XtrackInterface(bdsimConfigFile=self.bdsim_config_file.as_posix(),
+                self._g4link = XtrackInterface(bdsimConfigFile='geant4_input.gmad',
                                                referencePdgId=self.particle_ref.pdg_id,
                                                referenceEk=Ekin / 1e9, ### BDSIM expects GeV
                                                relativeEnergyCut=self.relative_energy_cut,
@@ -178,8 +178,7 @@ class Geant4Engine(BaseEngine):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
-            # TODO: should geant4_id be a string or an int?
-            self._g4link.addCollimator(f'{el.geant4_id}', el.material, el.length,
+            self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name, el.length,
                                     apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
                                     apertureRight=-jaw_R-1.e-9,
                                     rotation=np.deg2rad(el.angle),
@@ -198,6 +197,11 @@ class Geant4Engine(BaseEngine):
     def _is_running(self):
         return self._g4link is not None
 
+    def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
+        if cwd is None or input_file is None:
+            return []
+        return [cwd / input_file]
+
     def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is None:
             return []
@@ -205,3 +209,56 @@ class Geant4Engine(BaseEngine):
                            'engine.out', 'engine.err', 'root.out',
                            'root.err']
         return [cwd / f for f in files_to_delete]
+
+    def _match_input_file(self):
+        # Read the elements in the input file and compare to the elements in the engine,
+        # overwriting parameters where necessary
+        input_dict = get_collimators_from_input_file(self.input_file)
+        for name in input_dict:
+            if name not in self._element_dict:
+                raise ValueError(f"Element {name} in input file not found in engine!")
+        for name, ee in self._element_dict.items():
+            if name not in input_dict:
+                self._print(f"Warning: Geant4Collimator {name} not in Geant4 input file! "
+                          + f"Maybe it was fully open. Deactivated")
+                self._deactivate_element(ee)
+                continue
+            self._assert_element(ee)
+            ee.geant4_id = input_dict[name]['geant4_id']
+            if not np.isclose(ee.length, input_dict[name]['length'], atol=1e-9):
+                self._print(f"Warning: Length of {name} differs from input file "
+                        + f"({ee.length} vs {input_dict[name]['length']})! Overwritten.")
+                ee.length = input_dict[name]['length']
+            if not np.isclose(ee.angle, input_dict[name]['angle'], atol=1e-9):
+                self._print(f"Warning: Angle of {name} differs from input file "
+                        + f"({ee.angle} vs {input_dict[name]['angle']})! Overwritten.")
+                ee.angle = input_dict[name]['angle']
+            if ee.material.geant4_name != input_dict[name]['material'] \
+            or ee.material.name != input_dict[name]['material']:
+                raise ValueError(f"Material of {name} differs from input file "
+                            + f"({ee.material.geant4_name or ee.material.name} "
+                            + f"vs {input_dict[name]['material']})!")
+            jaw = input_dict[name]['jaw']
+            if jaw is not None and not hasattr(jaw, '__iter__'):
+                jaw = [jaw, -jaw]
+            if jaw is None or (jaw[0] is None and jaw[1] is None):
+                ee.jaw = None
+            else:
+                if jaw[0] is None:
+                    if ee.side != 'right':
+                        self._print(f"Warning: {name} is right-sided in the input file, "
+                                + "but not in the line! Overwritten by the former.")
+                        ee.side = 'right'
+                elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
+                    self._print(f"Warning: Jaw_L of {name} differs from input file "
+                            + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
+                    ee.jaw_L = jaw[0]
+                if jaw[1] is None:
+                    if ee.side != 'left':
+                        self._print(f"Warning: {name} is left-sided in the input file, "
+                                + f"but not in the line! Overwritten by the former.")
+                        ee.side = 'left'
+                elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
+                    self._print(f"Warning: Jaw_R of {name} differs from input file "
+                            + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
+                    ee.jaw_R = jaw[1]

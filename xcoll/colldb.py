@@ -493,10 +493,14 @@ class CollimatorDatabase:
             xc.geant4.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
+            mat = self[name]['material']
+            if mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
             if self[name]['bending_radius'] is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
-            self._create_collimator(Geant4Collimator, line, name, verbose=verbose,
-                                    material=self[name]['material'])
+            self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 

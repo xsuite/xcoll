@@ -981,7 +981,7 @@ class Material(xo.HybridClass):
         if self.components is not None:
             if any([el.geant4_name is None for el in self.components]):
                 raise ValueError('All components must have a geant4_name to generate Geant4 code.')
-        name = f'Xcoll_{self.name}'
+        name = f'Xcoll{self.name}'
         if self.components is not None:
             code = f"{name} : matdef, density={self.density}"
         else:

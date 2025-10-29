@@ -274,6 +274,9 @@ class BaseEngine(xo.HybridClass):
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
         kwargs = self._set_engine_properties(**kwargs)
 
+        # Do some preparations before creating the input file if needed
+        kwargs = self._pre_input(**kwargs)
+
         # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
         kwargs = self._use_input_file(input_file, **kwargs)
         if clean:
@@ -320,6 +323,9 @@ class BaseEngine(xo.HybridClass):
             print("Warning: Cannot use current working directory as input folder.")
             kwargs.pop('cwd')
         kwargs = self._set_engine_properties(**kwargs)
+
+        # Do some preparations before creating the input file if needed
+        kwargs = self._pre_input(**kwargs)
 
         # Create input file
         input_file, _ = self._generate_input_file(**kwargs)
@@ -717,4 +723,8 @@ class BaseEngine(xo.HybridClass):
         pass
 
     def _pre_start(self, **kwargs):
+        return kwargs
+
+    def _pre_input(self, **kwargs):
+        # Do some preparations before creating the input file if needed
         return kwargs
