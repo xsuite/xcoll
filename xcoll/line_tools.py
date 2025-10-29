@@ -358,14 +358,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
             length = self.line[element_name].length if hasattr(self.line[element_name], 'length') else 0
             self.line.element_dict[element_name] = xt.Drift(length=length)
 
-    def get_optics_at(self, names, *, twiss=None, tw=None):
-        if tw is not None:
-            warn("The argument tw is deprecated. Please use twiss instead.", FutureWarning)
-            if twiss is None:
-                twiss = tw
+    def get_optics_at(self, names, *, twiss=None):
         if twiss is None:
-            if not self.line._has_valid_tracker():
-                raise Exception("Please build the tracker before computing the optics for the openings!")
             twiss = self.line.twiss()
         if not hasattr(names, '__iter__') and not isinstance(names, str):
             names = [names]
@@ -375,13 +369,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
         tw_exit.name = tw_entry.name
         return tw_entry, tw_exit
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, tw=None):
-        if tw is not None:
-            warn("The argument tw is deprecated. Please use twiss instead.", FutureWarning)
-            if twiss is None:
-                twiss = tw
-        if not self.line._has_valid_tracker():
-            raise Exception("Please build tracker before setting the openings!")
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None):
         tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for name, coll in self.items():

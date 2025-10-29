@@ -61,10 +61,6 @@ df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 
-# Build the tracker
-line.build_tracker()
-
-
 # Assign the optics to deduce the gap settings, and calibrate the ADT
 tw = line.twiss()
 line.collimators.assign_optics(twiss=tw)

@@ -24,7 +24,6 @@ path_out = Path.cwd()
 # Load from json
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
-line.build_tracker()
 
 num_particles = 2
 part = line.build_particles(delta=[-2e-4, 2e-4], x_norm=0, px_norm=0, y_norm=0, py_norm=0)

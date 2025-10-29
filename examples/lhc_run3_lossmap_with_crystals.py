@@ -54,10 +54,6 @@ assert not np.any(df_with_coll.has_aperture_problem)
 tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 
 
-# Build the tracker
-line.build_tracker()
-
-
 # Assign the optics to deduce the gap settings
 line.collimators.assign_optics()
 
