@@ -124,7 +124,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
                 half_gap = OPEN_JAW
             else:
                 nsig = ee.gap
-                half_gap = ee.jaw
+                half_gap = -ee.jaw
             offset = 0
             tilt_1 = ee.tilt
             tilt_2 = 0

@@ -13,7 +13,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           FlukaCollimator, BaseCollimator, BaseCrystal, collimator_classes
+                           FlukaCollimator, FlukaCrystal, BaseCollimator, BaseCrystal, collimator_classes
 from .scattering_routines.everest.materials import SixTrack_to_xcoll
 
 
