@@ -234,7 +234,7 @@ class Geant4Engine(BaseEngine):
                         + f"({ee.angle} vs {input_dict[name]['angle']})! Overwritten.")
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
-            or ee.material.name != input_dict[name]['material']:
+            and ee.material.name != input_dict[name]['material']:
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")

@@ -30,16 +30,20 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_reload_bdsim(test_context):
     num_part = 1000
+    _capacity = num_part*4
+
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop()
+
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti', _context=test_context)
     xc.geant4.engine.particle_ref = particle_ref
     part_init = xp.build_particles(x=np.random.normal(coll.jaw_L + 1e-4, 1.e-4, num_part),
-                                   particle_ref=particle_ref, _capacity=4*num_part)
+                                   particle_ref=particle_ref, _capacity=_capacity)
     part = []
     for _ in range(3):
         part.append(part_init.copy())
         cwd = Path.cwd()
-        xc.geant4.engine.start(elements=coll, seed=1993,
-                               bdsim_config_file=path / 'geant4_protons.gmad')
+        xc.geant4.engine.start(elements=coll, seed=1993)
         assert cwd != Path.cwd()
         temp_cwd = xc.geant4.engine._cwd
         assert temp_cwd == Path.cwd()
@@ -107,15 +111,15 @@ def test_serial_bdsim(pytestconfig):
         pytest.skip("Cannot run serial BDSIM test in parallel.")
 
     num_part = 1000
+    _capacity = num_part*4
     coll = xc.Geant4Collimator(length=0.6, jaw=0.001, material='Ti')
     xc.geant4.engine.particle_ref = particle_ref
     xc.geant4.engine.reentry_protection_enabled = False
     part = xp.build_particles(x=np.random.normal(coll.jaw_L + 1e-4, 1e-4, num_part),
-                              particle_ref=particle_ref, _capacity=4*num_part)
+                              particle_ref=particle_ref, _capacity=_capacity)
 
     cwd = Path.cwd()
-    xc.geant4.engine.start(elements=coll, seed=1993,
-                           bdsim_config_file=path / 'geant4_protons.gmad')
+    xc.geant4.engine.start(elements=coll, seed=1993)
     assert cwd != Path.cwd()
     temp_cwd = xc.geant4.engine._cwd
     assert temp_cwd == Path.cwd()
@@ -152,8 +156,7 @@ def test_serial_bdsim(pytestconfig):
     assert not Path('engine.err').exists()
 
     with pytest.raises(RuntimeError, match="Cannot restart Geant4 engine in non-reentry-safe mode"):
-        xc.geant4.engine.start(elements=coll, seed=1993,
-                               bdsim_config_file=path / 'geant4_protons.gmad')
+        xc.geant4.engine.start(elements=coll, seed=1993)
 
 
 @for_all_test_contexts(
@@ -163,35 +166,51 @@ def test_serial_bdsim(pytestconfig):
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
     n_part = 10000
-    angles=[0,45,90]
-    jaws = [0.03, -0.02]
-    co = [-0.01, 0.01]
+    _capacity = n_part*4
+    angles = [0,45,90]
+    angles = [0]
+    jaws = np.array([0.03, -0.02])
+    co = np.array([-0.01, 0.01])
     L = 0.873
+
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop()
 
     g4_collimators = []
     ba_collimators = []
-    for ii, angle in enumerate(angles):
+    for angle in angles:
         shift = co[0]*np.cos(angle) + co[1]*np.sin(angle)
         g4coll = xc.Geant4Collimator(length=L, angle=angle, jaw=jaws+shift,
-                                     _context=test_context, material='cu')
+                                     _context=test_context, material='Beryllium')
         g4_collimators.append(g4coll)
         bacoll = xc.BlackAbsorber(length=L, angle=angle, jaw=jaws+shift,
                                   _context=test_context)
         ba_collimators.append(bacoll)
 
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=g4_collimators, seed=1993,
-                           bdsim_config_file=path / f'geant4_ba_protons.gmad')
+    xc.geant4.engine.start(elements=g4_collimators, seed=1993, _all_black=True)
 
     x = np.random.uniform(-0.1, 0.1, n_part)
     y = np.random.uniform(-0.1, 0.1, n_part)
     px = np.random.uniform(-0.1, 0.1, n_part)
     py = np.random.uniform(-0.1, 0.1, n_part)
-    part = xp.build_particles(x=x, y=y, px=px, py=py, _context=test_context,
+    part_init = xp.build_particles(x=x, y=y, px=px, py=py, _context=test_context,
                               particle_ref=xc.geant4.engine.particle_ref,
-                              _capacity=2*n_part)
-    part_ba = part.copy()
-    # xc.geant4.engine.particle_ref
+                              _capacity=2*_capacity)
+    part = part_init.copy()
+    part_ba = part_init.copy()
+
+    # expected_to_survive = (part_init.x < ba_collimators[0].jaw_L) & (part_init.x > ba_collimators[0].jaw_R)
+    # surv_ids = part.particle_id[expected_to_survive]
+
+    # fig, ax = plt.subplots()
+    # ax.scatter(part.x[part.state > -9999], part.y[part.state > -9999], s=1, color='tab:red')
+    # ax.scatter(part.x[expected_to_survive], part.y[expected_to_survive], s=1, color='tab:green')
+    # ax.vlines([ba_collimators[0].jaw_L, ba_collimators[0].jaw_R], ymin=-0.1, ymax=0.1, color='black', linestyles='dashed')
+    # ax.set_xlabel('x [m]')
+    # ax.set_ylabel('y [m]')
+    # fig.tight_layout()
+    # fig.show()
 
     for coll in g4_collimators:
         coll.track(part)
@@ -202,10 +221,30 @@ def test_black_absorbers(test_context):
     part.sort(interleave_lost_particles=True)
     part_ba.sort(interleave_lost_particles=True)
 
+    assert np.all(part.state <= 1)
+    assert np.all(part_ba.state <= 1)
+
     mask = part.state==1
     mask_ba = part_ba.state==1
     assert mask.sum() == mask_ba.sum()
     assert np.all(part.particle_id[mask] == part_ba.particle_id[mask_ba])
+
+
+    # fig, ax = plt.subplots()
+    # both_dead = (part.state < 1) & (part_ba.state < 1) & (part.state > -999999) & (part_ba.state > -999999)
+    # both_alive = (part.state == 1) & (part_ba.state == 1) & (part.state > -999999) & (part_ba.state > -999999)
+    # only_g4_alive = (part.state == 1) & (part_ba.state < 1) & (part.state > -999999) & (part_ba.state > -999999)
+    # only_ba_alive = (part.state < 1) & (part_ba.state == 1) & (part.state > -999999) & (part_ba.state > -999999)
+    # ax.scatter(part_init.x[both_dead], part_init.y[both_dead], s=1, label='Both dead', color='tab:red')
+    # ax.scatter(part_init.x[both_alive], part_init.y[both_alive], s=1, label='Both alive', color='tab:green')
+    # ax.scatter(part_init.x[only_g4_alive], part_init.y[only_g4_alive], s=1, label='Only G4 alive', color='tab:blue')
+    # ax.scatter(part_init.x[only_ba_alive], part_init.y[only_ba_alive], s=1, label='Only BA alive', color='tab:orange')
+    # ax.vlines(np.array([0.03, -0.02])-0.01, ymin=-0.1, ymax=0.1, color='black', linestyles='dashed')
+    # ax.legend()
+    # ax.set_xlabel('x [m]')
+    # ax.set_ylabel('y [m]')
+    # fig.tight_layout()
+    # fig.show()
 
     # Stop the Geant4 connection
     xc.geant4.engine.stop(clean=True)

@@ -82,7 +82,6 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     std::string seedStr = std::to_string(seed);
     std::vector<std::string> arguments = {"--verbose",
                                           "--file=" + bdsimConfigFile,
-                                          //"--file=" + bdsimConfigFile,
                                           //"--vis_debug",
                                           "--output=none",
                                           "--seed=" + seedStr,
@@ -319,7 +318,7 @@ void XtrackInterface::addParticles(const py::list& coordinates){
         // The internal processing in BDSIM does not feature an active state check, so this must be done at a higher
         // level here
 
-        if (state_part == 1) // State == 1 means that the particle is active
+        if (state_part > 0) // State == 1 means that the particle is active
         {
             particleActiveState.push_back(true);
             addParticle(x_part, y_part, px_part, py_part,

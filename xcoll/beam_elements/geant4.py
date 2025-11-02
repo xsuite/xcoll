@@ -17,7 +17,7 @@ from ..materials import(Material, CrystalMaterial, RefMaterial, db as material_d
 
 class Geant4Collimator(BaseCollimator):
     _xofields = BaseCollimator._xofields | {
-        'geant4_id': xo.Int16,
+        'geant4_id': xo.String,
         '_tracking': xo.Int8,
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
@@ -55,6 +55,7 @@ class Geant4Collimator(BaseCollimator):
             if '_xobject' not in kwargs:
                 kwargs.setdefault('_tracking', True)
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
+                kwargs.setdefault('geant4_id', ''.ljust(16))
                 to_assign['name'] = xc.geant4.engine._get_new_element_name()
                 to_assign['material'] = kwargs.pop('material', None)
                 kwargs['_material'] = _DEFAULT_MATERIAL
