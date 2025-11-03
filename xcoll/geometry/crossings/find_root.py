@@ -8,15 +8,17 @@ from ..c_init import PyMethod, define_src
 
 from ...general import _pkg_root
 
+
+MAX_SOLUTIONS = 100
+
 # Kernel for root finder
 class FindRoot(xo.Struct):
-    solution_t    = xo.Float64[:]
-    solution_l    = xo.Float64[:] # REMEMBER TO EDIT SO THAT SOLUTION T IS UPDATED AFTER NUCLEAR
-    guess_t       = xo.Float64[:]
-    guess_l       = xo.Float64[:] 
-    converged     = xo.Int8[:]
+    solution_t    = xo.Float64[MAX_SOLUTIONS]
+    solution_l    = xo.Float64[MAX_SOLUTIONS] # REMEMBER TO EDIT SO THAT SOLUTION T IS UPDATED AFTER NUCLEAR
+    guess_t       = xo.Float64[MAX_SOLUTIONS]
+    guess_l       = xo.Float64[MAX_SOLUTIONS]
+    converged     = xo.Int8[MAX_SOLUTIONS]
     num_solutions = xo.Int16
-    max_solutions = xo.Int8
     path_length   = xo.Float64
 
     _depends_on = [LocalTrajectory, LocalSegment]
@@ -51,13 +53,12 @@ class FindRoot(xo.Struct):
         _pkg_root / 'geometry' / 'crossings' / 'path_length.h']
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('max_solutions', 100)
         kwargs.setdefault('num_solutions', 0)
-        kwargs.setdefault('solution_t', np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
-        kwargs.setdefault('solution_l', np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
-        kwargs.setdefault('guess_t',    np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
-        kwargs.setdefault('guess_l',    np.full(kwargs['max_solutions'], 1e21, dtype=np.float64))
-        kwargs.setdefault('converged',  np.full(kwargs['max_solutions'], 1e21, dtype=np.int8))
+        kwargs.setdefault('solution_t', np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('solution_l', np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('guess_t',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('guess_l',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('converged',  np.full(MAX_SOLUTIONS, 1e21, dtype=np.int8))
         kwargs.setdefault('path_length', 0)
         super().__init__(**kwargs)
 
@@ -66,3 +67,12 @@ class FindRoot(xo.Struct):
         if kernel_name in self._kernels:
             return PyMethod(kernel_name=kernel_name, element=self, element_name='finder')
         raise ValueError(f"Attribute {attr} not found in {self.__class__.__name__}")
+
+
+_size = FindRoot._size
+_typedef = f"""
+#ifndef XCOLL_GEOM_FINDROOT_DEF
+typedef struct FindRoot_s {{ char _data[{_size}];}} FindRoot_;
+#endif /* XCOLL_GEOM_FINDROOT_DEF */
+"""
+FindRoot._extra_c_sources.insert(1, _typedef)

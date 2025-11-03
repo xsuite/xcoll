@@ -288,10 +288,10 @@ int8_t XC_SLICING_MAX_NEST_LEVEL = 8;
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
                          double t1, double t2, double l1, double l2, int8_t nest_level){
     // Prepare initial guesses for Newton-Raphson root finding
-    BoundingBox_ _box_seg = {0};
-    BoundingBox_ _box_traj = {0};
-    BoundingBox box_seg  = &_box_seg;
-    BoundingBox box_traj = &_box_traj;
+    BoundingBox_ _box_seg;
+    BoundingBox_ _box_traj;
+    BoundingBox box_seg = (BoundingBox)&_box_seg; // safe: BoundingBox_ has same layout as BoundingBox
+    BoundingBox box_traj = (BoundingBox)&_box_traj;
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double t, l;

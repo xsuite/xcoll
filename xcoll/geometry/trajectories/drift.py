@@ -70,3 +70,12 @@ class DriftTrajectory(xo.Struct):
     @property
     def theta0(self):
         return self.round(np.arctan2(self.sin_t0, self.cos_t0))
+
+
+_size = DriftTrajectory._size
+_typedef = f"""
+#ifndef XCOLL_GEOM_DRIFT_TRAJECTORY_DEF
+typedef struct DriftTrajectory_s {{ char _data[{_size}];}} DriftTrajectory_;
+#endif /* XCOLL_GEOM_DRIFT_TRAJECTORY_DEF */
+"""
+DriftTrajectory._extra_c_sources.insert(1, _typedef)

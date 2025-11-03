@@ -10,7 +10,8 @@ import xobjects as xo
 
 from ..c_init import XC_GEOM_EPSILON, PyMethod
 from ..segments import LocalSegment, LineSegment, HalfOpenLineSegment, get_max_crossings
-from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h
+from ..trajectories import all_trajectories, DriftTrajectory, args_cross_h, LocalTrajectory
+from ..crossings.find_root import FindRoot
 from .shape_source import all_s_positions, shape_source, get_seg_ids, create_cases_in_source
 
 
@@ -22,6 +23,7 @@ class Shape2D(xo.Struct):
     segments = LocalSegment[:]
     _seg_id  = xo.Int64  # This links the object to the correct array size for the crossings s
 
+    _depends_on = [LocalTrajectory, FindRoot]
     _needs_compilation = True
     _extra_c_sources = shape_source
 
