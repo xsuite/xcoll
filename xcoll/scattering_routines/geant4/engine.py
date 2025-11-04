@@ -64,7 +64,7 @@ class Geant4Engine(BaseEngine):
     @relative_energy_cut.setter
     def relative_energy_cut(self, val):
         if val is None:
-            val = 0.15
+            val = 0.1
         if not isinstance(val, Number) or val <= 0:
             raise ValueError("`relative_energy_cut` has to be a strictly postive number!")
         self._relative_energy_cut = val

@@ -991,7 +991,7 @@ class Material(xo.HybridClass):
         if self.pressure:
             code += f", P={self.pressure}"
         if self.state:
-            code += f", state={self.state}"
+            code += f', state="{self.state}"'
         if self.components is not None:
             components = [f'"{el.geant4_name}"' for el in self.components]
             code += f", components=[{','.join(components)}]"
