@@ -165,7 +165,7 @@ def test_serial_bdsim(pytestconfig):
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
-    n_part = 10000
+    n_part = 10_000
     _capacity = n_part*4
     angles = [0,45,90]
     angles = [0]
@@ -192,25 +192,13 @@ def test_black_absorbers(test_context):
 
     x = np.random.uniform(-0.1, 0.1, n_part)
     y = np.random.uniform(-0.1, 0.1, n_part)
-    px = np.random.uniform(-0.1, 0.1, n_part)
-    py = np.random.uniform(-0.1, 0.1, n_part)
+    px = np.random.uniform(-1e-3, 1e-3, n_part)
+    py = np.random.uniform(-1e-3, 1e-3, n_part)
     part_init = xp.build_particles(x=x, y=y, px=px, py=py, _context=test_context,
                               particle_ref=xc.geant4.engine.particle_ref,
                               _capacity=2*_capacity)
     part = part_init.copy()
     part_ba = part_init.copy()
-
-    # expected_to_survive = (part_init.x < ba_collimators[0].jaw_L) & (part_init.x > ba_collimators[0].jaw_R)
-    # surv_ids = part.particle_id[expected_to_survive]
-
-    # fig, ax = plt.subplots()
-    # ax.scatter(part.x[part.state > -9999], part.y[part.state > -9999], s=1, color='tab:red')
-    # ax.scatter(part.x[expected_to_survive], part.y[expected_to_survive], s=1, color='tab:green')
-    # ax.vlines([ba_collimators[0].jaw_L, ba_collimators[0].jaw_R], ymin=-0.1, ymax=0.1, color='black', linestyles='dashed')
-    # ax.set_xlabel('x [m]')
-    # ax.set_ylabel('y [m]')
-    # fig.tight_layout()
-    # fig.show()
 
     for coll in g4_collimators:
         coll.track(part)
@@ -228,23 +216,6 @@ def test_black_absorbers(test_context):
     mask_ba = part_ba.state==1
     assert mask.sum() == mask_ba.sum()
     assert np.all(part.particle_id[mask] == part_ba.particle_id[mask_ba])
-
-
-    # fig, ax = plt.subplots()
-    # both_dead = (part.state < 1) & (part_ba.state < 1) & (part.state > -999999) & (part_ba.state > -999999)
-    # both_alive = (part.state == 1) & (part_ba.state == 1) & (part.state > -999999) & (part_ba.state > -999999)
-    # only_g4_alive = (part.state == 1) & (part_ba.state < 1) & (part.state > -999999) & (part_ba.state > -999999)
-    # only_ba_alive = (part.state < 1) & (part_ba.state == 1) & (part.state > -999999) & (part_ba.state > -999999)
-    # ax.scatter(part_init.x[both_dead], part_init.y[both_dead], s=1, label='Both dead', color='tab:red')
-    # ax.scatter(part_init.x[both_alive], part_init.y[both_alive], s=1, label='Both alive', color='tab:green')
-    # ax.scatter(part_init.x[only_g4_alive], part_init.y[only_g4_alive], s=1, label='Only G4 alive', color='tab:blue')
-    # ax.scatter(part_init.x[only_ba_alive], part_init.y[only_ba_alive], s=1, label='Only BA alive', color='tab:orange')
-    # ax.vlines(np.array([0.03, -0.02])-0.01, ymin=-0.1, ymax=0.1, color='black', linestyles='dashed')
-    # ax.legend()
-    # ax.set_xlabel('x [m]')
-    # ax.set_ylabel('y [m]')
-    # fig.tight_layout()
-    # fig.show()
 
     # Stop the Geant4 connection
     xc.geant4.engine.stop(clean=True)

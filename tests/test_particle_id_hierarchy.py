@@ -12,7 +12,6 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xobjects.test_helpers import for_all_test_contexts
 try:
     import rpyc
 except ImportError as e:
@@ -23,18 +22,14 @@ path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
-)
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
-def test_geant4(test_context):
+def test_geant4():
     length = 1.2
     num_slices = 2000
-    coll = xc.Geant4Collimator(length=length/num_slices, jaw=0.001, material='Ti', _context=test_context)
+    coll = xc.Geant4Collimator(length=length/num_slices, jaw=0.001, material='Ti')
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1,
-                           bdsim_config_file=path / f'geant4_protons.gmad')
+    xc.geant4.engine.start(elements=coll)
 
     step = 2e-5
     x = np.arange(0.002, 0.003+step, step)
@@ -43,7 +38,7 @@ def test_geant4(test_context):
     coords = np.vstack([X.ravel(), Y.ravel()]).T
     _capacity = 2*len(coords[:,0])
     part_init = xp.build_particles(x=coords[:,0], y=coords[:,1], particle_ref=particle_ref,
-                                   _capacity=_capacity, _context=test_context)
+                                   _capacity=_capacity)
     parents = part_init.particle_id[part_init.state==1]
 
 
