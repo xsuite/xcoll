@@ -96,7 +96,7 @@ class Geant4Collimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            super().track(part)
+            # super().track(part)
             track_core(self, part)
             track_post(self, part)
 
