@@ -6,7 +6,7 @@ import xtrack as xt
 import xcoll as xc
 
 L_tot   = 0.0004
-n_steps = 100
+n_steps = 120
 ds      = L_tot / n_steps
 #case01 x0 = 0; theta0 = 12e-6
 #case02 x0 = 0; theta0 = -12e-6
@@ -23,10 +23,10 @@ ds      = L_tot / n_steps
 #case11 x0 = -3.6e-11; theta0 = 5.2e-6
 #case12 x0 = -3.6e-11; theta0 = -5.2e-6
 
-x0 = 0; theta0 = 12e-6
+x0 = -3.6e-11; theta0 = 5.2e-6
 s_axis  = np.linspace(0.0, L_tot, n_steps+1)
 
-def run_with(ch, method, variant=2, order=8):
+def run_with(ch, method, variant=2, order=12):
     ch.method  = method
     ch.variant = variant
     ch.order   = order
@@ -43,19 +43,45 @@ def run_with(ch, method, variant=2, order=8):
     return np.array(xs), np.array(xps)
 
 
-ch = xc.BentChannellingDev(length=ds, method=4, variant=2, order=8)
+ch = xc.BentChannellingDev(length=ds, method=4, variant=2, order=2)
 
 x_M2, px_M2 = run_with(ch, 2)
 x_M3, px_M3 = run_with(ch, 3)
 x_M4, px_M4 = run_with(ch, 4)
 
 
-s_csv, x_csv, px_csv = np.loadtxt("bent_channelling_reference_functions/solution_case01.csv",
+s_csv, x_csv, px_csv = np.loadtxt("bent_channelling_reference_functions/solution_case11.csv",
     delimiter=",",
     skiprows=1,   
     unpack=True)
 
 initial_conditions = f"(x0={x0:.2e}, θ0={theta0:.2e})"
+
+
+models_dotplot_title = (
+    f"x0={x0:.2e}, θ0={theta0:.2e}, "
+    f"Order={ch.order}, Version={ch.variant}, Steps={n_steps}"
+)
+
+
+fig0, ax0 =plt.subplots(3, 1, figsize=(12, 8), sharex=True)
+fig0.suptitle(models_dotplot_title, fontsize=12)
+ax0[0].plot(s_csv, x_csv, label="Mathematica x(s)")
+ax0[0].plot(s_axis, x_M2,'o',markersize=2, label='M2')
+ax0[0].grid(True); ax0[0].legend(loc="upper right")
+
+ax0[1].plot(s_csv, x_csv, label="Mathematica x(s)")
+ax0[1].plot(s_axis, x_M3,'o',markersize=2, label='M3')
+ax0[1].grid(True); ax0[1].legend(loc="upper right")
+
+ax0[2].plot(s_csv, x_csv, label="Mathematica x(s)")
+ax0[2].plot(s_axis, x_M4,'o',markersize=2, label='M4')
+ax0[2].grid(True); ax0[2].legend(loc="upper right")
+
+
+plt.tight_layout()
+plt.show()
+
 
 
 
@@ -77,6 +103,7 @@ ax[1].grid(True); ax[1].legend(title=initial_conditions,loc="upper right")
 
 plt.tight_layout()
 plt.show()
+
 
 
 fig1, ax1 = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
