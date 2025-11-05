@@ -89,7 +89,7 @@ double L(double dp, double uT, double U0, double bpc){
 
 /*gpufun*/    
 double theta_c(double dp, double uT, double U0, double bpc){
-    return sqrt((2.0*eta(dp, uT)*U0)/bpc) * (1.0 - Rc(dp, uT, U0, pc)/R); //rad
+    return sqrt((2.0*eta(dp, uT)*U0)/bpc) * (1.0 - Rc(dp, uT, U0, bpc)/R); //rad
     }
 
 
@@ -135,7 +135,7 @@ void fM2H1(double x0,double theta0, double s, double dp, double uT, double beta_
     double U_ = U(dp, uT, U0mol, alpha_i, beta_i, aTF, bpc);
     double x_c = xc(dp, uT);
     *x = x0;
-    *theta = theta0 + U_*x0*s-U_*x_c/D*sinh(D*x0/x_c)*s-s/R;
+    *theta = theta0 + U_*x0*s - U_*x_c/D*sinh(D*x0/x_c)*s - s/R;
     }
 
 
@@ -157,8 +157,8 @@ void fM3H0(double x0, double theta0, double s,
     double inv_UR  = 1.0 / ( (sqrt_U*sqrt_U) * R );
     double inv_sUR = 1.0 / ( sqrt_U * R );
 
-    *x     = (x0 + inv_UR) * cos(u) + (theta0 / sqrt_U) * sin(u) - inv_UR;
-    *theta = (-x0 * sqrt_U - inv_sUR) * sin(u) + theta0 * cos(u);
+    *x     = (x0 + inv_UR)*cos(u) + (theta0/sqrt_U)*sin(u) - inv_UR;
+    *theta = (-x0*sqrt_U - inv_sUR)*sin(u) + theta0*cos(u);
 }
 
 /*gpufun*/
@@ -174,7 +174,7 @@ void fM3H1(double x0, double theta0, double s,
     double x_c       = xc(dp, uT);
 
     *x     = x0;
-    *theta = theta0 + ( U_ * x0 - U_ * x_c / D * sinh(D * x0 / x_c) ) * s;
+    *theta = theta0 + (U_*x0 - U_*x_c/D*sinh(D*x0/x_c))*s;
 }
 
 //================================================
@@ -199,7 +199,7 @@ double E_T_simplemoliere(double x, double theta, double bpc, double U_N, double 
 
 /*gpufun*/
 double m_simplemoliere(double U_N, double E_T ) {
-    return 1.0 + 2.0*U_N /E_T;
+    return 1.0 + 2.0*U_N/E_T;
     }
 
 /*gpufun*/
@@ -248,8 +248,8 @@ void motion_parameters(double x0, double theta0, double z, double nu, double E_T
         double sn, cn, dn, am;
         ellpj(u, mp, &sn, &cn, &dn, &am);
 
-        *x = -twotimes_a_TF_over_beta_i * asinh(sqrt_mp * sn / dn);
-        *theta = -twotimes_a_TF_over_beta_i * nu * cn / dn;
+        *x = -twotimes_a_TF_over_beta_i*asinh(sqrt_mp*sn/dn);
+        *theta = -twotimes_a_TF_over_beta_i*nu*cn/dn;
     }
 }
 //-----------------------------------------------------------
@@ -814,6 +814,10 @@ void fM4O12v2(double x0, double theta0, double s,
                     fM4O10v2(x2, th2, chi1_12 * s, dp, uT, U0mol, alpha_i, beta_i, aTF, bpc, R,  x,   theta);
 }
 
+
+
+
+
 /*gpufun*/
 void choose_method(
     double x0, double theta0, double s,
@@ -910,6 +914,7 @@ void choose_method(
 void BentChannellingDev_track_local_particle(BentChannellingDevData el, LocalParticle* part0) {
     
     double length = BentChannellingDevData_get_length(el);
+    // method, order and variant to be removed once i change the code!!!
     int method = BentChannellingDevData_get_method(el);  
     int order = BentChannellingDevData_get_order(el);
     int variant = BentChannellingDevData_get_variant(el);
@@ -931,13 +936,14 @@ void BentChannellingDev_track_local_particle(BentChannellingDevData el, LocalPar
     }
 
 
-
-
-
-
-
-
-
-
-
 #endif /* XCOLL_BENT_CHANNELLINGDEV_H */
+
+
+
+
+
+
+
+
+
+
