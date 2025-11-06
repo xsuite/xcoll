@@ -35,6 +35,8 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop
             if verbose:
                 print("Warning: particle_ref is a partially stripped ion.")
         particle = f'"ion {A} {Z} {q0}"'
+    else:
+        particle = f'"{pdg_id}"'   # Need quoted strings
     gmad = [f"beam, particle={particle}, momentum={momentum}*GeV;"]
     if physics_list is None:
         if is_ion(pdg_id):
