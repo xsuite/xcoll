@@ -42,6 +42,7 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop
         if is_ion(pdg_id):
             physics_list = "em ftfp_bert hadronic_elastic decay neutron_tracking_cut em_extra ion stopping ion_em_dissociation"
             # physics_list = "em ftfp_bert hadronic_elastic decay neutron_tracking_cut ion stopping ion_em_dissociation"
+            # physics_list = "em decay hadronic_elastic ftfp_bert stopping neutron_tracking_cut ion ion_em_dissociation"
         else:
             # This is the same as g4FTFP_BERT (verified with option, physicsVerbose=1;)
             # physics_list = "em ftfp_bert hadronic_elastic decay neutron_tracking_cut em_extra ion"
@@ -80,7 +81,8 @@ def generate_material_definitions(element_dict, verbose=True):
         elif not isinstance(mat, RefMaterial):
             if mat.geant4_name is None:
                 mat._generate_geant4_code()
-            if mat._generated_geant4_code not in code:
+            if mat._generated_geant4_code is not None \
+            and mat._generated_geant4_code not in code:
                 code.append(mat._generated_geant4_code)
         # Verify that material has a Geant4 name (after possible generation)
         if mat.geant4_name is None:
