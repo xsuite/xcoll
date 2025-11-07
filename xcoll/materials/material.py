@@ -107,6 +107,7 @@ class Material(xo.HybridClass):
         self._geant4_name = None
         self._out_of_sync = False
         self._frozen = False  # Pre-defined materials will be frozen at package import
+        self._generated_geant4_code = None
 
         # For the mandatory fields, decide how to initialise (elemental or compound)
         if ('Z' in kwargs or 'A' in kwargs) and ('components' in kwargs \
@@ -973,7 +974,7 @@ class Material(xo.HybridClass):
 # COMPOUND         -.4  MAGNESIU       -.4  MANGANES      -.35  CHROMIUMANTICO
 # COMPOUND         -.2  TITANIUM       -.2      ZINC       -.1    COPPERANTICO
 
-    def _gen_geant4_code(self):
+    def _generate_geant4_code(self):
         if self.geant4_name:
             raise ValueError(f'Material already has a Geant4 name assigned: {self.geant4_name}.')
         if self.name is None:
@@ -1003,8 +1004,8 @@ class Material(xo.HybridClass):
         frozen = self._frozen
         self._frozen = False
         self.geant4_name = name
+        self._generated_geant4_code = code
         self._frozen = frozen
-        return code
 
 
 class CrystalMaterial(Material):

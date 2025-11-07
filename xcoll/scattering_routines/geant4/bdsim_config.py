@@ -77,8 +77,14 @@ def generate_material_definitions(element_dict, verbose=True):
         mat = el.material
         if mat is None:
             raise ValueError(f"Material not set for element {name}!")
-        elif not isinstance(mat, RefMaterial) and mat.geant4_name is None:
-            code.append(mat._gen_geant4_code())
+        elif not isinstance(mat, RefMaterial):
+            if mat.geant4_name is None:
+                mat._generate_geant4_code()
+            if mat._generated_geant4_code not in code:
+                code.append(mat._generated_geant4_code)
+        # Verify that material has a Geant4 name (after possible generation)
+        if mat.geant4_name is None:
+            raise ValueError(f"Material for element {name} has no Geant4 name!")
         mess = f"! Element {name} (id {el.geant4_id}) uses material {mat.geant4_name}"
         if verbose:
             print(mess)
