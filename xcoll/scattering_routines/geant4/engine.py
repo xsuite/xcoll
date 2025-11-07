@@ -249,7 +249,7 @@ class Geant4Engine(BaseEngine):
                         self._print(f"Warning: {name} is right-sided in the input file, "
                                 + "but not in the line! Overwritten by the former.")
                         ee.side = 'right'
-                elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
+                elif ee.jaw_L is None or not np.allclose(ee.jaw_L, jaw[0], atol=1e-9):
                     self._print(f"Warning: Jaw_L of {name} differs from input file "
                             + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
                     ee.jaw_L = jaw[0]
@@ -258,7 +258,7 @@ class Geant4Engine(BaseEngine):
                         self._print(f"Warning: {name} is left-sided in the input file, "
                                 + f"but not in the line! Overwritten by the former.")
                         ee.side = 'left'
-                elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
+                elif ee.jaw_R is None or not np.allclose(ee.jaw_R, jaw[1], atol=1e-9):
                     self._print(f"Warning: Jaw_R of {name} differs from input file "
                             + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
                     ee.jaw_R = jaw[1]
