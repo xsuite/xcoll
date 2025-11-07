@@ -178,9 +178,18 @@ class Geant4Engine(BaseEngine):
             jaw_R = -0.1 if el.jaw_R is None else el.jaw_R
             tilt_L = 0.0 if el.tilt_L is None else el.tilt_L
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
+            jaw_L -= 1.e-9  # Correct for 1e-9 shift that is added in BDSIM
+            jaw_R += 1.e-9  # Correct for 1e-9 shift that is added in BDSIM
+            if jaw_L <= 0:
+                self.stop(clean=True)
+                raise NotImplementedError(f"Geant4Collimator {el.name} has negative left jaw: "
+                               + f"jaw_L={el.jaw_L}! BDSIM cannot handle this.")
+            if jaw_R >= 0:
+                self.stop(clean=True)
+                raise NotImplementedError(f"Geant4Collimator {el.name} has positive right jaw: "
+                               + f"jaw_R={el.jaw_R}! BDSIM cannot handle this.")
             self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name, el.length,
-                                    apertureLeft=jaw_L-1.e-9,  # Correct for 1e-9 shift that is added in BDSIM
-                                    apertureRight=-jaw_R-1.e-9,
+                                    apertureLeft=jaw_L, apertureRight=-jaw_R,
                                     rotation=np.deg2rad(el.angle),
                                     xOffset=0, yOffset=0, side=side,
                                     jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
@@ -249,7 +258,7 @@ class Geant4Engine(BaseEngine):
                         self._print(f"Warning: {name} is right-sided in the input file, "
                                 + "but not in the line! Overwritten by the former.")
                         ee.side = 'right'
-                elif ee.jaw_L is None or not np.allclose(ee.jaw_L, jaw[0], atol=1e-9):
+                elif ee.jaw_L is None or not np.isclose(ee.jaw_L, jaw[0], atol=1e-9):
                     self._print(f"Warning: Jaw_L of {name} differs from input file "
                             + f"({ee.jaw_L} vs {jaw[0]})! Overwritten.")
                     ee.jaw_L = jaw[0]
@@ -258,7 +267,18 @@ class Geant4Engine(BaseEngine):
                         self._print(f"Warning: {name} is left-sided in the input file, "
                                 + f"but not in the line! Overwritten by the former.")
                         ee.side = 'left'
-                elif ee.jaw_R is None or not np.allclose(ee.jaw_R, jaw[1], atol=1e-9):
+                elif ee.jaw_R is None or not np.isclose(ee.jaw_R, jaw[1], atol=1e-9):
                     self._print(f"Warning: Jaw_R of {name} differs from input file "
                             + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
                     ee.jaw_R = jaw[1]
+            tilt = input_dict[name]['tilt']
+            if not hasattr(tilt, '__iter__'):
+                tilt = [tilt, -tilt]
+            if not np.isclose(ee.tilt_L, tilt[0], atol=1e-9):
+                self._print(f"Warning: Tilt_L of {name} differs from input file "
+                        + f"({ee.tilt_L} vs {tilt[0]})! Overwritten.")
+                ee.tilt_L = tilt[0]
+            if not np.isclose(ee.tilt_R, tilt[1], atol=1e-9):
+                self._print(f"Warning: Tilt_R of {name} differs from input file "
+                        + f"({ee.tilt_R} vs {tilt[1]})! Overwritten.")
+                ee.tilt_R = tilt[1]

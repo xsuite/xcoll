@@ -110,7 +110,8 @@ def _generate_xcoll_header(element_dict):
             "length": np.array(el.length).tolist(),
             "material": np.array(el.material.geant4_name).tolist(),
             "angle": np.array(el.angle).tolist(),
-            "jaw": np.array(el.jaw).tolist(),
+            "jaw": [np.array(el.jaw_L).tolist(), np.array(el.jaw_R).tolist()],
+            "tilt": np.array(el.tilt).tolist(),
         }
         # header.append(f'!  "{kk}": ' + json.dumps(vv).replace('"jaw"', '\n!          "jaw"') + ',')
         header.append(f'!  "{kk}": ' + json.dumps(vv) + ',')
