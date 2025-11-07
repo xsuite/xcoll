@@ -1,6 +1,6 @@
 # copyright ############################### #
-# This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# This file is part of the Xcoll Package.   #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
@@ -14,16 +14,10 @@ import xtrack as xt
 import xcoll as xc
 
 
-# We do the majority of the script on the default context to be able to use prebuilt kernels
-context = xo.ContextCpu()
-
-
-# This script takes around 3 minutes on a modern CPU (90s preparation+interpolation, 90s tracking)
-beam = 1
-plane = 'H'
-
-num_turns = 200
-num_particles = 50000
+beam          = 1
+plane         = 'H'
+num_turns     = 10
+num_particles = 5000
 
 path_in = Path(__file__).parent
 path_out = Path.cwd()
@@ -38,7 +32,7 @@ colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldb' / f'lhc_run3.yaml', 
 
 
 # Install collimators into line
-colldb.install_everest_collimators(line=line, verbose=True)
+colldb.install_geant4_collimators(line=line, verbose=True)
 
 
 # Aperture model check
@@ -51,13 +45,19 @@ assert not np.any(df_with_coll.has_aperture_problem)
 line.collimators.assign_optics()
 
 
-# Optimise the line
-line.optimize_for_tracking()
+# Connect to Geant4
+xc.geant4.engine.start(line=line, cwd='run_geant4_temp', clean=True, verbose=True)
 
 
 # Generate initial pencil distribution on horizontal collimator
 tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 part = line[tcp].generate_pencil(num_particles)
+
+
+# # Treat warnings as errors to debug
+# np.set_printoptions(threshold=np.inf)
+# import warnings
+# warnings.filterwarnings("error")
 
 
 # Move the line to an OpenMP context to be able to use all cores
@@ -71,6 +71,10 @@ line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
 line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
+
+
+# Stop the Geant4 connection (and return to the previous directory)
+xc.geant4.engine.stop(clean=True)
 
 
 # Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation

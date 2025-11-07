@@ -92,7 +92,8 @@ def plot_material_scattering(materials, length, p0c, n_points=100000, savefig=No
 
 for length in [0.1, 0.25, 1.2]:
     for energy in [20e9, 450e9, 7e12]:
-        plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MolybdenumGraphite6400, xc.materials.K2MolybdenumGraphite],
+        plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MoGr6400,
+                                  xc.materials.MG6403Fc, xc.materials.K2MolybdenumGraphite],
                                  length, energy, 10_000_000,
                                  f'scattering_mogr_{length}m_{int(energy/1e9)}GeV.png')
         plot_material_scattering([xc.materials.CopperDiamond, xc.materials.K2CopperDiamond],

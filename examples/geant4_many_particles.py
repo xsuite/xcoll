@@ -100,5 +100,5 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
 
 run_many_particles(xt.Particles('proton', p0c=6.8e12),   10_000, capacity=20_000)
-run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 1_000, capacity=50_000)
-run_many_particles(xt.Particles('positron', p0c=200e9),  10_000, capacity=50_000, plot=True)
+run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 5_000, capacity=10_000)
+run_many_particles(xt.Particles('positron', p0c=200e9),  10_000, capacity=20_000, plot=True)

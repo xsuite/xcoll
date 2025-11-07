@@ -26,7 +26,7 @@ print(mat1 == mat2)
 print(mat1 == mat3)
 
 # When a material is known to FLUKA or Geant4, it has a fluka_name resp geant4_name attribute
-print(f"Molybdenum-Graphite in FLUKA is called: {xc.materials.MolybdenumGraphite.fluka_name}")
+print(f"Copper-Diamond in FLUKA is called: {xc.materials.CopperDiamond.fluka_name}")
 print(f"Aluminium in Geant4 is called: {mat1.geant4_name}")
 
 # They can be looked up in a sub-database by these names

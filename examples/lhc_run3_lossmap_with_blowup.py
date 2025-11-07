@@ -26,7 +26,7 @@ num_particles = 10000
 nemitt_x = 3.5e-6
 nemitt_y = 3.5e-6
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 

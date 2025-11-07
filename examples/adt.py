@@ -5,6 +5,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 import time
 start_time = time.time()
 
@@ -12,6 +13,9 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 import xcoll as xc
+
+path = Path(__file__).parent
+
 
 # This example is a more realistic example of the ADT in the LHC. Each
 # particle in a bunch gets the same kick (this is the default for a BlowUp).
@@ -37,7 +41,7 @@ nemitt_y = 2.5e-6
 
 
 # Import a Run 3 LHC lattice without apertures
-line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+line = xt.Line.from_json(path / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
 
 
 # Create the ADT

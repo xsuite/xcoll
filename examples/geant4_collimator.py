@@ -20,7 +20,7 @@ if xc.geant4.engine.is_running():
 
 
 # Create a Geant4 collimator
-coll = xc.Geant4Collimator(length=0.6, material='mogr')
+coll = xc.Geant4Collimator(length=0.6, material=xc.materials.MolybdenumGraphite)
 coll.jaw = 0.001
 
 # The same collimator in Everest

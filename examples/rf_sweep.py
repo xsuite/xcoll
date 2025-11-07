@@ -18,7 +18,7 @@ sweep = 300
 sweep = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns = int(20*abs(sweep))
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 # Load from json

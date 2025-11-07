@@ -27,7 +27,7 @@ tilt = 0  # rad !!
 num_turns = 200
 num_particles = 50000
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
