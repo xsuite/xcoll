@@ -13,24 +13,26 @@ class BDSIMServer:
         self.g4link = None
 
 
-    def XtrackInterface(self,bdsimConfigFile=None,referencePdgId=None,referenceEk=None,
-                        relativeEnergyCut=None,seed=None,batchMode=None):
+    def XtrackInterface(self, bdsimConfigFile=None, referencePdgId=None, referenceEk=None,
+                        relativeEnergyCut=None, seed=None, batchMode=None):
         from g4interface import XtrackInterface
         self.g4link = XtrackInterface(bdsimConfigFile=bdsimConfigFile,
                                       referencePdgId=referencePdgId,
-                                      referenceEk=referenceEk, # BDSIM expects GeV
+                                      referenceEk=referenceEk,
                                       relativeEnergyCut=relativeEnergyCut,
                                       seed=seed, batchMode=batchMode)
 
 
-    def addCollimator(self,geant4_id,material,length,apertureLeft=None,apertureRight=None,
-                      rotation=None,xOffset=0,yOffset=0,side=None,jawTiltLeft=None,jawTiltRight=None, isACrystal=False):
+    def addCollimator(self, geant4_id, material, length, apertureLeft=None, apertureRight=None,
+                      rotation=None, xOffset=0, yOffset=0, side=None, jawTiltLeft=None,
+                      jawTiltRight=None, isACrystal=False):
         self.g4link.addCollimator(geant4_id, material, length,
                                   apertureLeft=apertureLeft,
-                                  apertureRight=apertureRight,   # TODO: is this correct?
+                                  apertureRight=apertureRight,
                                   rotation=rotation,
                                   xOffset=xOffset, yOffset=yOffset, side=side,
-                                  jawTiltLeft=jawTiltLeft, jawTiltRight=jawTiltRight, isACrystal=isACrystal)
+                                  jawTiltLeft=jawTiltLeft, jawTiltRight=jawTiltRight,
+                                  isACrystal=isACrystal)
 
 
     def add_particles_and_collimate_return(self, blob, geant4_id):
