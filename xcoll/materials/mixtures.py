@@ -19,13 +19,15 @@ from .compounds import CarbonDioxide, BoronNitride, Silica, BoronTrioxide, Alumi
 # ===============================
 
 # By molar fractions (like number of atoms but not a compound)
-CopperDiamond          = Material(components=[Copper, Carbon, Boron], molar_fractions=[0.2359, 0.7548, 0.0093], density=5.4, state='solid')
-TiZrMo                 = Material(components=[Molybdenum, Carbon, Titanium, Zirconium], molar_fractions=[0.98762, 0.00158, 0.00996, 0.00084], density=10.22, state='solid')
-MolybdenumGraphite     = Material(components=[Molybdenum, Carbon, Titanium], molar_fractions=[0.0184, 0.9809, 0.0007], density=2.55, state='solid')
-MolybdenumGraphite6400 = Material(components=[Molybdenum, Carbon], molar_fractions=[0.0146, 0.9854], density=2.48, state='solid')
+CopperDiamond      = Material(components=[Copper, Carbon, Chromium, Zirconium], molar_fractions=[0.2696, 0.7269, 0.0033, 0.0002], density=5.4, state='solid')
+TiZrMo             = Material(components=[Molybdenum, Carbon, Titanium, Zirconium], molar_fractions=[0.98762, 0.00158, 0.00996, 0.00084], density=10.22, state='solid')
+MolybdenumGraphite = Material(components=[Molybdenum, Carbon, Titanium], molar_fractions=[0.0201, 0.978, 0.0019], density=2.57, state='solid')
+MG6403Fc           = Material(components=[Molybdenum, Carbon, Titanium], molar_fractions=[0.0184, 0.9809, 0.0007], density=2.55, state='solid')
+MG6400             = Material(components=[Molybdenum, Carbon], molar_fractions=[0.0146, 0.9854], density=2.48, state='solid')
 
-MolybdenumGraphite.info     = 'Molybdenum-Graphite composite used in LHC collimators.'
-MolybdenumGraphite6400.info = 'Molybdenum-Graphite composite. Candidate material for LHC collimators, but not used'
+MolybdenumGraphite.info = 'Molybdenum-Graphite composite (NB-8404Ng), used for LHC TCPPM and TCSPM.'
+MG6403Fc.info           = 'Molybdenum-Graphite composite. Candidate material for LHC collimators, but only used for TCPPMP prototype.'
+MG6400.info             = 'Molybdenum-Graphite composite. Candidate material for LHC collimators, but not used.'
 
 # By mass fractions
 Air                 = Material(components=[Nitrogen, Oxygen, Argon, CarbonDioxide], state='gas', pressure=1, temperature=288.15,
@@ -99,8 +101,8 @@ for name, obj in list(globals().items()):  # Have to wrap in list to take a snap
         obj.name = name
 
 CopperDiamond.fluka_name = 'CUDIAM75'
-MolybdenumGraphite.fluka_name = 'MG6403Fc'
-MolybdenumGraphite6400.fluka_name = 'MoGRMG64'
+MG6403Fc.fluka_name = 'MG6403Fc'
+MG6400.fluka_name = 'MG6400'
 TiZrMo.fluka_name = 'TZM'
 Air.fluka_name = 'AIR'
 BoronNitride5000.fluka_name = 'BN5000'
