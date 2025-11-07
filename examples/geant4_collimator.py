@@ -30,9 +30,8 @@ coll2.jaw = 0.001
 
 # Connect to Geant4
 xc.geant4.engine.particle_ref = xt.Particles('proton', p0c=6.8e12)
-xc.geant4.engine.capacity = _capacity
 xc.geant4.engine.seed = 5656565
-xc.geant4.engine.start(elements=coll, clean=True, verbose=False, bdsim_config_file='../tests/data/geant4_protons.gmad')
+xc.geant4.engine.start(elements=coll, clean=True, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -44,7 +43,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                particle_ref=xc.geant4.engine.particle_ref,
-                               _capacity=xc.geant4.engine.capacity)
+                               _capacity=_capacity)
 part = part_init.copy()
 part2 = part_init.copy()
 part_test = part_init.copy()

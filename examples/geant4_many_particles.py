@@ -3,7 +3,7 @@ import xpart as xp
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 import xcoll as xc
-from  xcoll import particle_states as xps
+from  xcoll import constants as xcs
 import time
 
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ if xc.geant4.engine.is_running():
     xc.geant4.engine.stop()
 
 
-def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=None, plot=False):
+def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
     # Create a Geant4 collimator
     coll = xc.Geant4Collimator(length=0.4, material='mogr')
@@ -26,21 +26,17 @@ def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=
 
     # Connect to Geant4
     xc.geant4.engine.particle_ref = particle_ref
-    if capacity:
-        xc.geant4.engine.capacity = capacity
-    if relative_capacity:
-        xc.geant4.engine.relative_capacity = relative_capacity
-    xc.geant4.engine.start(elements=coll, clean=True, verbose=False, bdsim_config_file='../tests/data/geant4_osmium.gmad')
+    xc.geant4.engine.start(elements=coll, clean=True, verbose=False)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
-    x_init   = np.random.normal(loc=0.0012, scale=0.2e-3, size=num_part)
+    x_init   = np.random.normal(loc=0.002, scale=0.2e-3, size=num_part)
     px_init  = np.random.normal(loc=-1.e-5, scale=5.e-6, size=num_part)
     y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
     py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
     part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                    particle_ref=xc.geant4.engine.particle_ref,
-                                   _capacity=xc.geant4.engine.capacity)
+                                   _capacity=capacity)
     part = part_init.copy()
 
     # Do the tracking in Geant4
@@ -58,7 +54,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=
             name = pdg.get_name_from_pdg_id(pdg_id, long_name=False)
         except ValueError:
             name = 'unknown'
-        if part.state[part.pdg_id==pdg_id][0] == xps.MASSLESS_OR_NEUTRAL:
+        if part.state[part.pdg_id==pdg_id][0] == xcs.MASSLESS_OR_NEUTRAL:
             mass = 0
         else:
             mass = part.mass[part.pdg_id==pdg_id][0]
@@ -103,6 +99,6 @@ def run_many_particles(particle_ref, num_part, capacity=None, relative_capacity=
         plt.show()
 
 
-run_many_particles(xt.Particles('proton', p0c=6.8e12),   100, relative_capacity=25)
-run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 100, capacity=50_000, relative_capacity=500)
-run_many_particles(xt.Particles('positron', p0c=200e9),  500, capacity=50_000, relative_capacity=100, plot=True)
+run_many_particles(xt.Particles('proton', p0c=6.8e12),   10_000, capacity=20_000)
+run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 1_000, capacity=50_000)
+run_many_particles(xt.Particles('positron', p0c=200e9),  10_000, capacity=50_000, plot=True)
