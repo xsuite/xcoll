@@ -156,6 +156,10 @@ class BaseEnvironment:
             self.save()
         with open(self._config_file, 'r') as fid:
             data = json.load(fid)
+        if 'paths' not in data:
+            data['paths'] = {}
+        if 'read_only_paths' not in data:
+            data['read_only_paths'] = {}
         for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)
         for key, value in data['read_only_paths'].items():
