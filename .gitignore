@@ -1,6 +1,7 @@
 xcoll/lib
 xcoll/config
-
+tests/assets/
+tests/pytest*results.html
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -19,6 +20,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+!xcoll/scattering_routines/geant4/collimasim/lib/
+!xcoll/scattering_routines/geant4/collimasim/lib/pybind11/
 lib64/
 parts/
 sdist/

@@ -11,29 +11,6 @@
  "lattice": "strip",
  "tilt": 8.73203e-05,
  "side": "left",
- "material": {
-  "__class__": "CrystalMaterial",
-  "Z": 74.0,
-  "A": 183.85,
-  "density": 19.3,
-  "excitation_energy": 7.27e-07,
-  "nuclear_radius": 0.52,
-  "nuclear_elastic_slope": 440.3,
-  "cross_section": [
-   2.765,
-   1.591,
-   0,
-   0,
-   0,
-   0.00768
-  ],
-  "hcut": 0.01,
-  "name": "Tungsten",
-  "crystal_radiation_length": 0.0035,
-  "crystal_nuclear_length": 0.096,
-  "crystal_plane_distance": 5.6e-08,
-  "crystal_potential": 21.0,
-  "nuclear_collision_length": 0.0
- },
+ "material": "K2Tungsten",
  "jaw": 0.0018282483920032048
 }

@@ -26,7 +26,7 @@ num_particles = 10000
 nemitt_x = 3.5e-6
 nemitt_y = 3.5e-6
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
@@ -59,10 +59,6 @@ adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, plane=plane, 
 print('\nAperture model check after introducing elements:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
-
-
-# Build the tracker
-line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings, and calibrate the ADT

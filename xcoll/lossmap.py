@@ -11,20 +11,22 @@ import json
 import xtrack as xt
 import xobjects as xo
 
-from .beam_elements import collimator_classes, crystal_classes
+from .beam_elements import collimator_classes, crystal_classes, Geant4Collimator, Geant4Crystal
 from .general import __version__
 from .plot import _plot_lossmap_base
-from .headers.particle_states import (
+from .constants import (USE_IN_LOSSMAP,
     LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
     LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
     LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
-    LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
-    VIRTUAL_ENERGY)
+    LOST_ON_BLACK_ABSORBER, LOST_ON_BLACK_CRYSTAL,)
 
 
 class LossMap:
     def __init__(self, line, part, *, line_is_reversed, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
+        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
+        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
+            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length() if line else None
         self._interpolation = interpolation
@@ -280,7 +282,9 @@ class LossMap:
                     elif what_type == 'Geant4Crystal':
                         part.state[idx] = LOST_ON_GEANT4_CRYSTAL
                     elif what_type == 'BlackAbsorber':
-                        part.state[idx] = LOST_ON_ABSORBER
+                        part.state[idx] = LOST_ON_BLACK_ABSORBER
+                    elif what_type == 'BlackCrystal':
+                        part.state[idx] = LOST_ON_BLACK_CRYSTAL
                     else:
                         raise ValueError(f"Unknown collimator type {what_type}")
 
@@ -300,15 +304,8 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        all_lost_states = [LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
-                           LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
-                           LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
-                           LOST_ON_ABSORBER, MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS,
-                           VIRTUAL_ENERGY
-        ]
-
         names = line.get_elements_of_type(collimator_classes)[1]
-        coll_mask = (part.state <= max(all_lost_states)) & (part.state >= min(all_lost_states))
+        coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
                                   for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
@@ -324,8 +321,13 @@ class LossMap:
         coll_weights = weights[coll_mask]
         nabs = [coll_weights[coll_losses == name].sum()
                 for name in names]
+
+        deposited_energy = {name: line[name]._acc_ionisation_loss
+                                  if hasattr(line[name], '_acc_ionisation_loss')
+                                  else 0.
+                            for name in names}
         energy_weights = coll_weights * part.energy[coll_mask]
-        eabs = [energy_weights[coll_losses == name].sum()
+        eabs = [energy_weights[coll_losses == name].sum() + deposited_energy[name]
                 for name in names]
         self._do_collimator_adding(coll_s=coll_pos, coll_name=names, coll_nabs=nabs,
                                    coll_eabs=eabs, coll_length=coll_lengths,

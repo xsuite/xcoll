@@ -25,7 +25,7 @@ plane = 'H'
 num_turns = 200
 num_particles = 50000
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
@@ -45,10 +45,6 @@ colldb.install_everest_collimators(line=line, verbose=True)
 print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
-
-
-# Build the tracker
-line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
@@ -96,3 +92,4 @@ print(f"Total calculation time {time.time()-start_time}s")
 
 ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
 plt.show()
+

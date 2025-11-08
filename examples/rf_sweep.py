@@ -18,13 +18,12 @@ sweep = 300
 sweep = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns = int(20*abs(sweep))
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 # Load from json
 line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
 
-line.build_tracker()
 
 num_particles = 2
 part = line.build_particles(delta=[-2e-4, 2e-4], x_norm=0, px_norm=0, y_norm=0, py_norm=0)

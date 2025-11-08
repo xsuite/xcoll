@@ -11,10 +11,11 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
+
 n_part = int(2.e6)
+
 
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU

@@ -3,9 +3,9 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from pathlib import Path
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 
 import xtrack as xt
 import xpart as xp

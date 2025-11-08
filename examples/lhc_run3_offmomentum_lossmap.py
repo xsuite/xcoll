@@ -29,7 +29,7 @@ sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
@@ -49,10 +49,6 @@ colldb.install_everest_collimators(line=line, verbose=True)
 print('\nAperture model check after introducing collimators:')
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
-
-
-# Build the tracker
-line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings

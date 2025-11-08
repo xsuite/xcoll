@@ -4,26 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": {
-  "__class__": "Material",
-  "name": "Aluminium",
-  "Z": 13,
-  "A": 26.98,
-  "density": 2.7,
-  "excitation_energy": 1.66e-07,
-  "nuclear_radius": 0.302,
-  "nuclear_elastic_slope": 120.3,
-  "cross_section": [
-   0.643,
-   0.418,
-   0,
-   0,
-   0,
-   0.00034
-  ],
-  "hcut": 0.02,
-  "radiation_length": 0.089
- },
+ "material": "K2Aluminium",
  "jaw_L": 0.0013436649598120422,
  "jaw_R": -0.0013428285069698226
 }

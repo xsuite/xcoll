@@ -4,15 +4,16 @@
 # ######################################### #
 
 import sys
-import numpy as np
-import pandas as pd
 import json
+import numpy as np
+from pathlib import Path
 
-import xobjects as xo
 import xcoll as xc
 
-sys.path.insert(1, (xc._pkg_root.parent / 'tests' / 'data').as_posix())
+
+sys.path.insert(1, (Path(__file__).parent / 'data').as_posix())
 from xcoll_geometry_test import XcollGeometryTest
+
 
 def _init_kernels():
     geom = XcollGeometryTest()

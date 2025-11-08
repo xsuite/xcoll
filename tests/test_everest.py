@@ -5,11 +5,11 @@
 
 import json
 from pathlib import Path
+
 import numpy as np
 import xpart as xp
 import xcoll as xc
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
 
 
 path = Path(__file__).parent / 'data_test_everest'
@@ -151,7 +151,6 @@ def test_crystals():
 
 
 def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
-    print(f"Testing {name}")
     if _context is None:
         _context = xo.ContextCpu()
 #     _context._cffi_verbose = True

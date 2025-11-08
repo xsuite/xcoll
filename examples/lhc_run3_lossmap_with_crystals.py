@@ -27,7 +27,7 @@ tilt = 0  # rad !!
 num_turns = 200
 num_particles = 50000
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
@@ -52,10 +52,6 @@ assert not np.any(df_with_coll.has_aperture_problem)
 
 # Primary crystal
 tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
-
-
-# Build the tracker
-line.build_tracker()
 
 
 # Assign the optics to deduce the gap settings
