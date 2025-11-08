@@ -6,9 +6,9 @@
 from ..xoconstants import Constants, constant, group
 
 class XcollParticleStates(Constants):
-    __category__ = "particle_state" # auto-plural -> "particle_states"
-    __reverse__  = "unique"         # builds particle_state_names
-    __c_prefix__ = "XC"
+    _category_ = "particle_state" # auto-plural -> "particle_states"
+    _reverse_  = "unique"         # builds particle_state_names
+    _c_prefix_ = "XC"
 
     LOST_WITHOUT_SPEC       = constant(-300, "Lost in Xcoll but no specific cause recorded.")
 
