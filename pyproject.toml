@@ -46,7 +46,7 @@ exclude = ["xcoll/lib", "xcoll/config"]
 
 [poetry.group.dev.dependencies]
 pytest = ">=7.3"
-xaux = ">=0.3.9"
+xaux = ">=0.3.10"
 
 [build-system]
 # Needed for pip install -e (BTW: need pip version 22)
