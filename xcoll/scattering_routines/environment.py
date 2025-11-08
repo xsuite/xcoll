@@ -167,6 +167,8 @@ class BaseEnvironment:
             try:
                 data = json.load(fid)
             except json.JSONDecodeError:
+                with open(self._config_file, 'w') as fid:
+                    json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
                 return
         if 'paths' not in data or 'read_only_paths' not in data:
             return
