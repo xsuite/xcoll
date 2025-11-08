@@ -24,25 +24,29 @@ class Geant4Environment(BaseEnvironment):
         self._geant4 = None
         self._bdsim = None
         self._in_constructor = False
+        self._geant4_sourced = False
+        self._bdsim_sourced = False
         cmd = run(['which', 'geant4-config'], capture_output=True)
         if cmd.returncode == 0:
             path = FsPath(cmd.stdout.decode().strip())
             if path.exists():
                 self._geant4 = path
+                self._geant4_sourced = True
         cmd = run(['which', 'bdsim'], capture_output=True)
         if cmd.returncode == 0:
             path = FsPath(cmd.stdout.decode().strip())
             if path.exists():
                 self._bdsim = path
+                self._bdsim_sourced = True
 
     @property
     def compiled(self):
         if self.geant4 is None or self.bdsim is None:
             return False
         so = list((self.data_dir).glob('g4interface.*so'))
-        if len(so) == 1 and so[0].exists():
-            return True
-        return False
+        if len(so) != 1 or not so[0].exists():
+            return False
+        return self._geant4_sourced and self._bdsim_sourced
 
     def compile(self, verbose=True):
         # Check all dependencies
