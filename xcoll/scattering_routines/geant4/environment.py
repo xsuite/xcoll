@@ -20,14 +20,16 @@ class Geant4Environment(BaseEnvironment):
 
     def __init__(self):
         super().__init__()
-        cmd = run(['which', 'geant4-config'], capture_output=True)
+        self._in_constructor = True
         self._geant4 = None
+        self._bdsim = None
+        self._in_constructor = False
+        cmd = run(['which', 'geant4-config'], capture_output=True)
         if cmd.returncode == 0:
             path = FsPath(cmd.stdout.decode().strip())
             if path.exists():
                 self._geant4 = path
         cmd = run(['which', 'bdsim'], capture_output=True)
-        self._bdsim = None
         if cmd.returncode == 0:
             path = FsPath(cmd.stdout.decode().strip())
             if path.exists():

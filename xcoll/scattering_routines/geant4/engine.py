@@ -25,10 +25,8 @@ except (ImportError, ModuleNotFoundError):
 
 class Geant4Engine(BaseEngine):
 
-    _xofields = {**BaseEngine._xofields,
-        '_relative_energy_cut':        xo.Float64,
-        '_already_started':            xo.Int8,
-        '_reentry_protection_enabled': xo.Int8
+    _xofields = BaseEngine._xofields | {
+        '_relative_energy_cut':        xo.Float64
         # 'random_freeze_state':         xo.Int64,  # to be implemented; number of randoms already sampled, such that this can be taken up again later
     }
 
@@ -46,10 +44,9 @@ class Geant4Engine(BaseEngine):
         self._g4link = None
         self._server = None # remove after geant4 bugfix
         self._conn = None # remove after geant4 bugfix
-        kwargs['_already_started'] = False
         super().__init__(**kwargs)
+        self._already_started = False
         self.relative_energy_cut = None # To set default value
-        self.bdsim_config_file = None   # To set default value
         self.reentry_protection_enabled = None # To set default value
 
 
