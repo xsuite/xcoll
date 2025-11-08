@@ -101,6 +101,10 @@ class BaseEnvironment:
         raise NotImplementedError("This property should be implemented in the subclass.")
 
     @property
+    def ready(self):
+        return self.initialised and self.compiled
+
+    @property
     def temp_dir(self):
         if not self._temp_dir:
             self._temp_dir = tempfile.TemporaryDirectory()
@@ -248,82 +252,73 @@ class BaseEnvironment:
             self.__setattr__(self, f'_{item}', None)
             self.save()
 
-    def assert_make_installed(self, verbose=False):
-        if hasattr(self, '_make_installed') and hasattr(self, '_cmake_installed'):
-            return self._make_installed and self._cmake_installed
-        try:
-            cmd = run(["make", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._make_installed = False
-            raise RuntimeError("Could not find make installation!")
-        if cmd.returncode == 0:
-            self._make_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._make_installed = False
-            raise RuntimeError(f"Could not run make! Verify its installation.\nError given is:\n{stderr}")
-        try:
-            cmd = run(["cmake", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._cmake_installed = False
-            raise RuntimeError("Could not find cmake installation!")
-        if cmd.returncode == 0:
-            self._cmake_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._cmake_installed = False
-            raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
+    def assert_environment_ready(self):
+        if not self.initialised:
+            raise RuntimeError(f"{self.__class__.__name__} not initialised! "
+                             + f"Please set all paths in the environment before "
+                             + f"starting the engine.")
+        if not self.compiled:
+            raise RuntimeError(f"{self.__class__.__name__} not compiled! "
+                             + f"Please compile before starting the engine.")
 
-    def assert_gcc_installed(self, verbose=False):
-        if hasattr(self, '_gcc_installed'):
-            return self._gcc_installed
-        try:
-            cmd = run(["gcc", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._gcc_installed = False
-            raise RuntimeError("Could not find gcc installation! Need gcc 9 or higher.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gcc_installed = False
-                raise RuntimeError(f"Need gcc 9 or higher, but found gcc {version}!")
-            self._gcc_installed = True
-            if verbose:
-                cmd2 = run(["which", "gcc"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gcc {version} in {file}", flush=True)
+    def assert_installed(self, program, version_cmd="--version", verbose=False):
+        if not hasattr(self, f'_{program}_installed'):
+            try:
+                cmd = run(["which", program], stdout=PIPE, stderr=PIPE)
+            except Exception as err:
+                new_err = RuntimeError(f"Could not run `which {program}`!")
+                new_err.__cause__ = err
+                setattr(self, f'_{program}_installed', [new_err, None])
+            else:
+                if cmd.returncode != 0:
+                    stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                    err = RuntimeError(f"Could not run `which {program}` (output "
+                                    f"error code {cmd.returncode})!\nError given is:\n"
+                                    f"{stderr}")
+                    setattr(self, f'_{program}_installed', [err, None])
                 else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gcc`!\nError given is:\n{stderr}")
+                    file = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                    try:
+                        cmd = run([program, version_cmd], stdout=PIPE, stderr=PIPE)
+                    except Exception as err:
+                        new_err = RuntimeError(f"Could not run `{program} {version_cmd}`!")
+                        new_err.__cause__ = err
+                        setattr(self, f'_{program}_installed', [file, new_err])
+                    else:
+                        if cmd.returncode != 0:
+                            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                            err = RuntimeError(f"Could not run `{program} {version_cmd}` "
+                                            f"(output error code {cmd.returncode})!\nError "
+                                            f"given is:\n{stderr}")
+                            setattr(self, f'_{program}_installed', [file, err])
+                        else:
+                            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                            setattr(self, f'_{program}_installed', [file, version])
+        file, version = getattr(self, f'_{program}_installed')
+        if isinstance(file, Exception):
+            # Which failed!
+            raise file
+        elif isinstance(version, Exception):
+            # Version command failed!
+            if verbose:
+                print(f"Found {program} in {file}", flush=True)
+            raise version
         else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gcc_installed = False
-            raise RuntimeError(f"Could not run gcc! Verify its installation.\nError given is:\n{stderr}")
+            if verbose:
+                print(f"Found {program} ({version}) in {file}", flush=True)
+            return file, version
 
-    def assert_gfortran_installed(self, verbose=False):
-        if hasattr(self, '_gfortran_installed'):
-            return self._gfortran_installed
-        try:
-            cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
+
+    def assert_gcc_installed(self, minimum_version=9, verbose=False):
+        _, version = self.assert_installed('gcc', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gcc_installed = False
+            raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
+
+    def assert_gfortran_installed(self, minimum_version=9, verbose=False):
+        _, version = self.assert_installed('gfortran', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
             self._gfortran_installed = False
-            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gfortran_installed = False
-                raise RuntimeError(f"Need gfortran 9 or higher, but found gfortran {version}!")
-            self._gfortran_installed = True
-            if verbose:
-                cmd2 = run(["which", "gfortran"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}", flush=True)
-                else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gfortran_installed = False
-            raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
+            raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")

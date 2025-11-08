@@ -94,6 +94,14 @@ class Geant4Collimator(BaseCollimator):
         self._material = material
 
 
+    def enable_scattering(self):
+        import xcoll as xc
+        xc.geant4.environment.assert_environment_ready()
+        if not xc.geant4.engine.is_running():
+            raise RuntimeError("Geant4 engine is not running.")
+        super().enable_scattering()
+
+
     def track(self, part):
         if track_pre(self, part):
             # super().track(part)

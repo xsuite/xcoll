@@ -237,13 +237,7 @@ class BaseEngine(xo.HybridClass):
         if not self.environment:
             raise RuntimeError(f"{self.name.capitalize()} environment not set up! "
                              + f"Do not manually create an instance of the engine.")
-        if not self.environment.initialised:
-            raise RuntimeError(f"{self.name.capitalize()} environment not initialised! "
-                             + f"Please set all paths in the environment before "
-                             + f"starting the engine.")
-        if not self.environment.compiled:
-            raise RuntimeError(f"{self.name.capitalize()} interface not compiled! "
-                             + f"Please compile before starting the engine.")
+        self.environment.assert_environment_ready()
         if self.is_running():
             self._print("Engine already running.")
             return
