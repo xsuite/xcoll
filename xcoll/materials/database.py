@@ -4,7 +4,7 @@
 # ######################################### #
 
 from .material import Material, CrystalMaterial
-from ..pretty_print import style, pad_styled
+from ..pretty_print import Styled
 
 
 class MaterialsDatabase:
@@ -31,25 +31,24 @@ class MaterialsDatabase:
 
     def _str(self, format, full=True):
         res = []
-        padding = 36
         for typ in ["Atomic Elements", "Compounds", "Mixtures", "Crystal Materials",
                     "Old Sixtrack Materials"]:
-            header  = style(f'{typ}', bold=True, colour='navy', enabled=format)
+            header  = Styled(f'{typ:18}', bold=True, colour='navy', enabled=format)
             if typ == "Old Sixtrack Materials":
-                header += style('   (still default from colldb)', dim=True, colour='navy', enabled=format)
+                header += Styled('   (still default from colldb)', dim=True, colour='navy', enabled=format)
             else:
-                header += style('  (aliases', italic=True, colour='navy', enabled=format)
+                header += Styled('  (aliases', italic=True, colour='navy', enabled=format)
                 if full:
-                    header += style(' <case-insensitive>', dim=True, colour='navy', enabled=format)
-                header += style(' | ', italic=True, colour='navy', enabled=format)
-                header += style('FLUKA-only aliases', italic=True, colour='forest_green', enabled=format)
+                    header += Styled(' <case-insensitive>', dim=True, colour='navy', enabled=format)
+                header += Styled(' | ', italic=True, colour='navy', enabled=format)
+                header += Styled('FLUKA-only aliases', italic=True, colour='forest_green', enabled=format)
                 if full:
-                    header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
-                header += style(' | ', italic=True, colour='navy', enabled=format)
-                header += style('Geant4-only aliases', italic=True, colour='crimson', enabled=format)
+                    header += Styled(' <case-sensitive>', dim=True, colour='navy', enabled=format)
+                header += Styled(' | ', italic=True, colour='navy', enabled=format)
+                header += Styled('Geant4-only aliases', italic=True, colour='crimson', enabled=format)
                 if full:
-                    header += style(' <case-sensitive>', dim=True, colour='navy', enabled=format)
-                header += style(')', italic=True, colour='navy', enabled=format)
+                    header += Styled(' <case-sensitive>', dim=True, colour='navy', enabled=format)
+                header += Styled(')', italic=True, colour='navy', enabled=format)
             res.append(header)
             for name, mat in self._materials.items():
                 this_mat = mat['material']
@@ -71,39 +70,40 @@ class MaterialsDatabase:
                 if typ == "Old Sixtrack Materials" \
                 and not this_mat.name.startswith('K2'):
                     continue
-                mess_name = style(mat['name'], bold=True, colour='navy', enabled=format)
                 names = []
                 names_stripped = [self._strip(mat['name'])]
                 fluka_names = []
                 geant4_names = []
                 for refname in self._aliases.values():
                     if refname['refname'] == name:
-                        names.append(style(refname['name'], italic=True, colour='navy', enabled=format))
+                        names.append(Styled(refname['name'], italic=True, colour='navy', enabled=format))
                         names_stripped.append(self._strip(refname['name']))
                 for fluka_name, refname in self._fluka_names.items():
                     if refname == name:
                         if self._strip(fluka_name) not in names_stripped:
-                            fluka_names.append(style(fluka_name, italic=True, colour='forest_green', enabled=format))
+                            fluka_names.append(Styled(fluka_name, italic=True, colour='forest_green', enabled=format))
                 for geant4_name, refname in self._geant4_names.items():
                     if refname == name:
                         if self._strip(geant4_name) not in names_stripped:
-                            geant4_names.append(style(geant4_name, italic=True, colour='crimson', enabled=format))
+                            geant4_names.append(Styled(geant4_name, italic=True, colour='crimson', enabled=format))
                 if names or fluka_names or geant4_names:
-                    mess_name = pad_styled(mess_name, 16)
-                    mess_name += style(' (', italic=True, colour='navy', enabled=format)
-                    mess_name += style(', ', italic=True, colour='navy', enabled=format).join(names)
-                    mess_name += style('|', italic=True, colour='navy', enabled=format)
-                    mess_name += style(',', italic=True, colour='forest_green', enabled=format).join(fluka_names)
-                    mess_name += style('|', italic=True, colour='navy', enabled=format)
-                    mess_name += style(', ', italic=True, colour='crimson', enabled=format).join(geant4_names)
-                    mess_name += style(')', italic=True, colour='navy', enabled=format)
+                    mess_name = Styled(f"{mat['name']:16}", bold=True, colour='navy', enabled=format)
+                    mess_name += Styled(' (', italic=True, colour='navy', enabled=format)
+                    mess_name += Styled(', ', italic=True, colour='navy', enabled=format).join(names)
+                    mess_name += Styled('|', italic=True, colour='navy', enabled=format)
+                    mess_name += Styled(',', italic=True, colour='forest_green', enabled=format).join(fluka_names)
+                    mess_name += Styled('|', italic=True, colour='navy', enabled=format)
+                    mess_name += Styled(', ', italic=True, colour='crimson', enabled=format).join(geant4_names)
+                    mess_name += Styled(')', italic=True, colour='navy', enabled=format)
+                else:
+                    mess_name = Styled(mat['name'], bold=True, colour='navy', enabled=format)
                 if full:
                     mess_name += ':'
-                    res.append(f"  {pad_styled(mess_name, padding)}  {this_mat}")
+                    res.append(f"  {mess_name:36}  {this_mat}")
                 else:
                     res.append(f"  {mess_name}")
             res.append('')
-        return '\n'.join(res[:-1])  # Remove last empty line
+        return Styled('\n').join(res[:-1])  # Remove last empty line
 
     @property
     def fluka(self):

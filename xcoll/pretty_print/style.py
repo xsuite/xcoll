@@ -6,7 +6,8 @@
 import os
 import re
 import sys
-from typing import Iterable, Tuple, Union
+from typing import Tuple, Iterable, Union
+
 
 # ---------- ANSI basics ----------
 _RESET = "\033[0m"
@@ -109,16 +110,6 @@ def strip_ansi(s: str) -> str:
     """Remove ANSI escape codes from a string."""
     return _ANSI_RE.sub("", s)
 
-def pad_styled(s: str, width: int, *, align: str = 'left') -> str:
-    pad = width + len(s) - len(strip_ansi(s))
-    if align == 'left':
-        return f"{s:{pad}}"
-    elif align == 'right':
-        return f"{s:>{pad}}"
-    elif align == 'center':
-        return f"{s:^{pad}}"
-    raise ValueError(f"Unknown alignment: {align}")
-
 
 # ---------- Colour encoders ----------
 def _encode_colour(
@@ -216,41 +207,3 @@ def style(
 
     prefix = _sgr(*codes)
     return f"{prefix}{text}{_RESET if reset else ''}"
-
-
-def stylize_chunks(chunks: Iterable[str], *, reset_between: bool = False) -> str:
-    """
-    Concatenate pre-styled fragments safely. If your fragments already end with RESET,
-    set reset_between=False (default). If they do NOT, set reset_between=True to avoid
-    style bleed between fragments.
-    """
-    if not reset_between:
-        return "".join(chunks)
-    out = []
-    for ch in chunks:
-        out.append(ch)
-        if not ch.endswith(_RESET):
-            out.append(_RESET)
-    return "".join(out)
-
-
-# # ---------- Example integration with your class ----------
-# class MaterialsDatabase:
-#     def __init__(self, entries=42):
-#         self.entries = entries
-
-#     def _plain(self) -> str:
-#         return f"MaterialsDatabase with {self.entries} entries"
-
-#     def _pretty(self) -> str:
-#         name = style("MaterialsDatabase", bold=True)
-#         count = style(str(self.entries), color="bright_cyan", italic=True)
-#         return f"{name} with {count} entries"
-
-#     def __str__(self) -> str:
-#         # Always plain for logging / files / f-strings
-#         return self._plain()
-
-#     def show(self) -> None:
-#         # Pretty for terminal output
-#         print(self._pretty())
