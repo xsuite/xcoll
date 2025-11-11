@@ -51,18 +51,13 @@ def track_core(coll, part):
     xc.geant4.engine._g4link.clearData() # Clear the old data - bunch particles and hits
 
     # send_to_geant4 = part.state == HIT_ON_GEANT4_COLL
-    send_to_geant4 = part.state < 1.e21 # Temporary: send all particles to Geant4
+    send_to_geant4 = part.state > 0
     # npart          = send_to_geant4.sum()
     # max_id         = part.particle_id[part.state > -9999].max()
     # assert npart  <= part._num_active_particles
     # if npart == 0:
     #     return
 
-    # This temp delta is necessary because for primary particles, the coordinates are
-    # modified in place. But for the longitudinal plane there are 3 coordinates that must
-    # be updated, so pass a copy of the delta for the update in place and trigger the
-    # correct update of the 3 coordinates later
-    delta_temp = part._delta[send_to_geant4].copy()
     npart = part._num_active_particles + part._num_lost_particles
 
     q0 = part.q0
@@ -71,8 +66,6 @@ def track_core(coll, part):
     beta0 = part.beta0[0]
     s_in = part.s[send_to_geant4][0]
     precision  = p0c * 2.22e-15  # To avoid numerical issues like negative energy
-
-    part_init = part.copy()
 
     if xc.geant4.engine.reentry_protection_enabled:
         ### remove this part after geant4 bug fixed
@@ -100,8 +93,9 @@ def track_core(coll, part):
         result_buf = io.BytesIO(result_blob) # Deserialize
         products = np.load(result_buf)
     else:
-        coords = [part.x[send_to_geant4], part.y[send_to_geant4], part.px[send_to_geant4], part.py[send_to_geant4],
-                  part.zeta[send_to_geant4], delta_temp, part.chi[send_to_geant4],
+        coords = [part.x[send_to_geant4], part.px[send_to_geant4],
+                  part.y[send_to_geant4], part.py[send_to_geant4],
+                  part.zeta[send_to_geant4], part.zeta[send_to_geant4],
                   part.charge_ratio[send_to_geant4], part.s[send_to_geant4],
                   part.pdg_id[send_to_geant4], part.particle_id[send_to_geant4], part.state[send_to_geant4],
                   part.at_element[send_to_geant4], part.at_turn[send_to_geant4]]

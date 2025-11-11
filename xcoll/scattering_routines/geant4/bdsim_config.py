@@ -19,8 +19,8 @@ _header_start = "! ** XCOLL START  **"
 _header_stop  = "! ** XCOLL END  **"
 
 
-def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop_secondaries=False,
-                             extra_opts=[], extra_input=[], verbose=True, _all_black=False, **kwargs):
+def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, extra_opts=[],
+                             extra_input=[], verbose=True, _all_black=False, **kwargs):
     momentum = int(np.ceil((particle_ref.p0c[0] + 1) / 1.e9))  # in GeV
     pdg_id = particle_ref.pdg_id[0]
     if pdg_id is None or pdg_id == 0:
@@ -48,8 +48,6 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop
             physics_list = 'g4FTFP_BERT'
     gmad.append(f'option, physicsList="{physics_list}";')
     # gmad.append(f'option, seed={seed};')
-    if stop_secondaries:
-        gmad.append('option, stopSecondaries=1;')
     if _all_black:
         gmad.append('option, collimatorsAreInfiniteAbsorbers=1;')
     gmad.append('')

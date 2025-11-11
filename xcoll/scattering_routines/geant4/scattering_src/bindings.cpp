@@ -31,6 +31,7 @@ PYBIND11_MODULE(g4interface, m) {
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             .def("selectCollimator", &XtrackInterface::selectCollimator, "collimatorName"_a)
             .def("collimateReturn", &XtrackInterface::collimateReturn,
+                 "num_sent"_a, "output_size"_a,
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             .def("clearData", &XtrackInterface::clearData)
             .def("getReferenceMass", &XtrackInterface::getReferenceMass);
