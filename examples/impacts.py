@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -7,14 +8,17 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
+path = Path(__file__).parent
+
+
 # ============================================
 # From line
 # ============================================
 
 # Get line and collimators
-line = xt.Line.from_json(xc._pkg_root.parent / 'examples' / 'machines' / 'lhc_run3_b1.json')
+line = xt.Line.from_json(path / 'machines' / 'lhc_run3_b1.json')
 
-colldb = xc.CollimatorDatabase.from_yaml(xc._pkg_root.parent / 'examples' / 'colldb' / 'lhc_run3.yaml', beam=1)
+colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb' / 'lhc_run3.yaml', beam=1)
 colldb.install_everest_collimators(verbose=True, line=line)
 df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
@@ -42,7 +46,7 @@ df = impacts.to_pandas()
 df.to_csv('impacts_line.csv', index=False)
 
 # ============================================
-# With collimator 
+# With collimator
 # ============================================
 coll = xc.EverestCollimator(length=0.6, jaw=0.0013, material=xc.materials.MolybdenumGraphite, emittance=3.5e-6)
 

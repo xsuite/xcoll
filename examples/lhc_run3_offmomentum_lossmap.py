@@ -29,7 +29,7 @@ sweep          = 300
 sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
 num_turns      = int(20*abs(sweep))
 
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 path_out = Path.cwd()
 
 
@@ -51,16 +51,8 @@ df_with_coll = line.check_aperture()
 assert not np.any(df_with_coll.has_aperture_problem)
 
 
-# Build the tracker
-line.build_tracker()
-
-
 # Assign the optics to deduce the gap settings
 line.collimators.assign_optics()
-
-
-# Optimise the line
-line.optimize_for_tracking()
 
 
 # Generate initial matched bunch
@@ -77,12 +69,13 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 # Print some info of the RF sweep
 rf_sweep = xc.RFSweep(line)
-rf_sweep.info(sweep=sweep, num_turns=num_turns)
+rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
+rf_sweep.info()
 
 
 # Track during RF sweep:
 line.scattering.enable()
-rf_sweep.track(sweep=sweep, particles=part, num_turns=num_turns, time=True, with_progress=5)
+line.track(particles=part, num_turns=num_turns, time=True, with_progress=5)
 line.scattering.disable()
 print(f"Done sweeping RF in {line.time_last_track:.1f}s.")
 
@@ -143,5 +136,5 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot()
+ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
 plt.show()

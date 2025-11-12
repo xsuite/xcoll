@@ -11,18 +11,15 @@
 
 
 /*gpufun*/
-void calculate_scattering(EverestData restrict everest, double pc) {
-    if (everest->coll->only_mcs){   // TODO: this should be done smarter
-        return;
-    }
+void calculate_scattering(EverestData restrict everest, MaterialData restrict material,double pc) {
     // Material properties
-    double const anuc  = everest->coll->anuc;
-    double const rho   = everest->coll->rho;
-    double const bnref = everest->coll->bnref;
+    double const atoms = MaterialData_get__atoms_per_volume(material);
+    double const bnref = MaterialData_get__nuclear_elastic_slope(material);
+    double const freep = MaterialData_get__num_nucleons_eff(material);
     double csref[6];
-    csref[0] = everest->coll->csref[0];
-    csref[1] = everest->coll->csref[1];
-    csref[5] = everest->coll->csref[5];
+    csref[0] = MaterialData_get__cross_section(material, 0);
+    csref[1] = MaterialData_get__cross_section(material, 1);
+    csref[5] = MaterialData_get__cross_section(material, 5);
 
     double csect[6];
 
@@ -41,9 +38,6 @@ void calculate_scattering(EverestData restrict everest, double pc) {
 
     // Claudia new fit for the slope parameter with new data at sqrt(s)=7 TeV from TOTEM
     everest->bpp = 7.156 + 1.439*log(sqrt(ecmsq));
-
-    // freep: number of nucleons involved in single scattering
-    double freep = XC_FREE_CO * pow(anuc,(1./3.));
 
     // Rescale reference cross sections (only used for crystals)
     csref[0] = csref[0]*everest->rescale_scattering;
@@ -74,7 +68,7 @@ void calculate_scattering(EverestData restrict everest, double pc) {
     csect[0] += csect[5];
 
     // Interaction length in meter
-    everest->xintl = 1.0e-2*anuc/(XC_AVOGADRO*rho*csect[0]*1e-24);
+    everest->xintl = 1./(atoms*csect[0]*1e-28);
 
     // Filling CProb with cumulated normalised Cross-sections
     int i;
@@ -93,9 +87,15 @@ void calculate_scattering(EverestData restrict everest, double pc) {
 
 
 /*gpufun*/
-double calculate_dechannelling_length(EverestData restrict everest, double pc) {
+double calculate_dechannelling_length(EverestData restrict everest, CrystalMaterialData restrict material, double pc) {
+
     // Material properties
-    double const exenergy = everest->coll->exenergy;
+    double exenergy = CrystalMaterialData_get__excitation_energy(material);
+    if (exenergy < 0){
+        // Unsupported material for ionisation loss
+        return 1.e21;
+    }
+    exenergy *= 1.0e-6; // [MeV]
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]

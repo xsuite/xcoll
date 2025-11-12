@@ -5,21 +5,28 @@
 
 from .general import _pkg_root, __version__, citation
 
-from .beam_elements import BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal, \
-                           EverestBlock, EverestCollimator, EverestCrystal, BlowUp, EmittanceMonitor, \
-                           FlukaCollimator, FlukaCrystal, collimator_classes, crystal_classes, element_classes
-from .scattering_routines.everest import materials, Material, CrystalMaterial
+from .beam_elements import (BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal,
+                            EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator, Geant4Crystal,
+                            FlukaCollimator, FlukaCrystal, BlowUp, EmittanceMonitor, collimator_classes,
+                            crystal_classes, element_classes)
+from .materials import Material, CrystalMaterial, RefMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
+from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
-from .rf_sweep import RFSweep
+from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
-from .headers import particle_states
+from .particles_tree import ParticlesTree
+
+from .constants import particle_states, particle_state_names, interactions, interaction_names
 
 # Initialise FLUKA environment
 from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
 fluka = _FlukaWrapper()
 
+# Initialise Geant4 environment
+from .scattering_routines.geant4.wrapper import Geant4Wrapper as _Geant4Wrapper
+geant4 = _Geant4Wrapper()
 
 # print("If you use Xcoll in your simulations, please cite us :-)")
 # print(citation)

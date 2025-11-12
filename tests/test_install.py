@@ -3,14 +3,12 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from pathlib import Path
 import pytest
 import numpy as np
+from pathlib import Path
 
-import xobjects as xo
 import xtrack as xt
 import xcoll as xc
-from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
 
 

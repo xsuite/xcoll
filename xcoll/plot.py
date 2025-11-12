@@ -5,7 +5,6 @@
 
 import numpy as np
 from numbers import Number
-import matplotlib.pyplot as plt
 
 
 _NORMS = ["total", "coll_max", "max", "none", "raw"]
@@ -13,6 +12,7 @@ _NORMS = ["total", "coll_max", "max", "none", "raw"]
 
 def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
                        legend=True, grid=True, energy=False, show=True, savefig=None):
+    import matplotlib.pyplot as plt
     if norm in _NORMS:
         norm = norm.lower()
     elif not isinstance(norm, Number):

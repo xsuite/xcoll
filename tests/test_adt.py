@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import numpy as np
 import pytest
 
 import xtrack as xt

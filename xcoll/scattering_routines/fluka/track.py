@@ -9,8 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from ...headers.particle_states import LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL, \
-                                       VIRTUAL_ENERGY, HIT_ON_FLUKA_COLL
+from ...constants import (LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL,
+                          VIRTUAL_ENERGY, HIT_ON_FLUKA_COLL)
 
 
 def _drift(coll, particles, length):
@@ -27,7 +27,7 @@ def track_pre(coll, particles):
         coll._acc_ionisation_loss = 0.
 
     if not xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
-                                _necessary_attributes=['fluka_id']):
+                                      _necessary_attributes=['fluka_id']):
         return False  # Stop tracking
 
     if not xc.fluka.engine._flukaio_connected:

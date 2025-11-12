@@ -46,6 +46,7 @@ class FlukaEnvironment(BaseEnvironment):
         self.assert_make_installed(verbose=verbose)
         self.assert_gcc_installed(verbose=verbose)
         self.assert_gfortran_installed(verbose=verbose)
+
         # Check the provided FlukaIO path
         if flukaio_path is None:
             raise ValueError("FlukaIO path must be provided!")

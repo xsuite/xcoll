@@ -125,8 +125,8 @@ base_coll_user_fields = [*base_user_fields,
     {'field': 'jaw_R',     'val':  -0.011,           'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': -0.01894105054291073, 'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994, 'tilt':  [0.0087266463, 0.0122173048]}},
     {'field': 'gap_L',     'val':  5,                'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}},
     {'field': 'gap_R',     'val':  -3,               'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}},
-    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
-    {'field': 'align',     'val':  'downstream',     'expected': {'_align': 1, 'align': 'downstream'}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'align': 'upstream'}},
+    {'field': 'align',     'val':  'downstream',     'expected': {'align': 'downstream'}},
     {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
     {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
     {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
@@ -170,7 +170,7 @@ base_crystal_dict_fields = [*base_dict_fields,
 ]
 base_crystal_user_fields = [*base_user_fields,
     {'field': 'jaw_U',     'val':  0.013,            'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}},
-    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'align': 'upstream'}},
     {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,           'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
     {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6,          'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
     {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,           'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
@@ -255,10 +255,10 @@ def test_black_crystal(test_context):
 )
 def test_everest_block(test_context):
     # Test instantiation
-    elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     assert np.isclose(elem.length, 1.3)
     assert elem._tracking == True
-    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
+    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
     assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
@@ -277,7 +277,7 @@ def test_everest_block(test_context):
 )
 def test_everest(test_context):
     # Test instantiation
-    elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     _check_all_elements(elem, everest_fields, everest_dict_fields, everest_user_fields, \
                         everest_user_fields_read_only)
 
