@@ -50,11 +50,12 @@ class Geant4Environment(BaseEnvironment):
     def ready(self):
         return super().ready and self._geant4_sourced and self._bdsim_sourced
 
-    def compile(self, verbose=True):
+    def compile(self, verbose=True, verbose_compile_output=False):
         # Check all dependencies
         self.assert_installed('make', verbose=verbose)
         self.assert_installed('cmake', verbose=verbose)
         self.assert_gcc_installed(verbose=verbose)
+        self.assert_gxx_installed(verbose=verbose)
         self.assert_geant4_installed()
         self.assert_bdsim_installed()
         # Check pybind11 is installed
@@ -82,20 +83,36 @@ class Geant4Environment(BaseEnvironment):
         cwd = FsPath.cwd()
         os.chdir(dest)
 
-        # Compile
+        # Configure
+        ctab = '    '
         cmd = run(['cmake', '-S', '.', '-B', 'build'], capture_output=True)
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to build Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+        if verbose_compile_output:
+            print()
+            print("CMake: Configuring")
+            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            if cmd.stderr:
+                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            print()
+
+        # Build
         cmd = run(['cmake', '--build', 'build'], capture_output=True)
-        if cmd.returncode == 0:
-            if verbose:
-                print("Compiled Xcoll-BDSIM interface successfully.")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+        if verbose_compile_output:
+            print("CMake: Building")
+            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            if cmd.stderr:
+                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            print()
+        if verbose:
+            print("Compiled Xcoll-BDSIM interface successfully.")
+
         # Collect the compiled shared library
         so = list((dest / 'build').glob('g4interface.*so'))
         if len(so) > 1:

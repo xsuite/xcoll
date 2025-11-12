@@ -265,7 +265,9 @@ class BaseEnvironment:
             raise RuntimeError(f"{self.__class__.__name__} not compiled! "
                              + f"Please compile before starting the engine.")
 
-    def assert_installed(self, program, version_cmd="--version", verbose=False):
+    def assert_installed(self, program, *, program_name=None, version_cmd="--version", verbose=False):
+        if program_name is None:
+            program_name = program
         if not hasattr(self, f'_{program}_installed'):
             try:
                 cmd = run(["which", program], stdout=PIPE, stderr=PIPE)
@@ -305,23 +307,33 @@ class BaseEnvironment:
         elif isinstance(version, Exception):
             # Version command failed!
             if verbose:
-                print(f"Found {program} in {file}", flush=True)
+                print(f"Found {program_name} in {file}", flush=True)
             raise version
         else:
             if verbose:
-                print(f"Found {program} ({version}) in {file}", flush=True)
+                print(f"Found {program_name} ({version}) in {file}", flush=True)
             return file, version
 
 
     def assert_gcc_installed(self, minimum_version=9, verbose=False):
-        _, version = self.assert_installed('gcc', version_cmd='-dumpversion',
+        gcc = os.environ['CC'] or 'gcc'
+        _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
             self._gcc_installed = False
             raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
 
+    def assert_gxx_installed(self, minimum_version=9, verbose=False):
+        gxx = os.environ['CXX'] or 'g++'
+        _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gxx_installed = False
+            raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
+
     def assert_gfortran_installed(self, minimum_version=9, verbose=False):
-        _, version = self.assert_installed('gfortran', version_cmd='-dumpversion',
+        gfortran = os.environ['FC'] or 'gfortran'
+        _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
             self._gfortran_installed = False

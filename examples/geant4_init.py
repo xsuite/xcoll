@@ -2,4 +2,5 @@
 import xcoll as xc
 
 print(xc.geant4.environment)
-xc.geant4.environment.compile()
+print()
+xc.geant4.environment.compile(verbose=True, verbose_compile_output=True)
