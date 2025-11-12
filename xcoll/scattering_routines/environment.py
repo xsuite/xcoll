@@ -32,6 +32,8 @@ class BaseEnvironment:
         self._in_constructor = True
         for path in self._paths.keys():
             setattr(self, f'_{path}', None)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-11].lower()}.config.json'
         sys.path.append(self._data_dir.as_posix())
         self.load()
@@ -167,6 +169,8 @@ class BaseEnvironment:
             try:
                 data = json.load(fid)
             except json.JSONDecodeError:
+                with open(self._config_file, 'w') as fid:
+                    json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
                 return
         if 'paths' not in data or 'read_only_paths' not in data:
             return
