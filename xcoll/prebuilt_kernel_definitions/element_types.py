@@ -19,3 +19,5 @@ DEFAULT_XCOLL_ELEMENTS = [
     # ParticleStatsMonitor,
     EmittanceMonitor
 ]
+
+EXTRA_XCOLL_ELEMENTS = []
