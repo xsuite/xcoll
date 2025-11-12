@@ -246,6 +246,9 @@ class BaseEngine(xo.HybridClass):
         self.stop(clean=clean)
 
         print(f"Starting {self.__class__.__name__}...   ", flush=True, end='')
+        if self.verbose:
+            print("", flush=True)
+
         kwargs = self._pre_start(**kwargs)
 
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking

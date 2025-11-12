@@ -101,18 +101,16 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     }
     // argv.push_back(nullptr);
 
-    double referenceEk = referenceEkIn * CLHEP::GeV;
-
+    double referenceEk = referenceEkIn * CLHEP::eV;
     double relEKCut = relativeEnergyCut;
-    if (relEKCut < 1e-6) // defaults to 0 which means 0eV cut which is bad
-    { relEKCut = 1.0; }
-
-    double minimumEK = relEKCut * (referenceEk);
-
+    // if (relEKCut < 1e-6)
+    // { relEKCut = 1.0; }
+    double minimumEK = relEKCut * referenceEk;
+    G4cout << "Reference kinetic energy " << referenceEk << " MeV" << G4endl;
     G4cout << "Minimum kinetic energy " << minimumEK << " MeV" << G4endl;
-    auto data = argv.data();
 
 	// Print arguments
+    auto data = argv.data();
 	std::cout << "Initialise called with arguments: " << std::endl;
 	std::cout << "argc: " << argv.size() - 1 << std::endl;
 	for (size_t i = 0; i < argv.size(); i++) {
@@ -122,7 +120,7 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 	std::cout.flush();
 
     try
-    { bds->Initialise(argv.size(), &argv[0], true, minimumEK / CLHEP::GeV, false); } // minimumEk in GeV
+    { bds->Initialise(argv.size(), &argv[0], true, minimumEK / CLHEP::GeV, false); } // Initialise takes minimumEk in GeV
     catch (const std::exception &e)
     {
         std::cout << e.what() << std::endl;
@@ -208,20 +206,20 @@ void XtrackInterface::addParticle(double xIn,
 
     // If the pdg id for the particle is 0 (default), take the reference pdg id
     long long int pdgidPart = (pdgid==0) ? refParticleDefinition->PDGID() : pdgid; 
-    auto partDef = PrepareBDSParticleDefition(pdgidPart, p * CLHEP::GeV, 0, q);
+    auto partDef = PrepareBDSParticleDefition(pdgidPart, p * CLHEP::eV, 0, q);
 
     G4double t = - zeta * CLHEP::m / (refParticleDefinition->Beta() * CLHEP::c_light); // this is time difference in ns
 
     // Zp0 is 1 as here we assume no back-scatterd particles, e.g p>0
-    G4double zp = BDSBunch::CalculateZp(xp, yp, 1);
+    G4double zp = BDSBunch::CalculateZp(xp * CLHEP::rad, yp * CLHEP::rad , 1);
 
     BDSParticleCoordsFull coords = BDSParticleCoordsFull(x * CLHEP::m,
                                                          y * CLHEP::m,
                                                          0,
                                                          xp * CLHEP::rad,
                                                          yp * CLHEP::rad,
-                                                         zp * CLHEP::rad,
-                                                         t,
+                                                         zp,
+                                                         t,  // already in ns
                                                          0,
                                                          partDef->TotalEnergy(),
                                                          weight);
@@ -242,7 +240,6 @@ void XtrackInterface::addParticles(const py::list& coordinates){
     py::array_t<double> weight = py::cast<py::array>(coordinates[7]);
     py::array_t<int64_t> pdgid = py::cast<py::array>(coordinates[8]);
     py::array_t<int64_t> trackid = py::cast<py::array>(coordinates[9]);
-    py::array_t<int64_t> state = py::cast<py::array>(coordinates[10]);
 
     // Obtain the buffers
     py::buffer_info x_buff = x.request();
@@ -255,7 +252,6 @@ void XtrackInterface::addParticles(const py::list& coordinates){
     py::buffer_info weight_buff = weight.request();
     py::buffer_info pdgid_buff = pdgid.request();
     py::buffer_info id_buff = trackid.request();
-    py::buffer_info state_buff = state.request();
 
     // Get the pointers for iteration
     auto x_ptr = static_cast<double *>(x_buff.ptr);
@@ -268,7 +264,6 @@ void XtrackInterface::addParticles(const py::list& coordinates){
     auto weight_ptr = static_cast<double *>(weight_buff.ptr);
     auto pdgid_ptr = static_cast<int64_t *>(pdgid_buff.ptr);
     auto trackid_ptr = static_cast<int64_t *>(id_buff.ptr);
-    auto state_ptr = static_cast<int64_t *>(state_buff.ptr);
 
     long n = 1; // Get the number of elements in the array, assume all arrays have the same number of elements
     for (auto r: x_buff.shape){
@@ -286,7 +281,6 @@ void XtrackInterface::addParticles(const py::list& coordinates){
         auto weight_part = weight_ptr[i];
         auto pdgid_part = pdgid_ptr[i];
         auto trackid_part = trackid_ptr[i];
-        auto state_part = state_ptr[i];
 
         addParticle(x_part, xp_part, y_part, yp_part,
                     zeta_part, p_part, q_part, weight_part,
@@ -327,31 +321,10 @@ void XtrackInterface::clearData(){
 
 
 py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
-    // Prepare the buffers for writing out the products
-    // New numpy arrays are allocated for writing the products
-
     // Access the sampler hits - particles reaching the planes for transport back
     const BDSHitsCollectionSamplerLink* hits = bds->SamplerHits();
 
-    //size_t hitsCount = hits ? hits->GetSize() : 0;
-
-    size_t hitsCount = 0;
-    if (hits){
-        hitsCount = hits->GetSize();
-    }
-    //  else {
-    //     // TODO: is this needed?
-    //     // There were no hits - check if there were any active particles at all coming in
-    //     if (!stp->Size()){
-    //         // A particle needs to be added to the bunch and the GetNextParticleLocal method
-    //         // must be called to initialise the variables and ensure a safe deletion of the
-    //         // underlying BDSBunch object. This will not be needed in the next release of BDSIM
-    //         addParticle(0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
-    //         // The dummy particle added is never used, as the collimateReturn method terminates
-    //         // the processing
-    //         stp->GetNextParticleLocal();
-    //     }
-    // }
+    size_t hitsCount = hits ? hits->GetSize() : 0;
 
     // Count the number of secondary particles
     size_t secondaryCount = 0;
@@ -359,17 +332,10 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
         auto hit = (*hits)[i];
         if (hit->externalParticleID != hit->externalParentID) {secondaryCount++;}
     }
-
-    // // TODO: this is mostly default buffers, so there are probably simpler constructors to use
-    // // Prepare the numpy array that will be returned
-    // auto x_out = py::array(py::buffer_info(
-    //         nullptr,            /* Pointer to data (nullptr -> ask NumPy to allocate!) */
-    //         sizeof(double),     /* Size of one item */
-    //         py::format_descriptor<double>::value, /* Buffer format */
-    //         1,          /* How many dimensions? */
-    //         { output_size },  /* Number of elements for each dimension */
-    //         { sizeof(double) }  /* Strides for each dimension */
-    // ));
+    if (secondaryCount + num_sent > output_size){
+        throw BDSException("BDSXtrackInterface> Too many secondaries!\nProduced " + std::to_string(secondaryCount) \
+                         + ", but only space for " + std::to_string(output_size - num_sent) + "!");
+    }
 
     auto x_out    = py::array(py::buffer_info(nullptr, sizeof(double), py::format_descriptor<double>::value, 1, {output_size}, {sizeof(double)}));
     auto xp_out   = py::array(py::buffer_info(nullptr, sizeof(double), py::format_descriptor<double>::value, 1, {output_size}, {sizeof(double)}));
@@ -383,32 +349,6 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
     auto pdgid_out   = py::array(py::buffer_info(nullptr, sizeof(int64_t), py::format_descriptor<int64_t>::value, 1, {output_size}, {sizeof(int64_t)}));
     auto trackid_out = py::array(py::buffer_info(nullptr, sizeof(int64_t), py::format_descriptor<int64_t>::value, 1, {output_size}, {sizeof(int64_t)}));
     auto state_out   = py::array(py::buffer_info(nullptr, sizeof(int64_t), py::format_descriptor<int64_t>::value, 1, {output_size}, {sizeof(int64_t)}));
-
-    // auto x_prod_buf = x_out.request();
-    // auto xp_prod_buf = xp_out.request();
-    // auto y_prod_buf = y_out.request();
-    // auto yp_prod_buf = yp_out.request();
-    // auto zeta_prod_buf = zeta_out.request();
-    // auto p_prod_buf = p_out.request();
-    // auto q_prod_buf = q_out.request();
-    // auto m_prod_buf = m_out.request();
-    // auto weight_prod_buf = weight_out.request();
-    // auto pdgid_prod_buf = pdgid_out.request();
-    // auto trackid_prod_buf = trackid_out.request();
-    // auto state_prod_buf = state_out.request();
-
-    // auto *x_prod_ptr = (double *) x_prod_buf.ptr;
-    // auto *xp_prod_ptr = (double *) xp_prod_buf.ptr;
-    // auto *y_prod_ptr = (double *) y_prod_buf.ptr;
-    // auto *yp_prod_ptr = (double *) yp_prod_buf.ptr;
-    // auto *zeta_prod_ptr = (double *) zeta_prod_buf.ptr;
-    // auto *p_prod_ptr = (double *) p_prod_buf.ptr;
-    // auto *q_prod_ptr = (double *) q_prod_buf.ptr;
-    // auto *m_prod_ptr = (double *) m_prod_buf.ptr;
-    // auto *weight_prod_ptr = (double *) weight_prod_buf.ptr;
-    // auto *pdgid_prod_ptr = (int64_t *) pdgid_prod_buf.ptr;
-    // auto *trackid_prod_ptr = (int64_t *) trackid_prod_buf.ptr;
-    // auto *state_prod_ptr = (int64_t *) state_prod_buf.ptr;
 
     auto *x_prod_ptr = (double *) x_out.request().ptr;
     auto *xp_prod_ptr = (double *) xp_out.request().ptr;
@@ -428,6 +368,12 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
     bool primary_survived = false;
     double sum_secondary_energy = 0.0;
 
+    double collLength = bds->GetArcLengthOfLinkElement(currentCollimatorName);
+    /// Need to compensate for the geometry construction in BDSIM
+    /// There is a safety margin that is added to the collimator legnth
+    collLength += 2.5 * BDSSamplerCustom::ChordLength();
+    double velocity = refParticleDefinition->Beta() * CLHEP::c_light;
+
     size_t prod_write_index = num_sent;
     for (size_t i=0; i < num_sent; i++){
         auto part = stp->GetNextParticle(); // Advance through the bunch
@@ -440,33 +386,26 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
         // The hits are ordered by primary event, so just need one loop.
         while (hits_index < hitsCount){
             BDSHitSamplerLink* hit = (*hits)[hits_index];
-            if (hit->externalParentID != primary_part_id) { // The hits corresponding to the current primary are exhausted
+            if (hit->externalParentID != primary_part_id) {
+                // The hits corresponding to the current primary are exhausted
                 break;
             }
 
             const BDSParticleCoordsFull &coords = hit->coords;
-
-            double collLength = bds->GetArcLengthOfLinkElement(currentCollimatorName);
-            /// Need to compensate for the geometry construction in BDSIM
-            /// There is a safety margin that is added to the collimator legnth
-            double collMargin = 2.5 * BDSSamplerCustom::ChordLength();
-            // TODO: is this correct? I believe it should NOT have the length of the collimator added
-            double zt = collLength + collMargin - coords.T * refParticleDefinition->Beta() * CLHEP::c_light;
-
+            double zeta = collLength - coords.T * velocity;
             auto track_id = hit->externalParticleID;
             auto parent_id = hit->externalParentID;
 
             if (track_id == parent_id){
                 // This is a primary particle as its parent is itself
                 primary_survived = true;
-
                 x_prod_ptr[i] = coords.x / CLHEP::m;
                 xp_prod_ptr[i] = coords.xp / CLHEP::rad;
                 y_prod_ptr[i] = coords.y / CLHEP::m;
                 yp_prod_ptr[i] = coords.yp / CLHEP::rad;
-                zeta_prod_ptr[i] = zt / CLHEP::m;
-                p_prod_ptr[i] = hit->momentum / CLHEP::GeV;
-                m_prod_ptr[i] = hit->mass / CLHEP::GeV;
+                zeta_prod_ptr[i] = zeta / CLHEP::m;
+                p_prod_ptr[i] = hit->momentum / CLHEP::eV;
+                m_prod_ptr[i] = hit->mass / CLHEP::eV;
                 q_prod_ptr[i] = hit->charge;
                 weight_prod_ptr[i] = coords.weight;
                 pdgid_prod_ptr[i] = hit->pdgID;
@@ -479,9 +418,9 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
                 xp_prod_ptr[prod_write_index] = coords.xp / CLHEP::rad;
                 y_prod_ptr[prod_write_index] = coords.y / CLHEP::m;
                 yp_prod_ptr[prod_write_index] = coords.yp / CLHEP::rad;
-                zeta_prod_ptr[prod_write_index] = zt / CLHEP::m;
-                p_prod_ptr[prod_write_index] = hit->momentum / CLHEP::GeV;
-                m_prod_ptr[prod_write_index] = hit->mass / CLHEP::GeV;
+                zeta_prod_ptr[prod_write_index] = zeta / CLHEP::m;
+                p_prod_ptr[prod_write_index] = hit->momentum / CLHEP::eV;
+                m_prod_ptr[prod_write_index] = hit->mass / CLHEP::eV;
                 q_prod_ptr[prod_write_index] = hit->charge;
                 weight_prod_ptr[prod_write_index] = coords.weight;
                 pdgid_prod_ptr[prod_write_index] = hit->pdgID;
@@ -495,7 +434,7 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
         }
 
         if (!primary_survived){ // Primary didn't survive - set inactive
-            state_prod_ptr[i] = -300; // inactive
+            state_prod_ptr[i] = -300; // inactive (LOST_WITHOUT_SPEC)
         }
         primary_survived = false; // reset for next particle
     }
@@ -508,8 +447,8 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
     result["yp"] = yp_out;
     result["zeta"] = zeta_out;
     result["p"] = p_out;
-    result["q"] = q_out;
     result["m"] = m_out;
+    result["q"] = q_out;
     result["weight"] = weight_out;
     result["pdg_id"] = pdgid_out;
     result["parent_particle_id"] = trackid_out;

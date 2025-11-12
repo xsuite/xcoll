@@ -6,7 +6,7 @@
 import io
 import numpy as np
 
-import xpart as xp
+from xtrack import Particles
 from xtrack.particles import LAST_INVALID_STATE
 
 from ...constants import (LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL,
@@ -16,11 +16,11 @@ from ...constants import (LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL,
 # TODO: change collimasim to use xp, yp, energy/momentum, mass instead of px, py, delta, mass_ratio
 
 
-# def _drift(coll, particles, length):
-#     old_length = coll._equivalent_drift.length
-#     coll._equivalent_drift.length = length
-#     coll._equivalent_drift.track(particles)
-#     coll._equivalent_drift.length = old_length
+def _drift(coll, particles, length):
+    old_length = coll._equivalent_drift.length
+    coll._equivalent_drift.length = length
+    coll._equivalent_drift.track(particles)
+    coll._equivalent_drift.length = old_length
 
 def track_pre(coll, particles):
     import xcoll as xc
@@ -58,160 +58,141 @@ def track_core(coll, part):
     # if npart == 0:
     #     return
 
-    npart = part._num_active_particles + part._num_lost_particles
+    num_sent = send_to_geant4.sum()
+    num_available = part._capacity - part._num_active_particles - part._num_lost_particles
+    output_size = num_sent + num_available
+
+    _drift(coll, part, -250e-9) # Margin before Geant4 collimator; added by BDSIM geometry
 
     q0 = part.q0
     m0 = part.mass0
     p0c = part.p0c[0]
     beta0 = part.beta0[0]
     s_in = part.s[send_to_geant4][0]
+    ele_in = part.at_element[send_to_geant4][0]
+    turn_in = part.at_turn[send_to_geant4][0]
     precision  = p0c * 2.22e-15  # To avoid numerical issues like negative energy
+
+    rpp  = part.rpp[send_to_geant4]
+    x    = part.x[send_to_geant4]
+    xp   = part.px[send_to_geant4] * rpp   # Director cosine
+    y    = part.y[send_to_geant4]
+    yp   = part.py[send_to_geant4] * rpp   # Director cosine
+    zeta = part.zeta[send_to_geant4]
+    p    = p0c * (1 + part.delta[send_to_geant4]) * part.mass_ratio[send_to_geant4]
+    q    = q0 * part.charge_ratio[send_to_geant4]
+    weight = part.weight[send_to_geant4]
+    pdgid  = part.pdg_id[send_to_geant4]
+    pid    = part.particle_id[send_to_geant4]
 
     if xc.geant4.engine.reentry_protection_enabled:
         ### remove this part after geant4 bug fixed
-        coords = {
-            'x': part.x[send_to_geant4],
-            'y': part.y[send_to_geant4],
-            'px': part.px[send_to_geant4],
-            'py': part.py[send_to_geant4],
-            'zeta': part.zeta[send_to_geant4],
-            'delta': delta_temp,
-            'chi': part.chi[send_to_geant4],
-            'charge_ratio': part.charge_ratio[send_to_geant4],
-            's': part.s[send_to_geant4],
-            'pdg_id': part.pdg_id[send_to_geant4],
-            'particle_id': part.particle_id[send_to_geant4],
-            'state': part.state[send_to_geant4],     # TODO:  does collimasim work if states are HIT_ON_GEANT4_COLL?
-            'at_element': part.at_element[send_to_geant4],
-            'at_turn': part.at_turn[send_to_geant4]
-        }
+        coords = {'x': x, 'xp': xp, 'y': y, 'yp': yp, 'zeta': zeta, 'p': p,
+                  'q': q, 'weight': weight, 'pdgid': pdgid, 'id': pid}
         buf = io.BytesIO() # Use numpy.savez to serialize
         np.savez(buf, **coords)
         buf.seek(0)
         result_blob = xc.geant4.engine._g4link.add_particles_and_collimate_return(
-                                                buf.getvalue(), coll.geant4_id)
+                            buf.getvalue(), coll.geant4_id, num_sent, output_size)
         result_buf = io.BytesIO(result_blob) # Deserialize
         products = np.load(result_buf)
     else:
-        coords = [part.x[send_to_geant4], part.px[send_to_geant4],
-                  part.y[send_to_geant4], part.py[send_to_geant4],
-                  part.zeta[send_to_geant4], part.zeta[send_to_geant4],
-                  part.charge_ratio[send_to_geant4], part.s[send_to_geant4],
-                  part.pdg_id[send_to_geant4], part.particle_id[send_to_geant4], part.state[send_to_geant4],
-                  part.at_element[send_to_geant4], part.at_turn[send_to_geant4]]
+        coords = [x, xp, y, yp, zeta, p, q, weight, pdgid, pid]
         xc.geant4.engine._g4link.addParticles(coords)
         xc.geant4.engine._g4link.selectCollimator(coll.geant4_id)
         xc.geant4.engine._g4link.collimate()
-        products = xc.geant4.engine._g4link.collimateReturn(coords)
+        products = xc.geant4.engine._g4link.collimateReturn(num_sent, output_size)
 
-    # # Returned particles should not have changed type
-    # assert np.all(part.pdg_id[:npart] == products['pdg_id'][:npart])
-    # assert np.allclose(part.charge_ratio[:npart], products['charge_ratio'][:npart], atol=1.e-12)
-    # assert np.allclose(part.mass_ratio[:npart], products['mass_ratio'][:npart], atol=1.e-12)
-    # # TODO: mass ratio sometimes changes, e.g. for electrons 0.00054452 instead 0.00054462
-
-    # # Dead particles should not have changed  (except for parent_particle_id which is not sent)
-    # was_dead = part.state[:npart] < 1
-    # assert np.all(part.x[:npart][was_dead]    == products['x'][:npart][was_dead])
-    # assert np.all(part.y[:npart][was_dead]    == products['y'][:npart][was_dead])
-    # assert np.all(part.px[:npart][was_dead]   == products['px'][:npart][was_dead])
-    # assert np.all(part.py[:npart][was_dead]   == products['py'][:npart][was_dead])
-    # assert np.all(part.zeta[:npart][was_dead] == products['zeta'][:npart][was_dead])
-    # assert np.all(part.s[:npart][was_dead]    == products['s'][:npart][was_dead])
+    # Careful with all the masking!
+    # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
 
     # Update particles that died just now
-    returned_dead = (part.state[:npart] > 0) & (products['state'][:npart] == LOST_WITHOUT_SPEC)
-    part.state[:npart][returned_dead]      = -LOST_ON_GEANT4_COLL
-    part.at_turn[:npart][returned_dead]    = products['at_turn'][:npart][returned_dead]
-    part.at_element[:npart][returned_dead] = products['at_element'][:npart][returned_dead]
+    returned_dead = products['state'][:num_sent] == LOST_WITHOUT_SPEC
+    idx_dead = np.arange(len(part.x))[send_to_geant4][returned_dead]
+    part.state[idx_dead] = -LOST_ON_GEANT4_COLL
 
     # Update particles that are still alive
-    returned_alive = products['state'][:npart] > 0
+    returned_alive = products['state'][:num_sent] > 0
+    idx_alive = np.arange(len(part.x))[send_to_geant4][returned_alive]
     # Energy needs special treatment
-    new_delta = products['delta'][:npart][returned_alive]
-    mass_ratio = part.mass_ratio[:npart][returned_alive]
-    new_energy = np.sqrt((1+new_delta)**2 * p0c**2 * mass_ratio**2 + m0**2)
+    m_in = part.mass[idx_alive]
+    new_p = products['p'][:num_sent][returned_alive]
+    new_energy = np.sqrt(new_p**2 + m_in**2)
     E_diff = np.zeros(len(part.x))
-    E_diff[:npart][returned_alive] = part.energy[:npart][returned_alive] - new_energy
-    if np.any(E_diff < -1.e8 * precision):   # TODO: very large tolerance to avoid numerical issues (has to do with mass_ratio?)
+    E_diff[idx_alive] = part.energy[idx_alive] - new_energy
+    if np.any(E_diff < -1.e2 * precision):   # TODO: very large tolerance to avoid numerical issues (has to do with mass_ratio?)
         raise ValueError(f"Geant4 returned particle with energy higher than incoming particle!")
     E_diff[E_diff < precision] = 0. # Lower cut on energy loss
     part.add_to_energy(-E_diff)
     coll._acc_ionisation_loss += np.sum(E_diff)
 
-    part.x[:npart][returned_alive] = products['x'][:npart][returned_alive]
-    part.y[:npart][returned_alive] = products['y'][:npart][returned_alive]
-    part.px[:npart][returned_alive] = products['px'][:npart][returned_alive]     # TODO: BDSIM uses expanded xp, can we control that here to use exact?
-    part.py[:npart][returned_alive] = products['py'][:npart][returned_alive]
-    part.zeta[:npart][returned_alive] = products['zeta'][:npart][returned_alive]
-    part.s[:npart][returned_alive] = products['s'][:npart][returned_alive]
-    part.at_element[:npart][returned_alive] = products['at_element'][:npart][returned_alive]
-    part.at_turn[:npart][returned_alive] = products['at_turn'][:npart][returned_alive]
+    rpp  = part.rpp[idx_alive]
+    part.x[idx_alive]    = products['x'][:num_sent][returned_alive]
+    part.px[idx_alive]   = products['xp'][:num_sent][returned_alive] / rpp   # Director cosine back to px
+    part.y[idx_alive]    = products['y'][:num_sent][returned_alive]
+    part.py[idx_alive]   = products['yp'][:num_sent][returned_alive] / rpp   # Director cosine back to py
+    part.zeta[idx_alive] = products['zeta'][:num_sent][returned_alive]
 
     # Add new particles created in Geant4
-    mask_new = products['state'][npart:] > LAST_INVALID_STATE
+    # mask_new = products['state'][num_sent:] > LAST_INVALID_STATE
+    mask_new = products['state'][num_sent:] == 1  # TODO: check particles are never killed in BDSIM
 
     if not np.any(mask_new):
         # No new particles created in Geant4
         part.reorganize()
 
     else:
-        # Check that there is enough room in the particles object
-        num_assigned = part._num_lost_particles + part._num_active_particles
-        num_free = part._capacity - num_assigned
-        num_needed = mask_new.sum()
-        if num_free < num_needed:
-            raise RuntimeError(f"Too many particles generated by Geant4 ({num_needed} needed, "
-                             + f"but only {num_free} free in particles object)!")
+        # # Check that there is enough room in the particles object DONE IN C++
+        # num_assigned = part._num_lost_particles + part._num_active_particles
+        # num_free = part._capacity - num_assigned
+        # num_needed = mask_new.sum()
+        # if num_free < num_needed:
+        #     raise RuntimeError(f"Too many particles generated by Geant4 ({num_needed} needed, "
+        #                      + f"but only {num_free} free in particles object)!")
 
         # Parent particle IDs
-        parents = products['parent_particle_id'][npart:][mask_new]
+        parents = products['parent_particle_id'][num_sent:][mask_new]
         assert np.all(parents >= 0)
-        assert parents.max() <= part.particle_id[:npart].max()
+        assert parents.max() <= part.particle_id[send_to_geant4].max()
         idx_parents = np.array([np.where(part.particle_id[send_to_geant4]==idx)[0][0] for idx in parents])
 
         # Mass
-        mass_ratio = products['mass_ratio'][npart:][mask_new]
-        if np.any(mass_ratio < -precision):
+        m_new = products['m'][num_sent:][mask_new]
+        if np.any(m_new < -precision):
             raise ValueError(f"Geant4 returned particle with negative mass!")
-        massless = np.abs(mass_ratio) < 1.e-12
+        massless = np.abs(m_new) < 1.e-12
+        m_new[massless] = m0  # TODO
 
         # Charge
-        charge_ratio = products['charge_ratio'][npart:][mask_new]
-        neutral = np.abs(charge_ratio) < 1.e-12
-        charge_ratio[massless | neutral] = q0
+        q_new = products['q'][num_sent:][mask_new]
+        neutral = np.abs(q_new) < 1.e-12
+        q_new[massless | neutral] = q0  # TODO
 
         # Energy
-        delta = products['delta'][npart:][mask_new]
-        # TODO: does NOT work for massless particles because NaN in collimasim
-        # TODO: need virtual particles treatment
-        # energy = np.sqrt((1+delta)**2 * p0c**2 * mass_ratio**2 + m0**2)
-        # # TODO: we set massless particles to have half the energy in their mass.
-        # # To be adapted when Xsuite can handle neutral and massless particles.
-        # m[mask_massless | mask_neutral] = E[mask_massless | mask_neutral]/np.sqrt(2)  # Half the energy is put in the mass
-        # q[mask_massless | mask_neutral] = q0
-        # delta = np.sqrt(E/m*E/m - 1)/beta0/gamma0 - 1
+        p_new = products['p'][num_sent:][mask_new]
+        delta = np.zeros_like(p_new)
+        delta[massless] = p_new[massless]/p0c - 1
+        delta[~massless] = p_new[~massless]/p0c * m0/m_new[~massless] - 1
 
-        # new_delta[massless | neutral] = 
-        # rpp   = 1. / (1. + delta)
-
-        new_part = xp.Particles(_context=part._buffer.context,
+        new_part = Particles(_context=part._buffer.context,
                 p0c = part.p0c[0],
                 mass0 = part.mass0,
                 q0 = part.q0,
-                s = products['s'][npart:][mask_new],
-                x = products['x'][npart:][mask_new],
-                px = products['px'][npart:][mask_new],
-                y = products['y'][npart:][mask_new],
-                py = products['py'][npart:][mask_new],
-                zeta = products['zeta'][npart:][mask_new],
+                s = s_in + coll.length,
+                x = products['x'][num_sent:][mask_new],
+                px = products['xp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to px
+                y = products['y'][num_sent:][mask_new],
+                py = products['yp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to py
+                zeta = products['zeta'][num_sent:][mask_new],
                 delta = delta,
-                mass_ratio = mass_ratio,
-                charge_ratio = charge_ratio,
-                at_element = products['at_element'][npart:][mask_new],
-                at_turn = products['at_turn'][npart:][mask_new],
-                parent_particle_id = products['parent_particle_id'][npart:][mask_new],
-                pdg_id = products['pdg_id'][npart:][mask_new])
+                mass_ratio = m_new/m0,
+                charge_ratio = q_new/q0,
+                at_element = ele_in,
+                at_turn = turn_in,
+                parent_particle_id = products['parent_particle_id'][num_sent:][mask_new],
+                pdg_id = products['pdg_id'][num_sent:][mask_new],
+                weight = products['weight'][num_sent:][mask_new]
+        )
 
         # Correct the deposited energy of parent particles: not everything was lost there.
         E_children = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
@@ -243,7 +224,7 @@ def track_core(coll, part):
 
         # Add new particles
         new_part._init_random_number_generator()
-        # TODO: we instantly kill massless or neutral particles as Xsuite is not ready to handle them.
+        # TODO: we kill massless or neutral particles as Xsuite is not ready to handle them.
         new_part.state[massless | neutral] = -MASSLESS_OR_NEUTRAL
 
         # Set the state of excited ions - not supported (will fail in BDSIM when resent)
