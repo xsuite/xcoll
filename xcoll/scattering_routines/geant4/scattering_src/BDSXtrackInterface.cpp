@@ -386,15 +386,16 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
         // The hits are ordered by primary event, so just need one loop.
         while (hits_index < hitsCount){
             BDSHitSamplerLink* hit = (*hits)[hits_index];
-            if (hit->externalParentID != primary_part_id) {
+
+            auto track_id = hit->externalParticleID;
+            auto parent_id = hit->externalParentID;
+            if (parent_id != primary_part_id) {
                 // The hits corresponding to the current primary are exhausted
                 break;
             }
 
             const BDSParticleCoordsFull &coords = hit->coords;
             double zeta = collLength - coords.T * velocity;
-            auto track_id = hit->externalParticleID;
-            auto parent_id = hit->externalParentID;
 
             if (track_id == parent_id){
                 // This is a primary particle as its parent is itself
@@ -453,6 +454,7 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
     result["pdg_id"] = pdgid_out;
     result["parent_particle_id"] = trackid_out;
     result["state"] = state_out;
+    result["n_hits"] = hitsCount;
 
     return result;
 }

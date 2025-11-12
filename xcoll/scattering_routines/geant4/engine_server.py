@@ -57,6 +57,7 @@ class BDSIMServer:
             'pdg_id': products['pdg_id'],
             'parent_particle_id': products['parent_particle_id'],
             'state': products['state'],
+            'n_hits': products['n_hits']
         }
 
         # Serialize to binary blob

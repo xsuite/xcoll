@@ -122,7 +122,7 @@ def track_core(coll, part):
     new_energy = np.sqrt(new_p**2 + m_in**2)
     E_diff = np.zeros(len(part.x))
     E_diff[idx_alive] = part.energy[idx_alive] - new_energy
-    if np.any(E_diff < -1.e2 * precision):   # TODO: very large tolerance to avoid numerical issues (has to do with mass_ratio?)
+    if np.any(E_diff < -precision):
         raise ValueError(f"Geant4 returned particle with energy higher than incoming particle!")
     E_diff[E_diff < precision] = 0. # Lower cut on energy loss
     part.add_to_energy(-E_diff)
@@ -137,9 +137,8 @@ def track_core(coll, part):
     part.weight[idx_alive] = products['weight'][:num_sent][returned_alive]
 
     # Add new particles created in Geant4
-    # mask_new = products['state'][num_sent:] > LAST_INVALID_STATE
-    mask_new = products['state'][num_sent:] == 1  # TODO: check particles are never killed in BDSIM
-
+    n_hits = products['n_hits'] # Need to specify n_hits from BDSIM as the rest of the array might have old values
+    mask_new = products['state'][num_sent:n_hits] == 1
 
     if not np.any(mask_new):
         # No new particles created in Geant4
