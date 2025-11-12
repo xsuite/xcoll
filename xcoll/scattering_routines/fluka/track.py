@@ -26,7 +26,7 @@ def track_pre(coll, particles):
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
 
-    if xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
+    if not xc.fluka.engine.assert_ready_to_track_or_skip(coll, particles,
                                 _necessary_attributes=['fluka_id']):
         return False  # Stop tracking
 

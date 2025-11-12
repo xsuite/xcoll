@@ -30,7 +30,7 @@ class FlukaWrapper(BaseWrapper):
         self._particle_names = fluka_names
 
     @property
-    def masses(self):
+    def particle_masses(self):
         return self._masses
 
     @property

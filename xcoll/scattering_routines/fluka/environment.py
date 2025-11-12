@@ -44,7 +44,7 @@ class FlukaEnvironment(BaseEnvironment):
     def compile(self, flukaio_path=None, verbose=False):
         # Check all dependencies
         self.assert_make_installed(verbose=verbose)
-        self.assert_gcc_isntalled(verbose=verbose)
+        self.assert_gcc_installed(verbose=verbose)
         self.assert_gfortran_installed(verbose=verbose)
         # Check the provided FlukaIO path
         if flukaio_path is None:

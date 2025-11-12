@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
 
 
 class BaseEnvironment:
-    _pkg_root
     _config_dir = FsPath(_pkg_root / 'config').resolve()
     _data_dir   = FsPath(_pkg_root / 'lib').resolve()
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
@@ -30,11 +29,13 @@ class BaseEnvironment:
         self._old_sys_path = None
         self._old_os_env = None
         self._temp_dir = None
+        self._in_constructor = True
         for path in self._paths.keys():
             setattr(self, f'_{path}', None)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-11].lower()}.config.json'
         sys.path.append(self._data_dir.as_posix())
-        self._in_constructor = True
         self.load()
         self._in_constructor = False
 
@@ -65,8 +66,11 @@ class BaseEnvironment:
                     res.append(f"    {path:<20} {value.as_posix()}")
             for path in self._read_only_paths.keys():
                 value = getattr(self, path)
-                path = f'{path} (read-only):'
-                res.append(f"    {path:<20} {value.as_posix()}")
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (read-only)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (read-only)")
             if self._old_sys_path and self._old_os_env:
                 res.append("")
                 res.append("Custom environment stored:")
@@ -133,24 +137,47 @@ class BaseEnvironment:
         print(self)
 
     def save(self):
-        if not self._config_dir.exists():
-            self._config_dir.mkdir(parents=True, exist_ok=True)
-        data = {}
+        data = {'paths': {}, 'read_only_paths': {}}
         for path in self._paths.keys():
             value = getattr(self, path, None)
             if value:
                 value = FsPath(value).as_posix()
-            data[path] = value
+            data['paths'][path] = value
+        for path in self._read_only_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['read_only_paths'][path] = value
+        # Check if anything changed
+        with open(self._config_file, 'r') as fid:
+            try:
+                existing_data = json.load(fid)
+            except json.JSONDecodeError:
+                # File corrupted, need to save
+                existing_data = {}
+        if data == existing_data:
+            return
+        # If yes, save to file
         with open(self._config_file, 'w') as fid:
             json.dump(data, fid, indent=4)
 
     def load(self):
         if not self._config_file.exists():
-            self.save()
+            with open(self._config_file, 'w') as fid:
+                json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
         with open(self._config_file, 'r') as fid:
-            data = json.load(fid)
-        for key, value in data.items():
+            try:
+                data = json.load(fid)
+            except json.JSONDecodeError:
+                with open(self._config_file, 'w') as fid:
+                    json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
+                return
+        if 'paths' not in data or 'read_only_paths' not in data:
+            return
+        for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)
+        for key, value in data['read_only_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
 
     def store_environment(self):
         self._old_sys_path = sys.path.copy()
@@ -189,7 +216,7 @@ class BaseEnvironment:
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
     def __getattr__(self, key):
-        if key in self._paths.keys():
+        if key in self._paths | self._read_only_paths:
             value = getattr(self, f'_{key}', None)
             if value:
                 return FsPath(value)
@@ -202,9 +229,18 @@ class BaseEnvironment:
                 value = FsPath(value)
                 if not self._in_constructor:
                     self.brute_force_path(value)
-            setattr(self, f'_{key}', value)
-            if not self._in_constructor:
-                self.save()
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(f'_{key}', value)
+                if not self._in_constructor:
+                    self.save()
+        elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
+            # Read-only attribute can only be set internally
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(key, value)
+                if not self._in_constructor:
+                    self.save()
         elif key in self._read_only_paths.keys():
             raise AttributeError(f"Attribute '{key}' of {self.__class__.__name__} "
                                + f"is read-only!")
@@ -242,7 +278,7 @@ class BaseEnvironment:
             self._cmake_installed = False
             raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
 
-    def assert_gcc_isntalled(self, verbose=False):
+    def assert_gcc_installed(self, verbose=False):
         if hasattr(self, '_gcc_installed'):
             return self._gcc_installed
         try:
