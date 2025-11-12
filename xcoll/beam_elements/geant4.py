@@ -79,19 +79,25 @@ class Geant4Collimator(BaseCollimator):
 
     @property
     def material(self):
-        return self._material
+        if self._material != _DEFAULT_MATERIAL:
+            return self._material
 
     @material.setter
     def material(self, material):
         if material is None:
-            material = Material()
+            material = _DEFAULT_MATERIAL
         elif isinstance(material, dict):
             material = Material.from_dict(material)
         elif isinstance(material, str):
             material = material_db[material]
-        if not isinstance(material, Material):
-            raise ValueError("Invalid material!")
-        self._material = material
+        elif isinstance(material, RefMaterial):
+            if material.geant4_name is None:
+                raise ValueError(f"RefMaterial {material} does not have a Geant4 name!")
+        if not isinstance(material, Material) \
+        or isinstance(material, CrystalMaterial):
+            raise ValueError(f"Invalid material of type {type(material)}!")
+        if self.material != material:
+            self._material = material
 
 
     def enable_scattering(self):
