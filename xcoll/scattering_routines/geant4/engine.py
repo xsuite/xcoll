@@ -150,7 +150,7 @@ class Geant4Engine(BaseEngine):
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
             self._g4link.XtrackInterface(bdsimConfigFile='geant4_input.gmad',
                                          referencePdgId=self.particle_ref.pdg_id,
-                                         referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                         referenceEk=Ekin,
                                          relativeEnergyCut=self.relative_energy_cut,
                                          seed=self.seed, batchMode=True)
         else:
@@ -165,7 +165,7 @@ class Geant4Engine(BaseEngine):
             with pin_python_stdio():
                 self._g4link = XtrackInterface(bdsimConfigFile='geant4_input.gmad',
                                                referencePdgId=self.particle_ref.pdg_id,
-                                               referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                               referenceEk=Ekin,
                                                relativeEnergyCut=self.relative_energy_cut,
                                                seed=self.seed, batchMode=True)
 
