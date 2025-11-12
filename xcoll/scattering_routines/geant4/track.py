@@ -58,6 +58,8 @@ def track_core(coll, part):
     # if npart == 0:
     #     return
 
+    pids_sent_in = part.particle_id[send_to_geant4]
+
     num_sent = send_to_geant4.sum()
     num_available = part._capacity - part._num_active_particles - part._num_lost_particles
     output_size = num_sent + num_available
@@ -106,7 +108,7 @@ def track_core(coll, part):
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
 
-    # Update particles that died just now
+    # Kill particles that died just now
     returned_dead = products['state'][:num_sent] == LOST_WITHOUT_SPEC
     idx_dead = np.arange(len(part.x))[send_to_geant4][returned_dead]
     part.state[idx_dead] = -LOST_ON_GEANT4_COLL
@@ -127,15 +129,17 @@ def track_core(coll, part):
     coll._acc_ionisation_loss += np.sum(E_diff)
 
     rpp  = part.rpp[idx_alive]
-    part.x[idx_alive]    = products['x'][:num_sent][returned_alive]
-    part.px[idx_alive]   = products['xp'][:num_sent][returned_alive] / rpp   # Director cosine back to px
-    part.y[idx_alive]    = products['y'][:num_sent][returned_alive]
-    part.py[idx_alive]   = products['yp'][:num_sent][returned_alive] / rpp   # Director cosine back to py
-    part.zeta[idx_alive] = products['zeta'][:num_sent][returned_alive]
+    part.x[idx_alive]      = products['x'][:num_sent][returned_alive]
+    part.px[idx_alive]     = products['xp'][:num_sent][returned_alive] / rpp   # Director cosine back to px
+    part.y[idx_alive]      = products['y'][:num_sent][returned_alive]
+    part.py[idx_alive]     = products['yp'][:num_sent][returned_alive] / rpp   # Director cosine back to py
+    part.zeta[idx_alive]   = products['zeta'][:num_sent][returned_alive]
+    part.weight[idx_alive] = products['weight'][:num_sent][returned_alive]
 
     # Add new particles created in Geant4
     # mask_new = products['state'][num_sent:] > LAST_INVALID_STATE
     mask_new = products['state'][num_sent:] == 1  # TODO: check particles are never killed in BDSIM
+
 
     if not np.any(mask_new):
         # No new particles created in Geant4

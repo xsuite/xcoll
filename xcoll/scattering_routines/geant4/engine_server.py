@@ -53,6 +53,7 @@ class BDSIMServer:
             'p': products['p'],
             'q': products['q'],
             'm': products['m'],
+            'weight': products['weight'],
             'pdg_id': products['pdg_id'],
             'parent_particle_id': products['parent_particle_id'],
             'state': products['state'],
