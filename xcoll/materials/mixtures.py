@@ -102,7 +102,7 @@ for name, obj in list(globals().items()):  # Have to wrap in list to take a snap
 
 CopperDiamond.fluka_name = 'CUDIAM75'
 MG6403Fc.fluka_name = 'MG6403Fc'
-MG6400.fluka_name = 'MG6400'
+MG6400.fluka_name = 'MoGRMG64'
 TiZrMo.fluka_name = 'TZM'
 Air.fluka_name = 'AIR'
 BoronNitride5000.fluka_name = 'BN5000'
