@@ -44,18 +44,21 @@ class Geant4Environment(BaseEnvironment):
         if self.geant4 is None or self.bdsim is None:
             return False
         so = list((self.data_dir).glob('g4interface.*so'))
-        if len(so) != 1 or not so[0].exists():
-            return False
-        return self._geant4_sourced and self._bdsim_sourced
+        return len(so) >= 1 and all([o.exists() for o in so])
 
-    def compile(self, verbose=True):
+    @property
+    def ready(self):
+        return super().ready and self._geant4_sourced and self._bdsim_sourced
+
+    def compile(self, verbose=True, verbose_compile_output=False):
         # Check all dependencies
-        self.assert_make_installed(verbose=verbose)
+        self.assert_installed('make', verbose=verbose)
+        self.assert_installed('cmake', verbose=verbose)
         self.assert_gcc_installed(verbose=verbose)
-        if self.geant4 is None:
-            raise RuntimeError("Could not find Geant4 installation! Please install Geant4.")
-        if self.bdsim is None:
-            raise RuntimeError("Could not find BDSIM installation! Please install BDSIM.")
+        self.assert_gxx_installed(verbose=verbose)
+        self.assert_geant4_installed()
+        self.assert_bdsim_installed()
+        # Check pybind11 is installed
         try:
             import pybind11 # noqa F401
         except (ModuleNotFoundError, ImportError):
@@ -80,20 +83,36 @@ class Geant4Environment(BaseEnvironment):
         cwd = FsPath.cwd()
         os.chdir(dest)
 
-        # Compile
+        # Configure
+        ctab = '    '
         cmd = run(['cmake', '-S', '.', '-B', 'build'], capture_output=True)
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to build Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+        if verbose_compile_output:
+            print()
+            print("CMake: Configuring")
+            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            if cmd.stderr:
+                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            print()
+
+        # Build
         cmd = run(['cmake', '--build', 'build'], capture_output=True)
-        if cmd.returncode == 0:
-            if verbose:
-                print("Compiled Xcoll-BDSIM interface successfully.")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile Xcoll-BDSIM interface!\nError given is:\n{stderr}")
+        if verbose_compile_output:
+            print("CMake: Building")
+            print(ctab + cmd.stdout.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            if cmd.stderr:
+                print(ctab + cmd.stderr.decode('UTF-8').strip().replace('\n', f'\n{ctab}'))
+            print()
+        if verbose:
+            print("Compiled Xcoll-BDSIM interface successfully.")
+
         # Collect the compiled shared library
         so = list((dest / 'build').glob('g4interface.*so'))
         if len(so) > 1:
@@ -104,7 +123,26 @@ class Geant4Environment(BaseEnvironment):
         so = FsPath(so[0])
         so.move_to(self.data_dir / so.name)
         if verbose:
-            print(f"Created Xcoll-BDSIM shared library in {so}.")
+            print(f"Created Xcoll-BDSIM shared library in {self.data_dir / so.name}.")
         # Clean up the temporary directory
         self.temp_dir = None
         os.chdir(cwd)
+
+    def assert_geant4_installed(self):
+        if self.geant4 is None:
+            raise RuntimeError("Could not find Geant4 installation! Please install Geant4.")
+        if not self._geant4_sourced:
+            raise RuntimeError(f"Geant4 installation found in {self.geant4} "
+                               f"but not active! Please source environment.")
+
+    def assert_bdsim_installed(self):
+        if self.bdsim is None:
+            raise RuntimeError("Could not find BDSIM installation! Please install BDSIM.")
+        if not self._bdsim_sourced:
+            raise RuntimeError(f"BDSIM installation found in {self.bdsim} "
+                               f"but not active! Please source environment.")
+
+    def assert_environment_ready(self):
+        self.assert_geant4_installed()
+        self.assert_bdsim_installed()
+        super().assert_environment_ready()
