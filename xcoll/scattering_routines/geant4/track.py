@@ -58,8 +58,6 @@ def track_core(coll, part):
     # if npart == 0:
     #     return
 
-    pids_sent_in = part.particle_id[send_to_geant4]
-
     num_sent = send_to_geant4.sum()
     num_available = part._capacity - part._num_active_particles - part._num_lost_particles
     output_size = num_sent + num_available
@@ -154,25 +152,25 @@ def track_core(coll, part):
         #                      + f"but only {num_free} free in particles object)!")
 
         # Parent particle IDs
-        parents = products['parent_particle_id'][num_sent:][mask_new]
+        parents = products['parent_particle_id'][num_sent:n_hits][mask_new]
         assert np.all(parents >= 0)
         assert parents.max() <= part.particle_id[send_to_geant4].max()
         idx_parents = np.array([np.where(part.particle_id[send_to_geant4]==idx)[0][0] for idx in parents])
 
         # Mass
-        m_new = products['m'][num_sent:][mask_new]
+        m_new = products['m'][num_sent:n_hits][mask_new]
         if np.any(m_new < -precision):
             raise ValueError(f"Geant4 returned particle with negative mass!")
         massless = np.abs(m_new) < 1.e-12
         m_new[massless] = m0  # TODO
 
         # Charge
-        q_new = products['q'][num_sent:][mask_new]
+        q_new = products['q'][num_sent:n_hits][mask_new]
         neutral = np.abs(q_new) < 1.e-12
         q_new[massless | neutral] = q0  # TODO
 
         # Energy
-        p_new = products['p'][num_sent:][mask_new]
+        p_new = products['p'][num_sent:n_hits][mask_new]
         delta = np.zeros_like(p_new)
         delta[massless] = p_new[massless]/p0c - 1
         delta[~massless] = p_new[~massless]/p0c * m0/m_new[~massless] - 1
@@ -182,19 +180,19 @@ def track_core(coll, part):
                 mass0 = part.mass0,
                 q0 = part.q0,
                 s = s_in + coll.length,
-                x = products['x'][num_sent:][mask_new],
-                px = products['xp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to px
-                y = products['y'][num_sent:][mask_new],
-                py = products['yp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to py
-                zeta = products['zeta'][num_sent:][mask_new],
+                x = products['x'][num_sent:n_hits][mask_new],
+                px = products['xp'][num_sent:n_hits][mask_new] * (1 + delta), # Director cosine back to px
+                y = products['y'][num_sent:n_hits][mask_new],
+                py = products['yp'][num_sent:n_hits][mask_new] * (1 + delta), # Director cosine back to py
+                zeta = products['zeta'][num_sent:n_hits][mask_new],
                 delta = delta,
                 mass_ratio = m_new/m0,
                 charge_ratio = q_new/q0,
                 at_element = ele_in,
                 at_turn = turn_in,
-                parent_particle_id = products['parent_particle_id'][num_sent:][mask_new],
-                pdg_id = products['pdg_id'][num_sent:][mask_new],
-                weight = products['weight'][num_sent:][mask_new]
+                parent_particle_id = products['parent_particle_id'][num_sent:n_hits][mask_new],
+                pdg_id = products['pdg_id'][num_sent:n_hits][mask_new],
+                weight = products['weight'][num_sent:n_hits][mask_new]
         )
 
         # Correct the deposited energy of parent particles: not everything was lost there.
