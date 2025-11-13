@@ -6,9 +6,9 @@
 from ..xoconstants import Constants, constant, group
 
 class XcollInteractions(Constants):
-    __category__ = "interaction" # auto-plural -> "interactions"
-    __reverse__  = "unique"      # builds interaction_names
-    __c_prefix__ = "XC"
+    _category_ = "interaction" # auto-plural -> "interactions"
+    _reverse_  = "unique"      # builds interaction_names
+    _c_prefix_ = "XC"
 
     UNITIALISED                 = constant(0, "NAN  // Do not use")
 

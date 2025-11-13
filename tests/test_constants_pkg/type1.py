@@ -7,9 +7,9 @@ from xcoll.xoconstants import Constants, constant, group
 
 
 class TestType1(Constants):
-    __category__ = "type"
-    __reverse__  = None
-    __c_prefix__ = "XF"
+    _category_ = "type"
+    _reverse_  = None
+    _c_prefix_ = "XF"
 
     ENABLED = constant(True, 'Important info', c_name='OLA_ENABLED')
     BIG     = constant(2**64 - 1, "Big int")
@@ -18,9 +18,9 @@ class TestType1(Constants):
 
 
 class TestType2(Constants):
-    __category__ = "unique_type"
-    __reverse__  = "unique"
-    __c_prefix__ = "UU"
+    _category_ = "unique_type"
+    _reverse_  = "unique"
+    _c_prefix_ = "UU"
 
     VAR1 = constant(2, "Var 1")
     VAR2 = constant(-3, "Var 2")
@@ -29,9 +29,9 @@ class TestType2(Constants):
 
 
 class TestType3(Constants):
-    __category__ = "multi_type"
-    __reverse__  = "multi"
-    __c_prefix__ = "XF"
+    _category_ = "multi_type"
+    _reverse_  = "multi"
+    _c_prefix_ = "XF"
 
     VAR4 = constant(4, "Var 4")
     VAR5 = constant(-5, "Var 5")
