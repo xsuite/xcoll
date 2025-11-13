@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 import xobjects as xo
@@ -22,7 +23,7 @@ context = xo.ContextCpu()         # For CPU
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
 
 beam = 1
-path_in  = xc._pkg_root.parent / 'examples'
+path_in = Path(__file__).parent
 
 
 # Load from json

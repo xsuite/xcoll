@@ -4,18 +4,18 @@
 # ######################################### #
 
 import os
+import sys
 import numpy as np
+from pathlib import Path
 from numbers import Number
-from functools import wraps
 
 import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from .everest import Material, CrystalMaterial
 from .geometry import XcollGeometry
+from ..materials import Material, CrystalMaterial
 from ..interaction_record import InteractionRecord
-
 try:
     # TODO: once xaux is in Xsuite keep only this
     from xaux import FsPath, ranID
@@ -25,9 +25,10 @@ except (ImportError, ModuleNotFoundError):
 
 class BaseEngine(xo.HybridClass):
     _xofields = {
-        '_particle_ref': xt.Particles._XoStruct,
-        '_seed':         xo.UInt64,
-        '_capacity':     xo.Int64,
+        '_particle_ref':      xt.Particles._XoStruct,
+        '_seed':              xo.UInt64,
+        '_capacity':          xo.Int64,
+        '_relative_capacity': xo.Int64,
     }
 
     _int32 = False
@@ -129,6 +130,8 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             self._particle_ref = xt.Particles()
         else:
+            if isinstance(val, xt.line.LineParticleRef):
+                val = val._resolved
             if not isinstance(val, xt.Particles):
                 raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
@@ -168,6 +171,27 @@ class BaseEngine(xo.HybridClass):
     @capacity.deleter
     def capacity(self):
         self.capacity = None
+
+    @property
+    def relative_capacity(self):
+        if self._relative_capacity == 0:
+            return None
+        else:
+            return int(self._relative_capacity)
+
+    @relative_capacity.setter
+    def relative_capacity(self, val):
+        if val is None:
+            val = 0
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`relative_capacity` has to be a positive integer!")
+        if val <= 1:
+            raise ValueError("`relative_capacity` has to be larger than 1!")
+        self._relative_capacity = int(val)
+
+    @relative_capacity.deleter
+    def relative_capacity(self):
+        self.relative_capacity = None
 
     @property
     def seed(self):
@@ -233,8 +257,25 @@ class BaseEngine(xo.HybridClass):
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking
         self._tracking_initialised = False
 
+        # Resolve input file path before changing cwd
+        if input_file:
+            if not isinstance(input_file, (str,Path)):
+                raise ValueError("`input_file` has to be a string or Path!")
+            if self._num_input_files > 1:
+                input_file = [FsPath(f).expanduser().resolve() for f in input_file]
+                for f in input_file:
+                    if not f.exists():
+                        raise ValueError(f"Input file {f} does not exist!")
+            else:
+                input_file = FsPath(input_file).expanduser().resolve()
+                if not input_file.exists():
+                    raise ValueError(f"Input file {input_file} does not exist!")
+
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
         kwargs = self._set_engine_properties(**kwargs)
+
+        # Do some preparations before creating the input file if needed
+        kwargs = self._pre_input(**kwargs)
 
         # Create input file if needed (this will remove the kwargs relevant to the input file and physics)
         kwargs = self._use_input_file(input_file, **kwargs)
@@ -283,6 +324,9 @@ class BaseEngine(xo.HybridClass):
             kwargs.pop('cwd')
         kwargs = self._set_engine_properties(**kwargs)
 
+        # Do some preparations before creating the input file if needed
+        kwargs = self._pre_input(**kwargs)
+
         # Create input file
         input_file, _ = self._generate_input_file(**kwargs)
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
@@ -319,11 +363,11 @@ class BaseEngine(xo.HybridClass):
 
         if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
             coll._equivalent_drift.track(particles)
-            return True
+            return False
 
         npart = particles._num_active_particles
         if npart == 0:
-            return True
+            return False
         if not isinstance(particles._buffer.context, xo.ContextCpu):
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
@@ -341,9 +385,13 @@ class BaseEngine(xo.HybridClass):
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
                            + f"using the {self.__class__.__name__} reference particle.")
-        if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
-            raise ValueError("Some particles are missing the pdg_id!")
-        return False
+        if not self._only_protons:
+            if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+                raise ValueError("Some particles are missing the pdg_id!")
+            if particles._num_active_particles + particles._num_lost_particles == particles._capacity:
+                raise ValueError("Particles capacity equal to size! Please provide extra capacity "
+                               + "for secondaries.")
+        return True
 
 
     def clean(self, **kwargs):
@@ -423,10 +471,11 @@ class BaseEngine(xo.HybridClass):
     def _use_seed(self, seed=None):
         if seed is None:
             if self.seed is None:
+                rng = np.random.default_rng()
                 if self._int32:
-                    self.seed = np.random.randint(0, int(2**32))
+                    self.seed = rng.integers(0, int(2**31)) # 32-bit signed
                 else:
-                    self.seed = np.random.randint(0, int(2**64))
+                    self.seed = rng.integers(0, int(2**63)) # 64-bit signed
         else:
             self._old_seed = self.seed
             self.seed = seed
@@ -454,7 +503,10 @@ class BaseEngine(xo.HybridClass):
         and not xt.line._dicts_equal(self.line.particle_ref.to_dict(),
                                      self.particle_ref.to_dict()):
             self._print("Found different reference particle in line. Temporarily overwritten.")
-            self._old_line_particle_ref = self.line.particle_ref
+            val = self.line.particle_ref
+            if isinstance(val, xt.line.LineParticleRef):
+                val = val._resolved
+            self._old_line_particle_ref = val
             self.line.particle_ref = self.particle_ref
 
     def _get_new_element_name(self):
@@ -485,7 +537,7 @@ class BaseEngine(xo.HybridClass):
             if names is None:
                 names = []
                 for ee in elements:
-                    if hasattr(ee, 'name'):
+                    if hasattr(ee, 'name') and ee.name:
                         names.append(ee.name)
                     else:
                         name = self._get_new_element_name()
@@ -521,6 +573,9 @@ class BaseEngine(xo.HybridClass):
                 this_elements.append(ee)
         if len(this_elements) == 0:
             raise ValueError(f"No active {self.name} elements found!")
+        if len(set(this_names)) != len(this_names):
+            raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
+                           + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
     def _reactivate_elements(self):
@@ -646,10 +701,10 @@ class BaseEngine(xo.HybridClass):
     # ============================================================
 
     def _get_input_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
-        pass
+        return []
 
     def _get_output_files_to_clean(self, input_file=None, cwd=None, clean_all=False, **kwargs):
-        pass
+        return []
 
     def _all_input_files(self, input_file=None):
         if self._uses_input_file:
@@ -668,4 +723,8 @@ class BaseEngine(xo.HybridClass):
         pass
 
     def _pre_start(self, **kwargs):
+        return kwargs
+
+    def _pre_input(self, **kwargs):
+        # Do some preparations before creating the input file if needed
         return kwargs

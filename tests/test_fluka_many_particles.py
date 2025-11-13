@@ -11,11 +11,11 @@ import xcoll as xc
 from  xcoll import particle_states as xcp
 
 
-FLUKA_PROTON_MASS_EV = xc.fluka.masses[2212][1]
-FLUKA_ELECTRON_MASS_EV = xc.fluka.masses[11][1]
-FLUKA_MUON_MASS_EV = xc.fluka.masses[13][1]
-FLUKA_PION_MASS_EV = xc.fluka.masses[211][1]
-FLUKA_LEAD_MASS_EV = xc.fluka.masses[1000822080][1]
+FLUKA_PROTON_MASS_EV = xc.fluka.particle_masses[2212][1]
+FLUKA_ELECTRON_MASS_EV = xc.fluka.particle_masses[11][1]
+FLUKA_MUON_MASS_EV = xc.fluka.particle_masses[13][1]
+FLUKA_PION_MASS_EV = xc.fluka.particle_masses[211][1]
+FLUKA_LEAD_MASS_EV = xc.fluka.particle_masses[1000822080][1]
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])

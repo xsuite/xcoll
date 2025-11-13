@@ -17,23 +17,7 @@ typedef struct EverestCollData_ {
     InteractionRecordData record;
     RecordIndex record_index;
     int8_t record_scatterings;
-    // Material properties
-    // TODO: can we use pointers for the MaterialData? It then gets a bit difficult to read them, ie *coll->exenergy
-    double exenergy;
-    double rho;
-    double anuc;
-    double zatom;
-    double bnref;
-    double csref[6];
-    double radl;  // TODO: is this the same physically as collnt or dlri ?
-    double dlri;
-    double dlyi;
-    double ai;
-    double eum;
-    double collnt;
-    double eta;
     int8_t orient;
-    int8_t only_mcs;
 } EverestCollData_;
 typedef EverestCollData_ *EverestCollData;
 
@@ -92,17 +76,16 @@ void Drift_single_particle_4d(LocalParticle* part, double length){
 }
 
 /*gpukern*/
-void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, GeneralMaterialData material){
-    if (GeneralMaterialData_get__only_mcs(material)){
+void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, MaterialData material){
+    double const A   = MaterialData_get__Z2_eff(material);
+    double const emr = MaterialData_get__nuclear_radius(material);
+    if (A < 0 || emr < 0){
         RandomRutherford_set(ran, 1, 1, 0.0001, 0.01);
         return;
     }
-    double const zatom    = GeneralMaterialData_get_Z(material);
-    double const emr      = GeneralMaterialData_get_nuclear_radius(material);
-    double const hcut     = GeneralMaterialData_get_hcut(material);
-    double const lcut     = 0.0009982;
+    double const hcut = MaterialData_get__hcut(material);
+    double const lcut = 0.0009982;
     double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
-    double A = pow(zatom,2);
     double B = c*pow(emr,2);
     RandomRutherford_set(ran, A, B, lcut, hcut);
 }

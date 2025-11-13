@@ -4,26 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": {
-  "__class__": "Material",
-  "name": "CopperDiamond",
-  "Z": 11.9,
-  "A": 25.24,
-  "density": 5.4,
-  "excitation_energy": 1.529e-07,
-  "nuclear_radius": 0.308,
-  "nuclear_elastic_slope": 115,
-  "cross_section": [
-   0.572,
-   0.37,
-   0,
-   0,
-   0,
-   0.000279
-  ],
-  "hcut": 0.02,
-  "radiation_length": 0.0316
- },
+ "material": "K2CopperDiamond",
  "jaw_L": 1.6359644285885138e-05,
  "jaw_R": -0.0026983720917065795
 }

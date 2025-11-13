@@ -34,7 +34,6 @@ class FlukaEngine(BaseEngine):
         '_network_port':      xo.Int64,
         '_timeout_sec':       xo.Int32,
         '_max_particle_id':   xo.Int64,
-        '_relative_capacity': xo.Int64,
     }
 
     _int32 = True
@@ -68,27 +67,6 @@ class FlukaEngine(BaseEngine):
     # ======================
     # === New Properties ===
     # ======================
-
-    @property
-    def relative_capacity(self):
-        if self._relative_capacity == 0:
-            return None
-        else:
-            return int(self._relative_capacity)
-
-    @relative_capacity.setter
-    def relative_capacity(self, val):
-        if val is None:
-            val = 0
-        if not isinstance(val, Number) or val < 0:
-            raise ValueError("`relative_capacity` has to be a positive integer!")
-        if val <= 1:
-            raise ValueError("`relative_capacity` has to be larger than 1!")
-        self._relative_capacity = int(val)
-
-    @relative_capacity.deleter
-    def relative_capacity(self):
-        self.relative_capacity = None
 
     @property
     def network_port(self):
