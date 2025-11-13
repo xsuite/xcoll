@@ -21,12 +21,12 @@ if xc.geant4.engine.is_running():
 def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
     # Create a Geant4 collimator
-    coll = xc.Geant4Collimator(length=0.4, material='mogr')
+    coll = xc.Geant4Collimator(length=0.1, material='mogr')
     coll.jaw = 0.001
 
     # Connect to Geant4
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, clean=True, verbose=False)
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, clean=True, verbose=False)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
@@ -48,8 +48,9 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     # Get only the initial particles that survived and all new particles (even if dead, as neutral particles will be flagged dead)
     mask = (part.state > 0) | (part.particle_id >= num_part)
     pdg_ids = np.unique(part.pdg_id[mask], return_counts=True)
+    idx = np.argsort(pdg_ids[1])[::-1]
     print("Returned particles:")
-    for pdg_id, num in zip(*pdg_ids):
+    for pdg_id, num in zip(pdg_ids[0][idx], pdg_ids[1][idx]):
         try:
             name = pdg.get_name_from_pdg_id(pdg_id, long_name=False)
         except ValueError:
@@ -58,9 +59,12 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
             mass = 0
         else:
             mass = part.mass[part.pdg_id==pdg_id][0]
-        E = part.energy[mask & (part.pdg_id==pdg_id)]
-        en = f"{E[~np.isnan(E)].mean():.1e} ± {E[~np.isnan(E)].std():.1e} eV"
-        print(f"  {num:6} {name:12}{en:21}  (PDG ID: {pdg_id}, mass: {mass} eV)")
+        E = part.energy[mask & (part.pdg_id==pdg_id)]*1e-9
+        q1 = np.percentile(E[~np.isnan(E)], 25)
+        med = np.percentile(E[~np.isnan(E)], 50)
+        q3 = np.percentile(E[~np.isnan(E)], 75)
+        en = f"{med:.3e} ∊ [{q1:.1e}, {q3:.1e}] GeV  (50% ±25%)"
+        print(f"  {num:6} {name:12}{en:21}    (PDG ID: {pdg_id:5}, mass: {mass*1e-9:.4f} GeV)")
     print()
 
     # Stop the Geant4 server
@@ -99,6 +103,6 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
         plt.show()
 
 
-run_many_particles(xt.Particles('proton', p0c=6.8e12),   10_000, capacity=20_000)
-run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 5_000, capacity=10_000)
-run_many_particles(xt.Particles('positron', p0c=200e9),  10_000, capacity=20_000, plot=True)
+run_many_particles(xt.Particles('proton', p0c=6.8e12),   50_000,  capacity=200_000)
+run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 2000,    capacity=200_000)
+run_many_particles(xt.Particles('positron', p0c=200e9),  100_000, capacity=500_000, plot=True)
