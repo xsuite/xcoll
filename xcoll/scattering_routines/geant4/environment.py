@@ -26,18 +26,26 @@ class Geant4Environment(BaseEnvironment):
         self._in_constructor = False
         self._geant4_sourced = False
         self._bdsim_sourced = False
-        cmd = run(['which', 'geant4-config'], capture_output=True)
-        if cmd.returncode == 0:
-            path = FsPath(cmd.stdout.decode().strip())
-            if path.exists():
-                self._geant4 = path
-                self._geant4_sourced = True
-        cmd = run(['which', 'bdsim'], capture_output=True)
-        if cmd.returncode == 0:
-            path = FsPath(cmd.stdout.decode().strip())
-            if path.exists():
-                self._bdsim = path
-                self._bdsim_sourced = True
+        try:
+            cmd = run(['which', 'geant4-config'], capture_output=True)
+        except FileNotFoundError:
+            pass
+        else:
+            if cmd.returncode == 0:
+                path = FsPath(cmd.stdout.decode().strip())
+                if path.exists():
+                    self._geant4 = path
+                    self._geant4_sourced = True
+        try:
+            cmd = run(['which', 'bdsim'], capture_output=True)
+        except FileNotFoundError:
+            pass
+        else:
+            if cmd.returncode == 0:
+                path = FsPath(cmd.stdout.decode().strip())
+                if path.exists():
+                    self._bdsim = path
+                    self._bdsim_sourced = True
 
     @property
     def compiled(self):
