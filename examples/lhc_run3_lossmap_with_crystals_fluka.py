@@ -52,6 +52,30 @@ assert not np.any(df_with_coll.has_aperture_problem)
 # Primary crystal
 tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
 
+tw = line.twiss4d()
+
+alfa_x = tw.rows[tcpc].alfx[0]
+alfa_y = tw.rows[tcpc].alfy[0]
+beta_x  = tw.rows[tcpc].betx[0]
+beta_y  = tw.rows[tcpc].bety[0]
+gap_tcpc = colldb[tcpc]['gap']
+gamma0 = line.particle_ref.gamma0
+beta0 = line.particle_ref.beta0
+
+# import pdb; pdb.set_trace()
+
+geo_emitt_x = colldb.nemitt_x/(gamma0*beta0)
+geo_emitt_y = colldb.nemitt_y/(gamma0*beta0)
+
+ch_x = -gap_tcpc * alfa_x * np.sqrt(geo_emitt_x/beta_x)
+ch_y = -gap_tcpc * alfa_y * np.sqrt(geo_emitt_y/beta_y)
+
+# Apply settings
+line[tcpc].bending_angle = ch_x # 40.e-6
+line[tcpc].width         = 0.002
+line[tcpc].height        = 0.05
+line[tcpc].length         = 0.004
+# line[tcpc].align_to_beam_divergence()
 
 # Build the tracker
 line.build_tracker()
@@ -61,15 +85,10 @@ line.build_tracker()
 line.collimators.assign_optics()
 
 # Connect to FLUKA
-xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=4e11)
+xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='Pb208', p0c=6.8e12*82)
 xc.fluka.engine.capacity = 20*num_particles
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(line=line, capacity=xc.fluka.engine.capacity, cwd='run_fluka_temp', clean=False, verbose=True, return_protons=True)
-# Apply settings
-# line[tcpc].bending_angle = 40.e-6
-# line[tcpc].width         = 0.002
-# line[tcpc].height        = 0.05
-# line[tcpc].align_to_beam_divergence()
+xc.fluka.engine.start(line=line, capacity=xc.fluka.engine.capacity, cwd='run_fluka_temp', clean=False, verbose=True, return_ions=True)
 
 
 # Optimise the line
@@ -117,7 +136,6 @@ ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 # Save a summary of the collimator losses to a text file
 ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
 print(ThisLM.summary)
-
 
 
 # Impacts

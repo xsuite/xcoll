@@ -77,6 +77,11 @@ def create_generic_assembly(**kwargs):
                 if kwargs.get(field, opt_value) != getattr(prototype, field):
                     found = False
                     break
+            if kwargs['is_crystal']:
+                for field in _generic_crystal_required_fields:
+                    if kwargs[field] != getattr(prototype, field):
+                        found = False
+                        break
             if found:
                 return prototype
     # Get an ID

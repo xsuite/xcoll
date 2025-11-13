@@ -198,9 +198,9 @@ def _assignmat_include_file():
 * what (5) = C parameter = Quasi - Mosaic factor [ mrad / cm ]
 * what (6) = D parameter = Crystal temperature [K]
 * sdum = crystal type
-* what (7 ,8 ,9) = U/V/ W of nominal crystal normal to the curvature plane
-* what (10 ,11 ,12) = U /V/W of nominal crystal channel direction
-* what (13 ,14 ,15) = X /Y/Z of crystal nominal position
+* what (7, 8, 9) = U/V/ W of nominal crystal normal to the curvature plane
+* what (10, 11, 12) = U /V/W of nominal crystal channel direction
+* what (13, 14, 15) = X /Y/Z of crystal nominal position
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 * CRYSTAL what (1) what (2) what (3) what (4) what (5) what (6) sdum
 * CRYSTAL what (7) what (8) what (9) what (10) what (11) what (12) &
