@@ -84,20 +84,20 @@ def test_class():
     assert isinstance(tt._T5, type) and issubclass(tt._T5, Constants)
     assert isinstance(tt._T6, type) and issubclass(tt._T6, Constants)
     assert isinstance(tt._TO, type) and issubclass(tt._TO, Constants)
-    assert tt._T1.__category__ == "type"
-    assert tt._T2.__category__ == "unique_type"
-    assert tt._T3.__category__ == "multi_type"
-    assert tt._T4.__category__ == "unique_type"
-    assert tt._T5.__category__ == "multi_type"
-    assert tt._T6.__category__ == "multi_type"
-    assert tt._TO.__category__ == "other_type"
-    assert tt._T1.__reverse__ is None
-    assert tt._T2.__reverse__ == "unique"
-    assert tt._T3.__reverse__ == "multi"
-    assert tt._T4.__reverse__ == "unique"
-    assert tt._T5.__reverse__ == "multi"
-    assert tt._T6.__reverse__ == "multi"
-    assert tt._TO.__reverse__ == "unique"
+    assert tt._T1._category_ == "type"
+    assert tt._T2._category_ == "unique_type"
+    assert tt._T3._category_ == "multi_type"
+    assert tt._T4._category_ == "unique_type"
+    assert tt._T5._category_ == "multi_type"
+    assert tt._T6._category_ == "multi_type"
+    assert tt._TO._category_ == "other_type"
+    assert tt._T1._reverse_ is None
+    assert tt._T2._reverse_ == "unique"
+    assert tt._T3._reverse_ == "multi"
+    assert tt._T4._reverse_ == "unique"
+    assert tt._T5._reverse_ == "multi"
+    assert tt._T6._reverse_ == "multi"
+    assert tt._TO._reverse_ == "unique"
 
 
 def test_class_constants():
@@ -670,56 +670,56 @@ def test_consistency_and_name_clash():
     with pytest.raises(TypeError, match="FailThingType1 must inherit from Constants directly; "
                        "no further subclassing allowed."):
         class FailThingType1(tt._T1):
-            __category__ = "type"
-            __reverse__  = "unique"
+            _category_ = "type"
+            _reverse_  = "unique"
 
     with pytest.raises(ValueError, match="Category 'type' already defined with reverse None "
-                       "by test_constants_pkg.type1.TestType1. Please make __reverse__ consistent."):
+                       "by test_constants_pkg.type1.TestType1. Please make _reverse_ consistent."):
         class FailThingType2(Constants):
-            __category__ = "type"
-            __reverse__  = "unique"
+            _category_ = "type"
+            _reverse_  = "unique"
 
     with pytest.raises(ValueError, match="Category 'type' already defined with plural 'types' "
-                       "by test_constants_pkg.type1.TestType1. Please make __plural__ consistent."):
+                       "by test_constants_pkg.type1.TestType1. Please make _plural_ consistent."):
         class FailThingType3(Constants):
-            __category__ = "type"
-            __reverse__  = None
-            __plural__   = "yikes"
+            _category_ = "type"
+            _reverse_  = None
+            _plural_   = "yikes"
 
     with pytest.raises(ValueError, match="Constant name 'MASS' already defined in module "
                        "test_constants_pkg.type1; global uniqueness required."):
         class FailThingType4(Constants):
-            __category__ = "type"
-            __reverse__  = None
-            __c_prefix__ = "XF"
+            _category_ = "type"
+            _reverse_  = None
+            _c_prefix_ = "XF"
 
             VAL1 = constant(5, "Feature enabled")
             VAL2 = constant(2**64 - 1, "Big int")
             MASS = constant(0.938, "GeV/c^2")   # Double definition in other table
 
     with pytest.raises(ValueError, match="Value 2 for 'VAL17' in test_constants already used by 'VAR1' "
-                   "in test_constants_pkg.type1; values must be globally unique when __reverse__ == 'unique'."):
+                   "in test_constants_pkg.type1; values must be globally unique when _reverse_ == 'unique'."):
         class FailThingType5(Constants):
-            __category__ = "unique_type"
-            __reverse__  = "unique"
-            __c_prefix__ = "XF"
+            _category_ = "unique_type"
+            _reverse_  = "unique"
+            _c_prefix_ = "XF"
 
             VAL17 = constant(2, "Feature enabled") # Val 2 taken by TestType2
 
-    with pytest.raises(TypeError, match="Mixed int/float values are not allowed when __reverse__ == 'unique'."):
+    with pytest.raises(TypeError, match="Mixed int/float values are not allowed when _reverse_ == 'unique'."):
         class FailThingType6(Constants):
-            __category__ = "unique_type_bis"
-            __reverse__  = "unique"
-            __c_prefix__ = "BB"
+            _category_ = "unique_type_bis"
+            _reverse_  = "unique"
+            _c_prefix_ = "BB"
 
             VAL18 = constant(2, "Int")
             VAL19 = constant(3.14, "Float")
 
     with pytest.raises(KeyError, match=f"Group 'GR5' references unknown constant 'VAL22'"):
         class FailThingType7(Constants):
-            __category__ = "unique_type_tris"
-            __reverse__  = "unique"
-            __c_prefix__ = "BB"
+            _category_ = "unique_type_tris"
+            _reverse_  = "unique"
+            _c_prefix_ = "BB"
 
             VAL20 = constant(2., "Int")
             VAL21 = constant(3.14, "Float")

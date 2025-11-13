@@ -10,9 +10,9 @@ from .type4 import TestType4, GR2, THING_OTHER, YAY_NO_META_2, YAY_NO_META_3
 
 
 class TestOtherType(Constants):
-    __category__  = "other_type"
-    __reverse__   = "unique"
-    __c_prefix__  = "XFREOO"
+    _category_  = "other_type"
+    _reverse_   = "unique"
+    _c_prefix_  = "XFREOO"
 
     VAS1 = constant(2, "Vas 1")
     VAS2 = constant(-3, "Vas 2")
