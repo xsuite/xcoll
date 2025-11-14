@@ -237,13 +237,7 @@ class BaseEngine(xo.HybridClass):
         if not self.environment:
             raise RuntimeError(f"{self.name.capitalize()} environment not set up! "
                              + f"Do not manually create an instance of the engine.")
-        if not self.environment.initialised:
-            raise RuntimeError(f"{self.name.capitalize()} environment not initialised! "
-                             + f"Please set all paths in the environment before "
-                             + f"starting the engine.")
-        if not self.environment.compiled:
-            raise RuntimeError(f"{self.name.capitalize()} interface not compiled! "
-                             + f"Please compile before starting the engine.")
+        self.environment.assert_environment_ready()
         if self.is_running():
             self._print("Engine already running.")
             return
@@ -252,6 +246,9 @@ class BaseEngine(xo.HybridClass):
         self.stop(clean=clean)
 
         print(f"Starting {self.__class__.__name__}...   ", flush=True, end='')
+        if self.verbose:
+            print("", flush=True)
+
         kwargs = self._pre_start(**kwargs)
 
         # This needs to be set in the ChildEngine, either in _start_engine() or at the start of tracking

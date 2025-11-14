@@ -53,7 +53,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws[:2], ids=jaw_ids[:2])  # BDSIM cannot handle fully positive or negative jaws
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_geant4(jaw, angle, tilt):
     num_part = 50_000
     length = 0.873

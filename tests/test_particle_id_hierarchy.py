@@ -23,7 +23,7 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_geant4():
     length = 1.2
     num_slices = 2000
