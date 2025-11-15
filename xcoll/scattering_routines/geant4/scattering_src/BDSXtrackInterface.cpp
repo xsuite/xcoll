@@ -320,7 +320,7 @@ void XtrackInterface::clearData(){
 }
 
 
-py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
+py::dict XtrackInterface::collimateReturn(size_t num_sent){
     // Access the sampler hits - particles reaching the planes for transport back
     const BDSHitsCollectionSamplerLink* hits = bds->SamplerHits();
 
@@ -332,10 +332,7 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent, size_t output_size){
         auto hit = (*hits)[i];
         if (hit->externalParticleID != hit->externalParentID) {secondaryCount++;}
     }
-    if (secondaryCount + num_sent > output_size){
-        throw BDSException("BDSXtrackInterface> Too many secondaries!\nProduced " + std::to_string(secondaryCount) \
-                         + ", but only space for " + std::to_string(output_size - num_sent) + "!");
-    }
+    size_t output_size = num_sent + secondaryCount;
 
     auto x_out    = py::array(py::buffer_info(nullptr, sizeof(double), py::format_descriptor<double>::value, 1, {output_size}, {sizeof(double)}));
     auto xp_out   = py::array(py::buffer_info(nullptr, sizeof(double), py::format_descriptor<double>::value, 1, {output_size}, {sizeof(double)}));

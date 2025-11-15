@@ -82,7 +82,7 @@ public:
 
     double getReferenceMass() { return refParticleDefinition->Mass() / CLHEP::GeV; }
 
-    py::dict collimateReturn(size_t num_sent, size_t output_size);
+    py::dict collimateReturn(size_t num_sent);
 
 private:
     std::unique_ptr<FDRedirect> fdredir;

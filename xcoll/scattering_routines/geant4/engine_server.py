@@ -35,14 +35,14 @@ class BDSIMServer:
                                   isACrystal=isACrystal)
 
 
-    def add_particles_and_collimate_return(self, blob, geant4_id, num_sent, output_size):
+    def add_particles_and_collimate_return(self, blob, geant4_id, num_sent):
         buf = io.BytesIO(blob)
         loaded = np.load(buf)
         coords = [np.array(loaded[key]) for key in loaded.files]
         self.g4link.addParticles(coords)
         self.g4link.selectCollimator(geant4_id)
         self.g4link.collimate()
-        products = self.g4link.collimateReturn(num_sent, output_size)
+        products = self.g4link.collimateReturn(num_sent)
         # Pack results as a dict for serialization
         result_dict = {
             'x': products['x'],
