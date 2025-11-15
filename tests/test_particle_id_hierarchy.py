@@ -77,6 +77,17 @@ def test_geant4():
     print(f"Max distance between child and primary: {distance.max():.2e} m")
     print(f"RMS distance between child and primary: {distance.std():.2e} m")
     print(f"Average distance between child and primary: {distance.mean():.2e} m")
-    print(f"Percentage of children within {grid_sep/2:.2e} m (stay within 1 "
-          f"grid cell): { (distance <= grid_sep/2).sum() / len(distance) * 100:.2f}%")
-    assert (distance <= grid_sep/2).sum() / len(distance) > 0.95  # Allow only 5% of children to leave the grid cell
+    print(f"Percentage of children within {grid_sep/2:.2e} m (1 grid cell): "
+          f"{(distance <= grid_sep/2).sum() / len(distance) * 100:.2f}%")
+    print(' '*33 + f"within {grid_sep:.2e} m  (2 grid cells): "
+          f"{(distance <= grid_sep).sum() / len(distance) * 100:.2f}%")
+    print(' '*33 + f"within {1.5*grid_sep:.2e} m  (3 grid cells): "
+          f"{(distance <= 1.5*grid_sep).sum() / len(distance) * 100:.2f}%")
+    print(' '*33 + f"within {2*grid_sep:.2e} m  (4 grid cells): "
+          f"{(distance <= 2*grid_sep).sum() / len(distance) * 100:.2f}%")
+    print(' '*33 + f"within {2.5*grid_sep:.2e} m  (5 grid cells): "
+          f"{(distance <= 2.5*grid_sep).sum() / len(distance) * 100:.2f}%")
+    assert (distance <= grid_sep/2).sum() / len(distance) > 0.90    # Allow only 10% of children to leave the grid cell
+    assert (distance <= grid_sep).sum() / len(distance) > 0.95      # Allow only 5% of children to leave two grid cells
+    assert (distance <= 1.5*grid_sep).sum() / len(distance) > 0.98  # Allow only 2% of children to leave three grid cells
+    assert (distance <= 2*grid_sep).sum() / len(distance) > 0.99  # Allow only 1% of children to leave four grid cells

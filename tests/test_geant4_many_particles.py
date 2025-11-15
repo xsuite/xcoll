@@ -104,7 +104,6 @@ def test_electrons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -139,7 +138,6 @@ def test_positrons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -174,7 +172,6 @@ def test_muons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -209,7 +206,6 @@ def test_antimuons(proton_ref, hit):
     num_part = 500
     p0c = 200e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -243,7 +239,6 @@ def test_positive_pions(proton_ref, hit):
     num_part = 500
     p0c = 450e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -278,7 +273,6 @@ def test_negative_pions(proton_ref, hit):
     num_part = 500
     p0c = 450e9
     capacity = num_part*100
-    relative_capacity = 100
     _stop_engine()
     if hit:
         kwargs_ref = {}
