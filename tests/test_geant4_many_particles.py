@@ -70,8 +70,7 @@ def test_antiprotons(proton_ref, hit):
     print(f"Testing antiprotons with hit={hit} and proton_ref={proton_ref}")
     num_part = 100
     p0c = 6.8e12
-    capacity = num_part*2
-    relative_capacity = 2
+    capacity = num_part*5
     _stop_engine()
     if hit:
         kwargs_ref = {}
@@ -229,6 +228,7 @@ def test_antimuons(proton_ref, hit):
     else:
         _assert_missed(part, part_init, coll, tol=tol)
     _stop_engine()
+
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])

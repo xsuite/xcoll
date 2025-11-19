@@ -74,6 +74,11 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_lossmap_geant4(do_plot, test_context):
+    if do_plot and plt is None:
+        pytest.skip("matplotlib not installed")
+    if not do_plot and plt is not None:
+        pytest.skip("matplotlib installed")
+
     # If a previous test failed, stop the server manually
     if xc.geant4.engine.is_running():
         xc.geant4.engine.stop(clean=True)
