@@ -72,7 +72,7 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
     // Redirect stdout and stderr to file (everything else like BDSIM)
     fdredir = std::make_unique<FDRedirect>("engine.out","engine.err");
 
-    stp = new BDSBunchSixTrackLink();
+    stp = new BDSLinkBunch();
     bds = new BDSIMLink(stp);
 
 	for (char* arg : argv){
@@ -396,6 +396,10 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent){
 
             if (track_id == parent_id){
                 // This is a primary particle as its parent is itself
+                if (primary_survived){
+                    throw std::runtime_error("XtrackInterface::collimateReturn> primary with particle ID "
+                                             + std::to_string(track_id) + " returned multiple times.");
+                }
                 primary_survived = true;
                 x_prod_ptr[i] = coords.x / CLHEP::m;
                 xp_prod_ptr[i] = coords.xp / CLHEP::rad;

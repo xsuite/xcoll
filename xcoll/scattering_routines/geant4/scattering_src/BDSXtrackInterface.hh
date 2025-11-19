@@ -1,4 +1,4 @@
-#include "BDSBunchSixTrackLink.hh"
+#include "BDSLinkBunch.hh"
 #include "BDSException.hh"
 #include "BDSIMLink.hh"
 #include "BDSIonDefinition.hh"
@@ -87,7 +87,7 @@ public:
 private:
     std::unique_ptr<FDRedirect> fdredir;
     BDSIMLink* bds = nullptr;
-    BDSBunchSixTrackLink* stp = nullptr;
+    BDSLinkBunch* stp = nullptr;
     std::vector<char *> argv;
 
     BDSParticleDefinition* refParticleDefinition = nullptr;

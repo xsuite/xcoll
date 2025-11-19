@@ -66,6 +66,10 @@ class Geant4Environment(BaseEnvironment):
         self.assert_gxx_installed(verbose=verbose)
         self.assert_geant4_installed()
         self.assert_bdsim_installed()
+        bdsim_version = self.get_bdsim_version()
+        if verbose:
+            print(f"BDSIM version: {bdsim_version}")
+
         # Check pybind11 is installed
         try:
             import pybind11 # noqa F401
@@ -90,6 +94,13 @@ class Geant4Environment(BaseEnvironment):
                 FsPath(path).copy_to(dest, method='mount')
         cwd = FsPath.cwd()
         os.chdir(dest)
+        n_ver = sum([10**(3*(2-i))*int(j) for i, j in enumerate('1.7.7'.split('.')[:3])])
+        if 'develop' in bdsim_version:
+            n_ver += 0.5
+        if n_ver <= 1007007:
+            if verbose:
+                print("Adapting source code to old BDSIM version.")
+            self._adapt_source_to_old_bdsim()
 
         # Configure
         ctab = '    '
@@ -154,3 +165,23 @@ class Geant4Environment(BaseEnvironment):
         self.assert_geant4_installed()
         self.assert_bdsim_installed()
         super().assert_environment_ready()
+
+    def get_bdsim_version(self):
+        cmd = run(['bdsim', '--version'], capture_output=True)
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Failed to run 'bdsim --version'!\nError given is:\n{stderr}")
+        return cmd.stdout.decode('UTF-8').strip()
+
+    def _adapt_source_to_old_bdsim(self):
+        with open('BDSXtrackInterface.hh', 'r') as file:
+            filedata = file.read()
+        filedata = filedata.replace('#include "BDSLinkBunch.hh"', '#include "BDSBunchSixTrackLink.hh"')
+        filedata = filedata.replace('BDSLinkBunch* stp = nullptr;', 'BDSBunchSixTrackLink* stp = nullptr;')
+        with open('BDSXtrackInterface.hh', 'w') as file:
+            file.write(filedata)
+        with open('BDSXtrackInterface.cpp', 'r') as file:
+            filedata = file.read()
+        filedata = filedata.replace('stp = new BDSLinkBunch();', 'stp = new BDSBunchSixTrackLink();')
+        with open('BDSXtrackInterface.cpp', 'w') as file:
+            file.write(filedata)
