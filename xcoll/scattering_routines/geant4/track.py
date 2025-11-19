@@ -7,20 +7,10 @@ import io
 import numpy as np
 
 from xtrack import Particles
-from xtrack.particles import LAST_INVALID_STATE
 
 from ...constants import (LOST_WITHOUT_SPEC, LOST_ON_GEANT4_COLL,
     EXCITED_ION_STATE, MASSLESS_OR_NEUTRAL, VIRTUAL_ENERGY, HIT_ON_GEANT4_COLL)
 
-
-# TODO: change collimasim to use xp, yp, energy/momentum, mass instead of px, py, delta, mass_ratio
-
-
-def _drift(coll, particles, length):
-    old_length = coll._equivalent_drift.length
-    coll._equivalent_drift.length = length
-    coll._equivalent_drift.track(particles)
-    coll._equivalent_drift.length = old_length
 
 def track_pre(coll, particles):
     import xcoll as xc
@@ -60,7 +50,7 @@ def track_core(coll, part):
 
     num_sent = send_to_geant4.sum()
 
-    _drift(coll, part, -250e-9) # Margin before Geant4 collimator; added by BDSIM geometry
+    coll._drift(part, -250e-9) # Margin before Geant4 collimator; added by BDSIM geometry
 
     q0 = part.q0
     m0 = part.mass0

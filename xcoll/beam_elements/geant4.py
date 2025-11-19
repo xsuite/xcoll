@@ -113,6 +113,19 @@ class Geant4Collimator(BaseCollimator):
             # super().track(part)
             track_core(self, part)
             track_post(self, part)
+        else:
+            self._drift(part)
+
+
+    def _drift(self, particles, length=None):
+        if length is None:
+            length = self.length
+        if length != self.length:
+            old_length = self._equivalent_drift.length
+            self._equivalent_drift.length = length
+        self._equivalent_drift.track(particles)
+        if length != self.length:
+            self._equivalent_drift.length = old_length
 
 
     def __setattr__(self, name, value):

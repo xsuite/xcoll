@@ -359,7 +359,6 @@ class BaseEngine(xo.HybridClass):
                 missing_attributes = True
 
         if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
-            coll._equivalent_drift.track(particles)
             return False
 
         npart = particles._num_active_particles
@@ -385,7 +384,10 @@ class BaseEngine(xo.HybridClass):
         if not self._only_protons:
             if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
                 raise ValueError("Some particles are missing the pdg_id!")
-            if particles._num_active_particles + particles._num_lost_particles == particles._capacity:
+            if particles._num_active_particles + particles._num_lost_particles == particles._capacity \
+            and not np.any(particles.particle_id != particles.parent_particle_id):
+                # Only raise this error at the start, e.g. when no secondaries are present yet.
+                # It will get caught later during tracking, which will provide a more logical error.
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
         return True
