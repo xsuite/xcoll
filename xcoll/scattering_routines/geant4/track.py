@@ -59,8 +59,6 @@ def track_core(coll, part):
     #     return
 
     num_sent = send_to_geant4.sum()
-    num_available = part._capacity - part._num_active_particles - part._num_lost_particles
-    output_size = num_sent + num_available
 
     _drift(coll, part, -250e-9) # Margin before Geant4 collimator; added by BDSIM geometry
 
@@ -71,7 +69,7 @@ def track_core(coll, part):
     s_in = part.s[send_to_geant4][0]
     ele_in = part.at_element[send_to_geant4][0]
     turn_in = part.at_turn[send_to_geant4][0]
-    precision  = p0c * 2.22e-15  # To avoid numerical issues like negative energy
+    precision  = p0c * 1e-14  # To avoid numerical issues like negative energy
 
     rpp  = part.rpp[send_to_geant4]
     x    = part.x[send_to_geant4]
@@ -142,7 +140,7 @@ def track_core(coll, part):
         part.reorganize()
 
     else:
-        # Check that there is enough room in the particles object DONE IN C++
+        # Check that there is enough room in the particles object
         num_assigned = part._num_lost_particles + part._num_active_particles
         num_free = part._capacity - num_assigned
         num_needed = mask_new.sum()
