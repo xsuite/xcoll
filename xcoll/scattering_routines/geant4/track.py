@@ -194,8 +194,6 @@ def track_core(coll, part):
                 pdg_id = products['pdg_id'][idx_new],
                 weight = products['weight'][idx_new]
         )
-        t15 = time.time()
-        print(f"Geant4 track_core: created new Particles object in {t15 - t14:.6f} s")
 
         # Correct the deposited energy of parent particles: not everything was lost there.
         E_children = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
