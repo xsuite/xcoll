@@ -126,7 +126,8 @@ def track_core(coll, part):
     q_new = products['q'][num_sent:]
     pdg_id = products['pdg_id'][num_sent:]
     mask_new = xc.geant4.engine._mask_particle_return_types(pdg_id, q_new)
-    assert np.all(products['state'][num_sent:][mask_new] == 1)
+    idx_new = np.nonzero(mask_new)[0] + num_sent
+    assert np.all(products['state'][idx_new] == 1)
 
     if not np.any(mask_new):
         # No new particles created in Geant4
@@ -142,25 +143,34 @@ def track_core(coll, part):
                              + f"but only {num_free} free in particles object)!")
 
         # Parent particle IDs
-        parents = products['parent_particle_id'][num_sent:][mask_new]
-        assert np.all(parents >= 0)
-        assert parents.max() <= part.particle_id[send_to_geant4].max()
-        idx_parents = np.array([np.where(part.particle_id[send_to_geant4]==idx)[0][0] for idx in parents])
+        parents = products['parent_particle_id'][idx_new]
+        pids = part.particle_id[send_to_geant4]
+        max_id_in = int(pids.max())
+        assert np.all(parents >= 0)        # Sanity check
+        assert parents.max() <= max_id_in  # Sanity check
+
+        # Build dense lookup table: ID -> index in `pids`
+        lookup = np.full(max_id_in + 1, -1, dtype=np.int64)
+        lookup[pids] = np.arange(pids.size, dtype=np.int64)
+        idx_parents = lookup[parents]   # MUCH faster than solution with np.where
+        if np.any(idx_parents < 0):
+            missing = np.unique(parents[idx_parents < 0])
+            raise RuntimeError(f"Parent IDs not found in particle_id: {missing}")
 
         # Mass
-        m_new = products['m'][num_sent:][mask_new]
+        m_new = products['m'][idx_new]
         if np.any(m_new < -precision):
             raise ValueError(f"Geant4 returned particle with negative mass!")
         massless = np.abs(m_new) < 1.e-12
         m_new[massless] = m0  # TODO
 
         # Charge
-        q_new = products['q'][num_sent:][mask_new]
+        q_new = products['q'][idx_new]
         neutral = np.abs(q_new) < 1.e-12
         q_new[massless | neutral] = q0  # TODO
 
         # Energy
-        p_new = products['p'][num_sent:][mask_new]
+        p_new = products['p'][idx_new]
         delta = np.zeros_like(p_new)
         delta[massless] = p_new[massless]/p0c - 1
         delta[~massless] = p_new[~massless]/p0c * m0/m_new[~massless] - 1
@@ -170,20 +180,22 @@ def track_core(coll, part):
                 mass0 = part.mass0,
                 q0 = part.q0,
                 s = s_in + coll.length,
-                x = products['x'][num_sent:][mask_new],
-                px = products['xp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to px
-                y = products['y'][num_sent:][mask_new],
-                py = products['yp'][num_sent:][mask_new] * (1 + delta), # Director cosine back to py
-                zeta = products['zeta'][num_sent:][mask_new],
+                x = products['x'][idx_new],
+                px = products['xp'][idx_new] * (1 + delta), # Director cosine back to px
+                y = products['y'][idx_new],
+                py = products['yp'][idx_new] * (1 + delta), # Director cosine back to py
+                zeta = products['zeta'][idx_new],
                 delta = delta,
                 mass_ratio = m_new/m0,
                 charge_ratio = q_new/q0,
                 at_element = ele_in,
                 at_turn = turn_in,
-                parent_particle_id = products['parent_particle_id'][num_sent:][mask_new],
-                pdg_id = products['pdg_id'][num_sent:][mask_new],
-                weight = products['weight'][num_sent:][mask_new]
+                parent_particle_id = products['parent_particle_id'][idx_new],
+                pdg_id = products['pdg_id'][idx_new],
+                weight = products['weight'][idx_new]
         )
+        t15 = time.time()
+        print(f"Geant4 track_core: created new Particles object in {t15 - t14:.6f} s")
 
         # Correct the deposited energy of parent particles: not everything was lost there.
         E_children = np.bincount(idx_parents, weights=new_part.energy, minlength=part._capacity)
