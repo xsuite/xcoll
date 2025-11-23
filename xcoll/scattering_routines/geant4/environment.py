@@ -58,6 +58,14 @@ class Geant4Environment(BaseEnvironment):
     def ready(self):
         return super().ready and self._geant4_sourced and self._bdsim_sourced
 
+    def bdsim_is_old_version(self, bdsim_version=None):
+        if bdsim_version is None:
+            bdsim_version = self.get_bdsim_version()
+        n_ver = sum([10**(3*(2-i))*int(j) for i, j in enumerate('1.7.7'.split('.')[:3])])
+        if 'develop' in bdsim_version:
+            n_ver += 0.5
+        return n_ver <= 1007007
+
     def compile(self, verbose=True, verbose_compile_output=False):
         # Check all dependencies
         self.assert_installed('make', verbose=verbose)
@@ -94,10 +102,7 @@ class Geant4Environment(BaseEnvironment):
                 FsPath(path).copy_to(dest, method='mount')
         cwd = FsPath.cwd()
         os.chdir(dest)
-        n_ver = sum([10**(3*(2-i))*int(j) for i, j in enumerate('1.7.7'.split('.')[:3])])
-        if 'develop' in bdsim_version:
-            n_ver += 0.5
-        if n_ver <= 1007007:
+        if self.bdsim_is_old_version(bdsim_version):
             if verbose:
                 print("Adapting source code to old BDSIM version.")
             self._adapt_source_to_old_bdsim()

@@ -14,6 +14,10 @@ except ImportError as e:
     rpyc = None
 
 
+old_bdsim = xc.geant4.environment.bdsim_is_old_version()
+
+
+@pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_returns():
@@ -243,6 +247,7 @@ def test_positrons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'muon_ref'])
+@pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_muons(proton_ref, hit):
@@ -277,6 +282,7 @@ def test_muons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'antimuon_ref'])
+@pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_antimuons(proton_ref, hit):
@@ -311,6 +317,7 @@ def test_antimuons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
+@pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_positive_pions(proton_ref, hit):
@@ -345,6 +352,7 @@ def test_positive_pions(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
+@pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_negative_pions(proton_ref, hit):
