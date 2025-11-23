@@ -26,7 +26,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
     # Connect to Geant4
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, clean=True, verbose=False)
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, return_all=True, clean=True, verbose=False)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
@@ -45,11 +45,19 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
     coll.track(part)
     print(f"Done in {round(time.time()-start, 3)}s.", flush=True)
 
+    # Stop the Geant4 server
+    xc.geant4.engine.stop(clean=True)
+
+    return part
+
+
+def print_particle_summary(part):
+    num_part = part.particle_id[part.particle_id == part.parent_particle_id].max()
     # Get only the initial particles that survived and all new particles (even if dead, as neutral particles will be flagged dead)
     mask = (part.state > 0) | (part.particle_id >= num_part)
     pdg_ids = np.unique(part.pdg_id[mask], return_counts=True)
     idx = np.argsort(pdg_ids[1])[::-1]
-    print("Returned particles:")
+    print(f"Returned {np.sum(mask)} particles ({np.sum(part.particle_id >= num_part)} secondaries):")
     for pdg_id, num in zip(pdg_ids[0][idx], pdg_ids[1][idx]):
         try:
             name = pdg.get_name_from_pdg_id(pdg_id, long_name=False)
@@ -67,42 +75,68 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
         print(f"  {num:6} {name:12}{en:21}    (PDG ID: {pdg_id:5}, mass: {mass*1e-9:.4f} GeV)")
     print()
 
-    # Stop the Geant4 server
-    xc.geant4.engine.stop(clean=True)
 
-    if plot:
-        data = []
-        minimum = 1e10
-        maximum = 0
-        for pdg_id in pdg_ids[0]:
-            if np.isnan(part.mass[part.pdg_id==pdg_id][0]):
-                # Need to be careful to avoid NaNs from m0 / m with m = 0
-                data.append((part.beta0[0]*part.ptau[part.pdg_id == pdg_id] + 1)*part.energy0[0])
-            else:
-                data.append(part.energy[part.pdg_id == pdg_id])
-            minimum = min(minimum, np.min(data[-1]))
-            maximum = max(maximum, np.max(data[-1]))
-        bins = np.logspace(np.log10(minimum), np.log10(maximum), 50)
-        plt.figure(figsize=(8, 6))
-        for pdg_id, this_data in zip(pdg_ids[0], data):
-            try:
-                name = pdg.get_name_from_pdg_id(pdg_id, long_name=True)
-            except ValueError:
-                name = 'unknown'
-            plt.hist(this_data, bins=bins, density=True, alpha=0.4, label=name)
+def plot_energy_distribution(part, *, nbins=50, max_types=6):
+    num_part = part.particle_id[part.particle_id == part.parent_particle_id].max()
+    # Get only the initial particles that survived and all new particles (even if dead, as neutral particles will be flagged dead)
+    mask = (part.state > 0) | (part.particle_id >= num_part)
+    pdg_ids = np.unique(part.pdg_id[mask], return_counts=True)
+    idx = np.argsort(pdg_ids[1])[::-1][:max_types]
+    data = []
+    minimum = 1e10
+    maximum = 0
+    for pdg_id in pdg_ids[0][idx]:
+        if np.isnan(part.mass[part.pdg_id==pdg_id][0]):
+            # Need to be careful to avoid NaNs from m0 / m with m = 0
+            data.append((part.beta0[0]*part.ptau[part.pdg_id == pdg_id] + 1)*part.energy0[0])
+        else:
+            data.append(part.energy[part.pdg_id == pdg_id])
+        minimum = min(minimum, np.min(data[-1]))
+        maximum = max(maximum, np.max(data[-1]))
+    bins = np.logspace(np.log10(minimum), np.log10(maximum), nbins + 1)
+    bin_centres = np.sqrt(bins[:-1] * bins[1:])
+    N_tot = sum(len(arr) for arr in data)
+    log_edges = np.log10(bins)
+    dlog = np.diff(log_edges)
 
-        # Set horizontal axis to logarithmic scale
-        plt.xscale('log')
-        plt.yscale('log')
+    # plt.figure(figsize=(8, 6))
+    fig, ax = plt.subplots(2, 1, figsize=(14, 7))
+    for pdg_id, this_data in zip(pdg_ids[0][idx], data):
+        try:
+            name = pdg.get_name_from_pdg_id(pdg_id, long_name=True)
+        except ValueError:
+            name = 'unknown'
+        # ax[0].hist(this_data, bins=bins, density=True, alpha=0.4, label=name)
+        counts, edges = np.histogram(this_data, bins=bins)
+        bin_widths = np.diff(edges)
+        dNdlogE = counts / (N_tot * dlog) # Global normalisation: divide by N_tot, not by len(E)
+        ax[0].step(bin_centres, dNdlogE, where='mid', label=name)
 
-        # Labels and legend
-        plt.xlabel('Energy [eV]')
-        plt.ylabel('Normalised frequency')
-        plt.legend()
-        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-        plt.show()
+        dNdE = counts / (N_tot * bin_widths)  # Global normalisation: divide by N_tot, not by len(E)
+        ax[1].step(bin_centres, dNdE, where='mid', label=name)
+
+    # Set horizontal axis to logarithmic scale
+    ax[0].set_xscale('log')
+    ax[0].set_yscale('log')
+    ax[1].set_xscale('log')
+    ax[1].set_yscale('log')
+
+    # Labels and legend
+    ax[0].set_xlabel('Energy [eV]')
+    ax[0].set_ylabel('Normalised frequency ' + r'$\frac{dN}{d\log E}$')
+    ax[0].legend()
+    ax[1].set_xlabel('Energy [eV]')
+    ax[1].set_ylabel('Normalised frequency ' + r'$\frac{dN}{dE}$')
+    ax[1].legend()
+    ax[0].grid(True, which='both', linestyle='--', linewidth=0.5)
+    ax[1].grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.show()
 
 
-run_many_particles(xt.Particles('proton', p0c=6.8e12),   50_000,  capacity=200_000)
-run_many_particles(xt.Particles('Pb208', p0c=6.8e12*82), 2000,    capacity=200_000)
-run_many_particles(xt.Particles('positron', p0c=200e9),  100_000, capacity=500_000, plot=True)
+part = run_many_particles(xt.Particles('proton',   p0c=6.8e12),    25_000, capacity=500_000)
+print_particle_summary(part)
+part = run_many_particles(xt.Particles('Pb208',    p0c=6.8e12*82),   2000, capacity=500_000)
+print_particle_summary(part)
+part = run_many_particles(xt.Particles('positron', p0c=200e9),     25_000, capacity=500_000)
+print_particle_summary(part)
+plot_energy_distribution(part, nbins=250)

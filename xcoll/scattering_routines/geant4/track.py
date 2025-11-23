@@ -123,7 +123,10 @@ def track_core(coll, part):
     part.weight[idx_alive] = products['weight'][:num_sent][returned_alive]
 
     # Add new particles created in Geant4
-    mask_new = products['state'][num_sent:] == 1
+    q_new = products['q'][num_sent:]
+    pdg_id = products['pdg_id'][num_sent:]
+    mask_new = xc.geant4.engine._mask_particle_return_types(pdg_id, q_new)
+    assert np.all(products['state'][num_sent:][mask_new] == 1)
 
     if not np.any(mask_new):
         # No new particles created in Geant4

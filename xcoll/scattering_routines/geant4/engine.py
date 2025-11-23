@@ -46,8 +46,9 @@ class Geant4Engine(BaseEngine):
         self._conn = None # remove after geant4 bugfix
         super().__init__(**kwargs)
         self._already_started = False
-        self.relative_energy_cut = None # To set default value
-        self.reentry_protection_enabled = None # To set default value
+        # Set default values for new properties
+        self.relative_energy_cut = None
+        self.reentry_protection_enabled = None
 
 
     # ======================
@@ -85,6 +86,48 @@ class Geant4Engine(BaseEngine):
         elif not isinstance(val, bool):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
+
+    @property
+    def lower_momentum_cut(self):
+        return self._lower_momentum_cut
+
+    @lower_momentum_cut.setter
+    def lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`lower_momentum_cut` has to be a non-negative number!")
+        self._lower_momentum_cut = val
+
+    @property
+    def photon_lower_momentum_cut(self):
+        return self._photon_lower_momentum_cut
+
+    @photon_lower_momentum_cut.setter
+    def photon_lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
+        self._photon_lower_momentum_cut = val
+
+    @property
+    def electron_lower_momentum_cut(self):
+        return self._electron_lower_momentum_cut
+
+    @electron_lower_momentum_cut.setter
+    def electron_lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
+        self._electron_lower_momentum_cut = val
 
 
     # ============================

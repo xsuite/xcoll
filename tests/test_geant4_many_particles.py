@@ -14,6 +14,85 @@ except ImportError as e:
     rpyc = None
 
 
+@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+def test_returns():
+    num_part = 2_500
+    p0c = 6.8e12
+    capacity = 50_000
+    _stop_engine()
+    particle_ref = xt.Particles('proton', p0c=p0c)
+    coll = _init_g4(particle_ref)
+    part, part_init = _init_particles(num_part, capacity=capacity)
+
+    print("Testing return_none=True, return_photons=True")
+    xc.geant4.engine.return_none = True
+    xc.geant4.engine.return_photons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert np.all(pdg == 22)
+    assert pdg.size > 0  # Some photons should be created to make this test meaningful
+
+    print("Testing return_none=True, return_electrons=True")
+    part = part_init.copy()
+    xc.geant4.engine.return_photons = False
+    xc.geant4.engine.return_electrons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert np.all((pdg == 11) | (pdg == -11))
+    assert pdg.size > 0  # Some electrons should be created to make this test meaningful
+
+    print("Testing return_none=True, return_protons=True")
+    part = part_init.copy()
+    xc.geant4.engine.return_electrons = False
+    xc.geant4.engine.return_protons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert np.all((pdg == 2212) | (pdg == -2212))
+    assert pdg.size > 0  # Some protons should be created to make this test meaningful
+
+    print("Testing return_none=True, return_neutrons=True")
+    part = part_init.copy()
+    xc.geant4.engine.return_protons = False
+    xc.geant4.engine.return_neutrons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert np.all((pdg == 2112) | (pdg == -2112))
+    assert pdg.size > 0  # Some neutrons should be created to make this test meaningful
+
+    print("Testing return_none=True, return_mesons=True")
+    part = part_init.copy()
+    xc.geant4.engine.return_neutrons = False
+    xc.geant4.engine.return_mesons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert not np.any(pdg == 22)
+    assert not np.any((pdg == 11) | (pdg == -11))
+    assert not np.any((pdg == 2212) | (pdg == -2212))
+    assert not np.any((pdg == 2112) | (pdg == -2112))
+    assert np.all(np.abs(pdg) // 10 % 10 != 0)
+    assert np.all(np.abs(pdg) // 100 % 10 != 0)
+    assert np.all(np.abs(pdg) // 1000 % 10 == 0)
+    assert pdg.size > 0  # Some mesons should be created to make this test meaningful
+
+    print("Testing return_none=True, return_baryons=True")
+    part = part_init.copy()
+    xc.geant4.engine.return_mesons = False
+    xc.geant4.engine.return_baryons = True
+    _track_particles(coll, part)
+    pdg = part.pdg_id[part.particle_id >= num_part]
+    assert not np.any(pdg == 22)
+    assert not np.any((pdg == 11) | (pdg == -11))
+    assert not np.any((pdg == 2212) | (pdg == -2212))
+    assert not np.any((pdg == 2112) | (pdg == -2112))
+    assert np.all(np.abs(pdg) // 10 % 10 != 0)
+    assert np.all(np.abs(pdg) // 100 % 10 != 0)
+    assert np.all(np.abs(pdg) // 1000 % 10 != 0)
+    assert pdg.size > 0  # Some baryons should be created to make this test meaningful
+
+    _stop_engine()
+
+
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
@@ -307,7 +386,7 @@ def _init_g4(particle_ref):
     coll = xc.Geant4Collimator(length=0.4, material='MoGr')
     coll.jaw = 0.002
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, clean=True, verbose=True)
+    xc.geant4.engine.start(elements=coll, clean=True, verbose=True, return_all=True)
     return coll
 
 
