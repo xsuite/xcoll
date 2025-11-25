@@ -426,7 +426,7 @@ class CollimatorDatabase:
         return list(set(names)) # Remove duplicates
 
     def _check_installed(self, line, name, collimator_class):
-        if name in line:
+        if name in line.element_names:
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             if isinstance(line[name], collimator_classes):
