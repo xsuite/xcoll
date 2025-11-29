@@ -383,6 +383,14 @@ class EmittanceMonitor(xt.BeamElement):
                                             [block_xy.T, block_y,    block_yz],
                                             [block_xz.T, block_yz.T, block_z]]),
                                   S)
+
+            # Check for all zero matrix -> zero emittance
+            if np.all(covariance_S < 1E-16):
+                gemitt_I.append(0)
+                gemitt_II.append(0)
+                gemitt_III.append(0)
+                continue
+
             cond_number = np.linalg.cond(covariance_S)
             if cond_number > 1e10:
                 print(f"Warning: High condition number when calculating "
@@ -390,13 +398,6 @@ class EmittanceMonitor(xt.BeamElement):
                     + f"One of the coordinates might be close to zero or not "
                     + f"varying enough among the different particles. Only "
                     + f"{N[i]} particles were logged at this step.")
-
-                # Check for all zero matrix -> zero emittance
-                if np.all(covariance_S < 1E-16):
-                    gemitt_I.append(0)
-                    gemitt_II.append(0)
-                    gemitt_III.append(0)
-                    continue
             
             rank = np.linalg.matrix_rank(covariance_S)
             expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
