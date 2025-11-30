@@ -382,7 +382,7 @@ class BaseEngine(xo.HybridClass):
     @return_tauons.setter
     def return_tauons(self, val):
         if val is None:
-            val = True
+            val = False
         if not isinstance(val, bool):
             raise ValueError("`return_tauons` has to be a boolean!")
         self._return_tauons = val
@@ -394,7 +394,7 @@ class BaseEngine(xo.HybridClass):
     @return_neutrinos.setter
     def return_neutrinos(self, val):
         if val is None:
-            val = True
+            val = False
         if not isinstance(val, bool):
             raise ValueError("`return_neutrinos` has to be a boolean!")
         self._return_neutrinos = val
@@ -712,19 +712,19 @@ class BaseEngine(xo.HybridClass):
         self._set_property('capacity', kwargs)
         self._set_property('return_all', kwargs)
         self._set_property('return_none', kwargs)
+        self._set_property('return_leptons', kwargs)
+        self._set_property('return_mesons', kwargs)
+        self._set_property('return_exotics', kwargs)
+        self._set_property('return_baryons', kwargs)
+        self._set_property('return_ions', kwargs)
         self._set_property('return_neutral', kwargs)
         self._set_property('return_photons', kwargs)
         self._set_property('return_electrons', kwargs)
         self._set_property('return_muons', kwargs)
         self._set_property('return_tauons', kwargs)
         self._set_property('return_neutrinos', kwargs)
-        self._set_property('return_leptons', kwargs)
         self._set_property('return_protons', kwargs)
         self._set_property('return_neutrons', kwargs)
-        self._set_property('return_ions', kwargs)
-        self._set_property('return_mesons', kwargs)
-        self._set_property('return_baryons', kwargs)
-        self._set_property('return_exotics', kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
