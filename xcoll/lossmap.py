@@ -221,9 +221,13 @@ class LossMap:
             for ff in file:
                 self.add_from_json(ff)
                 i += 1
+            if i == 0:
+                raise ValueError("No valid files found.")
             if verbose:
                 print(f"Loaded {i} files into loss map.")
             return
+        if not Path(file).exists():
+            raise FileNotFoundError(f"File {file} not found.")
         with open(Path(file), 'r') as fid:
             lossmap = json.load(fid)
         new_style_json = LossMap._assert_valid_json(lossmap)

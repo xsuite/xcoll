@@ -26,6 +26,9 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     else:
         cold_s = lossmap['aperture']['s']
         cold_val = lossmap['aperture']['e'] if energy else lossmap['aperture']['n']
+    if len(coll_s) == 0 and len(cold_s) == 0:
+        raise ValueError("Empty loss map.")
+    # TODO: implement warm losses
     warm_s = np.array([])  # Placeholder for warm losses, if needed
     warm_val = np.array([])  # Placeholder for warm losses, if needed
     if norm != "raw":
