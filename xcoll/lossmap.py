@@ -22,7 +22,7 @@ from .constants import (USE_IN_LOSSMAP,
 
 
 class LossMap:
-    def __init__(self, line=None, part=None, *, line_is_reversed, interpolation=None,
+    def __init__(self, line=None, part=None, *, line_is_reversed=None, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length() if line else None
@@ -58,7 +58,7 @@ class LossMap:
 
     @classmethod
     def from_json(cls, file, verbose=True):
-        lm = cls(line_is_reversed=None)
+        lm = cls()
         lm.add_from_json(file, verbose=verbose)
         return lm
 
