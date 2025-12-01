@@ -321,6 +321,12 @@ class LossMap:
         if len(part.s[part.state==0]) > 0:
             if verbose:
                 print("Performing the aperture losses refinement.")
+            time_dependent_was_enabled = False
+            if line.enable_time_dependent_vars:
+                line.enable_time_dependent_vars = False
+                if verbose:
+                    print("Temporarily disabled time-dependent variables in the line for loss location refinement.")
+                time_dependent_was_enabled = True
             loss_loc_refinement = xt.LossLocationRefinement(
                 line,
                 n_theta = 360,            # Angular resolution
@@ -329,6 +335,8 @@ class LossMap:
                 ds = self.interpolation   # Longitudinal accuracy [m]
             )
             loss_loc_refinement.refine_loss_location(part)
+            if time_dependent_was_enabled:
+                line.enable_time_dependent_vars = True
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
