@@ -102,9 +102,11 @@ def track_core(coll, part):
     # Update particles that are still alive
     returned_alive = products['state'][:num_sent] > 0
     idx_alive = np.arange(len(part.x))[send_to_geant4][returned_alive]
+    idx_returned_alive = np.nonzero(returned_alive)[0]
+
     # Energy needs special treatment
     m_in = part.mass[idx_alive]
-    new_p = products['p'][:num_sent][returned_alive]
+    new_p = products['p'][idx_returned_alive]
     new_energy = np.sqrt(new_p**2 + m_in**2)
     E_diff = np.zeros(len(part.x))
     E_diff[idx_alive] = part.energy[idx_alive] - new_energy
@@ -115,12 +117,12 @@ def track_core(coll, part):
     coll._acc_ionisation_loss += np.sum(E_diff)
 
     rpp  = part.rpp[idx_alive]
-    part.x[idx_alive]      = products['x'][:num_sent][returned_alive]
-    part.px[idx_alive]     = products['xp'][:num_sent][returned_alive] / rpp   # Director cosine back to px
-    part.y[idx_alive]      = products['y'][:num_sent][returned_alive]
-    part.py[idx_alive]     = products['yp'][:num_sent][returned_alive] / rpp   # Director cosine back to py
-    part.zeta[idx_alive]   = products['zeta'][:num_sent][returned_alive]
-    part.weight[idx_alive] = products['weight'][:num_sent][returned_alive]
+    part.x[idx_alive]      = products['x'][idx_returned_alive]
+    part.px[idx_alive]     = products['xp'][idx_returned_alive] / rpp   # Director cosine back to px
+    part.y[idx_alive]      = products['y'][idx_returned_alive]
+    part.py[idx_alive]     = products['yp'][idx_returned_alive] / rpp   # Director cosine back to py
+    part.zeta[idx_alive]   = products['zeta'][idx_returned_alive]
+    part.weight[idx_alive] = products['weight'][idx_returned_alive]
 
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]
@@ -212,6 +214,7 @@ def track_core(coll, part):
         # particle. We make a virtual particle with fake mass (E=2m) to avoid negative square roots.
         mask_virtual = (part.energy - E_children < part.mass) & (E_children > 0)
         if np.any(mask_virtual):
+            # import ipdb; ipdb.set_trace()
             virtual_mass = (part.energy - E_children)[mask_virtual] / np.sqrt(2)
             new_ptau = part.ptau.copy()
             old_mass = part.mass[mask_virtual]
