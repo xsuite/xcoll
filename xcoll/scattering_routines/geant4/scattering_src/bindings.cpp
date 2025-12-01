@@ -18,8 +18,9 @@ PYBIND11_MODULE(g4interface, m) {
                  "relativeEnergyCut"_a, "seed"_a, "referenceIonCharge"_a=0,"batchMode"_a=true,
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             .def("addCollimator", &XtrackInterface::addCollimator,
-                 "name"_a, "material"_a, "length"_a, "apertureLeft"_a, "apertureRight"_a, "rotation"_a,
-                 "xOffset"_a, "yOffset"_a, "jawTiltLeft"_a, "jawTiltRight"_a, "side"_a, "isACrystal"_a,
+                 "name"_a, "material"_a, "tipMaterial"_a, "tipThickness"_a, "length"_a, "apertureLeft"_a,
+                 "apertureRight"_a, "rotation"_a, "xOffset"_a, "yOffset"_a, "jawTiltLeft"_a,
+                 "jawTiltRight"_a, "side"_a, "isACrystal"_a,
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             /// The cast here to disambiguate overloaded methods. The other versions of
             /// addParticles were removed, but keep the cast for reference for now.

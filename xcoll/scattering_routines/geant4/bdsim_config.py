@@ -70,23 +70,30 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, extr
 
 
 def generate_material_definitions(element_dict, verbose=True):
+    from ...beam_elements import Geant4CollimatorTip
     code = []
     for name, el in element_dict.items():
-        mat = el.material
-        if mat is None:
-            raise ValueError(f"Material not set for element {name}!")
-        elif not isinstance(mat, RefMaterial):
+        all_mat = [el.material]
+        if isinstance(el, Geant4CollimatorTip):
+            all_mat.append(el.tipMaterial)
+        for mat in all_mat:
+            if mat is None:
+                raise ValueError(f"Material not set for element {name}!")
+            elif not isinstance(mat, RefMaterial):
+                if mat.geant4_name is None:
+                    mat._generate_geant4_code()
+                if mat._generated_geant4_code is not None \
+                and mat._generated_geant4_code not in code:
+                    code.append(mat._generated_geant4_code)
+            # Verify that material has a Geant4 name (after possible generation)
             if mat.geant4_name is None:
-                mat._generate_geant4_code()
-            if mat._generated_geant4_code is not None \
-            and mat._generated_geant4_code not in code:
-                code.append(mat._generated_geant4_code)
-        # Verify that material has a Geant4 name (after possible generation)
-        if mat.geant4_name is None:
-            raise ValueError(f"Material for element {name} has no Geant4 name!")
-        mess = f"! Element {name} (id {el.geant4_id}) uses material {mat.geant4_name}"
+                raise ValueError(f"Material for element {name} has no Geant4 name!")
         if verbose:
-            print(mess)
+            mats = [m.geant4_name for m in all_mat]
+            if len(mats) == 1:
+                print(f"! Element {name} (id {el.geant4_id}) uses material {mats[0]}")
+            else:
+                print(f"! Element {name} (id {el.geant4_id}) uses materials {mats}")
     code.append('')
     return code
 

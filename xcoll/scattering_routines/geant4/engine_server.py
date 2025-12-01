@@ -23,10 +23,10 @@ class BDSIMServer:
                                       seed=seed, batchMode=batchMode)
 
 
-    def addCollimator(self, geant4_id, material, length, apertureLeft=None, apertureRight=None,
-                      rotation=None, xOffset=0, yOffset=0, side=None, jawTiltLeft=None,
-                      jawTiltRight=None, isACrystal=False):
-        self.g4link.addCollimator(geant4_id, material, length,
+    def addCollimator(self, geant4_id, material, tipMaterial='', tipThickness=0, length=0,
+                      apertureLeft=None, apertureRight=None, rotation=None, xOffset=0, yOffset=0,
+                      side=None, jawTiltLeft=None, jawTiltRight=None, isACrystal=False):
+        self.g4link.addCollimator(geant4_id, material, tipMaterial, tipThickness, length,
                                   apertureLeft=apertureLeft,
                                   apertureRight=apertureRight,
                                   rotation=rotation,
