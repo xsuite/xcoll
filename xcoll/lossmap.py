@@ -22,16 +22,14 @@ from .constants import (USE_IN_LOSSMAP,
 
 
 class LossMap:
-    def __init__(self, line, part, *, line_is_reversed, interpolation=None,
+    def __init__(self, line=None, part=None, *, line_is_reversed, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
-        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
-        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
-            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
         self._line_is_reversed = line_is_reversed
         self._machine_length = line.get_length() if line else None
         self._interpolation = interpolation
         self._momentum = line.particle_ref.p0c[0] if line else None
         self._aper_s = np.array([])
+        self._aper_length = np.array([])
         self._aper_nabs = np.array([])
         self._aper_eabs = np.array([])
         self._aperbins = np.array([])
@@ -44,8 +42,8 @@ class LossMap:
         self._coll_eabs = np.array([])
         self._coll_length = np.array([])
         self._coll_type = np.array([])
-        self._xcoll = __version__
-        self._energy_waring_given = False
+        self._xcoll = np.array([])
+        self._date = np.array([])
         if part and line:
             self.add_particles(part=part, line=line, line_shift_s=line_shift_s,
                                weights=weights, weight_function=weight_function,
@@ -60,7 +58,7 @@ class LossMap:
 
     @classmethod
     def from_json(cls, file, verbose=True):
-        lm = cls(None, None, line_is_reversed=None)
+        lm = cls(line_is_reversed=None)
         lm.add_from_json(file, verbose=verbose)
         return lm
 
@@ -68,7 +66,7 @@ class LossMap:
         with open(Path(file), 'w') as fid:
             json.dump({
                 'xcoll': self._xcoll,
-                'date':  pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'date':  self._date,
                 **self.lossmap
             }, fid, indent=True, cls=xo.JEncoder)
 
@@ -107,17 +105,18 @@ class LossMap:
             mask = self._aperbinned > 0
             aper_s = self._aperbins[:-1] + self.interpolation/2
             return {
-                'idx_bins': np.arange(len(self._aperbins)-1)[mask],
-                's_bins': aper_s[mask],
-                'n_bins': self._aperbinned[mask],
-                'e_bins': self._aperbinned_energy[mask],
+                'idx_bins':    np.arange(len(self._aperbins)-1)[mask],
+                's_bins':      aper_s[mask],
+                'n_bins':      self._aperbinned[mask],
+                'e_bins':      self._aperbinned_energy[mask],
                 'length_bins': self._aperbins_length[mask],
             }
         else:
             return {
-                's': self._aper_s,
-                'n': self._aper_nabs,
-                'e': self._aper_eabs
+                's':      self._aper_s,
+                'length': self._aper_length,
+                'n':      self._aper_nabs,
+                'e':      self._aper_eabs
             }
 
     @property
@@ -156,12 +155,20 @@ class LossMap:
                             show=show, savefig=savefig)
 
     def add_particles(self, part, line, *, line_shift_s=0, weights=None,
-                      weight_function=None, verbose=True):
+                      weight_function=None, interpolation=None, verbose=True):
         """
         Add particles to the loss map. Aperture losses are interpolated and the
         collimator summary is updated.
         """
-        if self.interpolation is None:
+        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
+        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
+            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
+        if interpolation is not None:
+            if self._interpolation is not None and not np.isclose(self._interpolation, interpolation):
+                raise ValueError("The interpolation step is different from the one used "
+                                 "to create the loss map.")
+            self._interpolation = interpolation
+        elif self._interpolation is None:
             self._interpolation = 0.1
         if self._machine_length:
             if not np.isclose(self._machine_length, line.get_length()):
@@ -200,6 +207,8 @@ class LossMap:
 
         self._make_coll_summary(part, line, line_shift_s, weights)
         self._get_aperture_losses(part, line_shift_s, weights)
+        self._xcoll = np.append(self._xcoll, __version__)
+        self._date = np.append(self._date, pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
     def add_from_json(self, file, verbose=True):
@@ -224,9 +233,13 @@ class LossMap:
             elif not np.isclose(self._momentum, lossmap['momentum']):
                 raise ValueError("The momentum is different from the one used "
                                  "to create the loss map.")
-            if self._xcoll != lossmap['xcoll'] and verbose:
+            xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
+            if len(self._xcoll) > 0 and not set(self._xcoll).intersection(xcoll) and verbose:
                 print("Warning: The xcoll version is different from the one used "
                     "to create the loss map.")
+            self._xcoll = np.concatenate((self._xcoll, xcoll))
+            date = [lossmap['date']] if isinstance(lossmap['date'], str) else lossmap['date']
+            self._date = np.concatenate((self._date, date))
         if self.line_is_reversed is None:
             self._line_is_reversed = lossmap['reversed']
         elif self.line_is_reversed != lossmap['reversed']:
@@ -425,8 +438,8 @@ class LossMap:
                 self._do_aperture_binning(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
                                           aper_eabs=aper_eabs)
             else:
-                self._aperbinned[aperdata['idx_bins']] = aperdata['n_bins']
-                self._aperbinned_energy[aperdata['idx_bins']] = aperdata['e_bins']
+                self._aperbinned[aperdata['idx_bins']] += aperdata['n_bins']
+                self._aperbinned_energy[aperdata['idx_bins']] += aperdata['e_bins']
         else:
             self._do_aperture_adding(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
                                      aper_eabs=aperdata['e'])
@@ -486,7 +499,7 @@ class LossMap:
                 raise ValueError("The JSON file does not contain the collimator type data.")
         if 'aperture' not in lossmap:
             raise ValueError("The JSON file does not contain the aperture data.")
-        if is_new_format and lossmap['interpolation'] is not None:
+        if is_new_format and lossmap['interpolation']:
             if 'idx_bins' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture idx_bins data.")
             if 'n_bins' not in lossmap['aperture']:
