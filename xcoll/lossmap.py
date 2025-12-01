@@ -147,6 +147,17 @@ class LossMap:
     def num_collimator_losses(self):
         return int(self._coll_nabs.sum())
 
+    @property
+    def tot_energy(self):
+        return self.tot_energy_aperture + self.tot_energy_collimator
+
+    @property
+    def tot_energy_collimator(self):
+        return self._coll_eabs.sum()
+
+    @property
+    def tot_energy_aperture(self):
+        return self._aperbinned_energy.sum()
 
     def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
              grid=True, energy=False, show=True, savefig=None):
