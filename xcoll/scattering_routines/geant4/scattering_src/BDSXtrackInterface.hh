@@ -49,8 +49,10 @@ public:
 
     virtual ~XtrackInterface();
 
-    void addCollimator(const  std::string&   name,
-                       const  std::string&   material,
+    void addCollimator(const std::string& name,
+                       const std::string& material,
+                       const std::string& tipMaterial,
+                       double tipThickness,
                        double lengthIn,
                        double apertureLeftIn,
                        double apertureRightIn,

@@ -167,7 +167,7 @@ class Geant4Engine(BaseEngine):
         return input_file, kwargs
 
     def _start_engine(self, **kwargs):
-        from ...beam_elements import BaseCrystal
+        from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
         try:
@@ -228,12 +228,15 @@ class Geant4Engine(BaseEngine):
                 self.stop(clean=True)
                 raise NotImplementedError(f"Geant4Collimator {el.name} has positive right jaw: "
                                + f"jaw_R={el.jaw_R}! BDSIM cannot handle this.")
-            self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name, el.length,
-                                    apertureLeft=jaw_L, apertureRight=-jaw_R,
-                                    rotation=np.deg2rad(el.angle),
-                                    xOffset=0, yOffset=0, side=side,
-                                    jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                    isACrystal=isinstance(el, BaseCrystal))
+            tip_material = el.tip_material.geant4_name if isinstance(el, Geant4CollimatorTip) else ''
+            tip_thickness = el.tip_thickness if isinstance(el, Geant4CollimatorTip) else 0
+            self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name,
+                                       tip_material, tip_thickness, el.length,
+                                       apertureLeft=jaw_L, apertureRight=-jaw_R,
+                                       rotation=np.deg2rad(el.angle),
+                                       xOffset=0, yOffset=0, side=side,
+                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                       isACrystal=isinstance(el, BaseCrystal))
         self._already_started = True
 
     def _stop_engine(self, **kwargs):

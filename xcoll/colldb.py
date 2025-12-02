@@ -14,7 +14,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           Geant4Collimator, collimator_classes
+                           Geant4Collimator, Geant4CollimatorTip, collimator_classes
 
 
 def _initialise_None(dct):
@@ -22,7 +22,7 @@ def _initialise_None(dct):
     fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
-    fields.update({'s_center': None})  # TODO: add s_start and s_end and make them sync etc
+    fields.update({'s_center': None, 'tip_material': None, 'tip_thickness': 0})  # TODO: add s_start and s_end and make them sync etc
     for f, val in fields.items():
         if f not in dct.keys():
             dct[f] = val
@@ -525,9 +525,17 @@ class CollimatorDatabase:
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
                             + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
-            if self[name]['bending_radius'] is not None:
+            bending_radius = self[name]['bending_radius']
+            tip_material = self[name]['tip_material']
+            tip_thickness = self[name]['tip_thickness']
+            if bending_radius is not None:
                 raise ValueError("Geant4Crystal not yet supported!")
-            self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
+            elif tip_material is not None and tip_thickness > 0:
+                self._create_collimator(Geant4CollimatorTip, line, name, material=mat,
+                                        tip_material=tip_material, tip_thickness=tip_thickness,
+                                        verbose=verbose)
+            else:
+                self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
         at_s = []
         elements = []
         for name in names:

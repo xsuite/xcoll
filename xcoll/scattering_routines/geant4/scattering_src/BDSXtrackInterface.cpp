@@ -148,8 +148,10 @@ XtrackInterface::~XtrackInterface(){
 }
 
 
-void XtrackInterface::addCollimator(const std::string&   name,
-                                    const std::string&   material,
+void XtrackInterface::addCollimator(const std::string& name,
+                                    const std::string& material,
+                                    const std::string& tipMaterial,
+                                    double tipThickness,
                                     double lengthIn,
                                     double apertureLeftIn,
                                     double apertureRightIn,
@@ -164,20 +166,39 @@ void XtrackInterface::addCollimator(const std::string&   name,
         bool buildLeft  = side == 0 || side == 1;
         bool buildRight = side == 0 || side == 2;
 
-        bds->AddLinkCollimatorJaw(name,
-                                  material,
-                                  lengthIn * CLHEP::m,
-                                  apertureLeftIn * CLHEP::m,
-                                  apertureRightIn * CLHEP::m,
-                                  rotationIn * CLHEP::rad,
-                                  xOffsetIn * CLHEP::m,
-                                  yOffsetIn * CLHEP::m,
-                                  jawTiltLeft * CLHEP::rad,
-                                  jawTiltRight * CLHEP::rad,
-                                  buildLeft,
-                                  buildRight,
-                                  isACrystal,
-                                  0);
+        bool isTipped = !tipMaterial.empty() && tipThickness > 0.0;
+
+        if (isTipped) {                                              // BDSIM >= 1.7.7.develop
+            bds->AddLinkCollimatorTipJaw(name,                       // BDSIM >= 1.7.7.develop
+                                         material,                   // BDSIM >= 1.7.7.develop
+                                         tipMaterial,                // BDSIM >= 1.7.7.develop
+                                         tipThickness * CLHEP::m,    // BDSIM >= 1.7.7.develop
+                                         lengthIn * CLHEP::m,        // BDSIM >= 1.7.7.develop
+                                         apertureLeftIn * CLHEP::m,  // BDSIM >= 1.7.7.develop
+                                         apertureRightIn * CLHEP::m, // BDSIM >= 1.7.7.develop
+                                         rotationIn * CLHEP::rad,    // BDSIM >= 1.7.7.develop
+                                         xOffsetIn * CLHEP::m,       // BDSIM >= 1.7.7.develop
+                                         yOffsetIn * CLHEP::m,       // BDSIM >= 1.7.7.develop
+                                         jawTiltLeft * CLHEP::rad,   // BDSIM >= 1.7.7.develop
+                                         jawTiltRight * CLHEP::rad,  // BDSIM >= 1.7.7.develop
+                                         buildLeft,                  // BDSIM >= 1.7.7.develop
+                                         buildRight);                // BDSIM >= 1.7.7.develop
+        } else {                                                     // BDSIM >= 1.7.7.develop
+            bds->AddLinkCollimatorJaw(name,
+                                      material,
+                                      lengthIn * CLHEP::m,
+                                      apertureLeftIn * CLHEP::m,
+                                      apertureRightIn * CLHEP::m,
+                                      rotationIn * CLHEP::rad,
+                                      xOffsetIn * CLHEP::m,
+                                      yOffsetIn * CLHEP::m,
+                                      jawTiltLeft * CLHEP::rad,
+                                      jawTiltRight * CLHEP::rad,
+                                      buildLeft,
+                                      buildRight,
+                                      isACrystal,
+                                      0);
+        }                                                            // BDSIM >= 1.7.7.develop
     }
 
 

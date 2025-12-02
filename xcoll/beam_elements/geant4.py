@@ -158,6 +158,67 @@ class Geant4Collimator(BaseCollimator):
             return False
 
 
+class Geant4CollimatorTip(Geant4Collimator):
+
+    _xofields = Geant4Collimator._xofields | {
+        'tip_thickness': xo.Float64
+    }
+
+    isthick = True
+    allow_track = True
+    iscollective = True
+    behaves_like_drift = True
+    skip_in_loss_location_refinement = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
+    ]
+
+    _depends_on = [*Geant4Collimator._depends_on]
+
+    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'tip_material'}
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tip_material']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'tip_material']
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    def __new__(cls, *args, **kwargs):
+        with cls._in_constructor():
+            self = super().__new__(cls, *args, **kwargs)
+        return self
+
+    def __init__(self, **kwargs):
+        with self.__class__._in_constructor():
+            to_assign = {}
+            if '_xobject' not in kwargs:
+                to_assign['material'] = kwargs.pop('tip_material', None)
+                kwargs['_material'] = _DEFAULT_MATERIAL
+            super().__init__(**kwargs)
+            for key, val in to_assign.items():
+                setattr(self, key, val)
+
+    @property
+    def tip_material(self):
+        if self._tip_material != _DEFAULT_MATERIAL:
+            return self._tip_material
+
+    @tip_material.setter
+    def tip_material(self, tip_material):
+        if tip_material is None:
+            tip_material = _DEFAULT_MATERIAL
+        elif isinstance(tip_material, dict):
+            tip_material = Material.from_dict(tip_material)
+        elif isinstance(tip_material, str):
+            tip_material = material_db[tip_material]
+        elif isinstance(tip_material, RefMaterial):
+            if tip_material.geant4_name is None:
+                raise ValueError(f"RefMaterial {tip_material} does not have a Geant4 name!")
+        if not isinstance(tip_material, Material) \
+        or isinstance(tip_material, CrystalMaterial):
+            raise ValueError(f"Invalid material of type {type(tip_material)}!")
+        if self.tip_material != tip_material:
+            self._tip_material = tip_material
+
+
 class Geant4Crystal(BaseCrystal):
     def __init__(self, **kwargs):
         raise NotImplementedError("Geant4Crystal not yet implemented.")
