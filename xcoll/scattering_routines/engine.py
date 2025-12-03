@@ -48,11 +48,12 @@ class BaseEngine(xo.HybridClass):
         # Initialise defaults
         self._cwd = None
         self._line = None
+        self._masses = None
         self._verbose = False
         self._input_file = None
+        self._environment = None
         self._element_dict = {}
         self._warning_given = False
-        self._environment = None
         self._element_index = 0
         self._tracking_initialised = False
         self._deactivated_elements = {}
@@ -759,7 +760,7 @@ class BaseEngine(xo.HybridClass):
             self.seed = seed
         self._print(f"Using seed {self.seed}.")
 
-    def _use_particle_ref(self, particle_ref=None):
+    def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
         if particle_ref is not None:
             self._old_particle_ref = self.particle_ref
@@ -773,6 +774,31 @@ class BaseEngine(xo.HybridClass):
             self.particle_ref = self.line.particle_ref
         self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
+        if self._masses is not None:
+            mass = self.particle_ref.mass0
+            pdg_id = self.particle_ref.pdg_id[0]
+            if abs(pdg_id) in self._masses:
+                new_mass = self._masses[abs(pdg_id)]
+                if abs(mass-new_mass)/mass > 1.e-12:
+                    old_energy0 = self.particle_ref.energy0[0]
+                    self.particle_ref.mass0  = new_mass
+                    if keep_p0c_constant:
+                        self.particle_ref._update_refs(p0c=self.particle_ref.p0c[0])
+                    else:
+                        self.particle_ref._update_refs(energy0=old_energy0)
+                    assert np.isclose(self.particle_ref.energy0[0]**2, self.particle_ref.p0c[0]**2 + self.particle_ref.mass0**2)
+                    assert np.isclose(self.particle_ref.mass0, new_mass)
+                    self._print(f"Warning: given mass of {mass} eV for "
+                            + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from {self.name} "
+                            + f"mass of {new_mass} eV.\nReference particle mass is "
+                            + f"overwritten by the latter.")
+            else:
+                self._print(f"Warning: No {self.name} reference mass known for particle "
+                        + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the reference mass "
+                        + f"provided ({mass} eV) differs from the one used internally "
+                        + f"by {self.name}, differences in energy might be observed.\nOnce "
+                        + f"the {self.name} reference mass is known, contact the devs to "
+                        + f"input it in the code.")
 
     def _sync_line_particle_ref(self):
         if self.line is None:
