@@ -75,7 +75,7 @@ def generate_material_definitions(element_dict, verbose=True):
     for name, el in element_dict.items():
         all_mat = [el.material]
         if isinstance(el, Geant4CollimatorTip):
-            all_mat.append(el.tipMaterial)
+            all_mat.append(el.tip_material)
         for mat in all_mat:
             if mat is None:
                 raise ValueError(f"Material not set for element {name}!")

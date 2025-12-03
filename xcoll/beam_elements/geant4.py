@@ -176,10 +176,10 @@ class Geant4CollimatorTip(Geant4Collimator):
 
     _depends_on = [*Geant4Collimator._depends_on]
 
-    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'tip_material'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tip_material']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'tip_material']
-    _internal_record_class = BaseCollimator._internal_record_class
+    _noexpr_fields         = {*Geant4Collimator._noexpr_fields, 'tip_material'}
+    _skip_in_to_dict       = [*Geant4Collimator._skip_in_to_dict, '_tip_material']
+    _store_in_to_dict      = [*Geant4Collimator._store_in_to_dict, 'tip_material']
+    _internal_record_class = Geant4Collimator._internal_record_class
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -190,8 +190,8 @@ class Geant4CollimatorTip(Geant4Collimator):
         with self.__class__._in_constructor():
             to_assign = {}
             if '_xobject' not in kwargs:
-                to_assign['material'] = kwargs.pop('tip_material', None)
-                kwargs['_material'] = _DEFAULT_MATERIAL
+                to_assign['tip_material'] = kwargs.pop('tip_material', None)
+                kwargs['_tip_material'] = _DEFAULT_MATERIAL
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
