@@ -1,5 +1,5 @@
 #!/bin/bash
-python geant4_init.py
+python ../examples/geant4_init.py
 if [ $? -ne 0 ]; then
     echo "Geant4 initialization failed"
     exit 1
