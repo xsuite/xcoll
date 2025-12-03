@@ -14,7 +14,7 @@ from pathlib import Path
 import xtrack as xt
 
 from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal,
-                            FlukaCollimator, Geant4Collimator, collimator_classes)
+                            FlukaCollimator, FlukaCrystal, Geant4Collimator, collimator_classes)
 
 
 def _initialise_None(dct):

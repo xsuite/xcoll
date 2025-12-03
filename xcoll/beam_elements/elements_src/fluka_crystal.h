@@ -8,35 +8,35 @@
 
 
 /*gpufun*/
-int8_t FLukaCrystalData_get_record_impacts(FLukaCrystalData el){
-    return FLukaCrystalData_get__record_interactions(el) % 2;
+int8_t FlukaCrystalData_get_record_impacts(FlukaCrystalData el){
+    return FlukaCrystalData_get__record_interactions(el) % 2;
 }
 
 /*gpufun*/
-int8_t FLukaCrystalData_get_record_exits(FLukaCrystalData el){
-    return (FLukaCrystalData_get__record_interactions(el) >> 1) % 2;
+int8_t FlukaCrystalData_get_record_exits(FlukaCrystalData el){
+    return (FlukaCrystalData_get__record_interactions(el) >> 1) % 2;
 }
 
 /*gpufun*/
-int8_t FLukaCrystalData_get_record_scatterings(FLukaCrystalData el){
-    return (FLukaCrystalData_get__record_interactions(el) >> 2) % 2;
+int8_t FlukaCrystalData_get_record_scatterings(FlukaCrystalData el){
+    return (FlukaCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
 
 /*gpufun*/
-CrystalGeometry FLukaCrystal_init_geometry(FLukaCrystalData el, LocalParticle* part0){
+CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* part0){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
-    cg->length = FLukaCrystalData_get_length(el);
-    cg->side   = FLukaCrystalData_get__side(el);
-    cg->bending_radius = FLukaCrystalData_get__bending_radius(el);
-    cg->bending_angle  = FLukaCrystalData_get__bending_angle(el);
-    cg->width  = FLukaCrystalData_get__width(el);
-    cg->height = FLukaCrystalData_get__height(el);
-    cg->jaw_U  = FLukaCrystalData_get__jaw_U(el);
-    cg->sin_z  = FLukaCrystalData_get__sin_z(el);
-    cg->cos_z  = FLukaCrystalData_get__cos_z(el);
-    cg->sin_y  = FLukaCrystalData_get__sin_y(el);
-    cg->cos_y  = FLukaCrystalData_get__cos_y(el);
+    cg->length = FlukaCrystalData_get_length(el);
+    cg->side   = FlukaCrystalData_get__side(el);
+    cg->bending_radius = FlukaCrystalData_get__bending_radius(el);
+    cg->bending_angle  = FlukaCrystalData_get__bending_angle(el);
+    cg->width  = FlukaCrystalData_get__width(el);
+    cg->height = FlukaCrystalData_get__height(el);
+    cg->jaw_U  = FlukaCrystalData_get__jaw_U(el);
+    cg->sin_z  = FlukaCrystalData_get__sin_z(el);
+    cg->cos_z  = FlukaCrystalData_get__cos_z(el);
+    cg->sin_y  = FlukaCrystalData_get__sin_y(el);
+    cg->cos_y  = FlukaCrystalData_get__cos_y(el);
     double jaw;
     if (cg->side == 1){
         jaw = cg->jaw_U;
@@ -48,14 +48,14 @@ CrystalGeometry FLukaCrystal_init_geometry(FLukaCrystalData el, LocalParticle* p
     }
     cg->segments = create_crystal(cg->bending_radius, cg->width, cg->length, jaw, cg->sin_y, cg->cos_y);
     // Impact table
-    cg->record = FLukaCrystalData_getp_internal_record(el, part0);
+    cg->record = FlukaCrystalData_getp_internal_record(el, part0);
     cg->record_index = NULL;
     cg->record_impacts = 0;
     cg->record_exits = 0;
     if (cg->record){
         cg->record_index = InteractionRecordData_getp__index(cg->record);
-        cg->record_impacts = FLukaCrystalData_get_record_impacts(el);
-        cg->record_exits = FLukaCrystalData_get_record_exits(el);
+        cg->record_impacts = FlukaCrystalData_get_record_impacts(el);
+        cg->record_exits = FlukaCrystalData_get_record_exits(el);
     }
     // Not needed, set to zero
     cg->miscut_angle = 0;
@@ -66,21 +66,21 @@ CrystalGeometry FLukaCrystal_init_geometry(FLukaCrystalData el, LocalParticle* p
 }
 
 /*gpufun*/
-void FLukaCrystal_free(CrystalGeometry restrict cg){
+void FlukaCrystal_free(CrystalGeometry restrict cg){
     destroy_crystal(cg->segments);
     free(cg);
 }
 
 
 /*gpufun*/
-void FLukaCrystal_track_local_particle(FLukaCrystalData el, LocalParticle* part0){
-    int8_t active = FLukaCrystalData_get_active(el);
-    active       *= FLukaCrystalData_get__tracking(el);
+void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0){
+    int8_t active = FlukaCrystalData_get_active(el);
+    active       *= FlukaCrystalData_get__tracking(el);
 
     // Get geometry
     CrystalGeometry cg;
     if (active){
-        cg = FLukaCrystal_init_geometry(el, part0);
+        cg = FlukaCrystal_init_geometry(el, part0);
         if (cg->width==0 || cg->height==0 || cg->bending_radius==0){
             kill_all_particles(part0, XC_ERR_INVALID_XOFIELD);
         }
@@ -159,7 +159,7 @@ void FLukaCrystal_track_local_particle(FLukaCrystalData el, LocalParticle* part0
         }
     //end_per_particle_block
     if (active){
-        FLukaCrystal_free(cg);
+        FlukaCrystal_free(cg);
     }
 }
 

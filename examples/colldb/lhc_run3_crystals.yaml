@@ -92,11 +92,11 @@ collimators:
     tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR,  assembly: 'hilumi_tcppm' }
     tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
-    tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  width: 5.0e-3,  height: 30.0e-3,  assembly: 'hilumi_TCPCVB1' }
+    tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  width: 5.0e-3,  height: 30.0e-3 } #,  assembly: 'hilumi_TCPCVB1' }
     tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.7   }
     tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,    material: MoGR,  assembly: 'hilumi_tcspm' }
-    tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bending_radius: 61.54,  width: 2.0e-3,  height: 50.0e-3,  assembly: 'hilumi_TCPCHB1' }
+    tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bending_radius: 61.54,  width: 2.0e-3,  height: 50.0e-3 } #,  assembly: 'hilumi_TCPCHB1' }
     tcsg.b4l7.b1:       { <<: *TCSG7,  angle:   0,    active: false }
     tcspm.b4l7.b1:      { <<: *TCSG7,  angle:   0,    material: MoGR,  assembly: 'hilumi_tcspm' }
     tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.6   }

@@ -77,6 +77,11 @@ def create_generic_assembly(**kwargs):
                 if kwargs.get(field, opt_value) != getattr(prototype, field):
                     found = False
                     break
+            if kwargs['is_crystal']:
+                for field in _generic_crystal_required_fields:
+                    if kwargs[field] != getattr(prototype, field):
+                        found = False
+                        break
             if found:
                 return prototype
     # Get an ID
@@ -217,8 +222,10 @@ RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
-RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
-RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+*RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+*RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
+RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
+RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
 """
     tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
                         template_tank)
@@ -260,10 +267,11 @@ ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 
 def _crystal_body_file(fedb_tag, length, bending_radius, width, height, **kwargs):
     template_body = f"""\
-RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} 0.00001 {length*(100+20)}
-ZCC {fedb_tag}Z1  {bending_radius*100} 0.0 {bending_radius*100}
-ZCC {fedb_tag}Z2  {bending_radius*100} 0.0 {bending_radius*100-width*100}
+RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} -{length*(100+20)} {length*(100+20)}
+YCC {fedb_tag}Z1  0.0 {bending_radius*100} {bending_radius*100}
+YCC {fedb_tag}Z2  0.0 {bending_radius*100} {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
+XYP {fedb_tag}P2  0.0
 """
     body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
                             template_body)
@@ -278,10 +286,11 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 
 def _crystal_region_file(fedb_tag, **kwargs):
     template_body_reg = f"""\
-{fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1
+{fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1 - {fedb_tag}P2
 {fedb_tag}B2     5 | +{fedb_tag}_B +{fedb_tag}Z2
                    | +{fedb_tag}_B -{fedb_tag}Z1
                    | +{fedb_tag}_B -{fedb_tag}P1
+                   | +{fedb_tag}_B +{fedb_tag}P2 -{fedb_tag}Z2
 """
     _write_file("regions", f"generic_{fedb_tag}_B.regions",
                 template_body_reg)
