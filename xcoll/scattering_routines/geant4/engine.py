@@ -38,8 +38,8 @@ class Geant4Engine(BaseEngine):
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
-        from ...beam_elements import Geant4Collimator, Geant4Crystal
-        self.__class__._element_classes = (Geant4Collimator, Geant4Crystal)
+        from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
+        self.__class__._element_classes = (Geant4Collimator, Geant4CollimatorTip, Geant4Crystal)
         # Initialise geant4-only defaults
         self._g4link = None
         self._server = None # remove after geant4 bugfix
@@ -270,6 +270,7 @@ class Geant4Engine(BaseEngine):
             if name not in self._element_dict:
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
+            from ...beam_elements import Geant4CollimatorTip
             if name not in input_dict:
                 self._print(f"Warning: Geant4Collimator {name} not in Geant4 input file! "
                           + f"Maybe it was fully open. Deactivated")
@@ -290,6 +291,21 @@ class Geant4Engine(BaseEngine):
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
+            if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
+                if not isinstance(ee, Geant4CollimatorTip):
+                    raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
+                                    + "in the line, but it has tip material in the input file!")
+                if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
+                    raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
+                                    + "but it has no tip material in the input file!")
+                if ee.tip_material.geant4_name != input_dict[name]['tip_material']:
+                    self._print(f"Warning: Tip material of {name} differs from input file "
+                            + f"({ee.tip_material.geant4_name} vs {input_dict[name]['tip_material']})! Overwritten.")
+                    ee.tip_material.geant4_name = input_dict[name]['tip_material']
+                if not np.isclose(ee.length, input_dict[name]['tip_thickness'], atol=1e-9):
+                    self._print(f"Warning: Tip thickness of {name} differs from input file "
+                            + f"({ee.tip_thickness} vs {input_dict[name]['tip_thickness']})! Overwritten.")
+                    ee.tip_thickness = input_dict[name]['tip_thickness']
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]

@@ -91,9 +91,9 @@ def generate_material_definitions(element_dict, verbose=True):
         if verbose:
             mats = [m.geant4_name for m in all_mat]
             if len(mats) == 1:
-                print(f"! Element {name} (id {el.geant4_id}) uses material {mats[0]}")
+                print(f"Element {name} (id {el.geant4_id}) uses material {mats[0]}")
             else:
-                print(f"! Element {name} (id {el.geant4_id}) uses materials {mats}")
+                print(f"Element {name} (id {el.geant4_id}) uses materials {mats}")
     code.append('')
     return code
 
@@ -109,6 +109,7 @@ def get_collimators_from_input_file(input_file):
 
 
 def _generate_xcoll_header(element_dict):
+    from ...beam_elements import Geant4CollimatorTip
     header = ["!  DO NOT CHANGE THIS HEADER", _header_start, "!  {"]
     for kk, el in element_dict.items():
         vv = {
@@ -119,7 +120,9 @@ def _generate_xcoll_header(element_dict):
             "jaw": [np.array(el.jaw_L).tolist(), np.array(el.jaw_R).tolist()],
             "tilt": np.array(el.tilt).tolist(),
         }
-        # header.append(f'!  "{kk}": ' + json.dumps(vv).replace('"jaw"', '\n!          "jaw"') + ',')
+        if isinstance(el, Geant4CollimatorTip):
+            vv["tip_material"] = np.array(el.tip_material.geant4_name).tolist()
+            vv["tip_thickness"]   = np.array(el.tip_thickness).tolist()
         header.append(f'!  "{kk}": ' + json.dumps(vv) + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("!  }")
