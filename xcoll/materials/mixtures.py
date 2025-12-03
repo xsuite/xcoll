@@ -4,7 +4,7 @@
 # ######################################### #
 
 from .material import Material
-from .database import db
+from .database import db, _manually_add_material_to_db
 from .atoms import (Carbon, Oxygen, Argon, Hydrogen, Boron, Nitrogen, Silicon,
                     Aluminium, Iron, Nickel, Cobalt, Zinc, Chromium, Titanium,
                     Zirconium, Manganese, Phosphorus, Sulfur, Copper, Molybdenum,
@@ -93,40 +93,33 @@ Inermet180.adapt(inplace=True, nuclear_radius=0.578, nuclear_elastic_slope=392.1
 # Metadata for database
 # =====================
 
-del Carbon, Oxygen, Argon, Hydrogen, Boron, Nitrogen, Silicon, Aluminium, Iron, Nickel, Cobalt, Zinc, Chromium, Titanium
-del Zirconium, Manganese, Phosphorus, Sulfur, Copper, Molybdenum, Tungsten, Calcium, Niobium, Magnesium, Tantalum
-del CarbonDioxide, BoronNitride, Silica, BoronTrioxide, AluminiumOxide, NiZnFerrite
-for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
-    if isinstance(obj, Material) and obj.name is None:
-        obj.name = name
-
-CopperDiamond.fluka_name = 'CUDIAM75'
-MG6403Fc.fluka_name = 'MG6403Fc'
-MG6400.fluka_name = 'MoGRMG64'
-TiZrMo.fluka_name = 'TZM'
-Air.fluka_name = 'AIR'
-BoronNitride5000.fluka_name = 'BN5000'
-FeNiCo.fluka_name = 'ASTMF-15'
-Glidcop15.fluka_name = 'GLIDCP15'
-CuNiFeMn.fluka_name = 'CuNiFeMn'
-Inermet180.fluka_name = 'INERM180'
-StainLessSteel304L.fluka_name = 'SS304L'
-StainLessSteel316L.fluka_name = 'SS316L'
-StainLessSteel316LN.fluka_name = 'SS316LN'
-TitaniumNitride.fluka_name = 'TITNAT'
-Antico.fluka_name = 'ANTICO'
-CopperChromium.fluka_name = 'CuCr'
-CastIron.fluka_name = 'CASTIRON'
-CuCrZr.fluka_name = 'CuCrZr'
-TiGr2.fluka_name = 'TiGr2'
-
-db['MoGR'] = MolybdenumGraphite
-db['CuCD'] = CopperDiamond
-db['Glid'] = Glidcop15
-db['Iner'] = Inermet180
+_manually_add_material_to_db(CopperDiamond,       'CopperDiamond',       short_name='CuCD', fluka_name='CUDIAM75')
+_manually_add_material_to_db(TiZrMo,              'TiZrMo')
+_manually_add_material_to_db(MolybdenumGraphite,  'MolybdenumGraphite',  short_name='MoGR')
+_manually_add_material_to_db(MG6403Fc,            'MG6403Fc',                               fluka_name='MG6403Fc')
+_manually_add_material_to_db(MG6400,              'MG6400',                                 fluka_name='MoGRMG64')
+_manually_add_material_to_db(Air,                 'Air',                                    fluka_name='AIR')
+_manually_add_material_to_db(BoronNitride5000,    'BoronNitride5000',                       fluka_name='BN5000')
+_manually_add_material_to_db(FeNiCo,              'FeNiCo',                                 fluka_name='ASTMF-15')
+_manually_add_material_to_db(Glidcop15,           'Glidcop15',           short_name='Glid', fluka_name='GLIDCP15')
+_manually_add_material_to_db(CuNiFeMn,            'CuNiFeMn',                               fluka_name='CuNiFeMn')
+_manually_add_material_to_db(Inermet180,          'Inermet180',          short_name='Iner', fluka_name='INERM180')
+_manually_add_material_to_db(StainLessSteel304L,  'StainLessSteel304L',                     fluka_name='SS304L')
+_manually_add_material_to_db(StainLessSteel316L,  'StainLessSteel316L',                     fluka_name='SS316L')
+_manually_add_material_to_db(StainLessSteel316LN, 'StainLessSteel316LN',                    fluka_name='SS316LN')
+_manually_add_material_to_db(TitaniumNitride,     'TitaniumNitride',                        fluka_name='TITNAT')
+_manually_add_material_to_db(Antico,              'Antico',                                 fluka_name='ANTICO')
+_manually_add_material_to_db(CopperChromium,      'CopperChromium',                         fluka_name='CuCr')
+_manually_add_material_to_db(CastIron,            'CastIron',                               fluka_name='CASTIRON')
+_manually_add_material_to_db(CuCrZr,              'CuCrZr',                                 fluka_name='CuCrZr')
+_manually_add_material_to_db(TiGr2,               'TiGr2',                                  fluka_name='TiGr2')
 
 
 # Clean up namespace
-del name, obj
+del (Carbon, Oxygen, Argon, Hydrogen, Boron, Nitrogen, Silicon,
+     Aluminium, Iron, Nickel, Cobalt, Zinc, Chromium, Titanium,
+     Zirconium, Manganese, Phosphorus, Sulfur, Copper, Molybdenum,
+     Tungsten, Calcium, Niobium, Magnesium, Tantalum, CarbonDioxide,
+     BoronNitride, Silica, BoronTrioxide, AluminiumOxide, NiZnFerrite)
 del Material
 del db
