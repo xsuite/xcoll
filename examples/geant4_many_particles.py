@@ -8,6 +8,8 @@ import time
 
 import matplotlib.pyplot as plt
 
+from xcoll.xoconstants import constant
+
 # # Treat warnings as errors to debug
 # np.set_printoptions(threshold=np.inf)
 # import warnings
@@ -26,7 +28,7 @@ def run_many_particles(particle_ref, num_part, capacity=None, plot=False):
 
     # Connect to Geant4
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, return_all=True, clean=True, verbose=False)
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=1e-3, return_all=True, clean=True, verbose=True)
 
     # Create an initial distribution of particles, random in 4D, on the left jaw (with the
     # longitudinal coordinates set to zero)
@@ -71,7 +73,7 @@ def print_particle_summary(part):
         q1 = np.percentile(E[~np.isnan(E)], 25)
         med = np.percentile(E[~np.isnan(E)], 50)
         q3 = np.percentile(E[~np.isnan(E)], 75)
-        en = f"{med:.3e} ∊ [{q1:.1e}, {q3:.1e}] GeV  (50% ±25%)"
+        en = f"{med:.3e} ∊ [{q1:.1e}, {q3:.1e}] GeV  (50% ± 25%)"
         print(f"  {num:6} {name:12}{en:21}    (PDG ID: {pdg_id:5}, mass: {mass*1e-9:.4f} GeV)")
     print()
 
@@ -133,10 +135,54 @@ def plot_energy_distribution(part, *, nbins=50, max_types=6):
     plt.show()
 
 
+def show_new_masses(part, show_existing=False):
+    mask = part.particle_id != part.parent_particle_id
+    pdg_ids = np.unique(part.pdg_id[mask])
+    mess_new = []
+    mess_exist = []
+    for pdg_id in pdg_ids:
+        if pdg_id == -999999999:
+            continue
+        if part.state[part.pdg_id==pdg_id][0] == xcs.MASSLESS_OR_NEUTRAL:
+            continue
+        try:
+            if pdg.is_ion(pdg_id):
+                name = pdg.get_name_from_pdg_id(pdg_id, long_name=False, subscripts=False)
+            else:
+                name = pdg.get_name_from_pdg_id(pdg_id, long_name=True).upper()
+        except ValueError:
+            name = 'unknown'
+        masses = part.mass[mask & (part.pdg_id==pdg_id)]
+        q1  = np.percentile(masses[~np.isnan(masses)], 25)
+        med = np.percentile(masses[~np.isnan(masses)], 50)
+        q3  = np.percentile(masses[~np.isnan(masses)], 75)
+        if abs(pdg_id) not in xc.geant4.particle_masses:
+            mess  = f"New mass for PDG ID {pdg_id} ({name}):  {med} eV "
+            mess += f"[{masses.min()-med:.2e}, {q1-med:.2e}, +{q3-med:.2e}, +{masses.max()-med:.2e}] "
+            mess += f"({len(masses)} samples)."
+            mess_new.append(mess)
+        else:
+            mass  = xc.geant4.particle_masses[pdg_id]
+            mess  = f"Existing mass for PDG ID {pdg_id} ({name}):  {mass} eV (existing) vs {med} eV (returned). "
+            mess += f"Difference {med - mass:.2e} eV "
+            mess += f"({len(masses)} samples)."
+            mess_exist.append(mess)
+    for mess in mess_new:
+        print(mess)
+    if show_existing:
+        for mess in mess_exist:
+            print(mess)
+
+
 part = run_many_particles(xt.Particles('proton',   p0c=6.8e12),    25_000, capacity=500_000)
 print_particle_summary(part)
+# show_new_masses(part)
+
 part = run_many_particles(xt.Particles('Pb208',    p0c=6.8e12*82),   2000, capacity=500_000)
 print_particle_summary(part)
+# show_new_masses(part)
+
 part = run_many_particles(xt.Particles('positron', p0c=200e9),     25_000, capacity=500_000)
 print_particle_summary(part)
+# show_new_masses(part)
 plot_energy_distribution(part, nbins=250)
