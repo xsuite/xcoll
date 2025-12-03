@@ -318,7 +318,7 @@ class _ConstantsMeta(type):
         own_specs: Dict[str, ConstantSpec] = {}
         own_group_specs: Dict[str, GroupSpec] = {}
         for k, v in ns.items():
-            if not k.isupper() or k.startswith("_"):
+            if k.startswith("_"):
                 continue
             if isinstance(v, ConstantSpec):
                 v.name = k  # Remember constant name for lookup in groups (potentially in other classes)
