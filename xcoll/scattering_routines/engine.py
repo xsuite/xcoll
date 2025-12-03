@@ -615,7 +615,7 @@ class BaseEngine(xo.HybridClass):
         if self.particle_ref is None:
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
-    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[]):
+    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[], keep_p0c_constant=True):
         self._assert_element(coll)
 
         missing_attributes = False
@@ -639,9 +639,28 @@ class BaseEngine(xo.HybridClass):
 
         self.assert_particle_ref()
         if abs(particles.mass0 - self.particle_ref.mass0) > 1e-3:
-            raise ValueError(f"Error in reference mass of `particles`: not in sync with "
-                           + f"{self.name} reference particle!\nRebuild the particles object "
-                           + f"using the {self.__class__.__name__} reference particle.")
+            # This should only happen at the start of the tracking.
+            pdg_id = self.particle_ref.pdg_id[0]
+            if self._masses is not None and abs(pdg_id) in self._masses:
+                # The reference particle in the engine was updated to match the scattering code.
+                # Match the particles object to it.
+                new_mass = self.particle_ref.mass0
+                old_energy0 = particles.energy0[0]
+                particles.mass0 = new_mass
+                if keep_p0c_constant:
+                    particles._update_refs(p0c=particles.p0c[0])
+                else:
+                    particles._update_refs(energy0=old_energy0)
+                assert np.isclose(particles.energy0[0]**2, particles.p0c[0]**2 + particles.mass0**2)
+                assert np.isclose(particles.mass0, new_mass)
+                # No need to update chi, delta, etc as they depend on the RATIO m0/m and this is unchanged.
+                self._print(f"Warning: reference mass in particles object differ"
+                          + f"from reference mass in engine. Overwritten by the latter.")
+            else:
+                # The reference particle in the engine was changed unintentionally
+                raise ValueError(f"Error in reference mass of `particles`: not in sync with "
+                            + f"{self.name} reference particle!\nRebuild the particles object "
+                            + f"using the {self.__class__.__name__} reference particle.")
         if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
