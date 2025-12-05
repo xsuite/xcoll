@@ -175,22 +175,22 @@ def _label_from_norm(norm, energy):
             return "Particles absorbed [1/m]"
     elif norm == "total":
         if energy:
-            return "Norm. deposited energy [1/m]"
+            return "Norm. energy [1/m]"
         else:
             return "Norm. inefficiency [1/m]"
     elif norm == "max":
         if energy:
-            return "Deposited energy (norm. by max) [1/m]"
+            return "Energy (max norm) [1/m]"
         else:
-            return "Inefficiency (norm. by max) [1/m]"
+            return "Inefficiency (max norm) [1/m]"
     elif norm == "coll_max":
         if energy:
-            return "Deposited energy (norm. by coll max) [1/m]"
+            return "Energy (coll max norm) [1/m]"
         else:
-            return "Inefficiency (norm. by coll max) [1/m]"
+            return "Inefficiency (coll max norm) [1/m]"
     else:
         if energy:
-            return f"Deposited energy (norm. by {norm}) [1/m]"
+            return f"Energy (norm. by {norm}) [1/m]"
         else:
             return f"Inefficiency (norm. by {norm}) [1/m]"
 

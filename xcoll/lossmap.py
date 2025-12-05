@@ -157,6 +157,8 @@ class LossMap:
 
     @property
     def interpolation(self):
+        if self._interpolation == 0:
+            return False
         return self._interpolation
 
     @interpolation.setter
@@ -165,11 +167,15 @@ class LossMap:
             if self._interpolation is not None:
                 raise ValueError("Cannot unset interpolation once it has been set.")
         else:
+            if value is False:
+                value = 0
+            elif value is True:
+                value = 0.1
+            elif value <= 0:
+                raise ValueError("Interpolation step must be positive.")
             if self._interpolation is not None and not np.isclose(self._interpolation, value):
                 raise ValueError("The interpolation step is different from the one "
                                 "used to create the loss map.")
-            if value <= 0:
-                raise ValueError("Interpolation step must be positive.")
             self._interpolation = value
 
     @property

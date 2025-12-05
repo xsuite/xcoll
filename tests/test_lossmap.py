@@ -144,6 +144,12 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             date = dct.pop('date', None)
             assert date is not None
             assert pd.Timestamp.now() - pd.Timestamp(date[-1]) < pd.Timedelta('1 minute')
+            cold_regions = dct.pop('cold_regions', None)
+            warm_regions = dct.pop('warm_regions', None)
+            s_range = dct.pop('s_range', None)
+            assert cold_regions == ThisLM.cold_regions
+            assert warm_regions == ThisLM.warm_regions
+            assert s_range == ThisLM.s_range
             assert xt.line._dicts_equal(dct, clean_lm_dct)
         Path(f"lossmap-{this_id}.json").unlink()
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")
@@ -187,7 +193,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
                 assert len(lm['aperture']['s_bins']) == len(lm['aperture']['length_bins'])
                 assert np.all([s < lm['machine_length'] for s in lm['aperture']['s_bins']])
         else:
-            assert list(lm['aperture'].keys()) == ['s', 'n', 'e']
+            assert list(lm['aperture'].keys()) == ['s', 'length','n', 'e']
             if npart > 5000:
                 assert len(lm['aperture']['s']) > 0
                 assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
