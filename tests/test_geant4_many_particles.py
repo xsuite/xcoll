@@ -14,7 +14,10 @@ except ImportError as e:
     rpyc = None
 
 
-old_bdsim = xc.geant4.environment.bdsim_older_than(compare_version='1.7.7.develop')  # No unstable particles returned in older BDSIM
+if xc.geant4.environment.ready:
+    old_bdsim = xc.geant4.environment.bdsim_older_than(compare_version='1.7.7.develop')  # No unstable particles returned in older BDSIM
+else:
+    old_bdsim = True
 
 
 @pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
