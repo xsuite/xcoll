@@ -59,7 +59,7 @@ def track_core(coll, part):
     s_in = part.s[send_to_geant4][0]
     ele_in = part.at_element[send_to_geant4][0]
     turn_in = part.at_turn[send_to_geant4][0]
-    precision  = p0c * 1e-14  # To avoid numerical issues like negative energy
+    precision  = p0c * 1e-12  # To avoid numerical issues like negative energy
 
     rpp  = part.rpp[send_to_geant4]
     x    = part.x[send_to_geant4]

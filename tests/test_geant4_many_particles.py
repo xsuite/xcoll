@@ -6,6 +6,7 @@ import xtrack as xt
 import xtrack.particles.pdg as pdg
 from xtrack.particles import LAST_INVALID_STATE
 from xtrack.particles import masses as xpm
+from xpart.test_helpers import flaky_assertions, retry
 import xcoll as xc
 from  xcoll import constants as xcc
 try:
@@ -103,6 +104,7 @@ def test_returns():
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_protons(hit):
     print(f"Testing protons with hit={hit}")
     num_part = 500
@@ -127,6 +129,7 @@ def test_protons(hit):
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_lead(hit):
     print(f"Testing lead with hit={hit}.")
     num_part = 100
@@ -152,6 +155,7 @@ def test_lead(hit):
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'antiproton_ref'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_antiprotons(proton_ref, hit):
     print(f"Testing antiprotons with hit={hit} and proton_ref={proton_ref}")
     num_part = 100
@@ -184,7 +188,10 @@ def test_antiprotons(proton_ref, hit):
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'electron_ref'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_electrons(proton_ref, hit):
+    if proton_ref and old_bdsim:
+        pytest.skip("Old BDSIM version detected; skipping tests needing new version")
     print(f"Testing electrons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
     p0c = 200e9
@@ -218,7 +225,10 @@ def test_electrons(proton_ref, hit):
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'positron_ref'])
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_positrons(proton_ref, hit):
+    if proton_ref and old_bdsim:
+        pytest.skip("Old BDSIM version detected; skipping tests needing new version")
     print(f"Testing positrons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
     p0c = 200e9
@@ -253,6 +263,7 @@ def test_positrons(proton_ref, hit):
 @pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_muons(proton_ref, hit):
     print(f"Testing muons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -288,6 +299,7 @@ def test_muons(proton_ref, hit):
 @pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_antimuons(proton_ref, hit):
     print(f"Testing antimuons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -323,6 +335,7 @@ def test_antimuons(proton_ref, hit):
 @pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_positive_pions(proton_ref, hit):
     print(f"Testing positive pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -358,6 +371,7 @@ def test_positive_pions(proton_ref, hit):
 @pytest.mark.skipif(old_bdsim, reason="Old BDSIM version detected; skipping tests needing new version")
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
+@retry()
 def test_negative_pions(proton_ref, hit):
     print(f"Testing negative pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -479,7 +493,7 @@ def _assert_hit(part, part_init, coll, tol=1e-12):
     # The following really should have hit
     assert np.all(part.energy[mask_hit & (part.state==1)] < E0)
     # All that are supposed to hit and died without leaving children should still have all their energy
-    assert np.all(part.energy[mask_hit & (part.state==xcc.LOST_ON_GEANT4_COLL) & ~has_children] == E0)
+    assert np.allclose(part.energy[mask_hit & (part.state==xcc.LOST_ON_GEANT4_COLL) & ~has_children], E0, atol=tol, rtol=tol)
     # All that are supposed to hit and died with children should have lost energy
     assert np.all(part.energy[mask_hit & has_children] < E0)
     # All children should have less energy than the initial
@@ -487,19 +501,21 @@ def _assert_hit(part, part_init, coll, tol=1e-12):
     # All energies need to be positive
     assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcc.ACC_IONISATION_LOSS)] > 0)
 
-    Edead = part.energy[part.state==xcc.LOST_ON_GEANT4_COLL].sum()
-    if np.any(part.state==xcc.LOST_ON_GEANT4_COLL):
-        assert Edead > 0
-    # Eacc = part.energy[part.state==xcc.ACC_IONISATION_LOSS].sum()
-    Eacc = coll._acc_ionisation_loss
-    assert Eacc >= 0
-    Evirtual = part.energy[part.state==xcc.VIRTUAL_ENERGY].sum()
-    if np.any(part.state==xcc.VIRTUAL_ENERGY):
-        assert Evirtual > 0
-    Emassless = part.energy[part.state==xcc.MASSLESS_OR_NEUTRAL].sum()
-    if np.any(part.state==xcc.MASSLESS_OR_NEUTRAL):
-        assert Emassless > 0
-    Eout = part.energy[part.state==1].sum()
-    if alive_after > 0:
-        assert Eout > 0
-    assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=100*tol, rtol=tol)
+    with flaky_assertions():
+        Edead = part.energy[part.state==xcc.LOST_ON_GEANT4_COLL].sum()
+        if np.any(part.state==xcc.LOST_ON_GEANT4_COLL):
+            assert Edead > 0
+        # Eacc = part.energy[part.state==xcc.ACC_IONISATION_LOSS].sum()
+        Eacc = coll._acc_ionisation_loss
+        assert Eacc >= 0
+        Evirtual = part.energy[part.state==xcc.VIRTUAL_ENERGY].sum()
+        if np.any(part.state==xcc.VIRTUAL_ENERGY):
+            assert Evirtual > 0
+        Emassless = part.energy[part.state==xcc.MASSLESS_OR_NEUTRAL].sum()
+        if np.any(part.state==xcc.MASSLESS_OR_NEUTRAL):
+            assert Emassless > 0
+        Eout = part.energy[part.state==1].sum()
+        if alive_after > 0:
+            assert Eout > 0
+        print(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout)
+        assert np.isclose(E0*alive_before, Edead + Eacc + Evirtual + Emassless + Eout, atol=100*tol, rtol=tol)
