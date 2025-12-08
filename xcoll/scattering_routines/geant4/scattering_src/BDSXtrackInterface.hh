@@ -1,4 +1,4 @@
-#include "BDSBunchSixTrackLink.hh"
+#include "BDSLinkBunch.hh"
 #include "BDSException.hh"
 #include "BDSIMLink.hh"
 #include "BDSIonDefinition.hh"
@@ -28,24 +28,6 @@
 
 namespace py = pybind11;
 
-// The struct is only used for inactive particle coodrinates for now
-struct XtrackCoordinates{
-    double x;
-    double y;
-    double px;
-    double py;
-    double zeta;
-    double delta;
-    double chi;
-    double charge_ratio;
-    double s;
-    int64_t pdgid;
-    int64_t trackid;
-    int64_t state;
-    int64_t at_element;
-    int64_t at_turn;
-};
-
 BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
                                                   double kineticEnergyIn, double ionChargeIn);
 
@@ -67,8 +49,10 @@ public:
 
     virtual ~XtrackInterface();
 
-    void addCollimator(const  std::string&   name,
-                       const  std::string&   material,
+    void addCollimator(const std::string& name,
+                       const std::string& material,
+                       const std::string& tipMaterial,
+                       double tipThickness,
                        double lengthIn,
                        double apertureLeftIn,
                        double apertureRightIn,
@@ -84,14 +68,13 @@ public:
 
     // This is not exposed to python
     void addParticle(double xIn,
+                     double xpIn,
                      double yIn,
-                     double pxIn,
-                     double pyIn,
-                     double ctIn,
-                     double deltapIn,
-                     double chiIn,
-                     double chargeRatioIn,
-                     double sIn,
+                     double ypIn,
+                     double zetaIn,
+                     double pIn,
+                     double qIn,
+                     double weightIn,
                      int64_t pdgIDIn,
                      int64_t trackidIn);
 
@@ -101,16 +84,13 @@ public:
 
     double getReferenceMass() { return refParticleDefinition->Mass() / CLHEP::GeV; }
 
-    py::dict collimateReturn(const py::list& coordinates);
+    py::dict collimateReturn(size_t num_sent);
 
 private:
     std::unique_ptr<FDRedirect> fdredir;
     BDSIMLink* bds = nullptr;
-    BDSBunchSixTrackLink* stp = nullptr;
+    BDSLinkBunch* stp = nullptr;
     std::vector<char *> argv;
-
-    std::vector<bool> particleActiveState;
-    std::vector<XtrackCoordinates*> xtrackParticles;
 
     BDSParticleDefinition* refParticleDefinition = nullptr;
 

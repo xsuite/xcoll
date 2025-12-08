@@ -48,11 +48,12 @@ class BaseEngine(xo.HybridClass):
         # Initialise defaults
         self._cwd = None
         self._line = None
+        self._masses = None
         self._verbose = False
         self._input_file = None
+        self._environment = None
         self._element_dict = {}
         self._warning_given = False
-        self._environment = None
         self._element_index = 0
         self._tracking_initialised = False
         self._deactivated_elements = {}
@@ -60,6 +61,7 @@ class BaseEngine(xo.HybridClass):
         kwargs.setdefault('_seed', 0)
         kwargs.setdefault('_capacity', 0)
         super().__init__(**kwargs)
+        self.return_all = None  # set all return flags to default
 
     def __del__(self, *args, **kwargs):
         self.stop(warn=False)
@@ -228,6 +230,269 @@ class BaseEngine(xo.HybridClass):
     def element_dict(self):
         return self._element_dict
 
+    @property
+    def return_all(self):
+        return (self._return_neutral and
+                self._return_photons and
+                self._return_electrons and
+                self._return_muons and
+                self._return_tauons and
+                self._return_neutrinos and
+                self._return_protons and
+                self._return_neutrons and
+                self._return_ions and
+                self._return_mesons and
+                self._return_baryons and
+                self._return_exotics)
+
+    @return_all.setter
+    def return_all(self, val):
+        if val is True:
+            self.return_neutral = True
+            self.return_photons = True
+            self.return_electrons = True
+            self.return_muons = True
+            self.return_tauons = True
+            self.return_neutrinos = True
+            self.return_protons = True
+            self.return_neutrons = True
+            self.return_ions = True
+            self.return_mesons = True
+            self.return_baryons = True
+            self.return_exotics = True
+        elif val is None or val is False:
+            # Default settings
+            self.return_neutral = None
+            self.return_photons = None
+            self.return_electrons = None
+            self.return_muons = None
+            self.return_tauons = None
+            self.return_neutrinos = None
+            self.return_protons = None
+            self.return_neutrons = None
+            self.return_ions = None
+            self.return_mesons = None
+            self.return_baryons = None
+            self.return_exotics = None
+        else:
+            raise ValueError("`return_all` has to be a boolean!")
+
+    @property
+    def return_none(self):
+        return not any(self._return_neutral and
+                self._return_photons and
+                self._return_electrons and
+                self._return_muons and
+                self._return_tauons and
+                self._return_neutrinos and
+                self._return_protons and
+                self._return_neutrons and
+                self._return_ions and
+                self._return_mesons and
+                self._return_baryons and
+                self._return_exotics)
+
+    @return_none.setter
+    def return_none(self, val):
+        if val is True:
+            self.return_neutral = False
+            self.return_photons = False
+            self.return_electrons = False
+            self.return_muons = False
+            self.return_tauons = False
+            self.return_neutrinos = False
+            self.return_protons = False
+            self.return_neutrons = False
+            self.return_ions = False
+            self.return_mesons = False
+            self.return_baryons = False
+            self.return_exotics = False
+        elif val is None or val is False:
+            # Default settings
+            self.return_neutral = None
+            self.return_photons = None
+            self.return_electrons = None
+            self.return_muons = None
+            self.return_tauons = None
+            self.return_neutrinos = None
+            self.return_protons = None
+            self.return_neutrons = None
+            self.return_ions = None
+            self.return_mesons = None
+            self.return_baryons = None
+            self.return_exotics = None
+        else:
+            raise ValueError("`return_none` has to be a boolean!")
+
+    @property
+    def return_neutral(self):
+        return self._return_neutral
+
+    @return_neutral.setter
+    def return_neutral(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_neutral` has to be a boolean!")
+        self._return_neutral = val
+        if not val:
+            self._return_photons = False
+            self._return_neutrons = False
+            self._return_neutrinos = False
+
+    @property
+    def return_photons(self):
+        return self._return_photons
+
+    @return_photons.setter
+    def return_photons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_photons` has to be a boolean!")
+        self._return_photons = val
+
+    @property
+    def return_electrons(self):
+        return self._return_electrons
+
+    @return_electrons.setter
+    def return_electrons(self, val):
+        if val is None:
+            val = True
+        if not isinstance(val, bool):
+            raise ValueError("`return_electrons` has to be a boolean!")
+        self._return_electrons = val
+
+    @property
+    def return_muons(self):
+        return self._return_muons
+
+    @return_muons.setter
+    def return_muons(self, val):
+        if val is None:
+            val = True
+        if not isinstance(val, bool):
+            raise ValueError("`return_muons` has to be a boolean!")
+        self._return_muons = val
+
+    @property
+    def return_tauons(self):
+        return self._return_tauons
+
+    @return_tauons.setter
+    def return_tauons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_tauons` has to be a boolean!")
+        self._return_tauons = val
+
+    @property
+    def return_neutrinos(self):
+        return self._return_neutrinos
+
+    @return_neutrinos.setter
+    def return_neutrinos(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_neutrinos` has to be a boolean!")
+        self._return_neutrinos = val
+
+    @property
+    def return_leptons(self):
+        ret = [self._return_electrons, self._return_muons, self._return_tauons, self._return_neutrinos]
+        if all(ret):
+            return True
+        elif not any(ret):
+            return False
+        else:
+            return None
+
+    @return_leptons.setter
+    def return_leptons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_leptons` has to be a boolean!")
+        self._return_electrons = val
+        self._return_muons = val
+        self._return_tauons = val
+        self._return_neutrinos = val
+
+    @property
+    def return_protons(self):
+        return self._return_protons
+
+    @return_protons.setter
+    def return_protons(self, val):
+        if val is None:
+            val = True
+        if not isinstance(val, bool):
+            raise ValueError("`return_protons` has to be a boolean!")
+        self._return_protons = val
+
+    @property
+    def return_neutrons(self):
+        return self._return_neutrons
+
+    @return_neutrons.setter
+    def return_neutrons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_neutrons` has to be a boolean!")
+        self._return_neutrons = val
+
+    @property
+    def return_ions(self):
+        return self._return_ions
+
+    @return_ions.setter
+    def return_ions(self, val):
+        if val is None:
+            val = True
+        if not isinstance(val, bool):
+            raise ValueError("`return_ions` has to be a boolean!")
+        self._return_ions = val
+
+    @property
+    def return_mesons(self):
+        return self._return_mesons
+
+    @return_mesons.setter
+    def return_mesons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_mesons` has to be a boolean!")
+        self._return_mesons = val
+
+    @property
+    def return_baryons(self):
+        return self._return_baryons
+
+    @return_baryons.setter
+    def return_baryons(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_baryons` has to be a boolean!")
+        self._return_baryons = val
+
+    @property
+    def return_exotics(self):
+        return self._return_exotics
+
+    @return_exotics.setter
+    def return_exotics(self, val):
+        if val is None:
+            val = False
+        if not isinstance(val, bool):
+            raise ValueError("`return_exotics` has to be a boolean!")
+        self._return_exotics = val
+
 
     # ======================
     # === Public Methods ===
@@ -350,7 +615,7 @@ class BaseEngine(xo.HybridClass):
         if self.particle_ref is None:
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
-    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[]):
+    def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[], keep_p0c_constant=True):
         self._assert_element(coll)
 
         missing_attributes = False
@@ -359,7 +624,6 @@ class BaseEngine(xo.HybridClass):
                 missing_attributes = True
 
         if not coll.active or not coll._tracking or not coll.jaw or missing_attributes:
-            coll._equivalent_drift.track(particles)
             return False
 
         npart = particles._num_active_particles
@@ -375,9 +639,28 @@ class BaseEngine(xo.HybridClass):
 
         self.assert_particle_ref()
         if abs(particles.mass0 - self.particle_ref.mass0) > 1e-3:
-            raise ValueError(f"Error in reference mass of `particles`: not in sync with "
-                           + f"{self.name} reference particle!\nRebuild the particles object "
-                           + f"using the {self.__class__.__name__} reference particle.")
+            # This should only happen at the start of the tracking.
+            pdg_id = self.particle_ref.pdg_id[0]
+            if self._masses is not None and abs(pdg_id) in self._masses:
+                # The reference particle in the engine was updated to match the scattering code.
+                # Match the particles object to it.
+                new_mass = self.particle_ref.mass0
+                old_energy0 = particles.energy0[0]
+                particles.mass0 = new_mass
+                if keep_p0c_constant:
+                    particles._update_refs(p0c=particles.p0c[0])
+                else:
+                    particles._update_refs(energy0=old_energy0)
+                assert np.isclose(particles.energy0[0]**2, particles.p0c[0]**2 + particles.mass0**2)
+                assert np.isclose(particles.mass0, new_mass)
+                # No need to update chi, delta, etc as they depend on the RATIO m0/m and this is unchanged.
+                self._print(f"Warning: reference mass in particles object differ"
+                          + f"from reference mass in engine. Overwritten by the latter.")
+            else:
+                # The reference particle in the engine was changed unintentionally
+                raise ValueError(f"Error in reference mass of `particles`: not in sync with "
+                            + f"{self.name} reference particle!\nRebuild the particles object "
+                            + f"using the {self.__class__.__name__} reference particle.")
         if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
@@ -385,7 +668,10 @@ class BaseEngine(xo.HybridClass):
         if not self._only_protons:
             if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
                 raise ValueError("Some particles are missing the pdg_id!")
-            if particles._num_active_particles + particles._num_lost_particles == particles._capacity:
+            if particles._num_active_particles + particles._num_lost_particles == particles._capacity \
+            and not np.any(particles.particle_id != particles.parent_particle_id):
+                # Only raise this error at the start, e.g. when no secondaries are present yet.
+                # It will get caught later during tracking, which will provide a more logical error.
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
         return True
@@ -444,6 +730,21 @@ class BaseEngine(xo.HybridClass):
         self._set_cwd(kwargs.pop('cwd', None))
         # Now we can set the rest of the properties
         self._set_property('capacity', kwargs)
+        self._set_property('return_all', kwargs)
+        self._set_property('return_none', kwargs)
+        self._set_property('return_leptons', kwargs)
+        self._set_property('return_mesons', kwargs)
+        self._set_property('return_exotics', kwargs)
+        self._set_property('return_baryons', kwargs)
+        self._set_property('return_ions', kwargs)
+        self._set_property('return_neutral', kwargs)
+        self._set_property('return_photons', kwargs)
+        self._set_property('return_electrons', kwargs)
+        self._set_property('return_muons', kwargs)
+        self._set_property('return_tauons', kwargs)
+        self._set_property('return_neutrinos', kwargs)
+        self._set_property('return_protons', kwargs)
+        self._set_property('return_neutrons', kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
@@ -478,7 +779,7 @@ class BaseEngine(xo.HybridClass):
             self.seed = seed
         self._print(f"Using seed {self.seed}.")
 
-    def _use_particle_ref(self, particle_ref=None):
+    def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
         # Prefer: provided particle_ref > existing particle_ref > particle_ref from line
         if particle_ref is not None:
             self._old_particle_ref = self.particle_ref
@@ -492,6 +793,31 @@ class BaseEngine(xo.HybridClass):
             self.particle_ref = self.line.particle_ref
         self._print(f"Using {pdg.get_name_from_pdg_id(self.particle_ref.pdg_id[0])} "
                   + f"with momentum {self.particle_ref.p0c[0]/1.e9:.1f} GeV.")
+        if self._masses is not None:
+            mass = self.particle_ref.mass0
+            pdg_id = self.particle_ref.pdg_id[0]
+            if abs(pdg_id) in self._masses:
+                new_mass = self._masses[abs(pdg_id)]
+                if abs(mass-new_mass)/mass > 1.e-12:
+                    old_energy0 = self.particle_ref.energy0[0]
+                    self.particle_ref.mass0  = new_mass
+                    if keep_p0c_constant:
+                        self.particle_ref._update_refs(p0c=self.particle_ref.p0c[0])
+                    else:
+                        self.particle_ref._update_refs(energy0=old_energy0)
+                    assert np.isclose(self.particle_ref.energy0[0]**2, self.particle_ref.p0c[0]**2 + self.particle_ref.mass0**2)
+                    assert np.isclose(self.particle_ref.mass0, new_mass)
+                    self._print(f"Warning: given mass of {mass} eV for "
+                            + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from {self.name} "
+                            + f"mass of {new_mass} eV.\nReference particle mass is "
+                            + f"overwritten by the latter.")
+            else:
+                self._print(f"Warning: No {self.name} reference mass known for particle "
+                        + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the reference mass "
+                        + f"provided ({mass} eV) differs from the one used internally "
+                        + f"by {self.name}, differences in energy might be observed.\nOnce "
+                        + f"the {self.name} reference mass is known, contact the devs to "
+                        + f"input it in the code.")
 
     def _sync_line_particle_ref(self):
         if self.line is None:
@@ -553,6 +879,13 @@ class BaseEngine(xo.HybridClass):
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
                 elements, names = self.line.get_elements_of_type(self._element_classes)
+                # This method can return duplicate elements if there are subclasses (like Geant4Collimator
+                # and Geant4CollimatorTip) as elements of the child type will also be found by searching
+                # for the parent type.
+                d = {}
+                for nn, ee in zip(names, elements):
+                    d[nn] = ee # last one wins, not important here
+                names, elements = list(d.keys()), list(d.values())
             else:
                 elements = [self.line[name] for name in names]
         this_names = []
@@ -664,6 +997,44 @@ class BaseEngine(xo.HybridClass):
         else:
             kwargs['cwd'] = FsPath.cwd()
         return kwargs
+
+
+    def _mask_particle_return_types(self, pdg_id, q_new):
+        if self.return_exotics:
+            # Allow everything and exclude
+            mask_new = np.ones_like(pdg_id, dtype=bool)
+        else:
+            # Allow nothing and include
+            mask_new = np.zeros_like(pdg_id, dtype=bool)
+
+        # General categories
+        mask_new[pdg_id > 1000000000] = self.return_ions
+        # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
+        mask_new[(pdg_id > 0) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
+                              & (pdg_id // 1000 % 10 == 0)] = self.return_mesons
+        mask_new[(pdg_id < 0) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
+                              & (-pdg_id // 1000 % 10 == 0)] = self.return_mesons
+        # PDG ID of baryons: from XXX. where X != 0 and . is any digit
+        mask_new[(pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
+                                 & (pdg_id // 1000 % 10 != 0)] = self.return_baryons    # PDG ID of from XX0X is a diquark
+        mask_new[(pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
+                                  & (-pdg_id // 1000 % 10 != 0)] = self.return_baryons
+
+        if not self.return_neutral:
+            # General modifier, has to be before more specific return types,
+            # as other neutral particles might have been specifically activated.
+            mask_new[np.abs(q_new) < 1.e-12] = False
+
+        mask_new[pdg_id == 22] = self.return_photons
+        mask_new[(pdg_id == 11) | (pdg_id == -11)] = self.return_electrons
+        mask_new[(pdg_id == 12) | (pdg_id == -12)] = self.return_electrons and self.return_neutrinos
+        mask_new[(pdg_id == 13) | (pdg_id == -13)] = self.return_muons
+        mask_new[(pdg_id == 14) | (pdg_id == -14)] = self.return_muons and self.return_neutrinos
+        mask_new[(pdg_id == 15) | (pdg_id == -15)] = self.return_tauons
+        mask_new[(pdg_id == 16) | (pdg_id == -16)] = self.return_tauons and self.return_neutrinos
+        mask_new[(pdg_id == 2212) | (pdg_id == -2212)] = self.return_protons
+        mask_new[(pdg_id == 2112) | (pdg_id == -2112)] = self.return_neutrons
+        return mask_new
 
 
     # =================================================

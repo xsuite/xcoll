@@ -12,7 +12,6 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-from xobjects.test_helpers import for_all_test_contexts
 try:
     import rpyc
 except ImportError as e:

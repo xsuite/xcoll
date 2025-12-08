@@ -38,16 +38,17 @@ class Geant4Engine(BaseEngine):
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
-        from ...beam_elements import Geant4Collimator, Geant4Crystal
-        self.__class__._element_classes = (Geant4Collimator, Geant4Crystal)
+        from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
+        self.__class__._element_classes = (Geant4Collimator, Geant4CollimatorTip, Geant4Crystal)
         # Initialise geant4-only defaults
         self._g4link = None
         self._server = None # remove after geant4 bugfix
         self._conn = None # remove after geant4 bugfix
         super().__init__(**kwargs)
         self._already_started = False
-        self.relative_energy_cut = None # To set default value
-        self.reentry_protection_enabled = None # To set default value
+        # Set default values for new properties
+        self.relative_energy_cut = None
+        self.reentry_protection_enabled = None
 
 
     # ======================
@@ -85,6 +86,48 @@ class Geant4Engine(BaseEngine):
         elif not isinstance(val, bool):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
+
+    @property
+    def lower_momentum_cut(self):
+        return self._lower_momentum_cut
+
+    @lower_momentum_cut.setter
+    def lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`lower_momentum_cut` has to be a non-negative number!")
+        self._lower_momentum_cut = val
+
+    @property
+    def photon_lower_momentum_cut(self):
+        return self._photon_lower_momentum_cut
+
+    @photon_lower_momentum_cut.setter
+    def photon_lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
+        self._photon_lower_momentum_cut = val
+
+    @property
+    def electron_lower_momentum_cut(self):
+        return self._electron_lower_momentum_cut
+
+    @electron_lower_momentum_cut.setter
+    def electron_lower_momentum_cut(self, val):
+        if val is None:
+            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
+        else:
+            raise NotImplementedError  # TODO
+        if not isinstance(val, Number) or val < 0:
+            raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
+        self._electron_lower_momentum_cut = val
 
 
     # ============================
@@ -124,7 +167,7 @@ class Geant4Engine(BaseEngine):
         return input_file, kwargs
 
     def _start_engine(self, **kwargs):
-        from ...beam_elements import BaseCrystal
+        from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
         Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
         try:
@@ -150,7 +193,7 @@ class Geant4Engine(BaseEngine):
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
             self._g4link.XtrackInterface(bdsimConfigFile='geant4_input.gmad',
                                          referencePdgId=self.particle_ref.pdg_id,
-                                         referenceEk=Ekin / 1e9, # BDSIM expects GeV
+                                         referenceEk=Ekin,
                                          relativeEnergyCut=self.relative_energy_cut,
                                          seed=self.seed, batchMode=True)
         else:
@@ -165,7 +208,7 @@ class Geant4Engine(BaseEngine):
             with pin_python_stdio():
                 self._g4link = XtrackInterface(bdsimConfigFile='geant4_input.gmad',
                                                referencePdgId=self.particle_ref.pdg_id,
-                                               referenceEk=Ekin / 1e9, ### BDSIM expects GeV
+                                               referenceEk=Ekin,
                                                relativeEnergyCut=self.relative_energy_cut,
                                                seed=self.seed, batchMode=True)
 
@@ -185,12 +228,15 @@ class Geant4Engine(BaseEngine):
                 self.stop(clean=True)
                 raise NotImplementedError(f"Geant4Collimator {el.name} has positive right jaw: "
                                + f"jaw_R={el.jaw_R}! BDSIM cannot handle this.")
-            self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name, el.length,
-                                    apertureLeft=jaw_L, apertureRight=-jaw_R,
-                                    rotation=np.deg2rad(el.angle),
-                                    xOffset=0, yOffset=0, side=side,
-                                    jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
-                                    isACrystal=isinstance(el, BaseCrystal))
+            tip_material = el.tip_material.geant4_name if isinstance(el, Geant4CollimatorTip) else ''
+            tip_thickness = el.tip_thickness if isinstance(el, Geant4CollimatorTip) else 0
+            self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name,
+                                       tip_material, tip_thickness, el.length,
+                                       apertureLeft=jaw_L, apertureRight=-jaw_R,
+                                       rotation=np.deg2rad(el.angle),
+                                       xOffset=0, yOffset=0, side=side,
+                                       jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
+                                       isACrystal=isinstance(el, BaseCrystal))
         self._already_started = True
 
     def _stop_engine(self, **kwargs):
@@ -224,6 +270,7 @@ class Geant4Engine(BaseEngine):
             if name not in self._element_dict:
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
+            from ...beam_elements import Geant4CollimatorTip
             if name not in input_dict:
                 self._print(f"Warning: Geant4Collimator {name} not in Geant4 input file! "
                           + f"Maybe it was fully open. Deactivated")
@@ -244,6 +291,21 @@ class Geant4Engine(BaseEngine):
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
+            if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
+                if not isinstance(ee, Geant4CollimatorTip):
+                    raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
+                                    + "in the line, but it has tip material in the input file!")
+                if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
+                    raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
+                                    + "but it has no tip material in the input file!")
+                if ee.tip_material.geant4_name != input_dict[name]['tip_material']:
+                    self._print(f"Warning: Tip material of {name} differs from input file "
+                            + f"({ee.tip_material.geant4_name} vs {input_dict[name]['tip_material']})! Overwritten.")
+                    ee.tip_material.geant4_name = input_dict[name]['tip_material']
+                if not np.isclose(ee.length, input_dict[name]['tip_thickness'], atol=1e-9):
+                    self._print(f"Warning: Tip thickness of {name} differs from input file "
+                            + f"({ee.tip_thickness} vs {input_dict[name]['tip_thickness']})! Overwritten.")
+                    ee.tip_thickness = input_dict[name]['tip_thickness']
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]

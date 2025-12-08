@@ -30,7 +30,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     num_particles = int(num_particles)
     if _capacity is None and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
         import xcoll as xc
-        _capacity = cap if (cap := xc.geant4.engine.capacity) else 2*num_particles
+        _capacity = cap if (cap := xc.geant4.engine.capacity) else 5*num_particles
 
     # Define the plane
     angle = coll.angle
