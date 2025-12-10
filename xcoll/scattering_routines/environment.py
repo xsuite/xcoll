@@ -193,10 +193,10 @@ class BaseEnvironment:
 
     def brute_force_path(self, path):
         num_parents = 0
-        if path in self._paths:
+        if str(path) in self._paths:
             num_parents = self._paths[path]
             path = getattr(self, path)
-        if path in self._read_only_paths:
+        if str(path) in self._read_only_paths:
             num_parents = self._read_only_paths[path]
             path = getattr(self, path)
         if path is None:
