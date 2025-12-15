@@ -80,7 +80,9 @@ def run_case(case_id, method, order, variant, n_steps):
         variant=variant,
         n_steps=n_steps,  # explicit override
     )
+
 #Particles(p0c=150e9, x=x0, px=px0, delta=0.0)
+# this set-up is very important for the benchmarking against Mathematica.
     part = xt.Particles(p0c=150e9,
         x=ref['x0'],
         px=ref['px0'], delta=0.0
