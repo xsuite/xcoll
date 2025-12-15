@@ -4,7 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
-
+import numpy as np
 from ..general import _pkg_root
 from .base import InvalidXcoll
 
@@ -59,7 +59,7 @@ class BentChannellingDev(InvalidXcoll):
 
 class BentChannellingDev(InvalidXcoll):
     """
-    Bent channelling element with harmonic-period step selection and
+    Bent channelling element with ?harmonic-period step selection (needs to be done) and
     symplectic integrators.
     M2 = harmonic + nonlinear correction
     M3 = extended harmonic + bending correction
@@ -70,22 +70,14 @@ class BentChannellingDev(InvalidXcoll):
 
         # geometry / basic parameters
         'length' : xo.Float64,
-        'x_c'    : xo.Float64,     # half channel width
         'U0'     : xo.Float64,     # potential depth (harmonic model)
-        'eta'    : xo.Float64,     # saturation factor
+        'Umax'   : xo.Float64,    # potential depth [eV]
         'R'      : xo.Float64,     # bending radius
 
-        # harmonic curvature U''(0)
-        'Uxx0'   : xo.Float64,
-
-        # --------- NEW: Simplified Molière parameters ----------
-        # interplanar spacing, Thomas–Fermi length, thermal vibration, etc.
         'dp'      : xo.Float64,    # interplanar distance [m]
         'aTF'     : xo.Float64,    # Thomas–Fermi screening length [m]
         'uT'      : xo.Float64,    # thermal vibration amplitude [m]
 
-        # Molière potential parameters
-        'U0mol'   : xo.Float64,    # potential depth [eV]
         'alpha_i' : xo.Float64,    # dimensionless
         'beta_i'  : xo.Float64,    # dimensionless
 
@@ -96,7 +88,7 @@ class BentChannellingDev(InvalidXcoll):
         'order'   : xo.Int8,       # 2,4,6,8,10,12
         'variant' : xo.Int8,       # 1: Drift-Kick-Drift, 2: Kick-Drift-Kick
 
-        # If <0 --> automatic step selection (20/harmonic period)
+        # If <0 --> automatic step selection (Μ2, Μ3 --> 60/harmonic period and M4 --> 10 per harmonic period)
         'n_steps' : xo.Int64,
     }
 
@@ -119,6 +111,78 @@ class BentChannellingDev(InvalidXcoll):
 
 
     ]
+
+    # ------------------------------------------------------------------
+    # Constructor with defaults (collimator-style)
+    # ------------------------------------------------------------------
+    
+
+    def __init__(self, **kwargs):
+
+        # =========================================================
+        # Geometry
+        # =========================================================
+        kwargs.setdefault('length', 1e-4)
+        kwargs.setdefault('R', 10.0)
+
+        # =========================================================
+        # Material defaults: Silicon (110)
+        # =========================================================
+        kwargs.setdefault('U0',      21.7681)     # eV
+        kwargs.setdefault('Umax',    23.9037)     # eV
+        kwargs.setdefault('dp',      1.92e-10)    # m
+        kwargs.setdefault('aTF',     1.94e-11)    # m
+        kwargs.setdefault('uT',      7.5e-12)     # m
+        kwargs.setdefault('alpha_i', 0.722452)
+        kwargs.setdefault('beta_i',  0.573481)
+
+        # =========================================================
+        # Integrator defaults
+        # =========================================================
+        kwargs.setdefault('method',  4)   # M4
+        kwargs.setdefault('order',   4)
+        kwargs.setdefault('variant', 1)
+
+        # how many steps per harmonic period
+        #npp = kwargs.pop('n_steps_per_period', 60) I changed it to a method-sensitive one.
+
+        # =========================================================
+        # Automatic n_steps computation (ONLY if user did not set it)
+        # =========================================================
+        if 'n_steps' not in kwargs:
+            method = kwargs['method']
+            if method ==4:
+                npp = 5
+            else: 
+                npp = 60 
+            length = kwargs['length']
+            Umax   = kwargs['Umax']
+            alpha_i = kwargs['alpha_i']
+            beta_i  = kwargs['beta_i']
+            aTF     = kwargs['aTF']
+            dp      = kwargs['dp']
+            bpc     = kwargs.get('bpc', 150e9)  # safeguard
+
+            Uxx0 = (
+                2.0*Umax * alpha_i/beta_i
+                * np.exp(-beta_i/aTF*0.5*dp)
+                / bpc
+                * (beta_i/aTF)**2
+            )
+
+            omega = np.sqrt(Uxx0)  # 1/m
+
+            kwargs['n_steps'] = max(
+                1,
+                int(np.ceil(length * npp * omega / (2.0 * np.pi)))
+            )
+
+        # =========================================================
+        # constructor LAST
+        # =========================================================
+        super().__init__(**kwargs)
+
+
 
     # user helpers
     @classmethod

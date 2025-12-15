@@ -3,7 +3,9 @@
 
 #include <math.h>
 
-// ---- Mathematical constants (renamed to avoid conflicts) ----
+// ================================================================
+//  Mathematical constants (GPU/CPU safe)
+// ===============================================================
 #define MY_PI       3.14159265358979323846
 #define MY_PIO2     1.57079632679489661923
 //Cephes uses MACHEP 2^(-53) as a tight bound on relative rounding error in many formulas and stopping criteria.
@@ -11,37 +13,9 @@
 #define MY_MAXNUM   1.7976931348623158E308
 
 
-//-------------mconf.h--------------------
-/* Define if the `long double' type works.  */
-#define HAVE_LONG_DOUBLE 1
-
-/* Define as the return type of signal handlers (int or void).  */
-#define RETSIGTYPE void
-
-/* Define if you have the ANSI C header files.  */
-#define STDC_HEADERS 1
-
-/* Define if your processor stores words with the most significant
-   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-/* #undef WORDS_BIGENDIAN */
-
-/* Define if floating point words are bigendian.  */
-/* #undef FLOAT_WORDS_BIGENDIAN */
-
-/* The number of bytes in a int.  */
-#define SIZEOF_INT 4
-
-/* Define if you have the <string.h> header file.  */
-#define HAVE_STRING_H 1
-
-/* Name of package */
-#define PACKAGE "cephes"
-
-/* Version number of package */
-#define VERSION "2.7"
-
-/* Constant definitions for math error conditions
- */
+// ================================================================
+//  Cephes-style error codes 
+// ================================================================
 
 #define DOMAIN		1	/* argument domain error */
 #define SING		2	/* argument singularity */
@@ -50,100 +24,7 @@
 #define TLOSS		5	/* total loss of precision */
 #define PLOSS		6	/* partial loss of precision */
 
-#define EDOM		33
-#define ERANGE		34
-/* Complex numeral.  */
-typedef struct
-	{
-	double r;
-	double i;
-	} cmplx;
 
-#ifdef HAVE_LONG_DOUBLE
-/* Long double complex numeral.  */
-typedef struct
-	{
-	long double r;
-	long double i;
-	} cmplxl;
-#endif
-
-
-/* Type of computer arithmetic */
-
-/* PDP-11, Pro350, VAX:
- */
-/* #define DEC 1 */
-
-/* Intel IEEE, low order words come first:
- */
-/* #define IBMPC 1 */
-
-/* Motorola IEEE, high order words come first
- * (Sun 680x0 workstation):
- */
-/* #define MIEEE 1 */
-
-/* UNKnown arithmetic, invokes coefficients given in
- * normal decimal format.  Beware of range boundary
- * problems (MACHEP, MAXLOG, etc. in const.c) and
- * roundoff problems in pow.c:
- * (Sun SPARCstation)
- */
-#define UNK 1
-
-/* If you define UNK, then be sure to set BIGENDIAN properly. */
-#ifdef FLOAT_WORDS_BIGENDIAN
-#define BIGENDIAN 1
-#else
-#define BIGENDIAN 0
-#endif
-/* Define this `volatile' if your compiler thinks
- * that floating point arithmetic obeys the associative
- * and distributive laws.  It will defeat some optimizations
- * (but probably not enough of them).
- *
- * #define VOLATILE volatile
- */
-#define VOLATILE
-
-/* For 12-byte long doubles on an i386, pad a 16-bit short 0
- * to the end of real constants initialized by integer arrays.
- *
- * #define XPD 0,
- *
- * Otherwise, the type is 10 bytes long and XPD should be
- * defined blank (e.g., Microsoft C).
- *
- * #define XPD
- */
-#define XPD 0,
-
-/* Define to support tiny denormal numbers, else undefine. */
-#define DENORMAL 1
-
-/* Define to ask for infinity support, else undefine. */
-/* #define INFINITIES 1 */
-
-/* Define to ask for support of numbers that are Not-a-Number,
-   else undefine.  This may automatically define INFINITIES in some files. */
-/* #define NANS 1 */
-
-/* Define to distinguish between -0.0 and +0.0.  */
-#define MINUSZERO 1
-
-/* Define 1 for ANSI C atan2() function
-   See atan.c and clog.c. */
-#define ANSIC 1
-
-/* Get ANSI function prototypes, if you want them. */
-
-// Forward declaration matches our implementation
-GPUFUN int mtherr(char *name, int code);
-GPUFUN int get_cephes_errno(void);
-
-/* Variable for error reporting.  See mtherr.c.  */
-extern int merror;
 
 
 //--------------mtherr.c----------------
@@ -172,12 +53,9 @@ GPUFUN int get_cephes_errno(void)
 
 
 
-
-
-
-// IS THIS POLYNOMIAL EVALUATION ENOUGH? https://lost-contact.mit.edu/afs/lngs.infn.it/experiment/cuore/soft_node101/scipy-0.16.0/scipy/special/cephes/polevl.h
-//---------------------------------------
-// ---- Polynomial evaluation (Cephes) ----
+// ================================================================
+//  Polynomial evaluation (Cephes standard)
+// ================================================================
 GPUFUN  double polevl(double x, const double coef[], int N) {
     double ans = coef[0];
     for (int i = 1; i <= N; ++i) {
@@ -194,13 +72,11 @@ GPUFUN double p1evl(double x, const double coef[], int N) {
     return ans;
 }
 
-// ELLPK needs fixing????
-//-------------------
-// ---- ellpk: complete elliptic integral of the first kind ----
-// Complete elliptic integral of the first kind K(m) with x = m1 = 1 - m.
+// ================================================================
+//  Elliptic integral K(m) – Cephes
+// ================================================================
 
-// Canonical UNK coefficients (portable IEEE double)
-static const double ELLPK_P_UNK[11] = {
+static const double ELLPK_P[11] = {
     1.37982864606273237150e-4, 2.28025724005875567385e-3,
     7.97404013220415179367e-3, 9.85821379021226008714e-3,
     6.87489687449949877925e-3, 6.18901033637687613229e-3,
@@ -209,7 +85,7 @@ static const double ELLPK_P_UNK[11] = {
     1.38629436111989062502e0
 };
 
-static const double ELLPK_Q_UNK[11] = {
+static const double ELLPK_Q[11] = {
     2.94078955048598507511e-5, 9.14184723865917226571e-4,
     5.94058303753167793257e-3, 1.54850516649762399335e-2,
     2.39089602715924892727e-2, 3.01204715227604046988e-2,
@@ -218,10 +94,6 @@ static const double ELLPK_Q_UNK[11] = {
     4.99999999999999999821e-1
 };
 
-
-
-#  define ELLPK_P  ELLPK_P_UNK     /* default */
-#  define ELLPK_Q  ELLPK_Q_UNK
 
 #define C1 1.3862943611198906188
 /* Optional: exact log(4) used in the small-x asymptotic path */
@@ -247,8 +119,6 @@ GPUFUN double ellpk(double x)
     return C1 - 0.5 * log(x);
 }
 
-
-// ---- ellik: incomplete elliptic integral of the first kind ----
 // ---- ellik: incomplete elliptic integral of the first kind F(φ | m) ----
 GPUFUN double ellik(double phi, double m)
 {

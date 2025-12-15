@@ -26,7 +26,7 @@
 
 // --- DEFAULT BENDING RADIUS -----------------------------------------
 // R = large number → effectively straight crystal
-#define BENTCH_DEFAULT_R        10
+#define BENTCH_DEFAULT_R        10.0
 
 // --- DEFAULT NUMBER OF STEPS ----------------------------------------
 // 1 → no substepping
@@ -41,11 +41,7 @@
 #define BENTCH_DEFAULT_DP       1.92e-10    // m
 #define BENTCH_DEFAULT_ALPHA 0.722452
 #define BENTCH_DEFAULT_BETA  0.573481
-// --- CHANNEL GEOMETRY ----------------------------------------------
-#define BENTCH_DEFAULT_XC       (0.5 * BENTCH_DEFAULT_DP-0.6565*BENTCH_DEFAULT_UT)
 
 
-// --- SMALL NONZERO BENDING PARAMETER -------------------------------
-#define BENTCH_DEFAULT_ETA      (1.0 / BENTCH_DEFAULT_R)
 
 #endif

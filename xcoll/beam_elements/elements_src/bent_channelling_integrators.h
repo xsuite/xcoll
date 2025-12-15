@@ -42,13 +42,13 @@ static const double yoshida_chi0[] = {
 // ============================================================================
 #define FM_SIG \
     double length, double x0, double px0, \
-    double bpc,  double U_N, double U, double sqrt_U, \
+    double bpc,  double U_N, double U, double sqrt_U, double R, \
     double* x, double* px
 
     #define FM_SIG_H1 \
     double length, double x0, double px0, \
     double bpc,  double U_N, double U, \
-    double aTF_over_beta, double beta_over_aTF,\
+    double aTF_over_beta, double beta_over_aTF, double R,\
     double* x, double* px
 // ============================================================================
 // M4 EXTENDED SIGNATURE (Simplified Molière model)
@@ -59,17 +59,32 @@ static const double yoshida_chi0[] = {
     double* x, double* px
 
 #define FM4_SIG_H1 \
-    double length, double x0, double px0, \
+    double length, double x0, double px0, double R,\
     double* x, double* px
 
 // ============================================================================
-// BASE SIGNATURE (O(2) integrators of M2/M3)
+// BASE SIGNATURE (O(2) integrators of M2/M3
 // ============================================================================
 #define FM_SIG_INT \
     double length, double x0, double px0, \
     double bpc,  double U_N, double U, double sqrt_U, \
-    double aTF_over_beta, double beta_over_aTF,\
+    double aTF_over_beta, double beta_over_aTF, double R,\
     double* x, double* px
+
+// ============================================================================
+// BASE SIGNATURE (O(2) integrator of M4
+// ============================================================================
+
+
+#define FM4_SIG_INT \
+    double length, double x0, double px0, \
+    double bpc, double U_N,  double beta_over_aTF, double two_aTF_over_beta,\
+    double R,\
+    double* x, double* px
+
+
+
+
 // ============================================================================
 // ------------------------ METHOD 2: H0 / H1 ------------------------
 // ============================================================================
@@ -161,10 +176,10 @@ GPUFUN void fM2O2v1(FM_SIG_INT) {
     double half = 0.5 * length;
     double x1, px1, x2, px2;
 
-    fM2H0(half, x0, px0, bpc, U_N, U, sqrt_U, &x1, &px1);
+    fM2H0(half, x0, px0, bpc, U_N, U, sqrt_U, R, &x1, &px1);
     fM2H1(length, x1, px1, bpc, U_N, U, aTF_over_beta, beta_over_aTF,
-        &x2, &px2);
-    fM2H0(half, x2, px2, bpc, U_N, U, sqrt_U, x, px);
+        R, &x2, &px2);
+    fM2H0(half, x2, px2, bpc, U_N, U, sqrt_U, R, x, px);
 }
 
 GPUFUN void fM2O2v2(FM_SIG_INT) {
@@ -172,10 +187,10 @@ GPUFUN void fM2O2v2(FM_SIG_INT) {
     double x1, px1, x2, px2;
 
     fM2H1(half, x0, px0, bpc, U_N, U, aTF_over_beta, beta_over_aTF,
-        &x1, &px1);
-    fM2H0(length, x1, px1, bpc, U_N, U, sqrt_U, &x2, &px2);
+        R, &x1, &px1);
+    fM2H0(length, x1, px1, bpc, U_N, U, sqrt_U, R, &x2, &px2);
     fM2H1(half, x2, px2,  bpc, U_N, U, aTF_over_beta, beta_over_aTF,
-        x, px);
+        R, x, px);
 }
 
 // ============================================================================
@@ -185,20 +200,20 @@ GPUFUN void fM3O2v1(FM_SIG_INT) {
     double half = 0.5 * length;
     double x1, px1, x2, px2;
 
-    fM3H0(half, x0, px0, bpc, U_N, U, sqrt_U, &x1, &px1);
-    fM3H1(length, x1, px1, bpc, U_N, U, aTF_over_beta, beta_over_aTF,
+    fM3H0(half, x0, px0, bpc, U_N, U, sqrt_U, R, &x1, &px1);
+    fM3H1(length, x1, px1, bpc, U_N, U, aTF_over_beta, beta_over_aTF, R,
         &x2, &px2);
-    fM3H0(half, x2, px2, bpc, U_N, U, sqrt_U, x,  px);
+    fM3H0(half, x2, px2, bpc, U_N, U, sqrt_U, R, x,  px);
 }
 
 GPUFUN void fM3O2v2(FM_SIG_INT) {
     double half = 0.5 * length;
     double x1, px1, x2, px2;
 
-    fM3H1(half, x0, px0, bpc, U_N, U, aTF_over_beta, beta_over_aTF,
+    fM3H1(half, x0, px0, bpc, U_N, U, aTF_over_beta, beta_over_aTF, R,
         &x1, &px1);
-    fM3H0(length, x1, px1, bpc, U_N, U, sqrt_U, &x2, &px2);
-    fM3H1(half, x2, px2,bpc, U_N, U, aTF_over_beta, beta_over_aTF,
+    fM3H0(length, x1, px1, bpc, U_N, U, sqrt_U, R, &x2, &px2);
+    fM3H1(half, x2, px2,bpc, U_N, U, aTF_over_beta, beta_over_aTF, R,
         x, px);
 }
 
@@ -206,7 +221,7 @@ GPUFUN void fM3O2v2(FM_SIG_INT) {
 // ------------------------ M4 O(2) Integrators ------------------------
 // ============================================================================
 
-GPUFUN void fM4O2v1(FM4_SIG) {
+GPUFUN void fM4O2v1(FM4_SIG_INT) {
     double half = 0.5 * length;
     double x1, px1, x2, px2;
 
@@ -214,24 +229,24 @@ GPUFUN void fM4O2v1(FM4_SIG) {
     fM4H0(half, x0, px0, bpc, U_N, beta_over_aTF, two_aTF_over_beta,
         &x1, &px1);
     // H1(h)
-    fM4H1(length, x1, px1, &x2, &px2);
+    fM4H1(length, x1, px1, R, &x2, &px2);
     // H0(h/2)
     fM4H0(half, x2, px2, bpc, U_N, beta_over_aTF, two_aTF_over_beta,
          x, px);
 }
 
-GPUFUN void fM4O2v2(FM4_SIG) {
+GPUFUN void fM4O2v2(FM4_SIG_INT) {
     double half = 0.5 * length;
     double x1, px1, x2, px2;
 
     // H1(h/2)
     fM4H1(
-        half, x0, px0, &x1, &px1);
+        half, x0, px0, R, &x1, &px1);
     // H0(h)
     fM4H0(length, x1, px1, bpc, U_N, beta_over_aTF, two_aTF_over_beta,
         &x2, &px2);
     // H1(h/2)
-    fM4H1(half, x2, px2, x, px);
+    fM4H1(half, x2, px2, R, x, px);
 }
 
 // ============================================================================
@@ -239,20 +254,21 @@ GPUFUN void fM4O2v2(FM4_SIG) {
 // ============================================================================
 
 GPUFUN void fM2_apply_yoshida(
-    double length, double x0, double px0, double bpc,
+    double length, double Umax, double aTF, double alpha_i, double beta_i,
+    double dp, double x0, double px0, double bpc, double R,
     int8_t order, int8_t variant,
     double* x, double* px)
 {    
-    double U_N = U_N_();
     double aTF_over_beta = aTF/beta_i;
     double beta_over_aTF = 1/aTF_over_beta;
+    double U_N = U_N_(Umax, dp, alpha_i, beta_i, beta_over_aTF);
     double U  = (U_N / bpc)*beta_over_aTF*beta_over_aTF;  
     double sqrt_U = sqrt(U);
 
     if (order <= 2) {
         (variant == 1 ? fM2O2v1 : fM2O2v2)(
             length, x0, px0, bpc, U_N, U,sqrt_U,aTF_over_beta, beta_over_aTF,
-             x, px);
+             R, x, px);
         return;
     }
 
@@ -261,33 +277,37 @@ GPUFUN void fM2_apply_yoshida(
     double x1, px1, x2, px2;
 
     fM2_apply_yoshida(
-        chi1 * length, x0, px0, bpc, order - 2, variant, &x1, &px1
+        chi1 * length, Umax, aTF, alpha_i, beta_i, dp,
+        x0, px0, bpc, R, order - 2, variant, &x1, &px1
     );
 
     fM2_apply_yoshida(
-        chi0 * length, x1, px1, bpc, order - 2, variant, &x2, &px2
+        chi0 * length, Umax, aTF, alpha_i, beta_i, dp,
+        x1, px1, bpc, R, order - 2, variant, &x2, &px2
     );
 
     fM2_apply_yoshida(
-        chi1 * length, x2, px2, bpc, order - 2, variant, x, px
+        chi1 * length, Umax, aTF, alpha_i, beta_i, dp,
+        x2, px2, bpc, R, order - 2, variant, x, px
     );
 }
 
 GPUFUN void fM3_apply_yoshida(
-    double length, double x0, double px0, double bpc,
+    double length, double Umax, double aTF, double alpha_i, double beta_i,
+    double dp, double x0, double px0, double bpc, double R,
     int8_t order, int8_t variant,
     double* x, double* px)
 {   
-    double U_N = U_N_();
     double aTF_over_beta = aTF/beta_i;
     double beta_over_aTF = 1/aTF_over_beta;
+    double U_N = U_N_(Umax, dp, alpha_i, beta_i, beta_over_aTF);
     double U  = (U_N / bpc)*beta_over_aTF*beta_over_aTF;  
     double sqrt_U = sqrt(U);
 
     if (order <= 2) {
         (variant == 1 ? fM3O2v1 : fM3O2v2)(
             length, x0, px0, bpc, U_N, U,sqrt_U,aTF_over_beta, beta_over_aTF,
-             x, px);
+              R, x, px);
         return;
     }
 
@@ -296,41 +316,45 @@ GPUFUN void fM3_apply_yoshida(
     double x1, px1, x2, px2;
 
     fM3_apply_yoshida(
-        chi1 * length, x0, px0, bpc, order - 2, variant, &x1, &px1
+        chi1 * length, Umax, aTF, alpha_i, beta_i, dp,
+        x0, px0, bpc, R, order - 2, variant, &x1, &px1
     );
 
     fM3_apply_yoshida(
-        chi0 * length, x1, px1, bpc, order - 2, variant, &x2, &px2
+        chi0 * length,  Umax, aTF, alpha_i, beta_i, dp,
+        x1, px1, bpc, R, order - 2, variant, &x2, &px2
     );
 
     fM3_apply_yoshida(
-        chi1 * length, x2, px2, bpc, order - 2, variant, x, px
+        chi1 * length,  Umax, aTF, alpha_i, beta_i, dp,
+        x2, px2, bpc, R, order - 2, variant, x, px
     );
 }
 
-GPUFUN void fM4_apply_yoshida(double length, double x0, double px0,
-    double bpc, int8_t order, int8_t variant,
+GPUFUN void fM4_apply_yoshida(
+    double length, double Umax, double aTF, double alpha_i, double beta_i,
+    double dp,double x0, double px0,
+    double bpc, double R, int8_t order, int8_t variant,
     double* x, double* px)
 {   
-    double U_N = U_N_();
     double beta_over_aTF = beta_i/aTF;
     double two_aTF_over_beta = 2/beta_over_aTF;
+    double U_N = U_N_(Umax, dp, alpha_i, beta_i, beta_over_aTF);
+
     if (order <= 2) {
         if (variant == 1) {
             fM4O2v1(
                 length, x0, px0, bpc, U_N, beta_over_aTF,two_aTF_over_beta,
-                x, px);
+                R, x, px);
         }
         else {
             fM4O2v2(
                 length, x0, px0,bpc, U_N, beta_over_aTF, two_aTF_over_beta,
-                x, px);
+                R, x, px);
         }
         return;
     }
 
-    // ------------------------------
-    // Yoshida coefficients
     // ------------------------------
     double chi1 = yoshida_chi1[order];
     double chi0 = yoshida_chi0[order];
@@ -341,20 +365,21 @@ GPUFUN void fM4_apply_yoshida(double length, double x0, double px0,
     double x1, px1;
     double x2, px2;
 
-    // ------------------------------
-    // Recursive step 1
-    // ------------------------------
-    fM4_apply_yoshida(s1,  x0, px0, bpc, order - 2, variant,
+    
+    fM4_apply_yoshida(s1,  Umax, aTF, alpha_i, beta_i, dp,
+        x0, px0, bpc, R, order - 2, variant,
         &x1, &px1
     );
 
     fM4_apply_yoshida(
-        s0, x1, px1, bpc, order - 2, variant,
+        s0,  Umax, aTF, alpha_i, beta_i, dp,
+        x1, px1, bpc, R, order - 2, variant,
         &x2, &px2
     );
 
     fM4_apply_yoshida(
-        s1, x2, px2, bpc, order - 2, variant,
+        s1,  Umax, aTF, alpha_i, beta_i, dp,
+        x2, px2, bpc, R, order - 2, variant,
         x, px
     );
 }

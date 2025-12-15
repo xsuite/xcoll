@@ -9,21 +9,8 @@
 
 #include <math.h>
 
-// ================================================================
-//  Material constants (valid for Si(110))
-// ================================================================
-
-static const double Umax   = 23.9037;   // eV
-static const double U0     = 21.7681;   // eV
-static const double aTF    = 1.94e-11;  // m
-static const double uT     = 7.5e-12;   // m
-static const double dp     = 1.92e-10;  // m
-static const double alpha_i = 0.722452;
-static const double beta_i  = 0.573481;
 
 
-// bending radius
-static const double R  = 10;// m
 
 // I am not sure which way is faster, I COMMENTED THEM OUT FOR NOW 
 
@@ -41,9 +28,10 @@ static const double R  = 10;// m
 //}
 
 // U_N = 2 Umax alpha_i / beta_i * exp( -beta_i dp / (2 aTF) )
-static inline double U_N_(void) {
+static inline double U_N_(double Umax, double dp, 
+    double alpha_i, double beta_i, double beta_over_aTF) {
     return 2.0 * Umax * alpha_i/beta_i
-         * exp( -beta_i / aTF * (dp * 0.5) );
+         * exp( -beta_over_aTF * (dp * 0.5) );
 }
 
 
