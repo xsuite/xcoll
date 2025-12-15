@@ -104,24 +104,26 @@ def _merge_c_header(mod: ModuleType, attr: str, src: str, include_guard: str) ->
 
 # ---- spec holders used in class bodies --------------------------------------
 class ConstantSpec:
-    __slots__ = ("py_value", "info", "c_name", "name")
+    __slots__ = ("py_value", "info", "c_name", "name", "extras")
     def __init__(self, value: ConstantType, info: str = "",
-                 c_name: Optional[str] = None, name: Optional[str] = None):
+                 c_name: Optional[str] = None, name: Optional[str] = None,
+                 extras: Optional[Dict] = None):
         if not isinstance(value, (int, float, bool)):
             raise TypeError(f"Unsupported constant type: {type(value).__name__}")
         self.py_value = value      # keep original type for Python export
         self.info = info
         self.c_name = c_name
         self.name = name
+        self.extras = extras or {}
     def __str__(self):
         return f"ConstantSpec(name={self.name!r}, py_value={self.py_value!r}, info={self.info!r}, c_name={self.c_name!r})"
     def __repr__(self):
         return f"<{self} at {hex(id(self))}>"
 
 def constant(value: ConstantType, info: str = "", *,
-             c_name: Optional[str] = None) -> ConstantSpec:
+             c_name: Optional[str] = None, **kwargs) -> ConstantSpec:
     """Declare a numeric constant with optional metadata inside class bodies."""
-    return ConstantSpec(value, info, c_name)
+    return ConstantSpec(value, info, c_name, extras=kwargs)
 
 class GroupSpec:
     __slots__ = ("names", "py_values", "info", "name")
@@ -148,24 +150,36 @@ def group(*names: Union[ConstantSpec, GroupSpec, Enum, str], info: str = "") -> 
 
 # ---- Enum Mixin types, to add metadata to constants -------------------------
 class _IntMixin(int):
-    def __new__(cls, value, info: str = "", c_name: Optional[str] = None):
+    def __new__(cls, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict]={}):
         return int.__new__(cls, value)
-    def __init__(self, value, info: str = "", c_name: Optional[str] = None):
+    def __init__(self, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict]={}):
         self.info = info
         self.c_name = c_name
+        for kk, vv in kwargs.items():
+            setattr(self, kk, vv)
         doc = [self.info] if self.info != '' else []
         c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
-        self.__doc__ = ' '.join([*doc, *c_name])
+        additional = []
+        if kwargs:
+            extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
+            additional.append("Additional info: " + ", ".join(extra) + ".")
+        self.__doc__ = ' '.join([*doc, *c_name, *additional])
 
 class _FloatMixin(float):
-    def __new__(cls, value, info: str = "", c_name: Optional[str] = None):
+    def __new__(cls, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict]={}):
         return float.__new__(cls, value)
-    def __init__(self, value, info: str = "", c_name: Optional[str] = None):
+    def __init__(self, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict]={}):
         self.info = info
         self.c_name = c_name
+        for kk, vv in kwargs.items():
+            setattr(self, kk, vv)
         doc = [self.info] if self.info != '' else []
         c_name = [f"Represented in C as {c_name}."] if c_name is not None else []
-        self.__doc__ = ' '.join([*doc, *c_name])
+        additional = []
+        if kwargs:
+            extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
+            additional.append("Additional info: " + ", ".join(extra) + ".")
+        self.__doc__ = ' '.join([*doc, *c_name, *additional])
 
 class _TupleMixin(tuple):
     def __new__(cls, *args):
@@ -198,11 +212,11 @@ def _build_members(module_name: str,
 
     for k, spec in items.items():
         if isinstance(spec.py_value, bool):
-            bools[k] = (spec.py_value, spec.info, spec.c_name)
+            bools[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
         elif isinstance(spec.py_value, int):
-            ints[k] = (spec.py_value, spec.info, spec.c_name)
+            ints[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
         elif isinstance(spec.py_value, float):
-            floats[k] = (spec.py_value, spec.info, spec.c_name)
+            floats[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
         else:
             raise TypeError(f"Unsupported type for {k}: {type(spec.py_value).__name__}")
 
@@ -212,23 +226,19 @@ def _build_members(module_name: str,
     members: Dict[str, object] = {}
 
     if ints:
-        int_enum = Enum(f"{enum_type_name}Int", {k: (v, i, c or _cjoin(c_prefix, k))
-                                              for k, (v, i, c) in ints.items()},
-                        module=module_name, type=_IntMixin)
+        int_enum = Enum(f"{enum_type_name}Int", ints, module=module_name, type=_IntMixin)
         int_enum.__doc__ = ''
         for k in ints:
             members[k] = getattr(int_enum, k)
 
     if floats:
-        float_enum = Enum(f"{enum_type_name}Float", {k: (v, i, c or _cjoin(c_prefix, k))
-                                                  for k, (v, i, c) in floats.items()},
-                          module=module_name, type=_FloatMixin)
+        float_enum = Enum(f"{enum_type_name}Float", floats, module=module_name, type=_FloatMixin)
         float_enum.__doc__ = ''
         for k in floats:
             members[k] = getattr(float_enum, k)
 
     # Bools exported as plain True/False (metadata lives in *_meta)
-    for k, (bv, _, _) in bools.items():
+    for k, (bv, _, _, _) in bools.items():
         members[k] = bv
 
     return members
@@ -278,7 +288,7 @@ class _ConstantsMeta(type):
         # Config from this class only (no inheritance)
         category: str      = (ns.get("_category_",   "constant") or "constant").strip()
         plural: str        = _pluralise(category, ns.get("_plural_", None))
-        reverse            = ns.get("_reverse_", "unique")  # "unique" | "multi" | None
+        reverse            = ns.get("_reverse_", None)  # "unique" | "multi" | None
         c_prefix: str      = (ns.get("_c_prefix_", "") or "").strip()
         include_guard: str = ns.get("_include_guard_", f"{_cjoin(c_prefix, category.upper())}_H")
         if reverse not in (None, "unique", "multi"):
@@ -308,7 +318,7 @@ class _ConstantsMeta(type):
         own_specs: Dict[str, ConstantSpec] = {}
         own_group_specs: Dict[str, GroupSpec] = {}
         for k, v in ns.items():
-            if not k.isupper() or k.startswith("_"):
+            if k.startswith("_"):
                 continue
             if isinstance(v, ConstantSpec):
                 v.name = k  # Remember constant name for lookup in groups (potentially in other classes)
@@ -433,7 +443,7 @@ class _ConstantsMeta(type):
             cls._own_group_specs_ = own_group_specs
 
         # Class-level views (ordered)
-        meta_map = {k: {"value": _to_number(spec.py_value), "c_name": spec.c_name, "info": spec.info}
+        meta_map = {k: {"value": _to_number(spec.py_value), "c_name": spec.c_name, "info": spec.info, **spec.extras}
                     for k, spec in own_specs.items()}
         if reverse == "unique":
             names_map = {v: k for k, v in name_to_val.items()}
@@ -523,7 +533,7 @@ class Constants(metaclass=_ConstantsMeta):
     Configure on the subclass:
         _category_       e.g. "particle_state", "interaction_type", ...
         _plural_         e.g. "particle_states" (optional; auto if omitted)
-        _reverse_        "unique" | "multi" | None  (default: "unique")
+        _reverse_        "unique" | "multi" | None  (default: None)
         _c_prefix_       e.g. "XC" (no trailing underscore needed)
         _include_guard_  e.g. "XC_PARTICLE_STATES_H" (default derived)
     """

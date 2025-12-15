@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.21)  # 3.21+ recommended for Python3_AddLibrary helpers
 project(g4interface LANGUAGES CXX)
 
+message(STATUS "----------------------------------------")
+message(STATUS "Compilers being used for ${PROJECT_NAME}:")
+message(STATUS "  C compiler:      ${CMAKE_C_COMPILER}")
+message(STATUS "  C++ compiler:    ${CMAKE_CXX_COMPILER}")
+if(CMAKE_Fortran_COMPILER)
+  message(STATUS "  Fortran compiler: ${CMAKE_Fortran_COMPILER}")
+endif()
+message(STATUS "----------------------------------------")
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

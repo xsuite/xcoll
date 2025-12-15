@@ -5,7 +5,7 @@ All:
 
 Families:
   - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: CFC,   length: 0.6,   assembly: 'lhc_tcp'  }
-  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1,     assembly: 'lhc_tcsg' }
+  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1,     assembly: 'lhc_tcsg',  tip_material: Cu,    tip_thickness: 50e-6 }  # Tip ignored if not Geant4
   - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip }
 
 emittance:

@@ -19,8 +19,8 @@ _header_start = "! ** XCOLL START  **"
 _header_stop  = "! ** XCOLL END  **"
 
 
-def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop_secondaries=False,
-                             extra_opts=[], extra_input=[], verbose=True, _all_black=False, **kwargs):
+def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, extra_opts=[],
+                             extra_input=[], verbose=True, _all_black=False, **kwargs):
     momentum = int(np.ceil((particle_ref.p0c[0] + 1) / 1.e9))  # in GeV
     pdg_id = particle_ref.pdg_id[0]
     if pdg_id is None or pdg_id == 0:
@@ -48,8 +48,6 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop
             physics_list = 'g4FTFP_BERT'
     gmad.append(f'option, physicsList="{physics_list}";')
     # gmad.append(f'option, seed={seed};')
-    if stop_secondaries:
-        gmad.append('option, stopSecondaries=1;')
     if _all_black:
         gmad.append('option, collimatorsAreInfiniteAbsorbers=1;')
     gmad.append('')
@@ -72,23 +70,30 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, stop
 
 
 def generate_material_definitions(element_dict, verbose=True):
+    from ...beam_elements import Geant4CollimatorTip
     code = []
     for name, el in element_dict.items():
-        mat = el.material
-        if mat is None:
-            raise ValueError(f"Material not set for element {name}!")
-        elif not isinstance(mat, RefMaterial):
+        all_mat = [el.material]
+        if isinstance(el, Geant4CollimatorTip):
+            all_mat.append(el.tip_material)
+        for mat in all_mat:
+            if mat is None:
+                raise ValueError(f"Material not set for element {name}!")
+            elif not isinstance(mat, RefMaterial):
+                if mat.geant4_name is None:
+                    mat._generate_geant4_code()
+                if mat._generated_geant4_code is not None \
+                and mat._generated_geant4_code not in code:
+                    code.append(mat._generated_geant4_code)
+            # Verify that material has a Geant4 name (after possible generation)
             if mat.geant4_name is None:
-                mat._generate_geant4_code()
-            if mat._generated_geant4_code is not None \
-            and mat._generated_geant4_code not in code:
-                code.append(mat._generated_geant4_code)
-        # Verify that material has a Geant4 name (after possible generation)
-        if mat.geant4_name is None:
-            raise ValueError(f"Material for element {name} has no Geant4 name!")
-        mess = f"! Element {name} (id {el.geant4_id}) uses material {mat.geant4_name}"
+                raise ValueError(f"Material for element {name} has no Geant4 name!")
         if verbose:
-            print(mess)
+            mats = [m.geant4_name for m in all_mat]
+            if len(mats) == 1:
+                print(f"Element {name} (id {el.geant4_id}) uses material {mats[0]}")
+            else:
+                print(f"Element {name} (id {el.geant4_id}) uses materials {mats}")
     code.append('')
     return code
 
@@ -104,6 +109,7 @@ def get_collimators_from_input_file(input_file):
 
 
 def _generate_xcoll_header(element_dict):
+    from ...beam_elements import Geant4CollimatorTip
     header = ["!  DO NOT CHANGE THIS HEADER", _header_start, "!  {"]
     for kk, el in element_dict.items():
         vv = {
@@ -114,7 +120,9 @@ def _generate_xcoll_header(element_dict):
             "jaw": [np.array(el.jaw_L).tolist(), np.array(el.jaw_R).tolist()],
             "tilt": np.array(el.tilt).tolist(),
         }
-        # header.append(f'!  "{kk}": ' + json.dumps(vv).replace('"jaw"', '\n!          "jaw"') + ',')
+        if isinstance(el, Geant4CollimatorTip):
+            vv["tip_material"] = np.array(el.tip_material.geant4_name).tolist()
+            vv["tip_thickness"]   = np.array(el.tip_thickness).tolist()
         header.append(f'!  "{kk}": ' + json.dumps(vv) + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("!  }")

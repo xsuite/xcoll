@@ -66,6 +66,10 @@ class Geant4Environment(BaseEnvironment):
         self.assert_gxx_installed(verbose=verbose)
         self.assert_geant4_installed()
         self.assert_bdsim_installed()
+        bdsim_version = self.get_bdsim_version()
+        if verbose:
+            print(f"BDSIM version: {bdsim_version}")
+
         # Check pybind11 is installed
         try:
             import pybind11 # noqa F401
@@ -90,6 +94,7 @@ class Geant4Environment(BaseEnvironment):
                 FsPath(path).copy_to(dest, method='mount')
         cwd = FsPath.cwd()
         os.chdir(dest)
+        self._adapt_source_to_bdsim_version(bdsim_version, verbose)
 
         # Configure
         ctab = '    '
@@ -154,3 +159,69 @@ class Geant4Environment(BaseEnvironment):
         self.assert_geant4_installed()
         self.assert_bdsim_installed()
         super().assert_environment_ready()
+
+
+    def get_bdsim_version(self):
+        cmd = run(['bdsim', '--version'], capture_output=True)
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Failed to run 'bdsim --version'!\nError given is:\n{stderr}")
+        return cmd.stdout.decode('UTF-8').strip()
+
+    def bdsim_older_than(self, bdsim_version=None, compare_version='1.7.7.develop'):
+        if bdsim_version is None:
+            bdsim_version = self.get_bdsim_version()
+        n_ver = sum([10**(3*(2-i))*int(j) for i, j in enumerate(bdsim_version.strip().split('.')[:3])])
+        if 'develop' in bdsim_version:
+            n_ver += 0.5
+        n_ver_cmp = sum([10**(3*(2-i))*int(j) for i, j in enumerate(compare_version.strip().split('.')[:3])])
+        if 'develop' in compare_version:
+            n_ver_cmp += 0.5
+        return n_ver < n_ver_cmp
+
+
+    def _adapt_source_to_bdsim_version(self, bdsim_version, verbose):
+        version_mark = '// BDSIM >= '
+        adapted_any = False
+
+        # Adapt BDSXtrackInterface.hh
+        adapted = False
+        with open('BDSXtrackInterface.hh', 'r') as file:
+            filedata = file.read()
+        if self.bdsim_older_than(bdsim_version, '1.7.7.develop'):
+            filedata = filedata.replace('#include "BDSLinkBunch.hh"', '#include "BDSBunchSixTrackLink.hh"')
+            filedata = filedata.replace('BDSLinkBunch* stp = nullptr;', 'BDSBunchSixTrackLink* stp = nullptr;')
+            adapted = True
+        new_filedata = []
+        for line in filedata.split('\n'):
+            if version_mark in line:
+                if self.bdsim_older_than(bdsim_version, line.split(version_mark)[1]):
+                    adapted = True
+                    continue
+            new_filedata.append(line)
+        if adapted:
+            adapted_any = True
+            with open('BDSXtrackInterface.hh', 'w') as file:
+                file.write('\n'.join(new_filedata))
+
+        # Adapt BDSXtrackInterface.cpp
+        adapted = False
+        with open('BDSXtrackInterface.cpp', 'r') as file:
+            filedata = file.read()
+        if self.bdsim_older_than(bdsim_version, '1.7.7.develop'):
+            filedata = filedata.replace('stp = new BDSLinkBunch();', 'stp = new BDSBunchSixTrackLink();')
+            adapted = True
+        new_filedata = []
+        for line in filedata.split('\n'):
+            if version_mark in line:
+                if self.bdsim_older_than(bdsim_version, line.split(version_mark)[1]):
+                    adapted = True
+                    continue
+            new_filedata.append(line)
+        if adapted:
+            adapted_any = True
+            with open('BDSXtrackInterface.cpp', 'w') as file:
+                file.write('\n'.join(new_filedata))
+
+        if verbose and adapted_any:
+                print("Adapted source code to BDSIM version.")

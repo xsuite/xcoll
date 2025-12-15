@@ -5,7 +5,7 @@
 
 from .material import Material
 from .atoms import Carbon, Oxygen, Hydrogen, Boron, Nitrogen, Silicon, Aluminium, Iron, Nickel, Zinc
-from .database import db
+from .database import db, _manually_add_material_to_db
 
 
 # General compounds
@@ -29,22 +29,17 @@ NiZnFerrite    = Material(components=[Nickel, Zinc, Iron, Oxygen], n_atoms=[0.45
 # Metadata for database
 # =====================
 
-del Carbon, Oxygen, Hydrogen, Boron, Nitrogen, Silicon, Aluminium, Iron, Nickel, Zinc
-for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
-    if isinstance(obj, Material) and obj.name is None:
-        obj.name = name
-
-db['Sand'] = Silica
-
-Water.fluka_name = 'WATER'
-BoronNitride.fluka_name = 'hBNpure'
-Silica.fluka_name = 'SiO2'
-BoronTrioxide.fluka_name = 'B2O3'
-AluminiumOxide.fluka_name = 'Al2O3'
-NiZnFerrite.fluka_name = 'NIZNFER2'
+_manually_add_material_to_db(CarbonDioxide,  'CarbonDioxide',  short_name='CO2')
+_manually_add_material_to_db(DryIce,         'DryIce')
+_manually_add_material_to_db(Water,          'Water',          short_name='H2O',  fluka_name='WATER')
+_manually_add_material_to_db(BoronNitride,   'BoronNitride',                      fluka_name='hBNpure')
+_manually_add_material_to_db(Silica,         'Silica',         short_name='Sand', fluka_name='SiO2')
+_manually_add_material_to_db(BoronTrioxide,  'BoronTrioxide',                     fluka_name='B2O3')
+_manually_add_material_to_db(AluminiumOxide, 'AluminiumOxide',                    fluka_name='Al2O3')
+_manually_add_material_to_db(NiZnFerrite,    'NiZnFerrite',                       fluka_name='NIZNFER2')
 
 
 # Clean up namespace
-del name, obj
+del Carbon, Oxygen, Hydrogen, Boron, Nitrogen, Silicon, Aluminium, Iron, Nickel, Zinc
 del Material
 del db

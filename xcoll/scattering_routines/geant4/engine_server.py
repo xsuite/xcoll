@@ -23,10 +23,10 @@ class BDSIMServer:
                                       seed=seed, batchMode=batchMode)
 
 
-    def addCollimator(self, geant4_id, material, length, apertureLeft=None, apertureRight=None,
-                      rotation=None, xOffset=0, yOffset=0, side=None, jawTiltLeft=None,
-                      jawTiltRight=None, isACrystal=False):
-        self.g4link.addCollimator(geant4_id, material, length,
+    def addCollimator(self, geant4_id, material, tipMaterial='', tipThickness=0, length=0,
+                      apertureLeft=None, apertureRight=None, rotation=None, xOffset=0, yOffset=0,
+                      side=None, jawTiltLeft=None, jawTiltRight=None, isACrystal=False):
+        self.g4link.addCollimator(geant4_id, material, tipMaterial, tipThickness, length,
                                   apertureLeft=apertureLeft,
                                   apertureRight=apertureRight,
                                   rotation=rotation,
@@ -35,30 +35,29 @@ class BDSIMServer:
                                   isACrystal=isACrystal)
 
 
-    def add_particles_and_collimate_return(self, blob, geant4_id):
+    def add_particles_and_collimate_return(self, blob, geant4_id, num_sent):
         buf = io.BytesIO(blob)
         loaded = np.load(buf)
         coords = [np.array(loaded[key]) for key in loaded.files]
         self.g4link.addParticles(coords)
         self.g4link.selectCollimator(geant4_id)
         self.g4link.collimate()
-        products = self.g4link.collimateReturn(coords)
+        products = self.g4link.collimateReturn(num_sent)
         # Pack results as a dict for serialization
         result_dict = {
             'x': products['x'],
+            'xp': products['xp'],
             'y': products['y'],
-            'px': products['px'],
-            'py': products['py'],
+            'yp': products['yp'],
             'zeta': products['zeta'],
-            'delta': products['delta'],
-            'charge_ratio': products['charge_ratio'],
-            's': products['s'],
+            'p': products['p'],
+            'q': products['q'],
+            'm': products['m'],
+            'weight': products['weight'],
             'pdg_id': products['pdg_id'],
             'parent_particle_id': products['parent_particle_id'],
-            'at_element': products['at_element'],
-            'at_turn': products['at_turn'],
-            'mass_ratio': products['mass_ratio'],
             'state': products['state'],
+            'n_hits': products['n_hits']
         }
 
         # Serialize to binary blob

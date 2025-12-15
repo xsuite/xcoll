@@ -35,9 +35,9 @@ class MaterialsDatabase:
         for typ in ["Atomic Elements", "Compounds", "Mixtures", "Crystal Materials",
                     "Old Sixtrack Materials"]:
             header  = style(f'{typ}', bold=True, colour='navy', enabled=format)
-            if typ == "Old Sixtrack Materials":
-                header += style('   (still default from colldb)', dim=True, colour='navy', enabled=format)
-            else:
+            if typ != "Old Sixtrack Materials":
+            #     header += style('   (still default from colldb)', dim=True, colour='navy', enabled=format)
+            # else:
                 header += style('  (aliases', italic=True, colour='navy', enabled=format)
                 if full:
                     header += style(' <case-insensitive>', dim=True, colour='navy', enabled=format)
@@ -341,82 +341,95 @@ class MaterialsSubDatabase:
     """Class to handle a subset of the materials database for Xcoll."""
 
     def __init__(self, names, db, typename):
-        self.names = names
-        self.db = db
-        self.typename = typename
+        self._names = names
+        self._db = db
+        self._typename = typename
         self._iter_index = 0
         self._iter_names = []
 
     def __getitem__(self, name):
-        if name in self.names:
-            refname = self.names[name]
-            if refname not in self.db:
-                raise KeyError(f"Broken database: Material with {self.typename} "
+        if name in self._names:
+            refname = self._names[name]
+            if refname not in self._db:
+                raise KeyError(f"Broken database: Material with {self._typename} "
                                f"name '{name}' not found in the database.")
-            return self.db[refname]
+            return self._db[refname]
         raise KeyError(f"Material with name '{name}' not found in the database.")
 
     def __setitem__(self, name, material):
-        if name in self.names:
+        if name in self._names:
             return  # Already in database
-        material = self.db._resolve(material)
+        material = self._db._resolve(material)
         # Check if material already exists (by identity, not by value).
-        existing_name = self.db._find_name_by_material(material)
+        existing_name = self._db._find_name_by_material(material)
         if existing_name:
-            self.names[name] = self.db._strip(existing_name)
+            self._names[name] = self._db._strip(existing_name)
         else:
             # If not, add new material
             if material.name is None:
                 material.name = name        # This will add the material to the main database
-            if self.typename == 'FLUKA' and material.fluka_name is None:
+            if self._typename == 'FLUKA' and material.fluka_name is None:
                 material.fluka_name = name  # This will add the alias
-            if self.typename == 'Geant4' and material.geant4_name is None:
+            if self._typename == 'Geant4' and material.geant4_name is None:
                 material.geant4_name = name # This will add the alias
 
     def __contains__(self, name):
-        return name in self.names
+        return name in self._names
 
     def __iter__(self):
         self._iter_index = 0
-        self._iter_names = list(self.names.keys())
+        self._iter_names = list(self._names.keys())
         return self
 
     def __next__(self):
         if self._iter_index >= len(self._iter_names):
             raise StopIteration
-        value = self.names[self._iter_names[self._iter_index]]
+        value = self._names[self._iter_names[self._iter_index]]
         self._iter_index += 1
         return value
 
     def __len__(self):
-        return len(self.names)
+        return len(self._names)
 
     def items(self):
-        for name, mat in self.names.items():
-            yield name, self.db[mat]
+        for name, mat in self._names.items():
+            yield name, self._db[mat]
 
     def keys(self):
-        for name in self.names.keys():
+        for name in self._names.keys():
             yield name
 
     def values(self):
-        for mat in self.names.values():
-            yield self.db[mat]
+        for mat in self._names.values():
+            yield self._db[mat]
 
     def rename_alias(self, name, new_name):
         if name not in self:
             raise KeyError(f"Alias '{name}' not found.")
         if new_name in self:
             if self[new_name] == self[name]:
-                del self.names[name]
+                del self._names[name]
                 return  # Already has this name
             raise ValueError(f"Material with name '{new_name}' already exists.")
-        refname = self.names.pop(name)
-        self.names[new_name] = refname
+        refname = self._names.pop(name)
+        self._names[new_name] = refname
 
     def remove_alias(self, name):
-        if name in self.names:
-            del self.names[name]
+        if name in self._names:
+            del self._names[name]
 
 
 db = MaterialsDatabase()
+
+def _manually_add_material_to_db(mat, name, short_name=None, fluka_name=None, geant4_name=None):
+    mat._name = name
+    db._set(name, mat)
+    if short_name:
+        mat._short_name = short_name
+        db._set_alias(short_name, name)
+    if fluka_name:
+        mat._fluka_name = fluka_name[:8]   # FLUKA material name max length is 8
+        db.fluka._names[fluka_name] = db._strip(name)
+    if geant4_name:
+        mat._geant4_name = geant4_name
+        db.geant4._names[geant4_name] = db._strip(name)

@@ -15,10 +15,8 @@ try:
 except ImportError as e:
     rpyc = None
 
+
 path = Path(__file__).parent / 'data'
-
-
-# TODO: particle angles
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
 jaw_ids = ['symmetric', 'asymmetric', 'negative', 'positive']
@@ -41,7 +39,7 @@ def test_everest(jaw, angle, tilt):
                                                 zeta_spread=5e-2)
     part = part_init.copy()
     coll.track(part)
-    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
 
 
@@ -68,7 +66,7 @@ def test_geant4(jaw, angle, tilt):
                                                 _capacity=2*num_part)
     part = part_init.copy()
     coll.track(part)
-    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
     xc.geant4.engine.stop(clean=True)
 
@@ -87,6 +85,8 @@ def test_fluka(jaw, angle, assembly):
     tilt = 0
     num_part = 5_000
     length = 0.873
+
+    # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
 
@@ -209,11 +209,20 @@ def _assert_valid_positions(part_init, part, expected_hit_ids, expected_not_hit_
     assert sum(expected_hit & not_hits) <= 1 # We allow for a small margin of error
 
 
-def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, momentum_accuracy=1.e-12):
+def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, momentum_accuracy=1.e-12, plot_primaries=True, plot_secondaries=True):
     import matplotlib.pyplot as plt
 
-    hit_ids = part.parent_particle_id[_mask_hits(part_init, part, momentum_accuracy)]
-    not_hit_ids = part.parent_particle_id[_mask_not_hits(part_init, part, momentum_accuracy)]
+    mask_hits = _mask_hits(part_init, part, momentum_accuracy)
+    mask_not_hits = _mask_not_hits(part_init, part, momentum_accuracy)
+    if plot_primaries and not plot_secondaries:
+        mask_hits &= part.particle_id == part.parent_particle_id
+        mask_not_hits &= part.particle_id == part.parent_particle_id
+    elif not plot_primaries and plot_secondaries:
+        mask_hits &= part.particle_id != part.parent_particle_id
+        mask_not_hits &= part.particle_id != part.parent_particle_id
+
+    hit_ids = part.parent_particle_id[mask_hits]
+    not_hit_ids = part.parent_particle_id[mask_not_hits]
 
     expected_but_not_hit = set(expected_hit_ids) - set(hit_ids)
     hit_but_not_expected = set(hit_ids) - set(expected_hit_ids)
@@ -250,3 +259,5 @@ def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, mo
         ax[idx][idy].legend(loc='upper right')
     fig.tight_layout()
     plt.show()
+
+    return hit_but_not_expected, expected_but_not_hit
