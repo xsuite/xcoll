@@ -152,7 +152,7 @@ class BentChannellingDev(InvalidXcoll):
         if 'n_steps' not in kwargs:
             method = kwargs['method']
             if method ==4:
-                npp = 5
+                npp = 8
             else: 
                 npp = 60 
             length = kwargs['length']
