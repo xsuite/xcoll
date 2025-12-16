@@ -57,7 +57,7 @@ def run_case(case_id, model, order, variant, n_samples):
    # Very important to set p0c and delta, because we worked
    # with bpc = 150e9 eV for Mathematica Reference functions.
 
-    part = xt.Particles(p0c=150e9, x=x0, px=px0, delta=0.0)
+    part = xt.Particles(p0c=1e9, x=x0, px=px0, delta=0.0)
 
     xs = np.zeros(n_samples + 1)
     pxs = np.zeros(n_samples + 1)

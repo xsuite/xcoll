@@ -161,6 +161,8 @@ class BentChannellingDev(InvalidXcoll):
             beta_i  = kwargs['beta_i']
             aTF     = kwargs['aTF']
             dp      = kwargs['dp']
+            # This value is only used to calculate the default number of steps.
+            # The particle takes the real value from <track_bent_channelling.h>.
             bpc     = kwargs.get('bpc', 150e9)  # safeguard
 
             Uxx0 = (
