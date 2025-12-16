@@ -84,21 +84,29 @@ def test_geant4(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_fluka(jaw, angle, assembly):
-    tilt = 0
+    tilt = 2.2e-3
+    num_part = 5000
 
     # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
+    # coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
+    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material="c")
     xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.start(elements=coll, capacity=10_000)
+    xc.fluka.engine.start(elements=coll, capacity=2*num_part)
 
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=5000, x_dim=0.015,
-                            _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
+    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=xc.fluka.engine.particle_ref,
+                                                jaw_band=1e-8, jaw_accuracy=5e-9, angular_spread=1e-3,
+                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
+                                                _capacity=xc.fluka.engine.capacity)
+
+    # part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
+    #                         _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
     part = part_init.copy()
     coll.track(part)
+    _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part, hit_ids, not_hit_ids)
 
     # Stop the FLUKA server

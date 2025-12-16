@@ -18,7 +18,7 @@ context = xo.ContextCpu()         # For CPU
 # context = xo.ContextCupy()      # For CUDA GPUs
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
 
-num_part = int(10_000)
+num_part = int(1000)
 
 coll = xc.FlukaCrystal(length=0.002, material='si', bending_angle=149e-6,
                        width=0.002, height=0.05, side='+', jaw=1e-3,  # Hack to make it work for now; jaw should be almost zero

@@ -351,12 +351,18 @@ DEFAULTS                                                              PRECISIO
 *
 * All particle transport thresholds up to 1 TeV
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-PART-THR  {format_fluka_float(lower_momentum_cut)}            @LASTPAR                 0.0
-PART-THR  {format_fluka_float(2*lower_momentum_cut)}  DEUTERON                           0.0
-PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                           0.0
-PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
-PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
+* PART-THR  {format_fluka_float(lower_momentum_cut)}            @LASTPAR                 0.0
+* PART-THR  {format_fluka_float(2*lower_momentum_cut)}  DEUTERON                           0.0
+* PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                           0.0
+* PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
+* PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
 *
+PART-THR     -1000.0            @LASTPAR                 0.0
+PART-THR     -2000.0  DEUTERON                           0.0
+PART-THR     -3000.0    TRITON                           0.0
+PART-THR     -3000.0  3-HELIUM                           0.0
+PART-THR     -4000.0  4-HELIUM                           0.0
+
 *
 * Activate single scattering
 MULSOPT                                        1.0       1.0       1.0GLOBAL
