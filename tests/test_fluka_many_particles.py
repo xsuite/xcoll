@@ -8,7 +8,7 @@ from xtrack.particles import LAST_INVALID_STATE
 from xtrack.particles import masses as xpm
 
 import xcoll as xc
-from  xcoll import particle_states as xcp
+from  xcoll import constants as xcc
 
 
 FLUKA_PROTON_MASS_EV = xc.fluka.particle_masses[2212][1]
@@ -299,7 +299,7 @@ def _stop_engine():
 
 
 def _init_fluka(particle_ref, capacity, relative_capacity):
-    coll = xc.FlukaCollimator(length=0.4, assembly='fcc_tcp')
+    coll = xc.FlukaCollimator(length=0.4, material='iner')
     coll.jaw = 0.002
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.capacity = capacity
@@ -396,25 +396,25 @@ def _assert_hit(part, part_init, coll, tol=1e-12):
     # The following really should have hit
     assert np.all(part.energy[mask_hit & (part.state==1)] < E0)
     # All that are supposed to hit and died without leaving children should still have all their energy
-    assert np.all(part.energy[mask_hit & (part.state==xcp.LOST_ON_FLUKA_COLL) & ~has_children] == E0)
+    assert np.all(part.energy[mask_hit & (part.state==xcc.LOST_ON_FLUKA_COLL) & ~has_children] == E0)
     # All that are supposed to hit and died with children should have lost energy
     assert np.all(part.energy[mask_hit & has_children] < E0)
     # All children should have less energy than the initial
     assert np.all(part.energy[is_child] < E0)
     # All energies need to be positive
-    assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcp.ACC_IONISATION_LOSS)] > 0)
+    assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcc.ACC_IONISATION_LOSS)] > 0)
 
-    Edead = part.energy[part.state==xcp.LOST_ON_FLUKA_COLL].sum()
-    if np.any(part.state==xcp.LOST_ON_FLUKA_COLL):
+    Edead = part.energy[part.state==xcc.LOST_ON_FLUKA_COLL].sum()
+    if np.any(part.state==xcc.LOST_ON_FLUKA_COLL):
         assert Edead > 0
-    # Eacc = part.energy[part.state==xcp.ACC_IONISATION_LOSS].sum()
+    # Eacc = part.energy[part.state==xcc.ACC_IONISATION_LOSS].sum()
     Eacc = coll._acc_ionisation_loss
     assert Eacc >= 0
-    Evirtual = part.energy[part.state==xcp.VIRTUAL_ENERGY].sum()
-    if np.any(part.state==xcp.VIRTUAL_ENERGY):
+    Evirtual = part.energy[part.state==xcc.VIRTUAL_ENERGY].sum()
+    if np.any(part.state==xcc.VIRTUAL_ENERGY):
         assert Evirtual > 0
-    Emassless = part.energy[part.state==xcp.MASSLESS_OR_NEUTRAL].sum()
-    if np.any(part.state==xcp.MASSLESS_OR_NEUTRAL):
+    Emassless = part.energy[part.state==xcc.MASSLESS_OR_NEUTRAL].sum()
+    if np.any(part.state==xcc.MASSLESS_OR_NEUTRAL):
         assert Emassless > 0
     Eout = part.energy[part.state==1].sum()
     if alive_after > 0:

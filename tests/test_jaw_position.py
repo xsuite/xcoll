@@ -59,7 +59,7 @@ def test_geant4(jaw, angle, tilt):
         xc.geant4.engine.stop(clean=True)
     coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material='MoGR')
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1)
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1, verbose=True)
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
                                                 jaw_band=1e-8, jaw_accuracy=5e-9, angular_spread=1e-3,
                                                 delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
@@ -93,7 +93,7 @@ def test_fluka(jaw, angle, assembly):
     # Define collimator and start the FLUKA server
     coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
     xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.start(elements=coll, capacity=num_part*2)
+    xc.fluka.engine.start(elements=coll, capacity=num_part*2, verbose=True)
 
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
                                                 jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
