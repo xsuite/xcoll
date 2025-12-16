@@ -16,15 +16,33 @@
 GPUFUN
 void track_bent_channelling_body_single_particle(
         LocalParticle* part,
-         BentChannellingDevData el)
+        BentChannellingDevData el,
+        // element-level
+        double length,
+        double Umax,
+        double dp,
+        double aTF,
+        double alpha_i,
+        double beta_i,
+        double aTF_over_beta,
+        double two_aTF_over_beta,
+        double beta_over_aTF,
+        double U_N,
+        double R,
+        // particle-level
+        double bpc,
+        double U,
+        double sqrt_U)
+
 {
     // Particle dead? skip.
     if (LocalParticle_get_state(part) <= 0)
         return;
-    // -----------------------------
-    // Read element parameters
-    // -----------------------------
-
+    
+    
+    
+ 
+    
     int8_t method  = BentChannellingDevData_get_method(el);
     int8_t order   = BentChannellingDevData_get_order(el);
     int8_t variant = BentChannellingDevData_get_variant(el);
@@ -33,20 +51,13 @@ void track_bent_channelling_body_single_particle(
     const double x0  = LocalParticle_get_x(part);
     const double px0 = LocalParticle_get_xp(part);
 
-    // -----------------------------
-    //  Beam & particle physics
-    // -----------------------------
-    const double p0c          = LocalParticle_get_p0c(part);
-    const double delta        = LocalParticle_get_delta(part);
-    const double rvv          = LocalParticle_get_rvv(part);
-    const double beta0        = LocalParticle_get_beta0(part);
-    const double charge_ratio = LocalParticle_get_charge_ratio(part);
-    const double chi          = LocalParticle_get_chi(part);
 
-    // Effective beam momentum factor (bpc) - so far seems to not work
-    double bpc = beta0 * rvv * (1.0 + delta) * p0c* charge_ratio / chi;
-    //double bpc = beta0*rvv*p0c;
-    //const double bpc = 150e9;
+//-----to be deleted from here-------start
+        
+    
+    
+
+    //-----to be deleted from here-------end
 
     int n_steps = BentChannellingDevData_get_n_steps(el);
     if (n_steps < 0){
@@ -61,8 +72,7 @@ void track_bent_channelling_body_single_particle(
     // ============================================================
     //   STEP SUBDIVISION
     // ============================================================
-    if (n_steps <= 0)
-        n_steps = 1;
+
 
     const double ds = length / (double)n_steps;
 
@@ -71,24 +81,25 @@ void track_bent_channelling_body_single_particle(
         if (method == 2) {
 
             fM2_apply_yoshida(
-                ds, Umax, aTF, alpha_i, beta_i, dp,
-                x, px, bpc, R, order, variant, &x, &px
+                ds, x, px, bpc, R, 
+                aTF_over_beta, beta_over_aTF, U_N, U, sqrt_U, 
+                order, variant, &x, &px
             );
         }
         else if (method == 3) {
 
             fM3_apply_yoshida(
-                ds, Umax, aTF, alpha_i, beta_i, dp,
-                x, px, bpc, R, order, variant,
-                &x, &px
+                ds, x, px, bpc, R, 
+                aTF_over_beta, beta_over_aTF, U_N, U, sqrt_U, 
+                order, variant, &x, &px
             );
         }
         else if (method == 4) {
 
             fM4_apply_yoshida(
-                ds, Umax, aTF, alpha_i, beta_i, dp,
-                x, px, bpc, R, order, variant,
-                &x, &px
+                ds, x, px, bpc, R, 
+                beta_over_aTF, two_aTF_over_beta,U_N,
+                order, variant, &x, &px
             );
         }
     }

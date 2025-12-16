@@ -45,12 +45,15 @@ static inline double U_simplemoliere(double x, double U_N,
     return 2.0*U_N*sh*sh;
 }
 
-// Total transverse energy E_T = p^2/(2βpc) + U(x)
-static inline double E_T_simplemoliere(double theta, double bpc, double U)
+// New Total transverse energy E_T = p^2/(2βpc) + U(x) + βpc/R
+static inline double E_T_simplemoliere(double theta, 
+    double bpc, double U)
 {   
     double th2 = theta * theta;
-    return 0.5*bpc*th2 + U; 
+    return 0.5*bpc*th2 + U;
 }
+
+
 
 
 
@@ -108,8 +111,8 @@ GPUFUN void motion_parameters_simplemoliere(
 
     double u = sqrt_m * (nu*z + phi);
 
-    double sn, cn, dn, am;
-    ellpj(u, mp, &sn, &cn, &dn, &am);
+    double sn, cn, dn;
+    ellpj(u, mp, &sn, &cn, &dn);
     // TO AVOID repeated division
     double inv_dn = 1.0/dn;
     *x     = -two_aTF_over_beta*asinh(sqrt_mp*sn*inv_dn);

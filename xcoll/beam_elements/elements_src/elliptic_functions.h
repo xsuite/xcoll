@@ -163,12 +163,15 @@ GPUFUN double ellik(double phi, double m)
 
 
 // ---- ellpj: Jacobi elliptic functions sn, cn, dn, am ----
+// ---- new version: sn, cn, dn (to boost speed)
  GPUFUN 
-void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
+//void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
+void ellpj(double u, double m, double *sn, double *cn, double *dn)
 {
     // Domain check
     if (m < 0.0 || m > 1.0) {
-        *sn = *cn = *dn = *ph = 0.0;
+        *sn = *cn = *dn = 0;
+        //*ph = 0.0;
         return;
     }
 
@@ -184,7 +187,7 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
 
         *sn = t - ai * c;
         *cn = c + ai * t;
-        *ph = u - ai;
+        //*ph = u - ai;
         *dn = 1.0 - 0.5 * m * t * t;
         return;
     }
@@ -198,7 +201,7 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
         double twon = b * sinh(u);
 
         *sn = t + ai * (twon - u) / (b * b);
-        *ph = 2.0 * atan(exp(u)) - MY_PIO2 + ai * (twon - u) / b;
+        //*ph = 2.0 * atan(exp(u)) - MY_PIO2 + ai * (twon - u) / b;
 
         ai *= t * phi;
         *cn = phi - ai * (twon - u);
@@ -251,7 +254,7 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
     *sn = sphi;
     *cn = cphi;
     *dn = sqrt(1.0 - m * sphi * sphi);
-    *ph = phi;
+    //*ph = phi;
 
 }
 
