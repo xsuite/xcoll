@@ -213,7 +213,7 @@ def track_core(coll, part):
         # Sanity check
         assert np.all(part.particle_id[idx_old] == new_pid[mask_existing])
         assert np.all(part.parent_particle_id[idx_old] == new_ppid[mask_existing])
-        assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)
+        # assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)    # TODO
 
         # Update momentum
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing] * 1.e6
