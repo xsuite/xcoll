@@ -14,64 +14,21 @@
 
 
 // ================================================================
-//  Cephes-style error codes 
-// ================================================================
-
-#define DOMAIN		1	/* argument domain error */
-#define SING		2	/* argument singularity */
-#define OVERFLOW	3	/* overflow range error */
-#define UNDERFLOW	4	/* underflow range error */
-#define TLOSS		5	/* total loss of precision */
-#define PLOSS		6	/* partial loss of precision */
-
-
-
-
-//--------------mtherr.c----------------
-
-static int cephes_errno = 0;
-
-// Implementation for GPU/CPU
-GPUFUN int mtherr(char *name, int code)
-{
-    (void)name; // unused parameter
-
-    if (code <= 0 || code > PLOSS)
-        code = PLOSS;
-
-    cephes_errno = code;
-    return 0;
-}
-
-GPUFUN int get_cephes_errno(void)
-{
-    int ret = cephes_errno;
-    cephes_errno = 0;
-    return ret;
-}
-
-
-
-
-// ================================================================
 //  Polynomial evaluation (Cephes standard)
 // ================================================================
-GPUFUN  double polevl(double x, const double coef[], int N) {
-    double ans = coef[0];
-    for (int i = 1; i <= N; ++i) {
-        ans = ans * x + coef[i];
-    }
-    return ans;
+// So far we only use N = 10, so no point in using N as a polevl
+//GPUFUN  double polevl(double x, const double coef[], int N) {
+//    double ans = coef[0];
+//    for (int i = 1; i <= N; ++i) {
+//        ans = ans * x + coef[i];
+//    }
+//    return ans;
+//}
+// Let's make a new polevl that avoids the loop
+GPUFUN  double polevl(double x, const double c[11]) {
+    return ((((((((((
+        c[0]*x + c[1])*x + c[2])*x + c[3])*x + c[4])*x + c[5])*x + c[6])*x + c[7])*x + c[8])*x + c[9])*x + c[10]);
 }
-
-GPUFUN double p1evl(double x, const double coef[], int N) {
-    double ans = x + coef[0];
-    for (int i = 1; i < N; ++i) {
-        ans = ans * x + coef[i];
-    }
-    return ans;
-}
-
 // ================================================================
 //  Elliptic integral K(m) – Cephes
 // ================================================================
@@ -106,8 +63,8 @@ GPUFUN double ellpk(double x)
     }
 
     if (x > MY_MACHEP) {
-        double p = polevl(x, ELLPK_P, 10);
-        double q = polevl(x, ELLPK_Q, 10);
+        double p = polevl(x, ELLPK_P);
+        double q = polevl(x, ELLPK_Q);
         return p - log(x) * q;
     }
 
@@ -194,7 +151,6 @@ GPUFUN double ellik(double phi, double m)
         double ab_sqrt = sqrt(a * b);
         a = 0.5 * (a + b);
         b = ab_sqrt;
-
         d += d;
     }
 
@@ -204,7 +160,6 @@ GPUFUN double ellik(double phi, double m)
     }
     return temp + npio2 * K;
 }
-
 
 
 // ---- ellpj: Jacobi elliptic functions sn, cn, dn, am ----
@@ -219,9 +174,13 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
 
     // ---- Case 1: m extremely small (sinusoidal limit)
     if (m < 1.0e-9) {
-        double t = sin(u);
-        double c = cos(u);
-        double ai = 0.25 * m * (u - t * c);
+        //double t = sin(u);
+        //double c = cos(u);
+
+        double t, c;
+        sincos(u, &t, &c);
+
+        double ai = 0.25 * m * (u - t*c);
 
         *sn = t - ai * c;
         *cn = c + ai * t;
@@ -281,12 +240,19 @@ void ellpj(double u, double m, double *sn, double *cn, double *dn, double *ph)
         --i;
     }
 
-    double s = sin(phi);
+    //double s = sin(phi);
+    //*sn = s;
+    //*cn = cos(phi);
+    //*dn = sqrt(1.0 - m * s * s);
+    //*ph = phi;
+    double sphi, cphi;
+    sincos(phi, &sphi, &cphi);
 
-    *sn = s;
-    *cn = cos(phi);
-    *dn = sqrt(1.0 - m * s * s);
+    *sn = sphi;
+    *cn = cphi;
+    *dn = sqrt(1.0 - m * sphi * sphi);
     *ph = phi;
+
 }
 
 
