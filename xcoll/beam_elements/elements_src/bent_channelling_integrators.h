@@ -258,7 +258,7 @@ GPUFUN void fM2_apply_yoshida(
     double dp, double x0, double px0, double bpc, double R,
     int8_t order, int8_t variant,
     double* x, double* px)
-{    
+{
     double aTF_over_beta = aTF/beta_i;
     double beta_over_aTF = 1/aTF_over_beta;
     double U_N = U_N_(Umax, dp, alpha_i, beta_i, beta_over_aTF);

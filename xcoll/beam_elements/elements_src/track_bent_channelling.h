@@ -21,44 +21,13 @@ void track_bent_channelling_body_single_particle(
     // Particle dead? skip.
     if (LocalParticle_get_state(part) <= 0)
         return;
-// -----------------------------
+    // -----------------------------
     // Read element parameters
     // -----------------------------
-    const double length   = BentChannellingDevData_get_length(el);
-
-    double U0      = BentChannellingDevData_get_U0(el);
-    double Umax    = BentChannellingDevData_get_Umax(el);
-    double R       = BentChannellingDevData_get_R(el);
-
-    double dp      = BentChannellingDevData_get_dp(el);
-    double aTF     = BentChannellingDevData_get_aTF(el);
-    double uT      = BentChannellingDevData_get_uT(el);
-
-    double alpha_i = BentChannellingDevData_get_alpha_i(el);
-    double beta_i  = BentChannellingDevData_get_beta_i(el);
 
     int8_t method  = BentChannellingDevData_get_method(el);
     int8_t order   = BentChannellingDevData_get_order(el);
     int8_t variant = BentChannellingDevData_get_variant(el);
-
-    int n_steps = BentChannellingDevData_get_n_steps(el);
-    // Apply defaults (0 -> use default)
-    if (method  == 0) method  = BENTCH_DEFAULT_METHOD;
-    if (order   == 0) order   = BENTCH_DEFAULT_ORDER;
-    if (variant == 0) variant = BENTCH_DEFAULT_VARIANT;
-    if (n_steps == 0) n_steps = BENTCH_DEFAULT_NSTEPS;
-
-// APPLY DEFAULTS 
-    if (U0      == 0.0) U0     = BENTCH_DEFAULT_U0;
-    if (Umax    == 0.0) Umax   = BENTCH_DEFAULT_UMAX;
-
-    if (aTF     == 0.0) aTF     = BENTCH_DEFAULT_ATF;
-    if (uT      == 0.0) uT      = BENTCH_DEFAULT_UT;
-    if (dp      == 0.0) dp     = BENTCH_DEFAULT_DP;
-    if (alpha_i == 0.0) alpha_i = BENTCH_DEFAULT_ALPHA;
-    if (beta_i  == 0.0) beta_i  = BENTCH_DEFAULT_BETA;
-    // Maybe -1, because R can accually be 0.
-    if (R       == -1.0) R       = BENTCH_DEFAULT_R;
 
     // Initial phase-space coordinates
     const double x0  = LocalParticle_get_x(part);
@@ -79,6 +48,11 @@ void track_bent_channelling_body_single_particle(
     //double bpc = beta0*rvv*p0c;
     //const double bpc = 150e9;
 
+    int n_steps = BentChannellingDevData_get_n_steps(el);
+    if (n_steps < 0){
+        double _n_steps_auto = BentChannellingDevData_get__n_steps_auto(el);
+        n_steps = fmax(3, ceil(_n_steps_auto/sqrt(bpc)));
+    }
 
     // Working variables
     double x  = x0;
@@ -128,26 +102,6 @@ void track_bent_channelling_body_single_particle(
     LocalParticle_set_xp(part, px);
     LocalParticle_add_to_s(part, length);
     LocalParticle_add_to_zeta(part, length);
-}
-
-
-
-// ================================================================
-//  Multi-particle version 
-// ================================================================
-GPUFUN
-void track_bent_channelling_particles(
-        BentChannellingDevData el,
-        LocalParticle* part0)
-{
-    
-    START_PER_PARTICLE_BLOCK(part0, part);
-
-        track_bent_channelling_body_single_particle(
-            part, el
-        );
-
-    END_PER_PARTICLE_BLOCK;
 }
 
 #endif // TRACK_BENT_CHANNELLING_H
