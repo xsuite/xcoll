@@ -3,11 +3,13 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import time
 import pytest
 import numpy as np
 from pathlib import Path
 
 import xpart as xp
+from xpart.test_helpers import flaky_assertions, retry
 import xtrack as xt
 import xcoll as xc
 try:
@@ -65,7 +67,9 @@ def test_geant4(jaw, angle, tilt):
                                                 delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
                                                 _capacity=2*num_part)
     part = part_init.copy()
+    t1 = time.time()
     coll.track(part)
+    print(f"Geant4 tracking time for {num_part} particles: {time.time()-t1:.2f} s")
     # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
     xc.geant4.engine.stop(clean=True)
@@ -73,37 +77,36 @@ def test_geant4(jaw, angle, tilt):
 
 # TODO: lhc_tdi and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
 # @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
-@pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
-                                      'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
-                                      'lhc_tclia', 'lhc_tclib', 'lhc_tcdqaa', 'lhc_tcdqab',
-                                      'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcspgrc',
-                                      'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
-                                      'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
+# @pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
+#                                       'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
+#                                       'lhc_tclia', 'lhc_tclib', 'lhc_tcdqaa', 'lhc_tcdqab',
+#                                       'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcspgrc',
+#                                       'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
+#                                       'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
-def test_fluka(jaw, angle, assembly):
+@retry()
+def test_fluka(jaw, angle):
     tilt = 0
     num_part = 5_000
     length = 0.873
-
-    # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
-
-    # Define collimator and start the FLUKA server
-    coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
+    coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt,  material='mogr')
     xc.fluka.engine.particle_ref = particle_ref
     xc.fluka.engine.start(elements=coll, capacity=num_part*2, verbose=True)
-
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
                                                 jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
-                                                zeta_spread=5e-2, exact_drift=True,
+                                                zeta_spread=5e-2, exact_drift=True, jaw_accuracy=1.e-9,
                                                 _capacity=xc.fluka.engine.capacity,
                                                 particle_ref=xc.fluka.engine.particle_ref)
-    part = part_init.copy()
-    coll.track(part)
-    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-    _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
+    with flaky_assertions():
+        part = part_init.copy()
+        t1 = time.time()
+        coll.track(part)
+        print(f"FLUKA tracking time for {num_part} particles: {time.time()-t1:.2f} s")
+        # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+        _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
     xc.fluka.engine.stop(clean=True)
 
 

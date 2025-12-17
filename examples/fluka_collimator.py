@@ -51,14 +51,14 @@ part_test = part_init.copy()
 
 
 # Do the tracking in FLUKA
-coll.track(part_test)  # pre-track to compile the code for a fair comparison
+# coll.track(part_test)  # pre-track to compile the code for a fair comparison
 print(f"Tracking {num_part} particles (FLUKA)...     ", end='')
 start = time.time()
 coll.track(part)
 print(f"Done in {round(time.time()-start, 3)}s.")
 
 # Do the tracking in Everest
-coll2.track(part_test)  # pre-track to compile the code for a fair comparison
+# coll2.track(part_test)  # pre-track to compile the code for a fair comparison
 print(f"Tracking {num_part} particles (Everest)...   ", end='')
 start = time.time()
 coll2.track(part2)
