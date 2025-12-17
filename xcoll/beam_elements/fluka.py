@@ -57,7 +57,8 @@ class FlukaCollimator(BaseCollimator):
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
                 generic = False
-                if 'material' in kwargs or 'side' in kwargs:
+                if ('material' in kwargs and kwargs['material']) \
+                or ('side' in kwargs and kwargs['side']):
                     if to_assign['assembly'] is not None:
                         raise ValueError('Cannot set both material/side and assembly!')
                     material = kwargs.pop('material', None)
@@ -152,7 +153,7 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            # super().track(part)
+            super().track(part)
             track_core(self, part)
             track_post(self, part)
 
