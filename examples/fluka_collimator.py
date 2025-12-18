@@ -20,7 +20,7 @@ if xc.fluka.engine.is_running():
 
 
 # Create a FLUKA collimator
-coll = xc.FlukaCollimator(length=0.6, assembly='lhc_tcp')
+coll = xc.FlukaCollimator(length=0.873, material='iner')
 coll.jaw = 0.001
 
 # The same collimator in Everest

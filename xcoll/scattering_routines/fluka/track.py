@@ -82,8 +82,8 @@ def track_core(coll, part):
         xc.fluka.engine._warn_pyfluka(error)
         return
 
-    # send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
-    send_to_fluka  = part.state == 1    # TODO
+    send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
+    # send_to_fluka  = part.state == 1    # TODO
     npart          = send_to_fluka.sum()
     max_id         = part.particle_id[part.state > -9999].max()
     assert npart  <= part._num_active_particles
@@ -215,7 +215,7 @@ def track_core(coll, part):
         # Sanity check
         assert np.all(part.particle_id[idx_old] == new_pid[mask_existing])
         assert np.all(part.parent_particle_id[idx_old] == new_ppid[mask_existing])
-        # assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)    # TODO
+        assert np.all(part.state[idx_old] == HIT_ON_FLUKA_COLL)    # TODO
 
         # Update momentum
         E_diff[idx_old] = part.energy[idx_old] - data['e'][:npart][mask_existing] * 1.e6

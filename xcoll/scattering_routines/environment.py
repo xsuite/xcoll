@@ -316,7 +316,7 @@ class BaseEnvironment:
 
 
     def assert_gcc_installed(self, minimum_version=9, verbose=False):
-        gcc = os.environ['CC'] or 'gcc'
+        gcc = os.environ.get('CC', 'gcc')
         _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
@@ -324,7 +324,7 @@ class BaseEnvironment:
             raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
 
     def assert_gxx_installed(self, minimum_version=9, verbose=False):
-        gxx = os.environ['CXX'] or 'g++'
+        gxx = os.environ.get('CXX', 'g++')
         _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
@@ -332,7 +332,7 @@ class BaseEnvironment:
             raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
 
     def assert_gfortran_installed(self, minimum_version=9, verbose=False):
-        gfortran = os.environ['FC'] or 'gfortran'
+        gfortran = os.environ.get('FC', 'gfortran')
         _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
                                            verbose=verbose)
         if int(version.split('.')[0]) < minimum_version:
