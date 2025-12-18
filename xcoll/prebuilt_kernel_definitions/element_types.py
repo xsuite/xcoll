@@ -16,9 +16,11 @@ DEFAULT_XCOLL_ELEMENTS = [
     EverestCrystal,
     FlukaCollimator,
     # FlukaCrystal,
-    Geant4Collimator,
+    # Geant4Collimator,
     # Geant4Crystal,
     BlowUp,
     # ParticleStatsMonitor,
     EmittanceMonitor
 ]
+
+EXTRA_XCOLL_ELEMENTS = []

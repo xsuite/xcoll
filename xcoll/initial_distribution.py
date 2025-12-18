@@ -33,10 +33,10 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     if _capacity is None and len(line.get_elements_of_type(
                                 (FlukaCollimator, FlukaCrystal))[0]) > 0:
         import xcoll as xc
-        _capacity = cap if (cap := xc.fluka.engine.capacity) else 2*num_particles
+        _capacity = cap if (cap := xc.fluka.engine.capacity) else 5*num_particles
     if _capacity is None and len(line.get_elements_of_type(
                                 (Geant4Collimator, Geant4Crystal))[0]) > 0:
-        _capacity = 2*num_particles
+        _capacity = 5*num_particles
 
     # Define the plane
     angle = coll.angle

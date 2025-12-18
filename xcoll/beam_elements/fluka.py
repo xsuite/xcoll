@@ -153,7 +153,7 @@ class FlukaCollimator(BaseCollimator):
     def track(self, part):
         if track_pre(self, part):
             if self.material != "vacuum":
-                super().track(part)
+                # super().track(part)
             else:
                 part.state[part.state == 1] = 334
             track_core(self, part)

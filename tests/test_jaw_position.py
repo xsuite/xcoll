@@ -15,10 +15,8 @@ try:
 except ImportError as e:
     rpyc = None
 
+
 path = Path(__file__).parent / 'data'
-
-
-# TODO: particle angles
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
 jaw_ids = ['symmetric', 'asymmetric', 'negative', 'positive']
@@ -41,7 +39,7 @@ def test_everest(jaw, angle, tilt):
                                                 zeta_spread=5e-2)
     part = part_init.copy()
     coll.track(part)
-    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
 
 
@@ -53,7 +51,7 @@ def test_everest(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws[:2], ids=jaw_ids[:2])  # BDSIM cannot handle fully positive or negative jaws
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_geant4(jaw, angle, tilt):
     num_part = 50_000
     length = 0.873
@@ -61,14 +59,14 @@ def test_geant4(jaw, angle, tilt):
         xc.geant4.engine.stop(clean=True)
     coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material='MoGR')
     xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1)
+    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1, verbose=True)
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
                                                 jaw_band=1e-8, jaw_accuracy=5e-9, angular_spread=1e-3,
                                                 delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
                                                 _capacity=2*num_part)
     part = part_init.copy()
     coll.track(part)
-    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
     _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
     xc.geant4.engine.stop(clean=True)
 
@@ -84,32 +82,28 @@ def test_geant4(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 def test_fluka(jaw, angle, assembly):
-    tilt = 2.2e-3
-    num_part = 5000
+    tilt = 0
+    num_part = 5_000
+    length = 0.873
 
     # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
 
     # Define collimator and start the FLUKA server
-    # coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
-    coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, material="c")
+    coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
     xc.fluka.engine.particle_ref = particle_ref
-    xc.fluka.engine.start(elements=coll, capacity=2*num_part)
+    xc.fluka.engine.start(elements=coll, capacity=num_part*2, verbose=True)
 
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=xc.fluka.engine.particle_ref,
-                                                jaw_band=1e-8, jaw_accuracy=5e-9, angular_spread=1e-3,
-                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
-                                                _capacity=xc.fluka.engine.capacity)
-
-    # part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
-    #                         _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
+    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
+                                                jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
+                                                zeta_spread=5e-2, exact_drift=True,
+                                                _capacity=xc.fluka.engine.capacity,
+                                                particle_ref=xc.fluka.engine.particle_ref)
     part = part_init.copy()
     coll.track(part)
-    _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-    _assert_valid_positions(part, hit_ids, not_hit_ids)
-
-    # Stop the FLUKA server
+    # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+    _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
     xc.fluka.engine.stop(clean=True)
 
 
@@ -215,11 +209,20 @@ def _assert_valid_positions(part_init, part, expected_hit_ids, expected_not_hit_
     assert sum(expected_hit & not_hits) <= 1 # We allow for a small margin of error
 
 
-def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, momentum_accuracy=1.e-12):
+def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, momentum_accuracy=1.e-12, plot_primaries=True, plot_secondaries=True):
     import matplotlib.pyplot as plt
 
-    hit_ids = part.parent_particle_id[_mask_hits(part_init, part, momentum_accuracy)]
-    not_hit_ids = part.parent_particle_id[_mask_not_hits(part_init, part, momentum_accuracy)]
+    mask_hits = _mask_hits(part_init, part, momentum_accuracy)
+    mask_not_hits = _mask_not_hits(part_init, part, momentum_accuracy)
+    if plot_primaries and not plot_secondaries:
+        mask_hits &= part.particle_id == part.parent_particle_id
+        mask_not_hits &= part.particle_id == part.parent_particle_id
+    elif not plot_primaries and plot_secondaries:
+        mask_hits &= part.particle_id != part.parent_particle_id
+        mask_not_hits &= part.particle_id != part.parent_particle_id
+
+    hit_ids = part.parent_particle_id[mask_hits]
+    not_hit_ids = part.parent_particle_id[mask_not_hits]
 
     expected_but_not_hit = set(expected_hit_ids) - set(hit_ids)
     hit_but_not_expected = set(hit_ids) - set(expected_hit_ids)
@@ -256,3 +259,5 @@ def _plot_jaws(coll, part_init, part, expected_hit_ids, expected_not_hit_ids, mo
         ax[idx][idy].legend(loc='upper right')
     fig.tight_layout()
     plt.show()
+
+    return hit_but_not_expected, expected_but_not_hit

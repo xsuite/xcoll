@@ -7,6 +7,7 @@ from .material import Material, CrystalMaterial
 from .atoms import Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead
 from .allotropes import CarbonFibreCarbon
 from .mixtures import MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180
+from .database import _manually_add_material_to_db
 
 
 # K2 variants of elements
@@ -70,12 +71,20 @@ K2Inermet180._num_nucleons_eff = 8.904790721425886
 K2Inermet180._atoms_per_volume = 6.5026114985003005e+28
 
 
-del Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead
-del CarbonFibreCarbon
-del MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180
-for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
-    if isinstance(obj, Material) and obj.name is None:
-        obj.name = name
+_manually_add_material_to_db(K2Beryllium,          'K2Beryllium')
+_manually_add_material_to_db(K2Aluminium,          'K2Aluminium')
+_manually_add_material_to_db(K2Silicon,            'K2Silicon')
+_manually_add_material_to_db(K2Copper,             'K2Copper')
+_manually_add_material_to_db(K2Germanium,          'K2Germanium')
+_manually_add_material_to_db(K2Molybdenum,         'K2Molybdenum')
+_manually_add_material_to_db(K2Tungsten,           'K2Tungsten')
+_manually_add_material_to_db(K2Lead,               'K2Lead')
+_manually_add_material_to_db(K2CarbonFibreCarbon,  'K2CarbonFibreCarbon')
+_manually_add_material_to_db(K2Carbon2,            'K2Carbon2')
+_manually_add_material_to_db(K2MolybdenumGraphite, 'K2MolybdenumGraphite')
+_manually_add_material_to_db(K2CopperDiamond,      'K2CopperDiamond')
+_manually_add_material_to_db(K2Glidcop15,          'K2Glidcop15')
+_manually_add_material_to_db(K2Inermet180,         'K2Inermet180')
 
 
 # K2 variants of crystal materials
@@ -104,5 +113,6 @@ K2TungstenCrystal._num_nucleons_eff = 9.200252118694163
 
 
 # Clean up namespace
-del name, obj
+del (Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead,
+     CarbonFibreCarbon, MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180)
 del Material, CrystalMaterial

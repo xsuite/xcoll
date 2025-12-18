@@ -15,7 +15,7 @@ from .beam_elements import (collimator_classes, crystal_classes,
                             FlukaCollimator, FlukaCrystal,
                             Geant4Collimator, Geant4Crystal)
 from .general import __version__
-from .plot import _plot_lossmap_base
+from .plot import plot_lossmap
 from .constants import (USE_IN_LOSSMAP,
     LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
     LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
@@ -24,20 +24,14 @@ from .constants import (USE_IN_LOSSMAP,
 
 
 class LossMap:
-    def __init__(self, line, part, *, line_is_reversed, interpolation=None,
+    def __init__(self, line=None, part=None, *, line_is_reversed=None, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
-        fluka_coll = line.get_elements_of_type((FlukaCollimator, FlukaCrystal))[0]
-        if len(fluka_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
-            raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
-        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
-        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
-            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
-
-        self._line_is_reversed = line_is_reversed
-        self._machine_length = line.get_length() if line else None
-        self._interpolation = interpolation
-        self._momentum = line.particle_ref.p0c[0] if line else None
+        self._line_is_reversed = None
+        self._interpolation = None
+        self._machine_length = None
+        self._momentum = None
         self._aper_s = np.array([])
+        self._aper_length = np.array([])
         self._aper_nabs = np.array([])
         self._aper_eabs = np.array([])
         self._aperbins = np.array([])
@@ -50,10 +44,14 @@ class LossMap:
         self._coll_eabs = np.array([])
         self._coll_length = np.array([])
         self._coll_type = np.array([])
-        self._xcoll = __version__
-        self._energy_waring_given = False
+        self._cold_regions = None
+        self._warm_regions = None
+        self._s_range = {}
+        self._xcoll = np.array([])
+        self._date = np.array([])
         if part and line:
-            self.add_particles(part=part, line=line, line_shift_s=line_shift_s,
+            self.add_particles(part=part, line=line, line_is_reversed=line_is_reversed,
+                               interpolation=interpolation, line_shift_s=line_shift_s,
                                weights=weights, weight_function=weight_function,
                                verbose=verbose)
 
@@ -66,7 +64,7 @@ class LossMap:
 
     @classmethod
     def from_json(cls, file, verbose=True):
-        lm = cls(None, None, line_is_reversed=None)
+        lm = cls()
         lm.add_from_json(file, verbose=verbose)
         return lm
 
@@ -74,13 +72,45 @@ class LossMap:
         with open(Path(file), 'w') as fid:
             json.dump({
                 'xcoll': self._xcoll,
-                'date':  pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'date':  self._date,
+                'cold_regions': self.cold_regions,
+                'warm_regions': self.warm_regions,
+                's_range': self.s_range,
                 **self.lossmap
             }, fid, indent=True, cls=xo.JEncoder)
 
     def save_summary(self, file):
         with open(Path(file), 'w') as fid:
             fid.write(self.summary.__repr__())
+
+
+    # ================== #
+    # === Properties === #
+    # ================== #
+
+    @property
+    def num_losses(self):
+        return self.num_aperture_losses + self.num_collimator_losses
+
+    @property
+    def num_aperture_losses(self):
+        return int(self._aperbinned.sum() + self._aper_nabs.sum())
+
+    @property
+    def num_collimator_losses(self):
+        return int(self._coll_nabs.sum())
+
+    @property
+    def tot_energy(self):
+        return self.tot_energy_aperture + self.tot_energy_collimator
+
+    @property
+    def tot_energy_collimator(self):
+        return self._coll_eabs.sum()
+
+    @property
+    def tot_energy_aperture(self):
+        return self._aperbinned_energy.sum()
 
 
     @property
@@ -113,74 +143,167 @@ class LossMap:
             mask = self._aperbinned > 0
             aper_s = self._aperbins[:-1] + self.interpolation/2
             return {
-                'idx_bins': np.arange(len(self._aperbins)-1)[mask],
-                's_bins': aper_s[mask],
-                'n_bins': self._aperbinned[mask],
-                'e_bins': self._aperbinned_energy[mask],
+                'idx_bins':    np.arange(len(self._aperbins)-1)[mask],
+                's_bins':      aper_s[mask],
+                'n_bins':      self._aperbinned[mask],
+                'e_bins':      self._aperbinned_energy[mask],
                 'length_bins': self._aperbins_length[mask],
             }
         else:
             return {
-                's': self._aper_s,
-                'n': self._aper_nabs,
-                'e': self._aper_eabs
+                's':      self._aper_s,
+                'length': self._aper_length,
+                'n':      self._aper_nabs,
+                'e':      self._aper_eabs
             }
+
+    @property
+    def interpolation(self):
+        if self._interpolation == 0:
+            return False
+        return self._interpolation
+
+    @interpolation.setter
+    def interpolation(self, value):
+        if value is None:
+            if self._interpolation is not None:
+                raise ValueError("Cannot unset interpolation once it has been set.")
+        else:
+            if value is False:
+                value = 0
+            elif value is True:
+                value = 0.1
+            elif value <= 0:
+                raise ValueError("Interpolation step must be positive.")
+            if self._interpolation is not None and not np.isclose(self._interpolation, value):
+                raise ValueError("The interpolation step is different from the one "
+                                "used to create the loss map.")
+            self._interpolation = value
 
     @property
     def line_is_reversed(self):
         return self._line_is_reversed
 
-    @property
-    def machine_length(self):
-        return self._machine_length
-
-    @property
-    def interpolation(self):
-        return self._interpolation
+    @line_is_reversed.setter
+    def line_is_reversed(self, value):
+        if value is not None:
+            if self._line_is_reversed is not None:
+                if self._line_is_reversed != value:
+                    raise ValueError("The line_is_reversed is different from the one "
+                                    "used to create the loss map.")
+            self._line_is_reversed = value
 
     @property
     def momentum(self):
         return self._momentum
 
-    @property
-    def num_losses(self):
-        return self.num_aperture_losses + self.num_collimator_losses
+    @momentum.setter
+    def momentum(self, value):
+        if value is not None:
+            if self._momentum is not None:
+                if not np.isclose(self._momentum, value):
+                    raise ValueError("The reference momentum is different from the one "
+                                     "used to create the loss map.")
+            self._momentum = value
 
     @property
-    def num_aperture_losses(self):
-        return int(self._aperbinned.sum() + self._aper_nabs.sum())
+    def machine_length(self):
+        return self._machine_length
+
+    @machine_length.setter
+    def machine_length(self, value):
+        if value is not None:
+            if self._machine_length is not None:
+                if not np.isclose(self._machine_length, value):
+                    raise ValueError("The machine_length is different from the one "
+                                     "used to create the loss map.")
+            self._machine_length = value
 
     @property
-    def num_collimator_losses(self):
-        return int(self._coll_nabs.sum())
+    def cold_regions(self):
+        return self._cold_regions
 
+    @cold_regions.setter
+    def cold_regions(self, value):
+        if value is not None:
+            if self.cold_regions is not None:
+                if self.warm_regions is not None:
+                    raise ValueError("Cannot set both cold_regions and warm_regions.")
+                if not np.allclose(self.cold_regions, value):
+                    raise ValueError("New cold_regions do not match existing cold_regions.")
+            self._cold_regions = np.array(value)
+
+    @property
+    def warm_regions(self):
+        return self._warm_regions
+
+    @warm_regions.setter
+    def warm_regions(self, value):
+        if value is not None:
+            if self.warm_regions is not None:
+                if self.cold_regions is not None:
+                    raise ValueError("Cannot set both cold_regions and warm_regions.")
+                if not np.allclose(self.warm_regions, value):
+                    raise ValueError("New warm_regions do not match existing warm_regions.")
+            self._warm_regions = np.array(value)
+
+    @property
+    def s_range(self):
+        return self._s_range
+
+    @s_range.setter
+    def s_range(self, value):
+        if value is not None:
+            if self._s_range:
+                if set(value.keys()) != set(self._s_range.keys()):
+                    raise ValueError("s_range is already set.")
+                for kk, vv in value.items():
+                    if not np.allclose(self._s_range[kk], vv):
+                        raise ValueError("New s_range does not match existing s_range.")
+            self._s_range = value
+
+
+    # =============== #
+    # === Methods === #
+    # =============== #
 
     def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
-             grid=True, energy=False, show=True, savefig=None):
-        return _plot_lossmap_base(self.lossmap, norm=norm, ax=ax, xlim=xlim,
+             grid=True, energy=None, show=True, zoom=None, savefig=None):
+        cold_regions = self._cold_regions
+        warm_regions = self._warm_regions
+        if isinstance(xlim, str) and xlim in self._s_range:
+            xlim = self._s_range[xlim]
+        if isinstance(zoom, str) and zoom in self._s_range:
+            zoom = self._s_range[zoom]
+        if energy is None:
+            energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
+                             for tt in self._coll_type])
+        return plot_lossmap(self.lossmap, norm=norm, ax=ax, xlim=xlim,
                             ylim=ylim, legend=legend, grid=grid, energy=energy,
-                            show=show, savefig=savefig)
+                            show=show, zoom=zoom, cold_regions=cold_regions,
+                            warm_regions=warm_regions, savefig=savefig)
 
-    def add_particles(self, part, line, *, line_shift_s=0, weights=None,
-                      weight_function=None, verbose=True):
+
+    def add_particles(self, part, line, *, line_is_reversed=False, interpolation=None,
+                      line_shift_s=0, weights=None, weight_function=None, verbose=True):
         """
         Add particles to the loss map. Aperture losses are interpolated and the
         collimator summary is updated.
         """
-        if self.interpolation is None:
-            self._interpolation = 0.1
-        if self._machine_length:
-            if not np.isclose(self._machine_length, line.get_length()):
-                raise ValueError("The line length is different from the one used "
-                                 "to create the loss map.")
-        else:
-            self._machine_length = line.get_length()
-        if self._momentum:
-            if not np.isclose(self._momentum, line.particle_ref.p0c[0]):
-                raise ValueError("The reference momentum is different from the one "
-                                 "used to create the loss map.")
-        else:
-            self._momentum = line.particle_ref.p0c[0]
+        # Check that collimators have been tracked
+        geant4_coll = line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]
+        if len(geant4_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in geant4_coll]):
+            raise ValueError("Geant4Collimators have not been tracked, or LossMap already calculated")
+        fluka_coll = line.get_elements_of_type((FlukaCollimator, FlukaCrystal))[0]
+        if len(fluka_coll) > 0 and np.all([coll._acc_ionisation_loss < 0 for coll in fluka_coll]):
+            raise ValueError("FlukaCollimators have not been tracked, or LossMap already calculated")
+        if interpolation is not None:
+            self.interpolation = interpolation
+        elif self.interpolation is None:
+            self.interpolation = 0.1
+        self.line_is_reversed = line_is_reversed
+        self.machine_length = line.get_length()
+        self.momentum = line.particle_ref.p0c[0]
         if weights is None:
             if weight_function is None:
                 weights = np.ones(len(part.x))
@@ -207,47 +330,58 @@ class LossMap:
         self._make_coll_summary(part, line, line_shift_s, weights)
         self._get_aperture_losses(part, line_shift_s, weights)
 
+        if 'collimation' in line.env.metadata:
+            if 'cold_regions' in line.env.metadata['collimation']:
+                self.cold_regions = line.env.metadata['collimation']['cold_regions']
+            if 'warm_regions' in line.env.metadata['collimation']:
+                self.warm_regions = line.env.metadata['collimation']['warm_regions']
+            if 's_range' in line.env.metadata['collimation']:
+                self._s_range = line.env.metadata['collimation']['s_range']
+        self._xcoll = np.append(self._xcoll, __version__)
+        self._date = np.append(self._date, pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
+
 
     def add_from_json(self, file, verbose=True):
         """
         Add loss map data from a JSON file or an iterable of files. The loss map
         is updated with the data from the file(s).
         """
+        # TODO: do this in C? Or be smarter about it? It is quite inefficient now.
         if hasattr(file, '__iter__') and not isinstance(file, (str, bytes, Path)):
             i = 0
             for ff in file:
                 self.add_from_json(ff)
                 i += 1
+            if i == 0:
+                raise ValueError("No valid files found.")
             if verbose:
                 print(f"Loaded {i} files into loss map.")
             return
+        if not Path(file).exists():
+            raise FileNotFoundError(f"File {file} not found.")
         with open(Path(file), 'r') as fid:
             lossmap = json.load(fid)
-        new_style_json = LossMap._assert_valid_json(lossmap)
-        if new_style_json:
-            if self._momentum is None:
-                self._momentum = lossmap['momentum']
-            elif not np.isclose(self._momentum, lossmap['momentum']):
-                raise ValueError("The momentum is different from the one used "
-                                 "to create the loss map.")
-            if self._xcoll != lossmap['xcoll'] and verbose:
+        LossMap._assert_valid_json(lossmap)
+        if 'momentum' in lossmap:
+            self.momentum = lossmap['momentum']
+        if 'xcoll' in lossmap:
+            xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
+            if len(self._xcoll) > 0 and not set(self._xcoll).intersection(xcoll) and verbose:
                 print("Warning: The xcoll version is different from the one used "
-                    "to create the loss map.")
-        if self.line_is_reversed is None:
-            self._line_is_reversed = lossmap['reversed']
-        elif self.line_is_reversed != lossmap['reversed']:
-            raise ValueError("The line_is_reversed is different from the one used "
-                             "to create the loss map.")
-        if self.machine_length is None:
-            self._machine_length = lossmap['machine_length']
-        elif not np.isclose(self.machine_length, lossmap['machine_length']):
-            raise ValueError("The line length is different from the one used "
-                             "to create the loss map.")
-        if self.interpolation is None:
-            self._interpolation = lossmap['interpolation']
-        elif not np.isclose(self.interpolation, lossmap['interpolation']):
-            raise ValueError("The interpolation step is different from the one used "
-                             "to create the loss map.")
+                      "to create the loss map.")
+            self._xcoll = np.concatenate((self._xcoll, xcoll))
+        if 'date' in lossmap:
+            date = [lossmap['date']] if isinstance(lossmap['date'], str) else lossmap['date']
+            self._date = np.concatenate((self._date, date))
+        self.line_is_reversed = lossmap['reversed']
+        self.machine_length = lossmap['machine_length']
+        self.interpolation = lossmap['interpolation']
+        if 'cold_regions' in lossmap:
+            self.cold_regions = lossmap['cold_regions']
+        if 'warm_regions' in lossmap:
+            self.warm_regions = lossmap['warm_regions']
+        if 's_range' in lossmap:
+            self._s_range = lossmap['s_range']
         self._load_coll_summary(lossmap['collimator'])
         self._load_aperture_losses(lossmap['aperture'])
 
@@ -283,7 +417,7 @@ class LossMap:
                         part.state[idx] = LOST_ON_FLUKA_CRYSTAL
                     elif what_type == 'Geant4Block':
                         part.state[idx] = LOST_ON_GEANT4_BLOCK
-                    elif what_type == 'Geant4Collimator':
+                    elif what_type.startswith('Geant4Collimator'):
                         part.state[idx] = LOST_ON_GEANT4_COLL
                     elif what_type == 'Geant4Crystal':
                         part.state[idx] = LOST_ON_GEANT4_CRYSTAL
@@ -318,10 +452,10 @@ class LossMap:
 
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
-        names = line.get_elements_of_type(collimator_classes)[1]
+        names = np.unique(line.get_elements_of_type(collimator_classes)[1])
         coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
         coll_losses = np.array([line.element_names[i]
-                                  for i in part.at_element[coll_mask]])
+                                for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
 
         L = self.machine_length
@@ -439,8 +573,8 @@ class LossMap:
                 self._do_aperture_binning(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
                                           aper_eabs=aper_eabs)
             else:
-                self._aperbinned[aperdata['idx_bins']] = aperdata['n_bins']
-                self._aperbinned_energy[aperdata['idx_bins']] = aperdata['e_bins']
+                self._aperbinned[aperdata['idx_bins']] += aperdata['n_bins']
+                self._aperbinned_energy[aperdata['idx_bins']] += aperdata['e_bins']
         else:
             self._do_aperture_adding(aper_s=aperdata['s'], aper_nabs=aperdata['n'],
                                      aper_eabs=aperdata['e'])
@@ -500,7 +634,7 @@ class LossMap:
                 raise ValueError("The JSON file does not contain the collimator type data.")
         if 'aperture' not in lossmap:
             raise ValueError("The JSON file does not contain the aperture data.")
-        if is_new_format and lossmap['interpolation'] is not None:
+        if is_new_format and lossmap['interpolation']:
             if 'idx_bins' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture idx_bins data.")
             if 'n_bins' not in lossmap['aperture']:
@@ -519,7 +653,6 @@ class LossMap:
                     raise ValueError("The JSON file does not contain the aperture e data.")
                 if 'length' not in lossmap['aperture']:
                     raise ValueError("The JSON file does not contain the aperture length data.")
-        return is_new_format
 
 
 class MultiLossMap(LossMap):

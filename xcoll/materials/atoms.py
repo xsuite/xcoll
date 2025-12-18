@@ -6,7 +6,7 @@
 from xtrack.particles import pdg
 
 from .material import Material
-from .database import db
+from .database import db, _manually_add_material_to_db
 
 
 # Atomic mass from https://iupac.qmul.ac.uk/AtWt/ rounded to 5 digits
@@ -159,31 +159,33 @@ Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3
 
 for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)
     if isinstance(obj, Material) and obj.name is None:
-        obj.name = name
+        # Check consistency between name and Z
         if name == 'Aluminium':
             assert obj.Z == 13
         else:
             assert pdg.get_element_full_name_from_Z(obj.Z).lower() == name.lower(), \
             f'Inconsistency between material name {name} and Z={obj.Z} ({pdg.get_element_full_name_from_Z(obj.Z)})'
-        obj.short_name = pdg.get_element_name_from_Z(obj.Z)
+
+        short_name  = pdg.get_element_name_from_Z(obj.Z)
+        fluka_name  = None
+        geant4_name = short_name
+        # The following elements are pre-defined in FLUKA
+        if obj.Z in [1, 2, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 40,
+                     41, 42, 47, 50, 72, 73, 74, 79, 80, 82]:
+            fluka_name = name[:8].upper()
+        if name == 'Aluminium': fluka_name = 'ALUMINUM'
+        if name == 'Phosphorus': fluka_name = 'PHOSPHO'
+        _manually_add_material_to_db(obj, name, short_name=short_name, fluka_name=fluka_name, geant4_name=geant4_name)
+        db.geant4._names[f'G4_{obj._geant4_name}'] = db._strip(name)  # Additional Geant4 aliases
+
         obj.info = f'Elemental {obj.name.lower()}'
         if obj.state == 'gas':
             obj.temperature = 273.15
             obj.pressure = 1
         elif obj.state == 'liquid' or obj.state == 'solid':
             obj.temperature = 293.15
-        # These elements are pre-defined in FLUKA
-        if obj.Z in [1, 2, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 40,
-                     41, 42, 47, 50, 72, 73, 74, 79, 80, 82]:
-            obj.fluka_name = name[:8].upper() # FLUKA material name max length is 8
-        obj.geant4_name = obj.short_name   # Not lowercase because case-sensitive in Geant4
-        db[obj.short_name] = obj
-        db.geant4[f'G4_{obj.geant4_name}'] = obj  # Additional Geant4 aliases
 
-db['Aluminum'] = Aluminium  # Allow American spelling
-
-Aluminium.fluka_name = 'ALUMINUM'
-Phosphorus.fluka_name = 'PHOSPHO'
+db._set_alias('Aluminum', 'Aluminium') # Allow American spelling
 
 
 # Clean up namespace

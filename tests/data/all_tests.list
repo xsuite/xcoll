@@ -1,195 +1,280 @@
-tests/fluka_tests/test_fluka_input.py::test_fluka_input
-tests/fluka_tests/test_track_id.py::test_track_id[10]
-tests/test_adt.py::test_blow_up[B1H-ContextCpu]
-tests/test_adt.py::test_blow_up[B1H-ContextCpu:auto]
-tests/test_adt.py::test_blow_up[B1V-ContextCpu]
-tests/test_adt.py::test_blow_up[B1V-ContextCpu:auto]
-tests/test_adt.py::test_blow_up[B2H-ContextCpu]
-tests/test_adt.py::test_blow_up[B2H-ContextCpu:auto]
-tests/test_adt.py::test_blow_up[B2V-ContextCpu]
-tests/test_adt.py::test_blow_up[B2V-ContextCpu:auto]
-tests/test_black_absorber.py::test_with_parallel_beam[ContextCpu]
-tests/test_black_absorber.py::test_with_parallel_beam[ContextCpu:auto]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-H]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt pos neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-V]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt pos neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-S]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt pos neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt pos neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt pos neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt neg]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt neg pos]
-tests/test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt pos neg]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu-L R>0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu-R R>0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu-L R<0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu-R R<0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu:auto-L R>0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu:auto-R R>0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu:auto-L R<0]
-tests/test_black_absorber.py::test_black_crystal[ContextCpu:auto-R R<0]
-tests/test_colldb.py::test_loading
-tests/test_colldb.py::test_loading_no_families
-tests/test_colldb.py::test_loading_no_merge
-tests/test_colldb.py::test_loading_crystals
-tests/test_colldb.py::test_loading_SixTrack
-tests/test_colldb.py::test_loading_SixTrack_crystals
-tests/test_elements.py::test_black_absorber[ContextCpu]
-tests/test_elements.py::test_black_absorber[ContextCpu:auto]
-tests/test_elements.py::test_black_crystal[ContextCpu]
-tests/test_elements.py::test_black_crystal[ContextCpu:auto]
-tests/test_elements.py::test_everest_block[ContextCpu]
-tests/test_elements.py::test_everest_block[ContextCpu:auto]
-tests/test_elements.py::test_everest[ContextCpu]
-tests/test_elements.py::test_everest[ContextCpu:auto]
-tests/test_elements.py::test_everest_crystal[ContextCpu]
-tests/test_elements.py::test_everest_crystal[ContextCpu:auto]
-tests/test_everest.py::test_primaries
-tests/test_everest.py::test_materials_b1
-tests/test_everest.py::test_materials_b2
-tests/test_everest.py::test_angles_b1
-tests/test_everest.py::test_angles_b2
-tests/test_everest.py::test_lengths_b1
-tests/test_everest.py::test_lengths_b2
-tests/test_everest.py::test_crystals
-tests/test_fluka.py::test_simple_track[1000]
-tests/test_fluka.py::test_simple_track[5000]
-tests/test_fluka.py::test_fluka_jaw[0.001]
-tests/test_fluka.py::test_fluka_jaw[jaw1]
-tests/test_fluka.py::test_fluka_jaw[jaw2]
-tests/test_fluka.py::test_fluka_jaw[jaw3]
-tests/test_geant4.py::test_multiple_tracking[ContextCpu]
-tests/test_geant4.py::test_multiple_tracking[ContextCpu:auto]
-tests/test_geant4_line.py::test_geant4_line
-tests/test_geometry.py::test_jaw
-tests/test_geometry.py::test_jaw_after_s
-tests/test_geometry.py::test_jaw_with_vlimit
-tests/test_geometry.py::test_jaw_after_s_with_vlimit
-tests/test_geometry.py::test_polygon
-tests/test_geometry.py::test_polygon_after_s
-tests/test_geometry.py::test_polygon_with_vlimit
-tests/test_geometry.py::test_polygon_after_s_with_vlimit
-tests/test_geometry.py::test_open_polygon
-tests/test_geometry.py::test_open_polygon_after_s
-tests/test_geometry.py::test_open_polygon_with_vlimit
-tests/test_geometry.py::test_open_polygon_after_s_with_vlimit
-tests/test_geometry.py::test_crystal
-tests/test_geometry.py::test_crystal_after_s
-tests/test_geometry.py::test_crystal_with_vlimit
-tests/test_geometry.py::test_crystal_after_s_with_vlimit
-tests/test_impacts.py::test_impacts_from_line[B1H-ContextCpu]
-tests/test_impacts.py::test_impacts_from_line[B1H-ContextCpu:auto]
-tests/test_impacts.py::test_impacts_from_line[B2V-ContextCpu]
-tests/test_impacts.py::test_impacts_from_line[B2V-ContextCpu:auto]
-tests/test_impacts.py::test_impacts_from_line[B1V-ContextCpu]
-tests/test_impacts.py::test_impacts_from_line[B1V-ContextCpu:auto]
-tests/test_impacts.py::test_impacts_from_line[B2H-ContextCpu]
-tests/test_impacts.py::test_impacts_from_line[B2H-ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_collimator[ContextCpu]
-tests/test_impacts.py::test_impacts_single_collimator[ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_crystal[R>0 side=+ -ContextCpu]
-tests/test_impacts.py::test_impacts_single_crystal[R>0 side=+ -ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_crystal[R<0 side=+ -ContextCpu]
-tests/test_impacts.py::test_impacts_single_crystal[R<0 side=+ -ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu]
-tests/test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu:auto]
-tests/test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu]
-tests/test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu:auto]
-tests/test_initial_distribution.py::test_create_initial_distribution[B1_default]
-tests/test_initial_distribution.py::test_create_initial_distribution[B2_diff_spread]
-tests/test_initial_distribution.py::test_create_initial_distribution[B1_bucket]
-tests/test_install.py::test_install_single_existing_marker[B1-ContextCpu]
-tests/test_install.py::test_install_single_existing_marker[B1-ContextCpu:auto]
-tests/test_install.py::test_install_single_existing_marker[B2-ContextCpu]
-tests/test_install.py::test_install_single_existing_marker[B2-ContextCpu:auto]
-tests/test_install.py::test_install_single_no_marker[B1-ContextCpu]
-tests/test_install.py::test_install_single_no_marker[B1-ContextCpu:auto]
-tests/test_install.py::test_install_single_no_marker[B2-ContextCpu]
-tests/test_install.py::test_install_single_no_marker[B2-ContextCpu:auto]
-tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu]
-tests/test_jaw_and_gaps.py::test_gaps[B1-ContextCpu:auto]
-tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu]
-tests/test_jaw_and_gaps.py::test_gaps[B2-ContextCpu:auto]
-tests/test_jaw_position.py::test_everest[symmetric-0-no_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-0-positive_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-0-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-90-no_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-90-positive_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-90-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-127.5-no_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-127.5-positive_tilt]
-tests/test_jaw_position.py::test_everest[symmetric-127.5-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-0-no_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-0-positive_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-0-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-90-no_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-90-positive_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-90-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-127.5-no_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-127.5-positive_tilt]
-tests/test_jaw_position.py::test_everest[asymmetric-127.5-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[negative-0-no_tilt]
-tests/test_jaw_position.py::test_everest[negative-0-positive_tilt]
-tests/test_jaw_position.py::test_everest[negative-0-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[negative-90-no_tilt]
-tests/test_jaw_position.py::test_everest[negative-90-positive_tilt]
-tests/test_jaw_position.py::test_everest[negative-90-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[negative-127.5-no_tilt]
-tests/test_jaw_position.py::test_everest[negative-127.5-positive_tilt]
-tests/test_jaw_position.py::test_everest[negative-127.5-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[positive-0-no_tilt]
-tests/test_jaw_position.py::test_everest[positive-0-positive_tilt]
-tests/test_jaw_position.py::test_everest[positive-0-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[positive-90-no_tilt]
-tests/test_jaw_position.py::test_everest[positive-90-positive_tilt]
-tests/test_jaw_position.py::test_everest[positive-90-pos_neg_tilt]
-tests/test_jaw_position.py::test_everest[positive-127.5-no_tilt]
-tests/test_jaw_position.py::test_everest[positive-127.5-positive_tilt]
-tests/test_jaw_position.py::test_everest[positive-127.5-pos_neg_tilt]
-tests/test_line_tools.py::test_line_accessor[1-ContextCpu]
-tests/test_line_tools.py::test_line_accessor[1-ContextCpu:auto]
-tests/test_line_tools.py::test_line_accessor[2-ContextCpu]
-tests/test_line_tools.py::test_line_accessor[2-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B1H-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B1H-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B2V-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B2V-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B1V_crystals-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B1V_crystals-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B2H_crystals-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_with_plot[B2H_crystals-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B1H-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B1H-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B2V-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B2V-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B1V_crystals-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B1V_crystals-ContextCpu:auto]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B2H_crystals-ContextCpu]
-tests/test_lossmap.py::test_lossmap_everest_without_plot[B2H_crystals-ContextCpu:auto]
-tests/test_rf_sweep.py::test_rf_sweep[DP pos-ContextCpu]
-tests/test_rf_sweep.py::test_rf_sweep[DP pos-ContextCpu:auto]
-tests/test_rf_sweep.py::test_rf_sweep[DP neg-ContextCpu]
-tests/test_rf_sweep.py::test_rf_sweep[DP neg-ContextCpu:auto]
-tests/test_transfer_line.py::test_transfer_line[ContextCpu]
-tests/test_transfer_line.py::test_transfer_line[ContextCpu:auto]
-tests/test_version.py::test_version
+test_adt.py::test_blow_up[B1H-ContextCpu]
+test_adt.py::test_blow_up[B1H-ContextCpu:auto]
+test_adt.py::test_blow_up[B1V-ContextCpu]
+test_adt.py::test_blow_up[B1V-ContextCpu:auto]
+test_adt.py::test_blow_up[B2H-ContextCpu]
+test_adt.py::test_blow_up[B2H-ContextCpu:auto]
+test_adt.py::test_blow_up[B2V-ContextCpu]
+test_adt.py::test_blow_up[B2V-ContextCpu:auto]
+test_black_absorber.py::test_with_parallel_beam[ContextCpu]
+test_black_absorber.py::test_with_parallel_beam[ContextCpu:auto]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-H]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-H tilt pos neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-V]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-V tilt pos neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-S]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu-S tilt pos neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-H tilt pos neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-V tilt pos neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt neg]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt neg pos]
+test_black_absorber.py::test_with_generic_beam[ContextCpu:auto-S tilt pos neg]
+test_black_absorber.py::test_black_crystal[ContextCpu-L R>0]
+test_black_absorber.py::test_black_crystal[ContextCpu-R R>0]
+test_black_absorber.py::test_black_crystal[ContextCpu-L R<0]
+test_black_absorber.py::test_black_crystal[ContextCpu-R R<0]
+test_black_absorber.py::test_black_crystal[ContextCpu:auto-L R>0]
+test_black_absorber.py::test_black_crystal[ContextCpu:auto-R R>0]
+test_black_absorber.py::test_black_crystal[ContextCpu:auto-L R<0]
+test_black_absorber.py::test_black_crystal[ContextCpu:auto-R R<0]
+test_colldb.py::test_loading
+test_colldb.py::test_loading_no_families
+test_colldb.py::test_loading_no_merge
+test_colldb.py::test_loading_crystals
+test_colldb.py::test_loading_SixTrack
+test_colldb.py::test_loading_SixTrack_crystals
+test_colldb.py::test_dumping
+test_constants.py::test_registries
+test_constants.py::test_class
+test_constants.py::test_class_constants
+test_constants.py::test_module_constants
+test_constants.py::test_package_constants
+test_constants.py::test_class_constant_lists
+test_constants.py::test_module_constant_lists
+test_constants.py::test_package_constant_lists
+test_constants.py::test_class_groups
+test_constants.py::test_module_groups
+test_constants.py::test_package_groups
+test_constants.py::test_class_group_lists
+test_constants.py::test_module_group_lists
+test_constants.py::test_package_group_lists
+test_constants.py::test_class_constant_meta
+test_constants.py::test_module_constant_meta
+test_constants.py::test_package_constant_meta
+test_constants.py::test_class_constant_names
+test_constants.py::test_module_constant_names
+test_constants.py::test_package_constant_names
+test_constants.py::test_class_constant_sources
+test_constants.py::test_module_constant_sources
+test_constants.py::test_package_constant_sources
+test_constants.py::test_consistency_and_name_clash
+test_elements.py::test_black_absorber[ContextCpu]
+test_elements.py::test_black_absorber[ContextCpu:auto]
+test_elements.py::test_black_crystal[ContextCpu]
+test_elements.py::test_black_crystal[ContextCpu:auto]
+test_elements.py::test_everest_block[ContextCpu]
+test_elements.py::test_everest_block[ContextCpu:auto]
+test_elements.py::test_everest[ContextCpu]
+test_elements.py::test_everest[ContextCpu:auto]
+test_elements.py::test_everest_crystal[ContextCpu]
+test_elements.py::test_everest_crystal[ContextCpu:auto]
+test_everest.py::test_primaries
+test_everest.py::test_materials_b1
+test_everest.py::test_materials_b2
+test_everest.py::test_angles_b1
+test_everest.py::test_angles_b2
+test_everest.py::test_lengths_b1
+test_everest.py::test_lengths_b2
+test_everest.py::test_crystals
+test_geant4.py::test_reload_bdsim[ContextCpu]
+test_geant4.py::test_reload_bdsim[ContextCpu:auto]
+test_geant4.py::test_black_absorbers[ContextCpu]
+test_geant4.py::test_black_absorbers[ContextCpu:auto]
+test_geant4_many_particles.py::test_returns
+test_geant4_many_particles.py::test_protons[hit]
+test_geant4_many_particles.py::test_protons[miss]
+test_geant4_many_particles.py::test_lead[hit]
+test_geant4_many_particles.py::test_lead[miss]
+test_geant4_many_particles.py::test_antiprotons[proton_ref-hit]
+test_geant4_many_particles.py::test_antiprotons[proton_ref-miss]
+test_geant4_many_particles.py::test_antiprotons[antiproton_ref-hit]
+test_geant4_many_particles.py::test_antiprotons[antiproton_ref-miss]
+test_geant4_many_particles.py::test_electrons[proton_ref-hit]
+test_geant4_many_particles.py::test_electrons[proton_ref-miss]
+test_geant4_many_particles.py::test_electrons[electron_ref-hit]
+test_geant4_many_particles.py::test_electrons[electron_ref-miss]
+test_geant4_many_particles.py::test_positrons[proton_ref-hit]
+test_geant4_many_particles.py::test_positrons[proton_ref-miss]
+test_geant4_many_particles.py::test_positrons[positron_ref-hit]
+test_geant4_many_particles.py::test_positrons[positron_ref-miss]
+test_geant4_many_particles.py::test_muons[proton_ref-hit]
+test_geant4_many_particles.py::test_muons[proton_ref-miss]
+test_geant4_many_particles.py::test_muons[muon_ref-hit]
+test_geant4_many_particles.py::test_muons[muon_ref-miss]
+test_geant4_many_particles.py::test_antimuons[proton_ref-hit]
+test_geant4_many_particles.py::test_antimuons[proton_ref-miss]
+test_geant4_many_particles.py::test_antimuons[antimuon_ref-hit]
+test_geant4_many_particles.py::test_antimuons[antimuon_ref-miss]
+test_geant4_many_particles.py::test_positive_pions[proton_ref-hit]
+test_geant4_many_particles.py::test_positive_pions[proton_ref-miss]
+test_geant4_many_particles.py::test_positive_pions[pion_ref-hit]
+test_geant4_many_particles.py::test_positive_pions[pion_ref-miss]
+test_geant4_many_particles.py::test_negative_pions[proton_ref-hit]
+test_geant4_many_particles.py::test_negative_pions[proton_ref-miss]
+test_geant4_many_particles.py::test_negative_pions[pion_ref-hit]
+test_geant4_many_particles.py::test_negative_pions[pion_ref-miss]
+test_geant4_serial_bdsim.py::test_serial_bdsim
+test_geometry.py::test_jaw
+test_geometry.py::test_jaw_after_s
+test_geometry.py::test_jaw_with_vlimit
+test_geometry.py::test_jaw_after_s_with_vlimit
+test_geometry.py::test_polygon
+test_geometry.py::test_polygon_after_s
+test_geometry.py::test_polygon_with_vlimit
+test_geometry.py::test_polygon_after_s_with_vlimit
+test_geometry.py::test_open_polygon
+test_geometry.py::test_open_polygon_after_s
+test_geometry.py::test_open_polygon_with_vlimit
+test_geometry.py::test_open_polygon_after_s_with_vlimit
+test_geometry.py::test_crystal
+test_geometry.py::test_crystal_after_s
+test_geometry.py::test_crystal_with_vlimit
+test_geometry.py::test_crystal_after_s_with_vlimit
+test_impacts.py::test_impacts_from_line[B1H-ContextCpu]
+test_impacts.py::test_impacts_from_line[B1H-ContextCpu:auto]
+test_impacts.py::test_impacts_from_line[B2V-ContextCpu]
+test_impacts.py::test_impacts_from_line[B2V-ContextCpu:auto]
+test_impacts.py::test_impacts_from_line[B1V-ContextCpu]
+test_impacts.py::test_impacts_from_line[B1V-ContextCpu:auto]
+test_impacts.py::test_impacts_from_line[B2H-ContextCpu]
+test_impacts.py::test_impacts_from_line[B2H-ContextCpu:auto]
+test_impacts.py::test_impacts_single_collimator[ContextCpu]
+test_impacts.py::test_impacts_single_collimator[ContextCpu:auto]
+test_impacts.py::test_impacts_single_crystal[R>0 side=+ -ContextCpu]
+test_impacts.py::test_impacts_single_crystal[R>0 side=+ -ContextCpu:auto]
+test_impacts.py::test_impacts_single_crystal[R<0 side=+ -ContextCpu]
+test_impacts.py::test_impacts_single_crystal[R<0 side=+ -ContextCpu:auto]
+test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu]
+test_impacts.py::test_impacts_single_crystal[R>0 side=- -ContextCpu:auto]
+test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu]
+test_impacts.py::test_impacts_single_crystal[R<0 side=- -ContextCpu:auto]
+test_initial_distribution.py::test_create_initial_distribution[B1_default]
+test_initial_distribution.py::test_create_initial_distribution[B2_diff_spread]
+test_initial_distribution.py::test_create_initial_distribution[B1_bucket]
+test_install.py::test_install_single_existing_marker[B1-ContextCpu]
+test_install.py::test_install_single_existing_marker[B1-ContextCpu:auto]
+test_install.py::test_install_single_existing_marker[B2-ContextCpu]
+test_install.py::test_install_single_existing_marker[B2-ContextCpu:auto]
+test_install.py::test_install_single_no_marker[B1-ContextCpu]
+test_install.py::test_install_single_no_marker[B1-ContextCpu:auto]
+test_install.py::test_install_single_no_marker[B2-ContextCpu]
+test_install.py::test_install_single_no_marker[B2-ContextCpu:auto]
+test_ions.py::test_bdsim_ions[ContextCpu]
+test_ions.py::test_bdsim_ions[ContextCpu:auto]
+test_jaw_and_gaps.py::test_gaps[B1]
+test_jaw_and_gaps.py::test_gaps[B2]
+test_jaw_position.py::test_everest[symmetric-0-no_tilt]
+test_jaw_position.py::test_everest[symmetric-0-positive_tilt]
+test_jaw_position.py::test_everest[symmetric-0-pos_neg_tilt]
+test_jaw_position.py::test_everest[symmetric-90-no_tilt]
+test_jaw_position.py::test_everest[symmetric-90-positive_tilt]
+test_jaw_position.py::test_everest[symmetric-90-pos_neg_tilt]
+test_jaw_position.py::test_everest[symmetric-127.5-no_tilt]
+test_jaw_position.py::test_everest[symmetric-127.5-positive_tilt]
+test_jaw_position.py::test_everest[symmetric-127.5-pos_neg_tilt]
+test_jaw_position.py::test_everest[asymmetric-0-no_tilt]
+test_jaw_position.py::test_everest[asymmetric-0-positive_tilt]
+test_jaw_position.py::test_everest[asymmetric-0-pos_neg_tilt]
+test_jaw_position.py::test_everest[asymmetric-90-no_tilt]
+test_jaw_position.py::test_everest[asymmetric-90-positive_tilt]
+test_jaw_position.py::test_everest[asymmetric-90-pos_neg_tilt]
+test_jaw_position.py::test_everest[asymmetric-127.5-no_tilt]
+test_jaw_position.py::test_everest[asymmetric-127.5-positive_tilt]
+test_jaw_position.py::test_everest[asymmetric-127.5-pos_neg_tilt]
+test_jaw_position.py::test_everest[negative-0-no_tilt]
+test_jaw_position.py::test_everest[negative-0-positive_tilt]
+test_jaw_position.py::test_everest[negative-0-pos_neg_tilt]
+test_jaw_position.py::test_everest[negative-90-no_tilt]
+test_jaw_position.py::test_everest[negative-90-positive_tilt]
+test_jaw_position.py::test_everest[negative-90-pos_neg_tilt]
+test_jaw_position.py::test_everest[negative-127.5-no_tilt]
+test_jaw_position.py::test_everest[negative-127.5-positive_tilt]
+test_jaw_position.py::test_everest[negative-127.5-pos_neg_tilt]
+test_jaw_position.py::test_everest[positive-0-no_tilt]
+test_jaw_position.py::test_everest[positive-0-positive_tilt]
+test_jaw_position.py::test_everest[positive-0-pos_neg_tilt]
+test_jaw_position.py::test_everest[positive-90-no_tilt]
+test_jaw_position.py::test_everest[positive-90-positive_tilt]
+test_jaw_position.py::test_everest[positive-90-pos_neg_tilt]
+test_jaw_position.py::test_everest[positive-127.5-no_tilt]
+test_jaw_position.py::test_everest[positive-127.5-positive_tilt]
+test_jaw_position.py::test_everest[positive-127.5-pos_neg_tilt]
+test_jaw_position.py::test_geant4[symmetric-0-no_tilt]
+test_jaw_position.py::test_geant4[symmetric-0-positive_tilt]
+test_jaw_position.py::test_geant4[symmetric-0-pos_neg_tilt]
+test_jaw_position.py::test_geant4[symmetric-90-no_tilt]
+test_jaw_position.py::test_geant4[symmetric-90-positive_tilt]
+test_jaw_position.py::test_geant4[symmetric-90-pos_neg_tilt]
+test_jaw_position.py::test_geant4[symmetric-127.5-no_tilt]
+test_jaw_position.py::test_geant4[symmetric-127.5-positive_tilt]
+test_jaw_position.py::test_geant4[symmetric-127.5-pos_neg_tilt]
+test_jaw_position.py::test_geant4[asymmetric-0-no_tilt]
+test_jaw_position.py::test_geant4[asymmetric-0-positive_tilt]
+test_jaw_position.py::test_geant4[asymmetric-0-pos_neg_tilt]
+test_jaw_position.py::test_geant4[asymmetric-90-no_tilt]
+test_jaw_position.py::test_geant4[asymmetric-90-positive_tilt]
+test_jaw_position.py::test_geant4[asymmetric-90-pos_neg_tilt]
+test_jaw_position.py::test_geant4[asymmetric-127.5-no_tilt]
+test_jaw_position.py::test_geant4[asymmetric-127.5-positive_tilt]
+test_jaw_position.py::test_geant4[asymmetric-127.5-pos_neg_tilt]
+test_line_tools.py::test_line_accessor[1-ContextCpu]
+test_line_tools.py::test_line_accessor[1-ContextCpu:auto]
+test_line_tools.py::test_line_accessor[2-ContextCpu]
+test_line_tools.py::test_line_accessor[2-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B1H-with_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B1H-with_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B1H-without_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B1H-without_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B2V-with_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B2V-with_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B2V-without_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B2V-without_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B1V_crystals-with_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B1V_crystals-with_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B1V_crystals-without_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B1V_crystals-without_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B2H_crystals-with_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B2H_crystals-with_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_everest[B2H_crystals-without_plot-ContextCpu]
+test_lossmap.py::test_lossmap_everest[B2H_crystals-without_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_geant4[with_plot-ContextCpu]
+test_lossmap.py::test_lossmap_geant4[with_plot-ContextCpu:auto]
+test_lossmap.py::test_lossmap_geant4[without_plot-ContextCpu]
+test_lossmap.py::test_lossmap_geant4[without_plot-ContextCpu:auto]
+test_materials.py::test_elemental_material_creation
+test_materials.py::test_compound_material_creation
+test_materials.py::test_mixture_material_creation
+test_materials.py::test_different_fractions
+test_materials.py::test_crystal_material_creation
+test_materials.py::test_adapt
+test_materials.py::test_db
+test_particle_id_hierarchy.py::test_geant4
+test_rf_sweep.py::test_rf_sweep[DP pos LHC-ContextCpu]
+test_rf_sweep.py::test_rf_sweep[DP pos LHC-ContextCpu:auto]
+test_rf_sweep.py::test_rf_sweep[DP neg LHC-ContextCpu]
+test_rf_sweep.py::test_rf_sweep[DP neg LHC-ContextCpu:auto]
+test_rf_sweep.py::test_rf_sweep[DP neg SPS-ContextCpu]
+test_rf_sweep.py::test_rf_sweep[DP neg SPS-ContextCpu:auto]
+test_rf_sweep.py::test_rf_sweep_old_style
+test_transfer_line.py::test_transfer_line[ContextCpu]
+test_transfer_line.py::test_transfer_line[ContextCpu:auto]
+test_version.py::test_version

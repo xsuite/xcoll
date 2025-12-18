@@ -49,6 +49,9 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                     beam=beam, ignore_crystals=ignore_crystals)
     colldb.install_everest_collimators(line=line)
+    assert np.all([isinstance(line[nn], xc.EverestCrystal) for nn in colldb.collimator_families['cry7']])
+    assert np.all([isinstance(line[nn], xc.EverestCollimator) for nn in colldb.collimator_names
+                   if nn not in colldb.collimator_families['cry7']])
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
@@ -59,7 +62,8 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
     line.track(part, num_turns=2)
     line.scattering.disable()
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}"
-    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'EverestCollimator', 'EverestCrystal', this_id)
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
+                             ['EverestCollimator'], 'EverestCrystal', this_id)
     if do_plot:
         ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
@@ -72,33 +76,35 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @retry()
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_lossmap_geant4(do_plot, test_context):
-    # If a previous test failed, stop the server manually
-    if xc.geant4.engine.is_running():
-        xc.geant4.engine.stop(clean=True)
-
     npart = 5000
     beam = 2
     plane = 'H'
     interpolation = 0.1
     ignore_crystals = True
-    do_plot = True
 
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:
         pytest.skip("matplotlib installed")
 
+    # If a previous test failed, stop the server manually
+    if xc.geant4.engine.is_running():
+        xc.geant4.engine.stop(clean=True)
+
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_geant4_collimators(line=line)
+    assert np.all([isinstance(line[nn], xc.Geant4CollimatorTip) for nn in colldb.collimator_families['tcsg7']])
+    assert np.all([isinstance(line[nn], xc.Geant4Collimator) for nn in colldb.collimator_names
+                   if nn not in colldb.collimator_families['tcsg7']])
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
 
-    xc.geant4.engine.start(line=line)
+    xc.geant4.engine.start(line=line, cwd='run_geant4_temp', verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
@@ -112,15 +118,21 @@ def test_lossmap_geant4(do_plot, test_context):
 
     xc.geant4.engine.stop(clean=True)
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-geant4"
-    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'Geant4Collimator', 'Geant4Crystal', this_id)
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
+                             ['Geant4Collimator', 'Geant4CollimatorTip'], 'Geant4Crystal', this_id)
     if do_plot:
         ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
         Path(f"test-{this_id}.jpg").unlink()
 
 
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @retry()
-def test_lossmap_fluka():
+@pytest.mark.skipif(not xc.fluka.environment.compiled, reason="FLUKA installation not found")
+def test_lossmap_fluka(do_plot, test_context):
     # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
@@ -128,33 +140,48 @@ def test_lossmap_fluka():
     npart = 5000
     beam = 2
     plane = 'H'
+    interpolation = 0.1
+    ignore_crystals = True
+
+    if do_plot and plt is None:
+        pytest.skip("matplotlib not installed")
+    if not do_plot and plt is not None:
+        pytest.skip("matplotlib installed")
 
     line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_fluka_collimators(line=line)
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
-    # Tilts are not yet implemented in FlukaCollimator
+    # TODO: Tilts are not yet implemented in FlukaCollimator
     for coll in colldb.collimator_names:
         line[coll].tilt = 0
 
-    xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
     xc.fluka.engine.start(line=line, capacity=2*npart, cwd='run_fluka_temp', verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
 
     line.scattering.enable()
+    t_start = time.time()
     line.track(part, num_turns=2)
+    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+        + f"{npart} protons through LHC (1.2 turns)")
     line.scattering.disable()
+
     xc.fluka.engine.stop(clean=True)
-    assert_lossmap(beam, npart, line, part, tcp, 0.1, True, 'FlukaCollimator', None)
+    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-fluka"
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'FlukaCollimator', 'FlukaCrystal', this_id)
+    if do_plot:
+        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
+        assert Path(f"test-{this_id}.jpg").exists()
+        Path(f"test-{this_id}.jpg").unlink()
 
 
 def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
-   with flaky_assertions():
+    with flaky_assertions():
         line_is_reversed = True if beam == 2 else False
         ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
                             interpolation=interpolation)
@@ -167,10 +194,16 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
                         for kk, vv in ThisLM.lossmap.items()}
         with Path(f"lossmap-{this_id}.json").open('r') as fid:
             dct = json.load(fid)
-            assert dct.pop('xcoll', None) == xc.__version__
+            assert dct.pop('xcoll', None) == [xc.__version__]
             date = dct.pop('date', None)
             assert date is not None
-            assert pd.Timestamp.now() - pd.Timestamp(date) < pd.Timedelta('1 minute')
+            assert pd.Timestamp.now() - pd.Timestamp(date[-1]) < pd.Timedelta('1 minute')
+            cold_regions = dct.pop('cold_regions', None)
+            warm_regions = dct.pop('warm_regions', None)
+            s_range = dct.pop('s_range', None)
+            assert cold_regions == ThisLM.cold_regions
+            assert warm_regions == ThisLM.warm_regions
+            assert s_range == ThisLM.s_range
             assert xt.line._dicts_equal(dct, clean_lm_dct)
         Path(f"lossmap-{this_id}.json").unlink()
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")
@@ -180,7 +213,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
         assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
-        assert len(summ[summ.type==coll_cls]) == 10
+        assert len(summ[[tt in coll_cls for tt in summ.type]]) == 10
         if not ignore_crystals:
             assert len(summ[summ.type==cry_cls]) == 2
 
@@ -190,7 +223,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
         lm = ThisLM.lossmap
         summ = summ[summ.n > 0]
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation',
-                                'reversed', 'momentum']
+                                   'reversed', 'momentum']
         assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
         assert len(lm['collimator']['s']) == len(summ)
         assert len(lm['collimator']['name']) == len(summ)
@@ -214,7 +247,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
                 assert len(lm['aperture']['s_bins']) == len(lm['aperture']['length_bins'])
                 assert np.all([s < lm['machine_length'] for s in lm['aperture']['s_bins']])
         else:
-            assert list(lm['aperture'].keys()) == ['s', 'n', 'e']
+            assert list(lm['aperture'].keys()) == ['s', 'length','n', 'e']
             if npart > 5000:
                 assert len(lm['aperture']['s']) > 0
                 assert len(lm['aperture']['s']) == len(lm['aperture']['n'])

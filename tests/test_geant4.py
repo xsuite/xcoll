@@ -27,7 +27,7 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_reload_bdsim(test_context):
     num_part = 1000
     _capacity = num_part*4
@@ -95,7 +95,7 @@ def test_reload_bdsim(test_context):
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.compiled, reason="BDSIM+Geant4 installation not found")
+@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
     n_part = 10_000
     _capacity = n_part*4

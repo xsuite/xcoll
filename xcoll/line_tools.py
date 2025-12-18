@@ -337,8 +337,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 aper_mid = self.get_apertures_at_s(s=(s_start+s_end)/2, table=table, s_tol=s_tol)
                 if aper_mid is None:
                     raise ValueError(f"No aperture found for {name}! Please provide one.")
-                if self.line[aper_mid].allow_rot_and_shift \
-                and xt.base_element._tranformations_active(self.line[aper_mid]):
+                if self.line[aper_mid].transformations_active:
                     print(f"Warning: Using the centre aperture for {name}, but "
                         + f"transformations are present. Proceed with caution.")
                 aper1 = aper_mid
