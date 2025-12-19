@@ -20,7 +20,7 @@ if xc.fluka.engine.is_running():
 
 
 # Create a FLUKA collimator
-coll = xc.FlukaCollimator(length=0.873, material='iner')
+coll = xc.FlukaCollimator(length=0.6, material='mogr')
 coll.jaw = 0.001
 
 # The same collimator in Everest
@@ -32,7 +32,7 @@ coll2.jaw = 0.001
 xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.fluka.engine.capacity = _capacity
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
+xc.fluka.engine.start(elements=coll, clean=False, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -51,14 +51,14 @@ part_test = part_init.copy()
 
 
 # Do the tracking in FLUKA
-coll.track(part_test)  # pre-track to compile the code for a fair comparison
+# coll.track(part_test)  # pre-track to compile the code for a fair comparison
 print(f"Tracking {num_part} particles (FLUKA)...     ", end='')
 start = time.time()
 coll.track(part)
 print(f"Done in {round(time.time()-start, 3)}s.")
 
 # Do the tracking in Everest
-coll2.track(part_test)  # pre-track to compile the code for a fair comparison
+# coll2.track(part_test)  # pre-track to compile the code for a fair comparison
 print(f"Tracking {num_part} particles (Everest)...   ", end='')
 start = time.time()
 coll2.track(part2)
@@ -69,7 +69,7 @@ print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")
 
 
 # Stop the FLUKA server
-xc.fluka.engine.stop(clean=True)
+xc.fluka.engine.stop(clean=False)
 
 
 # Make some plots

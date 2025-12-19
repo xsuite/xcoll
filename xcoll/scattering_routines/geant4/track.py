@@ -20,7 +20,7 @@ def track_pre(coll, particles):
         coll._acc_ionisation_loss = 0.
 
     if not xc.geant4.engine.assert_ready_to_track_or_skip(
-        coll, particles, _necessary_attributes=['geant4_id']):
+    coll, particles, _necessary_attributes=['geant4_id']):
         return False  # Stop tracking
 
     return True  # Continue tracking
@@ -52,6 +52,7 @@ def track_core(coll, part):
 
     coll._drift(part, -250e-9) # Margin before Geant4 collimator; added by BDSIM geometry
 
+    # Get particle data
     q0 = part.q0
     m0 = part.mass0
     p0c = part.p0c[0]
@@ -59,7 +60,7 @@ def track_core(coll, part):
     s_in = part.s[send_to_geant4][0]
     ele_in = part.at_element[send_to_geant4][0]
     turn_in = part.at_turn[send_to_geant4][0]
-    precision  = p0c * 1e-12  # To avoid numerical issues like negative energy
+    precision  = p0c * 1.e-12  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
 
     rpp  = part.rpp[send_to_geant4]
     x    = part.x[send_to_geant4]
@@ -101,7 +102,7 @@ def track_core(coll, part):
 
     # Update particles that are still alive
     returned_alive = products['state'][:num_sent] > 0
-    idx_alive = np.arange(len(part.x))[send_to_geant4][returned_alive]
+    idx_alive = np.arange(len(part.x))[send_to_geant4][returned_alive]    # BDSIM keeps particle order
     idx_returned_alive = np.nonzero(returned_alive)[0]
 
     # Energy needs special treatment
@@ -114,7 +115,8 @@ def track_core(coll, part):
         raise ValueError(f"Geant4 returned particle with energy higher than incoming particle!")
     E_diff[E_diff < precision] = 0. # Lower cut on energy loss
     part.add_to_energy(-E_diff)
-    coll._acc_ionisation_loss += np.sum(E_diff)
+    part.weight[idx_alive] = products['weight'][idx_returned_alive]
+    coll._acc_ionisation_loss += np.sum(E_diff[idx_alive]*part.weight[idx_alive])
 
     rpp  = part.rpp[idx_alive]
     part.x[idx_alive]      = products['x'][idx_returned_alive]
@@ -122,7 +124,6 @@ def track_core(coll, part):
     part.y[idx_alive]      = products['y'][idx_returned_alive]
     part.py[idx_alive]     = products['yp'][idx_returned_alive] / rpp   # Director cosine back to py
     part.zeta[idx_alive]   = products['zeta'][idx_returned_alive]
-    part.weight[idx_alive] = products['weight'][idx_returned_alive]
 
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]

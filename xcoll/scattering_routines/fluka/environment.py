@@ -41,40 +41,47 @@ class FlukaEnvironment(BaseEnvironment):
         so = list(self.data_dir.glob('pyflukaf.*so'))
         return len(so) > 0
 
-    def compile(self, flukaio_path=None, verbose=False):
+    def compile(self, flukaio_lib=None, flukaio_path=None, verbose=False):
         # Check all dependencies
         self.assert_installed('make', verbose=verbose)
         self.assert_installed('cmake', verbose=verbose)
         self.assert_gcc_installed(verbose=verbose)
         self.assert_gfortran_installed(verbose=verbose)
-
-        # Check the provided FlukaIO path
-        if flukaio_path is None:
-            raise ValueError("FlukaIO path must be provided!")
-        flukaio_path = FsPath(flukaio_path).resolve()
-        if not flukaio_path.exists():
-            raise FileNotFoundError(f"Could not find FlukaIO path {flukaio_path}!")
-        self.brute_force_path(flukaio_path)
-        # Copy the FlukaIO files to a temporary directory and compile it
-        dest = (self.temp_dir / 'flukaio').resolve()
-        dest.mkdir(parents=True, exist_ok=True)
-        for path in flukaio_path.glob('*'):
-            if path.name == '.git' or path.name == 'docs' or path.name == 'tests' \
-            or path.name == 'samples':
-                continue
-            else:
-                path.copy_to(dest, method='mount')
         cwd = FsPath.cwd()
-        os.chdir(dest)
-        cmd = run(['make', 'clean'], stdout=PIPE, stderr=PIPE)
-        cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
-            if verbose:
-                print("Compiled FlukaIO successfully.")
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            os.chdir(cwd)
-            raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
+
+        # Get FlukaIO
+        if flukaio_lib is None:
+            # Check the provided FlukaIO path
+            if flukaio_path is None:
+                raise ValueError("FlukaIO path must be provided!")
+            flukaio_path = FsPath(flukaio_path).resolve()
+            if not flukaio_path.exists():
+                raise FileNotFoundError(f"Could not find FlukaIO path {flukaio_path}!")
+            self.brute_force_path(flukaio_path)
+            # Copy the FlukaIO files to a temporary directory and compile it
+            dest = (self.temp_dir / 'flukaio').resolve()
+            dest.mkdir(parents=True, exist_ok=True)
+            for path in flukaio_path.glob('*'):
+                if path.name == '.git' or path.name == 'docs' or path.name == 'tests' \
+                or path.name == 'samples':
+                    continue
+                else:
+                    path.copy_to(dest, method='mount')
+            os.chdir(dest)
+            cmd = run(['make', 'clean'], stdout=PIPE, stderr=PIPE)
+            cmd = run(['make', 'libs', 'BUILD64=Y'], stdout=PIPE, stderr=PIPE)
+            if cmd.returncode == 0:
+                if verbose:
+                    print("Compiled FlukaIO successfully.")
+            else:
+                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                os.chdir(cwd)
+                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
+            flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
+        flukaio_lib = FsPath(flukaio_lib).resolve()
+        if not flukaio_lib.exists():
+            raise FileNotFoundError(f"Could not find FlukaIO library {flukaio_lib}!")
+
         # Copy the FORTRAN source files to the temporary directory and compile it
         dest = (self.temp_dir / 'FORTRAN_src').resolve()
         dest.mkdir(parents=True, exist_ok=True)
@@ -95,7 +102,7 @@ class FlukaEnvironment(BaseEnvironment):
         cmd = run(['f2py', '-m', 'pyflukaf', '-c', 'pyfluka.f90',
                    'core_tools.o', 'constants.o', 'strings.o', 'mod_alloc.o',
                    'common_modules.o', 'string_tools.o', 'mod_units.o',
-                   'pdgid.o', 'mod_fluka.o', '../flukaio/lib/libFlukaIO64.a',
+                   'pdgid.o', 'mod_fluka.o', flukaio_lib.as_posix(),
                    '--backend', 'distutils', '--fcompiler=gfortran'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:

@@ -218,14 +218,14 @@ class FlukaEngine(BaseEngine):
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
-        processes = [proc for proc in processes if 'rfluka' in proc]
+        processes = [proc for proc in processes if 'rfluka' in proc and 'defunct' not in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
             self.stop()
             return False
-        elif len(processes) == 1 and str(self.server_pid) in processes[0] and 'defunct' not in processes[0]:
+        elif len(processes) == 1 and str(self.server_pid) in processes[0]:
             return True
-        elif np.any([str(self.server_pid) in proc for proc in processes if 'defunct' not in proc]):
+        elif np.any([str(self.server_pid) in proc for proc in processes]):
             self._print("Warning: Found other instances of rfluka besides the current one!")
             return True
         else:
@@ -434,10 +434,11 @@ class FlukaEngine(BaseEngine):
         log = self._cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
-        self._server_process = Popen([xc.fluka.environment.fluka.as_posix(),
+        cmds = [xc.fluka.environment.fluka.as_posix(),
                                       self.input_file[0].as_posix(), '-e',
-                                      xc.fluka.environment.flukaserver.as_posix(), '-M', "1"],
-                                     cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
+                                      xc.fluka.environment.flukaserver.as_posix(), '-M', "1"]
+        self._print(f"Running `{' '.join(cmds)}` in folder {self._cwd}...")
+        self._server_process = Popen(cmds, cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)
         if not self.is_running():
