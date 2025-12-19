@@ -13,7 +13,7 @@ from pathlib import Path
 
 import xtrack as xt
 
-from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal,
+from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
                             FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
 
 
@@ -547,7 +547,8 @@ class CollimatorDatabase:
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']) \
             or crystal_assembly:
-                self._create_collimator(FlukaCrystal, line, name, material=mat, verbose=verbose, **extra_kwargs)
+                import pdb; pdb.set_trace()
+                self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
             else:
                 self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)
         elements = [self._elements[name] for name in names]

@@ -22,6 +22,7 @@ def _drift(coll, particles, length):
 def track_pre(coll, particles):
     import xcoll as xc
 
+
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
         coll._acc_ionisation_loss = 0.
@@ -43,7 +44,8 @@ def track_pre(coll, particles):
         xc.fluka.engine._print("Warning: relative_capacity is set to 2. This is "
                              + "probably not enough for anything except protons.")
 
-    xc.fluka.engine.init_tracking(npart)
+    #xc.fluka.engine.init_tracking(npart)
+    xc.fluka.engine.init_tracking(npart+particles._num_lost_particles)
 
     if particles.particle_id.max() > xc.fluka.engine.max_particle_id:
         raise ValueError(f"Some particles have an id ({particles.particle_id.max()}) "
@@ -81,6 +83,7 @@ def track_core(coll, part):
         return
 
     send_to_fluka  = part.state == HIT_ON_FLUKA_COLL
+    # send_to_fluka  = part.state == 1    # TODO
     npart          = send_to_fluka.sum()
     max_id         = part.particle_id[part.state > -9999].max()
     assert npart  <= part._num_active_particles

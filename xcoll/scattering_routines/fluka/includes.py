@@ -43,10 +43,14 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                       return_leptons=None, return_neutrinos=None, return_protons=None,
                       return_neutrons=None, return_ions=None, return_exotics=None,
                       return_all=None, return_neutral=None, use_crystals=False, **kwargs):
+
+    bb_int = kwargs.get('bb_int', None)
+    touches = kwargs.get('touches', None)
+
     this_include_files = include_files.copy()
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
-        this_include_files.append(_beam_include_file(particle_ref))
+        this_include_files.append(_beam_include_file(particle_ref, bb_int=bb_int))
     if 'include_settings_physics.inp' in [file.name for file in this_include_files]:
         if photon_lower_momentum_cut is not None:
             raise ValueError("Physics include file already provided. Cannot change "
@@ -134,7 +138,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         if return_neutrinos is None:
             return_neutrinos = False
         if return_protons is None:
-            return_protons = _is_proton(particle_ref) or _is_ion(particle_ref)
+            return_protons = _is_proton(particle_ref) # or _is_ion(particle_ref)
         if return_neutrons is None:
             return_neutrons = False
         if return_ions is None:
@@ -150,7 +154,9 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                                              return_neutrinos=return_neutrinos, return_protons=return_protons,
                                              return_neutrons=return_neutrons, return_ions=return_ions,
                                              return_exotics=return_exotics, return_all=return_all,
-                                             return_neutral=return_neutral, use_crystals=use_crystals)
+                                             return_neutral=return_neutral, use_crystals=use_crystals,
+                                             get_touches=touches)
+
         this_include_files.append(scoring_file)
     # Add any additional include files
     if any(pro.is_crystal and not isinstance(pro, FlukaAssembly)
@@ -192,9 +198,9 @@ def _assignmat_include_file():
 * what (5) = C parameter = Quasi - Mosaic factor [ mrad / cm ]
 * what (6) = D parameter = Crystal temperature [K]
 * sdum = crystal type
-* what (7 ,8 ,9) = U/V/ W of nominal crystal normal to the curvature plane
-* what (10 ,11 ,12) = U /V/W of nominal crystal channel direction
-* what (13 ,14 ,15) = X /Y/Z of crystal nominal position
+* what (7, 8, 9) = U/V/ W of nominal crystal normal to the curvature plane
+* what (10, 11, 12) = U /V/W of nominal crystal channel direction
+* what (13, 14, 15) = X /Y/Z of crystal nominal position
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 * CRYSTAL what (1) what (2) what (3) what (4) what (5) what (6) sdum
 * CRYSTAL what (7) what (8) what (9) what (10) what (11) what (12) &
@@ -214,9 +220,9 @@ def _assignmat_include_file():
                 raise ValueError(f"Crystal {name} has no position in the prototypes file.")
             elif len(crystal.dependant_assemblies) > 1:
                 raise ValueError(f"Crystal {name} has multiple positions in the prototypes file. "
-                                + "(too many dependant aseemblies).")
+                                + "(too many dependant asemblies).")
             pos = crystal.dependant_assemblies[0].fluka_position
-        pos1   = format_fluka_float(pos[3])
+        pos1   = format_fluka_float(pos[3]-50.0+1e-4) # XXX Does it always work with the 50cm shift?
         pos2   = format_fluka_float(pos[4])
         pos3   = format_fluka_float(pos[5])
         template += f"""\
@@ -232,10 +238,11 @@ CRYSTAL   {pos1}{pos2}{pos3}                              &&
     return filename
 
 
-def _beam_include_file(particle_ref):
+def _beam_include_file(particle_ref, bb_int=False):
     filename = FsPath("include_settings_beam.inp").resolve()
     pdg_id = particle_ref.pdg_id[0]
     momentum_cut = particle_ref.p0c[0] / 1e9 * 1.05
+
     hi_prope = "*"
     if pdg_id in fluka_names:
         name = fluka_names[pdg_id]
@@ -248,7 +255,6 @@ def _beam_include_file(particle_ref):
         raise ValueError(f"Reference particle {get_name_from_pdg_id(pdg_id)} not "
                         + "supported by FLUKA.")
     beam = f"BEAM      {format_fluka_float(momentum_cut)}{50*' '}{name}"
-
     template = f"""\
 ******************************************************************************
 *                          BEAM SETTINGS                                     *
@@ -260,12 +266,46 @@ def _beam_include_file(particle_ref):
 *
 BEAMPOS
 *
-* Only asking for loss map and touches map as in Sixtrack
+"""
+    if bb_int:
+        template += f"""\
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* W(1): interaction type, W(2): Index IR, W(3): Length of IR[cm], W(4): SigmaZ
+* Interaction type: 1.0 (Inelastic), 10.0 (Elastic), 100.0 (EMD)
+* SigmaZ: sigma_z (cm) for the Gaussian sampling of the collision position around the center of the insertion
+SOURCE    {format_fluka_float(bb_int['int_type'])}{format_fluka_float(1)}{format_fluka_float(20)}{format_fluka_float(bb_int['sigma_z'])}
+SOURCE           89.       90.       91.        0.                    &
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* W(1): Theta2-> Polar angle (rad) between b2 and -z direction.
+* W(2): Azimuthal angle (deg) defining the crossing plane.
+* W(3): Sigma_x for Gaussian sampling in b2, dir (x', y', 1) wrt to px
+* W(4): Sigma_y for Gaussian sampling in b2, dir (x', y', 1) wrt to py
+* W(5): Z b2
+* W(6): A b2
+USRICALL  {format_fluka_float(bb_int['theta2'])}{format_fluka_float(bb_int['xs'])}{format_fluka_float(bb_int['sigma_p_x2'])}{format_fluka_float(bb_int['sigma_p_y2'])}{format_fluka_float(bb_int['Z'])}{format_fluka_float(bb_int['A'])}BBEAMCOL
+USRICALL  {format_fluka_float(bb_int['betx'])}{format_fluka_float(bb_int['alfx'])}{format_fluka_float(bb_int['dx'])}{format_fluka_float(bb_int['dpx'])}{format_fluka_float(bb_int['rms_emx'])}          BBCOL_H
+USRICALL  {format_fluka_float(bb_int['bety'])}{format_fluka_float(bb_int['alfy'])}{format_fluka_float(bb_int['dy'])}{format_fluka_float(bb_int['dpy'])}{format_fluka_float(bb_int['rms_emy'])}          BBCOL_V
+* * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+* *USRICALL      #OFFSET                                                        BBCOL_O
+* W(1,2,3,4,5,6): X, X', Y,  Y', dT, pc
+* USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_O
+USRICALL  {format_fluka_float(bb_int['offset'][0])}{format_fluka_float(bb_int['offset'][1])}{format_fluka_float(bb_int['offset'][2])}{format_fluka_float(bb_int['offset'][3])}       0.0       0.0BBCOL_O
+* *USRICALL      #SIGDPP                                                        BBCOL_L
+* USRICALL         0.0       0.0       0.0       0.0       0.0       0.0BBCOL_L
+* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
+USRICALL  {format_fluka_float(bb_int['sigma_dpp'])}                                                  BBCOL_L
+*
+"""
+    else:
+        template += f"""\
+* Only asking for loss map and touches map as in Xsuite
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 SOURCE                                         87.       88.        1.
 SOURCE           89.       90.       91.        0.       -1.       10.&
-*SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
+SOURCE           0.0       0.0      97.0       1.0      96.0       1.0&&
 """
+
+
     with filename.open('w') as fp:
         fp.write(template)
     return filename
@@ -275,6 +315,7 @@ def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_
                           electron_lower_momentum_cut, include_showers):
     filename = FsPath("include_settings_physics.inp").resolve()
     emf = "*EMF" if include_showers else "EMF"
+    deltaray = "DELTARAY          -1                      BLCKHOLE  @LASTMAT" if not include_showers else "*"
     emfcut = "EMFCUT" if include_showers else "*EMFCUT"
     photon_lower_momentum_cut = format_fluka_float(photon_lower_momentum_cut/1.e9)
     # TODO: FLUKA electron mass
@@ -306,6 +347,7 @@ DEFAULTS                                                              PRECISIO
 *
 * Kill EM showers
 {emf}                                                                   EMF-OFF
+{deltaray}
 *
 * All particle transport thresholds up to 1 TeV
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
@@ -315,6 +357,12 @@ PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                  
 PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
 PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
 *
+* PART-THR     -1000.0            @LASTPAR                 0.0
+* PART-THR     -2000.0  DEUTERON                           0.0
+* PART-THR     -3000.0    TRITON                           0.0
+* PART-THR     -3000.0  3-HELIUM                           0.0
+* PART-THR     -4000.0  4-HELIUM                           0.0
+
 *
 * Activate single scattering
 MULSOPT                                        1.0       1.0       1.0GLOBAL
@@ -324,8 +372,10 @@ MULSOPT                                        1.0       1.0       1.0GLOBAL
 PHYSICS           1.                                                  COALESCE
 PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
-PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
+* PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
 PHYSICS           2.                                                  EM-DISSO
+* beam-beam collisions
+PHYSICS       8000.0                                                  LIMITS
 *THRESHOL         0.0       0.0    8000.0    8000.0       0.0       0.0
 """
     with filename.open('w') as fp:
@@ -335,7 +385,7 @@ PHYSICS           2.                                                  EM-DISSO
 
 def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_neutrinos,
                           return_protons, return_neutrons, return_ions, return_exotics,
-                          return_all, return_neutral, return_photons, use_crystals=False):
+                          return_all, return_neutral, return_photons, use_crystals=False, get_touches=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
     electrons = 'USRBDX' if return_electrons or return_leptons else '*USRBDX'
     leptons = 'USRBDX' if return_leptons else '*USRBDX'
@@ -354,6 +404,7 @@ def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_n
     else:
         all_charged = all_particles = '*USRBDX'
     crystal = 'USRICALL' if use_crystals else '*USRICALL'
+    touches = 'USERDUMP' if get_touches else '*USERDUMP'
     if verbose:
         print(f"Scoring include file created with:")
         if all_particles[0] != '*':
@@ -421,6 +472,7 @@ USERWEIG                             3.0
 {neutral_exotics}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutral_exotics}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
+*{protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BCKFORT66
 {protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
@@ -464,7 +516,7 @@ USERWEIG                             3.0
 *
 * Get back touches
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
-USERDUMP       100.0
+{touches}       100.0
 *
 * crystal scoring
 {crystal}        50.0                                                  CRYSTAL

@@ -18,10 +18,10 @@ context = xo.ContextCpu()         # For CPU
 # context = xo.ContextCupy()      # For CUDA GPUs
 # context = xo.ContextPyopencl()  # For OpenCL GPUs
 
-num_part = 100
+num_part = int(1000)
 
 coll = xc.FlukaCrystal(length=0.002, material='si', bending_angle=149e-6,
-                       width=0.002, height=0.05, side='+', jaw=1.e-12,  # Hack to make it work for now; jaw should be almost zero
+                       width=0.002, height=0.05, side='+', jaw=1e-3,  # Hack to make it work for now; jaw should be almost zero
                          _context=context)
 
 # Connect to FLUKA
@@ -34,9 +34,8 @@ x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
 px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
 y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
-part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=xc.fluka.engine.particle_ref, _context=context)
+part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=xc.fluka.engine.particle_ref, _context=context, _capacity=xc.fluka.engine.capacity)
 part_init = part.copy()
-
 
 coll.track(part)
 

@@ -153,9 +153,16 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            super().track(part)
+            if not self.assembly.is_crystal:
+                super().track(part)
+            # if self.material != "vacuum":
+                # super().track(part)
+            # else:
+                # part.state[part.state == 1] = 334
+            part.state[part.state == 1] = 334
             track_core(self, part)
-            track_post(self, part)
+            if self.material != "vacuum":
+                track_post(self, part)
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -338,6 +345,10 @@ class FlukaCrystal(BaseCrystal):
 
     def track(self, part):
         FlukaCollimator.track(self, part)
+        # if track_pre(self, part):
+        #     part.state[part.state == 1] = 334
+        #     track_core(self, part)
+        #     track_post(self, part)
 
     def __setattr__(self, name, value):
         import xcoll as xc

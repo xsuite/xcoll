@@ -2,9 +2,16 @@
 import xcoll as xc
 from pathlib import Path
 
-fluka_path = Path('/home/fvanderv/pythondev/fluka4-5.1')
+fluka_path = Path('/home/adonadon/pythondev/fluka4-5.1')
 
 # Set the paths to FLUKA executables
+# xc.fluka.environment.fluka       = '/eos/project/f/flukafiles/fluka-coupling/fluka4-5.0/bin/rfluka'
+# xc.fluka.environment.flukaserver = '/eos/project/f/flukafiles/fluka-coupling/fluka_coupling/fluka/flukaserver'
+# #xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'
+# #xc.fluka.environment.linebuilder = '/afs/cern.ch/work/a/adonadon/public/soft/line-builder-ads'
+
+# xc.fluka.environment.linebuilder = '//afs/cern.ch/work/a/adonadon/public/soft/linebuilder' # currently using
+
 xc.fluka.environment.fluka	 = fluka_path / 'bin' / 'rfluka'
 xc.fluka.environment.flukaserver = fluka_path / 'bin' / 'flukaserver'
 xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'

@@ -168,7 +168,7 @@ class FlukaEngine(BaseEngine):
         return kwargs
 
 
-    def _start_engine(self, touches=True, fortran_debug_level=0, **kwargs):
+    def _start_engine(self, touches=False, fortran_debug_level=0, **kwargs):
         from .fluka_input import verify_insertion_file
         verify_insertion_file(self.input_file[1], self._element_dict)
         self._create_touches(touches)
@@ -250,8 +250,13 @@ class FlukaEngine(BaseEngine):
                 continue
             self._assert_element(ee)
             ee.fluka_id = input_dict[name]['fluka_id']
-            ee.length_front = (input_dict[name]['length'] - ee.length)/2
-            ee.length_back = (input_dict[name]['length'] - ee.length)/2
+            if ee.assembly.is_crystal:
+                ee.length_front = (input_dict[name]['length'])/2
+                ee.length_back = (input_dict[name]['length'] - 2*ee.length)/2
+            else:
+                ee.length_front = (input_dict[name]['length'] - ee.length)/2
+                ee.length_back = (input_dict[name]['length'] - ee.length)/2
+
             jaw = input_dict[name]['jaw']
             if jaw is not None and not hasattr(jaw, '__iter__'):
                 jaw = [jaw, -jaw]
@@ -409,10 +414,13 @@ class FlukaEngine(BaseEngine):
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         # Check if the hostname has a valid IP address
         try:
-            socket.inet_aton(host)
+            socket.gethostbyname(host)
+            # ip = socket.gethostbyname(host)
+            # socket.inet_aton(host)
         except socket.error:
             self._print(f"Warning: Hostname {host} is not a valid IP address. Setting it to localhost.")
             host = "localhost"
+            # host = "127.0.0.1"
         try:
             host = socket.gethostbyname(host)
         except socket.gaierror:

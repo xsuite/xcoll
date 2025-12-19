@@ -77,7 +77,7 @@ class FlukaEnvironment(BaseEnvironment):
                 stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
                 os.chdir(cwd)
                 raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
-            flukaio_lib = dest / 'flukaio' / 'lib' / 'libFlukaIO64.a'
+            flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
         flukaio_lib = FsPath(flukaio_lib).resolve()
         if not flukaio_lib.exists():
             raise FileNotFoundError(f"Could not find FlukaIO library {flukaio_lib}!")
