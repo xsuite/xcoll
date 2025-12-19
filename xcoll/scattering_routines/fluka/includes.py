@@ -365,7 +365,9 @@ PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
 PHYSICS           2.                                                  EM-DISSO
 * beam-beam collisions
-PHYSICS          -1.                                                  LIMITS
+PHYSICS           -1                                                  LIMITS
+* No low-energy neutron transport
+LOW-PWXS          -1
 """
     with filename.open('w') as fp:
         fp.write(template)
