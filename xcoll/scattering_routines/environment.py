@@ -196,6 +196,8 @@ class BaseEnvironment:
             self._old_os_env = None
 
     def brute_force_path(self, path):
+        if path is None:
+            return
         num_parents = 0
         if str(path) in self._paths:
             num_parents = self._paths[path]
@@ -203,8 +205,6 @@ class BaseEnvironment:
         if str(path) in self._read_only_paths:
             num_parents = self._read_only_paths[path]
             path = getattr(self, path)
-        if path is None:
-            return
         path = FsPath(path).resolve()
         if num_parents > 0:
             path = path.parents[num_parents-1]

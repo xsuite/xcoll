@@ -32,7 +32,7 @@ coll2.jaw = 0.001
 xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=6.8e12)
 xc.fluka.engine.capacity = _capacity
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(elements=coll, clean=False, verbose=False)
+xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -69,7 +69,7 @@ print(f"Survived in Everest: {len(part2.state[part2.state>0])}/{num_part}")
 
 
 # Stop the FLUKA server
-xc.fluka.engine.stop(clean=False)
+xc.fluka.engine.stop(clean=True)
 
 
 # Make some plots

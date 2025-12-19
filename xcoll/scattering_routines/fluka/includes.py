@@ -42,10 +42,8 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
                       include_showers=None, return_photons=None, return_electrons=None,
                       return_leptons=None, return_neutrinos=None, return_protons=None,
                       return_neutrons=None, return_ions=None, return_exotics=None,
-                      return_all=None, return_neutral=None, use_crystals=False, **kwargs):
-
-    bb_int = kwargs.get('bb_int', None)
-    touches = kwargs.get('touches', None)
+                      return_all=None, return_neutral=None, use_crystals=False, bb_int=False,
+                      touches=False, **kwargs):
 
     this_include_files = include_files.copy()
     # Required default include files
@@ -138,7 +136,7 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_mom
         if return_neutrinos is None:
             return_neutrinos = False
         if return_protons is None:
-            return_protons = _is_proton(particle_ref) # or _is_ion(particle_ref)
+            return_protons = _is_proton(particle_ref) or _is_ion(particle_ref)
         if return_neutrons is None:
             return_neutrons = False
         if return_ions is None:
@@ -315,7 +313,7 @@ def _physics_include_file(*, verbose, lower_momentum_cut, photon_lower_momentum_
                           electron_lower_momentum_cut, include_showers):
     filename = FsPath("include_settings_physics.inp").resolve()
     emf = "*EMF" if include_showers else "EMF"
-    deltaray = "DELTARAY          -1                      BLCKHOLE  @LASTMAT" if not include_showers else "*"
+    deltaray = "DELTARAY" if not include_showers else "*DELTARAY"
     emfcut = "EMFCUT" if include_showers else "*EMFCUT"
     photon_lower_momentum_cut = format_fluka_float(photon_lower_momentum_cut/1.e9)
     # TODO: FLUKA electron mass
@@ -347,7 +345,7 @@ DEFAULTS                                                              PRECISIO
 *
 * Kill EM showers
 {emf}                                                                   EMF-OFF
-{deltaray}
+{deltaray}          -1                      BLCKHOLE  @LASTMAT
 *
 * All particle transport thresholds up to 1 TeV
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
@@ -357,13 +355,6 @@ PART-THR  {format_fluka_float(3*lower_momentum_cut)}    TRITON                  
 PART-THR  {format_fluka_float(3*lower_momentum_cut)}  3-HELIUM                           0.0
 PART-THR  {format_fluka_float(4*lower_momentum_cut)}  4-HELIUM                           0.0
 *
-* PART-THR     -1000.0            @LASTPAR                 0.0
-* PART-THR     -2000.0  DEUTERON                           0.0
-* PART-THR     -3000.0    TRITON                           0.0
-* PART-THR     -3000.0  3-HELIUM                           0.0
-* PART-THR     -4000.0  4-HELIUM                           0.0
-
-*
 * Activate single scattering
 MULSOPT                                        1.0       1.0       1.0GLOBAL
 *
@@ -372,11 +363,9 @@ MULSOPT                                        1.0       1.0       1.0GLOBAL
 PHYSICS           1.                                                  COALESCE
 PHYSICS           3.                                                  EVAPORAT
 PHYSICS        1.D+5     1.D+5     1.D+5     1.D+5     1.D+5     1.D+5PEATHRES
-* PHYSICS           1.     0.005      0.15       2.0       2.0       3.0IONSPLIT
 PHYSICS           2.                                                  EM-DISSO
 * beam-beam collisions
-PHYSICS       8000.0                                                  LIMITS
-*THRESHOL         0.0       0.0    8000.0    8000.0       0.0       0.0
+PHYSICS          -1.                                                  LIMITS
 """
     with filename.open('w') as fp:
         fp.write(template)
@@ -385,7 +374,8 @@ PHYSICS       8000.0                                                  LIMITS
 
 def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_neutrinos,
                           return_protons, return_neutrons, return_ions, return_exotics,
-                          return_all, return_neutral, return_photons, use_crystals=False, get_touches=False):
+                          return_all, return_neutral, return_photons, use_crystals=False,
+                          get_touches=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
     electrons = 'USRBDX' if return_electrons or return_leptons else '*USRBDX'
     leptons = 'USRBDX' if return_leptons else '*USRBDX'
@@ -472,7 +462,6 @@ USERWEIG                             3.0
 {neutral_exotics}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutral_exotics}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-*{protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BCKFORT66
 {protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0  ANEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO

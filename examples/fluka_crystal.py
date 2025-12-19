@@ -28,7 +28,7 @@ coll = xc.FlukaCrystal(length=0.002, material='si', bending_angle=149e-6,
 xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=4e11)
 xc.fluka.engine.capacity = 2*num_part
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
+xc.fluka.engine.start(elements=coll, clean=False, verbose=False)
 
 x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)
 px_init  = np.random.uniform(low=-50.e-6, high=250.e-6, size=num_part)
@@ -39,7 +39,7 @@ part_init = part.copy()
 
 coll.track(part)
 
-xc.fluka.engine.stop()
+# xc.fluka.engine.stop()
 
 # Sort particles to be able to compare to part_init
 part.sort(interleave_lost_particles=True)

@@ -547,7 +547,6 @@ class CollimatorDatabase:
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']) \
             or crystal_assembly:
-                import pdb; pdb.set_trace()
                 self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
             else:
                 self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)

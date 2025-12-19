@@ -124,7 +124,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
                 half_gap = OPEN_JAW
             else:
                 nsig = ee.gap
-                half_gap = -ee.jaw
+                half_gap = -ee.jaw  # Mistake in LineBuilder?
             offset = 0
             tilt_1 = ee.tilt
             tilt_2 = 0
@@ -160,8 +160,6 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
         tilt_1 = round(tilt_1, 9)
         tilt_2 = round(tilt_2, 9)
-        # if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
-        #     raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
         if nsig is None:
             nsig = 1
@@ -211,7 +209,6 @@ def _fluka_builder(collimator_dict):
 
     with open('linebuilder.log', 'w') as f:
         with redirect_stdout(f):
-            # input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True, verbose=True)
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
 
     # Restore system state

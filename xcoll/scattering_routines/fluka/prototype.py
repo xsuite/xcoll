@@ -847,7 +847,7 @@ class FlukaPrototypeAccessor:
         return len(self.data)
 
     def __iter__(self):
-        return iter(self.data.__iter__())
+        return iter(self.values().__iter__())
 
     def __iter__(self):
         super().__setattr__('_iter_data', iter(self.keys()))
@@ -871,7 +871,7 @@ class FlukaPrototypeAccessor:
         if val in self.data:
             return self.data[val]
         # If val is a series, return the prototypes in that series
-        elif val in self.series:
+        elif val in self.series or val == 'generic':   # Special case for Andre
             return FlukaSeriesAccessor(self._type, self.ordered_data, val)
         # If val is a tag and that tag is unique, return the prototype
         elif val in self.tags:
@@ -901,7 +901,7 @@ class FlukaSeriesAccessor:
     def __init__(self, type, data, series):
         self._type = type
         self._series = series
-        self._series_data = data[series]
+        self._series_data = {} if series == 'generic' else data[series]
 
     def __repr__(self):
         return f"<FlukaSeriesAccessor at {hex(id(self))} (use .show() to see the content)>"
@@ -944,7 +944,7 @@ class FlukaSeriesAccessor:
         return len(self._series_data)
 
     def __iter__(self):
-        return iter(self._series_data.__iter__())
+        return iter(self.values().__iter__())
 
     def __contains__(self, val):
         val = val.lower()

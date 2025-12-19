@@ -414,15 +414,12 @@ class FlukaEngine(BaseEngine):
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         # Check if the hostname has a valid IP address
         try:
-            socket.gethostbyname(host)
-            # ip = socket.gethostbyname(host)
-            # socket.inet_aton(host)
-        except socket.error:
-            self._print(f"Warning: Hostname {host} is not a valid IP address. Setting it to localhost.")
-            host = "localhost"
-            # host = "127.0.0.1"
-        try:
             host = socket.gethostbyname(host)
+            try:
+                socket.inet_aton(host)
+            except socket.error:
+                self._print(f"Warning: Hostname {host} is not a valid IP address. Setting it to localhost.")
+                host = "localhost"
         except socket.gaierror:
             host = "localhost"
         with self._network_nfo.open('w') as fid:
