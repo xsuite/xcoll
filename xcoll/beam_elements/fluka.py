@@ -30,15 +30,16 @@ class FlukaCollimator(BaseCollimator):
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict
-    _store_in_to_dict      = [ *BaseCollimator._store_in_to_dict, 'assembly' ]
-    _internal_record_class = BaseCollimator._internal_record_class
-
     _depends_on = [BaseCollimator, FlukaEngine]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements','elements_src','fluka_collimator.h')
     ]
+
+    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly']
+    _internal_record_class = BaseCollimator._internal_record_class
 
     _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
@@ -56,19 +57,21 @@ class FlukaCollimator(BaseCollimator):
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 to_assign['assembly'] = kwargs.pop('assembly', None)
+                material = kwargs.pop('material', None)
+                side = kwargs.pop('side', 'both')
                 generic = False
                 if ('material' in kwargs and kwargs['material']) \
                 or ('side' in kwargs and kwargs['side']):
-                    if to_assign['assembly'] is not None:
-                        raise ValueError('Cannot set both material/side and assembly!')
-                    material = kwargs.pop('material', None)
-                    if material is None:
-                        raise ValueError('Need to provide material!')
-                    length = kwargs.get('length', None)
-                    if length is None:
-                        raise ValueError('Need to provide length!')
-                    side = kwargs.pop('side', 'both')
-                    generic = True
+                    if to_assign['assembly'] is None:
+                        if material is None:
+                            raise ValueError('Need to provide material!')
+                        length = kwargs.get('length', None)
+                        if length is None:
+                            raise ValueError('Need to provide length!')
+                        generic = True
+                    else:
+                        pass  # Need to check material in assembly is correct
+                        # raise ValueError('Cannot set both material/side and assembly!')
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)

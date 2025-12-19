@@ -74,6 +74,63 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
+@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
+                            [1, 'H', 2500, 0.2, True],
+                            [2, 'V', 500, 0.3, True],
+                            [1, 'V', 3500, False, False],
+                            [2, 'H', 30000, 0.15, False]
+                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
+@retry()
+@pytest.mark.skipif(not xc.fluka.environment.compiled, reason="FLUKA installation not found")
+def test_lossmap_fluka(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+    # If a previous test failed, stop the server manually
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop(clean=True)
+
+    npart = 5000
+    beam = 2
+    plane = 'H'
+    interpolation = 0.1
+    ignore_crystals = True
+
+    if do_plot and plt is None:
+        pytest.skip("matplotlib not installed")
+    if not do_plot and plt is not None:
+        pytest.skip("matplotlib installed")
+
+    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
+    colldb.install_fluka_collimators(line=line)
+    df_with_coll = line.check_aperture()
+    assert not np.any(df_with_coll.has_aperture_problem)
+    line.build_tracker(_context=test_context)
+    line.collimators.assign_optics()
+
+    xc.fluka.engine.start(line=line, capacity=2*npart, verbose=True)
+
+    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
+    part = line[tcp].generate_pencil(npart)
+
+    line.scattering.enable()
+    t_start = time.time()
+    line.track(part, num_turns=2)
+    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
+        + f"{npart} protons through LHC (1.2 turns)")
+    line.scattering.disable()
+
+    xc.fluka.engine.stop(clean=True)
+    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-fluka"
+    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'FlukaCollimator', 'FlukaCrystal', this_id)
+    if do_plot:
+        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
+        assert Path(f"test-{this_id}.jpg").exists()
+        Path(f"test-{this_id}.jpg").unlink()
+
+
+@for_all_test_contexts(
+    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
+)
+@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @retry()
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
@@ -120,60 +177,6 @@ def test_lossmap_geant4(do_plot, test_context):
     this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-geant4"
     ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
                              ['Geant4Collimator', 'Geant4CollimatorTip'], 'Geant4Crystal', this_id)
-    if do_plot:
-        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
-        assert Path(f"test-{this_id}.jpg").exists()
-        Path(f"test-{this_id}.jpg").unlink()
-
-
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
-@retry()
-@pytest.mark.skipif(not xc.fluka.environment.compiled, reason="FLUKA installation not found")
-def test_lossmap_fluka(do_plot, test_context):
-    # If a previous test failed, stop the server manually
-    if xc.fluka.engine.is_running():
-        xc.fluka.engine.stop(clean=True)
-
-    npart = 5000
-    beam = 2
-    plane = 'H'
-    interpolation = 0.1
-    ignore_crystals = True
-
-    if do_plot and plt is None:
-        pytest.skip("matplotlib not installed")
-    if not do_plot and plt is not None:
-        pytest.skip("matplotlib installed")
-
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
-    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
-    colldb.install_fluka_collimators(line=line)
-    df_with_coll = line.check_aperture()
-    assert not np.any(df_with_coll.has_aperture_problem)
-    line.build_tracker(_context=test_context)
-    line.collimators.assign_optics()
-    # TODO: Tilts are not yet implemented in FlukaCollimator
-    for coll in colldb.collimator_names:
-        line[coll].tilt = 0
-
-    xc.fluka.engine.start(line=line, capacity=2*npart, cwd='run_fluka_temp', verbose=True)
-
-    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart)
-
-    line.scattering.enable()
-    t_start = time.time()
-    line.track(part, num_turns=2)
-    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
-        + f"{npart} protons through LHC (1.2 turns)")
-    line.scattering.disable()
-
-    xc.fluka.engine.stop(clean=True)
-    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-fluka"
-    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'FlukaCollimator', 'FlukaCrystal', this_id)
     if do_plot:
         ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()

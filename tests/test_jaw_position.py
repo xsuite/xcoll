@@ -83,11 +83,11 @@ def test_geant4(jaw, angle, tilt):
 #                                       'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcspgrc',
 #                                       'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
 #                                       'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
+@pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 @retry()
-def test_fluka(jaw, angle):
-    tilt = 0
+def test_fluka(jaw, angle, tilt):
     num_part = 5_000
     length = 0.873
     if xc.fluka.engine.is_running():
