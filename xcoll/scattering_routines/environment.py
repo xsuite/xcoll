@@ -23,6 +23,7 @@ class BaseEnvironment:
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
     # _data_dir   = FsPath(user_data_dir('xcoll')).resolve()
     _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
+    _optional_paths = {}
     _read_only_paths = {}
 
     def __init__(self, *args, **kwargs):
@@ -31,6 +32,8 @@ class BaseEnvironment:
         self._temp_dir = None
         self._in_constructor = True
         for path in self._paths.keys():
+            setattr(self, f'_{path}', None)
+        for path in self._optional_paths.keys():
             setattr(self, f'_{path}', None)
         self._config_dir.mkdir(parents=True, exist_ok=True)
         self._data_dir.mkdir(parents=True, exist_ok=True)
@@ -64,6 +67,13 @@ class BaseEnvironment:
                     res.append(f"    {path:<20} None")
                 else:
                     res.append(f"    {path:<20} {value.as_posix()}")
+            for path in self._optional_paths.keys():
+                value = getattr(self, f'_{path}', None)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (optional)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (optional)")
             for path in self._read_only_paths.keys():
                 value = getattr(self, path)
                 path = f'{path}:'
@@ -141,12 +151,17 @@ class BaseEnvironment:
         print(self)
 
     def save(self):
-        data = {'paths': {}, 'read_only_paths': {}}
+        data = {'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}
         for path in self._paths.keys():
             value = getattr(self, path, None)
             if value:
                 value = FsPath(value).as_posix()
             data['paths'][path] = value
+        for path in self._optional_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['optional_paths'][path] = value
         for path in self._read_only_paths.keys():
             value = getattr(self, path, None)
             if value:
@@ -168,18 +183,20 @@ class BaseEnvironment:
     def load(self):
         if not self._config_file.exists():
             with open(self._config_file, 'w') as fid:
-                json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
+                json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
         with open(self._config_file, 'r') as fid:
             try:
                 data = json.load(fid)
             except json.JSONDecodeError:
                 with open(self._config_file, 'w') as fid:
-                    json.dump({'paths': {}, 'read_only_paths': {}}, fid, indent=4)
+                    json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
                 return
-        if 'paths' not in data or 'read_only_paths' not in data:
+        if 'paths' not in data or 'read_only_paths' not in data or 'optional_paths' not in data:
             return
         for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)
+        for key, value in data['optional_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
         for key, value in data['read_only_paths'].items():
             setattr(self, f'_{key}', FsPath(value) if value else None)
 
@@ -202,6 +219,9 @@ class BaseEnvironment:
         if str(path) in self._paths:
             num_parents = self._paths[path]
             path = getattr(self, path)
+        if str(path) in self._optional_paths:
+            num_parents = self._optional_paths[path]
+            path = getattr(self, path)
         if str(path) in self._read_only_paths:
             num_parents = self._read_only_paths[path]
             path = getattr(self, path)
@@ -220,7 +240,7 @@ class BaseEnvironment:
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
     def __getattr__(self, key):
-        if key in self._paths | self._read_only_paths:
+        if key in self._paths | self._optional_paths | self._read_only_paths:
             value = getattr(self, f'_{key}', None)
             if value:
                 return FsPath(value)
@@ -228,7 +248,7 @@ class BaseEnvironment:
             raise AttributeError(f"{self.__class__.__name__} has no attribute '{key}'")
 
     def __setattr__(self, key, value):
-        if key in self._paths.keys():
+        if key in self._paths.keys() or key in self._optional_paths.keys():
             if value:
                 value = FsPath(value)
                 if not self._in_constructor:
@@ -252,7 +272,7 @@ class BaseEnvironment:
             super().__setattr__(key, value)
 
     def __delattr__(self, item):
-        if item in self._paths.keys():
+        if item in self._paths.keys() or item in self._optional_paths.keys():
             self.__setattr__(self, f'_{item}', None)
             self.save()
 

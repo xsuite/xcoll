@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import time
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -37,9 +38,12 @@ py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init, particle_ref=xc.fluka.engine.particle_ref, _context=context, _capacity=xc.fluka.engine.capacity)
 part_init = part.copy()
 
+print(f"Tracking {num_part} particles (FLUKA)...     ", end='')
+start = time.time()
 coll.track(part)
+print(f"Done in {time.time() - start:.2f} seconds.")
 
-# xc.fluka.engine.stop()
+xc.fluka.engine.stop()
 
 # Sort particles to be able to compare to part_init
 part.sort(interleave_lost_particles=True)

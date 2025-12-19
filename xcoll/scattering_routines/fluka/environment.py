@@ -24,7 +24,8 @@ _FEDB_TEMPLATE = FsPath(_pkg_root / 'scattering_routines' / 'fluka' / 'fedb').re
 
 class FlukaEnvironment(BaseEnvironment):
     # The paths to be set. The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
-    _paths = {'fluka': 2, 'flukaserver': 1, 'flair': 1, 'linebuilder': 0}
+    _paths = {'fluka': 2, 'flukaserver': 1, 'linebuilder': 0}
+    _optional_paths = {'flair': 1}
     _read_only_paths = {'fedb': 0}
 
     def __init__(self):
@@ -179,7 +180,7 @@ class FlukaEnvironment(BaseEnvironment):
         tools = self.fedb / 'tools'
         if tools.exists():
             tools.rmtree()
-        (_FEDB_TEMPLATE / 'tools').copy_to(tools, method='mount')
+        (_FEDB_TEMPLATE / 'tools').copy_to(tools.parent, method='mount')
         structure = self.fedb / 'structure.py'
         structure.unlink(missing_ok=True)
         (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')

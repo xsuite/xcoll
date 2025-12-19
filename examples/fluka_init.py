@@ -2,21 +2,20 @@
 import xcoll as xc
 from pathlib import Path
 
-fluka_path = Path('/home/fvanderv/pythondev/fluka4-5.1')
-flair_path = Path('/home/fvanderv/pythondev/flair-3.4')
+path = Path('/Users/frederik/ExternalLibs')
 
 # Set the paths to FLUKA executables
-xc.fluka.environment.fluka	 = fluka_path / 'bin' / 'rfluka'
-xc.fluka.environment.flukaserver = fluka_path / 'bin' / 'flukaserver'
-xc.fluka.environment.linebuilder = '/eos/project/c/collimation-team/software/fluka_coupling_tmp_patch_xsuite'
-xc.fluka.environment.flair       = flair_path
+xc.fluka.environment.fluka	 = path / 'fluka4-5.1' / 'bin' / 'rfluka'
+xc.fluka.environment.flukaserver = path / 'fluka4-5.1' / 'bin' / 'flukaserver'
+xc.fluka.environment.linebuilder = path / 'linebuilder'
+#xc.fluka.environment.flair       = path / 'flair-3.4'
 
 print(xc.fluka.environment)
 print()
 
 # Compile the FLUKA interface. This should be done within the environment it will be used to avoid dependency issues.
 # E.g. when running on HTCondor with cvmfs, compile with cvmfs sourced.
-xc.fluka.environment.compile(flukaio_lib=fluka_path / 'interface' / 'flukaio' / 'lib' / 'libFlukaIO64.a', verbose=True)
+xc.fluka.environment.compile(flukaio_lib=path / 'fluka4-5.1' / 'lib' / 'libFlukaIO.a', verbose=True)
 
 # Import a FLUKA FEDB
-xc.fluka.environment.import_fedb(fedb_path='/eos/project/c/collimation-team/software/fedb_coupling', verbose=True, overwrite=False)
+xc.fluka.environment.import_fedb(fedb_path=path / 'fedb_coupling', verbose=True, overwrite=False)
