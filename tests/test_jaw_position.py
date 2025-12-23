@@ -6,7 +6,6 @@
 import time
 import pytest
 import numpy as np
-from pathlib import Path
 
 import xpart as xp
 from xpart.test_helpers import flaky_assertions, retry
@@ -17,8 +16,6 @@ try:
 except ImportError as e:
     rpyc = None
 
-
-path = Path(__file__).parent / 'data'
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
 jaw_ids = ['symmetric', 'asymmetric', 'negative', 'positive']

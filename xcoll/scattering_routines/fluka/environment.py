@@ -266,7 +266,7 @@ class FlukaEnvironment(BaseEnvironment):
         if tools.exists() and overwrite:
             tools.rmtree()
         if not tools.exists():
-            (_FEDB_TEMPLATE / 'tools').copy_to(tools, method='mount')
+            (_FEDB_TEMPLATE / 'tools').copy_to(tools.parent, method='mount')
         structure = self.fedb / 'structure.py'
         if structure.exists() and overwrite:
             structure.unlink()
