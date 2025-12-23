@@ -416,23 +416,6 @@ def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_n
         print(f"  - Use crystals: {crystal[0] != '*'}")
 
     template = f"""\
-* Original Pascal
-* include_custom_scoring
-* USERDUMP        101.                 2.0                              SEAMU
-* SERWEIG                             3.0
-* hisix: send back all particles
-*                                          boundary crossing    special sdum
-* USRBDX          99.0  ALL-PART     -42.0   VAROUND  BLKROUND          BACK2ICO
-*       above max energy (576000 for 7Z TeV)
-*USRBDX      576000.0   1.0E-04     210.0
-*
-* ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*
-* Place in this file all the custom scoring you require
-*
-*USRBIN           10.    PROTON     -41.0        2.        2.     6900.Check
-*USRBIN           -2.       -2.        0.      100.      100.     1000.&
-*
 * New way to give back particles to Icosim via fluscw.f routine (no more usrmed)
 *     through a fake USRBDX estimator
 USERWEIG                             3.0

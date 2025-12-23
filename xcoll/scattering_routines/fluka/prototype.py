@@ -26,8 +26,13 @@ class FlukaPrototype:
     _assigned_registry = {}
 
     def __new__(cls, fedb_series=None, fedb_tag=None, **kwargs):
+        _is_null = False
         # If the prototype is already defined, return the existing instance
-        if fedb_series is not None or fedb_tag is not None:
+        if fedb_series is None and fedb_tag is None:
+            _is_null = True
+        elif fedb_series is None or fedb_tag is None:
+            raise ValueError("Both 'fedb_series' and 'fedb_tag' must be provided.")
+        else:
             for prototype in FlukaPrototype._registry:
                 if prototype.fedb_series.upper() == fedb_series.upper() \
                 and prototype.fedb_tag.upper() == fedb_tag.upper() \
@@ -35,7 +40,8 @@ class FlukaPrototype:
                     return prototype
         # Register the new prototype
         self = object.__new__(cls)
-        if fedb_series is not None and fedb_tag is not None:
+        self._is_null = _is_null
+        if not _is_null:
             FlukaPrototype._registry.append(self)
         return self
 
@@ -45,14 +51,27 @@ class FlukaPrototype:
                  _force_init=False, **kwargs):
         if getattr(self, "_initialized", False) and not _force_init:
             return
-        if fedb_series is None and fedb_tag is None:
-            self._is_null = True
-            info = None
-            extra_commands = None
-        elif fedb_series is None or fedb_tag is None:
-            raise ValueError("Both 'fedb_series' and 'fedb_tag' must be provided.")
-        else:
-            self._is_null = False
+        if self._is_null:
+            self._fedb_series = None
+            self._fedb_tag = None
+            self._name = None
+            self._side = None
+            self._angle = None
+            self._length = None
+            self._width = None
+            self._height = None
+            self._material = None
+            self._is_crystal = None
+            self._bending_radius = None
+            self._info = None
+            self._extra_commands = None
+            self._is_broken = None
+            self._id = None
+            self._type = self.__class__.__name__[5:].lower()
+            self._elements = []
+            self._initialized = True
+            self._file_is_valid = None
+            return
         if fedb_series == 'generic' and not _allow_generic:
             this_type = self.__class__.__name__[5:].lower()
             raise ValueError("Cannot use 'generic' as fedb_series, unless creating a generic " \
@@ -101,8 +120,9 @@ class FlukaPrototype:
             elements = "unassigned"
         info = f" ({self.info})" if self.info else ''
         cry = "crystal " if self.is_crystal else ''
+        defunct = " <defunct>" if self.is_defunct() else ''
         return f"{self.__class__.__name__} {cry}'{self.name}' ({elements}): " \
-             + f"tag {self.fedb_tag} in {self.fedb_series} series{info}"
+             + f"tag {self.fedb_tag} in {self.fedb_series} series{info}{defunct}"
 
     def __str__(self):
         if self._is_null:
@@ -119,10 +139,10 @@ class FlukaPrototype:
             return
         if len(self._elements) > 0:
             raise ValueError(f"Cannot delete {self._type} '{self.name}' "
-                           + f"while it has {len(self._elements)} elements assigned!")
+                           + f"while it has elements assigned!")
         # Remove the prototype from the registry of all prototypes
-        while self in FlukaPrototype._registry:
-            FlukaPrototype._registry.remove(self)
+        while self in self._registry:
+            self._registry.remove(self)
         # Remove all files associated with the prototype
         for file in self.files:
             if file.exists() or file.is_symlink():
@@ -135,6 +155,8 @@ class FlukaPrototype:
     def to_dict(self):
         if self._is_null:
             return {'__class__': self.__class__.__name__}
+        if self.is_defunct():
+            raise ValueError(f"Cannot serialize defunct {self._type} '{self.name}'!")
         return {
             '__class__': self.__class__.__name__,
             'name': self.name,
@@ -183,6 +205,8 @@ class FlukaPrototype:
     def name(self, val):
         if self._is_null:
             return
+        if self.is_defunct():
+            raise ValueError(f"Cannot rename defunct {self._type} '{self.name}'!")
         if len(val) > 8:
             raise ValueError(f"Prototype name '{val}' is too long (max. 8 characters).")
         self._name = val
@@ -213,6 +237,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set body_file for a null prototype!")
+        if self.is_defunct():
+            raise ValueError(f"Cannot set body_file for defunct {self._type} '{self.name}'!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -237,6 +263,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set material_file for a null prototype!")
+        if self.is_defunct():
+            raise ValueError(f"Cannot set material_file for defunct {self._type} '{self.name}'!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -258,6 +286,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             raise ValueError("Cannot set region_file for a null prototype!")
+        if self.is_defunct():
+            raise ValueError(f"Cannot set region_file for defunct {self._type} '{self.name}'!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -270,9 +300,14 @@ class FlukaPrototype:
         return [self.body_file, self.material_file, self.region_file]
 
     def exists(self):
-        if self._is_null:
+        if self._is_null or not self.files or self.is_defunct():
             return False
         return np.all([ff.exists() for ff in self.files])
+
+    def is_defunct(self):
+        if self._is_null:
+            return False
+        return self not in self._registry
 
     @property
     def side(self):
@@ -378,22 +413,24 @@ class FlukaPrototype:
         import xcoll as xc
         if element is None:
             if not force:
-                raise ValueError("Cannot add a null element to a prototype!")
+                raise ValueError(f"Cannot add a null element to a {self._type}!")
             return None
         elif not hasattr(element, 'name'):
             if not force:
                 raise ValueError(f"Element {element} has no `name` variable! "
-                               + f"Cannot assign to a prototype!")
+                               + f"Cannot assign to a {self._type}!")
             return None
         elif not isinstance(element, xc.fluka.engine._element_classes):
             if not force:
                 raise ValueError(f"Element {element.name} is not a FLUKA element! "
-                               + f"Cannot assign to a prototype!")
+                               + f"Cannot assign to a {self._type}!")
             return None
         if self._is_null:
             if not force:
-                raise ValueError(f"Cannot add element {element.name} to a null prototype!")
+                raise ValueError(f"Cannot add element {element.name} to a null {self._type}!")
             return None
+        if self.is_defunct():
+            raise ValueError(f"Cannot add element to defunct {self._type} '{self.name}'!")
         _registry = {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}
         # Verify that the element is not already assigned to another prototype
         for prototype in _registry.values():
@@ -429,11 +466,15 @@ class FlukaPrototype:
     def remove_element(self, element, force=True):
         if self._is_null:
             if force:
-                raise ValueError("Cannot remove element from a null prototype!")
+                raise ValueError(f"Cannot remove element from a null {self._type}!")
+            return None
+        if self.is_defunct():
+            if force:
+                raise ValueError(f"Cannot remove element from defunct {self._type} '{self.name}'!")
             return None
         if element is None:
             if force:
-                raise ValueError("Cannot remove a null element from a prototype!")
+                raise ValueError(f"Cannot remove a null element from a {self._type}!")
             return None
         # Remove the element from the list of elements that use this prototype
         if element in self._elements:
@@ -452,6 +493,8 @@ class FlukaPrototype:
                 self._id = None
 
     def generate_code(self):
+        if self.is_defunct():
+            raise ValueError(f"Cannot generate code for defunct {self._type} '{self.name}'!")
         if self.active and self.active_elements:
             _type = 'ASSEMBLY' if isinstance(self, FlukaAssembly) else 'PROTOTYPE'
             prot  = f"{_type:9}     {self.name}\n"
@@ -485,8 +528,9 @@ class FlukaPrototype:
 
     def view(self, show=True, keep_files=False):
         import xcoll as xc
-        xc.fluka.environment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
-                                           keep_files=keep_files)
+        if self.exists():
+            xc.fluka.environment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
+                                               keep_files=keep_files)
 
 
     @classmethod
@@ -609,12 +653,22 @@ class FlukaAssembly(FlukaPrototype):
             return
         if len(self._elements) > 0:
             raise ValueError(f"Cannot delete {self._type} '{self.name}' "
-                           + f"while it has {len(self._elements)} elements assigned!")
+                           + f"while it has elements assigned!")
         # Remove prototypes if no other assembly depends on them
         if self.assembly_file.exists() or not _ignore_files:
-            for prototype in self.prototypes:
-                if prototype.dependant_assemblies == [self]:
-                    prototype.delete()
+            try:
+                to_delete = []  # Need to do like this to avoid prototypes spawning again (during checking of dependant assemblies)
+                for pro in self.prototypes:
+                    if pro.dependant_assemblies == [self]:
+                        to_delete.append(pro)
+                for pro in to_delete:
+                    # Only delete the prototype if no other assembly depends on it
+                    try:
+                        pro.delete()
+                    except Exception as e:
+                        print(f"Could not remove prototype '{pro.name}': {e}")
+            except Exception as e:
+                print(f"Could not remove dependent prototypes: {e}")
         # Remove the assembly from the registry of all prototypes
         while self in FlukaPrototype._registry:
             FlukaPrototype._registry.remove(self)
@@ -639,7 +693,9 @@ class FlukaAssembly(FlukaPrototype):
     def assembly_file(self, path):
         import xcoll as xc
         if self._is_null:
-            raise ValueError("Cannot set assembly_file for a null prototype!")
+            raise ValueError("Cannot set assembly_file for a null assembly!")
+        if self.is_defunct():
+            raise ValueError(f"Cannot set assembly_file for defunct assembly '{self.name}'!")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -707,10 +763,11 @@ class FlukaAssembly(FlukaPrototype):
 
     @property
     def files(self):
-        files = [self.assembly_file]
-        for prot in self.prototypes:
-            files += prot.files
-        return files
+        if self.assembly_file.exists():
+            files = [self.assembly_file]
+            for prot in self.prototypes:
+                files += prot.files
+            return files
 
     def check_file_valid(self, raise_error=True):
         if self._file_is_valid is None:

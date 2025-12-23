@@ -6,10 +6,8 @@
 import time
 import pytest
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import ks_2samp
 
-import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
@@ -143,8 +141,3 @@ def test_particle_ids():
 
     part = part_init.copy()
     xc.fluka.engine.stop(clean=True)
-
-
-def test_prototypes():
-    raise ValueError("Need to write test for FlukaAssembly to check registry works as expected")
-

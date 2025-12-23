@@ -132,9 +132,9 @@ class FlukaEnvironment(BaseEnvironment):
         import xcoll as xc
         fedb_path = FsPath(fedb_path)
         if not fedb_path.exists():
-            raise FileNotFoundError(f"Could not find FEDB path {fedb_path}!")
-        if not self.fedb.exists():
-            self.fedb.mkdir(parents=True, exist_ok=True)
+            raise FileNotFoundError(f"Could not find FEDB {fedb_path}!")
+        self._init_fedb(overwrite=True)  # Always overwrite the build-in FEDB (for in-between modifications in Xcoll)
+        # Get assemblies
         for file in fedb_path.glob(f'assemblies/*.lbp'):
             if (self.fedb / 'assemblies' / file.name).exists() and not overwrite:
                 if verbose:
@@ -154,6 +154,7 @@ class FlukaEnvironment(BaseEnvironment):
                 fedb_tag = '_'.join(part[1:])
                 pro = xc.FlukaAssembly(fedb_series, fedb_tag)
             pro.assembly_file = file
+        # Get prototypes
         for file in fedb_path.glob(f'bodies/*.bodies'):
             if (self.fedb / 'bodies' / file.name).exists() and not overwrite:
                 if verbose:
@@ -175,15 +176,11 @@ class FlukaEnvironment(BaseEnvironment):
             pro.body_file = file
             pro.material_file = fedb_path / 'materials' / f'{file.stem}.assignmat'
             pro.region_file = fedb_path / 'regions' / f'{file.stem}.regions'
+        # Get stepsizes (currently not used)
         for file in fedb_path.glob(f'stepsizes/*'):
             file.copy_to(self.fedb / 'stepsizes' / file.name, method='mount')
-        tools = self.fedb / 'tools'
-        if tools.exists():
-            tools.rmtree()
-        (_FEDB_TEMPLATE / 'tools').copy_to(tools.parent, method='mount')
-        structure = self.fedb / 'structure.py'
-        structure.unlink(missing_ok=True)
-        (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')
+        # Link the new files into the registry
+        self._init_fedb()
 
 
     def set_fluka_environment(self):
@@ -254,20 +251,25 @@ class FlukaEnvironment(BaseEnvironment):
     # === Private Methods ===
     # =======================
 
-    def _init_fedb(self):
+    def _init_fedb(self, overwrite=False):
         from xcoll import FlukaPrototype
-        if not self.fedb.exists():
-            self.fedb.mkdir(parents=True, exist_ok=True)
+        self.fedb.mkdir(parents=True, exist_ok=True)
         for directory in ['assemblies', 'bodies', 'regions', 'materials', 'stepsizes', 'metadata']:
             (self.fedb / directory).mkdir(parents=True, exist_ok=True)
             for f in (_FEDB_TEMPLATE / directory).glob('*.*'):
-                link = self.fedb / directory / f.name
-                if not link.exists():
-                    link.symlink_to(f)
+                new_file = self.fedb / directory / f.name
+                if new_file.exists() and overwrite:
+                    new_file.unlink()
+                if not new_file.exists():
+                    f.copy_to(new_file, method='mount')
         tools = self.fedb / 'tools'
+        if tools.exists() and overwrite:
+            tools.rmtree()
         if not tools.exists():
             (_FEDB_TEMPLATE / 'tools').copy_to(tools, method='mount')
         structure = self.fedb / 'structure.py'
+        if structure.exists() and overwrite:
+            structure.unlink()
         if not structure.exists():
             (_FEDB_TEMPLATE / 'structure.py').copy_to(structure, method='mount')
         prototypes = (self.fedb / 'metadata').glob('*_*.json')

@@ -8,7 +8,7 @@ path = Path('/Users/frederik/ExternalLibs')
 xc.fluka.environment.fluka	 = path / 'fluka4-5.1' / 'bin' / 'rfluka'
 xc.fluka.environment.flukaserver = path / 'fluka4-5.1' / 'bin' / 'flukaserver'
 xc.fluka.environment.linebuilder = path / 'linebuilder'
-#xc.fluka.environment.flair       = path / 'flair-3.4'
+xc.fluka.environment.flair       = path / 'flair-3.4' / 'flair'
 
 print(xc.fluka.environment)
 print()
@@ -19,3 +19,6 @@ xc.fluka.environment.compile(flukaio_lib=path / 'fluka4-5.1' / 'lib' / 'libFluka
 
 # Import a FLUKA FEDB
 xc.fluka.environment.import_fedb(fedb_path=path / 'fedb_coupling', verbose=True, overwrite=False)
+
+# Delete any leftover generic assemblies and prototypes from previous runs
+xc.fluka.reset_generic()

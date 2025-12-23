@@ -57,8 +57,10 @@ class FlukaWrapper(BaseWrapper):
         if elements:
             if input_file:
                 raise ValueError("Cannot view elements and input file at the same time!")
-            part =xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=1e9)
+            part = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=1e9)
             input_file = self.engine.generate_input_file(elements=elements, particle_ref=part)
+        elif input_file is None:
+            raise ValueError("Either elements or input_file must be provided!")
         if not hasattr(input_file, '__iter__') or isinstance(input_file, (str, io.IOBase)):
             input_file = [input_file]
         self.environment.run_flair(input_file[0])
