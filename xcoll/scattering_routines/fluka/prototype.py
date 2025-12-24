@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import time
 import numpy as np
 
 try:
@@ -146,11 +147,17 @@ class FlukaPrototype:
         # Remove all files associated with the prototype
         for file in self.files:
             if file.exists() or file.is_symlink():
-                file.unlink()
+                try:
+                    file.unlink()
+                except FileNotFoundError:
+                    pass
         fedb = xc.fluka.environment.fedb
         meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
         if meta.exists() or meta.is_symlink():
-            meta.unlink()
+            try:
+                meta.unlink()
+            except FileNotFoundError:
+                pass
 
     def to_dict(self):
         if self._is_null:
@@ -674,7 +681,10 @@ class FlukaAssembly(FlukaPrototype):
             FlukaPrototype._registry.remove(self)
         # Remove all files associated with the assembly
         if self.assembly_file.exists() or self.assembly_file.is_symlink():
-            self.assembly_file.unlink()
+            try:
+                self.assembly_file.unlink()
+            except FileNotFoundError:
+                pass
         fedb = xc.fluka.environment.fedb
         meta = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
         if meta.exists() or meta.is_symlink():
@@ -732,34 +742,51 @@ class FlukaAssembly(FlukaPrototype):
 
     @property
     def prototypes(self):
-        if not self.assembly_file.exists():
-            raise FileNotFoundError(f"Assembly file {self.assembly_file} not found!")
-        prototypes = []
-        prototype_found = False
-        fedb_series = None
-        fedb_tag = None
-        with self.assembly_file.open('r') as fid:
-            for line in fid:
-                if line.upper().startswith('PROTOTYPE'):
-                    prototype_found = True
-                    continue
-                if line.upper().startswith('FEDB_SERIES'):
-                    if not prototype_found:
-                        raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
-                    fedb_series = line.split()[1]
-                if line.upper().startswith('FEDB_TAG'):
-                    if not prototype_found:
-                        raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
-                    fedb_tag = line.split()[1]
-                if fedb_series is not None and fedb_tag is not None:
-                    prototypes.append(FlukaPrototype(fedb_series=fedb_series, fedb_tag=fedb_tag,
-                                                     _allow_generic=True))
-                    fedb_series = None
-                    fedb_tag = None
-                    prototype_found = False
-        if prototype_found:
-            raise ValueError("Corrupt assembly file: incomplete prototype definition.")
-        return prototypes
+        if not hasattr(self, '_prototypes'):
+            if not self.assembly_file.exists():
+                raise FileNotFoundError(f"Assembly file {self.assembly_file} not found!")
+            prototypes = []
+            prototype_found = False
+            fedb_series = None
+            fedb_tag = None
+            # Try maximally 5 times to parse the assembly file (in case it's being written by another process)
+            for i in range(5):
+                success = True
+                with self.assembly_file.open('r') as fid:
+                    for line in fid:
+                        if line.upper().startswith('PROTOTYPE'):
+                            prototype_found = True
+                            continue
+                        if line.upper().startswith('FEDB_SERIES'):
+                            if not prototype_found:
+                                if i < 4:
+                                    # Retry parsing the file
+                                    success = False
+                                    break
+                                raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
+                            fedb_series = line.split()[1]
+                        if line.upper().startswith('FEDB_TAG'):
+                            if not prototype_found:
+                                if i < 4:
+                                    # Retry parsing the file
+                                    success = False
+                                    break
+                                raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
+                            fedb_tag = line.split()[1]
+                        if fedb_series is not None and fedb_tag is not None:
+                            prototypes.append(FlukaPrototype(fedb_series=fedb_series, fedb_tag=fedb_tag,
+                                                            _allow_generic=True))
+                            fedb_series = None
+                            fedb_tag = None
+                            prototype_found = False
+                if success:
+                    break
+                else:
+                    time.sleep(0.1)
+            if prototype_found:
+                raise ValueError("Corrupt assembly file: incomplete prototype definition.")
+            self._prototypes = prototypes
+        return self._prototypes
 
     @property
     def files(self):
@@ -776,57 +803,96 @@ class FlukaAssembly(FlukaPrototype):
             fedb_series = None
             fedb_tag = None
             ass_fedb_tag = None
-            with self.assembly_file.open('r') as fid:
-                for line in fid:
-                    if line.upper().startswith('ASSEMBLY'):
-                        if ass_fedb_tag:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: ASSEMBLY defined more than once.")
-                        ass_fedb_tag = line.split()[1]
-                        continue
-                    if line.upper().startswith('PROTOTYPE'):
-                        if ass_fedb_tag:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: PROTOTYPE after ASSEMBLY.")
-                        prototype_found = True
-                        continue
-                    if line.upper().startswith('FEDB_SERIES'):
-                        if fedb_series is not None:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: FEDB_SERIES defined more than once.")
-                        if not prototype_found:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
-                        fedb_series = line.split()[1]
-                    if line.upper().startswith('FEDB_TAG'):
-                        if fedb_tag is not None:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: FEDB_TAG defined more than once.")
-                        if not prototype_found:
-                            self._file_is_valid = False
-                            if raise_error:
-                                raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
-                        fedb_tag = line.split()[1]
-                    if fedb_series is not None and fedb_tag is not None:
-                        fedb_series = None
-                        fedb_tag = None
-                        prototype_found = False
-            if not ass_fedb_tag:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError("Corrupt assembly file: ASSEMBLY not defined.")
-            if ass_fedb_tag != self.fedb_tag:
-                self._file_is_valid = False
-                if raise_error:
-                    raise ValueError(f"Corrupt assembly file: ASSEMBLY {ass_fedb_tag} "
-                                + f"does not match {self.fedb_tag}. Please take note "
-                                + f"that the filename should match exactly, i.e. "
-                                + f"{self.fedb_series}_{self.fedb_tag}.lbp")
+            # Try maximally 5 times to parse the assembly file (in case it's being written by another process)
+            for i in range(5):
+                success = True
+                with self.assembly_file.open('r') as fid:
+                    for line in fid:
+                        if line.upper().startswith('ASSEMBLY'):
+                            if ass_fedb_tag:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: ASSEMBLY defined more than once.")
+                            ass_fedb_tag = line.split()[1]
+                            continue
+                        if line.upper().startswith('PROTOTYPE'):
+                            if ass_fedb_tag:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: PROTOTYPE after ASSEMBLY.")
+                            prototype_found = True
+                            continue
+                        if line.upper().startswith('FEDB_SERIES'):
+                            if fedb_series is not None:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: FEDB_SERIES defined more than once.")
+                            if not prototype_found:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: FEDB_SERIES without PROTOTYPE.")
+                            fedb_series = line.split()[1]
+                        if line.upper().startswith('FEDB_TAG'):
+                            if fedb_tag is not None:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: FEDB_TAG defined more than once.")
+                            if not prototype_found:
+                                self._file_is_valid = False
+                                if raise_error:
+                                    if i < 4:
+                                        # Retry parsing the file
+                                        success = False
+                                        break
+                                    raise ValueError("Corrupt assembly file: FEDB_TAG without PROTOTYPE.")
+                            fedb_tag = line.split()[1]
+                        if fedb_series is not None and fedb_tag is not None:
+                            fedb_series = None
+                            fedb_tag = None
+                            prototype_found = False
+                if not ass_fedb_tag:
+                    self._file_is_valid = False
+                    if raise_error:
+                        if i < 4:
+                            # Retry parsing the file
+                            success = False
+                        else:
+                            raise ValueError("Corrupt assembly file: ASSEMBLY not defined.")
+                if ass_fedb_tag != self.fedb_tag:
+                    self._file_is_valid = False
+                    if raise_error:
+                        if i < 4:
+                            # Retry parsing the file
+                            success = False
+                        else:
+                            raise ValueError(f"Corrupt assembly file: ASSEMBLY {ass_fedb_tag} "
+                                    + f"does not match {self.fedb_tag}. Please take note "
+                                    + f"that the filename should match exactly, i.e. "
+                                    + f"{self.fedb_series}_{self.fedb_tag}.lbp")
+                if success:
+                    break
+                else:
+                    time.sleep(0.1)
         return self._file_is_valid
 
 
@@ -835,9 +901,12 @@ class FlukaPrototypeAccessor:
 
     def __init__(self):
         self._type = 'Prototype'
-        self._raw = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
-                    for pro in FlukaPrototype._registry
-                    if not isinstance(pro, FlukaAssembly)]
+
+    @property
+    def _raw(self):
+        return [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
+                for pro in FlukaPrototype._registry
+                if not isinstance(pro, FlukaAssembly)]
 
     def __repr__(self):
         return f"<FlukaPrototypeAccessor at {hex(id(self))} (use .show() to see the content)>"
@@ -947,9 +1016,12 @@ class FlukaAssemblyAccessor(FlukaPrototypeAccessor):
 
     def __init__(self):
         self._type = 'Assembly'
-        self._raw = [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
-                    for pro in FlukaPrototype._registry
-                    if isinstance(pro, FlukaAssembly)]
+
+    @property
+    def _raw(self):
+        return [(pro.fedb_series.lower(), pro.fedb_tag.lower(), pro)
+                for pro in FlukaPrototype._registry
+                if isinstance(pro, FlukaAssembly)]
 
 
 class FlukaSeriesAccessor:

@@ -3,14 +3,8 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import json
 import atexit
 import numpy as np
-
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 from .prototype import FlukaPrototype, FlukaAssembly
 
@@ -26,16 +20,16 @@ from .prototype import FlukaPrototype, FlukaAssembly
 #     for assembly in FlukaPrototype._registry:
 #         if isinstance(assembly, FlukaAssembly) \
 #         and assembly.fedb_series == 'generic':
-#             for el in assembly.elements:
-#                 assembly.remove_element(el)
-#             assembly.delete(_ignore_files=True)
+#             if len(assembly.elements) == 0:
+#                 print(f"Deleting generic FlukaAssembly {assembly.fedb_tag}...")
+#                 assembly.delete()
 #     # If there are broken assemblies, there might be prototypes left
 #     for prototype in FlukaPrototype._registry:
 #         if isinstance(prototype, FlukaPrototype) \
 #         and prototype.fedb_series == 'generic':
-#             for el in prototype.elements:
-#                 prototype.remove_element(el)
-#             prototype.delete(_ignore_files=True)
+#             if len(prototype.elements) == 0:
+#                 print(f"Deleting generic FlukaPrototype {prototype.fedb_tag}...")
+#                 prototype.delete()
 # atexit.register(exit_handler)
 
 
@@ -67,22 +61,20 @@ def create_generic_assembly(**kwargs):
     _validate_kwargs(kwargs)
     # Check if the assembly already exists
     for prototype in FlukaPrototype._registry:
+        if not isinstance(prototype, FlukaAssembly):
+            continue
         if prototype.fedb_series == 'generic':
             found = True
-            for field in _generic_required_fields:
+            for field in _generic_required_fields + list(_generic_optional_fields.keys()):
                 if kwargs[field] != getattr(prototype, field):
                     found = False
                     break
-            for field, opt_value in _generic_optional_fields.items():
-                if kwargs.get(field, opt_value) != getattr(prototype, field):
-                    found = False
-                    break
             if kwargs['is_crystal']:
-                for field in _generic_crystal_required_fields:
+                for field in _generic_crystal_required_fields + list(_generic_crystal_optional_fields.keys()):
                     if kwargs[field] != getattr(prototype, field):
                         found = False
                         break
-            if found:
+            if found and prototype.exists():
                 return prototype
     # Get an ID
     existing_ids = [int(p.fedb_tag[3:]) for p in FlukaPrototype._registry
@@ -96,7 +88,7 @@ def create_generic_assembly(**kwargs):
     kwargs_body = kwargs.copy()
     kwargs_body.pop('side')
     body = FlukaPrototype(fedb_series, f'{fedb_tag}_B', _allow_generic=True, **kwargs_body)
-    ass = FlukaAssembly(fedb_series, fedb_tag, _allow_generic=True, **kwargs)
+    assm = FlukaAssembly(fedb_series, fedb_tag, _allow_generic=True, **kwargs)
     # Create and assign the files
     if kwargs['is_crystal']:
             body_file, tank_file = _crystal_body_file(fedb_tag, **kwargs)
@@ -108,24 +100,26 @@ def create_generic_assembly(**kwargs):
         _material_file(fedb_tag, **kwargs)
     body.body_file = body_file
     tank.body_file = tank_file
-    ass.assembly_file = _assembly_file(fedb_tag, **kwargs)
-    return ass
+    assm.assembly_file = _assembly_file(fedb_tag, **kwargs)
+    return assm
 
 
 def _validate_kwargs(kwargs):
     kwargs.setdefault('is_crystal', False)
     if kwargs['is_crystal']:
         for field in _generic_crystal_required_fields:
-            if field not in kwargs:
+            if field not in kwargs or kwargs[field] is None:
                 raise ValueError(f"Need to provide {field}!")
         for field, opt_value in _generic_crystal_optional_fields.items():
-            kwargs.setdefault(field, opt_value)
+            if field not in kwargs or kwargs[field] is None:
+                kwargs[field] = opt_value
     else:
         for field in _generic_required_fields:
-            if field not in kwargs:
+            if field not in kwargs or kwargs[field] is None:
                 raise ValueError(f"Need to provide {field}!")
         for field, opt_value in _generic_optional_fields.items():
-            kwargs.setdefault(field, opt_value)
+            if field not in kwargs or kwargs[field] is None:
+                kwargs[field] = opt_value
     if kwargs.get('side') not in ['both', 'left', 'right']:
         raise ValueError(f"Side must be 'both', 'left' or 'right', but got {kwargs.get('side')}!")
     if kwargs['width'] > 0.25:
