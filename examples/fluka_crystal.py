@@ -14,20 +14,16 @@ import xpart as xp
 import xcoll as xc
 
 
-# Make a context and get a buffer
-context = xo.ContextCpu()         # For CPU
-# context = xo.ContextCupy()      # For CUDA GPUs
-# context = xo.ContextPyopencl()  # For OpenCL GPUs
-
 num_part = int(2_000)
+capacity = 2*num_part
+particle_ref = xt.Particles('proton', p0c=4e11)
 
 coll = xc.FlukaCrystal(length=0.002, material='si', bending_angle=149e-6,
-                       width=0.002, height=0.05, side='+', jaw=1e-3,  # Hack to make it work for now; jaw should be almost zero
-                         _context=context)
+                       width=0.002, height=0.05, side='+', jaw=0.001)
 
 # Connect to FLUKA
-xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='proton', p0c=4e11)
-xc.fluka.engine.capacity = 2*num_part
+xc.fluka.engine.particle_ref = particle_ref
+xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
 xc.fluka.engine.start(elements=coll, clean=False, verbose=False)
 
@@ -37,8 +33,7 @@ y_init   = np.random.normal(loc=0., scale=1e-3, size=num_part)
 py_init  = np.random.normal(loc=0., scale=5.e-6, size=num_part)
 part = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                           particle_ref=xc.fluka.engine.particle_ref,
-                          _capacity=xc.fluka.engine.capacity,
-                          _context=context)
+                          _capacity=xc.fluka.engine.capacity)
 part_init = part.copy()
 
 print(f"Tracking {num_part} particles (FLUKA)...     ", end='', flush=True)

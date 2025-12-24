@@ -12,18 +12,18 @@ from matplotlib.colors import LogNorm
 if xc.fluka.engine.is_running():
     xc.fluka.engine.stop()
 
-particle_ref = xt.Particles('Pb208', p0c=6.8e12*82)
 num_part = 10_000
+capacity = 50*num_part
+particle_ref = xt.Particles('Pb208', p0c=6.8e12*82)
 
-# Create a Fluka collimator
-coll = xc.FlukaCollimator(length=0.05, material='mogr')
-coll.jaw = 0.001
+# Create a FLUKA collimator
+coll = xc.FlukaCollimator(length=0.05, material='mogr', jaw=0.001)
 
-# Connect to Fluka
+# Connect to FLUKA
 xc.fluka.engine.particle_ref = particle_ref
 # xc.fluka.engine.return_none = True
 # xc.fluka.engine.return_ions = True
-xc.fluka.engine.capacity = 500_000
+xc.fluka.engine.capacity = capacity
 xc.fluka.engine.start(elements=coll, clean=True, verbose=False)
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
@@ -37,14 +37,14 @@ part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
                                 _capacity=xc.fluka.engine.capacity)
 part = part_init.copy()
 
-# Do the tracking in Geant4
+# Do the tracking in FLUKA
 print(f"Tracking {num_part} {pdg.get_name_from_pdg_id(particle_ref.pdg_id[0])}s...     ", end='', flush=True)
 start = time.time()
 coll.track(part)
 print(f"Done in {round(time.time()-start, 3)}s.", flush=True)
 
-# Stop the Geant4 server
-xc.geant4.engine.stop(clean=True)
+# Stop the FLUKA server
+xc.fluka.engine.stop(clean=True)
 
 _, A, Z, _ = pdg.get_properties_from_pdg_id(part.pdg_id[part.particle_id >= num_part])
 N = A - Z

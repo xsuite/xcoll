@@ -12,13 +12,12 @@ from matplotlib.colors import LogNorm
 if xc.geant4.engine.is_running():
     xc.geant4.engine.stop()
 
-particle_ref = xt.Particles('Pb208',    p0c=6.8e12*82)
 num_part = 10_000
-capacity = 250_000
+capacity = 25*num_part
+particle_ref = xt.Particles('Pb208', p0c=6.8e12*82)
 
 # Create a Geant4 collimator
-coll = xc.Geant4Collimator(length=0.05, material='mogr')
-coll.jaw = 0.001
+coll = xc.Geant4Collimator(length=0.05, material='mogr', jaw=0.001)
 
 # Connect to Geant4
 xc.geant4.engine.particle_ref = particle_ref
