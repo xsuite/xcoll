@@ -305,7 +305,15 @@ class FlukaEngine(BaseEngine):
                         self._print(f"Warning: Jaw_R of {name} differs from input file "
                                 + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
                         ee.jaw_R = jaw[1]
-        # TODO: tilts!!
+            tilts = input_dict[name]['tilt']
+            if not np.isclose(ee.tilt_L, tilts[0], atol=1e-9):
+                self._print(f"Warning: Tilt_L of {name} differs from input file "
+                        + f"({ee.tilt_L} vs {tilts[0]})! Overwritten by the latter.")
+                ee.tilt_L = tilts[0]
+            if not np.isclose(ee.tilt_R, tilts[1], atol=1e-9):
+                self._print(f"Warning: Tilt_R of {name} differs from input file "
+                        + f"({ee.tilt_R} vs {tilts[1]})! Overwritten by the latter.")
+                ee.tilt_R = tilts[1]
 
 
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
