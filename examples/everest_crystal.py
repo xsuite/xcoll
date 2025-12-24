@@ -40,7 +40,7 @@ part.sort(interleave_lost_particles=True)
 # Select only surviving particles and only within the window of interest
 mask = (part.state > 0 ) & ( part.px - part_init.px < 250.e-6) & ( part.px - part_init.px > -50.e-6)
 
-plt.figure(figsize=(15,10))
+plt.figure(figsize=(12,8))
 plt.hist2d(part_init.px[mask]*1.e6, part.px[mask]*1.e6 - part_init.px[mask]*1.e6, 500, norm=mpl.colors.LogNorm())
 plt.xlim(-30, 180)
 plt.ylim(-55, 205)
