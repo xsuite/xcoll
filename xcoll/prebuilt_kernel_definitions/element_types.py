@@ -15,7 +15,7 @@ DEFAULT_XCOLL_ELEMENTS = [
     EverestCollimator,
     EverestCrystal,
     FlukaCollimator,
-    # FlukaCrystal,
+    FlukaCrystal,
     # Geant4Collimator,
     # Geant4Crystal,
     BlowUp,
