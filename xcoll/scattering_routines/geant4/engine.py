@@ -64,6 +64,7 @@ class Geant4Engine(BaseEngine):
         if val is None:
             val = 0.1
         if not isinstance(val, Number) or val <= 0:
+            self.stop()
             raise ValueError("`relative_energy_cut` has to be a strictly postive number!")
         self._relative_energy_cut = val
 
@@ -84,6 +85,7 @@ class Geant4Engine(BaseEngine):
             else:
                 val = True
         elif not isinstance(val, bool):
+            self.stop()
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
@@ -96,8 +98,10 @@ class Geant4Engine(BaseEngine):
         if val is None:
             val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
         else:
+            self.stop()
             raise NotImplementedError  # TODO
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`lower_momentum_cut` has to be a non-negative number!")
         self._lower_momentum_cut = val
 
@@ -110,8 +114,10 @@ class Geant4Engine(BaseEngine):
         if val is None:
             val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
         else:
+            self.stop()
             raise NotImplementedError  # TODO
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
         self._photon_lower_momentum_cut = val
 
@@ -124,8 +130,10 @@ class Geant4Engine(BaseEngine):
         if val is None:
             val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
         else:
+            self.stop()
             raise NotImplementedError  # TODO
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
         self._electron_lower_momentum_cut = val
 
@@ -182,6 +190,7 @@ class Geant4Engine(BaseEngine):
             try:
                 import rpyc
             except (ModuleNotFoundError, ImportError) as e:
+                self.stop()
                 raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.") from e
             self._server, port = launch_rpyc_with_port()
             self._conn = rpyc.classic.connect('localhost', port=port)
@@ -268,6 +277,7 @@ class Geant4Engine(BaseEngine):
         input_dict = get_collimators_from_input_file(self.input_file)
         for name in input_dict:
             if name not in self._element_dict:
+                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             from ...beam_elements import Geant4CollimatorTip
@@ -288,14 +298,17 @@ class Geant4Engine(BaseEngine):
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
             and ee.material.name != input_dict[name]['material']:
+                self.stop()
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
             if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
                 if not isinstance(ee, Geant4CollimatorTip):
+                    self.stop()
                     raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
                                     + "in the line, but it has tip material in the input file!")
                 if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
+                    self.stop()
                     raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
                                     + "but it has no tip material in the input file!")
                 if ee.tip_material.geant4_name != input_dict[name]['tip_material']:

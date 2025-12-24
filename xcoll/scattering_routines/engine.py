@@ -64,15 +64,13 @@ class BaseEngine(xo.HybridClass):
         self.return_all = None  # set all return flags to default
 
     def __del__(self, *args, **kwargs):
-        self.stop(warn=False)
+        self.stop()
 
     def _warn(self, error=None):
         if not self._warning_given:
             print(f"Warning: Failed to import {self.__class__.__name__} environment "
                 + f"(did you compile?).\n{self.name.capitalize()} elements can be installed "
                 + f"but are not trackable.", flush=True)
-            if error:
-                print(f"Error: {error}", flush=True)
             self._warning_given = True
         self.stop()
         if error:
@@ -111,6 +109,7 @@ class BaseEngine(xo.HybridClass):
     @line.setter
     def line(self, val):
         if not val is None and not isinstance(val, xt.Line):
+            self.stop()
             raise ValueError("`line` has to be an xt.Line object!")
         self._line = val
 
@@ -135,18 +134,22 @@ class BaseEngine(xo.HybridClass):
             if isinstance(val, xt.line.LineParticleRef):
                 val = val._resolved
             if not isinstance(val, xt.Particles):
+                self.stop()
                 raise ValueError("`particle_ref` has to be an xt.Particles object!")
             if val._capacity > 1:
+                self.stop()
                 raise ValueError("`particle_ref` has to be a single particle!")
             pdg_id = val.pdg_id[0]
             if pdg_id == 0:
                 if self._only_protons:
                     pdg_id = pdg.get_pdg_id_from_name('proton')
                 else:
+                    self.stop()
                     raise ValueError(f"{self.__class__.__name__} allows the use of particles "
                                    + f"different than protons. Hence, `particle_ref` "
                                    + f"needs to have a valid pdg_id.")
             elif self._only_protons and pdg_id != pdg.get_pdg_id_from_name('proton'):
+                self.stop()
                 raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
@@ -167,6 +170,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = 0
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`capacity` has to be a positive integer!")
         self._capacity = int(val)
 
@@ -186,8 +190,10 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = 0
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`relative_capacity` has to be a positive integer!")
         if val <= 1:
+            self.stop()
             raise ValueError("`relative_capacity` has to be larger than 1!")
         self._relative_capacity = int(val)
 
@@ -207,6 +213,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = 0
         if not isinstance(val, Number) or val < 0:
+            self.stop()
             raise ValueError("`seed` has to be a positive integer!")
         val = int(val)
         if self._int32:
@@ -275,6 +282,7 @@ class BaseEngine(xo.HybridClass):
             self.return_baryons = None
             self.return_exotics = None
         else:
+            self.stop()
             raise ValueError("`return_all` has to be a boolean!")
 
     @property
@@ -322,6 +330,7 @@ class BaseEngine(xo.HybridClass):
             self.return_baryons = None
             self.return_exotics = None
         else:
+            self.stop()
             raise ValueError("`return_none` has to be a boolean!")
 
     @property
@@ -333,6 +342,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_neutral` has to be a boolean!")
         self._return_neutral = val
         if not val:
@@ -349,6 +359,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_photons` has to be a boolean!")
         self._return_photons = val
 
@@ -361,6 +372,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = True
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_electrons` has to be a boolean!")
         self._return_electrons = val
 
@@ -373,6 +385,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = True
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_muons` has to be a boolean!")
         self._return_muons = val
 
@@ -385,6 +398,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_tauons` has to be a boolean!")
         self._return_tauons = val
 
@@ -397,6 +411,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_neutrinos` has to be a boolean!")
         self._return_neutrinos = val
 
@@ -415,6 +430,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_leptons` has to be a boolean!")
         self._return_electrons = val
         self._return_muons = val
@@ -430,6 +446,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = True
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_protons` has to be a boolean!")
         self._return_protons = val
 
@@ -442,6 +459,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_neutrons` has to be a boolean!")
         self._return_neutrons = val
 
@@ -454,6 +472,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = True
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_ions` has to be a boolean!")
         self._return_ions = val
 
@@ -466,6 +485,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_mesons` has to be a boolean!")
         self._return_mesons = val
 
@@ -478,6 +498,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_baryons` has to be a boolean!")
         self._return_baryons = val
 
@@ -490,6 +511,7 @@ class BaseEngine(xo.HybridClass):
         if val is None:
             val = False
         if not isinstance(val, bool):
+            self.stop()
             raise ValueError("`return_exotics` has to be a boolean!")
         self._return_exotics = val
 
@@ -500,6 +522,7 @@ class BaseEngine(xo.HybridClass):
 
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.environment:
+            self.stop()
             raise RuntimeError(f"{self.name.capitalize()} environment not set up! "
                              + f"Do not manually create an instance of the engine.")
         self.environment.assert_environment_ready()
@@ -522,15 +545,18 @@ class BaseEngine(xo.HybridClass):
         # Resolve input file path before changing cwd
         if input_file:
             if not isinstance(input_file, (str,Path)):
+                self.stop()
                 raise ValueError("`input_file` has to be a string or Path!")
             if self._num_input_files > 1:
                 input_file = [FsPath(f).expanduser().resolve() for f in input_file]
                 for f in input_file:
                     if not f.exists():
+                        self.stop()
                         raise ValueError(f"Input file {f} does not exist!")
             else:
                 input_file = FsPath(input_file).expanduser().resolve()
                 if not input_file.exists():
+                    self.stop()
                     raise ValueError(f"Input file {input_file} does not exist!")
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
@@ -574,8 +600,10 @@ class BaseEngine(xo.HybridClass):
     def generate_input_file(self, *, clean=True, filename=None, **kwargs):
         # This method manually generates an input file without starting the engine
         if not self._uses_input_file:
+            self.stop()
             raise ValueError(f"{self.__class__.__name__} does not use input files!")
         if self._element_dict:
+            self.stop()
             raise ValueError("Elements already assigned to engine (cannot regenerate input "
                            + "file after starting engine)!")
 
@@ -613,6 +641,7 @@ class BaseEngine(xo.HybridClass):
 
     def assert_particle_ref(self):
         if self.particle_ref is None:
+            self.stop()
             raise ValueError(f"{self.__class__.__name__} reference particle not set!")
 
     def assert_ready_to_track_or_skip(self, coll, particles, _necessary_attributes=[], keep_p0c_constant=True):
@@ -630,10 +659,12 @@ class BaseEngine(xo.HybridClass):
         if npart == 0:
             return False
         if not isinstance(particles._buffer.context, xo.ContextCpu):
+            self.stop()
             raise ValueError(f"{self.__class__.__name__} only supports CPU contexts!")
 
         assert self.environment.compiled
         if not self.is_running():
+            self.stop()
             raise ValueError(f"{self.__class__.__name__} not yet running!\nPlease do this "
                            + f"first, by calling xcoll.{self.__class__.__name__}.start().")
 
@@ -658,20 +689,24 @@ class BaseEngine(xo.HybridClass):
                           + f"from reference mass in engine. Overwritten by the latter.")
             else:
                 # The reference particle in the engine was changed unintentionally
+                self.stop()
                 raise ValueError(f"Error in reference mass of `particles`: not in sync with "
                             + f"{self.name} reference particle!\nRebuild the particles object "
                             + f"using the {self.__class__.__name__} reference particle.")
         if abs(particles.q0 - self.particle_ref.q0) > 1e-3:
+            self.stop()
             raise ValueError(f"Error in reference charge of `particles`: not in sync with "
                            + f"{self.name} reference particle!\nRebuild the particles object "
                            + f"using the {self.__class__.__name__} reference particle.")
         if not self._only_protons:
             if np.any([pdg_id == 0 for pdg_id in particles.pdg_id]):
+                self.stop()
                 raise ValueError("Some particles are missing the pdg_id!")
             if particles._num_active_particles + particles._num_lost_particles == particles._capacity \
             and not np.any(particles.particle_id != particles.parent_particle_id):
                 # Only raise this error at the start, e.g. when no secondaries are present yet.
                 # It will get caught later during tracking, which will provide a more logical error.
+                self.stop()
                 raise ValueError("Particles capacity equal to size! Please provide extra capacity "
                                + "for secondaries.")
         return True
@@ -787,6 +822,7 @@ class BaseEngine(xo.HybridClass):
         elif self.particle_ref is None:
             if self.line is None or not hasattr(self.line, 'particle_ref') \
             or self.line.particle_ref is None:
+                self.stop()
                 raise ValueError("Need to provide either a line with a reference "
                                + "particle, or `particle_ref`.")
             self._old_particle_ref = self.particle_ref
@@ -845,6 +881,7 @@ class BaseEngine(xo.HybridClass):
 
     def _assert_element(self, element):
         if not isinstance(element, self._element_classes):
+            self.stop()
             raise ValueError(f"Element {element.name} is not a "
                             + ", or a ".join([c.__name__ for c in self._element_classes])
                             + ".")
@@ -856,6 +893,7 @@ class BaseEngine(xo.HybridClass):
             names = [names]
         if self.line is None:
             if elements is None:
+                self.stop()
                 raise ValueError("Need to provide either `line` or `elements`.")
             if names is None:
                 names = []
@@ -873,9 +911,11 @@ class BaseEngine(xo.HybridClass):
                             self._print(f"Warning: Element name {ee.name} changed to {name}.")
                             ee.name = name
             else:
+                self.stop()
                 raise ValueError("Length of `elements` and `names` doesn't match.")
         else:
             if elements is not None:
+                self.stop()
                 raise ValueError("Cannot provide both `line` and `elements`.")
             if names is None:
                 elements, names = self.line.get_elements_of_type(self._element_classes)
@@ -902,8 +942,10 @@ class BaseEngine(xo.HybridClass):
                 this_names.append(name)
                 this_elements.append(ee)
         if len(this_elements) == 0:
+            self.stop()
             raise ValueError(f"No active {self.name} elements found!")
         if len(set(this_names)) != len(this_names):
+            self.stop()
             raise ValueError(f"Duplicate names found in {self.name} elements: {this_names}. "
                            + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
@@ -927,6 +969,7 @@ class BaseEngine(xo.HybridClass):
                     while (cwd.parent / f'{cwd.name}_{i:0>4}').exists():
                         i += 1
                         if i > 9999:
+                            self.stop()
                             raise ValueError(f"Too many folders with the same "
                                            + f"name {cwd}!")
                     cwd = cwd.parent / f'{cwd.name}_{i:0>4}'
@@ -963,6 +1006,7 @@ class BaseEngine(xo.HybridClass):
             new_files = []
             for file in input_file:
                 if not file.exists():
+                    self.stop()
                     raise ValueError(f"Input file {file.as_posix()} not found!")
                 if file.parent != FsPath.cwd() and self._uses_run_folder:
                     file.copy_to(FsPath.cwd(), method='mount')

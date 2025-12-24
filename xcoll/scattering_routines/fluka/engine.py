@@ -81,6 +81,7 @@ class FlukaEngine(BaseEngine):
         if val is None:
             val = 36000
         if not isinstance(Number) or val <= 60:
+            self.stop()
             raise ValueError("`timeout_sec` has to be an integer and larger than 60!")
         self._timeout_sec = val
 
@@ -209,6 +210,7 @@ class FlukaEngine(BaseEngine):
         if cmd.returncode == 0:
             whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
+            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
         # Get fluka processes for this user
@@ -216,6 +218,7 @@ class FlukaEngine(BaseEngine):
         if cmd.returncode == 0:
             processes = cmd.stdout.decode('UTF-8').strip().split('\n')
         else:
+            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
         processes = [proc for proc in processes if 'rfluka' in proc and 'defunct' not in proc]
@@ -241,6 +244,7 @@ class FlukaEngine(BaseEngine):
         input_dict = get_collimators_from_input_file(self.input_file[0])
         for name in input_dict:
             if name not in self._element_dict:
+                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             if name not in input_dict:
@@ -410,6 +414,7 @@ class FlukaEngine(BaseEngine):
         if cmd.returncode == 0:
             host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
+            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             raise RuntimeError(f"Could not declare hostname! Error given is:\n{stderr}")
         # Check if the hostname has a valid IP address
@@ -439,6 +444,7 @@ class FlukaEngine(BaseEngine):
         self.server_pid = self._server_process.pid
         sleep(1)
         if not self.is_running():
+            self.stop()
             raise RuntimeError(f"Could not start fluka server! See logfile {log}.")
         i = 0
         while True:
@@ -472,7 +478,7 @@ class FlukaEngine(BaseEngine):
             self._print(f"Closing fluka server connection...   ", end='')
             try:
                 from pyflukaf import pyfluka_close
-                pyfluka_close()
+                pyfluka_close()  # TODO: is this what causes segfaults on crash?
             except (ModuleNotFoundError, ImportError) as error:
                 self._warn(error)
             self._print(f"Done.")
@@ -503,6 +509,7 @@ class FlukaEngine(BaseEngine):
                 fid.write(f'{len(touches)}\n')
                 for touch in touches:
                     if touch not in self._element_dict:
+                        self.stop()
                         raise ValueError(f"Collimator {touch} not in collimator dict, "
                                         + "but asked to write FLUKA touches!")
                     else:
@@ -510,5 +517,6 @@ class FlukaEngine(BaseEngine):
             self._input_file.append(relcol)
         # Check if touches is not wrongly set
         elif touches is not None and not touches is False:
+            self.stop()
             raise NotImplementedError("Only True/False or a list of collimator names "
                                     + "is allowed for `touches` for now.")
