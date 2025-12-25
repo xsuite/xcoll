@@ -1057,7 +1057,8 @@ MATERIAL                      {format_fluka_float(self.density)}                
         if self.components is not None:
             components = [f'"{el.geant4_name}"' for el in self.components]
             code += f", components=[{','.join(components)}]"
-            if self.n_atoms is not None:
+            if self.n_atoms is not None and np.all([int(nn) == nn for nn in self.n_atoms]):
+                # Geant4 wants integer numbers of atoms
                 code += f", componentsWeights={{{','.join([f'{nn}' for nn in self.n_atoms])}}};"
             else:
                 code += f", componentsFractions={{{','.join([f'{nn}' for nn in self.mass_fractions])}}}"
