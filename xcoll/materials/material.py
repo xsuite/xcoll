@@ -191,6 +191,7 @@ class Material(xo.HybridClass):
             raise ValueError('Material must have at least two components')
         from xcoll.materials.database import db as mdb
         components = [mdb[el] if isinstance(el, str) else el for el in components]
+        components = [Material.from_dict(el) if isinstance(el, dict) else el for el in components]
         if any([not isinstance(el, Material) for el in components]):
             raise ValueError('All components must be of type Material')
         if any([isinstance(el, CrystalMaterial) for el in components]):
@@ -354,6 +355,8 @@ class Material(xo.HybridClass):
                 return Material.from_dict(dct)
             elif this_cls == 'CrystalMaterial':
                 return CrystalMaterial.from_dict(dct)
+            elif this_cls == 'RefMaterial':
+                return RefMaterial.from_dict(dct)
             else:
                 raise ValueError(f"Unknown material class {this_cls} in from_dict")
         # Create instance but do not set names (to avoid syncing with the database)
@@ -387,6 +390,8 @@ class Material(xo.HybridClass):
             dct.pop('excitation_energy', None)
         if self.n_atoms is not None:
             dct.pop('mass_fractions', None)
+        if 'components' in dct:
+            dct['components'] = [el.to_dict() for el in self.components]
         return dct
 
     def adapt(self, inplace=False, **kwargs):

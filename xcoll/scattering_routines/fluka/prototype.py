@@ -7,6 +7,8 @@ import json
 import time
 import numpy as np
 
+import xobjects as xo
+
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
@@ -174,7 +176,7 @@ class FlukaPrototype:
             'length': self.length,
             'width': self.width,
             'height': self.height,
-            'material': self.material,
+            'material': self.material.to_dict() if hasattr(self.material, 'to_dict') else self.material,
             'is_crystal': self.is_crystal,
             'bending_radius': self.bending_radius,
             'info': self.info,
@@ -254,7 +256,7 @@ class FlukaPrototype:
         if path != target:
             path.copy_to(target, method='mount')
         with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
-            json.dump(self.to_dict(), fid, indent=4)
+            json.dump(self.to_dict(), fid, indent=4, cls=xo.JEncoder)
 
     @property
     def material_file(self):
@@ -714,7 +716,7 @@ class FlukaAssembly(FlukaPrototype):
         if path != target:
             path.copy_to(target, method='mount')
         with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
-            json.dump(self.to_dict(), fid, indent=4)
+            json.dump(self.to_dict(), fid, indent=4, cls=xo.JEncoder)
 
     @property
     def body_file(self):
