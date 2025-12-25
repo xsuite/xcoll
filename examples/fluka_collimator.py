@@ -19,7 +19,7 @@ if xc.fluka.engine.is_running():
     xc.fluka.engine.stop(clean=True)
 
 # Create a FLUKA collimator
-coll1 = xc.FlukaCollimator(length=0.6, material='mogr', jaw=0.001)
+coll1 = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite, jaw=0.001)
 
 # The same collimator in Everest
 coll2 = xc.EverestCollimator(length=0.6, material=xc.materials.MolybdenumGraphite, jaw=0.001)

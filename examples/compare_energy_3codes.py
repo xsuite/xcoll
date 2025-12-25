@@ -35,7 +35,7 @@ if xc.geant4.engine.is_running():
     xc.geant4.engine.stop(clean=True)
 
 coll1 = xc.EverestCollimator(length=0.6, material=xc.materials.MolybdenumGraphite, jaw=0.001)
-coll2 = xc.FlukaCollimator(length=0.6, material='mogr', jaw=0.001)
+coll2 = xc.FlukaCollimator(length=0.6, material=xc.materials.MolybdenumGraphite, jaw=0.001)
 coll3 = xc.Geant4Collimator(length=0.6, material=xc.materials.MolybdenumGraphite, jaw=0.001)
 
 # Connect to FLUKA

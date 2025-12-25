@@ -185,9 +185,11 @@ def _assignmat_include_file():
                            if pro.is_crystal]
     crystal_assemblies += [pro for ass in FlukaAssembly._assigned_registry.values()
                            for pro in ass.prototypes if pro.is_crystal]
-    template = f"""\
+    from xcoll.materials.database import db as mdb
+    template =  ''.join([mat._generated_fluka_code for mat in mdb.fluka.values()
+                         if mat._generated_fluka_code is not None])
+    template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
-*
 * Crystal Card
 * what (1) = REGNUM ( mandatory )
 * what (2) = Crystal bending angle [ mrad ]

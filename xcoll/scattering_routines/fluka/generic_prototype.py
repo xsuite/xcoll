@@ -33,24 +33,6 @@ from .prototype import FlukaPrototype, FlukaAssembly
 # atexit.register(exit_handler)
 
 
-def xcoll_to_fluka_material(material):
-    # XXX EXPAND THIS DICT
-
-    material_dict = {
-        "iner": "INERM180",
-        "c":    "  CARBON",
-        "si":   " SILICON",
-        "cu":   "  COPPER",
-        "mogr": "AC150GPH",
-        "vacuum": "VACUUM",
-    }
-
-    if material not in material_dict.keys():
-        raise ValueError(f"Material {material} not found in material dictionary!")
-    else:
-        return material_dict[material]
-
-
 _generic_required_fields = ['material', 'length']
 _generic_optional_fields = {'side': 'both', 'width': 0.2, 'height': 0.2}
 _generic_crystal_required_fields = ['material', 'length', 'bending_radius']
@@ -106,6 +88,11 @@ def create_generic_assembly(**kwargs):
 
 def _validate_kwargs(kwargs):
     kwargs.setdefault('is_crystal', False)
+    from ...beam_elements.fluka import _resolve_material
+    from ...materials import Material, CrystalMaterial
+    kwargs['material'] = _resolve_material(kwargs['material'])
+    if kwargs['material'].fluka_name is None:
+        kwargs['material']._generate_fluka_code()
     if kwargs['is_crystal']:
         for field in _generic_crystal_required_fields:
             if field not in kwargs or kwargs[field] is None:
@@ -113,6 +100,8 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_crystal_optional_fields.items():
             if field not in kwargs or kwargs[field] is None:
                 kwargs[field] = opt_value
+        if not isinstance(kwargs['material'], CrystalMaterial):
+            raise ValueError(f"Invalid material of type {type(kwargs['material'])}!")
     else:
         for field in _generic_required_fields:
             if field not in kwargs or kwargs[field] is None:
@@ -120,6 +109,9 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_optional_fields.items():
             if field not in kwargs or kwargs[field] is None:
                 kwargs[field] = opt_value
+        if not isinstance(kwargs['material'], Material) \
+        or isinstance(kwargs['material'], CrystalMaterial):
+            raise ValueError(f"Invalid material of type {type(kwargs['material'])}!")
     if kwargs.get('side') not in ['both', 'left', 'right']:
         raise ValueError(f"Side must be 'both', 'left' or 'right', but got {kwargs.get('side')}!")
     if kwargs['width'] > 0.25:
@@ -243,7 +235,7 @@ def _region_file(fedb_tag, **kwargs):
 
 
 def _material_file(fedb_tag, material, **kwargs):
-    mat = xcoll_to_fluka_material(material)
+    mat = material.fluka_name
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
@@ -298,7 +290,7 @@ def _crystal_region_file(fedb_tag, **kwargs):
 
 
 def _crystal_material_file(fedb_tag, material, **kwargs):
-    mat = xcoll_to_fluka_material(material)
+    mat = material.fluka_name
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B

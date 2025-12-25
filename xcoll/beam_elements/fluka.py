@@ -13,6 +13,7 @@ from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, FlukaAssembly, create_generic_assembly
+from ..materials import(Material, CrystalMaterial, RefMaterial, db as material_db)
 
 
 class FlukaCollimator(BaseCollimator):
@@ -58,8 +59,12 @@ class FlukaCollimator(BaseCollimator):
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
-                # kwargs for generic assembly creation
                 material = kwargs.pop('material', None)
+                if material is not None:
+                    material = _resolve_material(material)
+                    if not isinstance(material, Material) \
+                    or isinstance(material, CrystalMaterial):
+                        raise ValueError(f"Invalid material of type {type(material)}!")
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
@@ -128,9 +133,14 @@ class FlukaCollimator(BaseCollimator):
         if not self._being_constructed():
             if self.assembly.fedb_series != 'generic':
                 raise ValueError('Cannot change material of non-generic assembly!')
-            self.assembly = create_generic_assembly(material=material,
-                            side=self.side, length=self.length, width=self.width,
-                            height=self.height)
+            material = _resolve_material(material)
+            if not isinstance(material, Material) \
+            or isinstance(material, CrystalMaterial):
+                raise ValueError(f"Invalid material of type {type(material)}!")
+            if self.material != material:
+                self.assembly = create_generic_assembly(material=material,
+                                side=self.side, length=self.length, width=self.width,
+                                height=self.height)
 
     @property
     def height(self):
@@ -307,6 +317,10 @@ class FlukaCrystal(BaseCrystal):
                     raise NotImplementedError('FlukaCrystalAssemblies not yet implemented!')
                 # kwargs for generic assembly creation
                 material = kwargs.pop('material', None)
+                if material is not None:
+                    material = _resolve_material(material)
+                    if not isinstance(material, CrystalMaterial):
+                        raise ValueError(f"Invalid material of type {type(material)}!")
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
@@ -387,9 +401,13 @@ class FlukaCrystal(BaseCrystal):
         if not self._being_constructed():
             if self.assembly.fedb_series != 'generic':
                 raise ValueError('Cannot change material of non-generic assembly!')
-            self.assembly = create_generic_assembly(is_crystal=True, material=material,
-                            side=self.side, length=self.length, width=self.width,
-                            height=self.height, bending_radius=self.bending_radius)
+            material = _resolve_material(material)
+            if not isinstance(material, CrystalMaterial):
+                raise ValueError(f"Invalid material of type {type(material)}!")
+            if self.material != material:
+                self.assembly = create_generic_assembly(is_crystal=True, material=material,
+                                side=self.side, length=self.length, width=self.width,
+                                height=self.height, bending_radius=self.bending_radius)
 
     @property
     def height(self):
@@ -515,3 +533,16 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly:
             self.length = old_length
         return bending_angle
+
+
+def _resolve_material(material):
+    if material is None:
+        raise ValueError('Material cannot be None!')
+    elif isinstance(material, dict):
+        material = Material.from_dict(material)
+    elif isinstance(material, str):
+        material = material_db[material]
+    elif isinstance(material, RefMaterial):
+        if material.fluka_name is None:
+            raise ValueError(f"RefMaterial {material} does not have a FLUKA name!")
+    return material

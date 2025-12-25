@@ -108,6 +108,7 @@ class Material(xo.HybridClass):
         self._out_of_sync = False
         self._frozen = False  # Pre-defined materials will be frozen at package import
         self._generated_geant4_code = None
+        self._generated_fluka_code = None
 
         # For the mandatory fields, decide how to initialise (elemental or compound)
         if ('Z' in kwargs or 'A' in kwargs) and ('components' in kwargs \
@@ -973,6 +974,66 @@ class Material(xo.HybridClass):
 # COMPOUND      -97.25  ALUMINUM       -.6   SILICON      -0.5      IRONANTICO
 # COMPOUND         -.4  MAGNESIU       -.4  MANGANES      -.35  CHROMIUMANTICO
 # COMPOUND         -.2  TITANIUM       -.2      ZINC       -.1    COPPERANTICO
+
+    def _generate_fluka_code(self):
+        if self.fluka_name:
+            raise ValueError(f'Material already has a FLUKA name assigned: {self.fluka_name}.')
+        if self.name is None:
+            raise ValueError('Material must have a name to generate fluka code.')
+        if self.components is not None:
+            for mat in self.components:
+                if mat.fluka_name is None:
+                    mat._generate_fluka_code()
+        # Create unique name
+        from xcoll.materials.database import db as mdb
+        existing_ids = [int(nn[5:]) for nn in mdb.fluka.keys() if nn.startswith('XCOLL')]
+        max_id = max(existing_ids) if existing_ids else 0
+        new_id = min(set(range(max_id+2)) - set(existing_ids))
+        name = f'XCOLL{new_id:03d}'
+        # Define single element material
+        from xcoll.scattering_routines.fluka.environment import format_fluka_float
+        if self.components is None:
+            if self.Z > 100:
+                raise ValueError('FLUKA cannot handle elements with Z > 100.')
+            P = format_fluka_float(self.pressure) if self.pressure else 10*' '
+            exc = format_fluka_float(self.excitation_energy) if self.excitation_energy else 10*' '
+            code = f"""\
+*...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+...
+MATERIAL  {format_fluka_float(self.Z)}          {format_fluka_float(self.density)}                              {name}
+MAT-PROP  {P}          {exc}  {name}
+"""
+        else:
+            code = f"""\
+*...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+...
+MATERIAL                      {format_fluka_float(self.density)}                              {name}
+"""
+            if self.n_atoms is not None:
+                frac = [self.n_atoms[i:i + 3] for i in range(0, len(self.n_atoms), 3)]
+                comp = [self.components[i:i + 3] for i in range(0, len(self.components), 3)]
+                for ff, cc in zip(frac, comp):
+                    line = "COMPOUND  "
+                    for i, (fff, ccc) in enumerate(zip(ff, cc)):
+                        line += format_fluka_float(fff)
+                        line += f"{ccc.fluka_name[:10]:>10}"
+                    line += (2-i)*20*' '
+                    line += f"{name}"
+                    code += line + "\n"
+            else:
+                frac = [self.mass_fractions[i:i + 3] for i in range(0, len(self.mass_fractions), 3)]
+                comp = [self.components[i:i + 3] for i in range(0, len(self.components), 3)]
+                for ff, cc in zip(frac, comp):
+                    line = "COMPOUND  "
+                    for i, (fff, ccc) in enumerate(zip(ff, cc)):
+                        line += format_fluka_float(-fff)
+                        line += f"{ccc.fluka_name[:10]:>10}"
+                    line += (2-i)*20*' '
+                    line += f"{name}"
+                    code += line + "\n"
+        frozen = self._frozen
+        self._frozen = False
+        self.fluka_name = name
+        self._generated_fluka_code = code
+        self._frozen = frozen
 
     def _generate_geant4_code(self):
         if self.geant4_name:
