@@ -11,7 +11,7 @@ import time
 import matplotlib.pyplot as plt
 
 
-num_part = 1_000_000
+num_part = 100_000
 capacity = 2*num_part
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 nbins = 200
@@ -137,6 +137,11 @@ if num_part > steps*num_step:  # Some leftover particles
 print(f"Tracking {num_part} particles (Geant4)...     Done in {round(time.time()-start, 3)}s.")
 
 
+# Stop the engines
+xc.fluka.engine.stop(clean=True)
+xc.geant4.engine.stop(clean=True)
+
+
 # Create bins based on the min and max energy
 bins = np.logspace(np.log10(E_low/unit), np.log10(E_high/unit), nbins + 1)
 bin_centres = np.sqrt(bins[:-1] * bins[1:])
@@ -163,8 +168,3 @@ ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.tight_layout()
 plt.savefig('plots/compare_energy_3codes.png', dpi=300)
 plt.show()
-
-
-# Stop the engines
-xc.fluka.engine.stop(clean=True)
-xc.geant4.engine.stop(clean=True)
