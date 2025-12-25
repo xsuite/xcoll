@@ -15,7 +15,7 @@ num_part = 100_000
 capacity = 2*num_part
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 nbins = 200
-E_low = 1.e12
+E_low = 4.e12
 E_high = particle_ref.energy0[0]
 unit = 1.e12
 
@@ -67,12 +67,31 @@ part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
 
 
 # Do the tracking in Everest
-print(f"Tracking {num_part} particles (Everest)...   ", end='', flush=True)
 start = time.time()
-part = part_init.copy()
-coll1.track(part)
-energy_everest = part.energy[part.state > 0]/unit
-print(f"Done in {round(1000*(time.time()-start), 3)}ms")
+energy_everest = np.array([], dtype=np.float64)
+# We split it in small chunks to be more efficient
+num_step = 1_000_000
+this_num_part = 10*num_part
+steps = this_num_part // num_step
+for i in range(steps):
+    print(f"Tracking {this_num_part} particles (Everest)...     Step {i}/{steps}", flush=True, end='\r')
+    mask = np.zeros(capacity, dtype=np.bool)
+    mask[i*num_step:(i+1)*num_step] = True
+    mask[this_num_part + i*num_step:this_num_part + (i+1)*num_step] = True  # For secondaries
+    part = part_init.filter(mask)
+    coll1.track(part)
+    this_energy_everest = part.energy[part.state > 0]/unit
+    energy_everest = np.concatenate((energy_everest, this_energy_everest))
+if this_num_part > steps*num_step:  # Some leftover particles
+    print(f"Tracking {this_num_part} particles (Everest)...     Step {steps}/{steps}", flush=True, end='\r')
+    mask = np.zeros(capacity, dtype=np.bool)
+    mask[steps*num_step:this_num_part] = True
+    mask[this_num_part + steps*num_step:this_num_part + this_num_part] = True  # For secondaries
+    part = part_init.filter(mask)
+    coll1.track(part)
+    this_energy_everest = part.energy[part.state > 0]/unit
+    energy_everest = np.concatenate((energy_everest, this_energy_everest))
+print(f"Tracking {this_num_part} particles (Everest)...     Done in {round(1000*(time.time()-start), 3)}ms")
 
 
 # Do the tracking in FLUKA
@@ -82,7 +101,7 @@ energy_fluka = np.array([], dtype=np.float64)
 num_step = 10_000
 steps = num_part // num_step
 for i in range(steps):
-    print(f"Tracking {num_part} particles (FLUKA)...     Step {i}/{steps}", flush=True, end='\r')
+    print(f"Tracking  {num_part} particles (FLUKA)...     Step {i}/{steps}", flush=True, end='\r')
     mask = np.zeros(capacity, dtype=np.bool)
     mask[i*num_step:(i+1)*num_step] = True
     mask[num_part + i*num_step:num_part + (i+1)*num_step] = True  # For secondaries
@@ -94,7 +113,7 @@ for i in range(steps):
     np.add.at(this_energy_fluka, inv, part.energy[mask]/unit)
     energy_fluka = np.concatenate((energy_fluka, this_energy_fluka))
 if num_part > steps*num_step:  # Some leftover particles
-    print(f"Tracking {num_part} particles (FLUKA)...     Step {steps}/{steps}", flush=True, end='\r')
+    print(f"Tracking  {num_part} particles (FLUKA)...     Step {steps}/{steps}", flush=True, end='\r')
     mask = np.zeros(capacity, dtype=np.bool)
     mask[steps*num_step:num_part] = True
     mask[num_part + steps*num_step:num_part + num_part] = True  # For secondaries
@@ -105,7 +124,7 @@ if num_part > steps*num_step:  # Some leftover particles
     this_energy = np.zeros_like(parents, dtype=np.float64)
     np.add.at(this_energy, inv, part.energy[mask]/unit)
     energy_fluka = np.concatenate((energy_fluka, this_energy))
-print(f"Tracking {num_part} particles (FLUKA)...     Done in {round(time.time()-start, 3)}s.")
+print(f"Tracking  {num_part} particles (FLUKA)...     Done in {round(time.time()-start, 3)}s.")
 
 
 # Do the tracking in Geant4
@@ -115,7 +134,7 @@ energy_geant4 = np.array([], dtype=np.float64)
 num_step = 10_000
 steps = num_part // num_step
 for i in range(steps):
-    print(f"Tracking {num_part} particles (Geant4)...     Step {i}/{steps}", flush=True, end='\r')
+    print(f"Tracking  {num_part} particles (Geant4)...     Step {i}/{steps}", flush=True, end='\r')
     mask = np.zeros(capacity, dtype=np.bool)
     mask[i*num_step:(i+1)*num_step] = True
     mask[num_part + i*num_step:num_part + (i+1)*num_step] = True  # For secondaries
@@ -127,7 +146,7 @@ for i in range(steps):
     np.add.at(this_energy, inv, part.energy[mask]/unit)
     energy_geant4 = np.concatenate((energy_geant4, this_energy))
 if num_part > steps*num_step:  # Some leftover particles
-    print(f"Tracking {num_part} particles (Geant4)...     Step {steps}/{steps}", flush=True, end='\r')
+    print(f"Tracking  {num_part} particles (Geant4)...     Step {steps}/{steps}", flush=True, end='\r')
     mask = np.zeros(capacity, dtype=np.bool)
     mask[steps*num_step:num_part] = True
     mask[num_part + steps*num_step:num_part + num_part] = True  # For secondaries
@@ -138,7 +157,7 @@ if num_part > steps*num_step:  # Some leftover particles
     this_energy = np.zeros_like(parents, dtype=np.float64)
     np.add.at(this_energy, inv, part.energy[mask]/unit)
     energy_geant4 = np.concatenate((energy_geant4, this_energy))
-print(f"Tracking {num_part} particles (Geant4)...     Done in {round(time.time()-start, 3)}s.")
+print(f"Tracking  {num_part} particles (Geant4)...     Done in {round(time.time()-start, 3)}s.")
 
 
 # Stop the engines
