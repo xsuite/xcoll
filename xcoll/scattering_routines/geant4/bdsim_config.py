@@ -20,7 +20,8 @@ _header_stop  = "! ** XCOLL END  **"
 
 
 def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, extra_opts=[],
-                             extra_input=[], verbose=True, _all_black=False, **kwargs):
+                             extra_input=[], verbose=True, _all_black=False, cwd=None,
+                             **kwargs):
     momentum = int(np.ceil((particle_ref.p0c[0] + 1) / 1.e9))  # in GeV
     pdg_id = particle_ref.pdg_id[0]
     if pdg_id is None or pdg_id == 0:
@@ -63,7 +64,9 @@ def create_bdsim_config_file(element_dict, particle_ref, physics_list=None, extr
             gmad.extend(extra_input)
         else:
             gmad.append(extra_input)
-    input_file = FsPath(FsPath.cwd() / 'geant4_input.gmad').resolve()
+    if cwd is None:
+        cwd = FsPath.cwd()
+    input_file = FsPath(cwd / 'geant4_input.gmad').resolve()
     with open(input_file, 'w') as fp:
         fp.write('\n'.join([*_generate_xcoll_header(element_dict), *gmad]))
     return input_file, kwargs

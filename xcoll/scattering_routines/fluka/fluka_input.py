@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import os
 import json
 import numpy as np
 from subprocess import run, PIPE
@@ -23,8 +24,11 @@ _header_stop  = "*  XCOLL END  **"
 
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
-                       verbose=True, **kwargs):
+                       verbose=True, cwd=None, **kwargs):
     import xcoll as xc
+    if cwd is not None:
+        old_cwd = FsPath.cwd()
+        os.chdir(cwd)
     _create_prototypes_file(element_dict, prototypes_file)
     for prototype in {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}.values():
         if prototype.is_crystal:
@@ -72,6 +76,8 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                 fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
                 fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
     _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
+    if cwd is not None:
+        os.chdir(old_cwd)
     if verbose:
         print(f"Created FLUKA input file {input_file}.")
     return [input_file, insertion_file], kwargs

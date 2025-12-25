@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import os
 import numpy as np
 from pathlib import Path
 from numbers import Number
@@ -622,7 +621,7 @@ class BaseEngine(xo.HybridClass):
         kwargs = self._pre_input(**kwargs)
 
         # Create input file
-        input_file, _ = self._generate_input_file_in_cwd(**kwargs)
+        input_file, _ = self._generate_input_file(**kwargs)
         if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
             # Some engines might create multiple input files (like Fluka)
             input_file = [input_file]
@@ -1008,20 +1007,10 @@ class BaseEngine(xo.HybridClass):
                             + f"{self.cwd}.")
         self._cwd = None
 
-    def _generate_input_file_in_cwd(self, **kwargs):
-        if self.cwd is None:
-            self.stop()
-            raise RuntimeError("Engine needs a working directory to create input files!")
-        old_cwd = FsPath.cwd()
-        os.chdir(self.cwd)
-        input_file, kwargs = self._generate_input_file(**kwargs)
-        os.chdir(old_cwd)
-        return input_file, kwargs
-
     def _use_input_file(self, input_file=None, **kwargs):
         if self._uses_input_file:
             if input_file is None:
-                input_file, kwargs = self._generate_input_file_in_cwd(**kwargs)
+                input_file, kwargs = self._generate_input_file(**kwargs)
             if not hasattr(input_file, '__iter__') or isinstance(input_file, (str,Path)):
                 # Some engines might need multiple input files (like Fluka)
                 input_file = [input_file]

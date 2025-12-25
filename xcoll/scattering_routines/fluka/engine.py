@@ -3,11 +3,11 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import socket
 import numpy as np
+from time import sleep
 from numbers import Number
 from subprocess import run, PIPE, Popen
-from time import sleep
-import socket
  
 import xobjects as xo
 import xtrack.particles.pdg as pdg
@@ -153,7 +153,7 @@ class FlukaEngine(BaseEngine):
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
         self._deactivate_unused_assemblies()
-        input_file, kwargs = create_fluka_input(element_dict=self._element_dict,
+        input_file, kwargs = create_fluka_input(element_dict=self._element_dict, cwd=self.cwd,
                                 particle_ref=self.particle_ref, prototypes_file=prototypes_file,
                                 include_files=include_files, verbose=self.verbose, **kwargs)
         self._set_seed_in_input_file(input_file)

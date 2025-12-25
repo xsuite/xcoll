@@ -166,7 +166,7 @@ class Geant4Engine(BaseEngine):
     def _generate_input_file(self, **kwargs):
         input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
                                 particle_ref=self.particle_ref, verbose=self.verbose,
-                                **kwargs)
+                                cwd=self.cwd, **kwargs)
         # The only thing left in kwargs are parameters to start the engine
         return input_file, kwargs
 
