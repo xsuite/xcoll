@@ -42,12 +42,16 @@ coll3 = xc.Geant4Collimator(length=0.6, material=xc.materials.MolybdenumGraphite
 xc.fluka.engine.particle_ref = particle_ref
 xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
+xc.fluka.engine.return_none = True
+xc.fluka.engine.return_protons = True
 xc.fluka.engine.start(elements=coll2, clean=True, verbose=False)
 xc.fluka.engine.init_tracking(max_particle_id=num_part)  # Prepares FLUKA for tracking, needed because we will track in chunks
 
 # Connect to Geant4
 xc.geant4.engine.particle_ref = particle_ref
 xc.geant4.engine.seed = 5656565
+xc.geant4.engine.return_none = True
+xc.geant4.engine.return_protons = True
 xc.geant4.engine.start(elements=coll3, clean=True, verbose=False)
 
 
