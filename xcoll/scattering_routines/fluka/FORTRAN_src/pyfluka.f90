@@ -1,18 +1,21 @@
-subroutine pyfluka_init(n_alloc, debug_level)
+subroutine pyfluka_init(n_alloc, debug_level, cwd_path)
     use mod_fluka
     !, only : fluka_enable, fluka_mod_init
     use physical_constants, only : clight
+    use mod_units, only : units_path
 
     implicit none
     integer, intent(in)    :: n_alloc
     integer, intent(in)    :: debug_level
+    character(len=255), intent(in) :: cwd_path
 
     ! NB: In SixTrack, npart was passed, not n_alloc.
     ! (Needed for e.g. avoiding to re-compile?)
+    units_path = cwd_path
     fluka_debug_level  = debug_level
+
     call fluka_mod_init(n_alloc, 500, clight)
     fluka_enable = .true.
-
 end subroutine
 
 
@@ -35,8 +38,8 @@ subroutine pyfluka_connect(timeout_sec)
           call fluka_close
        end if
        if(fluka_debug_level > 0) then
-           write(lout,"(a)") "FLUKA> Initializing FlukaIO interface"
-           flush(lout)
+           write(unit_pyfluka,"(a)") "FLUKA> Initializing FlukaIO interface"
+           flush(unit_pyfluka)
        end if
        fluka_con = fluka_connect(timeout_sec)
        if(fluka_con == -1) then
@@ -45,8 +48,8 @@ subroutine pyfluka_connect(timeout_sec)
           call fluka_close
        endif
        if(fluka_debug_level > 0) then
-          write(lout,"(a)") "FLUKA> Successfully connected to Fluka server"
-          flush(lout)
+          write(unit_pyfluka,"(a)") "FLUKA> Successfully connected to Fluka server"
+          flush(unit_pyfluka)
        end if
        fluka_connected = .true.
     endif
@@ -79,8 +82,8 @@ subroutine pyfluka_init_max_uid(npart)
     ! send npart to fluka
     if(fluka_enable) then
        if(fluka_debug_level > 0) then
-           write(lout,"(a,i0)") "FLUKA> Sending npart = ",npart
-           flush(lout)
+           write(unit_pyfluka,"(a,i0)") "FLUKA> Sending npart = ",npart
+           flush(unit_pyfluka)
        end if
        ! IMPORTANT: The call to fluka_init_max_uid is absolutely needed.
        ! The FLUKA server looks (in order!) for the corresponding message.
@@ -93,8 +96,8 @@ subroutine pyfluka_init_max_uid(npart)
        end if
 
        if(fluka_debug_level > 0) then
-           write(lout,"(a)") "FLUKA> Sending npart successful"
-           flush(lout)
+           write(unit_pyfluka,"(a)") "FLUKA> Sending npart successful"
+           flush(unit_pyfluka)
        end if
        flush(lout)
     end if
@@ -120,8 +123,8 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
     !     only protons);
     if(fluka_enable) then
        if(fluka_debug_level > 0) then
-           write(lout,"(a)") "FLUKA> Updating the reference particle"
-           flush(lout)
+           write(unit_pyfluka,"(a)") "FLUKA> Updating the reference particle"
+           flush(unit_pyfluka)
        end if
 
        ! Optional: Let's also set the reference particle in mod_common, like was done in SixTrack.
@@ -145,8 +148,8 @@ subroutine pyfluka_set_synch_part(part_e0, part_pc0, part_mass0, part_a0, part_z
        end if
 
        if(fluka_debug_level > 0) then
-           write(lout,"(a)") "FLUKA> Updating the reference particle successful"
-           flush(lout)
+           write(unit_pyfluka,"(a)") "FLUKA> Updating the reference particle successful"
+           flush(unit_pyfluka)
        end if
     end if
 
@@ -170,26 +173,26 @@ subroutine track_fluka(turn, fluka_id, length, alive_part, max_part, x_part, xp_
 
     integer(kind=4), intent(in)    :: turn
     integer(kind=2), intent(in)    :: fluka_id
-    real(kind=8),        intent(in)    :: length
-    integer,             intent(inout) :: alive_part           ! napx
-    integer,             intent(in)    :: max_part             ! npart
-    real(kind=8),        intent(inout) :: x_part(max_part)     ! [mm]    xv1
-    real(kind=8),        intent(inout) :: xp_part(max_part)    ! [1e-3]  yv1
-    real(kind=8),        intent(inout) :: y_part(max_part)     ! [mm]    xv2
-    real(kind=8),        intent(inout) :: yp_part(max_part)    ! [1e-3]  yv2
-    real(kind=8),        intent(inout) :: zeta_part(max_part)  ! [mm]    sigmv
-    real(kind=8),        intent(inout) :: e_part(max_part)     ! [MeV]   ejv   (ejfv is momentum, dpsv is delta, oidpsv is 1/(1+d))
-    real(kind=8),        intent(inout) :: m_part(max_part)     ! [MeV]   nucm
+    real(kind=8),    intent(in)    :: length
+    integer,         intent(inout) :: alive_part           ! napx
+    integer,         intent(in)    :: max_part             ! npart
+    real(kind=8),    intent(inout) :: x_part(max_part)     ! [mm]    xv1
+    real(kind=8),    intent(inout) :: xp_part(max_part)    ! [1e-3]  yv1
+    real(kind=8),    intent(inout) :: y_part(max_part)     ! [mm]    xv2
+    real(kind=8),    intent(inout) :: yp_part(max_part)    ! [1e-3]  yv2
+    real(kind=8),    intent(inout) :: zeta_part(max_part)  ! [mm]    sigmv
+    real(kind=8),    intent(inout) :: e_part(max_part)     ! [MeV]   ejv   (ejfv is momentum, dpsv is delta, oidpsv is 1/(1+d))
+    real(kind=8),    intent(inout) :: m_part(max_part)     ! [MeV]   nucm
     integer(kind=2), intent(inout) :: q_part(max_part)     !         nqq     Charge
     integer(kind=4), intent(inout) :: A_part(max_part)     !         naa     Ion atomic mass
     integer(kind=4), intent(inout) :: Z_part(max_part)     !         nzz     Ion atomic number
     integer(kind=4), intent(inout) :: pdg_id_part(max_part) !         pdgid   Particle PDGid
     integer(kind=4), intent(inout) :: part_id(max_part)
     integer(kind=4), intent(inout) :: parent_id(max_part)
-    real(kind=8),        intent(inout) :: part_weight(max_part)
-    real(kind=8),        intent(inout) :: spin_x_part(max_part)  ! spin_x  ! x component of the particle spin
-    real(kind=8),        intent(inout) :: spin_y_part(max_part)  ! spin_y  ! y component of the particle spin
-    real(kind=8),        intent(inout) :: spin_z_part(max_part)  ! spin_z  ! z component of the particle spin
+    real(kind=8),    intent(inout) :: part_weight(max_part)
+    real(kind=8),    intent(inout) :: spin_x_part(max_part)  ! spin_x  ! x component of the particle spin
+    real(kind=8),    intent(inout) :: spin_y_part(max_part)  ! spin_y  ! y component of the particle spin
+    real(kind=8),    intent(inout) :: spin_z_part(max_part)  ! spin_z  ! z component of the particle spin
 
     integer ret
 

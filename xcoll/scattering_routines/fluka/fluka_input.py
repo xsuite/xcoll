@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import os
-import sys
 import json
 import numpy as np
 from subprocess import run, PIPE

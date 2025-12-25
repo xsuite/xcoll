@@ -13,9 +13,10 @@ PYBIND11_MODULE(g4interface, m) {
   m.doc() = R"pbdoc(Python interface to BDSIM (Geant4). The main purpose of the interface is to enable collimation studies, including particle-matter interaction in collimators, for pure particle tracking codes.)pbdoc";
 
   py::class_<XtrackInterface>(m, "XtrackInterface")
-            .def(py::init<const std::string&, int, double, double, int, int, bool>(),
+            .def(py::init<const std::string&, int, double, double, int, int, bool, const std::string&>(),
                  "bdsimConfigFile"_a, "referencePdgId"_a, "referenceEk"_a,
-                 "relativeEnergyCut"_a, "seed"_a, "referenceIonCharge"_a=0,"batchMode"_a=true,
+                 "relativeEnergyCut"_a, "seed"_a, "referenceIonCharge"_a=0,
+                 "batchMode"_a=true, "workdir"_a="",
                  py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>())
             .def("addCollimator", &XtrackInterface::addCollimator,
                  "name"_a, "material"_a, "tipMaterial"_a, "tipThickness"_a, "length"_a, "apertureLeft"_a,

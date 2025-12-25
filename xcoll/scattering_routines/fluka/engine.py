@@ -21,12 +21,12 @@ from .reference_masses import source, fluka_masses
 from .environment import format_fluka_float
 from .prototype import FlukaPrototype, FlukaAssembly
 from ..engine import BaseEngine
-from ...general import _pkg_root
 
 
 network_file = "network.nfo"
-fluka_log  = "fluka.log"
-server_log = "rfluka.log"
+fluka_log    = "fluka.log"
+server_log   = "rfluka.log"
+pyfluka_log  = "pyfluka.log"
 
 
 class FlukaEngine(BaseEngine):
@@ -148,7 +148,6 @@ class FlukaEngine(BaseEngine):
     def _set_engine_properties(self, **kwargs):
         kwargs = super()._set_engine_properties(**kwargs)
         self._set_property('timeout_sec', kwargs)
-        self._set_property('relative_capacity', kwargs)
         return kwargs
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
@@ -201,6 +200,7 @@ class FlukaEngine(BaseEngine):
     def _is_running(self):
         # Is the Popen process still running?
         if self._server_process is None:
+            self.stop()
             return False
         elif self._server_process.poll() is not None:
             self.stop()
@@ -305,15 +305,17 @@ class FlukaEngine(BaseEngine):
                         self._print(f"Warning: Jaw_R of {name} differs from input file "
                                 + f"({ee.jaw_R} vs {jaw[1]})! Overwritten.")
                         ee.jaw_R = jaw[1]
-            tilts = input_dict[name]['tilt']
-            if not np.isclose(ee.tilt_L, tilts[0], atol=1e-9):
+            tilt = input_dict[name]['tilt']
+            if not hasattr(tilt, '__iter__'):
+                tilt = [tilt, -tilt]
+            if ee.side != 'right' and not np.isclose(ee.tilt_L, tilt[0], atol=1e-9):
                 self._print(f"Warning: Tilt_L of {name} differs from input file "
-                        + f"({ee.tilt_L} vs {tilts[0]})! Overwritten by the latter.")
-                ee.tilt_L = tilts[0]
-            if not np.isclose(ee.tilt_R, tilts[1], atol=1e-9):
+                        + f"({ee.tilt_L} vs {tilt[0]})! Overwritten.")
+                ee.tilt_L = tilt[0]
+            if ee.side != 'left' and not np.isclose(ee.tilt_R, tilt[1], atol=1e-9):
                 self._print(f"Warning: Tilt_R of {name} differs from input file "
-                        + f"({ee.tilt_R} vs {tilts[1]})! Overwritten by the latter.")
-                ee.tilt_R = tilts[1]
+                        + f"({ee.tilt_R} vs {tilt[1]})! Overwritten.")
+                ee.tilt_R = tilt[1]
 
 
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
@@ -333,8 +335,8 @@ class FlukaEngine(BaseEngine):
 
     def _get_output_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is not None:
-            files_to_delete = [network_file, fluka_log, server_log,
-                            'fluka_isotope.log', 'fort.208', 'fort.251']
+            files_to_delete = [network_file, fluka_log, pyfluka_log, server_log,
+                               'fluka_isotope.log', 'fort.208', 'fort.251']
             files_to_delete = [cwd / f for f in files_to_delete]
             if input_file is not None:
                 if not hasattr(input_file, '__iter__') or isinstance(input_file, str):
@@ -409,16 +411,20 @@ class FlukaEngine(BaseEngine):
                     self._deactivate_element(ee)
 
     def _init_fortran(self, fortran_debug_level=0):
+        if self.cwd is None:
+            self.stop()
+            raise RuntimeError("FLUKA engine needs a working directory to init Fortran!")
         try:
             from pyflukaf import pyfluka_init
-            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level)
+            pyfluka_init(n_alloc=self._capacity, debug_level=fortran_debug_level,
+                         cwd_path=self.cwd.as_posix())
         except (ModuleNotFoundError, ImportError) as error:
             self._warn(error)
 
 
     def _declare_network(self):
-        self._network_nfo = self._cwd / network_file
-        cmd = run(["hostname"], cwd=self._cwd, stdout=PIPE, stderr=PIPE)
+        self._network_nfo = self.cwd / network_file
+        cmd = run(["hostname"], cwd=self.cwd, stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             host = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
         else:
@@ -441,14 +447,14 @@ class FlukaEngine(BaseEngine):
 
     def _start_server(self):
         import xcoll as xc
-        log = self._cwd / server_log
+        log = self.cwd / server_log
         self._log = log
         self._log_fid = self._log.open('w')
         cmds = [xc.fluka.environment.fluka.as_posix(),
-                                      self.input_file[0].as_posix(), '-e',
-                                      xc.fluka.environment.flukaserver.as_posix(), '-M', "1"]
+                self.input_file[0].as_posix(), '-e',
+                xc.fluka.environment.flukaserver.as_posix(), '-M', "1"]
         self._print(f"Running `{' '.join(cmds)}` in folder {self._cwd}...")
-        self._server_process = Popen(cmds, cwd=self._cwd, stdout=self._log_fid, stderr=self._log_fid)
+        self._server_process = Popen(cmds, cwd=self.cwd, stdout=self._log_fid, stderr=self._log_fid)
         self.server_pid = self._server_process.pid
         sleep(1)
         if not self.is_running():
@@ -488,7 +494,7 @@ class FlukaEngine(BaseEngine):
                 from pyflukaf import pyfluka_close
                 pyfluka_close()  # TODO: is this what causes segfaults on crash?
             except (ModuleNotFoundError, ImportError) as error:
-                self._warn(error)
+                pass
             self._print(f"Done.")
 
 
@@ -512,7 +518,7 @@ class FlukaEngine(BaseEngine):
         # Check if touches is a list of collimator names
         if touches is not None and hasattr(touches, '__iter__') \
         and not isinstance(touches, str):
-            relcol = FsPath('relcol.dat').resolve()
+            relcol = (self.cwd / 'relcol.dat').resolve()
             with relcol.open('w') as fid:
                 fid.write(f'{len(touches)}\n')
                 for touch in touches:

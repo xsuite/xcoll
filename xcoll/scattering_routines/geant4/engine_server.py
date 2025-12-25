@@ -14,13 +14,14 @@ class BDSIMServer:
 
 
     def XtrackInterface(self, bdsimConfigFile=None, referencePdgId=None, referenceEk=None,
-                        relativeEnergyCut=None, seed=None, batchMode=None):
+                        relativeEnergyCut=None, seed=None, batchMode=None, workdir=None):
         from g4interface import XtrackInterface
         self.g4link = XtrackInterface(bdsimConfigFile=bdsimConfigFile,
                                       referencePdgId=referencePdgId,
                                       referenceEk=referenceEk,
                                       relativeEnergyCut=relativeEnergyCut,
-                                      seed=seed, batchMode=batchMode)
+                                      seed=seed, batchMode=batchMode,
+                                      workdir=workdir)
 
 
     def addCollimator(self, geant4_id, material, tipMaterial='', tipThickness=0, length=0,

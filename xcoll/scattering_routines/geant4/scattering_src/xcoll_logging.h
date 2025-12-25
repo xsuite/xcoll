@@ -11,6 +11,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+
+#include <filesystem>
+namespace fs = std::filesystem;
+
+static fs::path resolve_path(const fs::path& workdir, const fs::path& name){
+    if (workdir.empty() || name.is_absolute()) return name;
+    return workdir / name;
+}
+
+
 // ------------------------------ //
 // Logging functionality for Root //
 // ------------------------------ //
@@ -19,34 +29,40 @@ namespace rootlog {
   inline std::unique_ptr<std::ofstream> info;
   inline std::unique_ptr<std::ofstream> err;
   inline ErrorHandlerFunc_t prev = nullptr;
-  inline std::once_flag init_once;
+  inline std::mutex mtx;
 
   inline void Handler(int level, Bool_t abort, const char* loc, const char* msg) {
+    std::lock_guard<std::mutex> lock(mtx);
+    if (!info || !err) return;
     std::ostream& os = (level >= kError) ? *err : *info;
     os << loc << ": " << msg << '\n';
-    os.flush();                 // keep logs timely
-    if (abort) ::abort();       // mimic ROOT's behaviour
+    os.flush();
+    // if (abort) ::abort();
   }
 
   inline void init(const std::string& infoPath,
                    const std::string& errPath,
-                   bool append = true)
-  {
-    std::call_once(init_once, [&]{
-      auto mode = append ? std::ios::app : std::ios::trunc;
-      info = std::make_unique<std::ofstream>(infoPath, mode);
-      err  = std::make_unique<std::ofstream>(errPath.empty() ? infoPath : errPath, mode);
-      if (!info->is_open() || !err->is_open())
-        throw std::runtime_error("Failed to open ROOT log files");
-      prev = GetErrorHandler();
-      SetErrorHandler(&Handler);
-    });
+                   bool append = true) {
+    std::lock_guard<std::mutex> lock(mtx);
+
+    auto mode = append ? std::ios::app : std::ios::trunc;
+    info = std::make_unique<std::ofstream>(infoPath, mode);
+    err  = std::make_unique<std::ofstream>(errPath.empty() ? infoPath : errPath, mode);
+    if (!info->is_open() || !err->is_open())
+      throw std::runtime_error("Failed to open ROOT log files");
+
+    if (!prev) prev = GetErrorHandler();    // save once
+    SetErrorHandler(&Handler);              // (re)install handler
   }
 
   inline void restore() {
-    if (prev) SetErrorHandler(prev);   // optional: restore if you ever want to undo
+    std::lock_guard<std::mutex> lock(mtx);
+    if (prev) SetErrorHandler(prev);
+    info.reset();
+    err.reset();
   }
-} // namespace rootlog
+}
+
 
 
 // -------------------------------- //
@@ -55,17 +71,22 @@ namespace rootlog {
 
 class XcollLogFileSession : public G4UIsession {
 public:
-  XcollLogFileSession()
-  : logfile("geant4.out"), errfile("geant4.err") {}
+  XcollLogFileSession(const std::string& out_path,
+                      const std::string& err_path)
+  : logfile(out_path, std::ios::app),
+    errfile(err_path, std::ios::app)
+  {}
 
-  virtual ~XcollLogFileSession() { logfile.close(); errfile.close();}
+  ~XcollLogFileSession() override { logfile.close(); errfile.close(); }
 
   G4int ReceiveG4cout(const G4String& msg) override {
     logfile << msg;
+    logfile.flush();
     return 0;
   }
   G4int ReceiveG4cerr(const G4String& msg) override {
     errfile << msg;
+    errfile.flush();
     return 0;
   }
 
@@ -74,11 +95,15 @@ private:
   std::ofstream errfile;
 };
 
-void RedirectGeant4() {
-  auto ui = G4UImanager::GetUIpointer();
-  static XcollLogFileSession session;
-  ui->SetCoutDestination(&session);
+inline void RedirectGeant4(const std::string& out_path,
+                           const std::string& err_path) {
+    auto ui = G4UImanager::GetUIpointer();
+    if (!ui) {return;}
+    static std::unique_ptr<XcollLogFileSession> session;
+    session = std::make_unique<XcollLogFileSession>(out_path, err_path);
+    ui->SetCoutDestination(session.get());
 }
+
 
 
 // ---------------------------------------------- //

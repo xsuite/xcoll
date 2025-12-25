@@ -21,13 +21,14 @@ module mod_units
   implicit none
 
   logical, public,  save       :: units_beQuiet  = .true.            ! No writing to lout when this flag is .true.
+  character(len=255), public   :: units_path = ""                    ! Path prefix for all files opened through this module
 
   ! Keep track of units
   integer, parameter           :: units_minUnit  = 1                 ! First unit to keep track of
   integer, parameter           :: units_maxUnit  = 250               ! Last unit to keep track of
   integer, parameter           :: units_minAuto  = 100               ! First unit available for dynamic allocation
   integer, private, save       :: units_nextUnit = units_minAuto     ! Next unit available for dynamic allocation
-  integer, private, save       :: units_logUnit  = units_maxUnit+1   ! File unit for internal log file
+  integer, private, save       :: units_logUnit  = -1                ! File unit for internal log file
   character(len=14), parameter :: units_logFile  = "file_units.log"  ! File name for internal log file
 
   type, private :: unitRecord
@@ -54,7 +55,7 @@ contains
 subroutine f_initUnits
 
   ! All we need to do is open the log file
-
+  units_logUnit  = units_maxUnit+1
   units_uList(units_logUnit)%file  = units_logFile
   units_uList(units_logUnit)%mode  = "w"
   units_uList(units_logUnit)%taken = .true.
@@ -160,6 +161,33 @@ subroutine f_getUnit(file,unit)
 
 end subroutine f_getUnit
 
+
+pure function units_resolve_path(file) result(full)
+  character(len=*), intent(in) :: file
+  character(len=:), allocatable :: full
+  character(len=:), allocatable :: wd
+  integer :: lf
+
+  full = trim(file)
+
+  if (len_trim(full) == 0) return
+
+  ! Absolute path? (POSIX)
+  if (full(1:1) == '/') return
+
+  lf = len_trim(units_path)
+  if (lf == 0) return
+
+  wd = trim(units_path)
+  if (wd(len_trim(wd):len_trim(wd)) == '/') then
+    full = wd // full
+  else
+    full = wd // '/' // full
+  end if
+end function units_resolve_path
+
+
+
 ! ================================================================================================ !
 !  Open a File
 !  V.K. Berglyd Olsen, BE-ABP-HSS
@@ -194,6 +222,9 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
 
   character(len=:), allocatable :: fFileName, fStatus, fAction, fPosition, fMode, fAccess
 
+  character(len=:), allocatable :: fPath
+  integer :: lp
+  logical :: is_abs
 
 
   integer fRecl, fStat, chkUnit
@@ -217,30 +248,23 @@ subroutine f_open(unit,file,formatted,mode,err,iostat,status,access,recl)
     fAccess = "sequential"
   end if
 
-  if(len_trim(file) > mPathName) then
-    write(lerr,"(2(a,i0))") "UNITS> ERROR Max length of file path in f_open is ",mPathName," characters, got ",len_trim(file)
-    !call prror
-  end if
-
   if(unit < units_minUnit .or. unit > units_maxUnit) then
     write(lerr,"(3(a,i0),a)") "UNITS> ERROR Unit ",unit," is out of range ",units_minUnit,":",units_maxUnit," in f_open"
     !call prror
   end if
 
+  ! Decide on actual file name to open (prefix with units_path if requested)
+  fFileName = units_resolve_path(file)
 
-
-
-
-  fFileName = trim(file)
-
-
+  if(len_trim(fFileName) > mPathName) then
+    write(lerr,"(2(a,i0))") "UNITS> ERROR Max length of file path in f_open is ",mPathName,&
+                            " characters, got ",len_trim(fFileName)
+  end if
 
 
   fFio = .false.
 
-
   fRecl = 0
-
 
   if(.not. formatted) fFio = .false.
 

@@ -3,24 +3,16 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
-import os
-import sys
+import gc
 import numpy as np
-from pathlib import Path
 from numbers import Number
-
-from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
 
-from .std_redirect import pin_python_stdio
+from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 from .bdsim_config import create_bdsim_config_file, get_collimators_from_input_file
 from ..engine import BaseEngine
 from ...general import _pkg_root
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 
 class Geant4Engine(BaseEngine):
@@ -156,8 +148,12 @@ class Geant4Engine(BaseEngine):
     # =================================
 
     def _set_engine_properties(self, **kwargs):
-        self._set_property('relative_energy_cut', kwargs)
         kwargs = super()._set_engine_properties(**kwargs)
+        self._set_property('relative_energy_cut', kwargs)
+        self._set_property('lower_momentum_cut', kwargs)
+        self._set_property('photon_lower_momentum_cut', kwargs)
+        self._set_property('electron_lower_momentum_cut', kwargs)
+        self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
     def _pre_input(self, **kwargs):
@@ -192,7 +188,7 @@ class Geant4Engine(BaseEngine):
             except (ModuleNotFoundError, ImportError) as e:
                 self.stop()
                 raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.") from e
-            self._server, port = launch_rpyc_with_port()
+            self._server, port = launch_rpyc_with_port(log_path=self.cwd / "rpyc.log")
             self._conn = rpyc.classic.connect('localhost', port=port)
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
@@ -200,11 +196,12 @@ class Geant4Engine(BaseEngine):
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
             self._conn.execute('import engine_server')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-            self._g4link.XtrackInterface(bdsimConfigFile='geant4_input.gmad',
+            self._g4link.XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
                                          referencePdgId=self.particle_ref.pdg_id,
                                          referenceEk=Ekin,
                                          relativeEnergyCut=self.relative_energy_cut,
-                                         seed=self.seed, batchMode=True)
+                                         seed=self.seed, batchMode=True,
+                                         workdir=self.cwd.as_posix())
         else:
             if self._already_started:
                 self.stop(clean=True)
@@ -212,14 +209,12 @@ class Geant4Engine(BaseEngine):
                                  + "Please exit this Python process. Do pip install rpyc "
                                  + "to avoid this limitation.")
 
-            # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
-            # to avoid python output being redirected by FDRedirect in C
-            with pin_python_stdio():
-                self._g4link = XtrackInterface(bdsimConfigFile='geant4_input.gmad',
-                                               referencePdgId=self.particle_ref.pdg_id,
-                                               referenceEk=Ekin,
-                                               relativeEnergyCut=self.relative_energy_cut,
-                                               seed=self.seed, batchMode=True)
+            self._g4link = XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
+                                            referencePdgId=self.particle_ref.pdg_id,
+                                            referenceEk=Ekin,
+                                            relativeEnergyCut=self.relative_energy_cut,
+                                            seed=self.seed, batchMode=True,
+                                            workdir=self.cwd.as_posix())
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side
@@ -249,6 +244,8 @@ class Geant4Engine(BaseEngine):
         self._already_started = True
 
     def _stop_engine(self, **kwargs):
+        del self._g4link
+        gc.collect()
         self._g4link = None
         if self.reentry_protection_enabled and self._server: # remove after geant4 bugfix
             self._server.terminate() # remove after geant4 bugfix

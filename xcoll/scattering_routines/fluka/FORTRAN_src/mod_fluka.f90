@@ -54,15 +54,15 @@ module mod_fluka
   external ntrtimeout, ntwtimeout
 
   integer(kind=4) :: ntconnect,   &
-                         ntsendp,     &
-                         ntsendeob,   &
-                         ntsendeoc,   &
-                         ntsendipt,   &
-                         ntrecv,      &
-                         ntwait,      &
-                         ntsendnpart, &
-                         ntsendbrhono,&
-                         ntend
+                     ntsendp,     &
+                     ntsendeob,   &
+                     ntsendeoc,   &
+                     ntsendipt,   &
+                     ntrecv,      &
+                     ntwait,      &
+                     ntsendnpart, &
+                     ntsendbrhono,&
+                     ntend
   integer(kind=4) :: ntrtimeout, ntwtimeout
 
   ! FlukaIO Message types
@@ -81,6 +81,8 @@ module mod_fluka
   logical, public :: fluka_enable    = .false.         ! enable coupling
   logical, public :: fluka_connected = .false.         ! fluka is connected
   integer, public :: fluka_debug_level = 1             ! write debug messages
+  character(len = 255), public :: pyfluka_log  = "pyfluka.log"
+  integer, public :: unit_pyfluka = -1
 
   ! fluka insertions
   logical, public :: fluka_inside = .false.                    ! Are we in a fluka insertion?
@@ -95,9 +97,9 @@ module mod_fluka
   integer :: fluka_last_rcvd_mess=-1 ! last received message
   ! recognised insertion types
   integer(kind=4), parameter, public :: FLUKA_NONE    = 0, & ! no insertion
-                                            FLUKA_ELEMENT = 1, & ! insertion covers only the present SINGLE ELEMENT
-                                            FLUKA_ENTRY   = 2, & ! SINGLE ELEMENT marking the start of the insertion
-                                            FLUKA_EXIT    = 3    ! SINGLE ELEMENT marking the end   of the insertion
+                                        FLUKA_ELEMENT = 1, & ! insertion covers only the present SINGLE ELEMENT
+                                        FLUKA_ENTRY   = 2, & ! SINGLE ELEMENT marking the start of the insertion
+                                        FLUKA_EXIT    = 3    ! SINGLE ELEMENT marking the end   of the insertion
   ! ancillary tracking values
   integer(kind=4), public :: fluka_max_npart                          ! Maximum number of particles (array size)
   integer,          public, allocatable    :: pids(:)         ! Particle ID moved from hisixtrack, to be harmonised
@@ -135,9 +137,14 @@ contains
     ! temporary variables
     integer :: j
 
+    if(unit_pyfluka == -1) then
+      call f_requestUnit(pyfluka_log,unit_pyfluka)
+      call f_open(unit=unit_pyfluka,file=pyfluka_log,formatted=.true.,mode="w")
+    end if
+
     if(fluka_debug_level > 1) then
-       write(lout,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
-       flush(lout)
+       write(unit_pyfluka,*) "fluka_mod_init npart=", npart, ", nele=", nele, ", clight=", clight
+       flush(unit_pyfluka)
     end if
 
     fluka_max_npart = npart
@@ -213,8 +220,8 @@ contains
     end if
 
     if(fluka_debug_level > 1) then
-       write(lout,*) "FLUKA>   host=", host, " port=", port
-       flush(lout)
+       write(unit_pyfluka,*) "FLUKA>   host=", host, " port=", port
+       flush(unit_pyfluka)
     end if
 
     call f_close(net_nfo_unit)
@@ -259,8 +266,8 @@ contains
     real(kind=8)            :: flsx, flsy, flsz
 
     if(fluka_debug_level > 0) then
-        write(lout,'(A)') 'FlukaIO> Sending End of Computation signal'
-        flush(lout)
+        write(unit_pyfluka,'(A)') 'FlukaIO> Sending End of Computation signal'
+        flush(unit_pyfluka)
     end if
 
     ! Send end of computation
@@ -302,9 +309,9 @@ contains
     ! Parameters
     integer(kind=4) :: turn
     integer(kind=2) :: ipt
-    integer           :: npart
-    integer           :: max_part
-    real(kind=8)  :: el
+    integer         :: npart
+    integer         :: max_part
+    real(kind=8)    :: el
 
     real(kind=8) :: xv1(max_part)
     real(kind=8) :: yv1(max_part)
@@ -329,8 +336,8 @@ contains
          xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
          partID, parentID, partWeight, spinx, spiny, spinz)
     if(fluka_debug_level > 1) then
-        write(lout,*) "    Sent all particles (return code ", fluka_send_receive, ")"
-        flush(lout)
+        write(unit_pyfluka,*) "    Sent all particles (return code ", fluka_send_receive, ")"
+        flush(unit_pyfluka)
     end if
     if(fluka_send_receive.lt.0) return
 
@@ -338,8 +345,8 @@ contains
          xv1, xv2, yv1, yv2, s, etot, aa, zz, mass, qq, pdg_id, &
          partID, parentID, partWeight, spinx, spiny, spinz)
     if(fluka_debug_level > 1) then
-        write(lout,*) "    Received all particles (return code ", fluka_send_receive, ")"
-        flush(lout)
+        write(unit_pyfluka,*) "    Received all particles (return code ", fluka_send_receive, ")"
+        flush(unit_pyfluka)
     end if
   end function fluka_send_receive
 
@@ -352,9 +359,9 @@ contains
     ! Interface variables
     integer(kind=4) :: turn
     integer(kind=2) :: ipt
-    integer           :: npart
-    integer           :: max_part
-    real(kind=8)  :: el
+    integer         :: npart
+    integer         :: max_part
+    real(kind=8)    :: el
 
     real(kind=8) :: xv1(max_part)
     real(kind=8) :: yv1(max_part)
@@ -401,8 +408,8 @@ contains
     end if
     fluka_last_sent_mess=FLUKA_IPT
     if(fluka_debug_level > 1) then
-        write(lout,*) "FLUKA> Sent insertion point (return code ", n, ")"
-        flush(lout)
+        write(unit_pyfluka,*) "FLUKA> Sent insertion point (return code ", n, ")"
+        flush(unit_pyfluka)
     end if
 
     fluka_nsent = 0
@@ -448,9 +455,9 @@ contains
         flsz = spinz(j)
 
         if(fluka_debug_level > 2) then
-            write(lout,*) "    Sending particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-            write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-            flush(lout)
+            write(unit_pyfluka,*) "    Sending particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+            write(unit_pyfluka,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+            flush(unit_pyfluka)
         end if
 
         ! Send particle         TODO: it seems flet should be pc!!
@@ -504,9 +511,9 @@ contains
     ! Interface variables
     integer(kind=4) :: turn
     integer(kind=2) :: ipt
-    integer           :: napx
-    integer           :: max_part
-    real(kind=8)  :: el
+    integer         :: napx
+    integer         :: max_part
+    real(kind=8)    :: el
 
     real(kind=8) :: xv1(max_part)
     real(kind=8) :: yv1(max_part)
@@ -532,10 +539,10 @@ contains
     real(kind=8)    :: flwgt, flx, fly, flz, flxp, flyp, flzp, flet, flm, flt
     integer(kind=4) :: flaa, flzz
     integer(kind=2) :: flq
-    integer(kind=1)  :: mtype
+    integer(kind=1) :: mtype
 
-    integer(kind=4)         :: flpdgid
-    real(kind=8)            :: flsx, flsy, flsz
+    integer(kind=4) :: flpdgid
+    real(kind=8)    :: flsx, flsy, flsz
 
     ! Auxiliary variables
     integer(kind=4) :: n, j
@@ -598,9 +605,9 @@ contains
             call CalculateAZ(flpdgid, flaa, flzz)
 
             if(fluka_debug_level > 2) then
-                write(lout,*) "    Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
-                write(lout,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
-                flush(lout)
+                write(unit_pyfluka,*) "    Received particle: ", flid, flgen, flwgt, flx, fly, flz, flxp, flyp, flzp, flm, flet, flt
+                write(unit_pyfluka,*) flsx, flsy, flsz, flaa, flzz, flq, flpdgid
+                flush(unit_pyfluka)
             end if
 
             partID(fluka_nrecv)      = flid
@@ -636,9 +643,9 @@ contains
     fluka_last_rcvd_mess = FLUKA_EOB
 
     if(fluka_debug_level > 1) then
-        write(lout,*) "FlukaIO> turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
+        write(unit_pyfluka,*) "FlukaIO> turn = ", turn, " ipt = ", ipt, " sent = ", fluka_nsent, &
                       " received = ", fluka_nrecv, " max_uid = ", MaximumPartID
-        flush(lout)
+        flush(unit_pyfluka)
     end if
 
   end function fluka_receive
@@ -651,8 +658,8 @@ contains
     integer, intent(in) :: j
 
     if(fluka_debug_level > 1) then
-      write(lout, *) 'FLUKA> fluka_shuffleLostParticles called with napx (lnapx for SixTrack) = ', tnapx, ', j = ', j
-      flush(lout)
+      write(unit_pyfluka, *) 'FLUKA> fluka_shuffleLostParticles called with napx (lnapx for SixTrack) = ', tnapx, ', j = ', j
+      flush(unit_pyfluka)
     end if
 
   end subroutine fluka_shuffleLostParticles
@@ -682,15 +689,15 @@ contains
     fluka_brho0 = fluka_pc0 / real(fluka_chrg0,real64)
 
     if(fluka_debug_level > 1) then
-        write(lout,*) '    - total en        [GeV]:',fluka_e0
-        write(lout,*) '    - momentum      [GeV/c]:',fluka_pc0
-        write(lout,*) '    - mass         [GeV/c2]:',fluka_mass0
-        write(lout,*) '    - A mass number      []:',fluka_a0
-        write(lout,*) '    - Z number           []:',fluka_z0
-        write(lout,*) '    - charge state      [e]:',fluka_chrg0
-        write(lout,*) '    - rigidity     [Tm/0.3]:', fluka_brho0
-        write(lout,*) '      in proper units  [Tm]:', fluka_brho0 / ( fluka_clight*c1m9 )
-        flush(lout)
+        write(unit_pyfluka,*) '    - total en        [GeV]:',fluka_e0
+        write(unit_pyfluka,*) '    - momentum      [GeV/c]:',fluka_pc0
+        write(unit_pyfluka,*) '    - mass         [GeV/c2]:',fluka_mass0
+        write(unit_pyfluka,*) '    - A mass number      []:',fluka_a0
+        write(unit_pyfluka,*) '    - Z number           []:',fluka_z0
+        write(unit_pyfluka,*) '    - charge state      [e]:',fluka_chrg0
+        write(unit_pyfluka,*) '    - rigidity     [Tm/0.3]:', fluka_brho0
+        write(unit_pyfluka,*) '      in proper units  [Tm]:', fluka_brho0 / ( fluka_clight*c1m9 )
+        flush(unit_pyfluka)
     end if
 
     ! inform Fluka about the new magnetic rigidity
@@ -734,13 +741,14 @@ contains
   !----------------------------------------------------------------------------
   ! check if fluka is running, ie if it created the
   integer function fluka_is_running()
+    use mod_units, only : units_resolve_path
     implicit none
 
     ! temporary variables
     logical :: lexist
 
     fluka_is_running = 0
-    inquire( file=fluka_net_nfo_file, exist=lexist)
+    inquire(file=units_resolve_path(fluka_net_nfo_file), exist=lexist)
 
     if (.not.lexist) then
        write(lout,*) 'FLUKA> ERROR File containing network infos ', fluka_net_nfo_file, ' does not exist!!'
@@ -763,16 +771,16 @@ subroutine fluka_close
      integer fluka_con
 
      if(fluka_debug_level > 0) then
-         write(lout,'(A)') 'FLUKA> Call to fluka_close'
-         flush(lout)
+         write(unit_pyfluka,'(A)') 'FLUKA> Call to fluka_close'
+         flush(unit_pyfluka)
      end if
      if (fluka_enable) then
        if (fluka_last_sent_mess==FLUKA_EOB .and. fluka_last_rcvd_mess.eq.-1) then
          ! FLUKA is still crunching stuff
          if(fluka_debug_level > 0) then
-             write(lout,'(A)') 'FLUKA> fluka_close called while particles are still on the Fluka side'
-             write(lout,'(A)') 'FLUKA>    dummy wait to have a clean closure'
-             flush(lout)
+             write(unit_pyfluka,'(A)') 'FLUKA> fluka_close called while particles are still on the Fluka side'
+             write(unit_pyfluka,'(A)') 'FLUKA>    dummy wait to have a clean closure'
+             flush(unit_pyfluka)
          end if
        end if
        fluka_con = fluka_is_running()
@@ -788,8 +796,8 @@ subroutine fluka_close
              goto 1982
            endif
            if(fluka_debug_level > 0) then
-               write(lout,'(A)') 'FLUKA> Successfully connected to Fluka server (only temporarily)'
-               flush(lout)
+               write(unit_pyfluka,'(A)') 'FLUKA> Successfully connected to Fluka server (only temporarily)'
+               flush(unit_pyfluka)
            end if
          end if
          call fluka_end
@@ -797,6 +805,10 @@ subroutine fluka_close
      end if
 1982 call fluka_mod_end
      flush(lout)
+     if (unit_pyfluka /= -1) then
+      close(unit_pyfluka)
+      unit_pyfluka = -1
+    end if
 end subroutine fluka_close
 
 end module mod_fluka

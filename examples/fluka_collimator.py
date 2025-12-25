@@ -29,7 +29,7 @@ coll2 = xc.EverestCollimator(length=0.6, material=xc.materials.MolybdenumGraphit
 xc.fluka.engine.particle_ref = particle_ref
 xc.fluka.engine.capacity = capacity
 xc.fluka.engine.seed = 5656565
-xc.fluka.engine.start(elements=coll1, clean=True, verbose=False)
+xc.fluka.engine.start(elements=coll1, clean=True, verbose=False, fortran_debug_level=1)
 
 
 # Create an initial distribution of particles, random in 4D, on the left jaw (with the
