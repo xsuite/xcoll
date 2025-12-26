@@ -41,7 +41,8 @@ start = time.time()
 coll.track(part)
 print(f"Done in {time.time() - start:.2f} seconds.")
 
-xc.fluka.engine.stop()
+# Stop the FLUKA server
+xc.fluka.engine.stop(clean=True)
 
 # Sort particles to be able to compare to part_init
 part.sort(interleave_lost_particles=True)

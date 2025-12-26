@@ -308,14 +308,24 @@ class FlukaEngine(BaseEngine):
             tilt = input_dict[name]['tilt']
             if not hasattr(tilt, '__iter__'):
                 tilt = [tilt, -tilt]
-            if ee.side != 'right' and not np.isclose(ee.tilt_L, tilt[0], atol=1e-9):
-                self._print(f"Warning: Tilt_L of {name} differs from input file "
-                        + f"({ee.tilt_L} vs {tilt[0]})! Overwritten.")
-                ee.tilt_L = tilt[0]
-            if ee.side != 'left' and not np.isclose(ee.tilt_R, tilt[1], atol=1e-9):
-                self._print(f"Warning: Tilt_R of {name} differs from input file "
-                        + f"({ee.tilt_R} vs {tilt[1]})! Overwritten.")
-                ee.tilt_R = tilt[1]
+            if ee.assembly.is_crystal:
+                if ee.side != 'right' and not np.isclose(ee.tilt, tilt[0], atol=1e-9):
+                    self._print(f"Warning: Tilt_L of {name} differs from input file "
+                            + f"({ee.tilt} vs {tilt[0]})! Overwritten.")
+                    ee.tilt = tilt[0]
+                if ee.side != 'left' and not np.isclose(ee.tilt, tilt[1], atol=1e-9):
+                    self._print(f"Warning: Tilt_R of {name} differs from input file "
+                            + f"({ee.tilt} vs {tilt[1]})! Overwritten.")
+                    ee.tilt = tilt[1]
+            else:
+                if ee.side != 'right' and not np.isclose(ee.tilt_L, tilt[0], atol=1e-9):
+                    self._print(f"Warning: Tilt_L of {name} differs from input file "
+                            + f"({ee.tilt_L} vs {tilt[0]})! Overwritten.")
+                    ee.tilt_L = tilt[0]
+                if ee.side != 'left' and not np.isclose(ee.tilt_R, tilt[1], atol=1e-9):
+                    self._print(f"Warning: Tilt_R of {name} differs from input file "
+                            + f"({ee.tilt_R} vs {tilt[1]})! Overwritten.")
+                    ee.tilt_R = tilt[1]
 
 
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
