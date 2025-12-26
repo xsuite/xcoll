@@ -87,10 +87,10 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
 
 
 /*gpufun*/
-double calculate_dechannelling_length(EverestData restrict everest, CrystalMaterialData restrict material, double pc) {
+double calculate_dechannelling_length(EverestData restrict everest, MaterialData restrict material, double pc) {
 
     // Material properties
-    double exenergy = CrystalMaterialData_get__excitation_energy(material);
+    double exenergy = MaterialData_get__excitation_energy(material);
     if (exenergy < 0){
         // Unsupported material for ionisation loss
         return 1.e21;

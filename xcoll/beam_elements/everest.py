@@ -8,7 +8,7 @@ import xtrack as xt
 
 from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
 from ..scattering_routines.everest import EverestEngine
-from ..materials import Material, CrystalMaterial, db as material_db, _DEFAULT_MATERIAL, _DEFAULT_CRYSTALMATERIAL
+from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
 
 
@@ -74,15 +74,7 @@ class EverestBlock(BaseBlock):
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = _DEFAULT_MATERIAL
-        elif isinstance(material, dict):
-            material = Material.from_dict(material)
-        elif isinstance(material, str):
-            material = material_db[material]
-        if not isinstance(material, Material) \
-        or isinstance(material, CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(material)}!")
+        material = _resolve_material(material)
         if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
@@ -145,15 +137,7 @@ class EverestCollimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = _DEFAULT_MATERIAL
-        elif isinstance(material, dict):
-            material = Material.from_dict(material)
-        elif isinstance(material, str):
-            material = material_db[material]
-        if not isinstance(material, Material) \
-        or isinstance(material, CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(material)}!")
+        material = _resolve_material(material)
         if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
@@ -169,7 +153,7 @@ class EverestCrystal(BaseCrystal):
         '_orient':            xo.Int8,
         '_critical_angle':    xo.Float64,
         '_critical_radius':   xo.Float64,
-        '_material':          CrystalMaterial,
+        '_material':          Material,
         'rutherford_rng':     xt.RandomRutherford,
         '_tracking':          xo.Int8
     }
@@ -206,7 +190,7 @@ class EverestCrystal(BaseCrystal):
         to_assign = {}
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = _DEFAULT_CRYSTALMATERIAL
+            kwargs['_material'] = _DEFAULT_MATERIAL
             to_assign['lattice'] = kwargs.pop('lattice', 'strip')
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
@@ -218,25 +202,12 @@ class EverestCrystal(BaseCrystal):
 
     @property
     def material(self):
-        if self._material != _DEFAULT_CRYSTALMATERIAL:
+        if self._material != _DEFAULT_MATERIAL:
             return self._material
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = _DEFAULT_CRYSTALMATERIAL
-        elif isinstance(material, dict):
-            material = Material.from_dict(material)
-        elif isinstance(material, str):
-            material = material_db[material]
-        if not isinstance(material, CrystalMaterial):
-            if isinstance(material, Material):
-                if material.name == 'CarbonFibreCarbon':
-                    material = material_db['CarbonCrystal']
-                else:
-                    material = material_db[f'{material.name}Crystal']
-            else:
-                raise ValueError(f"Invalid material of type {type(material)}!")
+        material = _resolve_material(material, everest_crystal=True)
         if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)

@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from .material import Material, CrystalMaterial
+from .material import Material
 from .atoms import Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead
 from .allotropes import CarbonFibreCarbon
 from .mixtures import MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180
@@ -87,32 +87,7 @@ _manually_add_material_to_db(K2Glidcop15,          'K2Glidcop15')
 _manually_add_material_to_db(K2Inermet180,         'K2Inermet180')
 
 
-# K2 variants of crystal materials
-K2CarbonCrystal    = CrystalMaterial.from_material(K2CarbonFibreCarbon,
-                        name='K2CarbonCrystal', crystal_plane_distance=0.63e-7,
-                        crystal_potential=21.0, nuclear_collision_length=0,
-                        radiation_length=0.188, eta=0.9)
-K2CarbonCrystal._num_nucleons_eff = 3.705323974123165
-
-K2SiliconCrystal   = CrystalMaterial.from_material(K2Silicon,
-                        crystal_plane_distance=0.96e-7, crystal_potential=21.34,
-                        nuclear_collision_length=0.3016, radiation_length=0.0937,
-                        eta=0.9)
-K2SiliconCrystal._num_nucleons_eff = 4.917875746143141
-
-K2GermaniumCrystal = CrystalMaterial.from_material(K2Germanium,
-                        crystal_plane_distance=1.0e-7, crystal_potential=40.0,
-                        nuclear_collision_length=0.1632, radiation_length=0.02302,
-                        eta=0.9)
-K2GermaniumCrystal._num_nucleons_eff = 6.750726791090729
-
-K2TungstenCrystal  = CrystalMaterial.from_material(K2Tungsten,
-                        crystal_plane_distance=0.56e-7, crystal_potential=21.0,
-                        nuclear_collision_length=0, eta=0.9)
-K2TungstenCrystal._num_nucleons_eff = 9.200252118694163
-
-
 # Clean up namespace
 del (Beryllium, Aluminium, Silicon, Copper, Germanium, Molybdenum, Tungsten, Lead,
      CarbonFibreCarbon, MolybdenumGraphite, CopperDiamond, Glidcop15, Inermet180)
-del Material, CrystalMaterial
+del Material

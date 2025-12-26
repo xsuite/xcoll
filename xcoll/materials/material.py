@@ -44,6 +44,11 @@ class Material(xo.HybridClass):
                 # Index 0:Total, 1:absorption, 2:nuclear elastic, 3:pp or pn elastic
                 #       4:Single Diffractive pp or pn, 5:Coulomb for t above mcs
         '_hcut':                    xo.Float64,     # Cut in Rutherford distribution
+        # Optional crystal material fields (needed for full Everest crystal support)
+        '_crystal_plane_distance':   xo.Float64,    # ai  [mm]
+        '_crystal_potential':        xo.Float64,    # eum  [eV]
+        '_nuclear_collision_length': xo.Float64,    # collnt [m]
+        '_eta':                      xo.Float64
     }
 
     _depends_on = [xo.Float64] # A HybridClass needs something to depend on, otherwise the class is added twice in the cdefs during compilation
@@ -51,10 +56,15 @@ class Material(xo.HybridClass):
     _skip_in_to_dict  = ['_ZA_mean', '_Z2_eff', '_density', '_radiation_length',
                          '_excitation_energy', '_atoms_per_volume',
                          '_num_nucleons_eff', '_nuclear_radius',
-                         '_nuclear_elastic_slope', '_cross_section', '_hcut']
+                         '_nuclear_elastic_slope', '_cross_section',
+                         '_crystal_plane_distance', '_crystal_potential',
+                         '_nuclear_collision_length', '_eta',
+                         '_hcut']
     _store_in_to_dict = ['Z', 'A', 'components', 'n_atoms', 'mass_fractions',
                          'density', 'radiation_length', 'excitation_energy',
                          'nuclear_radius', 'nuclear_elastic_slope',
+                         'crystal_plane_distance', 'crystal_potential',
+                         'nuclear_collision_length', 'eta',
                          'cross_section', 'hcut', 'state', 'temperature',
                          'pressure', 'info', 'name', 'short_name',
                          'geant4_name', 'fluka_name']
@@ -71,17 +81,12 @@ class Material(xo.HybridClass):
 
         # Create xobject with all invalid values (-1)
         xokwargs = kwargs.pop('_xokwargs', {})
-        xokwargs['_ZA_mean'] = kwargs.pop('_ZA_mean', -1.)
-        xokwargs['_Z2_eff'] = kwargs.pop('_Z2_eff', -1.)
-        xokwargs['_radiation_length'] = kwargs.pop('_radiation_length', -1.)
-        xokwargs['_excitation_energy'] = kwargs.pop('_excitation_energy', -1.)
-        xokwargs['_atoms_per_volume'] = kwargs.pop('_atoms_per_volume', -1.)
-        xokwargs['_num_nucleons_eff'] = kwargs.pop('_num_nucleons_eff', -1.)
-        xokwargs['_density'] = kwargs.get('_density', -1.)
-        xokwargs['_nuclear_radius'] = kwargs.pop('_nuclear_radius', -1.)
-        xokwargs['_nuclear_elastic_slope'] = kwargs.pop('_nuclear_elastic_slope', -1.)
+        for kk in ('_ZA_mean', '_Z2_eff', '_radiation_length', '_excitation_energy',
+                   '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
+                   '_nuclear_elastic_slope', '_hcut', 'crystal_plane_distance',
+                   'crystal_potential', 'eta', 'nuclear_collision_length'):
+            xokwargs[f'_{kk}'] = kwargs.pop(kk, -1.)
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
-        xokwargs['_hcut'] = kwargs.pop('_hcut', -1.)
         xokwargs['_context'] = kwargs.pop('_context', _materials_context)  # This is needed to get all materials in the same buffer (otherwise Xtrack tests fail)
         xokwargs['__class__'] = kwargs.pop('__class__', Material)
         xokwargs['_buffer'] = kwargs.pop('_buffer', None)
@@ -194,8 +199,6 @@ class Material(xo.HybridClass):
         components = [Material.from_dict(el) if isinstance(el, dict) else el for el in components]
         if any([not isinstance(el, Material) for el in components]):
             raise ValueError('All components must be of type Material')
-        if any([isinstance(el, CrystalMaterial) for el in components]):
-            raise NotImplementedError("Cannot make Material out of CrystalMaterials")
         self._components = components
 
     def _resolve_elements(self, kwargs):
@@ -353,8 +356,6 @@ class Material(xo.HybridClass):
         if cls.__name__ != this_cls:
             if this_cls == 'Material':
                 return Material.from_dict(dct)
-            elif this_cls == 'CrystalMaterial':
-                return CrystalMaterial.from_dict(dct)
             elif this_cls == 'RefMaterial':
                 return RefMaterial.from_dict(dct)
             else:
@@ -456,7 +457,9 @@ class Material(xo.HybridClass):
         else:
             return f"Invalid {cls}({self.name})"
         comp += f", density={self.density:.4f} g/cm^3"
-        if self.full_everest_supported:
+        if self.full_everest_crystal_supported:
+            everest = ' [full support for Everest crystals]'
+        elif self.full_everest_supported:
             everest = ' [full support for Everest]'
         else:
             everest = ''
@@ -471,8 +474,22 @@ class Material(xo.HybridClass):
                 return False
         if not isinstance(other, Material):
             return False
-        return _dicts_equal(self._xobject._to_dict(),
-                            other._xobject._to_dict())
+        keys = set(self.to_dict().keys())
+        if keys != set(other.to_dict().keys()):
+            return False
+        dct_self = self.to_dict().copy()
+        dct_other = other.to_dict().copy()
+        if 'components' in dct_self:
+            if 'components' not in dct_other:
+                return False
+            if len(dct_self['components']) != len(dct_other['components']):
+                return False
+            for el1, el2 in zip(dct_self['components'], dct_other['components']):
+                if not _dicts_equal(el1, el2):
+                    return False
+            dct_self.pop('components')
+            dct_other.pop('components')
+        return _dicts_equal(dct_self, dct_other)
 
     def __setattr__(self, name, value):
         if name not in ['_xobject', '_frozen']:
@@ -494,6 +511,20 @@ class Material(xo.HybridClass):
         if self.hcut is None:
             return False
         if self.cross_section is None:
+            return False
+        return True
+
+    @property
+    def full_everest_crystal_supported(self):
+        if not self.full_everest_supported:
+            return False
+        if self.crystal_plane_distance is None:
+            return False
+        if self.crystal_potential is None:
+            return False
+        if self.nuclear_collision_length is None:
+            return False
+        if self.eta is None:
             return False
         return True
 
@@ -776,6 +807,62 @@ class Material(xo.HybridClass):
             if val <= 0:
                 raise ValueError('hcut must be strictly positive')
             self._hcut = val
+
+    @property
+    def crystal_plane_distance(self):
+        if self._crystal_plane_distance > 0:
+            return self._crystal_plane_distance
+
+    @crystal_plane_distance.setter
+    def crystal_plane_distance(self, val):
+        self._assert_not_frozen('crystal_plane_distance')
+        if val is None:
+            self._crystal_plane_distance = -1
+        elif val <= 0:
+            raise ValueError('`crystal_plane_distance` must be strictly positive')
+        self._crystal_plane_distance = val
+
+    @property
+    def crystal_potential(self):
+        if self._crystal_potential > 0:
+            return self._crystal_potential
+
+    @crystal_potential.setter
+    def crystal_potential(self, val):
+        self._assert_not_frozen('crystal_potential')
+        if val is None:
+            self._crystal_potential = -1
+        elif val <= 0:
+            raise ValueError('`crystal_potential` must be strictly positive')
+        self._crystal_potential = val
+
+    @property
+    def nuclear_collision_length(self):
+        if self._nuclear_collision_length > 0:
+            return self._nuclear_collision_length
+
+    @nuclear_collision_length.setter
+    def nuclear_collision_length(self, val):
+        self._assert_not_frozen('nuclear_collision_length')
+        if val is None:
+            self._nuclear_collision_length = -1
+        elif val <= 0:
+            raise ValueError('`nuclear_collision_length` must be strictly positive')
+        self._nuclear_collision_length = val
+
+    @property
+    def eta(self):
+        if self._eta > 0:
+            return self._eta
+
+    @eta.setter
+    def eta(self, val):
+        self._assert_not_frozen('eta')
+        if val is None:
+            self._eta = -1
+        elif val <= 0:
+            raise ValueError('`eta` must be strictly positive')
+        self._eta = val
 
     @property
     def electron_density(self):
@@ -1075,103 +1162,6 @@ MATERIAL                      {format_fluka_float(self.density)}                
         self._frozen = frozen
 
 
-class CrystalMaterial(Material):
-    _xofields = Material._xofields | {
-        '_crystal_plane_distance':   xo.Float64,     # ai  [mm]
-        '_crystal_potential':        xo.Float64,     # eum  [eV]
-        '_nuclear_collision_length': xo.Float64,     # collnt [m]
-        '_eta':                      xo.Float64
-    }
-
-    _depends_on = [Material]
-    _skip_in_to_dict  = Material._skip_in_to_dict + [
-                         '_crystal_plane_distance', '_crystal_potential',
-                         '_nuclear_collision_length', '_eta']
-    _store_in_to_dict = Material._store_in_to_dict + [
-                         'crystal_plane_distance', 'crystal_potential',
-                         'nuclear_collision_length', 'eta']
-
-    def __init__(self, **kwargs):
-        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
-            super().__init__(**kwargs)
-            return
-        xokwargs = {}
-        for kk in ('crystal_plane_distance',
-                   'crystal_potential', 'eta',
-                   'nuclear_collision_length'):
-            xokwargs[f'_{kk}'] = kwargs.pop(kk, -1.)
-        kwargs['_xokwargs'] = xokwargs
-        super().__init__(**kwargs)
-
-    @classmethod
-    def from_material(cls, material, **kwargs):
-        kwargs.setdefault('name', f'{material.name}Crystal')
-        thisdict = material.to_dict()
-        thisdict.update(kwargs)
-        thisdict.pop('__class__')
-        thisdict.pop('short_name', None)   # Need to define how to deal with these
-        thisdict.pop('fluka_name', None)   # Need to define how to deal with these
-        thisdict.pop('geant4_name', None)  # Need to define how to deal with these
-        return cls(**thisdict)
-
-    @property
-    def crystal_plane_distance(self):
-        if self._crystal_plane_distance > 0:
-            return self._crystal_plane_distance
-
-    @crystal_plane_distance.setter
-    def crystal_plane_distance(self, val):
-        self._assert_not_frozen('crystal_plane_distance')
-        if val is None:
-            self._crystal_plane_distance = -1
-        elif val <= 0:
-            raise ValueError('`crystal_plane_distance` must be strictly positive')
-        self._crystal_plane_distance = val
-
-    @property
-    def crystal_potential(self):
-        if self._crystal_potential > 0:
-            return self._crystal_potential
-
-    @crystal_potential.setter
-    def crystal_potential(self, val):
-        self._assert_not_frozen('crystal_potential')
-        if val is None:
-            self._crystal_potential = -1
-        elif val <= 0:
-            raise ValueError('`crystal_potential` must be strictly positive')
-        self._crystal_potential = val
-
-    @property
-    def nuclear_collision_length(self):
-        if self._nuclear_collision_length > 0:
-            return self._nuclear_collision_length
-
-    @nuclear_collision_length.setter
-    def nuclear_collision_length(self, val):
-        self._assert_not_frozen('nuclear_collision_length')
-        if val is None:
-            self._nuclear_collision_length = -1
-        elif val <= 0:
-            raise ValueError('`nuclear_collision_length` must be strictly positive')
-        self._nuclear_collision_length = val
-
-    @property
-    def eta(self):
-        if self._eta > 0:
-            return self._eta
-
-    @eta.setter
-    def eta(self, val):
-        self._assert_not_frozen('eta')
-        if val is None:
-            self._eta = -1
-        elif val <= 0:
-            raise ValueError('`eta` must be strictly positive')
-        self._eta = val
-
-
-
 class RefMaterial(Material):
     ''' A string to pass a material that exists in Geant4 or FLUKA.'''
     _xofields = Material._xofields
@@ -1205,5 +1195,25 @@ class RefMaterial(Material):
 
 _DEFAULT_MATERIAL = Material(Z=1, A=1, density=1)
 _DEFAULT_MATERIAL.invalidate()
-_DEFAULT_CRYSTALMATERIAL = CrystalMaterial(Z=1, A=1, density=1)
-_DEFAULT_CRYSTALMATERIAL.invalidate()
+
+
+def _resolve_material(material, allow_none=None, ref=None, everest_crystal=False):
+    if material is None:
+        if allow_none is None:
+            return _DEFAULT_MATERIAL
+        elif allow_none:
+            return None
+        raise ValueError('Material cannot be None!')
+    elif isinstance(material, dict):
+        material = Material.from_dict(material)
+    elif isinstance(material, str):
+        from xcoll.materials.database import db as mdb
+        material = mdb[material]
+    elif ref is not None and isinstance(material, RefMaterial):
+        if getattr(material, f'{ref}_name', None) is None:
+            raise ValueError(f"RefMaterial {material} does not have a {ref} name!")
+    if not isinstance(material, Material):
+        raise ValueError(f"Invalid material of type {type(material)}!")
+    if everest_crystal and not material.full_everest_crystal_supported:
+        raise ValueError(f"Material {material.name} does not have full Everest crystal support!")
+    return material

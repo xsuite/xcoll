@@ -13,7 +13,8 @@ from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, FlukaAssembly, create_generic_assembly
-from ..materials import(Material, CrystalMaterial, RefMaterial, db as material_db)
+from ..materials import _resolve_material
+from ..constants import HIT_ON_FLUKA_COLL
 
 
 class FlukaCollimator(BaseCollimator):
@@ -59,12 +60,7 @@ class FlukaCollimator(BaseCollimator):
                 kwargs.setdefault('_acc_ionisation_loss', -1.)
                 to_assign['name'] = xc.fluka.engine._get_new_element_name()
                 assembly = kwargs.pop('assembly', None)
-                material = kwargs.pop('material', None)
-                if material is not None:
-                    material = _resolve_material(material)
-                    if not isinstance(material, Material) \
-                    or isinstance(material, CrystalMaterial):
-                        raise ValueError(f"Invalid material of type {type(material)}!")
+                material = _resolve_material(kwargs.pop('material', None), ref='fluka', allow_none=True)
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
@@ -133,10 +129,7 @@ class FlukaCollimator(BaseCollimator):
         if not self._being_constructed():
             if self.assembly.fedb_series != 'generic':
                 raise ValueError('Cannot change material of non-generic assembly!')
-            material = _resolve_material(material)
-            if not isinstance(material, Material) \
-            or isinstance(material, CrystalMaterial):
-                raise ValueError(f"Invalid material of type {type(material)}!")
+            material = _resolve_material(material, ref='fluka', allow_none=False)
             if self.material != material:
                 self.assembly = create_generic_assembly(material=material,
                                 side=self.side, length=self.length, width=self.width,
@@ -220,13 +213,35 @@ class FlukaCollimator(BaseCollimator):
             if self.assembly.side is not None:
                 self._get_side_from_input(self.assembly.side)
 
+
+    def enable_scattering(self):
+        import xcoll as xc
+        xc.fluka.environment.assert_environment_ready()
+        if not xc.fluka.engine.is_running():
+            raise RuntimeError("FLUKA engine is not running.")
+        super().enable_scattering()
+
     def track(self, part):
         if track_pre(self, part):
             if self.material != "vacuum":
                 super().track(part)
+            else:
+                part.state[part.state == 1] = HIT_ON_FLUKA_COLL
             track_core(self, part)
             if self.material != "vacuum":
                 track_post(self, part)
+        else:
+            self._drift(part)
+
+    def _drift(self, particles, length=None):
+        if length is None:
+            length = self.length
+        if length != self.length:
+            old_length = self._equivalent_drift.length
+            self._equivalent_drift.length = length
+        self._equivalent_drift.track(particles)
+        if length != self.length:
+            self._equivalent_drift.length = old_length
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -316,11 +331,7 @@ class FlukaCrystal(BaseCrystal):
                 if assembly:
                     raise NotImplementedError('FlukaCrystalAssemblies not yet implemented!')
                 # kwargs for generic assembly creation
-                material = kwargs.pop('material', None)
-                if material is not None:
-                    material = _resolve_material(material)
-                    if not isinstance(material, CrystalMaterial):
-                        raise ValueError(f"Invalid material of type {type(material)}!")
+                material = _resolve_material(kwargs.pop('material', None), ref='fluka', allow_none=True)
                 side = kwargs.pop('side', None)
                 width = kwargs.pop('width', None)
                 height = kwargs.pop('height', None)
@@ -401,9 +412,7 @@ class FlukaCrystal(BaseCrystal):
         if not self._being_constructed():
             if self.assembly.fedb_series != 'generic':
                 raise ValueError('Cannot change material of non-generic assembly!')
-            material = _resolve_material(material)
-            if not isinstance(material, CrystalMaterial):
-                raise ValueError(f"Invalid material of type {type(material)}!")
+            material = _resolve_material(material, ref='fluka', allow_none=False)
             if self.material != material:
                 self.assembly = create_generic_assembly(is_crystal=True, material=material,
                                 side=self.side, length=self.length, width=self.width,
@@ -483,12 +492,32 @@ class FlukaCrystal(BaseCrystal):
     def assembly(self, assembly):
         FlukaCollimator.assembly.fset(self, assembly)
 
+
+    def enable_scattering(self):
+        import xcoll as xc
+        xc.fluka.environment.assert_environment_ready()
+        if not xc.fluka.engine.is_running():
+            raise RuntimeError("FLUKA engine is not running.")
+        super().enable_scattering()
+
     def track(self, part):
         if track_pre(self, part):
             # super().track(part)
-            part.state[part.state == 1] = 334
+            part.state[part.state == 1] = HIT_ON_FLUKA_COLL
             track_core(self, part)
             track_post(self, part)
+        else:
+            self._drift(part)
+
+    def _drift(self, particles, length=None):
+        if length is None:
+            length = self.length
+        if length != self.length:
+            old_length = self._equivalent_drift.length
+            self._equivalent_drift.length = length
+        self._equivalent_drift.track(particles)
+        if length != self.length:
+            self._equivalent_drift.length = old_length
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -533,16 +562,3 @@ class FlukaCrystal(BaseCrystal):
         if self.assembly:
             self.length = old_length
         return bending_angle
-
-
-def _resolve_material(material):
-    if material is None:
-        raise ValueError('Material cannot be None!')
-    elif isinstance(material, dict):
-        material = Material.from_dict(material)
-    elif isinstance(material, str):
-        material = material_db[material]
-    elif isinstance(material, RefMaterial):
-        if material.fluka_name is None:
-            raise ValueError(f"RefMaterial {material} does not have a FLUKA name!")
-    return material

@@ -13,7 +13,7 @@ import xtrack.particles.pdg as pdg
 
 from .geometry import XcollGeometry
 from .physics_settings import PhysicsSettingsHelper
-from ..materials import Material, CrystalMaterial
+from ..materials import Material
 from ..interaction_record import InteractionRecord
 try:
     # TODO: once xaux is in Xsuite keep only this
@@ -37,7 +37,7 @@ class BaseEngine(xo.HybridClass):
     _num_input_files = 1
     _uses_run_folder = False
 
-    _depends_on = [Material, CrystalMaterial, InteractionRecord, xt.RandomUniform,
+    _depends_on = [Material, InteractionRecord, xt.RandomUniform,
                    xt.RandomExponential, xt.RandomNormal, xt.RandomRutherford,
                    xt.Drift, XcollGeometry]
 

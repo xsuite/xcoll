@@ -26,7 +26,7 @@ int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
 
 
 void EverestCrystal_set_material(EverestCrystalData el){
-    CrystalMaterialData material = EverestCrystalData_getp__material(el);
+    MaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
     RandomRutherford_set_by_xcoll_material(rng, (MaterialData) material);
 }
@@ -138,7 +138,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
 
 
 /*gpufun*/
-EverestData EverestCrystal_init_data(LocalParticle* part, CrystalMaterialData restrict material,
+EverestData EverestCrystal_init_data(LocalParticle* part, MaterialData restrict material,
         EverestCollData restrict coll, CrystalGeometry restrict cg){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
@@ -162,7 +162,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
     // Initialise collimator data
     EverestCollData coll;
     CrystalGeometry cg;
-    CrystalMaterialData material;
+    MaterialData material;
     if (active){
         // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
         coll = EverestCrystal_init(el, part0);

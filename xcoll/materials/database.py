@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from .material import Material, CrystalMaterial
+from .material import Material
 from ..pretty_print import style, pad_styled
 
 
@@ -32,7 +32,7 @@ class MaterialsDatabase:
     def _str(self, format, full=True):
         res = []
         padding = 36
-        for typ in ["Atomic Elements", "Compounds", "Mixtures", "Crystal Materials",
+        for typ in ["Atomic Elements", "Compounds", "Mixtures",
                     "Old Sixtrack Materials"]:
             header  = style(f'{typ}', bold=True, colour='navy', enabled=format)
             if typ != "Old Sixtrack Materials":
@@ -54,20 +54,14 @@ class MaterialsDatabase:
             for name, mat in self._materials.items():
                 this_mat = mat['material']
                 if typ == "Atomic Elements" and (not this_mat.is_elemental
-                or isinstance(this_mat, CrystalMaterial)
                 or this_mat.name.startswith('K2')):
                         continue
                 if typ == "Compounds" and (not this_mat.is_compound
-                or isinstance(this_mat, CrystalMaterial)
                 or this_mat.name.startswith('K2')):
                         continue
                 if typ == "Mixtures" and (not this_mat.is_mixture
-                or isinstance(this_mat, CrystalMaterial)
                 or this_mat.name.startswith('K2')):
                         continue
-                if typ == "Crystal Materials" and (this_mat.name.startswith('K2')
-                or not isinstance(this_mat, CrystalMaterial)):
-                    continue
                 if typ == "Old Sixtrack Materials" \
                 and not this_mat.name.startswith('K2'):
                     continue

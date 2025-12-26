@@ -88,9 +88,8 @@ def create_generic_assembly(**kwargs):
 
 def _validate_kwargs(kwargs):
     kwargs.setdefault('is_crystal', False)
-    from ...beam_elements.fluka import _resolve_material
-    from ...materials import Material, CrystalMaterial
-    kwargs['material'] = _resolve_material(kwargs['material'])
+    from ...materials import _resolve_material
+    kwargs['material'] = _resolve_material(kwargs['material'], ref='fluka', allow_none=False)
     if kwargs['material'].fluka_name is None:
         kwargs['material']._generate_fluka_code()
     if kwargs['is_crystal']:
@@ -100,8 +99,6 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_crystal_optional_fields.items():
             if field not in kwargs or kwargs[field] is None:
                 kwargs[field] = opt_value
-        if not isinstance(kwargs['material'], CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(kwargs['material'])}!")
     else:
         for field in _generic_required_fields:
             if field not in kwargs or kwargs[field] is None:
@@ -109,9 +106,6 @@ def _validate_kwargs(kwargs):
         for field, opt_value in _generic_optional_fields.items():
             if field not in kwargs or kwargs[field] is None:
                 kwargs[field] = opt_value
-        if not isinstance(kwargs['material'], Material) \
-        or isinstance(kwargs['material'], CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(kwargs['material'])}!")
     if kwargs.get('side') not in ['both', 'left', 'right']:
         raise ValueError(f"Side must be 'both', 'left' or 'right', but got {kwargs.get('side')}!")
     if kwargs['width'] > 0.25:

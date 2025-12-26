@@ -11,8 +11,7 @@ import xtrack as xt
 from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core, track_post
-from ..materials import(Material, CrystalMaterial, RefMaterial, db as material_db,
-                        _DEFAULT_MATERIAL, _DEFAULT_CRYSTALMATERIAL)
+from ..materials import _DEFAULT_MATERIAL, _resolve_material
 
 
 class Geant4Collimator(BaseCollimator):
@@ -84,18 +83,7 @@ class Geant4Collimator(BaseCollimator):
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = _DEFAULT_MATERIAL
-        elif isinstance(material, dict):
-            material = Material.from_dict(material)
-        elif isinstance(material, str):
-            material = material_db[material]
-        elif isinstance(material, RefMaterial):
-            if material.geant4_name is None:
-                raise ValueError(f"RefMaterial {material} does not have a Geant4 name!")
-        if not isinstance(material, Material) \
-        or isinstance(material, CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(material)}!")
+        material = _resolve_material(material, ref='geant4')
         if self.material != material:
             self._material = material
 
@@ -107,7 +95,6 @@ class Geant4Collimator(BaseCollimator):
             raise RuntimeError("Geant4 engine is not running.")
         super().enable_scattering()
 
-
     def track(self, part):
         if track_pre(self, part):
             # super().track(part)
@@ -115,7 +102,6 @@ class Geant4Collimator(BaseCollimator):
             track_post(self, part)
         else:
             self._drift(part)
-
 
     def _drift(self, particles, length=None):
         if length is None:
@@ -126,7 +112,6 @@ class Geant4Collimator(BaseCollimator):
         self._equivalent_drift.track(particles)
         if length != self.length:
             self._equivalent_drift.length = old_length
-
 
     def __setattr__(self, name, value):
         import xcoll as xc
@@ -203,18 +188,7 @@ class Geant4CollimatorTip(Geant4Collimator):
 
     @tip_material.setter
     def tip_material(self, tip_material):
-        if tip_material is None:
-            tip_material = _DEFAULT_MATERIAL
-        elif isinstance(tip_material, dict):
-            tip_material = Material.from_dict(tip_material)
-        elif isinstance(tip_material, str):
-            tip_material = material_db[tip_material]
-        elif isinstance(tip_material, RefMaterial):
-            if tip_material.geant4_name is None:
-                raise ValueError(f"RefMaterial {tip_material} does not have a Geant4 name!")
-        if not isinstance(tip_material, Material) \
-        or isinstance(tip_material, CrystalMaterial):
-            raise ValueError(f"Invalid material of type {type(tip_material)}!")
+        tip_material = _resolve_material(tip_material, ref='geant4')
         if self.tip_material != tip_material:
             self._tip_material = tip_material
 

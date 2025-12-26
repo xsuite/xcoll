@@ -5,7 +5,6 @@
 
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
@@ -13,15 +12,8 @@ from ...constants import (LOST_ON_FLUKA_COLL, MASSLESS_OR_NEUTRAL,
                           VIRTUAL_ENERGY, HIT_ON_FLUKA_COLL)
 
 
-def _drift(coll, particles, length):
-    old_length = coll._equivalent_drift.length
-    coll._equivalent_drift.length = length
-    coll._equivalent_drift.track(particles)
-    coll._equivalent_drift.length = old_length
-
 def track_pre(coll, particles):
     import xcoll as xc
-
 
     # Initialize ionisation loss accumulation variable
     if coll._acc_ionisation_loss < 0:
@@ -57,12 +49,12 @@ def track_pre(coll, particles):
                        + "with a value large enough to accommodate secondaries outside of "
                        + "FLUKA.\nIn any case, please stop and restart the FlukaEngine now.")
 
-    _drift(coll, particles, -coll.length_front)
+    coll._drift(particles, -coll.length_front)
     return True  # Continue tracking
 
 
 def track_post(coll, particles):
-    _drift(coll, particles, -coll.length_back)
+    coll._drift(particles, -coll.length_back)
     alive_states = np.unique(particles.state[particles.state > 0])
     assert len(alive_states) <= 1, f"Unexpected alive particle states after tracking: {alive_states}"
     if len(alive_states) == 1:
