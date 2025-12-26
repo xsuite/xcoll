@@ -41,6 +41,7 @@ class Geant4Engine(BaseEngine):
         # Set default values for new properties
         self.relative_energy_cut = None
         self.reentry_protection_enabled = None
+        self._physics_settings._use_cuts = False
 
 
     # ======================
@@ -81,55 +82,6 @@ class Geant4Engine(BaseEngine):
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
 
-    @property
-    def lower_momentum_cut(self):
-        return self._lower_momentum_cut
-
-    @lower_momentum_cut.setter
-    def lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            self.stop()
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            self.stop()
-            raise ValueError("`lower_momentum_cut` has to be a non-negative number!")
-        self._lower_momentum_cut = val
-
-    @property
-    def photon_lower_momentum_cut(self):
-        return self._photon_lower_momentum_cut
-
-    @photon_lower_momentum_cut.setter
-    def photon_lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            self.stop()
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            self.stop()
-            raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
-        self._photon_lower_momentum_cut = val
-
-    @property
-    def electron_lower_momentum_cut(self):
-        return self._electron_lower_momentum_cut
-
-    @electron_lower_momentum_cut.setter
-    def electron_lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            self.stop()
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            self.stop()
-            raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
-        self._electron_lower_momentum_cut = val
-
-
     # ============================
     # === Overwrite Properties ===
     # ============================
@@ -142,7 +94,6 @@ class Geant4Engine(BaseEngine):
     def relative_capacity(self):
         return None  # Geant4 capacity is dynamic
 
-
     # =================================
     # === Base methods to overwrite ===
     # =================================
@@ -150,9 +101,6 @@ class Geant4Engine(BaseEngine):
     def _set_engine_properties(self, **kwargs):
         kwargs = super()._set_engine_properties(**kwargs)
         self._set_property('relative_energy_cut', kwargs)
-        self._set_property('lower_momentum_cut', kwargs)
-        self._set_property('photon_lower_momentum_cut', kwargs)
-        self._set_property('electron_lower_momentum_cut', kwargs)
         self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
