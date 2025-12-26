@@ -8,7 +8,7 @@ import numpy as np
 from time import sleep
 from numbers import Number
 from subprocess import run, PIPE, Popen
- 
+
 import xobjects as xo
 import xtrack.particles.pdg as pdg
 

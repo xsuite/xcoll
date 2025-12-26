@@ -12,6 +12,7 @@ import xtrack as xt
 import xtrack.particles.pdg as pdg
 
 from .geometry import XcollGeometry
+from .physics_settings import PhysicsSettingsHelper
 from ..materials import Material, CrystalMaterial
 from ..interaction_record import InteractionRecord
 try:
@@ -59,7 +60,7 @@ class BaseEngine(xo.HybridClass):
         kwargs.setdefault('_seed', 0)
         kwargs.setdefault('_capacity', 0)
         super().__init__(**kwargs)
-        self.return_all = None  # set all return flags to default
+        self._physics_settings = PhysicsSettingsHelper(self)
 
     def __del__(self, *args, **kwargs):
         self.stop()
@@ -155,6 +156,7 @@ class BaseEngine(xo.HybridClass):
                 raise ValueError("{self.__class__.__name__} only supports protons!")
             self._particle_ref = val
             self._particle_ref.pdg_id[0] = pdg_id
+        self._physics_settings.update()
 
     @particle_ref.deleter
     def particle_ref(self):
@@ -239,288 +241,23 @@ class BaseEngine(xo.HybridClass):
     def element_dict(self):
         return self._element_dict
 
-    @property
-    def return_all(self):
-        return (self._return_neutral and
-                self._return_photons and
-                self._return_electrons and
-                self._return_muons and
-                self._return_tauons and
-                self._return_neutrinos and
-                self._return_protons and
-                self._return_neutrons and
-                self._return_ions and
-                self._return_mesons and
-                self._return_baryons and
-                self._return_exotics)
+    def __getattr__(self, name):
+        if name.startswith('return_') or name.endswith('_cut'):
+            return getattr(self._physics_settings, name)
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
-    @return_all.setter
-    def return_all(self, val):
-        if val is True:
-            self.return_neutral = True
-            self.return_photons = True
-            self.return_electrons = True
-            self.return_muons = True
-            self.return_tauons = True
-            self.return_neutrinos = True
-            self.return_protons = True
-            self.return_neutrons = True
-            self.return_ions = True
-            self.return_mesons = True
-            self.return_baryons = True
-            self.return_exotics = True
-        elif val is None or val is False:
-            # Default settings
-            self.return_neutral = None
-            self.return_photons = None
-            self.return_electrons = None
-            self.return_muons = None
-            self.return_tauons = None
-            self.return_neutrinos = None
-            self.return_protons = None
-            self.return_neutrons = None
-            self.return_ions = None
-            self.return_mesons = None
-            self.return_baryons = None
-            self.return_exotics = None
+    def __setattr__(self, name, value):
+        if name.startswith('return_') or name.endswith('_cut'):
+            return setattr(self._physics_settings, name, value)
         else:
-            self.stop()
-            raise ValueError("`return_all` has to be a boolean!")
-
-    @property
-    def return_none(self):
-        return not any(self._return_neutral and
-                self._return_photons and
-                self._return_electrons and
-                self._return_muons and
-                self._return_tauons and
-                self._return_neutrinos and
-                self._return_protons and
-                self._return_neutrons and
-                self._return_ions and
-                self._return_mesons and
-                self._return_baryons and
-                self._return_exotics)
-
-    @return_none.setter
-    def return_none(self, val):
-        if val is True:
-            self.return_neutral = False
-            self.return_photons = False
-            self.return_electrons = False
-            self.return_muons = False
-            self.return_tauons = False
-            self.return_neutrinos = False
-            self.return_protons = False
-            self.return_neutrons = False
-            self.return_ions = False
-            self.return_mesons = False
-            self.return_baryons = False
-            self.return_exotics = False
-        elif val is None or val is False:
-            # Default settings
-            self.return_neutral = None
-            self.return_photons = None
-            self.return_electrons = None
-            self.return_muons = None
-            self.return_tauons = None
-            self.return_neutrinos = None
-            self.return_protons = None
-            self.return_neutrons = None
-            self.return_ions = None
-            self.return_mesons = None
-            self.return_baryons = None
-            self.return_exotics = None
-        else:
-            self.stop()
-            raise ValueError("`return_none` has to be a boolean!")
-
-    @property
-    def return_neutral(self):
-        return self._return_neutral
-
-    @return_neutral.setter
-    def return_neutral(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_neutral` has to be a boolean!")
-        self._return_neutral = val
-        if not val:
-            self._return_photons = False
-            self._return_neutrons = False
-            self._return_neutrinos = False
-
-    @property
-    def return_photons(self):
-        return self._return_photons
-
-    @return_photons.setter
-    def return_photons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_photons` has to be a boolean!")
-        self._return_photons = val
-
-    @property
-    def return_electrons(self):
-        return self._return_electrons
-
-    @return_electrons.setter
-    def return_electrons(self, val):
-        if val is None:
-            val = True
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_electrons` has to be a boolean!")
-        self._return_electrons = val
-
-    @property
-    def return_muons(self):
-        return self._return_muons
-
-    @return_muons.setter
-    def return_muons(self, val):
-        if val is None:
-            val = True
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_muons` has to be a boolean!")
-        self._return_muons = val
-
-    @property
-    def return_tauons(self):
-        return self._return_tauons
-
-    @return_tauons.setter
-    def return_tauons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_tauons` has to be a boolean!")
-        self._return_tauons = val
-
-    @property
-    def return_neutrinos(self):
-        return self._return_neutrinos
-
-    @return_neutrinos.setter
-    def return_neutrinos(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_neutrinos` has to be a boolean!")
-        self._return_neutrinos = val
-
-    @property
-    def return_leptons(self):
-        ret = [self._return_electrons, self._return_muons, self._return_tauons, self._return_neutrinos]
-        if all(ret):
-            return True
-        elif not any(ret):
-            return False
-        else:
-            return None
-
-    @return_leptons.setter
-    def return_leptons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_leptons` has to be a boolean!")
-        self._return_electrons = val
-        self._return_muons = val
-        self._return_tauons = val
-        self._return_neutrinos = val
-
-    @property
-    def return_protons(self):
-        return self._return_protons
-
-    @return_protons.setter
-    def return_protons(self, val):
-        if val is None:
-            val = True
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_protons` has to be a boolean!")
-        self._return_protons = val
-
-    @property
-    def return_neutrons(self):
-        return self._return_neutrons
-
-    @return_neutrons.setter
-    def return_neutrons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_neutrons` has to be a boolean!")
-        self._return_neutrons = val
-
-    @property
-    def return_ions(self):
-        return self._return_ions
-
-    @return_ions.setter
-    def return_ions(self, val):
-        if val is None:
-            val = True
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_ions` has to be a boolean!")
-        self._return_ions = val
-
-    @property
-    def return_mesons(self):
-        return self._return_mesons
-
-    @return_mesons.setter
-    def return_mesons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_mesons` has to be a boolean!")
-        self._return_mesons = val
-
-    @property
-    def return_baryons(self):
-        return self._return_baryons
-
-    @return_baryons.setter
-    def return_baryons(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_baryons` has to be a boolean!")
-        self._return_baryons = val
-
-    @property
-    def return_exotics(self):
-        return self._return_exotics
-
-    @return_exotics.setter
-    def return_exotics(self, val):
-        if val is None:
-            val = False
-        if not isinstance(val, bool):
-            self.stop()
-            raise ValueError("`return_exotics` has to be a boolean!")
-        self._return_exotics = val
-
+            return super().__setattr__(name, value)
 
     # ======================
     # === Public Methods ===
     # ======================
+
+    def physics_settings(self):
+        return self._physics_settings.show()
 
     def start(self, *, clean=True, input_file=None, **kwargs):
         if not self.environment:
@@ -781,21 +518,10 @@ class BaseEngine(xo.HybridClass):
         # Now we can set the rest of the properties
         self._set_property('capacity', kwargs)
         self._set_property('relative_capacity', kwargs)
-        self._set_property('return_all', kwargs)
-        self._set_property('return_none', kwargs)
-        self._set_property('return_leptons', kwargs)
-        self._set_property('return_mesons', kwargs)
-        self._set_property('return_exotics', kwargs)
-        self._set_property('return_baryons', kwargs)
-        self._set_property('return_ions', kwargs)
-        self._set_property('return_neutral', kwargs)
-        self._set_property('return_photons', kwargs)
-        self._set_property('return_electrons', kwargs)
-        self._set_property('return_muons', kwargs)
-        self._set_property('return_tauons', kwargs)
-        self._set_property('return_neutrinos', kwargs)
-        self._set_property('return_protons', kwargs)
-        self._set_property('return_neutrons', kwargs)
+        for ff in self._physics_settings.all_return_flags:
+            self._set_property(ff, kwargs)
+        for ff in self._physics_settings.all_cut_definitions:
+            self._set_property(ff, kwargs)
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
@@ -1060,7 +786,7 @@ class BaseEngine(xo.HybridClass):
 
 
     def _mask_particle_return_types(self, pdg_id, q_new):
-        if self.return_exotics:
+        if self.return_all:
             # Allow everything and exclude
             mask_new = np.ones_like(pdg_id, dtype=bool)
         else:
@@ -1071,14 +797,14 @@ class BaseEngine(xo.HybridClass):
         mask_new[pdg_id > 1000000000] = self.return_ions
         # PDG ID of mesons: from .*0XX. where X != 0 and . is any digit
         mask_new[(pdg_id > 0) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                              & (pdg_id // 1000 % 10 == 0)] = self.return_mesons
+                              & (pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
         mask_new[(pdg_id < 0) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                              & (-pdg_id // 1000 % 10 == 0)] = self.return_mesons
+                              & (-pdg_id // 1000 % 10 == 0)] = self.return_other_mesons
         # PDG ID of baryons: from XXX. where X != 0 and . is any digit
         mask_new[(pdg_id > 1000) & (pdg_id < 9000) & (pdg_id // 10 % 10 != 0) & (pdg_id // 100 % 10 != 0)
-                                 & (pdg_id // 1000 % 10 != 0)] = self.return_baryons    # PDG ID of from XX0X is a diquark
+                                 & (pdg_id // 1000 % 10 != 0)] = self.return_other_baryons    # PDG ID of from XX0X is a diquark
         mask_new[(pdg_id < -1000) & (pdg_id > -9000) & (-pdg_id // 10 % 10 != 0) & (-pdg_id // 100 % 10 != 0)
-                                  & (-pdg_id // 1000 % 10 != 0)] = self.return_baryons
+                                  & (-pdg_id // 1000 % 10 != 0)] = self.return_other_baryons
 
         if not self.return_neutral:
             # General modifier, has to be before more specific return types,
@@ -1092,6 +818,12 @@ class BaseEngine(xo.HybridClass):
         mask_new[(pdg_id == 14) | (pdg_id == -14)] = self.return_muons and self.return_neutrinos
         mask_new[(pdg_id == 15) | (pdg_id == -15)] = self.return_tauons
         mask_new[(pdg_id == 16) | (pdg_id == -16)] = self.return_tauons and self.return_neutrinos
+        mask_new[(pdg_id == 211) | (pdg_id == -211)] = self.return_pions
+        mask_new[(pdg_id == 111)] = self.return_pions and self.return_neutral
+        mask_new[(pdg_id == 321) | (pdg_id == -321)] = self.return_kaons
+        mask_new[(pdg_id == 130) | (pdg_id == -130)] = self.return_kaons and self.return_neutral
+        mask_new[(pdg_id == 310) | (pdg_id == -310)] = self.return_kaons and self.return_neutral
+        mask_new[(pdg_id == 311) | (pdg_id == -311)] = self.return_kaons and self.return_neutral
         mask_new[(pdg_id == 2212) | (pdg_id == -2212)] = self.return_protons
         mask_new[(pdg_id == 2112) | (pdg_id == -2112)] = self.return_neutrons
         return mask_new

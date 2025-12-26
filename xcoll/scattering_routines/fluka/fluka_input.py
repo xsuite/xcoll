@@ -33,8 +33,7 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
     for prototype in {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}.values():
         if prototype.is_crystal:
             kwargs.setdefault('use_crystals', True)
-    include_files, kwargs = get_include_files(particle_ref, verbose=verbose,
-                                              **kwargs)
+    _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
     input_file, fluka_dict = _fluka_builder(collimator_dict)

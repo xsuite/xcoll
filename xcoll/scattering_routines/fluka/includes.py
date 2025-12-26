@@ -37,122 +37,24 @@ def _is_lepton(pdg_id):
     return is_lepton(pdg_id)
 
 
-def get_include_files(particle_ref, include_files=[], *, verbose=True, lower_momentum_cut=None,
-                      photon_lower_momentum_cut=None, electron_lower_momentum_cut=None,
-                      include_showers=None, return_photons=None, return_electrons=None,
-                      return_leptons=None, return_neutrinos=None, return_protons=None,
-                      return_neutrons=None, return_ions=None, return_exotics=None,
-                      return_all=None, return_neutral=None, use_crystals=False, bb_int=False,
-                      touches=False, **kwargs):
+def get_include_files(particle_ref, include_files=[], *, verbose=True, use_crystals=False,
+                      bb_int=False, touches=False, **kwargs):
 
+    import xcoll as xc
+    phys = xc.fluka.engine._physics_settings
     this_include_files = include_files.copy()
+
     # Required default include files
     if 'include_settings_beam.inp' not in [file.name for file in this_include_files]:
         this_include_files.append(_beam_include_file(particle_ref, bb_int=bb_int))
-    if 'include_settings_physics.inp' in [file.name for file in this_include_files]:
-        if photon_lower_momentum_cut is not None:
-            raise ValueError("Physics include file already provided. Cannot change "
-                            + "photon lower momentum cut.")
-        if electron_lower_momentum_cut is not None:
-            raise ValueError("Physics include file already provided. Cannot change "
-                            + "electron lower momentum cut.")
-        if lower_momentum_cut is not None:
-            raise ValueError("Physics include file already provided. Cannot change "
-                            + "hadron lower momentum cut.")
-        if include_showers is not None:
-            raise ValueError("Physics include file already provided. Cannot change "
-                            + "shower settings.")
-    else:
-        if photon_lower_momentum_cut is None:
-            photon_lower_momentum_cut = 1.e5
-        elif photon_lower_momentum_cut < 1.e3:
-            if verbose:
-                print(f"Warning: Photon lower momentum cut of {photon_lower_momentum_cut/1.e3}keV "
-                     + "is very low and will result in very long computation times.")
-        if electron_lower_momentum_cut is None:
-            if _is_lepton(particle_ref):
-                electron_lower_momentum_cut = particle_ref.p0c[0] / 10
-            else:
-                electron_lower_momentum_cut = 1.e6
-        elif electron_lower_momentum_cut < 1.e6:
-            if verbose:
-                print(f"Warning: Electron lower momentum cut of {electron_lower_momentum_cut/1.e6}MeV "
-                     + "is very low and will result in very long computation times.")
-        if lower_momentum_cut is None:
-            lower_momentum_cut = particle_ref.p0c[0] / 10
-            if _is_ion(particle_ref):
-                _, A, _, _ = get_properties_from_pdg_id(particle_ref.pdg_id[0])
-                lower_momentum_cut /= A
-        elif lower_momentum_cut < 1.e9:
-            if verbose:
-                print(f"Warning: Hadron lower momentum cut of {lower_momentum_cut/1.e9}GeV "
-                     + "is very low and will result in very long computation times.")
-        if include_showers is None:
-            include_showers = True if _is_lepton(particle_ref) else False
-            include_showers = True if return_all else include_showers
-        physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=lower_momentum_cut,
-                                             photon_lower_momentum_cut=photon_lower_momentum_cut,
-                                             electron_lower_momentum_cut=electron_lower_momentum_cut,
-                                             include_showers=include_showers)
+    if 'include_settings_physics.inp' not in [file.name for file in this_include_files]:
+        physics_file = _physics_include_file(verbose=verbose, lower_momentum_cut=phys.hadron_lower_momentum_cut,
+                                             photon_lower_momentum_cut=phys.photon_lower_momentum_cut,
+                                             electron_lower_momentum_cut=phys.electron_lower_momentum_cut,
+                                             include_showers=phys.include_showers)
         this_include_files.append(physics_file)
-    if 'include_custom_scoring.inp' in [file.name for file in this_include_files]:
-        if return_photons is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_photons`.")
-        if return_electrons is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_electrons`.")
-        if return_leptons is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_leptons`.")
-        if return_neutrinos is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_neutrinos`.")
-        if return_protons is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_protons`.")
-        if return_neutrons is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_neutrons`.")
-        if return_ions is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_ions`.")
-        if return_exotics is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_exotics`.")
-        if return_all is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_all`.")
-        if return_neutral is not None:
-            raise ValueError("Custom scoring include file already provided. Cannot change "
-                           + "`return_neutral`.")
-    else:
-        if return_photons is None:
-            return_photons = False
-        if return_electrons is None:
-            return_electrons = _is_lepton(particle_ref)
-        if return_leptons is None:
-            return_leptons = _is_lepton(particle_ref)
-        if return_neutrinos is None:
-            return_neutrinos = False
-        if return_protons is None:
-            return_protons = _is_proton(particle_ref) or _is_ion(particle_ref)
-        if return_neutrons is None:
-            return_neutrons = False
-        if return_ions is None:
-            return_ions = _is_ion(particle_ref)
-        if return_exotics is None:
-            return_exotics = False
-        if return_all is None:
-            return_all = False
-        if return_neutral is None:
-            return_neutral = False
-        scoring_file = _scoring_include_file(verbose=verbose, return_photons=return_photons,
-                                             return_electrons=return_electrons, return_leptons=return_leptons,
-                                             return_neutrinos=return_neutrinos, return_protons=return_protons,
-                                             return_neutrons=return_neutrons, return_ions=return_ions,
-                                             return_exotics=return_exotics, return_all=return_all,
-                                             return_neutral=return_neutral, use_crystals=use_crystals,
+    if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
+        scoring_file = _scoring_include_file(verbose=verbose, return_list=phys, use_crystals=use_crystals,
                                              get_touches=touches)
 
         this_include_files.append(scoring_file)
@@ -376,27 +278,29 @@ LOW-PWXS          -1
     return filename
 
 
-def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_neutrinos,
-                          return_protons, return_neutrons, return_ions, return_exotics,
-                          return_all, return_neutral, return_photons, use_crystals=False,
+def _scoring_include_file(*, verbose, return_list, use_crystals=False,
                           get_touches=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
-    electrons = 'USRBDX' if return_electrons or return_leptons else '*USRBDX'
-    leptons = 'USRBDX' if return_leptons else '*USRBDX'
-    neutrinos = 'USRBDX' if return_neutrinos else '*USRBDX'
-    protons = 'USRBDX' if return_protons else '*USRBDX'
-    neutrons = 'USRBDX' if return_neutrons or (return_protons and return_neutral) else '*USRBDX'
-    ions = 'USRBDX' if return_ions else '*USRBDX'
-    exotics = 'USRBDX' if return_exotics else '*USRBDX'
-    neutral_exotics = 'USRBDX' if return_exotics and return_neutral else '*USRBDX'
-    photons = 'USRBDX' if return_photons else '*USRBDX'
-    if return_all:
-        all_charged = 'USRBDX' if not return_neutral else '*USRBDX'
-        all_particles = 'USRBDX' if return_neutral else '*USRBDX'
-        electrons = leptons = neutrinos = protons = neutrons = ions = exotics \
-                  = photons = neutral_exotics = '*USRBDX'
-    else:
-        all_charged = all_particles = '*USRBDX'
+    all_charged = 'USRBDX' if return_list.return_all_charged else '*USRBDX'
+    all_particles = 'USRBDX' if return_list.return_all else '*USRBDX'
+    neutral = return_list.return_neutral
+    allow = not return_list.return_all_charged and not return_list.return_all
+    photons = 'USRBDX' if return_list.return_photons and allow else '*USRBDX'
+    electrons = 'USRBDX' if return_list.return_electrons and allow else '*USRBDX'
+    muons = 'USRBDX' if return_list.return_muons and allow else '*USRBDX'
+    tauons = 'USRBDX' if return_list.return_tauons and allow else '*USRBDX'
+    neutrinos = 'USRBDX' if return_list.return_neutrinos and allow else '*USRBDX'
+    protons = 'USRBDX' if return_list.return_protons and allow else '*USRBDX'
+    neutrons = 'USRBDX' if return_list.return_neutrons and allow else '*USRBDX'
+    baryons = 'USRBDX' if return_list.return_other_baryons and allow else '*USRBDX'
+    neutral_baryons = 'USRBDX' if return_list.return_other_baryons and neutral and allow else '*USRBDX'
+    pions = 'USRBDX' if return_list.return_pions and allow else '*USRBDX'
+    neutral_pions = 'USRBDX' if return_list.return_pions and neutral and allow else '*USRBDX'
+    kaons = 'USRBDX' if return_list.return_kaons and allow else '*USRBDX'
+    neutral_kaons = 'USRBDX' if return_list.return_kaons and neutral and allow else '*USRBDX'
+    mesons = 'USRBDX' if return_list.return_other_mesons and allow else '*USRBDX'
+    neutral_mesons = 'USRBDX' if return_list.return_other_mesons and neutral and allow else '*USRBDX'
+    ions = 'USRBDX' if return_list.return_ions and allow else '*USRBDX'
     crystal = 'USRICALL' if use_crystals else '*USRICALL'
     touches = 'USERDUMP' if get_touches else '*USERDUMP'
     if verbose:
@@ -408,14 +312,22 @@ def _scoring_include_file(*, verbose, return_electrons, return_leptons, return_n
         else:
             print(f"  - Return photons: {photons[0] != '*'}\n"
                 + f"  - Return electrons: {electrons[0] != '*'}\n"
-                + f"  - Return muons and tau: {leptons[0] != '*'}\n"
+                + f"  - Return muons: {muons[0] != '*'}\n"
+                + f"  - Return tauons: {tauons[0] != '*'}\n"
                 + f"  - Return neutrinos: {neutrinos[0] != '*'}\n"
                 + f"  - Return protons: {protons[0] != '*'}\n"
                 + f"  - Return neutrons: {neutrons[0] != '*'}\n"
-                + f"  - Return ions: {ions[0] != '*'}\n"
-                + f"  - Return exotics: {exotics[0] != '*'}\n"
-                + f"  - Return neutral exotics: {neutral_exotics[0] != '*'}")
+                + f"  - Return other baryons: {baryons[0] != '*'}\n"
+                + f"  - Return neutral baryons: {neutral_baryons[0] != '*'}\n"
+                + f"  - Return pions: {pions[0] != '*'}\n"
+                + f"  - Return neutral pions: {neutral_pions[0] != '*'}\n"
+                + f"  - Return kaons: {kaons[0] != '*'}\n"
+                + f"  - Return neutral kaons: {neutral_kaons[0] != '*'}\n"
+                + f"  - Return other mesons: {mesons[0] != '*'}\n"
+                + f"  - Return neutral mesons: {neutral_mesons[0] != '*'}\n"
+                + f"  - Return ions: {ions[0] != '*'}\n")
         print(f"  - Use crystals: {crystal[0] != '*'}")
+        print(f"  - Get touches map: {touches[0] != '*'}")
 
     template = f"""\
 * New way to give back particles to Icosim via fluscw.f routine (no more usrmed)
@@ -429,25 +341,25 @@ USERWEIG                             3.0
 {photons}          99.0       RAY     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {electrons}          99.0  ELECTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {electrons}          99.0  POSITRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{leptons}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{leptons}          99.0     MUON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{leptons}          99.0      TAU+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{leptons}          99.0      TAU-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{muons}          99.0     MUON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{muons}          99.0     MUON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{tauons}          99.0      TAU+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{tauons}          99.0      TAU-     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0   NEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0  ANEUTRIE     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0   NEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0  ANEUTRIM     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0   NEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrinos}          99.0  ANEUTRIT     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     PION+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     PION-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0    PIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     KAON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     KAON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  KAONZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  AKAONZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{pions}          99.0     PION+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{pions}          99.0     PION-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_pions}          99.0    PIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaons}          99.0     KAON+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{kaons}          99.0     KAON-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_kaons}          99.0  KAONZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_kaons}          99.0  AKAONZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_kaons}          99.0  KAONLONG     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_kaons}          99.0  KAONSHRT     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0    PROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {protons}          99.0   APROTON     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {neutrons}          99.0   NEUTRON     -42.0   VAROUND  TRANSF_D          BACK2ICO
@@ -457,38 +369,38 @@ USERWEIG                             3.0
 {ions}          99.0  3-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {ions}          99.0  4-HELIUM     -42.0   VAROUND  TRANSF_D          BACK2ICO
 {ions}          99.0  HEAVYION     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0    LAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0   ALAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0  LAMBDAC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0  ALAMBDC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0    SIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0    SIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  SIGMAZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  ASIGMAZE     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0   ASIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0   ASIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0      XSI-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     AXSI+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0   XSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  AXSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0     XSIC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0    AXSIC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0     XSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0    AXSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0    XSIPC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0   AXSIPC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0    XSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0   AXSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0    OMEGA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0   AOMEGA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0   OMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0  AOMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0        D+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0        D-     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0        D0     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{neutral_exotics}          99.0     D0BAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0       DS+     -42.0   VAROUND  TRANSF_D          BACK2ICO
-{exotics}          99.0       DS-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0    LAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0   ALAMBDA     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0  LAMBDAC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0  ALAMBDC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0    SIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0    SIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0  SIGMAZER     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0  ASIGMAZE     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0   ASIGMA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0   ASIGMA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0      XSI-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0     AXSI+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0   XSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0  AXSIZERO     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0     XSIC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0    AXSIC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0     XSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0    AXSIC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0    XSIPC+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0   AXSIPC-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0    XSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0   AXSIPC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0    OMEGA-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{baryons}          99.0   AOMEGA+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0   OMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_baryons}          99.0  AOMEGAC0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{mesons}          99.0        D+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{mesons}          99.0        D-     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_mesons}          99.0        D0     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{neutral_mesons}          99.0     D0BAR     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{mesons}          99.0       DS+     -42.0   VAROUND  TRANSF_D          BACK2ICO
+{mesons}          99.0       DS-     -42.0   VAROUND  TRANSF_D          BACK2ICO
 *
 * Get back touches
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8
