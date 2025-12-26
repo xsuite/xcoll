@@ -15,20 +15,13 @@ import xtrack as xt
 import xcoll as xc
 
 
-# We do the majority of the script on the default context to be able to use prebuilt kernels
-context = xo.ContextCpu()
-
-
-# This script takes around 3 minutes on a modern CPU (90s preparation+interpolation, 90s tracking)
-beam = 1
-plane = 'H'
-tilt = 0  # rad !!
-
-num_turns = 200
-num_particles = 50000
+beam          = 1
+plane         = 'H'
+num_turns     = 200
+num_particles = 50_000
 
 path_in = Path(__file__).parent
-path_out = Path.cwd()
+path_out = Path.cwd() / 'plots'
 
 
 # Load from json
@@ -109,33 +102,8 @@ ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
 ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
 print(ThisLM.summary)
 
-
-
-# Impacts
-# =======
-#nabs = summary.loc[summary.collname==tcpc, 'nabs'].values[0]
-#imp = colldb.impacts.to_pandas()
-#outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_impacts_B{beam}{plane}.json')
-#imp.to_json(outfile)
-
-# Only keep the first impact
-#imp.drop_duplicates(subset=['parent_id'], inplace=True)
-#assert np.unique(imp.interaction_type) == ['Enter Jaw']
-
-# Only keep those first impacts that are on the crystal
-#first_impacts = imp[imp.collimator==tcpc].parent_id
-#num_first_impacts = len(first_impacts)
-#assert num_first_impacts==len(np.unique(first_impacts))
-
-#ineff = nabs/num_first_impacts
-#outfile = Path(path_out, f'cry_{round(tilt*1e6)}urad_ineff_B{beam}{plane}.json')
-#with outfile.open('w') as fid:
-#    json.dump({'first_impacts': num_first_impacts, 'nabs': nabs, 'ineff': ineff}, fid)
-
-#print(f"Out of {num_first_impacts} particles hitting the crystal {tcpc} (angle {round(tilt*1e6)}urad) first, {round(nabs)} are absorbed in the crystal (for an inefficiency of {ineff:5}.")
-#print(f"Critical angle is {round(line[tcpc].critical_angle*1.e6, 1)}urad.")
-
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
+ThisLM.plot(savefig=path_out / f'lossmap_crystals_B{beam}{plane}.pdf')
 plt.show()
+

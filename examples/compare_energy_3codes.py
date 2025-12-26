@@ -22,7 +22,7 @@ impact_spread = 0.2e-6
 angular_divergence = 5.e-6
 nbins = 200
 E_min = 50e9
-E_zoom = 350e9
+E_zoom = 440e9
 E_high = particle_ref.energy0[0]
 
 

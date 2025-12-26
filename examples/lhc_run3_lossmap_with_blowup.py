@@ -15,19 +15,13 @@ import xpart as xp
 import xcoll as xc
 
 
-# We do the majority of the script on the default context to be able to use prebuilt kernels
-context = xo.ContextCpu()
-
-beam = 1
-plane = 'V'
-
+beam          = 1
+plane         = 'V'
 num_turns     = 1000
-num_particles = 10000
-nemitt_x = 3.5e-6
-nemitt_y = 3.5e-6
+num_particles = 10_000
 
 path_in = Path(__file__).parent
-path_out = Path.cwd()
+path_out = Path.cwd() / 'plots'
 
 
 # Load from json
@@ -65,9 +59,9 @@ assert not np.any(df_with_coll.has_aperture_problem)
 tw = line.twiss()
 line.collimators.assign_optics(twiss=tw)
 if plane == 'H':
-    adt.calibrate_by_emittance(nemitt=nemitt_x, twiss=tw)
+    adt.calibrate_by_emittance(nemitt=colldb.nemitt_x, twiss=tw)
 else:
-    adt.calibrate_by_emittance(nemitt=nemitt_y, twiss=tw)
+    adt.calibrate_by_emittance(nemitt=colldb.nemitt_y, twiss=tw)
 
 
 # Optimise the line
@@ -76,7 +70,7 @@ line.optimize_for_tracking()
 
 # Generate a matched Gaussian bunch
 part = xp.generate_matched_gaussian_bunch(num_particles=num_particles, total_intensity_particles=1.6e11,
-                                          nemitt_x=3.5e-6, nemitt_y=3.5e-6, sigma_z=7.55e-2, line=line)
+                                          nemitt_x=colldb.nemitt_x, nemitt_y=colldb.nemitt_y, sigma_z=7.55e-2, line=line)
 
 
 # Move the line to an OpenMP context to be able to use all cores
@@ -111,7 +105,7 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
+ThisLM.plot(savefig=path_out / f'lossmap_blowup_B{beam}{plane}.pdf')
 plt.show()
 
 
@@ -135,5 +129,5 @@ ax.set_ylabel('number of lost particles')
 ax.set_xlabel("turn")
 ax.legend()
 ax.set_title(f"Loss map B{beam}{plane} with blow-up ")
-plt.savefig(f'LM_blowup_B{beam}{plane}.png', dpi=300)
+plt.savefig(path_out / f'lossmap_blowup_over_turns_B{beam}{plane}.png', dpi=300)
 plt.show()

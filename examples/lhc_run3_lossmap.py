@@ -14,19 +14,13 @@ import xtrack as xt
 import xcoll as xc
 
 
-# We do the majority of the script on the default context to be able to use prebuilt kernels
-context = xo.ContextCpu()
-
-
-# This script takes around 3 minutes on a modern CPU (90s preparation+interpolation, 90s tracking)
-beam = 1
-plane = 'H'
-
-num_turns = 200
-num_particles = 50000
+beam          = 1
+plane         = 'H'
+num_turns     = 200
+num_particles = 50_000
 
 path_in = Path(__file__).parent
-path_out = Path.cwd()
+path_out = Path.cwd() / 'plots'
 
 
 # Load from json
@@ -90,6 +84,6 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
+ThisLM.plot(savefig=path_out / f'lossmap_B{beam}{plane}.pdf')
 plt.show()
 

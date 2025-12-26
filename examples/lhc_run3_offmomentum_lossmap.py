@@ -12,25 +12,18 @@ import matplotlib.pyplot as plt
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
-import xobjects as xo
 import xcoll as xc
 
 
-# We do the majority of the script on the default context to be able to use prebuilt kernels
-context = xo.ContextCpu()
-
-
-# This script takes around 8 minutes on a modern CPU (80s preparation+interpolation, 400s tracking)
-beam = 1
-plane = 'DPpos'
-
-num_particles  = 500
-sweep          = 300
-sweep          = -abs(sweep) if plane == 'DPpos' else abs(sweep)
-num_turns      = int(20*abs(sweep))
+beam          = 1
+plane         = 'DPpos'
+num_particles = 500
+sweep         = 300
+sweep         = -abs(sweep) if plane == 'DPpos' else abs(sweep)
+num_turns     = int(20*abs(sweep))
 
 path_in = Path(__file__).parent
-path_out = Path.cwd()
+path_out = Path.cwd() / 'plots'
 
 
 # Load from json
@@ -136,5 +129,6 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
+ThisLM.plot(savefig=path_out / f'lossmap_B{beam}{plane}.pdf')
 plt.show()
+

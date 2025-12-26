@@ -20,7 +20,7 @@ num_turns     = 10
 num_particles = 5000
 
 path_in = Path(__file__).parent
-path_out = Path.cwd()
+path_out = Path.cwd() / 'plots'
 
 
 # Load from json
@@ -60,12 +60,6 @@ part = line[tcp].generate_pencil(num_particles)
 # warnings.filterwarnings("error")
 
 
-# Move the line to an OpenMP context to be able to use all cores
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-# Should move iobuffer as well in case of impacts
-
-
 # Track!
 line.scattering.enable()
 line.track(part, num_turns=num_turns, time=True, with_progress=1)
@@ -75,11 +69,6 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 # Stop the Geant4 connection (and return to the previous directory)
 xc.geant4.engine.stop(clean=True)
-
-
-# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu())
 
 
 # Save lossmap to json, which can be loaded, combined (for more statistics),
@@ -94,6 +83,6 @@ print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=Path(path_out, f'lossmap_B{beam}{plane}.pdf'))
+ThisLM.plot(savefig=Path(path_out, f'lossmap_geant4_B{beam}{plane}.pdf'))
 plt.show()
 
