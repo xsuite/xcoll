@@ -18,7 +18,7 @@ num_part = int(2_000)
 capacity = 2*num_part
 particle_ref = xt.Particles('proton', p0c=4e11)
 
-coll = xc.FlukaCrystal(length=0.002, material='si', bending_angle=149e-6,
+coll = xc.FlukaCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=149e-6,
                        width=0.002, height=0.05, side='+', jaw=0.001)
 
 # Connect to FLUKA

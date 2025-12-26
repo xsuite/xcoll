@@ -44,13 +44,13 @@ part2 = part_init.copy()
 
 
 # Do the tracking in Geant4
-print(f"Tracking {num_part} particles (Geant4)...     ", end='')
+print(f"Tracking {num_part} particles (Geant4)...     ", end='', flush=True)
 start = time.time()
 coll1.track(part1)
 print(f"Done in {round(time.time()-start, 3)}s.")
 
 # Do the tracking in Everest
-print(f"Tracking {num_part} particles (Everest)...   ", end='')
+print(f"Tracking {num_part} particles (Everest)...   ", end='', flush=True)
 start = time.time()
 coll2.track(part2)
 print(f"Done in {round(1000*(time.time()-start), 3)}ms")

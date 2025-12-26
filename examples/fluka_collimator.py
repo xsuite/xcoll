@@ -48,13 +48,13 @@ part_pre = xp.build_particles(x=[0], particle_ref=xc.fluka.engine.particle_ref, 
 
 
 # Do the tracking in FLUKA
-print(f"Tracking {num_part} particles (FLUKA)...     ", end='')
+print(f"Tracking {num_part} particles (FLUKA)...     ", end='', flush=True)
 start = time.time()
 coll1.track(part1)
 print(f"Done in {round(time.time()-start, 3)}s.")
 
 # Do the tracking in Everest
-print(f"Tracking {num_part} particles (Everest)...   ", end='')
+print(f"Tracking {num_part} particles (Everest)...   ", end='', flush=True)
 start = time.time()
 coll2.track(part2)
 print(f"Done in {round(1000*(time.time()-start), 3)}ms")
