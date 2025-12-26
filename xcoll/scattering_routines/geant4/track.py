@@ -92,7 +92,6 @@ def track_core(coll, part):
         xc.geant4.engine._g4link.collimate()
         products = xc.geant4.engine._g4link.collimateReturn(num_sent)
 
-    print("BACK FROM GEANT4", flush=True)
     # Careful with all the masking!
     # Double-mask assignment does not work, e.g. part.state[mask1][mask2] = 1 will do nothing...
 
@@ -129,9 +128,7 @@ def track_core(coll, part):
     # Add new particles created in Geant4
     q_new = products['q'][num_sent:]
     pdg_id = products['pdg_id'][num_sent:]
-    print("masking new particles", flush=True)
     mask_new = xc.geant4.engine._mask_particle_return_types(pdg_id, q_new)
-    print("done masking new particles", flush=True)
     idx_new = np.nonzero(mask_new)[0] + num_sent
     assert np.all(products['state'][idx_new] == 1)
 
@@ -255,5 +252,3 @@ def track_core(coll, part):
 
     # Give all particles the same s position to avoid numerical differences
     part.s[part.state > 0] = s_in + coll.length
-
-    print("DONE WITH GEANT4 COLL TRACKING", flush=True)

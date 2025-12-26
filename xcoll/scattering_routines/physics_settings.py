@@ -4,6 +4,7 @@
 # ######################################### #
 
 from numbers import Number
+from contextlib import contextmanager
 
 import xtrack as xt
 import xtrack.particles.pdg as pdg
@@ -23,14 +24,15 @@ class PhysicsSettingsHelper:
     _cut_definitions = ['hadron_lower_momentum', 'photon_lower_momentum', 'electron_lower_momentum']
 
     def __init__(self, engine):
-        self._engine = engine
-        self._use_cuts = True
-        # Set flags to default
-        self.return_all = None
-        self.hadron_lower_momentum_cut = None
-        self.photon_lower_momentum_cut = None
-        self.electron_lower_momentum_cut = None
-        self.include_showers = None
+        with self.__class__._in_constructor(self):
+            self._engine = engine
+            self._use_cuts = True
+            # Set flags to default
+            self.return_all = None
+            self.hadron_lower_momentum_cut = None
+            self.photon_lower_momentum_cut = None
+            self.electron_lower_momentum_cut = None
+            self.include_showers = None
 
     @property
     def particle_ref(self):
@@ -103,45 +105,12 @@ class PhysicsSettingsHelper:
                 print(f"  {prefix} {flag:28} {val}")
 
     @property
-    def all_return_flags(self):
+    def all_flags(self):
         all_flags  = self._global_return_flags.copy()
         all_flags += self._return_flags.keys()
         all_flags += self._return_modifiers
         all_flags += [fff for ff in self._return_flags.values() for fff in ff]
-        return [f'return_{ff}' for ff in all_flags]
-
-    @property
-    def all_cut_definitions(self):
-        return [f'{ff}_cut' for ff in self._cut_definitions]
-
-    def __getattribute__(self, item):
-        # always use base lookup inside this method
-        obj_get = object.__getattribute__
-
-        if item.startswith("return_"):
-            # compute flags WITHOUT going through self.<property>
-            global_flags     = obj_get(self, "_global_return_flags")
-            return_flags     = obj_get(self, "_return_flags")
-            return_modifiers = obj_get(self, "_return_modifiers")
-
-            all_flags = list(global_flags)
-            all_flags += list(return_flags.keys())
-            all_flags += list(return_modifiers)
-            all_flags += [fff for ff in return_flags.values() for fff in ff]
-
-            if item not in {f"return_{ff}" for ff in all_flags}:
-                engine = obj_get(self, "_engine") # also fetch engine via base lookup to avoid re-entry surprises
-                engine.stop()
-                raise AttributeError(f"Return flag '{item}' does not exist!")
-
-        elif not item.startswith('_') and item.endswith("_cut"):
-            cut_defs = obj_get(self, "_cut_definitions")
-            if item not in {f"{ff}_cut" for ff in cut_defs}:
-                engine = obj_get(self, "_engine")
-                engine.stop()
-                raise AttributeError(f"Cut definition '{item}' does not exist!")
-
-        return obj_get(self, item)
+        return [f'return_{ff}' for ff in all_flags] + [f'{ff}_cut' for ff in self._cut_definitions]
 
 
     # =====================
@@ -642,3 +611,50 @@ class PhysicsSettingsHelper:
             self._engine.stop()
             raise ValueError("`include_showers` has to be a boolean!")
         self._include_showers = val
+
+
+    def __getattribute__(self, item):
+        # always use base lookup inside this method
+        obj_get = object.__getattribute__
+
+        if item.startswith("return_"):
+            # compute flags WITHOUT going through self.<property>
+            global_flags     = obj_get(self, "_global_return_flags")
+            return_flags     = obj_get(self, "_return_flags")
+            return_modifiers = obj_get(self, "_return_modifiers")
+
+            all_flags = list(global_flags)
+            all_flags += list(return_flags.keys())
+            all_flags += list(return_modifiers)
+            all_flags += [fff for ff in return_flags.values() for fff in ff]
+
+            if item not in {f"return_{ff}" for ff in all_flags}:
+                engine = obj_get(self, "_engine") # also fetch engine via base lookup to avoid re-entry surprises
+                engine.stop()
+                raise AttributeError(f"Return flag '{item}' does not exist!")
+
+        elif not item.startswith('_') and item.endswith("_cut"):
+            cut_defs = obj_get(self, "_cut_definitions")
+            if item not in {f"{ff}_cut" for ff in cut_defs}:
+                engine = obj_get(self, "_engine")
+                engine.stop()
+                raise AttributeError(f"Cut definition '{item}' does not exist!")
+
+        return obj_get(self, item)
+
+    def __setattr__(self, name, value):
+        if not hasattr(self, name):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        super().__setattr__(name, value)
+
+    @classmethod
+    @contextmanager
+    def _in_constructor(cls, self=None):
+        original_setattr = cls.__setattr__
+        def new_setattr(self, *args, **kwargs):
+            return super().__setattr__( *args, **kwargs)
+        cls.__setattr__ = new_setattr
+        try:
+            yield
+        finally:
+            cls.__setattr__ = original_setattr

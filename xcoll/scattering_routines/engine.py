@@ -242,15 +242,14 @@ class BaseEngine(xo.HybridClass):
         return self._element_dict
 
     def __getattr__(self, name):
-        if name.startswith('return_') or name.endswith('_cut'):
+        if name != '_physics_settings' and hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
             return getattr(self._physics_settings, name)
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __setattr__(self, name, value):
-        if name.startswith('return_') or name.endswith('_cut'):
+        if hasattr(self, '_physics_settings') and name in self._physics_settings.all_flags:
             return setattr(self._physics_settings, name, value)
-        else:
-            return super().__setattr__(name, value)
+        return super().__setattr__(name, value)
 
     # ======================
     # === Public Methods ===
@@ -518,9 +517,7 @@ class BaseEngine(xo.HybridClass):
         # Now we can set the rest of the properties
         self._set_property('capacity', kwargs)
         self._set_property('relative_capacity', kwargs)
-        for ff in self._physics_settings.all_return_flags:
-            self._set_property(ff, kwargs)
-        for ff in self._physics_settings.all_cut_definitions:
+        for ff in self._physics_settings.all_flags:
             self._set_property(ff, kwargs)
         return kwargs
 
