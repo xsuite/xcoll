@@ -4,10 +4,14 @@
 # ######################################### #
 
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 import xtrack as xt
 import xcoll as xc
+
+
+path_out = Path.cwd() / 'plots'
 
 
 # Comparing K2 material properties to new material properties
@@ -86,13 +90,13 @@ def plot_material_scattering(materials, length, p0c, n_points=100000, savefig=No
     fig.suptitle(f"{length}m {int(energy/1e9)}GeV " + ' vs '.join(title), fontsize=11)
     plt.tight_layout()
     if savefig is not None:
-        plt.savefig(savefig, dpi=300)
+        plt.savefig(path_out / savefig, dpi=300)
     plt.show()
 
 
 for length in [0.1, 0.25, 1.2]:
     for energy in [20e9, 450e9, 7e12]:
-        plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MoGr6400,
+        plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MG6400,
                                   xc.materials.MG6403Fc, xc.materials.K2MolybdenumGraphite],
                                  length, energy, 10_000_000,
                                  f'scattering_mogr_{length}m_{int(energy/1e9)}GeV.png')

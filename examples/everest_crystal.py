@@ -22,7 +22,7 @@ context = xo.ContextCpu()         # For CPU
 num_part = int(10e6)
 particle_ref = xt.Particles('proton', p0c=4e11)
 
-coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=149e-6,
+coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_angle=149e-6,
                          width=0.002, height=0.05, side='+', miscut=0., lattice='strip', jaw=0.001,
                          _context=context)
 
