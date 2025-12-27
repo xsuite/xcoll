@@ -21,11 +21,12 @@ num_turns     = 1000
 num_particles = 10_000
 
 path_in = Path(__file__).parent
-path_out = Path.cwd() / 'plots'
+path_out = Path.cwd()
 
 
 # Load from json
-line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = env[f'lhcb{beam}']
 
 
 # Initialise colldb
@@ -93,19 +94,19 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu())
 
 
-# Save lossmap to json, which can be loaded, combined (for more statistics),
-# and plotted with the 'lossmaps' package
+# Save loss map to json
 line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
-ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
+ThisLM.to_json(file=path_out / 'results' / f'lossmap_blowup_B{beam}{plane}.json')
 
 # Save a summary of the collimator losses to a text file
-ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
+ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_blowup_B{beam}{plane}.out')
 print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=path_out / f'lossmap_blowup_B{beam}{plane}.pdf')
+# Plot loss map
+ThisLM.plot(savefig=path_out / 'plots' / f'lossmap_blowup_B{beam}{plane}.pdf', zoom='betatron')
 plt.show()
 
 
@@ -129,5 +130,5 @@ ax.set_ylabel('number of lost particles')
 ax.set_xlabel("turn")
 ax.legend()
 ax.set_title(f"Loss map B{beam}{plane} with blow-up ")
-plt.savefig(path_out / f'lossmap_blowup_over_turns_B{beam}{plane}.png', dpi=300)
+plt.savefig(path_out / 'plots' / f'lossmap_blowup_over_turns_B{beam}{plane}.png', dpi=300)
 plt.show()

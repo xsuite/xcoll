@@ -18,12 +18,13 @@ plane         = 'H'
 num_turns     = 10
 num_particles = 5000
 
-path_in = xc._pkg_root.parent / 'examples' # Path(__file__).parent
-path_out = Path.cwd() / 'plots'
+path_in = Path(__file__).parent
+path_out = Path.cwd()
 
 
 # Load from json
-line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = env[f'lhcb{beam}']
 
 
 # Initialise colldb
@@ -70,18 +71,18 @@ print(f"Done tracking in {line.time_last_track:.1f}s.")
 xc.fluka.engine.stop(clean=True)
 
 
-# Save lossmap to json, which can be loaded, combined (for more statistics),
-# and plotted with the 'lossmaps' package
+# Save loss map to json
 line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
-ThisLM.to_json(file=Path(path_out, f'lossmap_B{beam}{plane}.json'))
+ThisLM.to_json(file=path_out / 'results' / f'lossmap_fluka_B{beam}{plane}.json')
 
 # Save a summary of the collimator losses to a text file
-ThisLM.save_summary(file=Path(path_out, f'coll_summary_B{beam}{plane}.out'))
+ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_fluka_B{beam}{plane}.out')
 print(ThisLM.summary)
 
 print(f"Total calculation time {time.time()-start_time}s")
 
-ThisLM.plot(savefig=path_out / f'lossmap_fluka_B{beam}{plane}.pdf')
+# Plot loss map
+ThisLM.plot(savefig=path_out / 'plots' / f'lossmap_fluka_B{beam}{plane}.pdf', zoom='betatron')
 plt.show()
 
