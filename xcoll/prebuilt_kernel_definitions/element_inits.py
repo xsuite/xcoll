@@ -4,10 +4,10 @@
 # ######################################### #
 
 XCOLL_ELEMENTS_INIT_DEFAULTS = {
-    'FlukaCollimator': {
-        'length': 1., 'material': 'mogr'
-    },
-    'FlukaCrystal': {
-        'length': 1., 'material': 'si', 'bending_radius': 10., 'side': '+'
-    },
+    # 'FlukaCollimator': {
+    #     'length': 1., 'material': 'mogr'
+    # },
+    # 'FlukaCrystal': {
+    #     'length': 1., 'material': 'si', 'bending_radius': 10., 'side': '+'
+    # },
 }
