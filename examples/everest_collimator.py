@@ -27,7 +27,8 @@ path_in = Path(__file__).parent
 
 
 # Load from json
-line = xt.Line.from_json(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+line = env[f'lhcb{beam}']
 
 
 # Install primary collimators

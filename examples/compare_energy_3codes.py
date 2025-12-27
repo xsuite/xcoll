@@ -220,5 +220,5 @@ ax[0].text(E_min*(E_high/E_min)**0.07, max_dNdlogE, text, va='top',
 
 plt.suptitle(f"Scattering {num_part} protons at {E_high:.3e} eV on {length}m {material.name}")
 plt.tight_layout()
-plt.savefig('plots/compare_energy_3codes.png', dpi=300)
+plt.savefig('plots/scattering/compare_energy_3codes.png', dpi=300)
 plt.show()

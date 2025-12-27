@@ -1,23 +1,28 @@
+# copyright ############################### #
+# This file is part of the Xcoll package.   #
+# Copyright (c) CERN, 2025.                 #
+# ######################################### #
+
 import time
 import numpy as np
-import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
 
-num_part = 100000
-_capacity = 2*num_part
+num_part = 100_000
+capacity = 2*num_part
 particle_ref = xp.Particles('proton', p0c=7e12)
+path_out = Path.cwd() / 'plots'/ 'scattering'
 
-everest_coll = xc.EverestCollimator(length=1.0, material=xc.materials.MolybdenumGraphite, jaw=[0.01, -0.01])
-# fluka_coll = xc.FlukaCollimator(length=1.0, jaw=[0.01, -0.01])
-g4_coll = xc.Geant4Collimator(length=1.0, material='mogr', jaw=[0.1, -0.1], geant4_id='g4_coll')
+mat = xc.materials.MolybdenumGraphite
+everest_coll = xc.EverestCollimator(length=1.0, material=mat, jaw=[0.01, -0.01])
+fluka_coll   = xc.FlukaCollimator(length=1.0, material=mat, jaw=[0.01, -0.01])
+g4_coll      = xc.Geant4Collimator(length=1.0, material=mat, jaw=[0.1, -0.1])
 
 
 # Plotting function
@@ -53,57 +58,37 @@ def plot_scatters(part_init, part, outfile, show_colorbar=True):
     if show_colorbar:
         plt.colorbar(label='Deviation from drift [mm]')
     plt.tight_layout()
-    plt.savefig(outfile, dpi=300)
+    plt.savefig(path_out / outfile, dpi=300)
 
 
 # Generate particles
 # ------------------
 
-y = np.random.normal(loc=0, scale=1e-3, size=num_part)
-py = np.random.normal(loc=0, scale=1e-3, size=num_part)
-delta = np.random.normal(loc=0, scale=3e-4, size=num_part)
+def generate_particles(num_part, particle_ref, capacity=None):
+    y = np.random.normal(loc=0, scale=1e-3, size=num_part)
+    py = np.random.normal(loc=0, scale=1e-3, size=num_part)
+    delta = np.random.normal(loc=0, scale=3e-4, size=num_part)
 
-part_init = []
-x0 = 9.25e-3
-x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
-part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=_capacity))
+    part_init = []
+    x0 = 9.25e-3
+    x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
+    part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=capacity))
 
-x0 = 0.01
-x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
-part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=_capacity))
+    x0 = 0.01
+    x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
+    part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=capacity))
 
-x0 = 0.01075
-x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
-part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=_capacity))
-
-
-# # Fluka
-# # -----
-
-# xc.FlukaEngine.start(elements=fluka_coll, names='tcp.c6l7.b1', debug_level=1, _capacity=_capacity, cwd='temp_scratch')
-# xc.FlukaEngine.set_particle_ref(particle_ref=particle_ref)
-# part_fluka = []
-# for this_part_init in part_init:
-#     this_part = this_part_init.copy()
-#     t_start = time.time()
-#     fluka_coll.track(this_part)
-#     t_end = time.time()
-
-#     print(f"FLUKA execution time: {t_end - t_start} s")
-#     print(f"Survived in FLUKA: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
-#     this_part.sort(interleave_lost_particles=True)
-#     part_fluka.append(this_part)
-
-# xc.FlukaEngine.stop()
-
-# for idx in range(3):
-#     plot_scatters(part_init[idx], part_fluka[idx], f'fluka_collimator_{idx}.png', show_colorbar=True)
+    x0 = 0.01075
+    x = np.random.normal(loc=x0, scale=1e-4, size=num_part)
+    part_init.append(xp.build_particles(particle_ref=particle_ref, x=x, px=0, y=y, py=py, delta=delta, _capacity=capacity))
+    return part_init
 
 
 # Everest
 # -------
 
 # Pre-run for compilation
+part_init = generate_particles(num_part, particle_ref)
 this_part = part_init[0].copy()
 everest_coll.track(this_part)
 
@@ -123,10 +108,35 @@ for idx in range(3):
     plot_scatters(part_init[idx], part_everest[idx], f'everest_collimator_{idx}.png', show_colorbar=True)
 
 
+# Fluka
+# -----
+
+xc.fluka.engine.start(elements=fluka_coll, particle_ref=particle_ref, cwd='temp_scratch', capacity=capacity)
+part_init = generate_particles(num_part, xc.fluka.engine.particle_ref, capacity)
+
+part_fluka = []
+for this_part_init in part_init:
+    this_part = this_part_init.copy()
+    t_start = time.time()
+    fluka_coll.track(this_part)
+    t_end = time.time()
+
+    print(f"FLUKA execution time: {t_end - t_start} s")
+    print(f"Survived in FLUKA: {len(np.unique(this_part.parent_particle_id[this_part.state>0]))}/{num_part}")
+    this_part.sort(interleave_lost_particles=True)
+    part_fluka.append(this_part)
+
+xc.fluka.engine.stop(clean=True)
+
+for idx in range(3):
+    plot_scatters(part_init[idx], part_fluka[idx], f'fluka_collimator_{idx}.png', show_colorbar=True)
+
+
 # Geant4
 # ------
 
-xc.Geant4Engine.start(elements=g4_coll, seed=1993, bdsim_config_file='settings_protons.gmad', particle_ref=particle_ref)
+xc.geant4.engine.start(elements=g4_coll, particle_ref=particle_ref, cwd='temp_scratch')
+part_init = generate_particles(num_part, xc.geant4.engine.particle_ref, capacity)
 
 part_g4 = []
 for this_part_init in part_init:
@@ -140,7 +150,7 @@ for this_part_init in part_init:
     this_part.sort(interleave_lost_particles=True)
     part_g4.append(this_part)
 
-xc.Geant4Engine.stop()
+xc.geant4.engine.stop(clean=True)
 
 for idx in range(3):
     plot_scatters(part_init[idx], part_g4[idx], f'g4_collimator_{idx}.png', show_colorbar=True)

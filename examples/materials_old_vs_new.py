@@ -11,7 +11,7 @@ import xtrack as xt
 import xcoll as xc
 
 
-path_out = Path.cwd() / 'plots'
+path_out = Path.cwd() / 'plots' / 'scattering'
 
 
 # Comparing K2 material properties to new material properties
@@ -41,7 +41,7 @@ for mat in xc.materials.db:
 # Plotting scattering differences between old and new material definitions
 # ========================================================================
 
-def plot_material_scattering(materials, length, p0c, n_points=100000, savefig=None):
+def plot_material_scattering(materials, length, p0c, n_points=100_000, savefig=None):
     colls = {}
     for mat in materials:
         colls[mat.name] = xc.EverestBlock(length=length, material=mat)
@@ -98,14 +98,14 @@ for length in [0.1, 0.25, 1.2]:
     for energy in [20e9, 450e9, 7e12]:
         plot_material_scattering([xc.materials.MolybdenumGraphite, xc.materials.MG6400,
                                   xc.materials.MG6403Fc, xc.materials.K2MolybdenumGraphite],
-                                 length, energy, 10_000_000,
+                                 length, energy, 100_000,
                                  f'scattering_mogr_{length}m_{int(energy/1e9)}GeV.png')
         plot_material_scattering([xc.materials.CopperDiamond, xc.materials.K2CopperDiamond],
-                                 length, energy, 10_000_000,
+                                 length, energy, 100_000,
                                  f'scattering_cucd_{length}m_{int(energy/1e9)}GeV.png')
         plot_material_scattering([xc.materials.Glidcop15, xc.materials.K2Glidcop15],
-                                 length, energy, 10_000_000,
+                                 length, energy, 100_000,
                                  f'scattering_glid_{length}m_{int(energy/1e9)}GeV.png')
         plot_material_scattering([xc.materials.Inermet180, xc.materials.K2Inermet180],
-                                 length, energy, 10_000_000,
+                                 length, energy, 100_000,
                                  f'scattering_iner_{length}m_{int(energy/1e9)}GeV.png')
