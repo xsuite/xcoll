@@ -298,6 +298,7 @@ class BaseEngine(xo.HybridClass):
                     raise ValueError(f"Input file {input_file} does not exist!")
 
         # Set all engine properties that have a setter (this will remove these properties from the kwargs)
+        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
         kwargs = self._set_engine_properties(**kwargs)
 
         # Do some preparations before creating the input file if needed
@@ -307,7 +308,7 @@ class BaseEngine(xo.HybridClass):
         kwargs = self._use_input_file(input_file, **kwargs)
         if clean:
             self.clean_input_files(clean_all=False)
-        self._preparing_input = False
+        self._starting_or_stopping = False
 
         # Start the engine in the ChildEngine
         self._start_engine(**kwargs)
@@ -322,12 +323,14 @@ class BaseEngine(xo.HybridClass):
         kwargs = self._stop_engine(**kwargs)
         if clean:
             self.clean(clean_all=True, **kwargs)
+        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
         self._restore_engine_properties(clean=clean)
+        self._starting_or_stopping = False
         self._warning_given = False
         self._tracking_initialised = False
 
     def is_running(self):
-        if hasattr(self, '_preparing_input') and self._preparing_input:
+        if hasattr(self, '_starting_or_stopping') and self._starting_or_stopping:
             # We need this to allow changing the element settings which otherwise are locked
             return False
         # If we get here, we cannot say if the engine is running or not and we need an
@@ -351,6 +354,7 @@ class BaseEngine(xo.HybridClass):
             print("Warning: Cannot use current working directory as input folder. "
                 + "Generating temporary folder instead.")
             kwargs.pop('cwd')
+        self._starting_or_stopping = True # We need this to allow changing the element settings which otherwise are locked
         kwargs = self._set_engine_properties(**kwargs)
 
         # Do some preparations before creating the input file if needed
@@ -383,6 +387,7 @@ class BaseEngine(xo.HybridClass):
             else:
                 self.clean_input_files(clean_all=True, input_file=input_file)
         self._restore_engine_properties(clean=clean)
+        self._starting_or_stopping = False
 
         return new_input_file[0] if self._num_input_files==1 else new_input_file
 
@@ -504,7 +509,6 @@ class BaseEngine(xo.HybridClass):
             setattr(self, prop, val)
 
     def _set_engine_properties(self, **kwargs):
-        self._preparing_input = True  # We need this to allow changing the element settings which otherwise are locked
         # We need to set the following properties first as they are needed by the others
         self._set_property('verbose', kwargs)
         self._set_property('line', kwargs)
@@ -522,7 +526,6 @@ class BaseEngine(xo.HybridClass):
         return kwargs
 
     def _restore_engine_properties(self, clean=False):
-        self._preparing_input = False
         # Reset particle_ref in the line
         if hasattr(self, '_old_line_particle_ref'):
             self.line.particle_ref = self._old_line_particle_ref
@@ -612,12 +615,6 @@ class BaseEngine(xo.HybridClass):
         self._element_index += 1
         return name
 
-    def _deactivate_element(self, el):
-        self._deactivated_elements[el.name] = [el, el.active or True]
-        if hasattr(el, 'active'):
-            el.active = False
-        self._remove_element(el)
-
     def _assert_element(self, element):
         if not isinstance(element, self._element_classes):
             self.stop()
@@ -689,6 +686,12 @@ class BaseEngine(xo.HybridClass):
                            + f"Please provide unique names for each element.")
         self._element_dict = dict(zip(this_names, this_elements))
 
+    def _deactivate_element(self, el):
+        self._deactivated_elements[el.name] = [el, el.active or True]
+        if hasattr(el, 'active'):
+            el.active = False
+        self._remove_element(el)
+
     def _reactivate_elements(self):
         names = list(self._deactivated_elements.keys())
         for name in names:
@@ -755,7 +758,6 @@ class BaseEngine(xo.HybridClass):
             self._input_file = new_files[0] if self._num_input_files==1 else new_files
             self._match_input_file()
         return kwargs
-
 
     def _get_input_cwd_for_cleaning(self, **kwargs):
         # Get the input file and the cwd
