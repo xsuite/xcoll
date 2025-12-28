@@ -192,7 +192,7 @@ class BaseEngine(xo.HybridClass):
     @relative_capacity.setter
     def relative_capacity(self, val):
         if val is None:
-            val = 0
+            val = 2
         if not isinstance(val, Number) or val < 0:
             self.stop()
             raise ValueError("`relative_capacity` has to be a positive integer!")

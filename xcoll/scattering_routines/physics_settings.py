@@ -555,7 +555,7 @@ class PhysicsSettingsHelper:
         self._photon_lower_momentum_cut_use_default = False
         if val is None:
             self._photon_lower_momentum_cut_use_default = True
-            val = 1.e5
+            val = self.ref_p0c * 1e-3
         elif not isinstance(val, Number) or val < 0:
             self._engine.stop()
             raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
@@ -581,7 +581,7 @@ class PhysicsSettingsHelper:
             if self.ref_is_lepton:
                 val = self.ref_p0c / 10
             else:
-                val = 1.e6
+                val = self.ref_p0c * 1e-3
         elif not isinstance(val, Number) or val < 0:
             self._engine.stop()
             raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
