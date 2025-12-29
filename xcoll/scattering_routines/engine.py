@@ -15,6 +15,7 @@ from .geometry import XcollGeometry
 from .physics_settings import PhysicsSettingsHelper
 from ..materials import Material
 from ..interaction_record import InteractionRecord
+from ..compare import deep_equal
 try:
     # TODO: once xaux is in Xsuite keep only this
     from xaux import FsPath, ranID
@@ -124,7 +125,7 @@ class BaseEngine(xo.HybridClass):
     def particle_ref(self):
         initial = xt.Particles().to_dict()
         current = self._particle_ref.to_dict()
-        if xt.line._dicts_equal(initial, current):
+        if deep_equal(initial, current):
             return None
         else:
             return self._particle_ref
@@ -601,7 +602,7 @@ class BaseEngine(xo.HybridClass):
         if self.line is None:
             return
         if self.line.particle_ref is not None \
-        and not xt.line._dicts_equal(self.line.particle_ref.to_dict(),
+        and not deep_equal(self.line.particle_ref.to_dict(),
                                      self.particle_ref.to_dict()):
             self._print("Found different reference particle in line. Temporarily overwritten.")
             val = self.line.particle_ref

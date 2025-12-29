@@ -8,11 +8,11 @@ import scipy.constants as sc
 from collections import defaultdict
 
 import xobjects as xo
-from xtrack.line import _dicts_equal
 
 from .parameters import (_approximate_radiation_length, _default_excitation_energies,
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
+from ..compare import deep_equal
 
 
 _materials_context = xo.ContextCpu()
@@ -83,9 +83,9 @@ class Material(xo.HybridClass):
         xokwargs = kwargs.pop('_xokwargs', {})
         for kk in ('_ZA_mean', '_Z2_eff', '_radiation_length', '_excitation_energy',
                    '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
-                   '_nuclear_elastic_slope', '_hcut', 'crystal_plane_distance',
-                   'crystal_potential', 'eta', 'nuclear_collision_length'):
-            xokwargs[f'_{kk}'] = kwargs.pop(kk, -1.)
+                   '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
+                   '_crystal_potential', '_eta', '_nuclear_collision_length'):
+            xokwargs[kk] = kwargs.pop(kk, -1.)
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
         xokwargs['_context'] = kwargs.pop('_context', _materials_context)  # This is needed to get all materials in the same buffer (otherwise Xtrack tests fail)
         xokwargs['__class__'] = kwargs.pop('__class__', Material)
@@ -150,7 +150,9 @@ class Material(xo.HybridClass):
         self.update_vars()
 
         # Assign optional properties
-        for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut']:
+        for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut',
+                   'crystal_plane_distance', 'crystal_potential', 'eta',
+                   'nuclear_collision_length']:
             if kk in kwargs:
                 setattr(self, kk, kwargs.pop(kk))
         for kk in ['state', 'temperature', 'pressure', 'info']:
@@ -485,11 +487,11 @@ class Material(xo.HybridClass):
             if len(dct_self['components']) != len(dct_other['components']):
                 return False
             for el1, el2 in zip(dct_self['components'], dct_other['components']):
-                if not _dicts_equal(el1, el2):
+                if not deep_equal(el1, el2):
                     return False
             dct_self.pop('components')
             dct_other.pop('components')
-        return _dicts_equal(dct_self, dct_other)
+        return deep_equal(dct_self, dct_other)
 
     def __setattr__(self, name, value):
         if name not in ['_xobject', '_frozen']:
