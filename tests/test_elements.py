@@ -3,10 +3,11 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import xcoll as xc
 import xtrack as xt
-from xtrack.line import _dicts_equal
 from xobjects.test_helpers import for_all_test_contexts
+
+import xcoll as xc
+from xcoll.compare import deep_equal
 
 import numpy as np
 import pytest
@@ -226,6 +227,25 @@ everest_crystal_dict_fields = [*base_crystal_dict_fields,
 everest_crystal_user_fields = base_crystal_user_fields
 everest_crystal_user_fields_read_only = [*base_crystal_user_fields_read_only, 'critical_radius', 'critical_angle']
 
+# FlukaCollimator generic
+fluka_fields = {**base_coll_fields,
+    'fluka_id':              137,
+    'length_front':          0.4125,
+    'length_back':           0.738,
+    '_tracking':             1,
+    '_acc_ionisation_loss':  4.349234923e18
+}
+fluka_dict_fields = [*base_coll_dict_fields,
+    {'field': 'assembly', 'val': 'hilumi_tcppm',
+        'expected': {'material': None, 'height': None, 'width': None, 'side': None}}
+]
+fluka_generic_dict_fields = [*base_coll_dict_fields,
+    {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
+    {'field': 'height', 'val': 0.8, 'expected': {'height': 0.8}},
+    {'field': 'width',  'val': 0.2, 'expected': {'width': 0.2}},
+    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+]
+
 
 
 # Tests
@@ -258,7 +278,7 @@ def test_everest_block(test_context):
     elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     assert np.isclose(elem.length, 1.3)
     assert elem._tracking == True
-    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
+    assert deep_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
     assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
@@ -295,7 +315,7 @@ def test_everest_crystal(test_context):
 
 def _assert_all_close(expected, setval):
     if hasattr(expected, 'to_dict'):
-        assert _dicts_equal(expected.to_dict(), setval.to_dict())
+        assert deep_equal(expected.to_dict(), setval.to_dict())
     elif hasattr(expected, '__iter__') and not isinstance(expected, str):
         for exp, stv in zip(expected, setval):
             _assert_all_close(exp, stv)

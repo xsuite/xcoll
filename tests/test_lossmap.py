@@ -11,9 +11,11 @@ import pandas as pd
 from pathlib import Path
 
 import xtrack as xt
-import xcoll as xc
 from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts
+
+import xcoll as xc
+from xcoll.compare import deep_equal
 
 try:
     import matplotlib.pyplot as plt
@@ -45,7 +47,8 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
     if not do_plot and plt is not None:
         pytest.skip("matplotlib installed")
 
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                     beam=beam, ignore_crystals=ignore_crystals)
     colldb.install_everest_collimators(line=line)
@@ -98,7 +101,8 @@ def test_lossmap_fluka(beam, plane, npart, interpolation, ignore_crystals, do_pl
     if not do_plot and plt is not None:
         pytest.skip("matplotlib installed")
 
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_fluka_collimators(line=line)
     df_with_coll = line.check_aperture()
@@ -150,7 +154,8 @@ def test_lossmap_geant4(do_plot, test_context):
     if xc.geant4.engine.is_running():
         xc.geant4.engine.stop(clean=True)
 
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
     colldb.install_geant4_collimators(line=line)
     assert np.all([isinstance(line[nn], xc.Geant4CollimatorTip) for nn in colldb.collimator_families['tcsg7']])
@@ -207,7 +212,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             assert cold_regions == ThisLM.cold_regions
             assert warm_regions == ThisLM.warm_regions
             assert s_range == ThisLM.s_range
-            assert xt.line._dicts_equal(dct, clean_lm_dct)
+            assert deep_equal(dct, clean_lm_dct)
         Path(f"lossmap-{this_id}.json").unlink()
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")
         assert Path(f"coll_summary-{this_id}.txt").exists()

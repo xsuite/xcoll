@@ -31,7 +31,8 @@ def test_rf_sweep(sweep, beam, test_context):
         assert 'ThickSliceCavity' in tt_c.element_type
     else:
         bh = 3.e-4
-        line = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+        line = env[f'lhcb{beam}']
 
     line.build_tracker(_context=test_context)
 
