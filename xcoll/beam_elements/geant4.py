@@ -36,7 +36,7 @@ class Geant4Collimator(BaseCollimator):
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
     _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
     _internal_record_class = BaseCollimator._internal_record_class
 
@@ -162,7 +162,7 @@ class Geant4CollimatorTip(Geant4Collimator):
     _depends_on = [*Geant4Collimator._depends_on]
 
     _noexpr_fields         = {*Geant4Collimator._noexpr_fields, 'tip_material'}
-    _skip_in_to_dict       = [*Geant4Collimator._skip_in_to_dict, '_tip_material']
+    _skip_in_to_dict       = [*Geant4Collimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
     _store_in_to_dict      = [*Geant4Collimator._store_in_to_dict, 'tip_material']
     _internal_record_class = Geant4Collimator._internal_record_class
 

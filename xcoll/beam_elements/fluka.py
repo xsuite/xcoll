@@ -40,8 +40,8 @@ class FlukaCollimator(BaseCollimator):
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_material']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly']
+    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCollimator._internal_record_class
 
     _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
@@ -301,8 +301,9 @@ class FlukaCrystal(BaseCrystal):
     allow_rot_and_shift = False
     skip_in_loss_location_refinement = True
 
-    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict
-    _store_in_to_dict      = [ *BaseCrystal._store_in_to_dict, 'assembly' ]
+    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
+    _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
+    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
     _internal_record_class = BaseCrystal._internal_record_class
 
     _depends_on = [BaseCrystal, FlukaEngine]
