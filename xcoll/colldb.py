@@ -417,6 +417,10 @@ class CollimatorDatabase:
     # ====================================
 
     def _get_names_from_line(self, line, names, families):
+        if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
+            names = [names]
+        if families is not None and (not hasattr(families, '__iter__') or isinstance(families, str)):
+            families = [families]
         if names is None and families is None:
             names = self.collimator_names
         elif names is None:
