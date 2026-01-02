@@ -69,7 +69,7 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     else:
         aper_s = lossmap['aperture']['s']
         aper_val = lossmap['aperture']['e'] if energy else lossmap['aperture']['n']
-        aper_length = 1 #lossmap['aperture']['length']    TODO
+        aper_length = lossmap['aperture']['length']
     if len(coll_s) == 0 and len(aper_s) == 0:
         raise ValueError("Empty loss map.")
 
