@@ -56,7 +56,8 @@ def test_rf_sweep(sweep, beam, test_context):
 def test_rf_sweep_old_style():
     num_turns = 6000
     num_particles = 5
-    line = xt.load(path / f'sequence_lhc_run3_b2.json')
+    env = xt.load(path / f'sequence_lhc_run3_b2.json')
+    line = env['lhcb2']
 
     line.build_tracker()
 

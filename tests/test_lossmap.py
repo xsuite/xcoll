@@ -41,7 +41,7 @@ path = Path(__file__).parent / 'data'
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+def test_everest(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:
@@ -84,8 +84,8 @@ def test_lossmap_everest(beam, plane, npart, interpolation, ignore_crystals, do_
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-@pytest.mark.skipif(not xc.fluka.environment.compiled, reason="FLUKA installation not found")
-def test_lossmap_fluka(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
+def test_fluka(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
     # If a previous test failed, stop the server manually
     if xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
@@ -138,7 +138,7 @@ def test_lossmap_fluka(beam, plane, npart, interpolation, ignore_crystals, do_pl
 @retry()
 @pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
-def test_lossmap_geant4(do_plot, test_context):
+def test_geant4(do_plot, test_context):
     npart = 5000
     beam = 2
     plane = 'H'
@@ -209,9 +209,9 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             cold_regions = dct.pop('cold_regions', None)
             warm_regions = dct.pop('warm_regions', None)
             s_range = dct.pop('s_range', None)
-            assert cold_regions == ThisLM.cold_regions
-            assert warm_regions == ThisLM.warm_regions
-            assert s_range == ThisLM.s_range
+            assert deep_equal(cold_regions, ThisLM.cold_regions)
+            assert deep_equal(warm_regions, ThisLM.warm_regions)
+            assert deep_equal(s_range, ThisLM.s_range)
             assert deep_equal(dct, clean_lm_dct)
         Path(f"lossmap-{this_id}.json").unlink()
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")

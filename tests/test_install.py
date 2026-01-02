@@ -77,7 +77,7 @@ def test_install_single_existing_marker(beam, test_context):
     pos_centre = line.get_s_position(name) + line[name].length/2
     coll = xc.EverestCrystal(length=0.004, angle=90, lattice='strip', bending_radius=85.10,
                              width=5.0e-3, height=30.0e-3, side='left',
-                             material=xc.materials.SiliconCrystal)
+                             material=xc.materials.Silicon)
     line.collimators.install(name, coll, need_apertures=True)
     assert np.isclose(line[name].length, 0.004)
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))

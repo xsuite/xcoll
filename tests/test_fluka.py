@@ -16,6 +16,7 @@ from xcoll.scattering_routines.fluka.environment import format_fluka_float
 
 
 @pytest.mark.parametrize('num_part', [1000, 5000])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_simple_track(num_part):
     print(f"Running test_simple_track with {num_part} particles")
     _capacity = num_part*2
@@ -122,22 +123,3 @@ def test_fluka_format_float():
               1.12299643810655078125e+12]:
         assert len(format_fluka_float(i)) == 10
         assert len(format_fluka_float(-i)) == 10
-
-
-def test_particle_ids():
-    if xc.fluka.engine.is_running():
-        xc.fluka.engine.stop(clean=True)
-    coll = xc.FlukaCollimator(length=0.0001, assembly='donadonj', jaw=0)
-    xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id='positron', p0c=6.8e12)
-    xc.fluka.engine.capacity = 100_000
-    xc.fluka.engine.seed = 7856231
-    xc.fluka.engine.start(elements=coll, clean=False, verbose=True)
-    x_init, y_init = np.array(np.meshgrid(np.linspace(-0.01, 0.01, 21), np.linspace(-0.01, 0.01, 21))).reshape(2,-1)
-    px_init = 0
-    py_init = 0
-    part_init = xp.build_particles(x=x_init, px=px_init, y=y_init, py=py_init,
-                                   particle_ref=xc.fluka.engine.particle_ref,
-                                   _capacity=xc.fluka.engine.capacity)
-
-    part = part_init.copy()
-    xc.fluka.engine.stop(clean=True)

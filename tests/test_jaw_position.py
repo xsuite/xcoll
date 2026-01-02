@@ -84,6 +84,7 @@ def test_geant4(jaw, angle, tilt):
 @pytest.mark.parametrize('angle', angles)
 @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
 @retry()
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_fluka(jaw, angle, tilt):
     num_part = 5_000
     length = 0.873

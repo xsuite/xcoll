@@ -19,6 +19,7 @@ FLUKA_LEAD_MASS_EV = xc.fluka.particle_masses[1000822080][1]
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_protons(hit):
     print(f"Testing protons with hit={hit}")
     num_part = 500
@@ -42,6 +43,7 @@ def test_protons(hit):
 
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_lead(hit):
     print(f"Testing lead with hit={hit}.")
     num_part = 100
@@ -67,6 +69,7 @@ def test_lead(hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'antiproton_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_antiprotons(proton_ref, hit):
     print(f"Testing antiprotons with hit={hit} and proton_ref={proton_ref}")
     num_part = 100
@@ -98,6 +101,7 @@ def test_antiprotons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'electron_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_electrons(proton_ref, hit):
     print(f"Testing electrons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -131,6 +135,7 @@ def test_electrons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'positron_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_positrons(proton_ref, hit):
     print(f"Testing positrons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -164,6 +169,7 @@ def test_positrons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'muon_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_muons(proton_ref, hit):
     print(f"Testing muons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -197,6 +203,7 @@ def test_muons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'antimuon_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_antimuons(proton_ref, hit):
     print(f"Testing antimuons with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -229,6 +236,7 @@ def test_antimuons(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_positive_pions(proton_ref, hit):
     print(f"Testing positive pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
@@ -262,6 +270,7 @@ def test_positive_pions(proton_ref, hit):
 
 @pytest.mark.parametrize('hit', [True, False], ids=['hit', 'miss'])
 @pytest.mark.parametrize('proton_ref', [True, False], ids=['proton_ref', 'pion_ref'])
+@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_negative_pions(proton_ref, hit):
     print(f"Testing negative pions with hit={hit} and proton_ref={proton_ref}")
     num_part = 500
