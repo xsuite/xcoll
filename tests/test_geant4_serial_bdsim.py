@@ -52,17 +52,24 @@ def test_serial_bdsim(pytestconfig):
 
     cwd = Path.cwd()
     xc.geant4.engine.start(elements=coll, seed=1993)
-    assert cwd != Path.cwd()
     temp_cwd = xc.geant4.engine._cwd
-    assert temp_cwd == Path.cwd()
+    assert cwd != temp_cwd
+    assert temp_cwd.exists()
     assert xc.geant4.engine._already_started
+    assert not (temp_cwd / 'rpyc.log').exists()
+    assert (temp_cwd / 'root.out').exists()
+    assert (temp_cwd / 'root.err').exists()
+    assert (temp_cwd / 'geant4.out').exists()
+    assert (temp_cwd / 'geant4.err').exists()
+    assert (temp_cwd / 'engine.out').exists()
+    assert (temp_cwd / 'engine.err').exists()
     assert not Path('rpyc.log').exists()
-    assert Path('root.out').exists()
-    assert Path('root.err').exists()
-    assert Path('geant4.out').exists()
-    assert Path('geant4.err').exists()
-    assert Path('engine.out').exists()
-    assert Path('engine.err').exists()
+    assert not Path('root.out').exists()
+    assert not Path('root.err').exists()
+    assert not Path('geant4.out').exists()
+    assert not Path('geant4.err').exists()
+    assert not Path('engine.out').exists()
+    assert not Path('engine.err').exists()
 
 
     t_start = time.time()
