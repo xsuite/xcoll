@@ -10,6 +10,7 @@ import json
 
 import xtrack as xt
 import xobjects as xo
+import xtrack.particles.pdg as pdg
 
 from .beam_elements import (collimator_classes, crystal_classes,
                             FlukaCollimator, FlukaCrystal,
@@ -25,6 +26,8 @@ from .constants import (USE_IN_LOSSMAP,
 
 
 class LossMap:
+    _version_changes = ["0.6.0", "0.8.0.dev1+fluka"]
+
     def __init__(self, line=None, part=None, *, line_is_reversed=None, interpolation=None,
                  line_shift_s=0, weights=None, weight_function=None, verbose=True):
         self._line_is_reversed = None
@@ -49,6 +52,7 @@ class LossMap:
         self._coll_type = np.array([])
         self._num_initial = 0
         self._tot_energy_initial = 0.
+        self._beam_type = None
         self._cold_regions = None
         self._warm_regions = None
         self._s_range = {}
@@ -62,10 +66,24 @@ class LossMap:
 
     def __str__(self):
         return f"LossMap ({self.num_aperture_losses} losses on aperture and " \
-             + f"{self.num_collimator_losses} losses on collimators)"
+             + f"{self.num_collimator_losses} losses on collimators - " \
+             + f"{self.num_initial} initial {self.beam_type}s at {self.momentum:.3e} eV/c)"
 
     def __repr__(self):
         return f"<{str(self)} at {hex(id(self))}>"
+
+    def __eq__(self, other):
+        if not isinstance(other, LossMap):
+            return False
+        if not deep_equal(self.lossmap, other.lossmap):
+            return False
+        if not deep_equal(self.cold_regions, other.cold_regions):
+            return False
+        if not deep_equal(self.warm_regions, other.warm_regions):
+            return False
+        if not deep_equal(self.s_range, other.s_range):
+            return False
+        return True
 
     @classmethod
     def from_json(cls, file, verbose=True):
@@ -77,7 +95,11 @@ class LossMap:
         with open(Path(file), 'w') as fid:
             json.dump({
                 'xcoll': self._xcoll,
-                'date':  self._date,
+                'date': self._date,
+                'momentum': self.momentum,
+                'beam_type': self._beam_type,
+                'num_initial': self.num_initial,
+                'tot_energy_initial': self.tot_energy_initial,
                 'cold_regions': self.cold_regions,
                 'warm_regions': self.warm_regions,
                 's_range': self.s_range,
@@ -131,14 +153,11 @@ class LossMap:
         coll_summary = self.summary[self.summary.n > 0].to_dict('list')
         coll_summary = {kk: np.array(vv) for kk, vv in coll_summary.items()}
         return {
-                'collimator':      coll_summary,
-                'aperture':        self.aperture_losses,
-                'machine_length':  self.machine_length,
-                'interpolation':   self.interpolation,
-                'reversed':        self.line_is_reversed,
-                'momentum':        self.momentum,
-                'num_initial':     self.num_initial,
-                'tot_energy_initial': self.tot_energy_initial
+                'collimator':         coll_summary,
+                'aperture':           self.aperture_losses,
+                'machine_length':     self.machine_length,
+                'interpolation':      self.interpolation,
+                'reversed':           self.line_is_reversed
             }
 
     @property
@@ -222,6 +241,21 @@ class LossMap:
                     raise ValueError("The reference momentum is different from the one "
                                      "used to create the loss map.")
             self._momentum = value
+
+    @property
+    def beam_type(self):
+        return pdg.get_name_from_pdg_id(self._beam_type)
+
+    @beam_type.setter
+    def beam_type(self, value):
+        if value is not None:
+            if self._beam_type is not None:
+                if self._beam_type != value:
+                    raise ValueError("The beam type is different from the one "
+                                     "used to create the loss map.")
+            if value == 0:
+                value = 2212  # Assume proton if undefined
+            self._beam_type = value
 
     @property
     def machine_length(self):
@@ -324,6 +358,7 @@ class LossMap:
         self.line_is_reversed = line_is_reversed
         self.machine_length = line.get_length()
         self.momentum = line.particle_ref.p0c[0]
+        self.beam_type = line.particle_ref.pdg_id[0]
         if weights is None:
             if weight_function is None:
                 weights = np.ones(len(part.x))
@@ -392,6 +427,8 @@ class LossMap:
         LossMap._assert_valid_json(lossmap)
         if 'momentum' in lossmap:
             self.momentum = lossmap['momentum']
+        if 'beam_type' in lossmap:
+            self.beam_type = lossmap['beam_type']
         if 'xcoll' in lossmap:
             xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
             if len(self._xcoll) > 0 and not set(self._xcoll).intersection(xcoll) and verbose:
@@ -705,14 +742,24 @@ class LossMap:
     @staticmethod
     def _assert_valid_json(lossmap):
         # Get version number
-        if 'xcoll' in lossmap:
-            n_ver = sum([10**(3*(2-i))*int(j.split('rc')[0]) for i, j in enumerate(lossmap['xcoll'].strip().split('.')[:3])])
-            if 'rc' in lossmap['xcoll']:
+        def get_ver(version):
+            n_ver = sum([10**(3*(2-i))*int(j.split('rc')[0]) for i, j in enumerate(version.strip().split('.')[:3])])
+            if 'rc' in version:
                 n_ver += 0.5
-            if len(lossmap['xcoll'].strip().split('.')) > 3:
+            if len(version.strip().split('.')) > 3:
                 n_ver += 0.2
+            return n_ver
+        if 'xcoll' in lossmap:
+            vers = [get_ver(vv) for vv in lossmap['xcoll']]
+            for vv in reversed(LossMap._version_changes):
+                if any([v >= get_ver(vv) for v in vers]):
+                    if not all([v >= get_ver(vv) for v in vers]):
+                        raise ValueError("The xcoll versions in the JSON files are inconsistent.")
+            n_ver = max(vers)
         else:
             n_ver = 0
+        revision_1 = n_ver >= get_ver(LossMap._version_changes[0])
+        revision_2 = n_ver >= get_ver(LossMap._version_changes[1])
         # General metadata
         if 'machine_length' not in lossmap:
             raise ValueError("The JSON file does not contain the machine length data.")
@@ -720,10 +767,12 @@ class LossMap:
             raise ValueError("The JSON file does not contain the interpolation data.")
         if 'reversed' not in lossmap:
             raise ValueError("The JSON file does not contain the reversed data.")
-        if n_ver >= 6000:
+        if revision_1:
             if 'momentum' not in lossmap:
                 raise ValueError("The JSON file does not contain the momentum data.")
-        if n_ver >= 8000.2:
+        if revision_2:
+            if 'beam_type' not in lossmap:
+                raise ValueError("The JSON file does not contain the beam_type data.")
             if 'date' not in lossmap:
                 raise ValueError("The JSON file does not contain the date data.")
             if 'cold_regions' not in lossmap:
@@ -747,7 +796,7 @@ class LossMap:
             raise ValueError("The JSON file does not contain the collimator length data.")
         if 'n' not in lossmap['collimator']:
             raise ValueError("The JSON file does not contain the collimator n data.")
-        if n_ver >= 6000:
+        if revision_1:
             if 'e' not in lossmap['collimator']:
                 raise ValueError("The JSON file does not contain the collimator energy data.")
             if 'type' not in lossmap['collimator']:
@@ -755,7 +804,7 @@ class LossMap:
         # Aperture losses
         if 'aperture' not in lossmap:
             raise ValueError("The JSON file does not contain the aperture data.")
-        if n_ver >= 6000 and lossmap['interpolation'] is not None:
+        if revision_1 and lossmap['interpolation'] is not False:
             if 'idx_bins' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture idx_bins data.")
             if 'n_bins' not in lossmap['aperture']:
@@ -769,10 +818,10 @@ class LossMap:
                 raise ValueError("The JSON file does not contain the aperture s data.")
             if 'n' not in lossmap['aperture']:
                 raise ValueError("The JSON file does not contain the aperture n data.")
-            if n_ver >= 6000:
+            if revision_1:
                 if 'e' not in lossmap['aperture']:
                     raise ValueError("The JSON file does not contain the aperture e data.")
-            if n_ver >= 8000.2:
+            if revision_2:
                 if 'length' not in lossmap['aperture']:
                     raise ValueError("The JSON file does not contain the aperture length data.")
                 if 'name' not in lossmap['aperture']:

@@ -206,6 +206,12 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             date = dct.pop('date', None)
             assert date is not None
             assert pd.Timestamp.now() - pd.Timestamp(date[-1]) < pd.Timedelta('1 minute')
+            momentum = dct.pop('momentum', None)
+            assert momentum is not None
+            assert np.isclose(momentum, line.particle_ref.p0c[0])
+            assert dct.pop('beam_type', None) == 2212
+            assert dct.pop('num_initial', None) == npart
+            assert np.isclose(dct.pop('tot_energy_initial', None), npart*line.particle_ref.energy0[0])
             cold_regions = dct.pop('cold_regions', None)
             warm_regions = dct.pop('warm_regions', None)
             s_range = dct.pop('s_range', None)
@@ -213,10 +219,17 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             assert deep_equal(warm_regions, ThisLM.warm_regions)
             assert deep_equal(s_range, ThisLM.s_range)
             assert deep_equal(dct, clean_lm_dct)
+        ThisLM2 = xc.LossMap.from_json(f"lossmap-{this_id}.json")
+        assert ThisLM == ThisLM2
         Path(f"lossmap-{this_id}.json").unlink()
         ThisLM.save_summary(f"coll_summary-{this_id}.txt")
         assert Path(f"coll_summary-{this_id}.txt").exists()
         Path(f"coll_summary-{this_id}.txt").unlink()
+
+        assert np.isclose(ThisLM.momentum, line.particle_ref.p0c[0])
+        assert ThisLM.beam_type == 'proton'
+        assert ThisLM.num_initial == npart
+        assert np.isclose(ThisLM.tot_energy_initial, npart*line.particle_ref.energy0[0])
 
         # TODO: check the lossmap quantitaively: rough amount of losses at given positions
         summ = ThisLM.summary
@@ -231,13 +244,10 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
         lm = ThisLM.lossmap
         summ = summ[summ.n > 0]
         assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation',
-                                   'reversed', 'momentum', 'num_initial', 'tot_energy_initial']
+                                   'reversed']
         assert lm['interpolation'] == interpolation
         assert lm['reversed'] == line_is_reversed
-        assert np.isclose(lm['momentum'], line.particle_ref.p0c[0])
         assert np.isclose(lm['machine_length'], line.get_length())
-        assert lm['num_initial'] == npart
-        assert np.isclose(lm['tot_energy_initial'], npart*line.particle_ref.energy0[0])
         assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
         assert len(lm['collimator']['s']) == len(summ)
         assert len(lm['collimator']['name']) == len(summ)
