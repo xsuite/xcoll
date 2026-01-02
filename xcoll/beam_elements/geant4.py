@@ -63,6 +63,7 @@ class Geant4Collimator(BaseCollimator):
                 setattr(self, key, val)
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
+                self._equivalent_drift.model = 'exact'
 
     @property
     def angle(self):

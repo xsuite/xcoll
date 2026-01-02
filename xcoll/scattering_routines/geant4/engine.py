@@ -121,7 +121,7 @@ class Geant4Engine(BaseEngine):
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
-        Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
+        Ekin = self.particle_ref.energy0[0] - self.particle_ref.mass0
         try:
             from g4interface import XtrackInterface
         except (ModuleNotFoundError, ImportError) as error:
@@ -145,7 +145,7 @@ class Geant4Engine(BaseEngine):
             self._conn.execute('import engine_server')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
             self._g4link.XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
-                                         referencePdgId=self.particle_ref.pdg_id,
+                                         referencePdgId=self.particle_ref.pdg_id[0],
                                          referenceEk=Ekin,
                                          relativeEnergyCut=self.relative_energy_cut,
                                          seed=self.seed, batchMode=True,
@@ -158,11 +158,11 @@ class Geant4Engine(BaseEngine):
                                  + "to avoid this limitation.")
 
             self._g4link = XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
-                                            referencePdgId=self.particle_ref.pdg_id,
-                                            referenceEk=Ekin,
-                                            relativeEnergyCut=self.relative_energy_cut,
-                                            seed=self.seed, batchMode=True,
-                                            workdir=self.cwd.as_posix())
+                                           referencePdgId=self.particle_ref.pdg_id[0],
+                                           referenceEk=Ekin,
+                                           relativeEnergyCut=self.relative_energy_cut,
+                                           seed=self.seed, batchMode=True,
+                                           workdir=self.cwd.as_posix())
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side

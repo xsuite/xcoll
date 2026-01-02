@@ -105,6 +105,7 @@ class FlukaCollimator(BaseCollimator):
                         + "argument do not agree! Ignored the latter.")
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
+                self._equivalent_drift.model = 'exact'
 
     def __del__(self):
         if self.assembly:
@@ -223,7 +224,7 @@ class FlukaCollimator(BaseCollimator):
 
     def track(self, part):
         if track_pre(self, part):
-            if self.material != "vacuum":
+            if self.material != "vacuum" and False:
                 super().track(part)
             else:
                 part.state[part.state == 1] = HIT_ON_FLUKA_COLL
@@ -397,6 +398,7 @@ class FlukaCrystal(BaseCrystal):
                 # TODO: check bending_angle consistency too
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
+                self._equivalent_drift.model = 'exact'
 
     def __del__(self, **kwargs):
         FlukaCollimator.__del__(self, **kwargs)
