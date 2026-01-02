@@ -1561,5 +1561,8 @@
  "machine_length": 26658.883176584142,
  "interpolation": 0.1,
  "reversed": false,
- "momentum": 6799999935271.6045
+ "momentum": 6799999935271.6045,
+ "beam_type": 2212,
+ "num_initial": 250000,
+ "tot_energy_initial": 1.7000000161829873e+18
 }

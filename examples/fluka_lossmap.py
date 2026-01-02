@@ -67,10 +67,6 @@ line.scattering.disable()
 print(f"Done tracking in {line.time_last_track:.1f}s.")
 
 
-# Stop the FLUKA connection (and return to the previous directory)
-xc.fluka.engine.stop(clean=True)
-
-
 # Save loss map to json
 line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
@@ -79,6 +75,11 @@ ThisLM.to_json(file=path_out / 'results' / f'lossmap_fluka_B{beam}{plane}.json')
 # Save a summary of the collimator losses to a text file
 ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_fluka_B{beam}{plane}.out')
 print(ThisLM.summary)
+
+
+# Stop the FLUKA connection (and return to the previous directory)
+xc.fluka.engine.stop(clean=True)
+
 
 print(f"Total calculation time {time.time()-start_time}s")
 
