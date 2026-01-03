@@ -13,5 +13,5 @@ citation += "Simulations in Xsuite, Proceedings of HB2023, Geneva, Switzerland."
 # ======================
 # Do not change
 # ======================
-__version__ = '0.9.0rc0'
+__version__ = '0.10.0rc0'
 # ======================
