@@ -8,4 +8,4 @@ if [ $? -ne 0 ]; then
     echo "FLUKA assembly failed"
     exit 1
 fi
-pytest --html="pytest_fluka_results.html" -vv -n 12 test_fluka.py test_fluka_assemblies.py test_fluka_many_particles.py test_lossmap.py::test_fluka test_particle_id_hierarchy.py::test_fluka test_jaw_position.py::test_fluka test_ions.py::test_fluka
+pytest --html="pytest_fluka_results.html" -vv -n 12 -m fluka

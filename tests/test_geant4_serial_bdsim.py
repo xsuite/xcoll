@@ -12,10 +12,8 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-try:
-    import rpyc
-except ImportError as e:
-    rpyc = None
+
+# Do NOT mark these as Geant4 tests, as they have to be ran in serial
 
 
 path = Path(__file__).parent / 'data'

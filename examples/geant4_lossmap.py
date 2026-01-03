@@ -78,7 +78,7 @@ ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_geant4_B{beam}{pl
 print(ThisLM.summary)
 
 
-# Stop the Geant4 connection (and return to the previous directory)
+# Stop the Geant4 connection (this should be after creating the loss map to get the correct particle_ref)
 xc.geant4.engine.stop(clean=True)
 
 

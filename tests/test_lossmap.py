@@ -17,19 +17,18 @@ from xobjects.test_helpers import for_all_test_contexts
 import xcoll as xc
 from xcoll.compare import deep_equal
 
+from _common_api import all_engine_params
+
 try:
     import matplotlib.pyplot as plt
 except (ImportError, ModuleNotFoundError):
     plt = None
-try:
-    import rpyc
-except ImportError as e:
-    rpyc = None
 
 
 path = Path(__file__).parent / 'data'
 
 
+@pytest.mark.parametrize("engine", all_engine_params)
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
@@ -41,151 +40,86 @@ path = Path(__file__).parent / 'data'
                             [2, 'H', 30000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
-def test_everest(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
+def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
     if do_plot and plt is None:
         pytest.skip("matplotlib not installed")
     if not do_plot and plt is not None:
         pytest.skip("matplotlib installed")
+
+    if engine == "fluka":
+        if xc.fluka.engine.is_running():
+            xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        if xc.geant4.engine.is_running():
+            xc.geant4.engine.stop(clean=True)
+        if not ignore_crystals:
+            pytest.skip("Geant4 crystals not implemented yet")
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                     beam=beam, ignore_crystals=ignore_crystals)
-    colldb.install_everest_collimators(line=line)
-    assert np.all([isinstance(line[nn], xc.EverestCrystal) for nn in colldb.collimator_families['cry7']])
-    assert np.all([isinstance(line[nn], xc.EverestCollimator) for nn in colldb.collimator_names
-                   if nn not in colldb.collimator_families['cry7']])
+    if engine == "everest":
+        colldb.install_everest_collimators(line=line)
+        assert np.all([isinstance(line[nn], xc.EverestCrystal) for nn in colldb.collimator_families['cry7']])
+        assert np.all([isinstance(line[nn], xc.EverestCollimator) for nn in colldb.collimator_names
+                    if nn not in colldb.collimator_families['cry7']])
+    elif engine == "fluka":
+        colldb.install_fluka_collimators(line=line)
+        assert np.all([isinstance(line[nn], xc.FlukaCrystal) for nn in colldb.collimator_families['cry7']])
+        assert np.all([isinstance(line[nn], xc.FlukaCollimator) for nn in colldb.collimator_names
+                    if nn not in colldb.collimator_families['cry7']])
+    elif engine == "geant4":
+        colldb.install_geant4_collimators(line=line)
+        assert np.all([isinstance(line[nn], xc.Geant4Crystal) for nn in colldb.collimator_families['cry7']])
+        assert np.all([isinstance(line[nn], xc.Geant4Collimator) for nn in colldb.collimator_names
+                    if nn not in colldb.collimator_families['cry7']])
+
     df_with_coll = line.check_aperture()
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
+
+    if engine == "fluka":
+        xc.fluka.engine.start(line=line, capacity=2*npart, verbose=True)
+    elif engine == "geant4":
+        xc.geant4.engine.start(line=line, verbose=True)
+
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
     part = line[tcp].generate_pencil(npart)
+    if engine == "fluka":
+        # Make sure all primaries hit the collimator (not trivial because of assembly)
+        if plane == 'H':
+            part.x[(part.x > 0) & (part.state > -99999)] += 1e-5
+            part.x[(part.x < 0) & (part.state > -99999)] -= 1e-5
+        elif plane == 'V':
+            part.y[(part.y > 0) & (part.state > -99999)] += 1e-5
+            part.y[(part.y < 0) & (part.state > -99999)] -= 1e-5
     line.scattering.enable()
     line.track(part, num_turns=2)
     line.scattering.disable()
-    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}"
+
+    if engine == "everest":
+        coll_cls = ['EverestCollimator']
+        cry_cls  = ['EverestCrystal']
+    elif engine == "fluka":
+        coll_cls = ['FlukaCollimator']
+        cry_cls  = ['FlukaCrystal']
+    elif engine == "geant4":
+        coll_cls = ['Geant4Collimator', 'Geant4CollimatorTip']
+        cry_cls  = ['Geant4Crystal']
+    this_id = f"B{beam}{plane}-{npart}-{engine}-{interpolation}-{ignore_crystals}-{test_context}"
     ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
-                             ['EverestCollimator'], 'EverestCrystal', this_id)
+                             coll_cls, cry_cls, this_id)
     if do_plot:
         ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
         Path(f"test-{this_id}.jpg").unlink()
 
-
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
-@pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
-                            [1, 'H', 2500, 0.2, True],
-                            [2, 'V', 500, 0.3, True],
-                            [1, 'V', 3500, False, False],
-                            [2, 'H', 30000, 0.15, False]
-                        ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
-@retry()
-@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
-def test_fluka(beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
-    # If a previous test failed, stop the server manually
-    if xc.fluka.engine.is_running():
+    if engine == "fluka":
         xc.fluka.engine.stop(clean=True)
-
-    npart = 5000
-    beam = 2
-    plane = 'H'
-    interpolation = 0.1
-    ignore_crystals = True
-
-    if do_plot and plt is None:
-        pytest.skip("matplotlib not installed")
-    if not do_plot and plt is not None:
-        pytest.skip("matplotlib installed")
-
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
-    line = env[f'lhcb{beam}']
-    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
-    colldb.install_fluka_collimators(line=line)
-    df_with_coll = line.check_aperture()
-    assert not np.any(df_with_coll.has_aperture_problem)
-    line.build_tracker(_context=test_context)
-    line.collimators.assign_optics()
-
-    xc.fluka.engine.start(line=line, capacity=2*npart, verbose=True)
-
-    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart)
-
-    line.scattering.enable()
-    t_start = time.time()
-    line.track(part, num_turns=2)
-    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
-        + f"{npart} protons through LHC (1.2 turns)")
-    line.scattering.disable()
-
-    xc.fluka.engine.stop(clean=True)
-    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-fluka"
-    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, 'FlukaCollimator', 'FlukaCrystal', this_id)
-    if do_plot:
-        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
-        assert Path(f"test-{this_id}.jpg").exists()
-        Path(f"test-{this_id}.jpg").unlink()
-
-
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
-@pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
-@retry()
-@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
-def test_geant4(do_plot, test_context):
-    npart = 5000
-    beam = 2
-    plane = 'H'
-    interpolation = 0.1
-    ignore_crystals = True
-
-    if do_plot and plt is None:
-        pytest.skip("matplotlib not installed")
-    if not do_plot and plt is not None:
-        pytest.skip("matplotlib installed")
-
-    # If a previous test failed, stop the server manually
-    if xc.geant4.engine.is_running():
+    elif engine == "geant4":
         xc.geant4.engine.stop(clean=True)
-
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
-    line = env[f'lhcb{beam}']
-    colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml', beam=beam)
-    colldb.install_geant4_collimators(line=line)
-    assert np.all([isinstance(line[nn], xc.Geant4CollimatorTip) for nn in colldb.collimator_families['tcsg7']])
-    assert np.all([isinstance(line[nn], xc.Geant4Collimator) for nn in colldb.collimator_names
-                   if nn not in colldb.collimator_families['tcsg7']])
-    df_with_coll = line.check_aperture()
-    assert not np.any(df_with_coll.has_aperture_problem)
-    line.build_tracker(_context=test_context)
-    line.collimators.assign_optics()
-
-    xc.geant4.engine.start(line=line, cwd='run_geant4_temp', verbose=True)
-
-    tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart)
-
-    line.scattering.enable()
-    t_start = time.time()
-    line.track(part, num_turns=2)
-    print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
-        + f"{npart} protons through LHC (1.2 turns)")
-    line.scattering.disable()
-
-    xc.geant4.engine.stop(clean=True)
-    this_id = f"B{beam}{plane}-{npart}-{interpolation}-{ignore_crystals}-{test_context}-geant4"
-    ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
-                             ['Geant4Collimator', 'Geant4CollimatorTip'], 'Geant4Crystal', this_id)
-    if do_plot:
-        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
-        assert Path(f"test-{this_id}.jpg").exists()
-        Path(f"test-{this_id}.jpg").unlink()
 
 
 def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
@@ -236,7 +170,7 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
         assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
         assert len(summ[[tt in coll_cls for tt in summ.type]]) == 10
         if not ignore_crystals:
-            assert len(summ[summ.type==cry_cls]) == 2
+            assert len(summ[[tt in cry_cls for tt in summ.type]]) == 2
 
         # We want at least 5% absorption on the primary
         assert summ.loc[summ.name==tcp,'n'].values[0] > 0.05*npart

@@ -15,8 +15,8 @@ import xcoll as xc
 from xcoll.scattering_routines.fluka.environment import format_fluka_float
 
 
+@pytest.mark.fluka
 @pytest.mark.parametrize('num_part', [1000, 5000])
-@pytest.mark.skipif(not xc.fluka.environment.ready, reason="FLUKA installation not found")
 def test_simple_track(num_part):
     print(f"Running test_simple_track with {num_part} particles")
     _capacity = num_part*2

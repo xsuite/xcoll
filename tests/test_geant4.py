@@ -13,21 +13,16 @@ import xpart as xp
 import xcoll as xc
 
 from xobjects.test_helpers import for_all_test_contexts
-try:
-    import rpyc
-except ImportError as e:
-    rpyc = None
 
 
 path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
+@pytest.mark.geant4
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_reload_bdsim(test_context):
     num_part = 1000
     _capacity = num_part*4
@@ -97,11 +92,10 @@ def test_reload_bdsim(test_context):
         assert np.all(part[0].parent_particle_id == part[i].parent_particle_id)
 
 
+@pytest.mark.geant4
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
 )
-@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_black_absorbers(test_context):
     n_part = 10_000
     _capacity = n_part*4

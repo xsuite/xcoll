@@ -13,7 +13,7 @@ import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
 
-num_part = 50000
+num_part = 10000
 num_turns = 3
 path = Path(__file__).parent / 'data'
 

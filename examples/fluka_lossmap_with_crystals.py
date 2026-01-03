@@ -108,7 +108,7 @@ ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_fluka_crystals_B{
 print(ThisLM.summary)
 
 
-# Stop the FLUKA connection (and return to the previous directory)
+# Stop the FLUKA connection  (this should be after creating the loss map to get the correct particle_ref)
 xc.fluka.engine.stop(clean=False)
 
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import xcoll as xc
 
+# Do NOT mark these as FLUKA tests, as they have to be ran in serial
 
 def test_registry_initialisation(request):
     worker_id = getattr(request.config, "workerinput", None)
