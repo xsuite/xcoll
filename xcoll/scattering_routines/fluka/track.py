@@ -87,13 +87,14 @@ def track_core(coll, part):
     E0         = part.energy0[0]
     beta0      = part.beta0[0]
     gamma0     = part.gamma0[0]
-    mass       = m0*part.charge_ratio[send_to_fluka] / part.chi[send_to_fluka]
-    charge     = q0*part.charge_ratio[send_to_fluka]
+    mass       = part.mass[send_to_fluka]
+    charge     = part.charge[send_to_fluka]
     pdg_id     = part.pdg_id[send_to_fluka]
     _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     A          = np.array([0 if pdgid < 0 else aa for aa, pdgid in zip(A, pdg_id)])  # FLUKA treats antiprotons as A = 0 = Z
     Z          = np.array([0 if pdgid < 0 else zz for zz, pdgid in zip(Z, pdg_id)])
-    precision  = p0c * 1.e-12  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
+    precision  = p0c * 1.e-6  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
+    # TODO: VERY VERY BAD PRECISION
 
     # Decide how much extra capacity to send to FLUKA
     min_capacity = 50
@@ -222,6 +223,9 @@ def track_core(coll, part):
     # Add new particles
     # ================
     mask_new = new_pid > max_id
+    q_new = data['q'][:npart]
+    pdg_id = data['pdg_id'][:npart]
+    mask_new &= xc.fluka.engine._mask_particle_return_types(pdg_id, q_new)
 
     if np.any(mask_new):
         # Check that there is enough room in the particles object

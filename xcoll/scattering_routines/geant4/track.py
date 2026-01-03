@@ -132,11 +132,7 @@ def track_core(coll, part):
     idx_new = np.nonzero(mask_new)[0] + num_sent
     assert np.all(products['state'][idx_new] == 1)
 
-    if not np.any(mask_new):
-        # No new particles created in Geant4
-        part.reorganize()
-
-    else:
+    if np.any(mask_new):
         # Check that there is enough room in the particles object
         num_assigned = part._num_lost_particles + part._num_active_particles
         num_free = part._capacity - num_assigned
