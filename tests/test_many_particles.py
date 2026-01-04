@@ -10,7 +10,7 @@ from xpart.test_helpers import flaky_assertions, retry
 import xcoll as xc
 from  xcoll import constants as xcc
 
-from _common_api import check_skip, check_skip_old_bdsim, engine_params, engine_params
+from _common_api import check_skip_old_bdsim, engine_params, engine_params
 
 
 # # Treat warnings as errors to debug
@@ -164,8 +164,13 @@ def test_electrons(engine, proton_ref, hit):
     print(f"Testing electrons in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 200e9
     if proton_ref:
+        pdg_id = 11
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.ELECTRON_MASS_EV, charge_ratio=-1, pdg_id=11)
+             ref_mass=ref_mass, charge_ratio=-1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('electron', p0c=p0c), hit)
 
@@ -179,8 +184,13 @@ def test_positrons(engine, proton_ref, hit):
     print(f"Testing positrons in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 200e9
     if proton_ref:
+        pdg_id = -11
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.ELECTRON_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.ELECTRON_MASS_EV, charge_ratio=1, pdg_id=-11)
+             ref_mass=ref_mass, charge_ratio=1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('positron', p0c=p0c), hit)
 
@@ -194,8 +204,13 @@ def test_muons(engine, proton_ref, hit):
     print(f"Testing muons in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 200e9
     if proton_ref:
+        pdg_id = 13
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.MUON_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.MUON_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.MUON_MASS_EV, charge_ratio=-1, pdg_id=13)
+             ref_mass=ref_mass, charge_ratio=-1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('muon', p0c=p0c), hit)
 
@@ -209,8 +224,13 @@ def test_antimuons(engine, proton_ref, hit):
     print(f"Testing antimuons in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 200e9
     if proton_ref:
+        pdg_id = -13
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.MUON_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.MUON_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.MUON_MASS_EV, charge_ratio=1, pdg_id=-13)
+             ref_mass=ref_mass, charge_ratio=1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('antimuon', p0c=p0c), hit)
 
@@ -224,8 +244,13 @@ def test_positive_pions(engine, proton_ref, hit):
     print(f"Testing positive pions in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 450e9
     if proton_ref:
+        pdg_id = 211
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.PION_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.PION_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.PION_MASS_EV, charge_ratio=1, pdg_id=211)
+             ref_mass=ref_mass, charge_ratio=1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('pi+', p0c=p0c), hit)
 
@@ -239,8 +264,13 @@ def test_negative_pions(engine, proton_ref, hit):
     print(f"Testing negative pions in {engine.capitalize()} with hit={hit} and proton_ref={proton_ref}")
     p0c = 450e9
     if proton_ref:
+        pdg_id = -211
+        if engine == 'fluka':
+            ref_mass = xc.fluka.particle_masses[pdg_id] or xpm.PION_MASS_EV
+        elif engine == 'geant4':
+            ref_mass = xc.geant4.particle_masses[pdg_id] or xpm.PION_MASS_EV
         _run(engine, 500, 50_000, xt.Particles('proton', p0c=p0c), hit, tol=3e-11,
-             ref_mass=xpm.PION_MASS_EV, charge_ratio=-1, pdg_id=-211)
+             ref_mass=ref_mass, charge_ratio=-1, pdg_id=pdg_id)
     else:
         _run(engine, 500, 50_000, xt.Particles('pi-', p0c=p0c), hit)
 
