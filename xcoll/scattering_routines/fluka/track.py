@@ -93,7 +93,7 @@ def track_core(coll, part):
     _, A, Z, _ = pdg.get_properties_from_pdg_id(pdg_id)
     A          = np.array([0 if pdgid < 0 else aa for aa, pdgid in zip(A, pdg_id)])  # FLUKA treats antiprotons as A = 0 = Z
     Z          = np.array([0 if pdgid < 0 else zz for zz, pdgid in zip(Z, pdg_id)])
-    precision  = p0c * 1.e-6  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
+    precision  = p0c * 1.e-12  # To avoid numerical issues like negative enervy. Ideally this should be 2.22e-15
     # TODO: VERY VERY BAD PRECISION
 
     # Decide how much extra capacity to send to FLUKA

@@ -10,8 +10,8 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from .reference_masses import fluka_masses
-from .reference_names import fluka_names
+from .reference_masses import fluka_masses_meta
+from .reference_names import fluka_names_meta
 from .prototype import FlukaPrototypeAccessor, FlukaAssemblyAccessor
 from .engine import FlukaEngine
 from .environment import FlukaEnvironment
@@ -23,19 +23,8 @@ class FlukaWrapper(BaseWrapper):
 
     _engine_cls = FlukaEngine
     _environment_cls = FlukaEnvironment
-
-    def __init__(self):
-        super().__init__()
-        self._masses = fluka_masses
-        self._particle_names = fluka_names
-
-    @property
-    def particle_masses(self):
-        return self._masses
-
-    @property
-    def particle_names(self):
-        return self._particle_names
+    _particle_masses_meta = fluka_masses_meta
+    _particle_names_meta = fluka_names_meta
 
     @property
     def assemblies(self):

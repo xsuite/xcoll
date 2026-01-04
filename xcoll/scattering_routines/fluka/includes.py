@@ -13,7 +13,6 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from .reference_names import fluka_names
 from .environment import format_fluka_float
 from .prototype import FlukaPrototype, FlukaAssembly
 from ...general import _pkg_root
@@ -141,13 +140,14 @@ CRYSTAL   {pos1}{pos2}{pos3}                              &&
 
 
 def _beam_include_file(particle_ref, bb_int=False):
+    import xcoll as xc
     filename = FsPath("include_settings_beam.inp").resolve()
     pdg_id = particle_ref.pdg_id[0]
     momentum_cut = particle_ref.p0c[0] / 1e9 * 1.05
 
     hi_prope = "*"
-    if pdg_id in fluka_names:
-        name = fluka_names[pdg_id]
+    if pdg_id in xc.fluka.particle_names:
+        name = xc.fluka.particle_names[pdg_id]
     elif _is_ion(pdg_id):
         _, A, Z, _ = get_properties_from_pdg_id(pdg_id)
         momentum_cut *= 3.2 / A # Upper limit (scaling is slightly arbitrary)

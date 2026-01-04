@@ -11,6 +11,7 @@ import xobjects as xo
 
 from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 from .bdsim_config import create_bdsim_config_file, get_collimators_from_input_file
+from .reference_masses import geant4_masses_src
 from ..engine import BaseEngine
 from ...general import _pkg_root
 
@@ -27,6 +28,8 @@ class Geant4Engine(BaseEngine):
     _uses_run_folder = True
 
     _depends_on = [BaseEngine]
+
+    _extra_c_sources = [geant4_masses_src]
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
