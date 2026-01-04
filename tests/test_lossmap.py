@@ -79,6 +79,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
     assert not np.any(df_with_coll.has_aperture_problem)
     line.build_tracker(_context=test_context)
     line.collimators.assign_optics()
+    if not ignore_crystals:
+        line.collimators.align_to_beam_divergence()
 
     if engine == "fluka":
         xc.fluka.engine.start(line=line, capacity=2*npart, verbose=True)

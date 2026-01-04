@@ -50,12 +50,7 @@ tcpc = f"tcpc{plane.lower()}.a{6 if plane=='V' else 4 if f'{beam}'=='1' else 5}{
 
 # Assign the optics to deduce the gap settings
 line.collimators.assign_optics()
-
-# Apply settings
-line[tcpc].bending_angle = 40.e-6
-line[tcpc].width         = 0.002
-line[tcpc].height        = 0.05
-line[tcpc].align_to_beam_divergence()
+line.collimators.align_to_beam_divergence()
 
 
 # Optimise the line
