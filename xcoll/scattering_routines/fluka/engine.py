@@ -17,9 +17,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
-from .reference_masses import source, fluka_masses
 from .environment import format_fluka_float
 from .prototype import FlukaPrototype, FlukaAssembly
+from .reference_masses import fluka_masses_src
 from ..engine import BaseEngine
 
 
@@ -43,7 +43,7 @@ class FlukaEngine(BaseEngine):
 
     _depends_on = [BaseEngine]
 
-    _extra_c_sources = [source]
+    _extra_c_sources = [fluka_masses_src]
 
     def __init__(self, **kwargs):
         # Set element classes dynamically
@@ -376,36 +376,6 @@ class FlukaEngine(BaseEngine):
             if ff not in [fff.name for fff in input_file]:
                 input_file.append(input_file[0].parent / ff)
         return input_file
-
-
-    # Expand the Base method to include the FLUKA reference mass check
-    def _use_particle_ref(self, particle_ref=None, keep_p0c_constant=True):
-        super()._use_particle_ref(particle_ref=particle_ref)
-        part = self.particle_ref
-        mass = part.mass0
-        pdg_id = part.pdg_id[0]
-        if abs(pdg_id) in fluka_masses:
-            mass_fluka = fluka_masses[abs(pdg_id)][-1]
-            if abs(mass-mass_fluka) > 0.01:    # The mass differs more than 0.01eV from the FLUKA reference mass
-                old_energy0 = part.energy0[0]
-                part.mass0  = mass_fluka
-                if keep_p0c_constant:
-                    part._update_refs(p0c=part.p0c[0])
-                else:
-                    part._update_refs(energy0=old_energy0)
-                assert np.isclose(part.energy0[0]**2, part.p0c[0]**2 + part.mass0**2)
-                assert np.isclose(part.mass0, mass_fluka)
-                self._print(f"Warning: given mass of {mass} eV for "
-                          + f"{pdg.get_name_from_pdg_id(pdg_id)} differs from FLUKA "
-                          + f"mass of {mass_fluka} eV.\nReference particle mass is "
-                          + f"overwritten by the latter.")
-        else:
-            self._print(f"Warning: No FLUKA reference mass known for particle "
-                      + f"{pdg.get_name_from_pdg_id(pdg_id)}!\nIf the reference mass "
-                      + f"provided ({mass} eV) differs from the one used internally "
-                      + f"by FLUKA, differences in energy might be observed.\nOnce "
-                      + f"the FLUKA reference mass is known, contact the devs to "
-                      + f"input it in the code.")
 
 
     # =======================

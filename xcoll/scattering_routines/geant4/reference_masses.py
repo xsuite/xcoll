@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import xtrack.particles.pdg as pdg
-
 from ...xoconstants import Constants, constant
 
 
@@ -35,22 +33,3 @@ class Geant4Masses(Constants):
     TRITON_MASS_EV    = constant(2.808921e9,     "H3 mass in eV as used in Geant4.",        pdg_id=1000010030)
     HE3_MASS_EV       = constant(2.808391e9,     "He3 mass in eV as used in Geant4.",       pdg_id=1000020030)
     HE4_MASS_EV       = constant(3.727379e9,     "He4 mass in eV as used in Geant4.",       pdg_id=1000020040)
-
-
-class Geant4MassesAccessor:
-    """Accessor to get Geant4 reference masses."""
-
-    def __getitem__(self, pdgid: int | str) -> float | None:
-        if isinstance(pdgid, str):
-            pdgid = pdg.get_pdg_id_from_name(pdgid)
-        vals = [vv['value'] for _, vv in geant4_masses_meta.items()
-                if vv['pdg_id'] == pdgid]
-        if len(vals) == 1:
-            return vals[0]
-        vals = [vv['value'] for _, vv in geant4_masses_meta.items()
-                if vv['pdg_id'] == -pdgid]
-        if len(vals) == 1:
-            return vals[0]
-
-    def __contains__(self, pdgid: int | str) -> bool:
-        return self[pdgid] is not None
