@@ -156,8 +156,8 @@ def track_core(coll, part):
                 e_part=data['e'],   # FlukaIO pretends this is momentum, but the flukaserver source proves it is energy
                 m_part=data['m'],
                 q_part=data['q'],
-                a_part=data['A'],
-                z_part=data['Z'],
+                A_part=data['A'],
+                Z_part=data['Z'],
                 pdg_id_part=data['pdg_id'],
                 part_id=data['pid'],
                 parent_id=data['ppid'],

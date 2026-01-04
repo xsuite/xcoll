@@ -49,6 +49,7 @@ class FlukaEnvironment(BaseEnvironment):
         self.assert_gcc_installed(verbose=verbose)
         self.assert_gfortran_installed(verbose=verbose)
         cwd = FsPath.cwd()
+        self.store_environment()
 
         # Get FlukaIO
         if flukaio_lib is None:
@@ -77,7 +78,7 @@ class FlukaEnvironment(BaseEnvironment):
             else:
                 stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
                 os.chdir(cwd)
-                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
+                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{'\n'.join(stderr)}")
             flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
         flukaio_lib = FsPath(flukaio_lib).resolve()
         if not flukaio_lib.exists():
@@ -86,35 +87,44 @@ class FlukaEnvironment(BaseEnvironment):
         # Copy the FORTRAN source files to the temporary directory and compile it
         dest = (self.temp_dir / 'FORTRAN_src').resolve()
         dest.mkdir(parents=True, exist_ok=True)
+        flukaio_lib.copy_to(dest / flukaio_lib.name, method='mount')
         for path in _FORTRAN_SRC.glob('*'):
             path.copy_to(dest, method='mount')
         os.chdir(dest)
-        cmd = run(['gfortran', '-fpic', '-c', 'core_tools.f90', 'constants.f90', 'strings.f90',
-                   'mod_alloc.f90', 'common_modules.f90', 'string_tools.f90', 'mod_units.f90',
-                   'pdgid.f90', 'mod_fluka.f90'], stdout=PIPE, stderr=PIPE)
+        cmd = run(['python', '-m', 'numpy.f2py', '-m', 'pyflukaf', 'pyfluka.f90', '--quiet'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:
-                print("Compiled FORTRAN source successfully.")
+                print("Created numpy FORTRAN headers.")
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             os.chdir(cwd)
-            raise RuntimeError(f"Failed to compile FORTRAN source!\nError given is:\n{stderr}")
-        # Link the FORTRAN source files and the FlukaIO library to create the pyflukaf shared library
-        cmd = run(['f2py', '-m', 'pyflukaf', '-c', 'pyfluka.f90',
-                   'core_tools.o', 'constants.o', 'strings.o', 'mod_alloc.o',
-                   'common_modules.o', 'string_tools.o', 'mod_units.o',
-                   'pdgid.o', 'mod_fluka.o', flukaio_lib.as_posix(),
-                   '--backend', 'distutils', '--fcompiler=gfortran'], stdout=PIPE, stderr=PIPE)
+            raise RuntimeError(f"Failed to create numpy FORTRAN headers!\nError given is:\n{'\n'.join(stderr)}")
+        cmd = run(['meson', 'setup', 'build'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:
-                print("Linked pyflukaf successfully.")
+                print("Setup meson build successfully.")
         else:
+            stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
             os.chdir(cwd)
-            raise RuntimeError(f"Failed to link pyflukaf!\nError given is:\n{stderr}")
+            raise RuntimeError(f"Failed to setup meson build!\n"
+                               f"Output given is:\n{'\n'.join(stdout)}"
+                               f"Error given is:\n{'\n'.join(stderr)}")
+        cmd = run(["meson", "compile", "-C", "build"], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            if verbose:
+                print(cmd.stdout.decode('UTF-8').strip())
+                print("Compiled pyflukaf successfully.")
+        else:
+            stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            os.chdir(cwd)
+            raise RuntimeError(f"Failed to compile pyflukaf!\n"
+                               f"Output given is:\n{'\n'.join(stdout)}"
+                               f"Error given is:\n{'\n'.join(stderr)}")
         os.chdir(cwd)
         # Collect the compiled shared library
-        so = list((self.temp_dir / 'FORTRAN_src').glob('pyflukaf.*so'))
+        so = list((self.temp_dir / 'FORTRAN_src' / 'build').glob('pyflukaf.*so'))
         if len(so) > 1:
             raise RuntimeError(f"Compiled into multiple pyflukaf shared libraries!")
         if len(so) == 0:
@@ -126,6 +136,7 @@ class FlukaEnvironment(BaseEnvironment):
             print(f"Created pyFLUKA shared library in {so}.")
         # Clean up the temporary directory
         self.temp_dir = None
+        self.restore_environment()
 
 
     def import_fedb(self, fedb_path, verbose=False, overwrite=False):
