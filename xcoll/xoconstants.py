@@ -9,20 +9,33 @@ import sys
 from enum import Enum
 from warnings import warn
 from types import MappingProxyType, ModuleType
-from typing import Dict, Mapping, Optional, Union, Tuple, Type, List
+from typing import Dict, Mapping, Optional, Union, Tuple, Type, List, Set
 
 
-ConstantType = Union[int, float, bool]
+ConstantType = Union[int, float, bool, str]
 
 
 __all__ = ["constant", "group", "Constants"]
 
 
+# This code implements a metaclass-based system for defining constants with
+# metadata, ensuring uniqueness and providing C header generation capabilities.
+#
+# The constants will automatically be exported to the defining module and can be
+# merged into other modules. They also support grouping and can generate C
+# header files with include guards. The C-names of the constants are verified to
+# be unique globally (to avoid collisions in C code), while the python names are
+# verified to be unique across all modules they are exported to. Additionally,
+# if specified with the keyword 'unique', the values of the constants are also
+# verified to be unique globally (and not only across the modules), as this might
+# be required for reverse lookups in the C code.
+
+
 # ---- global registries (cross-module uniqueness) ----------------------------
 _XO_CONST_GLOBAL_TYPE_REG: Dict[str, List[Type[Constants]]] = {}    # category -> [defining classes]
-_XO_CONST_GLOBAL_NAME_REG: Dict[str, str] = {}                      # NAME -> module
+_XO_CONST_GLOBAL_NAME_REG: Dict[str, Set[str]] = {}                 # module -> NAMEs
 _XO_CONST_GLOBAL_CNAME_REG: Dict[str, Tuple[str,str]] = {}          # c_name -> (NAME, module)
-_XO_CONST_GLOBAL_UNIQUE_VALUE_REG: Dict[str, Dict[Union[int, float], Tuple[str, str]]] = {}  # category -> value -> (NAME, module)
+_XO_CONST_GLOBAL_UNIQUE_VALUE_REG: Dict[str, Dict[Union[int, float, str], Tuple[str, str]]] = {}  # category -> value -> (NAME, module)
 _XO_CONST_GLOBAL_COUNT_REG: Dict[str, int] = {}  # For unnamed constants in groups and include guards in C source
 
 # ---- helpers ----------------------------------------------------------------
@@ -48,6 +61,19 @@ def _to_number(val: ConstantType) -> Union[int, float]:
         return val
     raise TypeError(f"Unsupported constant type: {type(val).__name__}")
 
+def _to_value_key(val: ConstantType) -> Union[int, float, str]:
+    if isinstance(val, str):
+        return val
+    return _to_number(val)
+
+def _to_c_literal(val: ConstantType) -> str:
+    if isinstance(val, str):
+        # Escape backslashes and quotes for a C string literal
+        s = val.replace("\\", "\\\\").replace('"', r'\"')
+        return f"\"{s}\""
+    # numeric/bool -> numeric literal
+    return str(_to_number(val))
+
 def _to_c_header(meta, include_guard, contents: Optional[List[str]] = None) -> str:
     kk = f"{include_guard}_guard"
     if kk not in _XO_CONST_GLOBAL_COUNT_REG:
@@ -60,7 +86,8 @@ def _to_c_header(meta, include_guard, contents: Optional[List[str]] = None) -> s
         lines.extend(contents)
     else:
         for vv in meta.values():     # already in definition order
-            lines.append(f"  #define {vv['c_name']:35} {vv['value']:25}     // {vv['info']}")
+            c_rhs = _to_c_literal(vv["value"])
+            lines.append(f"  #define {vv['c_name']:35} {c_rhs:25}     // {vv['info']}")
     lines.append(f"#endif /* {include_guard} */")
     lines.append("")
     return "\n".join(lines)
@@ -101,6 +128,143 @@ def _merge_c_header(mod: ModuleType, attr: str, src: str, include_guard: str) ->
     else:
         setattr(mod, attr, src)
 
+def _check_uniqueness(const_name, mod_name):
+    if mod_name not in _XO_CONST_GLOBAL_NAME_REG:
+        _XO_CONST_GLOBAL_NAME_REG[mod_name] = set()
+    if const_name in _XO_CONST_GLOBAL_NAME_REG[mod_name]:
+        raise ValueError(f"Constant name {const_name!r} already defined in module {mod_name}; uniqueness required.")
+    _XO_CONST_GLOBAL_NAME_REG[mod_name].add(const_name)
+
+def _register_type(cls, category, plural, reverse):
+    # Register type (for cross-module consistency checks)
+    if category in _XO_CONST_GLOBAL_TYPE_REG:
+        for other_cls in _XO_CONST_GLOBAL_TYPE_REG[category]:
+            if other_cls._plural_ != plural:
+                raise ValueError(f"Category {category!r} already defined with plural "
+                            + f"{other_cls._plural_!r} by {other_cls.__module__}"
+                            + f".{other_cls.__name__}. Please make _plural_ consistent.")
+            if other_cls._reverse_ != reverse:
+                raise ValueError(f"Category {category!r} already defined with reverse "
+                            + f"{other_cls._reverse_!r} by {other_cls.__module__}"
+                            + f".{other_cls.__name__}. Please make _reverse_ consistent.")
+        _XO_CONST_GLOBAL_TYPE_REG[category].append(cls)
+    else:
+        _XO_CONST_GLOBAL_TYPE_REG[category] = [cls]
+
+def _check_cname_collisions(own_specs, mod_name):
+    # Check for C name collisions
+    for nm, spec in own_specs.items():
+        cn = spec.c_name
+        if cn in _XO_CONST_GLOBAL_CNAME_REG and _XO_CONST_GLOBAL_CNAME_REG[cn] != (nm, mod_name):
+            other = _XO_CONST_GLOBAL_CNAME_REG[cn]
+            raise ValueError(f"C macro {cn!r} collides between {other} and {(nm, mod_name)}")
+        _XO_CONST_GLOBAL_CNAME_REG[cn] = (nm, mod_name)
+
+def _check_value_uniqueness(own_specs, category, mod_name):
+    if category not in _XO_CONST_GLOBAL_UNIQUE_VALUE_REG:
+        _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category] = {}
+    for const_name, spec in own_specs.items():
+        vkey = _to_value_key(spec.py_value)
+        if vkey in _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category]:
+            other_name, other_mod = _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category][vkey]
+            raise ValueError(
+                f"Value {vkey!r} for {const_name!r} in {mod_name} "
+                f"already used by {other_name!r} in {other_mod}; "
+                f"values must be globally unique when _reverse_ == 'unique'."
+            )
+    for const_name, spec in own_specs.items():
+        _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category][_to_value_key(spec.py_value)] = (const_name, mod_name)
+
+def _get_specs(ns, c_prefix):
+    # Collect specifications in definition order
+    own_specs: Dict[str, ConstantSpec] = {}
+    own_group_specs: Dict[str, GroupSpec] = {}
+    for k, v in ns.items():
+        if k.startswith("_"):
+            continue
+        if isinstance(v, ConstantSpec):
+            v.name = k  # Remember constant name for lookup in groups (potentially in other classes)
+            if v.c_name is None:
+                v.c_name = _cjoin(c_prefix, k)
+            own_specs[k] = v
+        elif isinstance(v, ConstantType):
+            own_specs[k] = ConstantSpec(v, info ='', c_name=_cjoin(c_prefix, k), name=k)
+        elif isinstance(v, GroupSpec):
+            v.name = k  # Remember group name for lookup in other classes
+            own_group_specs[k] = v
+        else:
+            continue
+    return own_specs, own_group_specs
+
+def _resolve_group_specs(own_group_specs, category, mod_name, name_to_val):
+    for gname, spec in own_group_specs.items():
+        seq = []
+        names = []
+        for nm in spec.names:
+            # References to other groups
+            if isinstance(nm, GroupSpec):       # Reference to group spec
+                if nm.name in own_group_specs:  # Defined in this class, so take resolved values
+                    seq.extend(own_group_specs[nm.name].py_values)
+                    names.extend(own_group_specs[nm.name].names)
+                else:                           # Defined in other class, take original spec values
+                    seq.extend(nm.py_values)
+                    names.extend(nm.names)
+                continue
+            elif isinstance(nm, _TupleMixin):   # Reference to group defined in other classes
+                seq.extend(nm.value)
+                names.extend(nm.names)
+                continue
+            elif isinstance(nm, ConstantSpec):  # Reference to constant spec
+                if isinstance(nm, str):
+                    raise TypeError(f"Group {gname!r} in {mod_name} contains a string literal; groups are numeric-only.")
+                if nm.name in name_to_val:      # Defined in this class, so take resolved value
+                    seq.append(name_to_val[nm.name])
+                    names.append(nm.name)
+                else:                           # Defined in other class, take original spec value
+                    seq.append(nm.py_value)
+                    names.append(nm.name)
+                continue
+            elif isinstance(nm, (_IntMixin, _FloatMixin)):  # Reference to constant defined in other classes
+                seq.append(nm.value)
+                names.append(nm.name)
+                continue
+            elif isinstance(nm, str):           # String reference to constant or group defined in this class
+                if nm in own_group_specs:
+                    seq.extend(own_group_specs[nm].py_values)
+                    names.extend(own_group_specs[nm].names)
+                    continue
+                elif nm in name_to_val:
+                    seq.append(name_to_val[nm])
+                    names.append(nm)
+                    continue
+            elif isinstance(nm, ConstantType):  # Reference got evaluated already - named constant lost
+                if isinstance(nm, str):
+                    raise TypeError(f"Group {gname!r} in {mod_name} contains a string literal; groups are numeric-only.")
+                seq.append(_to_number(nm))
+                kk = f"{category}_unnamed"
+                if kk not in _XO_CONST_GLOBAL_COUNT_REG:
+                    _XO_CONST_GLOBAL_COUNT_REG[kk] = -1
+                _XO_CONST_GLOBAL_COUNT_REG[kk] += 1
+                new_name = f"{category.upper()}_UNNAMED_{_XO_CONST_GLOBAL_COUNT_REG[kk]}"
+                names.append(new_name)
+                warn(f"Group {gname!r} in {mod_name} contains literal {nm!r}. "
+                    + f"Name lost, assigned {new_name!r}.", UserWarning)
+                continue
+            raise KeyError(f"Group {gname!r} references unknown constant {nm!r}")
+        # Ensure no duplicates and sort
+        name_to_value = {}
+        for vv, nn in zip(seq, names):
+            if nn in name_to_value:
+                if name_to_value[nn] != vv:
+                    raise ValueError(f"Constant {nn!r} appears with two different "
+                                    + f"values: {name_to_value[nn]} and {vv}")
+            else:
+                name_to_value[nn] = vv
+        sorted_items = sorted(name_to_value.items(), key=lambda kv: kv[1])
+        names = tuple(ll for ll, _ in sorted_items)
+        seq   = tuple(vv for _, vv in sorted_items)
+        own_group_specs[gname] = GroupSpec(names=names, py_values=seq, info=spec.info, name=gname)
+
 
 # ---- spec holders used in class bodies --------------------------------------
 class ConstantSpec:
@@ -108,7 +272,7 @@ class ConstantSpec:
     def __init__(self, value: ConstantType, info: str = "",
                  c_name: Optional[str] = None, name: Optional[str] = None,
                  extras: Optional[Dict] = None):
-        if not isinstance(value, (int, float, bool)):
+        if not isinstance(value, (int, float, bool, str)):
             raise TypeError(f"Unsupported constant type: {type(value).__name__}")
         self.py_value = value      # keep original type for Python export
         self.info = info
@@ -193,6 +357,24 @@ class _TupleMixin(tuple):
             raise ValueError("Tuple names length does not match values length.")
         self.__doc__ = f"{self.info} Represents the following constants: {self.names}."
 
+class _StrMixin(str):
+    def __new__(cls, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict] = {}):
+        return str.__new__(cls, value)
+
+    def __init__(self, value, info: str = "", c_name: Optional[str] = None, kwargs: Optional[dict] = {}):
+        self.info = info
+        self.c_name = c_name
+        for kk, vv in kwargs.items():
+            setattr(self, kk, vv)
+
+        doc = [self.info] if self.info != '' else []
+        c_name_line = [f"Represented in C as {c_name}."] if c_name is not None else []
+        additional = []
+        if kwargs:
+            extra = [f"{kk}={vv!r}" for kk, vv in kwargs.items()]
+            additional.append("Additional info: " + ", ".join(extra) + ".")
+        self.__doc__ = ' '.join([*doc, *c_name_line, *additional])
+
 
 # ---- enum member builder (returns *members*, not necessarily one enum) ------
 def _build_members(module_name: str,
@@ -209,6 +391,7 @@ def _build_members(module_name: str,
     ints: Dict[str, Tuple[int, str, Optional[str]]] = {}
     floats: Dict[str, Tuple[float, str, Optional[str]]] = {}
     bools: Dict[str, Tuple[bool, str, Optional[str]]] = {}
+    strings: Dict[str, Tuple[str, str, Optional[str]]] = {}
 
     for k, spec in items.items():
         if isinstance(spec.py_value, bool):
@@ -217,11 +400,14 @@ def _build_members(module_name: str,
             ints[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
         elif isinstance(spec.py_value, float):
             floats[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
+        elif isinstance(spec.py_value, str):
+            strings[k] = (spec.py_value, spec.info, spec.c_name or _cjoin(c_prefix, k), spec.extras)
         else:
             raise TypeError(f"Unsupported type for {k}: {type(spec.py_value).__name__}")
 
-    if ints and floats and not allow_mixed:
-        raise TypeError("Mixed int/float values are not allowed when _reverse_ == 'unique'.")
+    if not allow_mixed:
+        if (ints and floats) or (ints and strings) or (floats and strings):
+            raise TypeError("Mixed int/float values are not allowed when _reverse_ == 'unique'.")
 
     members: Dict[str, object] = {}
 
@@ -236,6 +422,12 @@ def _build_members(module_name: str,
         float_enum.__doc__ = ''
         for k in floats:
             members[k] = getattr(float_enum, k)
+
+    if strings:
+        str_enum = Enum(f"{enum_type_name}Str", strings, module=module_name, type=_StrMixin)
+        str_enum.__doc__ = ''
+        for k in strings:
+            members[k] = getattr(str_enum, k)
 
     # Bools exported as plain True/False (metadata lives in *_meta)
     for k, (bv, _, _, _) in bools.items():
@@ -299,152 +491,30 @@ class _ConstantsMeta(type):
         cls._c_prefix_ = c_prefix
         cls._include_guard_ = include_guard
 
-        # Register type (for cross-module consistency checks)
-        if category in _XO_CONST_GLOBAL_TYPE_REG:
-            for other_cls in _XO_CONST_GLOBAL_TYPE_REG[category]:
-                if other_cls._plural_ != plural:
-                    raise ValueError(f"Category {category!r} already defined with plural "
-                                + f"{other_cls._plural_!r} by {other_cls.__module__}"
-                                + f".{other_cls.__name__}. Please make _plural_ consistent.")
-                if other_cls._reverse_ != reverse:
-                    raise ValueError(f"Category {category!r} already defined with reverse "
-                                + f"{other_cls._reverse_!r} by {other_cls.__module__}"
-                                + f".{other_cls.__name__}. Please make _reverse_ consistent.")
-            _XO_CONST_GLOBAL_TYPE_REG[category].append(cls)
-        else:
-            _XO_CONST_GLOBAL_TYPE_REG[category] = [cls]
-
         # Collect specifications in definition order
-        own_specs: Dict[str, ConstantSpec] = {}
-        own_group_specs: Dict[str, GroupSpec] = {}
-        for k, v in ns.items():
-            if k.startswith("_"):
-                continue
-            if isinstance(v, ConstantSpec):
-                v.name = k  # Remember constant name for lookup in groups (potentially in other classes)
-                if v.c_name is None:
-                    v.c_name = _cjoin(c_prefix, k)
-                own_specs[k] = v
-            elif isinstance(v, ConstantType):
-                own_specs[k] = ConstantSpec(v, info ='', c_name=_cjoin(c_prefix, k), name=k)
-            elif isinstance(v, GroupSpec):
-                v.name = k  # Remember group name for lookup in other classes
-                own_group_specs[k] = v
-            else:
-                continue
+        own_specs, own_group_specs = _get_specs(ns, c_prefix)
 
-        # Enforce global uniqueness
+        # Check consistency across modules
         mod_name = cls.__module__
-        for const_name in {**own_specs, **own_group_specs}:
-            if const_name in _XO_CONST_GLOBAL_NAME_REG and _XO_CONST_GLOBAL_NAME_REG[const_name] != mod_name:
-                other = _XO_CONST_GLOBAL_NAME_REG[const_name]
-                raise ValueError(
-                    f"Constant name {const_name!r} already defined in module {other}; global uniqueness required."
-                )
-        for const_name in {**own_specs, **own_group_specs}:
-            _XO_CONST_GLOBAL_NAME_REG[const_name] = mod_name
-
-        # Check for C name collisions
-        for nm, spec in own_specs.items():
-            cn = spec.c_name
-            if cn in _XO_CONST_GLOBAL_CNAME_REG and _XO_CONST_GLOBAL_CNAME_REG[cn] != (nm, mod_name):
-                other = _XO_CONST_GLOBAL_CNAME_REG[cn]
-                raise ValueError(f"C macro {cn!r} collides between {other} and {(nm, mod_name)}")
-            _XO_CONST_GLOBAL_CNAME_REG[cn] = (nm, mod_name)
-
-        # Check for value uniqueness if requested
+        _register_type(cls, category, plural, reverse)
+        _check_cname_collisions(own_specs, mod_name)
         if reverse == "unique":
-            if category not in _XO_CONST_GLOBAL_UNIQUE_VALUE_REG:
-                _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category] = {}
-            for const_name, spec in own_specs.items():
-                vnum = _to_number(spec.py_value)
-                if vnum in _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category]:
-                    other_name, other_mod = _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category][vnum]
-                    raise ValueError(
-                        f"Value {vnum!r} for {const_name!r} in {mod_name} "
-                        f"already used by {other_name!r} in {other_mod}; "
-                        f"values must be globally unique when _reverse_ == 'unique'."
-                    )
-            for const_name, spec in own_specs.items():
-                _XO_CONST_GLOBAL_UNIQUE_VALUE_REG[category][_to_number(spec.py_value)] = (const_name, mod_name)
+            _check_value_uniqueness(own_specs, category, mod_name)
 
         # Store specs in class
         cls._own_specs_ = own_specs
         for kk, vv in own_specs.items():
             setattr(cls, kk, vv)
-        name_to_val: Dict[str, Union[int, float]] = {k: _to_number(spec.py_value) for k, spec in own_specs.items()}
-
-        # Resolve groups (ordered, no duplicates, resolved to actual values)
+        name_to_val = {k: _to_value_key(spec.py_value) for k, spec in own_specs.items()}
         if own_group_specs:
+            _resolve_group_specs(own_group_specs, category, mod_name, name_to_val)
             for gname, spec in own_group_specs.items():
-                seq = []
-                names = []
-                for nm in spec.names:
-                    # References to other groups
-                    if isinstance(nm, GroupSpec):       # Reference to group spec
-                        if nm.name in own_group_specs:  # Defined in this class, so take resolved values
-                            seq.extend(own_group_specs[nm.name].py_values)
-                            names.extend(own_group_specs[nm.name].names)
-                        else:                           # Defined in other class, take original spec values
-                            seq.extend(nm.py_values)
-                            names.extend(nm.names)
-                        continue
-                    elif isinstance(nm, _TupleMixin):   # Reference to group defined in other classes
-                        seq.extend(nm.value)
-                        names.extend(nm.names)
-                        continue
-                    elif isinstance(nm, ConstantSpec):  # Reference to constant spec
-                        if nm.name in name_to_val:      # Defined in this class, so take resolved value
-                            seq.append(name_to_val[nm.name])
-                            names.append(nm.name)
-                        else:                           # Defined in other class, take original spec value
-                            seq.append(nm.py_value)
-                            names.append(nm.name)
-                        continue
-                    elif isinstance(nm, (_IntMixin, _FloatMixin)):  # Reference to constant defined in other classes
-                        seq.append(nm.value)
-                        names.append(nm.name)
-                        continue
-                    elif isinstance(nm, str):           # String reference to constant or group defined in this class
-                        if nm in own_group_specs:
-                            seq.extend(own_group_specs[nm].py_values)
-                            names.extend(own_group_specs[nm].names)
-                            continue
-                        elif nm in name_to_val:
-                            seq.append(name_to_val[nm])
-                            names.append(nm)
-                            continue
-                    elif isinstance(nm, ConstantType):  # Reference got evaluated already - named constant lost
-                        seq.append(_to_number(nm))
-                        kk = f"{category}_unnamed"
-                        if kk not in _XO_CONST_GLOBAL_COUNT_REG:
-                            _XO_CONST_GLOBAL_COUNT_REG[kk] = -1
-                        _XO_CONST_GLOBAL_COUNT_REG[kk] += 1
-                        new_name = f"{category.upper()}_UNNAMED_{_XO_CONST_GLOBAL_COUNT_REG[kk]}"
-                        names.append(new_name)
-                        warn(f"Group {gname!r} in {mod_name} contains literal {nm!r}. "
-                            + f"Name lost, assigned {new_name!r}.", UserWarning)
-                        continue
-                    raise KeyError(f"Group {gname!r} references unknown constant {nm!r}")
-                # Ensure no duplicates and sort
-                name_to_value = {}
-                for vv, nn in zip(seq, names):
-                    if nn in name_to_value:
-                        if name_to_value[nn] != vv:
-                            raise ValueError(f"Constant {nn!r} appears with two different "
-                                           + f"values: {name_to_value[nn]} and {vv}")
-                    else:
-                        name_to_value[nn] = vv
-                sorted_items = sorted(name_to_value.items(), key=lambda kv: kv[1])
-                names = tuple(ll for ll, _ in sorted_items)
-                seq   = tuple(vv for _, vv in sorted_items)
-                own_group_specs[gname] = GroupSpec(names=names, py_values=seq, info=spec.info, name=gname)
                 setattr(cls, gname, own_group_specs[gname])
             cls._own_group_specs_ = own_group_specs
 
         # Class-level views (ordered)
-        meta_map = {k: {"value": _to_number(spec.py_value), "c_name": spec.c_name, "info": spec.info, **spec.extras}
-                    for k, spec in own_specs.items()}
+        meta_map = {k: {"value": spec.py_value, "c_name": spec.c_name, "info": spec.info, **spec.extras}
+            for k, spec in own_specs.items()}
         if reverse == "unique":
             names_map = {v: k for k, v in name_to_val.items()}
         elif reverse == "multi":
@@ -474,25 +544,28 @@ class _ConstantsMeta(type):
                          include_src: bool = False, include_meta: bool = False,
                          import_vars: bool = False) -> None:
         """Re-export minimal surface to another module (e.g. package __init__)."""
-        mod = sys.modules[module_name]
+        if isinstance(module_name, ModuleType):
+            mod = module_name
+            module_name = mod.__name__
+        else:
+            mod = sys.modules[module_name]
         category = cls._category_
         plural   = cls._plural_
         reverse  = cls._reverse_
         c_prefix = cls._c_prefix_
         include_guard = cls._include_guard_
 
-        if import_vars:
-            # Build members, preserving Python types
-            allow_mixed = (reverse != "unique")
-            enum_type_name = ''.join(nn.capitalize() for nn in category.split('_'))
-            own_members = _build_members(module_name, cls._own_specs_, c_prefix, allow_mixed, enum_type_name)
-            if include_groups and hasattr(cls, "_own_group_specs_"):
-                own_group_members = _build_group_members(module_name, cls._own_group_specs_, enum_type_name)
-            else:
-                own_group_members = {}
-            for k, member in {**own_members, **own_group_members}.items():
-                if hasattr(mod, k):
-                    raise ValueError(f"Module {mod.__name__} already has {k}; cannot redefine.")
+        # Build members, preserving Python types
+        allow_mixed = (reverse != "unique")
+        enum_type_name = ''.join(nn.capitalize() for nn in category.split('_'))
+        own_members = _build_members(module_name, cls._own_specs_, c_prefix, allow_mixed, enum_type_name)
+        if include_groups and hasattr(cls, "_own_group_specs_"):
+            own_group_members = _build_group_members(module_name, cls._own_group_specs_, enum_type_name)
+        else:
+            own_group_members = {}
+        for k, member in {**own_members, **own_group_members}.items():
+            _check_uniqueness(k, module_name)
+            if import_vars:
                 setattr(mod, k, member)
 
         _merge_map(mod, f"{plural}", cls._map)

@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import re
 import pytest
 
 from xcoll.xoconstants import (Constants, constant, group, ConstantSpec, GroupSpec, _IntMixin,
@@ -18,35 +19,15 @@ with pytest.warns(UserWarning):
 
 def test_registries():
     base_pkg_name = 'test_constants_pkg'
-    assert _XO_CONST_GLOBAL_NAME_REG['ENABLED'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['BIG'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['MASS'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['COOL'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR1'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR2'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR3'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['GR1'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR4'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR5'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR6'] == f'{base_pkg_name}.type1'
-    assert _XO_CONST_GLOBAL_NAME_REG['THING_SOME_VAL'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['THING_OTHER'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['THING_INT'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['YAY_NO_META'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['YAY_NO_META_2'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['YAY_NO_META_3'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['GR2'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR7'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR8'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR9'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR10'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR11'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAR12'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['GR3'] == f'{base_pkg_name}.type4'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAS1'] == f'{base_pkg_name}.other_type'
-    assert _XO_CONST_GLOBAL_NAME_REG['VAS2'] == f'{base_pkg_name}.other_type'
-    assert _XO_CONST_GLOBAL_NAME_REG['GRO'] == f'{base_pkg_name}.other_type'
-    assert _XO_CONST_GLOBAL_NAME_REG['GROO'] == f'{base_pkg_name}.other_type'
+    assert _XO_CONST_GLOBAL_NAME_REG[f'{base_pkg_name}.type1'] == {
+          'ENABLED', 'BIG', 'MASS', 'COOL', 'VAR1', 'VAR2',
+          'VAR3', 'GR1', 'VAR4', 'VAR5', 'VAR6'}
+    assert _XO_CONST_GLOBAL_NAME_REG[f'{base_pkg_name}.type4'] == {
+          'THING_SOME_VAL', 'THING_OTHER', 'THING_INT', 'YAY_NO_META',
+          'YAY_NO_META_2', 'YAY_NO_META_3', 'GR2', 'VAR7', 'VAR8', 'VAR9',
+          'VAR10', 'VAR11', 'VAR12', 'GR3'}
+    assert _XO_CONST_GLOBAL_NAME_REG[f'{base_pkg_name}.other_type'] == {
+          'VAS1', 'VAS2', 'GRO', 'GROO'}
 
     assert _XO_CONST_GLOBAL_UNIQUE_VALUE_REG['unique_type'] == {
         2: ('VAR1', 'test_constants_pkg.type1'),
@@ -502,53 +483,53 @@ def test_package_constant_names():
 def test_class_constant_sources():
     assert tt._T1._src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
-  #define OLA_ENABLED                                                 1     // Important info
-  #define XF_BIG                                   18446744073709551615     // Big int
-  #define XF_MASS                                                 0.938     // Mass in GeV/c^2
+  #define OLA_ENABLED                         1                             // Important info
+  #define XF_BIG                              18446744073709551615          // Big int
+  #define XF_MASS                             0.938                         // Mass in GeV/c^2
 #endif /* XF_TYPE_H_I0 */
 """
     assert tt._T2._src == """#ifndef UU_UNIQUE_TYPE_H_I0
 #define UU_UNIQUE_TYPE_H_I0
-  #define UU_VAR1                                                     2     // Var 1
-  #define UU_VAR2                                                    -3     // Var 2
-  #define UU_VAR3                                                     9     // Var 3
+  #define UU_VAR1                             2                             // Var 1
+  #define UU_VAR2                             -3                            // Var 2
+  #define UU_VAR3                             9                             // Var 3
 #endif /* UU_UNIQUE_TYPE_H_I0 */
 """
     assert tt._T3._src == """#ifndef XF_MULTI_TYPE_H_I0
 #define XF_MULTI_TYPE_H_I0
-  #define XF_VAR4                                                     4     // Var 4
-  #define XF_VAR5                                                    -5     // Var 5
-  #define XF_VAR6                                                     4     // Var 6
+  #define XF_VAR4                             4                             // Var 4
+  #define XF_VAR5                             -5                            // Var 5
+  #define XF_VAR6                             4                             // Var 6
 #endif /* XF_MULTI_TYPE_H_I0 */
 """
     assert tt._T4._src == """#ifndef UU_UNIQUE_TYPE_H_I1
 #define UU_UNIQUE_TYPE_H_I1
-  #define UU_THING_SOME_VAL                                       0.734     // Type4 thing with some value.
-  #define UU_THING_OTHER                                           1.23     // Another type4 thing.
-  #define UU_THING_INT                                             12.0     // Integer type4 thing -> has to be float
-  #define UU_YAY_NO_META                                           9.81     // 
-  #define UU_YAY_NO_META_2                                         23.0     // 
-  #define UU_YAY_NO_META_3                                            1     // 
+  #define UU_THING_SOME_VAL                   0.734                         // Type4 thing with some value.
+  #define UU_THING_OTHER                      1.23                          // Another type4 thing.
+  #define UU_THING_INT                        12.0                          // Integer type4 thing -> has to be float
+  #define UU_YAY_NO_META                      9.81                          // 
+  #define UU_YAY_NO_META_2                    23.0                          // 
+  #define UU_YAY_NO_META_3                    1                             // 
 #endif /* UU_UNIQUE_TYPE_H_I1 */
 """
     assert tt._T5._src == """#ifndef RR_MULTI_TYPE_H_I0
 #define RR_MULTI_TYPE_H_I0
-  #define RR_VAR7                                                     4     // Var 7
-  #define RR_VAR8                                                    -5     // Var 8
-  #define RR_VAR9                                                    10     // Var 9
+  #define RR_VAR7                             4                             // Var 7
+  #define RR_VAR8                             -5                            // Var 8
+  #define RR_VAR9                             10                            // Var 9
 #endif /* RR_MULTI_TYPE_H_I0 */
 """
     assert tt._T6._src == """#ifndef RR_MULTI_TYPE_H_I1
 #define RR_MULTI_TYPE_H_I1
-  #define RR_VAR10                                                    4     // Var 10
-  #define RR_VAR11                                                   88     // Var 11
-  #define RR_VAR12                                                   10     // Var 12
+  #define RR_VAR10                            4                             // Var 10
+  #define RR_VAR11                            88                            // Var 11
+  #define RR_VAR12                            10                            // Var 12
 #endif /* RR_MULTI_TYPE_H_I1 */
 """
     assert tt._TO._src == """#ifndef XFREOO_OTHER_TYPE_H_I0
 #define XFREOO_OTHER_TYPE_H_I0
-  #define XFREOO_VAS1                                                 2     // Vas 1
-  #define XFREOO_VAS2                                                -3     // Vas 2
+  #define XFREOO_VAS1                         2                             // Vas 1
+  #define XFREOO_VAS2                         -3                            // Vas 2
 #endif /* XFREOO_OTHER_TYPE_H_I0 */
 """
 
@@ -556,55 +537,55 @@ def test_class_constant_sources():
 def test_module_constant_sources():
     assert tt1.types_src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
-  #define OLA_ENABLED                                                 1     // Important info
-  #define XF_BIG                                   18446744073709551615     // Big int
-  #define XF_MASS                                                 0.938     // Mass in GeV/c^2
+  #define OLA_ENABLED                         1                             // Important info
+  #define XF_BIG                              18446744073709551615          // Big int
+  #define XF_MASS                             0.938                         // Mass in GeV/c^2
 #endif /* XF_TYPE_H_I0 */
 """
     assert tt1.unique_types_src == """#ifndef UU_UNIQUE_TYPE_H_I0
 #define UU_UNIQUE_TYPE_H_I0
-  #define UU_VAR1                                                     2     // Var 1
-  #define UU_VAR2                                                    -3     // Var 2
-  #define UU_VAR3                                                     9     // Var 3
+  #define UU_VAR1                             2                             // Var 1
+  #define UU_VAR2                             -3                            // Var 2
+  #define UU_VAR3                             9                             // Var 3
 #endif /* UU_UNIQUE_TYPE_H_I0 */
 """
     assert tt1.multi_types_src == """#ifndef XF_MULTI_TYPE_H_I0
 #define XF_MULTI_TYPE_H_I0
-  #define XF_VAR4                                                     4     // Var 4
-  #define XF_VAR5                                                    -5     // Var 5
-  #define XF_VAR6                                                     4     // Var 6
+  #define XF_VAR4                             4                             // Var 4
+  #define XF_VAR5                             -5                            // Var 5
+  #define XF_VAR6                             4                             // Var 6
 #endif /* XF_MULTI_TYPE_H_I0 */
 """
     assert tt4.unique_types_src == """#ifndef UU_UNIQUE_TYPE_H_I1
 #define UU_UNIQUE_TYPE_H_I1
-  #define UU_THING_SOME_VAL                                       0.734     // Type4 thing with some value.
-  #define UU_THING_OTHER                                           1.23     // Another type4 thing.
-  #define UU_THING_INT                                             12.0     // Integer type4 thing -> has to be float
-  #define UU_YAY_NO_META                                           9.81     // 
-  #define UU_YAY_NO_META_2                                         23.0     // 
-  #define UU_YAY_NO_META_3                                            1     // 
+  #define UU_THING_SOME_VAL                   0.734                         // Type4 thing with some value.
+  #define UU_THING_OTHER                      1.23                          // Another type4 thing.
+  #define UU_THING_INT                        12.0                          // Integer type4 thing -> has to be float
+  #define UU_YAY_NO_META                      9.81                          // 
+  #define UU_YAY_NO_META_2                    23.0                          // 
+  #define UU_YAY_NO_META_3                    1                             // 
 #endif /* UU_UNIQUE_TYPE_H_I1 */
 """
     assert tt4.multi_types_src == """#ifndef RR_MULTI_TYPE_H_I2
 #define RR_MULTI_TYPE_H_I2
   #ifndef RR_MULTI_TYPE_H_I0
   #define RR_MULTI_TYPE_H_I0
-    #define RR_VAR7                                                     4     // Var 7
-    #define RR_VAR8                                                    -5     // Var 8
-    #define RR_VAR9                                                    10     // Var 9
+    #define RR_VAR7                             4                             // Var 7
+    #define RR_VAR8                             -5                            // Var 8
+    #define RR_VAR9                             10                            // Var 9
   #endif /* RR_MULTI_TYPE_H_I0 */
   #ifndef RR_MULTI_TYPE_H_I1
   #define RR_MULTI_TYPE_H_I1
-    #define RR_VAR10                                                    4     // Var 10
-    #define RR_VAR11                                                   88     // Var 11
-    #define RR_VAR12                                                   10     // Var 12
+    #define RR_VAR10                            4                             // Var 10
+    #define RR_VAR11                            88                            // Var 11
+    #define RR_VAR12                            10                            // Var 12
   #endif /* RR_MULTI_TYPE_H_I1 */
 #endif /* RR_MULTI_TYPE_H_I2 */
 """
     assert tto.other_types_src == """#ifndef XFREOO_OTHER_TYPE_H_I0
 #define XFREOO_OTHER_TYPE_H_I0
-  #define XFREOO_VAS1                                                 2     // Vas 1
-  #define XFREOO_VAS2                                                -3     // Vas 2
+  #define XFREOO_VAS1                         2                             // Vas 1
+  #define XFREOO_VAS2                         -3                            // Vas 2
 #endif /* XFREOO_OTHER_TYPE_H_I0 */
 """
 
@@ -612,27 +593,27 @@ def test_module_constant_sources():
 def test_package_constant_sources():
     assert tt.types_src == """#ifndef XF_TYPE_H_I0
 #define XF_TYPE_H_I0
-  #define OLA_ENABLED                                                 1     // Important info
-  #define XF_BIG                                   18446744073709551615     // Big int
-  #define XF_MASS                                                 0.938     // Mass in GeV/c^2
+  #define OLA_ENABLED                         1                             // Important info
+  #define XF_BIG                              18446744073709551615          // Big int
+  #define XF_MASS                             0.938                         // Mass in GeV/c^2
 #endif /* XF_TYPE_H_I0 */
 """
     assert tt.unique_types_src == """#ifndef UU_UNIQUE_TYPE_H_I2
 #define UU_UNIQUE_TYPE_H_I2
   #ifndef UU_UNIQUE_TYPE_H_I0
   #define UU_UNIQUE_TYPE_H_I0
-    #define UU_VAR1                                                     2     // Var 1
-    #define UU_VAR2                                                    -3     // Var 2
-    #define UU_VAR3                                                     9     // Var 3
+    #define UU_VAR1                             2                             // Var 1
+    #define UU_VAR2                             -3                            // Var 2
+    #define UU_VAR3                             9                             // Var 3
   #endif /* UU_UNIQUE_TYPE_H_I0 */
   #ifndef UU_UNIQUE_TYPE_H_I1
   #define UU_UNIQUE_TYPE_H_I1
-    #define UU_THING_SOME_VAL                                       0.734     // Type4 thing with some value.
-    #define UU_THING_OTHER                                           1.23     // Another type4 thing.
-    #define UU_THING_INT                                             12.0     // Integer type4 thing -> has to be float
-    #define UU_YAY_NO_META                                           9.81     // 
-    #define UU_YAY_NO_META_2                                         23.0     // 
-    #define UU_YAY_NO_META_3                                            1     // 
+    #define UU_THING_SOME_VAL                   0.734                         // Type4 thing with some value.
+    #define UU_THING_OTHER                      1.23                          // Another type4 thing.
+    #define UU_THING_INT                        12.0                          // Integer type4 thing -> has to be float
+    #define UU_YAY_NO_META                      9.81                          // 
+    #define UU_YAY_NO_META_2                    23.0                          // 
+    #define UU_YAY_NO_META_3                    1                             // 
   #endif /* UU_UNIQUE_TYPE_H_I1 */
 #endif /* UU_UNIQUE_TYPE_H_I2 */
 """
@@ -640,28 +621,28 @@ def test_package_constant_sources():
 #define RR_MULTI_TYPE_H_I3
   #ifndef XF_MULTI_TYPE_H_I0
   #define XF_MULTI_TYPE_H_I0
-    #define XF_VAR4                                                     4     // Var 4
-    #define XF_VAR5                                                    -5     // Var 5
-    #define XF_VAR6                                                     4     // Var 6
+    #define XF_VAR4                             4                             // Var 4
+    #define XF_VAR5                             -5                            // Var 5
+    #define XF_VAR6                             4                             // Var 6
   #endif /* XF_MULTI_TYPE_H_I0 */
   #ifndef RR_MULTI_TYPE_H_I0
   #define RR_MULTI_TYPE_H_I0
-    #define RR_VAR7                                                     4     // Var 7
-    #define RR_VAR8                                                    -5     // Var 8
-    #define RR_VAR9                                                    10     // Var 9
+    #define RR_VAR7                             4                             // Var 7
+    #define RR_VAR8                             -5                            // Var 8
+    #define RR_VAR9                             10                            // Var 9
   #endif /* RR_MULTI_TYPE_H_I0 */
   #ifndef RR_MULTI_TYPE_H_I1
   #define RR_MULTI_TYPE_H_I1
-    #define RR_VAR10                                                    4     // Var 10
-    #define RR_VAR11                                                   88     // Var 11
-    #define RR_VAR12                                                   10     // Var 12
+    #define RR_VAR10                            4                             // Var 10
+    #define RR_VAR11                            88                            // Var 11
+    #define RR_VAR12                            10                            // Var 12
   #endif /* RR_MULTI_TYPE_H_I1 */
 #endif /* RR_MULTI_TYPE_H_I3 */
 """
     assert tt.other_types_src == """#ifndef XFREOO_OTHER_TYPE_H_I0
 #define XFREOO_OTHER_TYPE_H_I0
-  #define XFREOO_VAS1                                                 2     // Vas 1
-  #define XFREOO_VAS2                                                -3     // Vas 2
+  #define XFREOO_VAS1                         2                             // Vas 1
+  #define XFREOO_VAS2                         -3                            // Vas 2
 #endif /* XFREOO_OTHER_TYPE_H_I0 */
 """
 
@@ -686,8 +667,8 @@ def test_consistency_and_name_clash():
             _reverse_  = None
             _plural_   = "yikes"
 
-    with pytest.raises(ValueError, match="Constant name 'MASS' already defined in module "
-                       "test_constants_pkg.type1; global uniqueness required."):
+    with pytest.raises(ValueError, match=re.escape("C macro 'XF_MASS' collides between ('MASS', "
+                       "'test_constants_pkg.type1') and ('MASS', 'test_constants')")):
         class FailThingType4(Constants):
             _category_ = "type"
             _reverse_  = None
@@ -697,9 +678,21 @@ def test_consistency_and_name_clash():
             VAL2 = constant(2**64 - 1, "Big int")
             MASS = constant(0.938, "GeV/c^2")   # Double definition in other table
 
+    with pytest.raises(ValueError, match="Constant name 'MASS' already defined in module "
+                                         "test_constants_pkg.type1; uniqueness required."):
+        class FailThingType5(Constants):
+            _category_ = "type"
+            _reverse_  = None
+            _c_prefix_ = "XF2"
+
+            VAL1 = constant(5, "Feature enabled")
+            VAL2 = constant(2**64 - 1, "Big int")
+            MASS = constant(0.938, "GeV/c^2")   # Double definition in other table
+        FailThingType5.export_to_module(tt1)
+
     with pytest.raises(ValueError, match="Value 2 for 'VAL17' in test_constants already used by 'VAR1' "
                    "in test_constants_pkg.type1; values must be globally unique when _reverse_ == 'unique'."):
-        class FailThingType5(Constants):
+        class FailThingType6(Constants):
             _category_ = "unique_type"
             _reverse_  = "unique"
             _c_prefix_ = "XF"
@@ -707,7 +700,7 @@ def test_consistency_and_name_clash():
             VAL17 = constant(2, "Feature enabled") # Val 2 taken by TestType2
 
     with pytest.raises(TypeError, match="Mixed int/float values are not allowed when _reverse_ == 'unique'."):
-        class FailThingType6(Constants):
+        class FailThingType7(Constants):
             _category_ = "unique_type_bis"
             _reverse_  = "unique"
             _c_prefix_ = "BB"
@@ -716,7 +709,7 @@ def test_consistency_and_name_clash():
             VAL19 = constant(3.14, "Float")
 
     with pytest.raises(KeyError, match=f"Group 'GR5' references unknown constant 'VAL22'"):
-        class FailThingType7(Constants):
+        class FailThingType8(Constants):
             _category_ = "unique_type_tris"
             _reverse_  = "unique"
             _c_prefix_ = "BB"
