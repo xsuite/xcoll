@@ -374,16 +374,21 @@ class Material(xo.HybridClass):
             mat._short_name = short_name
             mat._fluka_name = fluka_name
             mat._geant4_name = geant4_name
-            if mdb[name] != mat:
+            if mdb[name] == mat:
+                # Return the one from the database
+                return mdb[name]
+            else:
+                # Return the new one but mark as out-of-sync
                 print(f"Warning: Material {name} is out of sync with database.")
                 mat._out_of_sync = True
+                return mat
         else:
             # Store in database
             mat.name = name
             mat.short_name = short_name
             mat.fluka_name = fluka_name
             mat.geant4_name = geant4_name
-        return mat
+            return mat
 
     def to_dict(self, *args, **kwargs):
         dct = super().to_dict(*args, **kwargs)
@@ -1070,7 +1075,10 @@ class Material(xo.HybridClass):
 # COMPOUND         -.2  TITANIUM       -.2      ZINC       -.1    COPPERANTICO
 
     def _generate_fluka_code(self):
-        if self.fluka_name:
+        if self.fluka_name and self.fluka_name.startswith('XCOLL') \
+        and self._generated_fluka_code is not None:
+            return # Already generated
+        if self.fluka_name and not self.fluka_name.startswith('XCOLL'):
             raise ValueError(f'Material already has a FLUKA name assigned: {self.fluka_name}.')
         if self.name is None:
             raise ValueError('Material must have a name to generate fluka code.')
@@ -1130,7 +1138,10 @@ MATERIAL                      {format_fluka_float(self.density)}                
         self._frozen = frozen
 
     def _generate_geant4_code(self):
-        if self.geant4_name:
+        if self.geant4_name and self.geant4_name.startswith('Xcoll') \
+        and self._generated_geant4_code is not None:
+            return # Already generated
+        if self.geant4_name and not self.geant4_name.startswith('Xcoll'):
             raise ValueError(f'Material already has a Geant4 name assigned: {self.geant4_name}.')
         if self.name is None:
             raise ValueError('Material must have a name to generate Geant4 code.')

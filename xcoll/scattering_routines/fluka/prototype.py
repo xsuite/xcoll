@@ -16,6 +16,7 @@ except (ImportError, ModuleNotFoundError):
 
 from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
+from ...materials import Material
 
 
 class FlukaPrototype:
@@ -91,7 +92,14 @@ class FlukaPrototype:
         self._length = length      # This will adapt the Drift used in pre-tracking (length_front, length_back)
         self._width = width
         self._height = height
-        self._material = material  # This will overwrite the material in the FlukaCollimator
+        if isinstance(material, dict):
+            if material.get('fluka_name') is not None \
+            and material['fluka_name'].startswith('XCOLL'):
+                # Remove fluka_name for previously auto-generated material,
+                # such that the material code can be re-generated
+                material.pop('fluka_name')
+            material = Material.from_dict(material)
+        self._material = material
         self._is_crystal = is_crystal
         self._bending_radius = bending_radius
         self._info = info
@@ -610,27 +618,27 @@ class FlukaPrototype:
                           *FlukaAssembly._assigned_registry.values()]:
             if prototype.name not in all_prototypes:
                 if prototype.active_elements:
-                    raise ValueError(f"Prototype {prototype.name} not found in prototypes file!")
+                    raise ValueError(f"Prototype {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
             else:
                 _type = 'ASSEMBLY' if isinstance(prototype, FlukaAssembly) else 'PROTOTYPE'
                 if _type != all_prototypes[prototype.name]['type']:
-                    raise ValueError(f"Wrong type for {prototype.name} (expected "
+                    raise ValueError(f"Wrong type for {prototype.name} (in {prototype.fedb_series}) (expected "
                                   + f"{prototype._type.upper()}, got "
                                   + f"{all_prototypes[prototype.name]['type']})!")
                 if 'fedb_series' not in all_prototypes[prototype.name]:
-                    raise ValueError(f"FEDB_SERIES for {prototype.name} not found in prototypes file!")
+                    raise ValueError(f"FEDB_SERIES for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
                 if prototype.fedb_series != all_prototypes[prototype.name]['fedb_series']:
-                    raise ValueError(f"Wrong fedb_series for {prototype.name} (expected "
+                    raise ValueError(f"Wrong fedb_series for {prototype.name} (in {prototype.fedb_series}) (expected "
                                    + f"{prototype.fedb_series}, got "
                                    + f"{all_prototypes[prototype.name]['fedb_series']})!")
                 if 'fedb_tag' not in all_prototypes[prototype.name]:
-                    raise ValueError(f"FEDB_TAG for {prototype.name} not found in prototypes file!")
+                    raise ValueError(f"FEDB_TAG for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
                 if prototype.fedb_tag != all_prototypes[prototype.name]['fedb_tag']:
-                    raise ValueError(f"Wrong fedb_tag for {prototype.name} (expected "
+                    raise ValueError(f"Wrong fedb_tag for {prototype.name} (in {prototype.fedb_series}) (expected "
                                    + f"{prototype.fedb_tag}, got "
                                    + f"{all_prototypes[prototype.name]['fedb_tag']})!")
                 if 'elements' not in all_prototypes[prototype.name]:
-                    raise ValueError(f"MAP_ENTRIES for {prototype.name} not found in prototypes file!")
+                    raise ValueError(f"MAP_ENTRIES for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
                 for element in prototype.active_elements:
                     if element.name.upper() not in all_prototypes[prototype.name]['elements']:
                         raise ValueError(f"Element {element.name} not found in prototypes file!")
@@ -716,7 +724,13 @@ class FlukaAssembly(FlukaPrototype):
         if path != target:
             path.copy_to(target, method='mount')
         with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
-            json.dump(self.to_dict(), fid, indent=4, cls=xo.JEncoder)
+            dct = self.to_dict()
+            # Remove fluka_name for previously auto-generated material,
+            # such that the material code can be re-generated
+            if 'fluka_name' in dct['material'] and dct['material']['fluka_name'] is not None \
+            and dct['material']['fluka_name'].startswith('XCOLL'):
+                dct['material'].pop('fluka_name')
+            json.dump(dct, fid, indent=4, cls=xo.JEncoder)
 
     @property
     def body_file(self):
@@ -1032,7 +1046,10 @@ class FlukaSeriesAccessor:
     def __init__(self, type, data, series):
         self._type = type
         self._series = series
-        self._series_data = {} if series == 'generic' else data[series]
+        if series == 'generic' and series not in data:
+            self._series_data = {}
+        else:
+            self._series_data = data[series]
 
     def __repr__(self):
         return f"<FlukaSeriesAccessor at {hex(id(self))} (use .show() to see the content)>"

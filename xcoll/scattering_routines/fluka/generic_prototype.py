@@ -7,6 +7,7 @@ import atexit
 import numpy as np
 
 from .prototype import FlukaPrototype, FlukaAssembly
+from ...compare import deep_equal
 
 
 # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
@@ -48,12 +49,12 @@ def create_generic_assembly(**kwargs):
         if prototype.fedb_series == 'generic':
             found = True
             for field in _generic_required_fields + list(_generic_optional_fields.keys()):
-                if kwargs[field] != getattr(prototype, field):
+                if not(deep_equal(kwargs[field], getattr(prototype, field))):
                     found = False
                     break
             if kwargs['is_crystal']:
                 for field in _generic_crystal_required_fields + list(_generic_crystal_optional_fields.keys()):
-                    if kwargs[field] != getattr(prototype, field):
+                    if not(deep_equal(kwargs[field], getattr(prototype, field))):
                         found = False
                         break
             if found and prototype.exists():
@@ -90,7 +91,7 @@ def _validate_kwargs(kwargs):
     kwargs.setdefault('is_crystal', False)
     from ...materials import _resolve_material
     kwargs['material'] = _resolve_material(kwargs['material'], ref='fluka', allow_none=False)
-    if kwargs['material'].fluka_name is None:
+    if kwargs['material'].fluka_name is None or kwargs['material'].fluka_name.startswith('XCOLL'):
         kwargs['material']._generate_fluka_code()
     if kwargs['is_crystal']:
         for field in _generic_crystal_required_fields:
