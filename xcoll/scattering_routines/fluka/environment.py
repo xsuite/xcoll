@@ -5,7 +5,6 @@
 
 import os
 import sys
-import json
 from math import floor, log10
 from subprocess import run, PIPE
 

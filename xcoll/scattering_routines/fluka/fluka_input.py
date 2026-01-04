@@ -57,23 +57,23 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
     new_input_file.rename(input_file)
     # Check that all collimators were treated and write header
     for name, ee in element_dict.items():
-        if name not in fluka_dict:
+        if name.lower() not in fluka_dict:
             if verbose:
                 print(f"Warning: Collimator {name} was requested but not treated by "
                     + f"the LineBuilder.")
         else:
-            fluka_dict[name]['length'] /= 100
-            fluka_dict[name]['angle'] = ee.angle
+            fluka_dict[name.lower()]['length'] /= 100
+            fluka_dict[name.lower()]['angle'] = ee.angle
             if ee.assembly.is_crystal:
                 if ee.side == 'left':
-                    fluka_dict[name]['tilt'] = [ee.tilt, None]
-                    fluka_dict[name]['jaw'] = [ee.jaw, None]
+                    fluka_dict[name.lower()]['tilt'] = [ee.tilt, None]
+                    fluka_dict[name.lower()]['jaw'] = [ee.jaw, None]
                 elif ee.side == 'right':
-                    fluka_dict[name]['tilt'] = [None, ee.tilt]
-                    fluka_dict[name]['jaw'] = [None, ee.jaw]
+                    fluka_dict[name.lower()]['tilt'] = [None, ee.tilt]
+                    fluka_dict[name.lower()]['jaw'] = [None, ee.jaw]
             else:
-                fluka_dict[name]['tilt'] = [ee.tilt_L, ee.tilt_R]
-                fluka_dict[name]['jaw'] = [ee.jaw_L, ee.jaw_R]
+                fluka_dict[name.lower()]['tilt'] = [ee.tilt_L, ee.tilt_R]
+                fluka_dict[name.lower()]['jaw'] = [ee.jaw_L, ee.jaw_R]
     _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
     if cwd is not None:
         os.chdir(old_cwd)
