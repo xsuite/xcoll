@@ -86,7 +86,7 @@ class FlukaEnvironment(BaseEnvironment):
         # Copy the FORTRAN source files to the temporary directory and compile it
         dest = (self.temp_dir / 'FORTRAN_src').resolve()
         dest.mkdir(parents=True, exist_ok=True)
-        flukaio_lib.copy_to(dest / flukaio_lib.name, method='mount')
+        flukaio_lib.copy_to(dest / 'libFlukaIO.a', method='mount')
         for path in _FORTRAN_SRC.glob('*'):
             path.copy_to(dest, method='mount')
         os.chdir(dest)
