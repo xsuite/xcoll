@@ -727,8 +727,8 @@ class FlukaAssembly(FlukaPrototype):
             dct = self.to_dict()
             # Remove fluka_name for previously auto-generated material,
             # such that the material code can be re-generated
-            if 'fluka_name' in dct['material'] and dct['material']['fluka_name'] is not None \
-            and dct['material']['fluka_name'].startswith('XCOLL'):
+            if 'material' in dct and dct['material'] is not None and 'fluka_name' in dct['material'] \
+            and dct['material']['fluka_name'] is not None and dct['material']['fluka_name'].startswith('XCOLL'):
                 dct['material'].pop('fluka_name')
             json.dump(dct, fid, indent=4, cls=xo.JEncoder)
 

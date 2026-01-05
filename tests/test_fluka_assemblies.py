@@ -11,6 +11,8 @@ import xcoll as xc
 
 # Do NOT mark these as FLUKA tests, as they have to be ran in serial
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_registry_initialisation(request):
     worker_id = getattr(request.config, "workerinput", None)
     if worker_id is not None:
@@ -27,6 +29,8 @@ def test_registry_initialisation(request):
     assert xc.FlukaPrototype._assigned_registry is not xc.FlukaAssembly._assigned_registry
 
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_new_null():
     xc.fluka.environment # Force initialization
     new_pro = xc.FlukaPrototype()
@@ -42,6 +46,8 @@ def test_new_null():
     assert new_pro not in xc.FlukaAssembly._assigned_registry
 
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_new_prototype():
     xc.fluka.environment # Force initialization
     prototypes_before = xc.FlukaPrototype._registry.copy()
@@ -95,6 +101,8 @@ def test_new_prototype():
     new_pro.delete()
 
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_prototype_with_files():
     new_pro1 = xc.FlukaPrototype(fedb_series='test', fedb_tag='proto1')
     new_pro2 = xc.FlukaPrototype(fedb_series='test', fedb_tag='proto2')
@@ -419,6 +427,8 @@ def test_prototype_with_files():
     assert str(new_pro2) == "FlukaPrototype 'proto2' (unassigned): tag proto2 in test series <defunct>"
 
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_new_assembly():
     xc.fluka.environment # Force initialization
     assemblies_before = xc.FlukaAssembly._registry.copy()
@@ -469,6 +479,8 @@ def test_new_assembly():
     new_assm.delete(_ignore_files=True)
 
 
+@pytest.mark.fluka
+@pytest.mark.serial
 def test_assembly_with_files():
     xc.fluka.environment # Force initialization
     # Create prototypes needed for the assembly

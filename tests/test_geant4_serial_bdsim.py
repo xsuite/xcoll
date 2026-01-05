@@ -20,6 +20,7 @@ path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('proton', p0c=6.8e12)
 
 
+@pytest.mark.serial
 @pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
 def test_serial_bdsim(pytestconfig):
     # Skip if Geant4Engine has already been started
