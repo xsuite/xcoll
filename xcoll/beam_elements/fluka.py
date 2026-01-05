@@ -404,7 +404,9 @@ class FlukaCrystal(BaseCrystal):
         FlukaCollimator.__del__(self, **kwargs)
 
     def copy(self, **kwargs):
-        return FlukaCollimator.copy(self, **kwargs)
+        obj = super().copy(**kwargs)
+        obj.assembly = self.assembly
+        return obj
 
     @property
     def material(self):
