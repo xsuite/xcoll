@@ -236,7 +236,7 @@ class BaseEnvironment:
             # No tree executable. Return as no more can be done. TODO: alternatives for mac and windows?
             return
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
     def __getattr__(self, key):
@@ -297,7 +297,7 @@ class BaseEnvironment:
                 setattr(self, f'_{program}_installed', [new_err, None])
             else:
                 if cmd.returncode != 0:
-                    stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                    stderr = cmd.stderr.decode('UTF-8').strip()
                     err = RuntimeError(f"Could not run `which {program}` (output "
                                     f"error code {cmd.returncode})!\nError given is:\n"
                                     f"{stderr}")
@@ -312,7 +312,7 @@ class BaseEnvironment:
                         setattr(self, f'_{program}_installed', [file, new_err])
                     else:
                         if cmd.returncode != 0:
-                            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                            stderr = cmd.stderr.decode('UTF-8').strip()
                             err = RuntimeError(f"Could not run `{program} {version_cmd}` "
                                             f"(output error code {cmd.returncode})!\nError "
                                             f"given is:\n{stderr}")

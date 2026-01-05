@@ -26,6 +26,7 @@ dependencies = [
     "xdeps>=0.10.10",
     "xpart>=0.23.3",
     "xtrack>=0.98.5",
+    "meson"
 ]
 
 [project.optional-dependencies]

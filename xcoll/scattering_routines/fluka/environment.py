@@ -75,9 +75,9 @@ class FlukaEnvironment(BaseEnvironment):
                 if verbose:
                     print("Compiled FlukaIO successfully.")
             else:
-                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                stderr = cmd.stderr.decode('UTF-8').strip()
                 os.chdir(cwd)
-                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{'\n'.join(stderr)}")
+                raise RuntimeError(f"Failed to compile FlukaIO!\nError given is:\n{stderr}")
             flukaio_lib = dest  / 'lib' / 'libFlukaIO64.a'
         flukaio_lib = FsPath(flukaio_lib).resolve()
         if not flukaio_lib.exists():
@@ -90,37 +90,38 @@ class FlukaEnvironment(BaseEnvironment):
         for path in _FORTRAN_SRC.glob('*'):
             path.copy_to(dest, method='mount')
         os.chdir(dest)
-        cmd = run(['python', '-m', 'numpy.f2py', '-m', 'pyflukaf', 'pyfluka.f90', '--quiet'], stdout=PIPE, stderr=PIPE)
+        cmd = run(['python', '-m', 'numpy.f2py', '-m', 'pyflukaf', 'pyfluka.f90',
+                   '--quiet'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:
                 print("Created numpy FORTRAN headers.")
         else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
-            raise RuntimeError(f"Failed to create numpy FORTRAN headers!\nError given is:\n{'\n'.join(stderr)}")
+            raise RuntimeError(f"Failed to create numpy FORTRAN headers!\nError given is:\n{stderr}")
         cmd = run(['meson', 'setup', 'build'], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:
                 print("Setup meson build successfully.")
         else:
-            stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stdout = cmd.stdout.decode('UTF-8').strip()
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to setup meson build!\n"
-                               f"Output given is:\n{'\n'.join(stdout)}"
-                               f"Error given is:\n{'\n'.join(stderr)}")
+                               f"Output given is:\n{stdout}"
+                               f"Error given is:\n{stderr}")
         cmd = run(["meson", "compile", "-C", "build"], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
             if verbose:
                 print(cmd.stdout.decode('UTF-8').strip())
                 print("Compiled pyflukaf successfully.")
         else:
-            stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stdout = cmd.stdout.decode('UTF-8').strip()
+            stderr = cmd.stderr.decode('UTF-8').strip()
             os.chdir(cwd)
             raise RuntimeError(f"Failed to compile pyflukaf!\n"
-                               f"Output given is:\n{'\n'.join(stdout)}"
-                               f"Error given is:\n{'\n'.join(stderr)}")
+                               f"Output given is:\n{stdout}"
+                               f"Error given is:\n{stderr}")
         os.chdir(cwd)
         # Collect the compiled shared library
         so = list((self.temp_dir / 'FORTRAN_src' / 'build').glob('pyflukaf.*so'))
@@ -224,7 +225,7 @@ class FlukaEnvironment(BaseEnvironment):
         cmd = run([self.flair.as_posix(), input_file.as_posix()],
                   stdout=PIPE, stderr=PIPE)
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             raise RuntimeError(f"Failed to run flair on input file {input_file}!\n"
                              + f"Error given is:\n{stderr}")
 
@@ -243,7 +244,7 @@ class FlukaEnvironment(BaseEnvironment):
                    fedb_tag], stdout=PIPE, stderr=PIPE)
         self.restore_environment()
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             raise RuntimeError(f"Failed to run flair!\nError given is:\n{stderr}")
         file = FsPath.cwd() / f"{fedb_series}_{fedb_tag}.inp"
         if not file.exists():
