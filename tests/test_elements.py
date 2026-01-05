@@ -211,12 +211,12 @@ everest_crystal_fields = {**base_crystal_fields,
     'miscut':            1.2e-6,
     '_orient':           2,
     '_critical_angle':   1.3e-6,
-    '_material':         xc.materials.TungstenCrystal,
+    '_material':         xc.materials.Tungsten,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
 everest_crystal_dict_fields = [*base_crystal_dict_fields,
-    {'field': 'material', 'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}},
+    {'field': 'material', 'val': xc.materials.Silicon, 'expected': {'_material': xc.materials.Silicon}},
     {'field': 'lattice', 'val': 'strip',        'expected': {'_orient': 1}},
     {'field': 'lattice', 'val': '110',          'expected': {'_orient': 1}},
     {'field': 'lattice', 'val': 110,            'expected': {'_orient': 1}},
@@ -227,7 +227,7 @@ everest_crystal_dict_fields = [*base_crystal_dict_fields,
 everest_crystal_user_fields = base_crystal_user_fields
 everest_crystal_user_fields_read_only = [*base_crystal_user_fields_read_only, 'critical_radius', 'critical_angle']
 
-# FlukaCollimator generic
+# FlukaCollimator
 fluka_fields = {**base_coll_fields,
     'fluka_id':              137,
     'length_front':          0.4125,
@@ -235,17 +235,31 @@ fluka_fields = {**base_coll_fields,
     '_tracking':             1,
     '_acc_ionisation_loss':  4.349234923e18
 }
-fluka_dict_fields = [*base_coll_dict_fields,
+fluka_dict_fields = [*base_coll_dict_fields[:-9],
     {'field': 'assembly', 'val': 'hilumi_tcppm',
         'expected': {'material': None, 'height': None, 'width': None, 'side': None}}
 ]
 fluka_generic_dict_fields = [*base_coll_dict_fields,
     {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
-    {'field': 'height', 'val': 0.8, 'expected': {'height': 0.8}},
-    {'field': 'width',  'val': 0.2, 'expected': {'width': 0.2}},
+    {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
+    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
     {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
 ]
 
+# FlukaCrystal
+fluka_crystal_fields = {**base_crystal_fields,
+    'fluka_id':              137,
+    'length_front':          0.4125,
+    'length_back':           0.738,
+    '_tracking':             1,
+    '_acc_ionisation_loss':  4.349234923e18
+}
+fluka_crystal_dict_fields = [*base_crystal_dict_fields,
+    {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
+    {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
+    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
+    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+]
 
 
 # Tests
@@ -307,10 +321,24 @@ def test_everest(test_context):
 )
 def test_everest_crystal(test_context):
     # Test instantiation
-    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, side='-', _context=test_context)
+    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, side='-', _context=test_context)
     _check_all_elements(elem, everest_crystal_fields, everest_crystal_dict_fields, \
                         everest_crystal_user_fields, everest_crystal_user_fields_read_only)
 
+def test_fluka():
+    # Test instantiation
+    elem = xc.FlukaCollimator(length=1, assembly='lhc_tcp')
+    _check_all_elements(elem, fluka_fields, fluka_dict_fields, [], [])
+
+def test_fluka_generic():
+    # Test instantiation
+    elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreCarbon)
+    _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields, [], [])
+
+# def test_fluka_crystal():
+#     # Test instantiation
+#     elem = xc.FlukaCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, bending_radius=20, side='+')
+#     _check_all_elements(elem, fluka_crystal_fields, fluka_crystal_dict_fields, [], [])
 
 
 def _assert_all_close(expected, setval):

@@ -24,8 +24,8 @@ from _common_api import check_skip_old_bdsim, engine_params, engine_params
 def test_return_photons(engine):
     check_skip_old_bdsim(engine)
     print("Testing return_none=True, return_photons=True")
-    num_part = 2500
-    capacity = 50_000
+    num_part = 5000
+    capacity = 100_000
     particle_ref = xt.Particles('proton', p0c=6.8e12)
     part = _run(engine, num_part, capacity, particle_ref, True, do_assert=False, return_type='photons')
     pdg = part.pdg_id[part.particle_id >= num_part]
