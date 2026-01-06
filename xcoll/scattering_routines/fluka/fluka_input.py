@@ -126,8 +126,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
                 nsig = ee.gap
                 half_gap = -ee.jaw
             offset = 0
-            tilt_1 = ee.tilt
-            tilt_2 = 0
+            tilt_2 = ee.tilt
+            tilt_1 = 0
         else:
             tilt_1 = ee.tilt_L
             tilt_2 = ee.tilt_R
@@ -160,6 +160,10 @@ def _element_dict_to_fluka(element_dict, dump=False):
                     offset   = (ee._jaw_LU + ee._jaw_LD + ee._jaw_RU + ee._jaw_RD) / 4
         tilt_1 = round(tilt_1, 9)
         tilt_2 = round(tilt_2, 9)
+        if ee.assembly.is_crystal:
+            tilt_2 = ee.tilt
+            tilt_1 = 0
+
         # if abs(tilt_1) > 1.e-12 or abs(tilt_2) > 1.e-12:
         #     raise NotImplementedError(f"Collimator {name}: Tilts are not (yet) supported in FLUKA-Xcoll!")
 
