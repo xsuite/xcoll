@@ -10,24 +10,20 @@ import numpy as np
 import xobjects as xo
 
 try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
+    from xaux import FsPath, ranID  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
+    from ...xaux import FsPath, ranID
 
 from .environment import format_fluka_float
 from ...beam_elements.base import BaseCollimator
 from ...materials import Material
+from ...compare import deep_equal
 
 
 class FlukaPrototype:
     # This is a registry to keep track of prototypes. If one is already defined,
     # we do not create a new instance but return the existing one
     _registry = []
-
-    # This is a registry to keep track of prototypes that are in use (and for which
-    # we will need to generate protoype code). We have a separate registry for
-    # FlukaPrototypes and another for FlukaAssemblies.
-    _assigned_registry = {}
 
     def __new__(cls, fedb_series=None, fedb_tag=None, **kwargs):
         _is_null = False
@@ -55,6 +51,13 @@ class FlukaPrototype:
                  _force_init=False, **kwargs):
         if getattr(self, "_initialized", False) and not _force_init:
             return
+        self._idx = None
+        self._type = self.__class__.__name__[5:].lower()
+        self._file_is_valid = None
+        # while True:
+        #     self._hash = ranID(length=256)
+        #     if self._hash not in [pp._hash for pp in FlukaPrototype._registry if pp is not self]:
+        #         break
         if self._is_null:
             self._fedb_series = None
             self._fedb_tag = None
@@ -70,11 +73,7 @@ class FlukaPrototype:
             self._info = None
             self._extra_commands = None
             self._is_broken = None
-            self._id = None
-            self._type = self.__class__.__name__[5:].lower()
-            self._elements = []
             self._initialized = True
-            self._file_is_valid = None
             return
         if fedb_series == 'generic' and not _allow_generic:
             this_type = self.__class__.__name__[5:].lower()
@@ -105,34 +104,15 @@ class FlukaPrototype:
         self._info = info
         self._extra_commands = extra_commands
         self._is_broken = is_broken
-        self._id = None
-        self._type = self.__class__.__name__[5:].lower()
-        self._elements = []
         self._initialized = True
-        self._file_is_valid = None
 
     def __repr__(self):
         if self._is_null:
             return ''
-        if self.assigned:
-            n_active = len(self.active_elements)
-            n_total = len(self.elements)
-            n_inactive = n_total - n_active
-            elements = []
-            if n_active > 0:
-                elements.append(f"{n_active} active")
-            if n_inactive > 0:
-                elements.append(f"{n_inactive} inactive")
-            elements = " and ".join(elements)
-            elements += " element"
-            if n_total > 1:
-                elements += 's'
-        else:
-            elements = "unassigned"
         info = f" ({self.info})" if self.info else ''
         cry = "crystal " if self.is_crystal else ''
         defunct = " <defunct>" if self.is_defunct() else ''
-        return f"{self.__class__.__name__} {cry}'{self.name}' ({elements}): " \
+        return f"{self.__class__.__name__} {cry}'{self.name}': " \
              + f"tag {self.fedb_tag} in {self.fedb_series} series{info}{defunct}"
 
     def __str__(self):
@@ -140,18 +120,28 @@ class FlukaPrototype:
             return ''
         return self.__repr__()
 
-    def clear(self):
-        for el in self.elements:
-            self.remove_element(el, force=True)
+    # def __eq__(self, other):
+    #     if not isinstance(other, FlukaPrototype):
+    #         return False
+    #     if self._is_null and other._is_null:
+    #         return True
+    #     if self._is_null != other._is_null:
+    #         return False
+    #     return deep_equal(self.to_dict(), other.to_dict())
+
+    # def __hash__(self):
+    #     return self._hash
+
+    def is_defunct(self):
+        if self._is_null:
+            return False
+        # Needed for proper handling of prototypes that are deleted
+        return self not in self._registry
 
     def delete(self, **kwargs):
         import xcoll as xc
         if self._is_null:
             return
-        if len(self._elements) > 0:
-            raise ValueError(f"Cannot delete {self._type} '{self.name}' "
-                           + f"while it has elements assigned!")
-        # Remove the prototype from the registry of all prototypes
         while self in self._registry:
             self._registry.remove(self)
         # Remove all files associated with the prototype
@@ -321,10 +311,10 @@ class FlukaPrototype:
             return False
         return np.all([ff.exists() for ff in self.files])
 
-    def is_defunct(self):
-        if self._is_null:
-            return False
-        return self not in self._registry
+    def assert_exists(self):
+        if not self.exists():
+            raise ValueError(f"{self._type.capitalize()} '{self.name}' "
+                            + f"does not exist in the FEDB!")
 
     @property
     def side(self):
@@ -393,198 +383,138 @@ class FlukaPrototype:
         return self._is_broken
 
     @property
-    def assigned(self):
-        if self._is_null:
-            return False
-        return self._id is not None
-
-    @property
-    def active(self):
-        if self._is_null:
-            return False
-        return len(self.active_elements) > 0
-
-    @property
     def fluka_position(self):
+        if self._idx is None:
+            return None
         # Maximum positions for the parking region:
         # x in [-3000.0, 3000.0], y in [-4000.0, -2000.0], z in [0.0, 1.E5]
-        if self.assigned:
-            return 0., 0., 0., (self._id%5-2)*500.0 , -3000., (self._id//5+1)*1000.0
-        else:
-            return None
+        return 0., 0., 0., (self._idx%5-2)*500.0 , -3000., (self._idx//5+1)*1000.0
 
-    @property
-    def elements(self):
-        return self._elements.copy()
-
-    @property
-    def active_elements(self):
-        active_elements = []
-        for ee in self.elements:
-            if (not hasattr(ee, 'active') or ee.active) \
-            and (not hasattr(ee, 'jaw') or ee.jaw):
-                active_elements.append(ee)
-        return active_elements
-
-    def add_element(self, element, force=True):
+    def generate_code(self, idx=0, elements=[]):
         import xcoll as xc
-        if element is None:
-            if not force:
-                raise ValueError(f"Cannot add a null element to a {self._type}!")
-            return None
-        elif not hasattr(element, 'name'):
-            if not force:
-                raise ValueError(f"Element {element} has no `name` variable! "
-                               + f"Cannot assign to a {self._type}!")
-            return None
-        elif not isinstance(element, xc.fluka.engine._element_classes):
-            if not force:
-                raise ValueError(f"Element {element.name} is not a FLUKA element! "
-                               + f"Cannot assign to a {self._type}!")
-            return None
         if self._is_null:
-            if not force:
-                raise ValueError(f"Cannot add element {element.name} to a null {self._type}!")
-            return None
+            raise ValueError(f"Cannot generate code for null {self._type}!")
         if self.is_defunct():
-            raise ValueError(f"Cannot add element to defunct {self._type} '{self.name}'!")
-        _registry = {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}
-        # Verify that the element is not already assigned to another prototype
-        for prototype in _registry.values():
-            if prototype is self:
-                continue
-            if element in prototype.elements:
-                raise ValueError(f"Element '{element}' already assigned {prototype.name} "
-                               + f"{prototype._type}!")
+            raise ValueError(f"Cannot generate code for defunct {self._type} '{self.name}'!")
         if not self.exists():
             raise ValueError(f"{self._type.capitalize()} '{self.name}' "
                            + f"does not exist in the FEDB!")
         self.check_file_valid()
-        # Add the prototype to the registry of assigned prototypes if not yet present
-        if len(self._elements) == 0:
-            # Rename the prototype if the name is already in use
-            existing_names = [key.upper() for key in _registry.keys()]
-            if self.name.upper() in existing_names:
-                i = 0
-                while True:
-                    new_name = f"{self.name}{i}"
-                    if new_name.upper() not in existing_names:
-                        print(f"Warning: {self._type.capitalize()} name {self.name} "
-                            + f"already in use. Renaming to '{new_name}'.")
-                        self.name = new_name
-                        break
-                    i += 1
-            self._id = self._get_next_id()
-            self._assigned_registry[self.name] = self
-        # Add the element to the list of elements that use this prototype
-        if element not in self._elements:
-            self._elements.append(element)
+        _type = 'ASSEMBLY' if isinstance(self, FlukaAssembly) else 'PROTOTYPE'
+        prot  = f"{_type:9}     {self.name}\n"
+        prot += f"FEDB_SERIES   {self.fedb_series}\n"
+        prot += f"FEDB_TAG      {self.fedb_tag}\n"
+        prot += f"ROT-DEFI  "
+        self._idx = idx  # Store the index for fluka_position property
+        for value in self.fluka_position:
+            prot += format_fluka_float(value)
+        prot += " proto\n"
+        if self._extra_commands:
+            if hasattr(self._extra_commands, "__iter__") \
+            and not isinstance(self._extra_commands, str):
+                prot += "\n".join(self._extra_commands) + "\n"
+            else:
+                prot += self._extra_commands + "\n"
+        maps = []
+        for element in elements:
+            if not hasattr(element, 'name'):
+                raise ValueError(f"Element {element} has no `name` variable! "
+                               + f"Cannot assign to a {self._type}!")
+            if not isinstance(element, xc.fluka.engine._element_classes):
+                raise ValueError(f"Element {element.name} is not a FLUKA element! "
+                               + f"Cannot assign to a {self._type}!")
+            if not element.assembly is self:
+                raise ValueError(f"Element '{element.name}' is not assigned to "
+                               + f"{self._type} '{self.name}'!")
+            maps.append(f" {element.name.upper()}")
+        if len(maps) > 0:
+            prot_map = [f"MAP_ENTRIES  "]
+            for element in maps:
+                if len(prot_map[-1] + element) > 75:
+                    prot_map.append(f"MAP_ENTRIES  ")
+                prot_map[-1] += element
+            prot += "\n".join(prot_map) + "\n"
+        prot += '#'
+        return prot
 
-    def remove_element(self, element, force=True):
-        if self._is_null:
-            if force:
-                raise ValueError(f"Cannot remove element from a null {self._type}!")
-            return None
-        if self.is_defunct():
-            if force:
-                raise ValueError(f"Cannot remove element from defunct {self._type} '{self.name}'!")
-            return None
-        if element is None:
-            if force:
-                raise ValueError(f"Cannot remove a null element from a {self._type}!")
-            return None
-        # Remove the element from the list of elements that use this prototype
-        if element in self._elements:
-            self._elements.remove(element)
-        if len(self._elements) == 0:
-            if self.name in self._assigned_registry:
-                # Remove the prototype from the registry of active prototypes
-                self._assigned_registry.pop(self.name)
-                # Update the IDs of the remaining prototypes and assemblies
-                for this_prototype in FlukaPrototype._assigned_registry.values():
-                    if this_prototype._id > self._id:
-                        this_prototype._id -= 1
-                for this_prototype in FlukaAssembly._assigned_registry.values():
-                    if this_prototype._id > self._id:
-                        this_prototype._id -= 1
-                self._id = None
+    def _check_name_clash(self, existing_names):
+        if self.name.upper() in existing_names:
+            i = 0
+            while True:
+                new_name = f"{self.name}{i}"
+                if new_name.upper() not in existing_names:
+                    print(f"Warning: {self._type.capitalize()} name {self.name} "
+                        + f"already in use. Renaming to '{new_name}'.")
+                    self.name = new_name
+                    break
+                i += 1
+        existing_names.append(self.name.upper())
 
-    def generate_code(self):
-        if self.is_defunct():
-            raise ValueError(f"Cannot generate code for defunct {self._type} '{self.name}'!")
-        if self.active and self.active_elements:
-            _type = 'ASSEMBLY' if isinstance(self, FlukaAssembly) else 'PROTOTYPE'
-            prot  = f"{_type:9}     {self.name}\n"
-            prot += f"FEDB_SERIES   {self.fedb_series}\n"
-            prot += f"FEDB_TAG      {self.fedb_tag}\n"
-            prot += f"ROT-DEFI  "
-            for value in self.fluka_position:
-                prot += format_fluka_float(value)
-            prot += " proto\n"
-            if self._extra_commands:
-                if hasattr(self._extra_commands, "__iter__") \
-                and not isinstance(self._extra_commands, str):
-                    prot += "\n".join(self._extra_commands) + "\n"
-                else:
-                    prot += self._extra_commands + "\n"
-            maps = []
-            for element in self.active_elements:
-                maps.append(f" {element.name.upper()}")
-            if len(maps) > 0:
-                prot_map = [f"MAP_ENTRIES  "]
-                for element in maps:
-                    if len(prot_map[-1] + element) > 75:
-                        prot_map.append(f"MAP_ENTRIES  ")
-                    prot_map[-1] += element
-                prot += "\n".join(prot_map) + "\n"
-            prot += '#'
-            return prot
-        else:
-            return '#'
-
-
-    def view(self, show=True, keep_files=False):
+    @classmethod
+    def _group_elements_by_prototype(cls, elements):
         import xcoll as xc
-        if self.exists():
-            xc.fluka.environment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
-                                               keep_files=keep_files)
-
+        # Sort elements by their assigned prototype/assembly
+        all_prototypes = {}
+        all_assemblies = {}
+        if not hasattr(elements, '__iter__'):
+            elements = [elements]
+        for element in elements:
+            if not isinstance(element, xc.fluka.engine._element_classes):
+                raise ValueError(f"Element {element.name} is not a FLUKA element! "
+                               + f"Cannot generate prototypes file!")
+            assm = element.assembly
+            if assm is None:
+                raise ValueError(f"Element '{element.name}' has no assigned prototype! "
+                               + f"Cannot generate prototypes file!")
+            if isinstance(assm, FlukaAssembly):
+                if assm not in all_assemblies:
+                    all_assemblies[assm] = []
+                all_assemblies[assm].append(element)
+            elif isinstance(assm, FlukaPrototype):
+                if assm not in all_prototypes:
+                    all_prototypes[assm] = []
+                all_prototypes[assm].append(element)
+            else:
+                raise ValueError(f"Element '{element.name}' has an invalid assigned prototype! "
+                               + f"Cannot generate prototypes file!")
+        return all_prototypes, all_assemblies
 
     @classmethod
-    def _get_next_id(cls):
-        # The IDs should be unique over all prototypes and assemblies
-        _assigned_registry = {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}
-        if len(_assigned_registry) == 0:
-            return 0
-        else:
-            return max({prototype._id for prototype in _assigned_registry.values()}) + 1
-
-    @classmethod
-    def make_prototypes(cls, save=True, path=None):
-        prototypes = ["#...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8"]
+    def make_prototypes_file(cls, elements, save=True, path=None):
+        all_prototypes, all_assemblies = cls._group_elements_by_prototype(elements)
+        # Generate code
+        file_content = ["#...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+....8"]
+        i = 0  # Initialise i in case there are no prototypes
+        existing_names = []
         # First the prototypes
-        for prototype in FlukaPrototype._assigned_registry.values():
-            if prototype.active:
-                assert isinstance(prototype, FlukaPrototype)
-                prototypes.append(prototype.generate_code())
+        for i, (pro, els) in enumerate(all_prototypes.items()):
+            assert isinstance(pro, FlukaPrototype)
+            pro._check_name_clash(existing_names)
+            file_content.append(pro.generate_code(idx=i, elements=els))
         # Then the assemblies
-        for prototype in FlukaAssembly._assigned_registry.values():
-            if prototype.active:
-                assert isinstance(prototype, FlukaAssembly)
-                prototypes.append(prototype.generate_code())
-        prototypes = "\n".join(prototypes)
+        for j, (assm, els) in enumerate(all_assemblies.items()):
+            assert isinstance(assm, FlukaAssembly)
+            assm._check_name_clash(existing_names)
+            file_content.append(assm.generate_code(idx=i+j+1, elements=els))
+        # Sanity check
+        all_names = [assm.name for assm in (all_prototypes | all_assemblies).keys()]
+        if len(all_names) != len(set(all_names)):
+            raise ValueError("Duplicate prototype/assembly names found! "
+                           + "Cannot generate prototypes file!")
+        # Finalise
+        file_content = "\n".join(file_content)
         if save:
             if path is None:
                 path = FsPath.cwd()
             with (path / "prototypes.lbp").open("w") as fp:
-                fp.write(prototypes)
-        return prototypes
+                fp.write(file_content)
+        return file_content
 
     @classmethod
-    def inspect_prototypes_file(cls, prototypes_file):
+    def inspect_prototypes_file(cls, elements, prototypes_file=None):
         if prototypes_file is None:
             prototypes_file = FsPath.cwd() / "prototypes.lbp"
-        all_prototypes = {}
+        prototypes_in_file = {}
         with FsPath(prototypes_file).open("r") as fp:
             name = None
             for line in fp.readlines():
@@ -593,54 +523,53 @@ class FlukaPrototype:
                     continue
                 if line.startswith("PROTOTYPE"):
                     name = line.split()[1]
-                    all_prototypes[name] = {'type': 'PROTOTYPE'}
+                    prototypes_in_file[name] = {'type': 'PROTOTYPE'}
                 elif line.startswith("ASSEMBLY"):
                     name = line.split()[1]
-                    all_prototypes[name] = {'type': 'ASSEMBLY'}
+                    prototypes_in_file[name] = {'type': 'ASSEMBLY'}
                 elif line.startswith("FEDB_SERIES"):
                     if name is None:
                         raise ValueError(f"File {prototypes_file} malformed ("
                                     + "FEDB_SERIES without PROTOTYPE or ASSEMBLY)!")
-                    all_prototypes[name]['fedb_series'] = line.split()[1]
+                    prototypes_in_file[name]['fedb_series'] = line.split()[1]
                 elif line.startswith("FEDB_TAG"):
                     if name is None:
                         raise ValueError(f"File {prototypes_file} malformed ("
                                     + "FEDB_TAG without PROTOTYPE or ASSEMBLY)!")
-                    all_prototypes[name]['fedb_tag'] = line.split()[1]
+                    prototypes_in_file[name]['fedb_tag'] = line.split()[1]
                 elif line.startswith("MAP_ENTRIES"):
                     if name is None:
                         raise ValueError(f"File {prototypes_file} malformed ("
                                     + "MAP_ENTRIES without PROTOTYPE or ASSEMBLY)!")
-                    if 'elements' not in all_prototypes[name]:
-                        all_prototypes[name]['elements'] = []
-                    all_prototypes[name]['elements'] += line.split()[1:]
-        for prototype in [*FlukaPrototype._assigned_registry.values(),
-                          *FlukaAssembly._assigned_registry.values()]:
-            if prototype.name not in all_prototypes:
-                if prototype.active_elements:
-                    raise ValueError(f"Prototype {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
+                    if 'elements' not in prototypes_in_file[name]:
+                        prototypes_in_file[name]['elements'] = []
+                    prototypes_in_file[name]['elements'] += line.split()[1:]
+        prototypes, assemblies = cls._group_elements_by_prototype(elements)
+        for prototype, els in (prototypes | assemblies).items():
+            if prototype.name not in prototypes_in_file:
+                raise ValueError(f"Prototype {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
             else:
                 _type = 'ASSEMBLY' if isinstance(prototype, FlukaAssembly) else 'PROTOTYPE'
-                if _type != all_prototypes[prototype.name]['type']:
+                if _type != prototypes_in_file[prototype.name]['type']:
                     raise ValueError(f"Wrong type for {prototype.name} (in {prototype.fedb_series}) (expected "
                                   + f"{prototype._type.upper()}, got "
-                                  + f"{all_prototypes[prototype.name]['type']})!")
-                if 'fedb_series' not in all_prototypes[prototype.name]:
+                                  + f"{prototypes_in_file[prototype.name]['type']})!")
+                if 'fedb_series' not in prototypes_in_file[prototype.name]:
                     raise ValueError(f"FEDB_SERIES for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
-                if prototype.fedb_series != all_prototypes[prototype.name]['fedb_series']:
+                if prototype.fedb_series != prototypes_in_file[prototype.name]['fedb_series']:
                     raise ValueError(f"Wrong fedb_series for {prototype.name} (in {prototype.fedb_series}) (expected "
                                    + f"{prototype.fedb_series}, got "
-                                   + f"{all_prototypes[prototype.name]['fedb_series']})!")
-                if 'fedb_tag' not in all_prototypes[prototype.name]:
+                                   + f"{prototypes_in_file[prototype.name]['fedb_series']})!")
+                if 'fedb_tag' not in prototypes_in_file[prototype.name]:
                     raise ValueError(f"FEDB_TAG for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
-                if prototype.fedb_tag != all_prototypes[prototype.name]['fedb_tag']:
+                if prototype.fedb_tag != prototypes_in_file[prototype.name]['fedb_tag']:
                     raise ValueError(f"Wrong fedb_tag for {prototype.name} (in {prototype.fedb_series}) (expected "
                                    + f"{prototype.fedb_tag}, got "
-                                   + f"{all_prototypes[prototype.name]['fedb_tag']})!")
-                if 'elements' not in all_prototypes[prototype.name]:
+                                   + f"{prototypes_in_file[prototype.name]['fedb_tag']})!")
+                if 'elements' not in prototypes_in_file[prototype.name]:
                     raise ValueError(f"MAP_ENTRIES for {prototype.name} (in {prototype.fedb_series}) not found in prototypes file!")
-                for element in prototype.active_elements:
-                    if element.name.upper() not in all_prototypes[prototype.name]['elements']:
+                for element in els:
+                    if element.name.upper() not in prototypes_in_file[prototype.name]['elements']:
                         raise ValueError(f"Element {element.name} not found in prototypes file!")
 
     @property
@@ -659,18 +588,18 @@ class FlukaPrototype:
     def check_file_valid(self, raise_error=True):
         return True
 
+    def view(self, show=True, keep_files=False):
+        import xcoll as xc
+        if self.exists():
+            xc.fluka.environment.test_assembly(self.fedb_series, self.fedb_tag, show=show,
+                                               keep_files=keep_files)
+
 
 class FlukaAssembly(FlukaPrototype):
-    # We have a registry for FlukaPrototypes and another for FlukaAssemblies
-    _assigned_registry = {}
-
     def delete(self, _ignore_files=False, **kwargs):
         import xcoll as xc
         if self._is_null:
             return
-        if len(self._elements) > 0:
-            raise ValueError(f"Cannot delete {self._type} '{self.name}' "
-                           + f"while it has elements assigned!")
         # Remove prototypes if no other assembly depends on them
         if self.assembly_file.exists() or not _ignore_files:
             try:
@@ -1105,5 +1034,3 @@ class FlukaSeriesAccessor:
             return self._series_data[val]
         raise KeyError(f"{self._type} with tag '{val}' not found in series "
                      + f"'{self._series}'.")
-
-

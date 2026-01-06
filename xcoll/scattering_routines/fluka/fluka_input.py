@@ -9,15 +9,15 @@ import numpy as np
 from subprocess import run, PIPE
 from contextlib import redirect_stdout
 
+from ...beam_elements import FlukaCrystal
+from ...beam_elements.base import OPEN_GAP, OPEN_JAW
+from .prototype import FlukaPrototype
+from .includes import get_include_files
+
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
-
-from ...beam_elements.base import OPEN_GAP, OPEN_JAW
-from ...general import _pkg_root
-from .prototype import FlukaPrototype, FlukaAssembly
-from .includes import get_include_files
 
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
@@ -30,9 +30,12 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
         old_cwd = FsPath.cwd()
         os.chdir(cwd)
     _create_prototypes_file(element_dict, prototypes_file)
-    for prototype in {**FlukaPrototype._assigned_registry, **FlukaAssembly._assigned_registry}.values():
-        if prototype.is_crystal:
-            kwargs.setdefault('use_crystals', True)
+    kwargs['crystal_assemblies'] = []
+    for nn, ee in element_dict.items():
+        if isinstance(ee, FlukaCrystal):
+            if not ee.assembly.is_crystal:
+                raise ValueError(f"Collimator {nn} has a crystal element but its assembly is not a crystal!")
+            kwargs['crystal_assemblies'].append(ee.assembly)
     _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
     # Call FLUKA_builder
     collimator_dict = _element_dict_to_fluka(element_dict)
@@ -107,11 +110,11 @@ def _create_prototypes_file(element_dict, prototypes_file=None):
         if ee.assembly is None:
             raise ValueError(f"Collimator {name} has no assembly!")
     if prototypes_file is None:
-        FlukaPrototype.make_prototypes()
+        FlukaPrototype.make_prototypes_file(element_dict.values())
     else:
         prototypes_file = FsPath(prototypes_file).resolve()
         prototypes_file.copy_to(FsPath.cwd() / 'prototypes.lbp', method='mount')
-    FlukaPrototype.inspect_prototypes_file(prototypes_file)
+    FlukaPrototype.inspect_prototypes_file(element_dict.values(), prototypes_file)
 
 
 # TODO check that prototype is valid and its sides

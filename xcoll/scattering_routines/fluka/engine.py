@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath
 
 from .environment import format_fluka_float
-from .prototype import FlukaPrototype, FlukaAssembly
 from .reference_masses import fluka_masses_src
 from ..engine import BaseEngine
 
@@ -152,7 +151,6 @@ class FlukaEngine(BaseEngine):
 
     def _generate_input_file(self, *, prototypes_file=None, include_files=[], **kwargs):
         from .fluka_input import create_fluka_input
-        self._deactivate_unused_assemblies()
         input_file, kwargs = create_fluka_input(element_dict=self._element_dict, cwd=self.cwd,
                                 particle_ref=self.particle_ref, prototypes_file=prototypes_file,
                                 include_files=include_files, verbose=self.verbose, **kwargs)
@@ -381,14 +379,6 @@ class FlukaEngine(BaseEngine):
     # =======================
     # === Private Methods ===
     # =======================
-
-    def _deactivate_unused_assemblies(self):
-        # Deactivate all assemblies that are not used in the input file
-        for prototype in [*FlukaPrototype._assigned_registry.values(),
-                          *FlukaAssembly._assigned_registry.values()]:
-            for ee in prototype.elements:
-                if ee.name not in self._element_dict:
-                    self._deactivate_element(ee)
 
     def _init_fortran(self, fortran_debug_level=0):
         if self.cwd is None:

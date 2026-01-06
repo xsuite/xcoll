@@ -6,8 +6,7 @@
 from math import sqrt
 
 import xtrack as xt
-from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, \
-                                 is_proton, is_ion, is_lepton
+from xtrack.particles.pdg import get_name_from_pdg_id, get_properties_from_pdg_id, is_ion
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
 except (ImportError, ModuleNotFoundError):
@@ -18,25 +17,13 @@ from .prototype import FlukaPrototype, FlukaAssembly
 from ...general import _pkg_root
 
 
-def _is_proton(pdg_id):
-    if isinstance(pdg_id, xt.Particles):
-        pdg_id = pdg_id.pdg_id[0]
-    return is_proton(pdg_id)
-
-
 def _is_ion(pdg_id):
     if isinstance(pdg_id, xt.Particles):
         pdg_id = pdg_id.pdg_id[0]
     return is_ion(pdg_id)
 
 
-def _is_lepton(pdg_id):
-    if isinstance(pdg_id, xt.Particles):
-        pdg_id = pdg_id.pdg_id[0]
-    return is_lepton(pdg_id)
-
-
-def get_include_files(particle_ref, include_files=[], *, verbose=True, use_crystals=False,
+def get_include_files(particle_ref, include_files=[], *, verbose=True, crystal_assemblies=[],
                       bb_int=False, touches=False, **kwargs):
 
     import xcoll as xc
@@ -53,21 +40,17 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, use_cryst
                                              include_showers=phys.include_showers)
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
-        scoring_file = _scoring_include_file(verbose=verbose, return_list=phys, use_crystals=use_crystals,
-                                             get_touches=touches)
+        scoring_file = _scoring_include_file(verbose=verbose, return_list=phys, get_touches=touches,
+                                             use_crystals=len(crystal_assemblies)>0)
 
         this_include_files.append(scoring_file)
-    # Add any additional include files
-    if any(pro.is_crystal and not isinstance(pro, FlukaAssembly)
-           for pro in FlukaPrototype._registry):
-        assignmat_file = _assignmat_include_file()
-        this_include_files.append(assignmat_file)
 
+    # Add any additional include files
     for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
         if ff.name not in [file.name for file in this_include_files]:
             this_include_files.append(ff)
     if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
-        this_include_files.append(_assignmat_include_file())
+        this_include_files.append(_assignmat_include_file(crystal_assemblies=crystal_assemblies))
     if 'include_custom_biasing.inp' not in [file.name for file in this_include_files]:
         this_include_files.append(_biasing_include_file())
     if 'include_define.inp' not in [file.name for file in this_include_files]:
@@ -81,15 +64,12 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, use_cryst
     return this_include_files, kwargs
 
 
-def _assignmat_include_file():
-    crystal_assemblies  = [pro for pro in FlukaPrototype._assigned_registry.values()
-                           if pro.is_crystal]
-    crystal_assemblies += [pro for ass in FlukaAssembly._assigned_registry.values()
-                           for pro in ass.prototypes if pro.is_crystal]
+def _assignmat_include_file(crystal_assemblies=[]):
     from xcoll.materials.database import db as mdb
     template =  ''.join([mat._generated_fluka_code for mat in mdb.fluka.values()
                          if mat._generated_fluka_code is not None])
-    template += f"""\
+    if crystal_assemblies:
+        template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 * Crystal Card
 * what (1) = REGNUM ( mandatory )
@@ -109,6 +89,8 @@ def _assignmat_include_file():
 *
 """
     for crystal in crystal_assemblies:
+        if not crystal.is_crystal:
+            raise ValueError(f"Prototype/assembly {crystal.name} is not a crystal.")
         name   = crystal.name
         l      = crystal.length * 100
         bang   = round(l/(crystal.bending_radius*100) *1000, 6) # mrad
@@ -278,8 +260,7 @@ LOW-PWXS          -1
     return filename
 
 
-def _scoring_include_file(*, verbose, return_list, use_crystals=False,
-                          get_touches=False):
+def _scoring_include_file(*, verbose, return_list, get_touches=False, use_crystals=False):
     filename = FsPath("include_custom_scoring.inp").resolve()
     all_charged = 'USRBDX' if return_list.return_all_charged else '*USRBDX'
     all_particles = 'USRBDX' if return_list.return_all else '*USRBDX'

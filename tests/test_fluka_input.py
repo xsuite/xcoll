@@ -61,7 +61,7 @@ def test_fluka_input_single(el_type):
     jaw = [pp for pp in coll.assembly.prototypes if pp.fedb_tag.endswith('B')]
     assert len(jaw) == 1
     jaw = jaw[0]
-    xc.FlukaPrototype.inspect_prototypes_file(path_tmp / 'prototypes.lbp')
+    xc.FlukaPrototype.inspect_prototypes_file(coll, path_tmp / 'prototypes.lbp')
     found = False
     with input_file[0].open('r') as fp:
         for line in fp:
@@ -99,32 +99,33 @@ def test_fluka_input_single(el_type):
                 found_2 = True
             if f"MAT-PROP                           379.0  {coll.material.fluka_name}" in line:
                 found_3 = True
-    assert found_1 and found_2 and found_3
+    assert found_1
+    assert found_2
+    assert found_3
 
     # Check crystal definition
     if el_type == 'crystal':
         found_1 = False
         found_2 = False
         found_3 = False
-        found_4 = False
         with input_file[0].open('r') as fp:
             for line in fp:
-                if f"CRYSTAL     {jaw.fedb_tag}  0.030769       0.2       0.0       0.0     300.0 110" in line:
+                if f"CRYSTAL       {coll.assembly.fedb_tag}  0.030769       0.2       0.0       0.0     300.0 110" in line:
                     found_1 = True
                 if "CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &" in line:
                     found_2 = True
-                if "CRYSTAL   -1049.9999   -3000.0    1000.0                              &&" in line:
-                    found_3 = True
                 if "USRICALL        50.0                                                  CRYSTAL" in line:
-                    found_4 = True
-        assert found_1 and found_2 and found_3 and found_4
+                    found_3 = True
+        assert found_1
+        assert found_2
+        assert found_3
 
     # Clean up
     shutil.rmtree(path_tmp)
 
 
 @pytest.mark.fluka
-@pytest.mark.parametrize("ignore_crystals", [True, False])
+@pytest.mark.parametrize("ignore_crystals", [True, False], ids=['no_crystals', 'with_crystals'])
 def test_fluka_input_line(ignore_crystals):
     beam = 1
     path = Path(__file__).parent
@@ -136,7 +137,8 @@ def test_fluka_input_line(ignore_crystals):
     colls, _ = line.get_elements_of_type(xc.collimator_classes)
     line.build_tracker()
     line.collimators.assign_optics()
-    line.collimators.align_to_beam_divergence()
+    if not ignore_crystals:
+        line.collimators.align_to_beam_divergence()
     path_tmp = Path.cwd() / f'temp_fluka_test_line_{ignore_crystals}'
     particle_ref = xt.Particles('proton', p0c=7e12)
     input_file = xc.fluka.engine.generate_input_file(line=line, clean=False, cwd=path_tmp,
@@ -196,7 +198,7 @@ def test_fluka_input_line(ignore_crystals):
             assert np.isclose(new_coll_dct[name]['tilt'][1], params['tilt'][1])
 
     # Check assembly
-    xc.FlukaPrototype.inspect_prototypes_file(path_tmp / 'prototypes.lbp')
+    xc.FlukaPrototype.inspect_prototypes_file(colls, path_tmp / 'prototypes.lbp')
     for coll in colls:
         _ = coll.assembly.prototypes # Check that prototypes were created
     with input_file[1].open('r') as fp:

@@ -12,7 +12,7 @@ import xtrack as xt
 from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
-                                        FlukaPrototype, FlukaAssembly, create_generic_assembly
+                                        FlukaPrototype, create_generic_assembly
 from ..materials import _resolve_material
 from ..constants import HIT_ON_FLUKA_COLL
 
@@ -76,7 +76,7 @@ class FlukaCollimator(BaseCollimator):
                     length = kwargs.get('length', None)
                     if length is None:
                         raise ValueError('Need to provide length!')
-
+            self._assembly = None  # Temporary, to avoid issues in setters
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
@@ -106,19 +106,6 @@ class FlukaCollimator(BaseCollimator):
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
                 self._equivalent_drift.model = 'exact'
-
-    def __del__(self):
-        if self.assembly:
-            self.assembly.remove_element(self, force=False)
-        try:
-            super().__del__()
-        except (AttributeError, TypeError): # During shutdown, if the parent class is already garbage collected
-            pass
-
-    def copy(self, **kwargs):
-        obj = super().copy(**kwargs)
-        obj.assembly = self.assembly
-        return obj
 
     @property
     def material(self):
@@ -180,13 +167,10 @@ class FlukaCollimator(BaseCollimator):
 
     @property
     def assembly(self):
-        for prototype in FlukaPrototype._assigned_registry.values():
-            if self in prototype.elements:
-                return prototype
-        for prototype in FlukaAssembly._assigned_registry.values():
-            if self in prototype.elements:
-                return prototype
-        return None
+        if self._assembly is not None:
+            if self._assembly.is_defunct() or self._assembly._is_null:
+                self._assembly = None
+        return self._assembly
 
     @assembly.setter
     def assembly(self, val):
@@ -197,23 +181,21 @@ class FlukaCollimator(BaseCollimator):
             elif val in xc.fluka.prototypes:
                 val = xc.fluka.prototypes[val]
             else:
-                raise ValueError(f"Unknown assembly or prototype '{val}'.")
-            if val.is_broken:
-                print(f'Warning: assembly or prototype {val.name} is broken!')
+                raise ValueError(f"Unknown assembly/prototype '{val}'.")
         elif not isinstance(val, FlukaPrototype) and val is not None:
-            raise ValueError(f'Invalid assembly or prototype {val}!')
-        # Remove the element from the old assembly and add it to the new one
-        if self.assembly:
-            self.assembly.remove_element(self, force=False)
-        if val:
-            val.add_element(self, force=False)
+            raise ValueError(f'Invalid assembly/prototype {val}!')
+        if val.is_broken:
+            print(f'Warning: assembly/prototype {val.name} is broken!')
+        if val.is_defunct():
+            raise ValueError(f'Cannot assign defunct assembly/prototype {val.name}!')
+        val.assert_exists()
+        self._assembly = val
         if self.assembly:
             if self.assembly.length is not None:
                 self.length_front = (self.assembly.length - self.length) / 2
                 self.length_back = self.assembly.length - self.length - self.length_front
             if self.assembly.side is not None:
                 self._get_side_from_input(self.assembly.side)
-
 
     def enable_scattering(self):
         import xcoll as xc
@@ -361,6 +343,7 @@ class FlukaCrystal(BaseCrystal):
                 kwargs.setdefault('_bending_radius', 1.)
                 length = kwargs.get('length', kwargs['length'] or 1 )
                 kwargs.setdefault('_bending_angle', np.arcsin(length))
+            self._assembly = None  # Temporary, to avoid issues in setters
             super().__init__(**kwargs)
             for key, val in to_assign.items():
                 setattr(self, key, val)
@@ -399,14 +382,6 @@ class FlukaCrystal(BaseCrystal):
             if not hasattr(self, '_equivalent_drift'):
                 self._equivalent_drift = xt.Drift(length=self.length)
                 self._equivalent_drift.model = 'exact'
-
-    def __del__(self, **kwargs):
-        FlukaCollimator.__del__(self, **kwargs)
-
-    def copy(self, **kwargs):
-        obj = super().copy(**kwargs)
-        obj.assembly = self.assembly
-        return obj
 
     @property
     def material(self):
@@ -491,12 +466,13 @@ class FlukaCrystal(BaseCrystal):
 
     @property
     def assembly(self):
-        return FlukaCollimator.assembly.fget(self)
+        return self._assembly
 
     @assembly.setter
     def assembly(self, assembly):
         FlukaCollimator.assembly.fset(self, assembly)
-
+        if self.assembly and not self.assembly.is_crystal:
+            raise ValueError('Assigned assembly is not a crystal assembly!')
 
     def enable_scattering(self):
         import xcoll as xc
