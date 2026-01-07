@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCDQnAB",
+    "fedb_series": "lhc",
+    "fedb_tag": "TCDQnAB",
+    "side": "left",
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "dump protection",
+    "extra_commands": null,
+    "is_broken": false
+}

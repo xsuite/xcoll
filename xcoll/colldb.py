@@ -13,13 +13,13 @@ from pathlib import Path
 
 import xtrack as xt
 
-from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           Geant4Collimator, Geant4CollimatorTip, collimator_classes
+from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
+                            FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
 
 
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
-    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
+    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None, 'assembly': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
     fields.update({'s_center': None, 'tip_material': None, 'tip_thickness': 0})  # TODO: add s_start and s_end and make them sync etc
@@ -417,6 +417,10 @@ class CollimatorDatabase:
     # ====================================
 
     def _get_names_from_line(self, line, names, families):
+        if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
+            names = [names]
+        if families is not None and (not hasattr(families, '__iter__') or isinstance(families, str)):
+            families = [families]
         if names is None and families is None:
             names = self.collimator_names
         elif names is None:
@@ -512,6 +516,47 @@ class CollimatorDatabase:
         line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
+    def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
+                                  fluka_input_file=None, remove_missing=True):
+        import xcoll as xc
+        if xc.fluka.engine.is_running():
+            print("Warning: FlukaEngine is already running. Stopping it to install collimators.")
+            xc.fluka.engine.stop()
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            mat = self[name]['material']
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+            crystal_assembly = False
+            extra_kwargs = {}
+            if 'assembly' in self[name] and self[name]['assembly']:
+                self[name].pop('material', None)
+                self[name].pop('side', None)
+                self[name].pop('bending_radius', None)
+                self[name].pop('bending_angle', None)
+                if self[name]['assembly'] in xc.fluka.assemblies:
+                    pro = xc.fluka.assemblies[self[name]['assembly']]
+                elif self[name]['assembly'] in xc.fluka.prototypes:
+                    pro = xc.fluka.prototypes[self[name]['assembly']]
+                else:
+                    raise ValueError(f"Unknown assembly or prototype "
+                                   + f"'{self[name]['assembly']}'.")
+                crystal_assembly = pro.is_crystal
+            else:
+                for kwarg in ['assembly', 'material', 'side', 'bending_radius', 'bending_angle']:
+                    if self[name].get(kwarg):
+                        extra_kwargs[kwarg] = self[name][kwarg]
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']) \
+            or crystal_assembly:
+                self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
+            else:
+                self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)
+        elements = [self._elements[name] for name in names]
+        line.collimators.install(names, elements, need_apertures=need_apertures)
+
     def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
                                 need_apertures=True, s_tol=1e-6, verbose=False):
         import xcoll as xc
@@ -521,14 +566,14 @@ class CollimatorDatabase:
         names = self._get_names_from_line(line, names, families)
         for name in names:
             mat = self[name]['material']
-            if mat.lower() == 'c':
+            if mat and mat.lower() == 'c':
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
                             + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
-            bending_radius = self[name]['bending_radius']
             tip_material = self[name]['tip_material']
             tip_thickness = self[name]['tip_thickness']
-            if bending_radius is not None:
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
                 raise ValueError("Geant4Crystal not yet supported!")
             elif tip_material is not None and tip_thickness > 0:
                 self._create_collimator(Geant4CollimatorTip, line, name, material=mat,

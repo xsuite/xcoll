@@ -9,8 +9,10 @@ start_time = time.time()
 
 import xpart as xp
 import xtrack as xt
-import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
+
+import xcoll as xc
+from xcoll.compare import deep_equal
 
 
 num_part = int(1e6)
@@ -25,8 +27,8 @@ def test_transfer_line(test_context):
     air = _add_air_regions(line)
     assert line["Air 1"].material == air
     assert line["Air 2"].material == air
-    assert xt.line._dicts_equal(line["Air 1"].material.to_dict(), air.to_dict())
-    assert xt.line._dicts_equal(line["Air 2"].material.to_dict(), air.to_dict())
+    assert deep_equal(line["Air 1"].material.to_dict(), air.to_dict())
+    assert deep_equal(line["Air 2"].material.to_dict(), air.to_dict())
     _add_monitors(line)
     line.build_tracker(_context=test_context)
     line.scattering.disable()  # Scattering need to be disabled to be able to twiss

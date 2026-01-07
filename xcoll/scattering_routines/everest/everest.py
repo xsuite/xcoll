@@ -6,7 +6,7 @@
 import xtrack as xt
 
 from ..geometry import XcollGeometry
-from ...materials import Material, CrystalMaterial
+from ...materials import Material
 from ...interaction_record import InteractionRecord
 from ...general import _pkg_root
 
@@ -16,7 +16,7 @@ class EverestEngine(xt.BeamElement):
 
     allow_track = False
 
-    _depends_on = [Material, CrystalMaterial, InteractionRecord, xt.RandomUniform, xt.RandomExponential,
+    _depends_on = [Material, InteractionRecord, xt.RandomUniform, xt.RandomExponential,
                    xt.RandomNormal, xt.RandomRutherford, xt.Drift, XcollGeometry]
 
     _extra_c_sources = [

@@ -45,7 +45,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 // Amorphous transport is just Multiple Coulomb scattering
 /*gpufun*/
-double amorphous_transport(EverestData restrict everest, CrystalMaterialData restrict material,
+double amorphous_transport(EverestData restrict everest, MaterialData restrict material,
                            LocalParticle* part, double pc, double length, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -56,7 +56,7 @@ double amorphous_transport(EverestData restrict everest, CrystalMaterialData res
     // Accumulated effect of mcs on the angles (with initial energy)
     // TODO: pc is energy
     // TODO: missing factor (1 + 0.038*log( L / radl) )  ( *Z if not protons)
-    double radl = CrystalMaterialData_get__radiation_length(material);
+    double radl = MaterialData_get__radiation_length(material);
     double dya = (13.6/pc)*sqrt(length/radl)*1.0e-3; // RMS of coloumb scattering MCS (rad)
     double kxmcs, kymcs;
 
@@ -86,10 +86,10 @@ double amorphous_transport(EverestData restrict everest, CrystalMaterialData res
 }
 
 
-double Channel(EverestData restrict everest, CrystalMaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
-double Amorphous(EverestData restrict everest, CrystalMaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
+double Channel(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
+double Amorphous(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
 
-double volume_interaction(EverestData restrict everest, CrystalMaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
+double volume_interaction(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
 #ifdef XCOLL_REFINE_ENERGY
     calculate_VI_parameters(everest, part, pc);
 #endif
@@ -119,7 +119,7 @@ double volume_interaction(EverestData restrict everest, CrystalMaterialData rest
 }
 
 // /*gpufun*/
-double Amorphous(EverestData restrict everest, CrystalMaterialData restrict material,
+double Amorphous(EverestData restrict everest, MaterialData restrict material,
            LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
 
     if (LocalParticle_get_state(part) < 1){
@@ -158,7 +158,7 @@ double Amorphous(EverestData restrict everest, CrystalMaterialData restrict mate
     // ----------------------------------------------------
     // Calculate longitudinal length of nuclear interaction
     // ----------------------------------------------------
-    double collnt = CrystalMaterialData_get__nuclear_collision_length(material);
+    double collnt = MaterialData_get__nuclear_collision_length(material);
     double length_nucl = collnt*RandomExponential_generate(part);
 
     // --------------------------------------------------------------

@@ -162,3 +162,5 @@ __pycache__/
 *$py.class
 *.egg-info/
 *.egg
+
+*config/

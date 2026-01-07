@@ -14,7 +14,8 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 
-path = Path(__file__).parent
+path_in  = Path(__file__).parent
+path_out = Path.cwd() / 'plots' / 'adt'
 
 
 # This example is a simplified example of the ADT in the LHC. Each
@@ -31,7 +32,8 @@ nemitt_y = 2.5e-6
 
 
 # Import a Run 3 LHC lattice without apertures
-line = xt.Line.from_json(path / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+line = env[f'lhcb{beam}']
 
 
 # Create the ADT
@@ -112,7 +114,7 @@ ax.legend()
 ax.set_title("Horizontal emittance growth by ADT blow-up in the LHC")
 print(f"Total calculation time {time.time()-start_time}s")
 plt.tight_layout()
-plt.savefig("adt_simplified_horizontal_emittance.png", dpi=300)
+plt.savefig(path_out / "adt_simplified_horizontal_emittance.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -124,7 +126,7 @@ ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
 plt.tight_layout()
-plt.savefig("adt_simplified_horizontal_amplitude.png", dpi=300)
+plt.savefig(path_out / "adt_simplified_horizontal_amplitude.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -137,7 +139,7 @@ ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Vertical emittance growth by ADT blow-up in the LHC")
 plt.tight_layout()
-plt.savefig("adt_simplified_vertical_emittance.png", dpi=300)
+plt.savefig(path_out / "adt_simplified_vertical_emittance.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -147,9 +149,9 @@ ax.axvline(adt_turns, c='r', ls='--', label='stop blow-up')
 ax.set_ylabel(r"normalised amplitude $[mm]$")
 ax.set_xlabel("Turn number")
 ax.legend()
-ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
 plt.tight_layout()
-plt.savefig("adt_simplified_vertical_amplitude.png", dpi=300)
+ax.set_title("Average amplitude growth by ADT blow-up in the LHC")
+plt.savefig(path_out / "adt_simplified_vertical_amplitude.png", dpi=300)
 plt.show()
 
 _, ax = plt.subplots(figsize=(6,4))
@@ -161,5 +163,5 @@ ax.set_xlabel("Turn number")
 ax.legend()
 ax.set_title("Longitudinal emittance growth by ADT blow-up in the LHC")
 plt.tight_layout()
-plt.savefig("adt_simplified_longitudinal_emittance.png", dpi=300)
+plt.savefig(path_out / "adt_simplified_longitudinal_emittance.png", dpi=300)
 plt.show()

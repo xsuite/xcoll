@@ -141,15 +141,21 @@ Beryllium.adapt(inplace=True,  nuclear_radius=0.22, nuclear_elastic_slope=74.7,
 Aluminium.adapt(inplace=True,  nuclear_radius=0.302, nuclear_elastic_slope=120.3,
                                cross_section=[0.643, 0.418, 0, 0, 0, 0.0340e-2], hcut=0.02)
 Silicon.adapt(inplace=True,    nuclear_radius=0.441, nuclear_elastic_slope=120.14,
-                               cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02)
+                               cross_section=[0.664, 0.430, 0, 0, 0, 0.0390e-2], hcut=0.02,
+                               crystal_plane_distance=0.96e-7, crystal_potential=21.34,
+                               nuclear_collision_length=0.3016, eta=0.9)
 Copper.adapt(inplace=True,     nuclear_radius=0.366, nuclear_elastic_slope=217.8,
                                cross_section=[1.253, 0.769, 0, 0, 0, 0.1530e-2], hcut=0.01)
 Germanium.adapt(inplace=True,  nuclear_radius=0.605, nuclear_elastic_slope=226.35,
-                               cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02)
+                               cross_section=[1.388, 0.844, 0, 0, 0, 0.1860e-2], hcut=0.02,
+                               crystal_plane_distance=1.0e-7, crystal_potential=40.0,
+                               nuclear_collision_length=0.1632, eta=0.9)
 Molybdenum.adapt(inplace=True, nuclear_radius=0.481, nuclear_elastic_slope=273.9,
                                cross_section=[1.713, 1.023, 0, 0, 0, 0.2650e-2], hcut=0.02)
 Tungsten.adapt(inplace=True,   nuclear_radius=0.520, nuclear_elastic_slope=440.3,
-                               cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01)
+                               cross_section=[2.765, 1.591, 0, 0, 0, 0.7680e-2], hcut=0.01,
+                               crystal_plane_distance=0.56e-7, crystal_potential=21.0,
+                               nuclear_collision_length=1.e-12, eta=0.9)
 Lead.adapt(inplace=True,       nuclear_radius=0.542, nuclear_elastic_slope=455.3,
                                cross_section=[3.016, 1.724, 0, 0, 0, 0.9070e-2], hcut=0.01)
 

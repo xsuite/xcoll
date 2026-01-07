@@ -20,7 +20,8 @@ path = Path(__file__).parent / 'data'
 )
 @pytest.mark.parametrize('beam', [1, 2])
 def test_line_accessor(beam, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     assert str(line.collimators) == ''
     assert len(line.collimators) == 0

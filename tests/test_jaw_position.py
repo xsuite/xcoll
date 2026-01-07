@@ -3,20 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
+import time
 import pytest
 import numpy as np
-from pathlib import Path
 
 import xpart as xp
+from xpart.test_helpers import flaky_assertions, retry
 import xtrack as xt
 import xcoll as xc
-try:
-    import rpyc
-except ImportError as e:
-    rpyc = None
 
+from _common_api import all_engine_params
 
-path = Path(__file__).parent / 'data'
 
 jaws = [0.001, [0.0013, -0.002789], [-1.2e-6, -3.2e-3], [3.789e-3, 4.678e-7]]
 jaw_ids = ['symmetric', 'asymmetric', 'negative', 'positive']
@@ -24,83 +21,113 @@ angles = [0, 90, 127.5]
 tilts = [0, [2.2e-6, 1.3e-6], [1.9e-6, -2.7e-6]]
 tilt_ids = ['no_tilt', 'positive_tilt', 'pos_neg_tilt']
 
-particle_ref = xt.Particles('proton', p0c=6.8e12)
-
-
-@pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
-@pytest.mark.parametrize('angle', angles)
-@pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
-def test_everest(jaw, angle, tilt):
-    num_part = 2_500_000
-    length = 0.873
-    coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material='MoGR')
-    part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
-                                                jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
-                                                zeta_spread=5e-2)
-    part = part_init.copy()
-    coll.track(part)
-    # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-    _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
-
 
 # TODO: why is BDSIM so imprecise? Most hits are very exact, but on the negative jaw, there are a few
 # particles with positive kick and slightly inside the jaw (up to around 1e-9) that survive but should
 # have hit, and similarily for the other jaw with negative kicks. Though most particles behave very well,
 # also in these regions.
+@pytest.mark.parametrize("engine", all_engine_params)
 @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
 @pytest.mark.parametrize('angle', angles)
-@pytest.mark.parametrize('jaw', jaws[:2], ids=jaw_ids[:2])  # BDSIM cannot handle fully positive or negative jaws
-@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
-def test_geant4(jaw, angle, tilt):
-    num_part = 50_000
+@pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
+@retry()
+def test_positions(engine, jaw, angle, tilt):
     length = 0.873
-    if xc.geant4.engine.is_running():
-        xc.geant4.engine.stop(clean=True)
-    coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material='MoGR')
-    xc.geant4.engine.particle_ref = particle_ref
-    xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1)
+    material = xc.materials.MolybdenumGraphite
+    particle_ref = xt.Particles('proton', p0c=6.8e12)
+
+    if engine == "everest":
+        num_part = 2_500_000
+        capacity = None
+        jaw_band = 5e-9
+        jaw_accuracy = 1.e-12
+        x_dim = 0.05
+        y_dim = 0.05
+        exact_drift = False
+        coll = xc.EverestCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+
+    elif engine == "fluka":
+        num_part = 5000
+        capacity = 2*num_part
+        jaw_band = 5e-9
+        jaw_accuracy = 1.e-9
+        x_dim = 0.015
+        y_dim = 0.015
+        exact_drift = True
+        if xc.fluka.engine.is_running():
+            xc.fluka.engine.stop(clean=True)
+        coll = xc.FlukaCollimator(length=length, jaw=jaw, angle=angle, tilt=tilt,  material=material)
+        xc.fluka.engine.particle_ref = particle_ref
+        xc.fluka.engine.start(elements=coll, capacity=capacity, verbose=True)
+        particle_ref = xc.fluka.engine.particle_ref
+
+    elif engine == "geant4":
+        if jaw == jaws[2] or jaw == jaws[3]:
+            pytest.skip("BDSIM coupling can not yet handle fully positive or negative jaws")  # TODO
+        num_part = 50_000
+        capacity = 2*num_part
+        jaw_band = 1e-8
+        jaw_accuracy = 5e-9
+        x_dim = 0.05
+        y_dim = 0.05
+        exact_drift = True
+        if xc.geant4.engine.is_running():
+            xc.geant4.engine.stop(clean=True)
+        coll = xc.Geant4Collimator(length=length, jaw=jaw, angle=angle, tilt=tilt, material=material)
+        xc.geant4.engine.particle_ref = particle_ref
+        xc.geant4.engine.start(elements=coll, relative_energy_cut=0.1, verbose=True)
+        particle_ref = xc.geant4.engine.particle_ref
+
     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, particle_ref=particle_ref,
-                                                jaw_band=1e-8, jaw_accuracy=5e-9, angular_spread=1e-3,
-                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=True,
-                                                _capacity=2*num_part)
+                                                jaw_band=jaw_band, jaw_accuracy=jaw_accuracy, angular_spread=1e-3,
+                                                delta_spread=1e-3, zeta_spread=5e-2, exact_drift=exact_drift,
+                                                x_dim=x_dim, y_dim=y_dim, _capacity=capacity)
+
     part = part_init.copy()
+    t1 = time.time()
     coll.track(part)
+    print(f"{engine.capitalize()} tracking time for {num_part} particles: {time.time()-t1:.2f} s")
     # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-    _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
-    xc.geant4.engine.stop(clean=True)
+    with flaky_assertions():
+        _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
+
+    if engine == "fluka":
+        xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        xc.geant4.engine.stop(clean=True)
 
 
-# # TODO: lhc_tdi and fcc_tcdq still fail. Are they unrotatable? Side fixed or ill-defined?
-# # @pytest.mark.parametrize('tilt', tilts, ids=tilt_ids)
+# # TODO
+# @pytest.mark.fluka
 # @pytest.mark.parametrize('assembly', ['sps_tcsm', 'lhc_tcp', 'lhc_tcsg', 'lhc_tcsp',
 #                                       'lhc_tcla', 'lhc_tct', 'lhc_tcl', 'lhc_tdi',
 #                                       'lhc_tclia', 'lhc_tclib', 'lhc_tcdqaa', 'lhc_tcdqab',
 #                                       'lhc_tcdqac', 'hilumi_tcppm', 'hilumi_tcspm', 'hilumi_tcspgrc',
 #                                       'hilumi_tcld', 'hilumi_tctx', 'hilumi_tcty', 'hilumi_tclx',
 #                                       'fcc_tcp', 'fcc_tcsg', 'fcc_tcdq'])
-# @pytest.mark.parametrize('angle', angles)
-# @pytest.mark.parametrize('jaw', jaws, ids=jaw_ids)
-# def test_fluka(jaw, angle, assembly):
-#     tilt = 0
-
-#     # If a previous test failed, stop the server manually
+# @retry()
+# def test_fluka_assemblies(assembly):
+#     num_part = 5_000
+#     length = 0.873
+#     jaw = jaws[1]
+#     particle_ref = xt.Particles('proton', p0c=6.8e12)
 #     if xc.fluka.engine.is_running():
 #         xc.fluka.engine.stop(clean=True)
-
-#     # Define collimator and start the FLUKA server
-#     coll = xc.FlukaCollimator(length=1, jaw=jaw, angle=angle, tilt=tilt, assembly=assembly)
+#     coll = xc.FlukaCollimator(length=length, jaw=jaw, assembly=assembly)
 #     xc.fluka.engine.particle_ref = particle_ref
-#     xc.fluka.engine.start(elements=coll, capacity=10_000)
-
-#     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=5000, x_dim=0.015,
-#                             _capacity=xc.fluka.engine.capacity, particle_ref=xc.fluka.engine.particle_ref)
-#     part = part_init.copy()
-#     coll.track(part)
-#     # wrong_hit, wrong_not_hit = _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
-#     _assert_valid_positions(part, hit_ids, not_hit_ids)
-
-#     # Stop the FLUKA server
+#     xc.fluka.engine.start(elements=coll, capacity=num_part*2, verbose=True)
+#     part_init, hit_ids, not_hit_ids = _generate_particles(coll, num_part=num_part, x_dim=0.015,
+#                                                 jaw_band=5e-9, angular_spread=1e-3, delta_spread=1e-3,
+#                                                 zeta_spread=5e-2, exact_drift=True, jaw_accuracy=1.e-9,
+#                                                 _capacity=xc.fluka.engine.capacity,
+#                                                 particle_ref=xc.fluka.engine.particle_ref)
+#     with flaky_assertions():
+#         part = part_init.copy()
+#         t1 = time.time()
+#         coll.track(part)
+#         print(f"FLUKA tracking time for {num_part} particles: {time.time()-t1:.2f} s")
+#         # _plot_jaws(coll, part_init, part, hit_ids, not_hit_ids)
+#         _assert_valid_positions(part_init, part, hit_ids, not_hit_ids)
 #     xc.fluka.engine.stop(clean=True)
 
 

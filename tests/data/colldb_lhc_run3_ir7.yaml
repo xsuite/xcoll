@@ -4,9 +4,9 @@ All:
   - &ALL     { parking: 0.025 }
 
 Families:
-  - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: CFC,   length: 0.6    }
-  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1,       tip_material: Cu,    tip_thickness: 50e-6}  # Tip ignored if not Geant4
-  - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004,   side: left,  crystal: strip }
+  - &TCP7    { <<: *ALL,  gap: 5,     stage: primary,    material: CFC,   length: 0.6,   assembly: 'lhc_tcp'  }
+  - &TCSG7   { <<: *ALL,  gap: 6.5,   stage: secondary,  material: CFC,   length: 1,     assembly: 'lhc_tcsg',  tip_material: Cu,    tip_thickness: 50e-6 }  # Tip ignored if not Geant4
+  - &CRY7    { <<: *ALL,  gap: 5,     stage: special,    material: Si,    length: 0.004, side: left,  crystal: strip }
 
 emittance:
   x: 3.5e-6
@@ -14,29 +14,29 @@ emittance:
 
 collimators:
   b1:
-    tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565  }
-    tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR, tilt: [2.5e-6, -2.5e-6]  }
+    tcp.d6l7.b1:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565, assembly: 'hilumi_tcppm'  }
+    tcp.c6l7.b1:        { <<: *TCP7,   angle:   0,    material: MoGR, tilt: [2.5e-6, -2.5e-6], assembly: 'hilumi_tcppm'  }
     tcp.b6l7.b1:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6l7.b1:       { <<: *TCSG7,  angle: 141.1   }
     tcpcv.a6l7.b1:      { <<: *CRY7,   angle:  90,    bending_radius: 85.10,  width: 5.0e-3,  height: 30.0e-3  }
     tcsg.b5l7.b1:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5l7.b1:       { <<: *TCSG7,  angle:  40.7   }
-    tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
+    tcsg.d4l7.b1:       { <<: *TCSG7,  angle:  90,    material: MoGR, assembly: 'hilumi_tcspm'  }
     tcpch.a4l7.b1:      { <<: *CRY7,   angle:   0,    bending_radius: 61.54,  width: 2.0e-3,  height: 50.0e-3  }
-    TCSPM.b4l7.b1:      { <<: *TCSG7,  angle:   0,    Material: MoGR  }
+    TCSPM.b4l7.b1:      { <<: *TCSG7,  angle:   0,    Material: MoGR, assembly: 'hilumi_tcspm'  }
     tcsg.a4l7.b1:       { <<: *TCSG7,  angle: 134.6   }
     tcsg.a4r7.b1:       { <<: *TCSG7,  angle:  46.3   }
 
   b2:
-    tcp.d6r7.b2:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565  }
-    tcp.c6r7.b2:        { <<: *TCP7,   angle:   0,    material: MoGR, tilt: [2.5e-6, -2.5e-6]  }
+    tcp.d6r7.b2:        { <<: *TCP7,   angle:  90,    material: MoGR, length: 1.565, assembly: 'hilumi_tcppm'  }
+    tcp.c6r7.b2:        { <<: *TCP7,   angle:   0,    material: MoGR, tilt: [2.5e-6, -2.5e-6], assembly: 'hilumi_tcppm'  }
     tcp.b6r7.b2:        { <<: *TCP7,   angle: 127.5   }
     tcsg.a6r7.b2:       { <<: *TCSG7,  angle: 141.1   }
     tcpcv.a6r7.b2:      { <<: *CRY7,   angle:  90,    bending_radius: 74.88,  width: 5.0e-3,  height: 30.0e-3  }
     tcsg.b5r7.b2:       { <<: *TCSG7,  angle: 143.5   }
     tcsg.a5r7.b2:       { <<: *TCSG7,  angle:  40.7   }
     tcpch.a5r7.b2:      { <<: *CRY7,   angle:   0,    bending_radius: 80.00,  width: 2.0e-3,  height: 50.0e-3,  miscut: -14.324e-3  }
-    tcsg.d4r7.b2:       { <<: *TCSG7,  angle:  90,    material: MoGR  }
-    tcspm.b4r7.b2:      { <<: *TCSG7,  angle:   0,    material: MoGR  }
+    tcsg.d4r7.b2:       { <<: *TCSG7,  angle:  90,    material: MoGR, assembly: 'hilumi_tcspm'  }
+    tcspm.b4r7.b2:      { <<: *TCSG7,  angle:   0,    material: MoGR, assembly: 'hilumi_tcspm'  }
     tcsg.a4r7.b2:       { <<: *TCSG7,  angle: 134.6   }
     tcsg.a4l7.b2:       { <<: *TCSG7,  angle:  46.3   }

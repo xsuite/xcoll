@@ -8,7 +8,7 @@ from warnings import warn
 
 import xtrack as xt
 
-from .beam_elements import element_classes, collimator_classes, block_classes
+from .beam_elements import element_classes, collimator_classes, block_classes, crystal_classes
 
 
 class XcollLineAccessor:
@@ -374,6 +374,13 @@ class XcollCollimatorAPI(XcollLineAccessor):
         for name, coll in self.items():
             coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
                                twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
+
+    def align_to_beam_divergence(self):
+        crystals = self.line.get_elements_of_type(crystal_classes)[0]
+        if len(crystals) == 0:
+            warn("No crystals found in line to align to beam divergence.")
+        for el in crystals:
+            el.align_to_beam_divergence()
 
     def _get_s_start(self, name, *, length, table=None):
         if table is None:

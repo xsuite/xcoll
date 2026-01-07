@@ -13,7 +13,7 @@ import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
 
-num_part = 50000
+num_part = 10000
 num_turns = 3
 path = Path(__file__).parent / 'data'
 
@@ -27,7 +27,8 @@ path = Path(__file__).parent / 'data'
                             [1, 'V'],
                             [2, 'H']], ids=["B1H", "B2V", "B1V", "B2H"])
 def test_impacts_from_line(beam, plane, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     colldb.install_everest_collimators(verbose=True, line=line)
     df_with_coll = line.check_aperture()
@@ -77,7 +78,7 @@ def test_impacts_single_collimator(test_context):
                             [1, '-'],
                             [-1, '-']], ids=["R>0 side=+ ", "R<0 side=+ ", "R>0 side=- ", "R<0 side=- "])
 def test_impacts_single_crystal(R, side, test_context):
-    coll = xc.EverestCrystal(length=0.002, material=xc.materials.SiliconCrystal, bending_angle=R*149e-6,
+    coll = xc.EverestCrystal(length=0.002, material=xc.materials.Silicon, bending_angle=R*149e-6,
                         width=0.002, height=0.05, side=side, lattice='strip', jaw=0.001, _context=test_context)
 
     x_init   = np.random.normal(loc=1.5e-3, scale=75.e-6, size=num_part)

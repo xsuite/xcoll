@@ -28,14 +28,16 @@
 
 namespace py = pybind11;
 
-BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn, 
+#include <filesystem>
+namespace fs = std::filesystem;
+
+
+BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double momentumIn,
                                                   double kineticEnergyIn, double ionChargeIn);
 
 class FDRedirect;
 
-/// TODO: make a base class for the interface classes as there is a lot of shared functionality
-class XtrackInterface
-{
+class XtrackInterface {
 public:
     XtrackInterface() = delete;  // No default constructor
 
@@ -45,9 +47,12 @@ public:
                     double              relativeEnergyCutIn,
                     int                 seedIn,
                     int                 referenceIonChargeIn=0,
-                    bool                batchMode=true);
+                    bool                batchMode=true,
+                    const std::string&  workdir="");
 
     virtual ~XtrackInterface();
+    void start_redirect();
+    void stop_redirect();
 
     void addCollimator(const std::string& name,
                        const std::string& material,
@@ -88,6 +93,8 @@ public:
 
 private:
     std::unique_ptr<FDRedirect> fdredir;
+    fs::path workdirPath;
+
     BDSIMLink* bds = nullptr;
     BDSLinkBunch* stp = nullptr;
     std::vector<char *> argv;

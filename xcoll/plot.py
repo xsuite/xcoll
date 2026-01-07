@@ -11,8 +11,8 @@ _NORMS = ["total", "coll_max", "max", "none", "raw"]
 
 
 def plot_lossmap(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
-                       legend=True, grid=True, energy=False, show=True, zoom=None,
-                       cold_regions=None, warm_regions=None, savefig=None):
+                legend=True, grid=True, energy=False, show=True, zoom=None,
+                cold_regions=None, warm_regions=None, savefig=None):
     import matplotlib.pyplot as plt
 
     font = {'family': 'serif', 'size': 17}
@@ -69,9 +69,11 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     else:
         aper_s = lossmap['aperture']['s']
         aper_val = lossmap['aperture']['e'] if energy else lossmap['aperture']['n']
-        aper_length = 1 #lossmap['aperture']['length']    TODO
+        aper_length = lossmap['aperture']['length']
     if len(coll_s) == 0 and len(aper_s) == 0:
         raise ValueError("Empty loss map.")
+
+    L = lossmap['machine_length']
 
     cold_s = np.array([], dtype=aper_s.dtype)
     cold_val = np.array([], dtype=aper_val.dtype)
@@ -82,6 +84,7 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     if cold_regions is not None:
         if warm_regions is not None:
             raise ValueError("Provide only one of cold_regions or warm_regions.")
+        cold_regions = _unwrap_and_check(cold_regions, L)
         starts = np.sort(cold_regions[:, 0])
         ends   = np.sort(cold_regions[:, 1])
         num_starts = np.searchsorted(starts, aper_s, side='right') # For each s, count how many intervals start before or at s
@@ -97,6 +100,7 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         aper_val = np.array([], dtype=aper_val.dtype)
         aper_length = 1
     elif warm_regions is not None:
+        warm_regions = _unwrap_and_check(warm_regions, L)
         starts = np.sort(warm_regions[:, 0])
         ends   = np.sort(warm_regions[:, 1])
         num_starts = np.searchsorted(starts, aper_s, side='right') # For each s, count how many intervals start before or at s
@@ -128,9 +132,18 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         aper_val = aper_val / scale / aper_length
         coll_val = coll_val / scale / lossmap['collimator']['length']
 
-    L = lossmap['machine_length']
     if xlim is None:
         xlim = [-0.01*L, 1.01*L]
+    if xlim[1] < xlim[0]:
+        xlim[0] -= L
+        cold_s = np.concatenate([cold_s - L, cold_s])
+        warm_s = np.concatenate([warm_s - L, warm_s])
+        aper_s = np.concatenate([aper_s - L, aper_s])
+        coll_s = np.concatenate([coll_s - L, coll_s])
+        cold_val = np.concatenate([cold_val, cold_val])
+        warm_val = np.concatenate([warm_val, warm_val])
+        aper_val = np.concatenate([aper_val, aper_val])
+        coll_val = np.concatenate([coll_val, coll_val])
     if ylim is None:
         minimum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).min()
         maximum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
@@ -193,6 +206,34 @@ def _label_from_norm(norm, energy):
             return f"Energy (norm. by {norm}) [1/m]"
         else:
             return f"Inefficiency (norm. by {norm}) [1/m]"
+
+
+def _unwrap_and_check(pairs, L):
+    # 1) unwrap to linear intervals in [0, L]
+    linear = []
+    for a, b in pairs:
+        if a <= b:
+            linear.append([a, b])
+        else:
+            linear.append([a, L])
+            linear.append([0, b])
+
+    if not linear:
+        return []
+
+    # 2) sort + merge on [0, L]
+    linear.sort(key=lambda x: (x[0], x[1]))
+    merged = [linear[0]]
+
+    for a, b in linear[1:]:
+        last = merged[-1]
+        overlaps = a <= last[1]
+        if overlaps:
+            last[1] = max(last[1], b)
+        else:
+            merged.append([a, b])
+
+    return np.array(merged)
 
 
 # def _plot_arrow_beam_direction(lossmap, axes, beam_direction, maximum):

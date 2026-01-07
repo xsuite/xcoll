@@ -12,38 +12,48 @@ import xtrack as xt
 import xpart as xp
 import xcoll as xc
 import xtrack.particles.pdg as pdg
-from  xcoll import constants as xps
+from  xcoll import constants as xcc
 
 from xobjects.test_helpers import for_all_test_contexts
-try:
-    import rpyc
-except ImportError as e:
-    rpyc = None
+
+from _common_api import engine_params
 
 
 path = Path(__file__).parent / 'data'
 particle_ref = xt.Particles('Pu-239', p0c=94*7.0e12)
 
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Geant4 only on CPU
-)
-@pytest.mark.skipif(rpyc is None, reason="rpyc not installed")
-@pytest.mark.skipif(not xc.geant4.environment.ready, reason="BDSIM+Geant4 installation not found")
-def test_bdsim_ions(test_context):
+@pytest.mark.parametrize("engine", engine_params)
+def test_ions(engine):
     num_part = 500
-    coll = xc.Geant4Collimator(length=0.01, jaw=0.001, material='Ti', _context=test_context)
-    xc.geant4.engine.particle_ref = particle_ref
-    part = xp.build_particles(x=np.ones(num_part)*2*coll.jaw_L,
-                                   particle_ref=particle_ref, _capacity=10*num_part)
-    xc.geant4.engine.start(elements=coll, seed=1336,
-                           bdsim_config_file=path / 'geant4_osmium.gmad')
+    length = 0.01
+    jaw = 0.001
+    material = 'Ti'
+    seed = 1336
+
+    if engine == "fluka":
+        if xc.fluka.engine.is_running():
+            xc.fluka.engine.stop(clean=True)
+        coll = xc.FlukaCollimator(length=length, jaw=jaw, material=material)
+        xc.fluka.engine.particle_ref = particle_ref
+        xc.fluka.engine.start(elements=coll, seed=seed)
+        part = xp.build_particles(x=np.ones(num_part)*2*coll.jaw_L,
+                                  particle_ref=xc.fluka.engine.particle_ref,
+                                  _capacity=10*num_part)
+    elif engine == "geant4":
+        if xc.geant4.engine.is_running():
+            xc.geant4.engine.stop(clean=True)
+        coll = xc.Geant4Collimator(length=length, jaw=jaw, material=material)
+        xc.geant4.engine.particle_ref = particle_ref
+        xc.geant4.engine.start(elements=coll, seed=seed)
+        part = xp.build_particles(x=np.ones(num_part)*2*coll.jaw_L,
+                                 particle_ref=xc.geant4.engine.particle_ref,
+                                 _capacity=10*num_part)
 
     t_start = time.time()
     coll.track(part)
     print(f"Time per track: {(time.time()-t_start)*1e3:.2f}ms for "
         + f"{num_part} Pu-239 ions through {coll.length:.2f}m")
-    xc.geant4.engine.stop(clean=True)
 
     # Get only the initial particles that survived and all new particles (even if dead, as neutral particles will be flagged dead)
     mask = (part.state > 0) | (part.particle_id >= num_part)
@@ -53,7 +63,7 @@ def test_bdsim_ions(test_context):
             name = pdg.get_name_from_pdg_id(pdg_id, long_name=False)
         except ValueError:
             name = 'unknown'
-        if part.state[part.pdg_id==pdg_id][0] == xps.MASSLESS_OR_NEUTRAL:
+        if part.state[part.pdg_id==pdg_id][0] == xcc.MASSLESS_OR_NEUTRAL:
             mass = 0
         else:
             mass = part.mass[part.pdg_id==pdg_id][0]
@@ -63,3 +73,8 @@ def test_bdsim_ions(test_context):
 
     # Check that we have some fission products (PDG ID > 1 billion
     assert np.sum((pdg_ids > 1000000000) & (pdg_ids < 1000942390)) > 0
+
+    if engine == "fluka":
+        xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        xc.geant4.engine.stop(clean=True)

@@ -3,14 +3,12 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-from .material import (Material, CrystalMaterial, RefMaterial,
-                       _DEFAULT_MATERIAL, _DEFAULT_CRYSTALMATERIAL)
+from .material import Material, RefMaterial, _DEFAULT_MATERIAL, _resolve_material
 from .atoms import *
 from .allotropes import *
 from .compounds import *
 from .mixtures import *
 from .sixtrack import *
-from .crystals import *
 
 # Freeze all material instances (to prevent accidental modification)
 for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)

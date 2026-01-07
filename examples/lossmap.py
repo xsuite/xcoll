@@ -1,0 +1,90 @@
+# copyright ############################### #
+# This file is part of the Xcoll package.   #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
+import numpy as np
+from pathlib import Path
+import time
+start_time = time.time()
+import matplotlib.pyplot as plt
+
+import xobjects as xo
+import xtrack as xt
+import xcoll as xc
+
+
+beam          = 1
+plane         = 'H'
+num_turns     = 200
+num_particles = 50_000
+
+path_in = Path(__file__).parent
+path_out = Path.cwd()
+
+
+# Load from json
+env = xt.load(path_in / 'machines' / f'lhc_run3_b{beam}.json')
+line = env[f'lhcb{beam}']
+
+
+# Initialise colldb
+colldb = xc.CollimatorDatabase.from_yaml(path_in / 'colldbs' / f'lhc_run3.yaml', beam=beam)
+
+
+# Install collimators into line
+colldb.install_everest_collimators(line=line, verbose=True)
+
+
+# Aperture model check
+print('\nAperture model check after introducing collimators:')
+df_with_coll = line.check_aperture()
+assert not np.any(df_with_coll.has_aperture_problem)
+
+
+# Assign the optics to deduce the gap settings
+line.collimators.assign_optics()
+
+
+# Optimise the line
+line.optimize_for_tracking()
+
+
+# Generate initial pencil distribution on horizontal collimator
+tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if f'{beam}'=='1' else 'r'}7.b{beam}"
+part = line[tcp].generate_pencil(num_particles)
+
+
+# Move the line to an OpenMP context to be able to use all cores
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+# Should move iobuffer as well in case of impacts
+
+
+# Track!
+line.scattering.enable()
+line.track(part, num_turns=num_turns, time=True, with_progress=1)
+line.scattering.disable()
+print(f"Done tracking in {line.time_last_track:.1f}s.")
+
+
+# Move the line back to the default context to be able to use all prebuilt kernels for the aperture interpolation
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu())
+
+
+# Save loss map to json
+line_is_reversed = True if f'{beam}' == '2' else False
+ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
+ThisLM.to_json(file=path_out / 'results' / f'lossmap_B{beam}{plane}.json')
+
+# Save a summary of the collimator losses to a text file
+ThisLM.save_summary(file=path_out / 'results' / f'coll_summary_B{beam}{plane}.out')
+print(ThisLM.summary)
+
+print(f"Total calculation time {time.time()-start_time}s")
+
+# Plot loss map
+ThisLM.plot(savefig=path_out / 'plots' / 'lossmaps' / f'lossmap_B{beam}{plane}.pdf', zoom='betatron')
+plt.show()
+

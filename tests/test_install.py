@@ -20,7 +20,8 @@ path = Path(__file__).parent / 'data'
 )
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_install_single_existing_marker(beam, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
     # Test absorber
@@ -76,7 +77,7 @@ def test_install_single_existing_marker(beam, test_context):
     pos_centre = line.get_s_position(name) + line[name].length/2
     coll = xc.EverestCrystal(length=0.004, angle=90, lattice='strip', bending_radius=85.10,
                              width=5.0e-3, height=30.0e-3, side='left',
-                             material=xc.materials.SiliconCrystal)
+                             material=xc.materials.Silicon)
     line.collimators.install(name, coll, need_apertures=True)
     assert np.isclose(line[name].length, 0.004)
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
@@ -105,7 +106,8 @@ def test_install_single_existing_marker(beam, test_context):
 )
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
 def test_install_single_no_marker(beam, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
     # Test absorber

@@ -56,21 +56,36 @@ BDSParticleDefinition* PrepareBDSParticleDefition(long long int pdgIDIn, double 
 }
 
 
-XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
+XtrackInterface::XtrackInterface(const std::string&  bdsimConfigFile,
                                  long long int       referencePdgIdIn,
                                  double              referenceEkIn,
                                  double              relativeEnergyCutIn,
                                  int                 seedIn,
                                  int                 referenceIonChargeIn,
-                                 bool                batchMode):
+                                 bool                batchMode,
+                                 const std::string&  workdir):
         relativeEnergyCut(relativeEnergyCutIn),
         seed(seedIn){
+    // Initialise logging redirection
+    workdirPath = workdir.empty() ? fs::path{} : fs::path(workdir);
+    if (!workdirPath.empty()) {
+        fs::create_directories(workdirPath); // ensure it exists
+    }
+
     // Redirect ROOT messages to file
-    rootlog::init("root.out", "root.err", /*append=*/true);
+    rootlog::init(resolve_path(workdirPath, "root.out").string(),
+                  resolve_path(workdirPath, "root.err").string(),
+                  /*append=*/true);
+    ::Info("XtrackInterface", "ROOT logging initialised");
+    ::Warning("XtrackInterface", "Test warning");
+    ::Error("XtrackInterface", "Test error");
+
     // Redirect Geant4 messages to file
-    RedirectGeant4();
+    RedirectGeant4(resolve_path(workdirPath, "geant4.out").string(),
+                   resolve_path(workdirPath, "geant4.err").string());
+
     // Redirect stdout and stderr to file (everything else like BDSIM)
-    fdredir = std::make_unique<FDRedirect>("engine.out","engine.err");
+    start_redirect();
 
     stp = new BDSLinkBunch();
     bds = new BDSIMLink(stp);
@@ -119,20 +134,20 @@ XtrackInterface::XtrackInterface(const  std::string& bdsimConfigFile,
 	G4cout << "minimumEK / CLHEP::GeV: " << minimumEK / CLHEP::GeV << G4endl;
 	std::cout.flush();
 
-    try
-    { bds->Initialise(argv.size(), &argv[0], true, minimumEK / CLHEP::GeV, false); } // Initialise takes minimumEk in GeV
-    catch (const std::exception &e)
-    {
+    try { bds->Initialise(argv.size(), &argv[0], true, minimumEK / CLHEP::GeV, false); } // Initialise takes minimumEk in GeV
+    catch (const std::exception &e) {
         std::cout << e.what() << std::endl;
         exit(1);
     }
 
     G4double ionCharge = (G4double) referenceIonChargeIn;
     refParticleDefinition = PrepareBDSParticleDefition(referencePdgIdIn, 0, referenceEk, ionCharge);
+    stop_redirect();
 }
 
 
 XtrackInterface::~XtrackInterface(){
+    start_redirect();
 	// Clean up dynamically allocated memory in argv
 	for (char* arg : argv) {
 		free(arg);
@@ -144,8 +159,20 @@ XtrackInterface::~XtrackInterface(){
     delete bds;
     delete stp;
     delete refParticleDefinition;
-    fdredir.reset();
+    stop_redirect();
 }
+
+void XtrackInterface::start_redirect() {
+    if (!fdredir)
+        fdredir = std::make_unique<FDRedirect>(
+            resolve_path(workdirPath, "engine.out").c_str(),
+            resolve_path(workdirPath, "engine.err").c_str()
+        );
+}
+void XtrackInterface::stop_redirect() {
+    fdredir.reset(); // restores stdout/stderr
+}
+
 
 
 void XtrackInterface::addCollimator(const std::string& name,
@@ -162,7 +189,7 @@ void XtrackInterface::addCollimator(const std::string& name,
                                     double jawTiltRight,
                                     int    side,
                                     bool isACrystal){
-
+        start_redirect();
         bool buildLeft  = side == 0 || side == 1;
         bool buildRight = side == 0 || side == 2;
 
@@ -199,6 +226,7 @@ void XtrackInterface::addCollimator(const std::string& name,
                                       isACrystal,
                                       0);
         }                                                            // BDSIM >= 1.7.7.develop
+        stop_redirect();
     }
 
 
@@ -213,7 +241,6 @@ void XtrackInterface::addParticle(double xIn,
                                   int64_t pdgIDIn,
                                   int64_t trackidIn
                                   ){
-
     auto x  = (G4double) xIn;
     auto xp = (G4double) xpIn;
     auto y  = (G4double) yIn;
@@ -250,6 +277,7 @@ void XtrackInterface::addParticle(double xIn,
 
 
 void XtrackInterface::addParticles(const py::list& coordinates){
+    start_redirect();
     // Obtain the arrays from the list and cast them to the correct array type
     py::array_t<double> x = py::cast<py::array>(coordinates[0]);
     py::array_t<double> xp = py::cast<py::array>(coordinates[1]);
@@ -310,15 +338,19 @@ void XtrackInterface::addParticles(const py::list& coordinates){
         maxParticleID = std::max(maxParticleID, trackid_part);
         bds->SetCurrentMaximumExternalParticleID(maxParticleID);
     }
+    stop_redirect();
 }
 
 
 void XtrackInterface::collimate(){
+    start_redirect();
     bds->BeamOn((G4int)stp->Size());
+    stop_redirect();
 }
 
 
 void XtrackInterface::selectCollimator(const std::string& collimatorName){
+    start_redirect();
     currentCollimatorName = collimatorName;
     // This doesn't throw an error if the element doesn't exist
     bds->SelectLinkElement(collimatorName);
@@ -326,10 +358,12 @@ void XtrackInterface::selectCollimator(const std::string& collimatorName){
     // Check if the element exists by querying the index: -1 means it doesn't exist
     if (bds->GetLinkIndex(collimatorName) == -1)
         {throw std::runtime_error("Element not found " + collimatorName);}
+    stop_redirect();
 }
 
 
 void XtrackInterface::clearData(){
+    start_redirect();
     bds->ClearSamplerHits();
     // A malloc error about freeing a pointer not allocated is thrown if the run is terminated after
     // the bunch is manually cleared. Consider using an alternative to vector.clear() in the BDSIM bunch class:
@@ -338,10 +372,12 @@ void XtrackInterface::clearData(){
     stp->ClearParticles();
     currentCollimatorName.clear();
     maxParticleID = 0;
+    stop_redirect();
 }
 
 
 py::dict XtrackInterface::collimateReturn(size_t num_sent){
+    start_redirect();
     // Access the sampler hits - particles reaching the planes for transport back
     const BDSHitsCollectionSamplerLink* hits = bds->SamplerHits();
 
@@ -478,5 +514,6 @@ py::dict XtrackInterface::collimateReturn(size_t num_sent){
     result["state"] = state_out;
     result["n_hits"] = hitsCount;
 
+    stop_redirect();
     return result;
 }

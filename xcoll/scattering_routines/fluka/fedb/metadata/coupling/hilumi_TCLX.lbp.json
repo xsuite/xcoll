@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCLX",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCLX",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "physics debris absorber",
+    "extra_commands": null,
+    "is_broken": false
+}

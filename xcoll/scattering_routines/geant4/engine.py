@@ -3,24 +3,17 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
-import os
-import sys
+import gc
 import numpy as np
-from pathlib import Path
 from numbers import Number
-
-from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 
 import xobjects as xo
 
-from .std_redirect import pin_python_stdio
+from .rpyc import launch_rpyc_with_port # remove after geant4 bugfix
 from .bdsim_config import create_bdsim_config_file, get_collimators_from_input_file
+from .reference_masses import geant4_masses_src
 from ..engine import BaseEngine
 from ...general import _pkg_root
-try:
-    from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
-except (ImportError, ModuleNotFoundError):
-    from ...xaux import FsPath
 
 
 class Geant4Engine(BaseEngine):
@@ -36,6 +29,8 @@ class Geant4Engine(BaseEngine):
 
     _depends_on = [BaseEngine]
 
+    _extra_c_sources = [geant4_masses_src]
+
     def __init__(self, **kwargs):
         # Set element classes dynamically
         from ...beam_elements import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
@@ -49,6 +44,7 @@ class Geant4Engine(BaseEngine):
         # Set default values for new properties
         self.relative_energy_cut = None
         self.reentry_protection_enabled = None
+        self._physics_settings._use_cuts = False
 
 
     # ======================
@@ -64,6 +60,7 @@ class Geant4Engine(BaseEngine):
         if val is None:
             val = 0.1
         if not isinstance(val, Number) or val <= 0:
+            self.stop()
             raise ValueError("`relative_energy_cut` has to be a strictly postive number!")
         self._relative_energy_cut = val
 
@@ -84,51 +81,9 @@ class Geant4Engine(BaseEngine):
             else:
                 val = True
         elif not isinstance(val, bool):
+            self.stop()
             raise ValueError("`reentry_protection_enabled` has to be a boolean!")
         self._reentry_protection_enabled = val
-
-    @property
-    def lower_momentum_cut(self):
-        return self._lower_momentum_cut
-
-    @lower_momentum_cut.setter
-    def lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            raise ValueError("`lower_momentum_cut` has to be a non-negative number!")
-        self._lower_momentum_cut = val
-
-    @property
-    def photon_lower_momentum_cut(self):
-        return self._photon_lower_momentum_cut
-
-    @photon_lower_momentum_cut.setter
-    def photon_lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            raise ValueError("`photon_lower_momentum_cut` has to be a non-negative number!")
-        self._photon_lower_momentum_cut = val
-
-    @property
-    def electron_lower_momentum_cut(self):
-        return self._electron_lower_momentum_cut
-
-    @electron_lower_momentum_cut.setter
-    def electron_lower_momentum_cut(self, val):
-        if val is None:
-            val = 0.0  # TODO: keep in mind that relative_energy_cut must be consistent with this
-        else:
-            raise NotImplementedError  # TODO
-        if not isinstance(val, Number) or val < 0:
-            raise ValueError("`electron_lower_momentum_cut` has to be a non-negative number!")
-        self._electron_lower_momentum_cut = val
-
 
     # ============================
     # === Overwrite Properties ===
@@ -142,14 +97,14 @@ class Geant4Engine(BaseEngine):
     def relative_capacity(self):
         return None  # Geant4 capacity is dynamic
 
-
     # =================================
     # === Base methods to overwrite ===
     # =================================
 
     def _set_engine_properties(self, **kwargs):
-        self._set_property('relative_energy_cut', kwargs)
         kwargs = super()._set_engine_properties(**kwargs)
+        self._set_property('relative_energy_cut', kwargs)
+        self._set_property('reentry_protection_enabled', kwargs)
         return kwargs
 
     def _pre_input(self, **kwargs):
@@ -162,14 +117,14 @@ class Geant4Engine(BaseEngine):
     def _generate_input_file(self, **kwargs):
         input_file, kwargs = create_bdsim_config_file(element_dict=self._element_dict,
                                 particle_ref=self.particle_ref, verbose=self.verbose,
-                                **kwargs)
+                                cwd=self.cwd, **kwargs)
         # The only thing left in kwargs are parameters to start the engine
         return input_file, kwargs
 
     def _start_engine(self, **kwargs):
         from ...beam_elements import BaseCrystal, Geant4CollimatorTip
 
-        Ekin = self.particle_ref.energy0 - self.particle_ref.mass0
+        Ekin = self.particle_ref.energy0[0] - self.particle_ref.mass0
         try:
             from g4interface import XtrackInterface
         except (ModuleNotFoundError, ImportError) as error:
@@ -182,8 +137,9 @@ class Geant4Engine(BaseEngine):
             try:
                 import rpyc
             except (ModuleNotFoundError, ImportError) as e:
+                self.stop()
                 raise ImportError("Failed to import rpyc. Cannot connect to BDSIM.") from e
-            self._server, port = launch_rpyc_with_port()
+            self._server, port = launch_rpyc_with_port(log_path=self.cwd / "rpyc.log")
             self._conn = rpyc.classic.connect('localhost', port=port)
             self._conn._config['sync_request_timeout'] = 1240 # Set timeout to 1240 seconds
             self._conn.execute('import sys')
@@ -191,11 +147,12 @@ class Geant4Engine(BaseEngine):
             self._conn.execute(f'sys.path.append("{(_pkg_root / "scattering_routines" / "geant4").as_posix()}")')
             self._conn.execute('import engine_server')
             self._g4link = self._conn.namespace['engine_server'].BDSIMServer()
-            self._g4link.XtrackInterface(bdsimConfigFile='geant4_input.gmad',
-                                         referencePdgId=self.particle_ref.pdg_id,
+            self._g4link.XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
+                                         referencePdgId=self.particle_ref.pdg_id[0],
                                          referenceEk=Ekin,
                                          relativeEnergyCut=self.relative_energy_cut,
-                                         seed=self.seed, batchMode=True)
+                                         seed=self.seed, batchMode=True,
+                                         workdir=self.cwd.as_posix())
         else:
             if self._already_started:
                 self.stop(clean=True)
@@ -203,14 +160,12 @@ class Geant4Engine(BaseEngine):
                                  + "Please exit this Python process. Do pip install rpyc "
                                  + "to avoid this limitation.")
 
-            # Take iostream copies before we construct XtrackInterface (i.e. before FDRedirect runs)
-            # to avoid python output being redirected by FDRedirect in C
-            with pin_python_stdio():
-                self._g4link = XtrackInterface(bdsimConfigFile='geant4_input.gmad',
-                                               referencePdgId=self.particle_ref.pdg_id,
-                                               referenceEk=Ekin,
-                                               relativeEnergyCut=self.relative_energy_cut,
-                                               seed=self.seed, batchMode=True)
+            self._g4link = XtrackInterface(bdsimConfigFile=self.input_file.as_posix(),
+                                           referencePdgId=self.particle_ref.pdg_id[0],
+                                           referenceEk=Ekin,
+                                           relativeEnergyCut=self.relative_energy_cut,
+                                           seed=self.seed, batchMode=True,
+                                           workdir=self.cwd.as_posix())
 
         for el in self._element_dict.values():
             side = 2 if el._side == -1 else el._side
@@ -240,6 +195,8 @@ class Geant4Engine(BaseEngine):
         self._already_started = True
 
     def _stop_engine(self, **kwargs):
+        del self._g4link
+        gc.collect()
         self._g4link = None
         if self.reentry_protection_enabled and self._server: # remove after geant4 bugfix
             self._server.terminate() # remove after geant4 bugfix
@@ -268,6 +225,7 @@ class Geant4Engine(BaseEngine):
         input_dict = get_collimators_from_input_file(self.input_file)
         for name in input_dict:
             if name not in self._element_dict:
+                self.stop()
                 raise ValueError(f"Element {name} in input file not found in engine!")
         for name, ee in self._element_dict.items():
             from ...beam_elements import Geant4CollimatorTip
@@ -288,14 +246,17 @@ class Geant4Engine(BaseEngine):
                 ee.angle = input_dict[name]['angle']
             if ee.material.geant4_name != input_dict[name]['material'] \
             and ee.material.name != input_dict[name]['material']:
+                self.stop()
                 raise ValueError(f"Material of {name} differs from input file "
                             + f"({ee.material.geant4_name or ee.material.name} "
                             + f"vs {input_dict[name]['material']})!")
             if isinstance(ee, Geant4CollimatorTip) or 'tip_material' in input_dict[name]:
                 if not isinstance(ee, Geant4CollimatorTip):
+                    self.stop()
                     raise ValueError(f"Element {name} is not a Geant4CollimatorTip "
                                     + "in the line, but it has tip material in the input file!")
                 if 'tip_material' not in input_dict[name] or 'tip_thickness' not in input_dict[name]:
+                    self.stop()
                     raise ValueError(f"Element {name} is a Geant4CollimatorTip, "
                                     + "but it has no tip material in the input file!")
                 if ee.tip_material.geant4_name != input_dict[name]['tip_material']:

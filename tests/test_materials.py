@@ -6,9 +6,9 @@
 import pytest
 import numpy as np
 
-import xtrack as xt
 import xcoll as xc
-from xcoll.materials import Material, CrystalMaterial, db as mdb
+from xcoll.materials import Material, db as mdb
+from xcoll.compare import deep_equal
 
 
 # TODO: make test_crystal_material_creation and test_adapt(), and expand test_db
@@ -71,9 +71,9 @@ def test_elemental_material_creation():
     assert np.isclose(mat._atoms_per_volume, mat.atoms_per_volume)
     assert np.isclose(mat.num_effective_nucleons, 3.704356404188558)
     assert np.isclose(mat._num_nucleons_eff, mat.num_effective_nucleons)
-    assert xt.line._dicts_equal(mat.to_dict(), {'__class__': 'Material', 'name': 'TestMAT',
+    assert deep_equal(mat.to_dict(), {'__class__': 'Material', 'name': 'TestMAT',
                                                 'A': 12.01, 'Z': 6, 'density': 2.265})
-    assert xt.line._dicts_equal(mat._xobject._to_dict(), {
+    assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.265),
         '_ZA_mean': np.float64(0.4995836802664446),
         '_Z2_eff': np.float64(36.0),
@@ -89,7 +89,11 @@ def test_elemental_material_creation():
         np.float64(-1.0),
         np.float64(-1.0),
         np.float64(-1.0)],
-        '_hcut': np.float64(-1.0)
+        '_hcut': np.float64(-1.0),
+        '_crystal_plane_distance': np.float64(-1.0),
+        '_crystal_potential': np.float64(-1.0),
+        '_nuclear_collision_length': np.float64(-1.0),
+        '_eta': np.float64(-1.0)
     })
 
     # Remove Z
@@ -394,14 +398,14 @@ def test_compound_material_creation():
     assert np.isclose(mat._atoms_per_volume, mat.atoms_per_volume)
     assert np.isclose(mat.num_effective_nucleons, 2.3573500951095088)
     assert np.isclose(mat._num_nucleons_eff, mat.num_effective_nucleons)
-    assert xt.line._dicts_equal(mat.to_dict(), {'__class__': 'Material',
-        'components': [mdb['C'], mdb['H'], mdb['O']],
+    assert deep_equal(mat.to_dict(), {'__class__': 'Material',
+        'components': [mdb['C'].to_dict(), mdb['H'].to_dict(), mdb['O'].to_dict()],
         'temperature': 293.15,
         'name': 'Ethanol',
         'n_atoms': [2, 6, 1],
         'state': 'liquid',
         'density': 0.78945})
-    assert xt.line._dicts_equal(mat._xobject._to_dict(), {
+    assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(0.78945),
         '_ZA_mean': np.float64(0.5643708350517702),
         '_Z2_eff': np.float64(15.777777777777777),
@@ -417,7 +421,11 @@ def test_compound_material_creation():
         np.float64(-1.0),
         np.float64(-1.0),
         np.float64(-1.0)],
-        '_hcut': np.float64(-1.0)
+        '_hcut': np.float64(-1.0),
+        '_crystal_plane_distance': np.float64(-1.0),
+        '_crystal_potential': np.float64(-1.0),
+        '_nuclear_collision_length': np.float64(-1.0),
+        '_eta': np.float64(-1.0)
     })
 
     # Remove density
@@ -605,14 +613,14 @@ def test_mixture_material_creation():
     assert np.isclose(mat._atoms_per_volume, mat.atoms_per_volume)
     assert np.isclose(mat.num_effective_nucleons, 3.9008141200039312)
     assert np.isclose(mat._num_nucleons_eff, mat.num_effective_nucleons)
-    assert xt.line._dicts_equal(mat.to_dict(), {'__class__': 'Material',
-        'components': [mdb[nn] for nn in ['H', 'C', 'O', 'Na', 'Mg', 'Al', 'Si', 'K', 'Ca', 'Fe']],
+    assert deep_equal(mat.to_dict(), {'__class__': 'Material',
+        'components': [mdb[nn].to_dict() for nn in ['H', 'C', 'O', 'Na', 'Mg', 'Al', 'Si', 'K', 'Ca', 'Fe']],
         'name': 'Concrete',
         'mass_fractions': [0.01, 0.001, 0.529107, 0.016, 0.002, 0.033872,
                             0.337021, 0.013, 0.044, 0.014],
         'state': 'solid',
         'density': 2.35})
-    assert xt.line._dicts_equal(mat._xobject._to_dict(), {
+    assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.35),
         '_ZA_mean': np.float64(0.5027459683349229),
         '_Z2_eff': np.float64(93.86563197810295),
@@ -628,7 +636,11 @@ def test_mixture_material_creation():
         np.float64(-1.0),
         np.float64(-1.0),
         np.float64(-1.0)],
-        '_hcut': np.float64(-1.0)
+        '_hcut': np.float64(-1.0),
+        '_crystal_plane_distance': np.float64(-1.0),
+        '_crystal_potential': np.float64(-1.0),
+        '_nuclear_collision_length': np.float64(-1.0),
+        '_eta': np.float64(-1.0)
     })
 
 

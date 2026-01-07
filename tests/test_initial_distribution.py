@@ -32,7 +32,8 @@ path = Path(__file__).parent / 'data'
 @retry()
 def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread,
                                      longitudinal, longitudinal_betatron_cut): #, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / f'colldb_lhc_run3_ir7.yaml',
                                                    beam=beam)
 
@@ -154,4 +155,3 @@ def test_create_initial_distribution(beam, npart,impact_parameter, pencil_spread
         count,_ = np.histogram(part_div.delta, bins=50)
         _, p = stats.kstest((count - np.mean(count))/np.std(count), 'norm')
         assert p > 0.05
-

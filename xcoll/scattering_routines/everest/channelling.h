@@ -18,12 +18,12 @@
 
 
 /*gpufun*/
-double channelling_average_density(EverestData restrict everest, CrystalMaterialData restrict material,
+double channelling_average_density(EverestData restrict everest, MaterialData restrict material,
                                    CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
     // Material properties
     double const atoms = MaterialData_get__atoms_per_volume((MaterialData)material);
-    double const eum  = CrystalMaterialData_get__crystal_potential(material);
+    double const eum  = MaterialData_get__crystal_potential(material);
 
     double bend_r = cg->bending_radius;
     double ratio  = everest->Rc_over_R;
@@ -71,7 +71,7 @@ double channelling_average_density(EverestData restrict everest, CrystalMaterial
 
 
 /*gpufun*/
-double* channel_transport(EverestData restrict everest, CrystalMaterialData restrict material,
+double* channel_transport(EverestData restrict everest, MaterialData restrict material,
                           LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
     //             This equates to an opening angle t_P wrt. to the point P (center of miscut if at start of crystal)
@@ -125,7 +125,7 @@ double* channel_transport(EverestData restrict everest, CrystalMaterialData rest
 }
 
 
-double do_crystal(EverestData restrict everest, CrystalMaterialData restrict material,
+double do_crystal(EverestData restrict everest, MaterialData restrict material,
                   LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
     calculate_initial_angle(everest, part, cg);
     calculate_opening_angle(everest, part, cg);
@@ -140,7 +140,7 @@ double do_crystal(EverestData restrict everest, CrystalMaterialData restrict mat
     if (fabs(xp - everest->t_I) < everest->t_c) {
         double alpha = fabs(xp - everest->t_I) / everest->t_c;
         double ratio = everest->Rc_over_R;
-        double eta = CrystalMaterialData_get__eta(material);
+        double eta = MaterialData_get__eta(material);
         double xi = RandomUniform_generate(part)/(1 - ratio)/sqrt(eta);
         if (xi > 1 || alpha > 2*sqrt(xi)*sqrt(1-xi)) {
 #ifdef XCOLL_TRANSITION_VRCH
@@ -159,7 +159,7 @@ double do_crystal(EverestData restrict everest, CrystalMaterialData restrict mat
     return pc;
 }
 
-double Channel(EverestData restrict everest, CrystalMaterialData restrict material,
+double Channel(EverestData restrict everest, MaterialData restrict material,
                LocalParticle* part, CrystalGeometry restrict cg, double pc, double length) {
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
@@ -187,7 +187,7 @@ double Channel(EverestData restrict everest, CrystalMaterialData restrict materi
     // Calculate curved length L_nucl of nuclear interaction
     // -----------------------------------------------------
     // Nuclear interaction length is rescaled in this case, because channelling
-    double collnt = CrystalMaterialData_get__nuclear_collision_length(material);
+    double collnt = MaterialData_get__nuclear_collision_length(material);
     double avrrho = channelling_average_density(everest, material, cg, part, pc);
     if (avrrho == 0) {
         collnt = 1.e10;  // very large because essentially 1/0

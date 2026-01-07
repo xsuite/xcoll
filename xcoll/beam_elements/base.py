@@ -617,6 +617,8 @@ class BaseCollimator(BaseBlock):
 
     @tilt_L.setter   # This assumes jaw_L remains fixed (hence jaw_LU and jaw_LD change)
     def tilt_L(self, val):
+        if val is None:
+            val = 0
         if self.side == 'right' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_L (right-sided collimator).")
@@ -640,6 +642,8 @@ class BaseCollimator(BaseBlock):
 
     @tilt_R.setter   # This assumes jaw_R remains fixed (hence jaw_RU and jaw_RD change)
     def tilt_R(self, val):
+        if val is None:
+            val = 0
         if self.side == 'left' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_R (left-sided collimator).")
@@ -1052,7 +1056,7 @@ class BaseCollimator(BaseBlock):
 
         # Verify bools
         if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
-            assert self._side in [-1, 1, 0]
+            assert self._side in [-1, 0, 1]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1476,10 +1480,8 @@ class BaseCrystal(BaseBlock):
 
     @side.setter
     def side(self, val):
-        temp = self._side
         BaseCollimator.side.fset(self, val)
         if self._side == 0:
-            self._side = temp
             raise ValueError("Crystal cannot be two-sided! Please set `side` "
                            + "to 'left' or 'right'.")
 
