@@ -329,6 +329,7 @@ class BaseEngine(xo.HybridClass):
         self._starting_or_stopping = False
         self._warning_given = False
         self._tracking_initialised = False
+        self._environment.restore_environment()
 
     def is_running(self):
         if hasattr(self, '_starting_or_stopping') and self._starting_or_stopping:
@@ -481,7 +482,10 @@ class BaseEngine(xo.HybridClass):
                     if f not in self._all_input_files(kwargs['input_file'])]
         for f in files_to_delete:
             if f is not None and f.exists():
-                f.unlink()
+                if f.is_dir():
+                    f.rmtree()
+                else:
+                    f.unlink()
 
     def clean_output_files(self, clean_all=False, **kwargs):
         kwargs = self._get_input_cwd_for_cleaning(**kwargs)
@@ -491,7 +495,10 @@ class BaseEngine(xo.HybridClass):
                     if f not in self._all_input_files(kwargs['input_file'])]
         for f in files_to_delete:
             if f is not None and f.exists():
-                f.unlink()
+                if f.is_dir():
+                    f.rmtree()
+                else:
+                    f.unlink()
 
 
     # =======================

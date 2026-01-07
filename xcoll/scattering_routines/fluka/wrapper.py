@@ -36,12 +36,6 @@ class FlukaWrapper(BaseWrapper):
         self._lazy_load_environment()
         return FlukaPrototypeAccessor()
 
-    def reset_generic(self):
-        for ass in self.assemblies['generic']:
-            ass.delete()
-        for pro in self.prototypes['generic']:
-            pro.delete()
-
     def view(self, elements=None, *, input_file=None):
         if elements:
             if input_file:

@@ -23,7 +23,7 @@ def _is_ion(pdg_id):
     return is_ion(pdg_id)
 
 
-def get_include_files(particle_ref, include_files=[], *, verbose=True, crystal_assemblies=[],
+def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblies=[],
                       bb_int=False, touches=False, **kwargs):
 
     import xcoll as xc
@@ -41,16 +41,13 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, crystal_a
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
         scoring_file = _scoring_include_file(verbose=verbose, return_list=phys, get_touches=touches,
-                                             use_crystals=len(crystal_assemblies)>0)
-
+                                             use_crystals=any([assm.is_crystal for assm in assemblies]))
         this_include_files.append(scoring_file)
+    if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
+        material_file = _assignmat_include_file(assemblies=assemblies)
+        this_include_files.append(material_file)
 
     # Add any additional include files
-    for ff in (_pkg_root / 'scattering_routines' / 'fluka' / 'data').glob('include_*'):
-        if ff.name not in [file.name for file in this_include_files]:
-            this_include_files.append(ff)
-    if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
-        this_include_files.append(_assignmat_include_file(crystal_assemblies=crystal_assemblies))
     if 'include_custom_biasing.inp' not in [file.name for file in this_include_files]:
         this_include_files.append(_biasing_include_file())
     if 'include_define.inp' not in [file.name for file in this_include_files]:
@@ -64,11 +61,11 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, crystal_a
     return this_include_files, kwargs
 
 
-def _assignmat_include_file(crystal_assemblies=[]):
+def _assignmat_include_file(assemblies=[]):
     from xcoll.materials.database import db as mdb
     template =  ''.join([mat._generated_fluka_code for mat in mdb.fluka.values()
                          if mat._generated_fluka_code is not None])
-    if crystal_assemblies:
+    if any([assm.is_crystal for assm in assemblies]):
         template += f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 * Crystal Card
@@ -88,12 +85,14 @@ def _assignmat_include_file(crystal_assemblies=[]):
 * CRYSTAL what (13) what (14) what (15) &&
 *
 """
-    for crystal in crystal_assemblies:
+    for crystal in assemblies:
         if not crystal.is_crystal:
-            raise ValueError(f"Prototype/assembly {crystal.name} is not a crystal.")
-        name   = crystal.name
-        l      = crystal.length * 100
-        bang   = round(l/(crystal.bending_radius*100) *1000, 6) # mrad
+            continue
+        name = crystal.name
+        if isinstance(crystal, FlukaAssembly) and crystal.is_generic():
+            name = crystal.prototypes[1].name   # region is tied to crystal body
+        l = crystal.length * 100
+        bang = round(l/(crystal.bending_radius*100) *1000, 6) # mrad
         if crystal.fluka_position is not None:
             pos = crystal.fluka_position
         else:

@@ -22,30 +22,48 @@ except (ImportError, ModuleNotFoundError):
 _header_start = "*  XCOLL START  **"
 _header_stop  = "*  XCOLL END  **"
 
+def _stop_and_error(old_cwd, error):
+    if old_cwd is not None:
+        os.chdir(old_cwd)
+    import xcoll as xc
+    xc.fluka.engine.stop()
+    raise error
 
 def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
                        verbose=True, cwd=None, **kwargs):
     import xcoll as xc
+    old_cwd = None
     if cwd is not None:
         old_cwd = FsPath.cwd()
         os.chdir(cwd)
-    _create_prototypes_file(element_dict, prototypes_file)
-    kwargs['crystal_assemblies'] = []
+    assemblies = []
     for nn, ee in element_dict.items():
         if isinstance(ee, FlukaCrystal):
             if not ee.assembly.is_crystal:
-                raise ValueError(f"Collimator {nn} has a crystal element but its assembly is not a crystal!")
-            kwargs['crystal_assemblies'].append(ee.assembly)
-    _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
+                _stop_and_error(old_cwd, ValueError(f"Collimator {nn} has a crystal element but its assembly is not a crystal!"))
+        assemblies.append(ee.assembly)
+    try:
+        kwargs['assemblies'] = assemblies
+        for assm in assemblies:
+            if assm.material is not None:
+                if assm.material.fluka_name is None or assm.material.fluka_name.startswith('XCOLL'):
+                    assm.material._generate_fluka_code()
+        fedb = xc.fluka.environment.create_temp_fedb(assemblies)
+        _create_prototypes_file(element_dict, prototypes_file)
+        _, kwargs = get_include_files(particle_ref, verbose=verbose, **kwargs)
+    except Exception as e:
+        _stop_and_error(old_cwd, e)
     # Call FLUKA_builder
-    collimator_dict = _element_dict_to_fluka(element_dict)
-    input_file, fluka_dict = _fluka_builder(collimator_dict)
+    try:
+        collimator_dict = _element_dict_to_fluka(element_dict)
+        input_file, fluka_dict = _fluka_builder(collimator_dict, fedb=fedb)
+    except Exception as e:
+        _stop_and_error(old_cwd, e)
     input_file = FsPath(input_file).resolve()
     insertion_file = (input_file.parent / 'insertion.txt').resolve()
-    assert input_file.exists()
-    assert insertion_file.exists()
+    if not input_file.exists() or not insertion_file.exists():
+        _stop_and_error(old_cwd, FileNotFoundError("LineBuilder did not create the expected output files!"))
     # Expand using include files
-    fedb = xc.fluka.environment.fedb
     cmd = run([(fedb / 'tools' / 'expand.sh').as_posix(), input_file.name],
               cwd=FsPath.cwd(), stdout=PIPE, stderr=PIPE)
     if cmd.returncode == 0:
@@ -53,31 +71,16 @@ def create_fluka_input(element_dict, particle_ref, prototypes_file=None,
             print("Expanded include files.")
     else:
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-        raise RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}")
+        _stop_and_error(old_cwd, RuntimeError(f"Could not expand include files!\nError given is:\n{stderr}"))
     new_input_file = input_file.parent / f'{input_file.stem}_exp.inp'
-    assert new_input_file.exists()
+    if not new_input_file.exists():
+        _stop_and_error(old_cwd, FileNotFoundError("expand.sh did not create the expected expanded input file!"))
     input_file.rename(input_file.parent / f'{input_file.stem}_orig.inp')
     new_input_file.rename(input_file)
-    # Check that all collimators were treated and write header
-    for name, ee in element_dict.items():
-        if name.lower() not in fluka_dict:
-            if verbose:
-                print(f"Warning: Collimator {name} was requested but not treated by "
-                    + f"the LineBuilder.")
-        else:
-            fluka_dict[name.lower()]['length'] /= 100
-            fluka_dict[name.lower()]['angle'] = ee.angle
-            if ee.assembly.is_crystal:
-                if ee.side == 'left':
-                    fluka_dict[name.lower()]['tilt'] = [ee.tilt, None]
-                    fluka_dict[name.lower()]['jaw'] = [ee.jaw, None]
-                elif ee.side == 'right':
-                    fluka_dict[name.lower()]['tilt'] = [None, ee.tilt]
-                    fluka_dict[name.lower()]['jaw'] = [None, ee.jaw]
-            else:
-                fluka_dict[name.lower()]['tilt'] = [ee.tilt_L, ee.tilt_R]
-                fluka_dict[name.lower()]['jaw'] = [ee.jaw_L, ee.jaw_R]
-    _write_xcoll_header_to_fluka_input(input_file, fluka_dict)
+    try:
+        _write_xcoll_header_to_fluka_input(input_file, fluka_dict, element_dict, verbose)
+    except Exception as e:
+        _stop_and_error(old_cwd, e)
     if cwd is not None:
         os.chdir(old_cwd)
     if verbose:
@@ -132,8 +135,8 @@ def _element_dict_to_fluka(element_dict, dump=False):
                 nsig = ee.gap
                 half_gap = -ee.jaw  # Mistake in LineBuilder?
             offset = 0
-            tilt_1 = ee.tilt
-            tilt_2 = 0
+            tilt_1 = 0
+            tilt_2 = ee.tilt
         else:
             tilt_1 = ee.tilt_L
             tilt_2 = ee.tilt_R
@@ -192,10 +195,10 @@ def _element_dict_to_fluka(element_dict, dump=False):
     return collimator_dict
 
 
-def _fluka_builder(collimator_dict):
+def _fluka_builder(collimator_dict, fedb):
     import xcoll as xc
     # Save system state
-    xc.fluka.environment.set_fedb_environment()
+    xc.fluka.environment.set_fedb_environment(fedb)
     file_path = xc.fluka.environment.linebuilder / "src" / "FLUKA_builder.py"
     if file_path.exists():
         try:
@@ -212,7 +215,9 @@ def _fluka_builder(collimator_dict):
     args_fb.geometrical_emittance = None
     args_fb.prototype_file = 'prototypes.lbp'
     args_fb.output_name = 'fluka_input'
-
+    args_fb.fedb_u_path = fedb.as_posix()
+    import importlib, structure
+    importlib.reload(structure)
     with open('linebuilder.log', 'w') as f:
         with redirect_stdout(f):
             input_file, coll_dict = fb.fluka_builder(args_fb, auto_accept=True)
@@ -223,9 +228,28 @@ def _fluka_builder(collimator_dict):
     return input_file, coll_dict
 
 
-def _write_xcoll_header_to_fluka_input(input_file, collimator_dict):
+def _write_xcoll_header_to_fluka_input(input_file, fluka_dict, element_dict, verbose):
+    # Check that all collimators were treated and write header
+    for name, ee in element_dict.items():
+        if name.lower() not in fluka_dict:
+            if verbose:
+                print(f"Warning: Collimator {name} was requested but not treated by "
+                    + f"the LineBuilder.")
+        else:
+            fluka_dict[name.lower()]['length'] /= 100
+            fluka_dict[name.lower()]['angle'] = ee.angle
+            if ee.assembly.is_crystal:
+                if ee.side == 'left':
+                    fluka_dict[name.lower()]['tilt'] = [ee.tilt, None]
+                    fluka_dict[name.lower()]['jaw'] = [ee.jaw, None]
+                elif ee.side == 'right':
+                    fluka_dict[name.lower()]['tilt'] = [None, ee.tilt]
+                    fluka_dict[name.lower()]['jaw'] = [None, ee.jaw]
+            else:
+                fluka_dict[name.lower()]['tilt'] = [ee.tilt_L, ee.tilt_R]
+                fluka_dict[name.lower()]['jaw'] = [ee.jaw_L, ee.jaw_R]
     header = ["*  DO NOT CHANGE THIS HEADER", _header_start, "*  {"]
-    for kk, vv in collimator_dict.items():
+    for kk, vv in fluka_dict.items():
         header.append(f'*  "{kk}": ' + json.dumps(vv).replace('"jaw"', '\n*          "jaw"') + ',')
     header[-1] = header[-1][:-1]  # remove last comma
     header.append("*  }")

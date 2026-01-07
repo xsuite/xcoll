@@ -1079,7 +1079,7 @@ class Material(xo.HybridClass):
         and self._generated_fluka_code is not None:
             return # Already generated
         if self.fluka_name and not self.fluka_name.startswith('XCOLL'):
-            raise ValueError(f'Material already has a FLUKA name assigned: {self.fluka_name}.')
+            raise ValueError(f'Material already known to FLUKA ({self.fluka_name}).')
         if self.name is None:
             raise ValueError('Material must have a name to generate fluka code.')
         if self.components is not None:

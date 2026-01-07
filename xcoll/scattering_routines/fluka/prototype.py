@@ -104,6 +104,9 @@ class FlukaPrototype:
         self._info = info
         self._extra_commands = extra_commands
         self._is_broken = is_broken
+        self._generic_body_file = None
+        self._generic_region_file = None
+        self._generic_material_file = None
         self._initialized = True
 
     def __repr__(self):
@@ -137,6 +140,11 @@ class FlukaPrototype:
             return False
         # Needed for proper handling of prototypes that are deleted
         return self not in self._registry
+
+    def is_generic(self):
+        if self._is_null:
+            return False
+        return self.fedb_series.lower() == 'generic'
 
     def delete(self, **kwargs):
         import xcoll as xc
@@ -235,6 +243,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             return None
+        if self.is_generic():
+            return self._generic_body_file
         fedb = xc.fluka.environment.fedb
         file = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         return file.resolve()
@@ -246,6 +256,9 @@ class FlukaPrototype:
             raise ValueError("Cannot set body_file for a null prototype!")
         if self.is_defunct():
             raise ValueError(f"Cannot set body_file for defunct {self._type} '{self.name}'!")
+        if self.is_generic():
+            raise ValueError(f"Cannot set body_file for generic {self._type} '{self.name}'! "
+                            + "These are generated automatically.")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -261,6 +274,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             return None
+        if self.is_generic():
+            return self._generic_material_file
         fedb = xc.fluka.environment.fedb
         file = fedb / "materials" / f"{self.fedb_series}_{self.fedb_tag}.assignmat"
         return file.resolve()
@@ -272,6 +287,9 @@ class FlukaPrototype:
             raise ValueError("Cannot set material_file for a null prototype!")
         if self.is_defunct():
             raise ValueError(f"Cannot set material_file for defunct {self._type} '{self.name}'!")
+        if self.is_generic():
+            raise ValueError(f"Cannot set material_file for generic {self._type} '{self.name}'! "
+                            + "These are generated automatically.")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -284,6 +302,8 @@ class FlukaPrototype:
         import xcoll as xc
         if self._is_null:
             return None
+        if self.is_generic():
+            return self._generic_region_file
         fedb = xc.fluka.environment.fedb
         file = fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions"
         return file.resolve()
@@ -295,6 +315,9 @@ class FlukaPrototype:
             raise ValueError("Cannot set region_file for a null prototype!")
         if self.is_defunct():
             raise ValueError(f"Cannot set region_file for defunct {self._type} '{self.name}'!")
+        if self.is_generic():
+            raise ValueError(f"Cannot set region_file for generic {self._type} '{self.name}'! "
+                            + "These are generated automatically.")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -302,11 +325,37 @@ class FlukaPrototype:
         path.copy_to(fedb / "regions" / f"{self.fedb_series}_{self.fedb_tag}.regions",
                      method='mount')
 
+    def populate_into_temp_fedb(self, fedb):
+        fedb = FsPath(fedb).resolve()
+        if not fedb.exists():
+            fedb.mkdir(parents=True)
+            (fedb / 'assemblies').mkdir(parents=True)
+            (fedb / 'bodies').mkdir(parents=True)
+            (fedb / 'regions').mkdir(parents=True)
+            (fedb / 'materials').mkdir(parents=True)
+            (fedb / 'stepsizes').mkdir(parents=True)
+        if self.is_generic():
+            for f in self.files:
+                if f is None or not f.exists():
+                    raise ValueError(f"Generic prototype '{self.name}' is missing files!")
+            return  # Generic prototypes are generated automatically
+        link = fedb / 'bodies' / self.body_file.name
+        if not link.exists():
+            link.symlink_to(self.body_file)
+        mat_link = fedb / 'materials' / f'{self.body_file.stem}.assignmat'
+        if not mat_link.exists() and self.material_file is not None:
+            mat_link.symlink_to(self.material_file)
+        reg_link = fedb / 'regions' / f'{self.body_file.stem}.regions'
+        if not reg_link.exists() and self.region_file is not None:
+            reg_link.symlink_to(self.region_file)
+
     @property
     def files(self):
         return [self.body_file, self.material_file, self.region_file]
 
     def exists(self):
+        if self.is_generic():
+            return True
         if self._is_null or not self.files or self.is_defunct():
             return False
         return np.all([ff.exists() for ff in self.files])
@@ -596,6 +645,10 @@ class FlukaPrototype:
 
 
 class FlukaAssembly(FlukaPrototype):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._generic_assembly_file = None
+
     def delete(self, _ignore_files=False, **kwargs):
         import xcoll as xc
         if self._is_null:
@@ -634,6 +687,8 @@ class FlukaAssembly(FlukaPrototype):
         import xcoll as xc
         if self._is_null:
             return None
+        if self.is_generic():
+            return self._generic_assembly_file
         fedb = xc.fluka.environment.fedb
         file = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         return file.resolve()
@@ -645,6 +700,9 @@ class FlukaAssembly(FlukaPrototype):
             raise ValueError("Cannot set assembly_file for a null assembly!")
         if self.is_defunct():
             raise ValueError(f"Cannot set assembly_file for defunct assembly '{self.name}'!")
+        if self.is_generic():
+            raise ValueError(f"Cannot set assembly_file for generic assembly '{self.name}'!\n"
+                           + f"It is generated automatically.")
         path = FsPath(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} does not exist!")
@@ -684,6 +742,45 @@ class FlukaAssembly(FlukaPrototype):
     @region_file.setter
     def region_file(self, path):
         pass
+
+    def populate_into_temp_fedb(self, fedb):
+        fedb = FsPath(fedb).resolve()
+        if not fedb.exists():
+            raise ValueError(f"FEDB path {fedb} does not exist!")
+        if self.is_generic():
+            from xcoll.scattering_routines.fluka.generic_prototype import (
+                _assembly_file, _body_file, _crystal_body_file, _region_file,
+                _crystal_region_file, _material_file, _crystal_material_file
+            )
+            if self.is_crystal:
+                body_file, tank_file = _crystal_body_file(fedb, self.fedb_tag,
+                    self.length, self.bending_radius, self.width, self.height)
+                body_region_file, tank_region_file = _crystal_region_file(fedb, self.fedb_tag)
+                body_mat_file, tank_mat_file = _crystal_material_file(fedb, self.fedb_tag, self.material)
+            else:
+                body_file, tank_file = _body_file(fedb, self.fedb_tag, self.length,
+                                                  self.width, self.height)
+                body_region_file, tank_region_file = _region_file(fedb, self.fedb_tag)
+                body_mat_file, tank_mat_file = _material_file(fedb, self.fedb_tag, self.material)
+            for pro in self.prototypes:
+                if pro.name.endswith('_B'):
+                    pro._generic_body_file = body_file
+                    pro._generic_region_file = body_region_file
+                    pro._generic_material_file = body_mat_file
+                elif pro.name.endswith('_T'):
+                    pro._generic_body_file = tank_file
+                    pro._generic_region_file = tank_region_file
+                    pro._generic_material_file = tank_mat_file
+                else:
+                    raise ValueError(f"Generic assembly prototype '{pro.name}' has invalid name! "
+                                   + "Expected to end with '_B' or '_T'.")
+            self._generic_assembly_file = _assembly_file(fedb, self.fedb_tag, self.side)
+        else:
+            link = fedb / 'assemblies' / self.assembly_file.name
+            if not link.exists():
+                link.symlink_to(self.assembly_file)
+        for prot in self.prototypes:
+            prot.populate_into_temp_fedb(fedb)
 
     @property
     def prototypes(self):
@@ -742,7 +839,12 @@ class FlukaAssembly(FlukaPrototype):
             return files
 
     def check_file_valid(self, raise_error=True):
-        if self._file_is_valid is None:
+        if self._file_is_valid is None or self._file_is_valid == False:
+            if self.assembly_file is None:
+                self._file_is_valid = False
+                if raise_error:
+                    raise ValueError("Assembly has no assembly_file defined!")
+                return self._file_is_valid
             self._file_is_valid = True
             prototype_found = False
             fedb_series = None

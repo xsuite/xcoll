@@ -34,7 +34,7 @@ def test_hierarchy(engine):
     y = np.arange(-0.001, 0.001+step, step)
     X, Y = np.meshgrid(x,y)
     coords = np.vstack([X.ravel(), Y.ravel()]).T
-    capacity = 5*len(coords[:,0])
+    capacity = 50*len(coords[:,0])
 
     if engine == "fluka":
         coll = xc.FlukaCollimator(length=length/num_slices, jaw=jaw, material=material)

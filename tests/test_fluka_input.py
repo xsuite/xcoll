@@ -16,6 +16,9 @@ from xcoll.scattering_routines.fluka.fluka_input import get_collimators_from_inp
 @pytest.mark.fluka
 @pytest.mark.parametrize("el_type", ['collimator', 'crystal'])
 def test_fluka_input_single(el_type):
+    print(f"\nTesting FLUKA input generation for single {el_type}... in {Path.cwd()}")
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop()
     if el_type == 'collimator':
         coll = xc.FlukaCollimator(length=0.456, angle=32, jaw=[0.01, -0.02], tilt=[10e-6, -8.7e-6], material='Yttrium')
     else:
@@ -110,7 +113,7 @@ def test_fluka_input_single(el_type):
         found_3 = False
         with input_file[0].open('r') as fp:
             for line in fp:
-                if f"CRYSTAL       {coll.assembly.fedb_tag}  0.030769       0.2       0.0       0.0     300.0 110" in line:
+                if f"CRYSTAL     {coll.assembly.prototypes[1].fedb_tag}  0.030769       0.2       0.0       0.0     300.0 110" in line:
                     found_1 = True
                 if "CRYSTAL          0.0      -1.0       0.0       0.0       0.0       1.0 &" in line:
                     found_2 = True
@@ -127,6 +130,9 @@ def test_fluka_input_single(el_type):
 @pytest.mark.fluka
 @pytest.mark.parametrize("ignore_crystals", [True, False], ids=['no_crystals', 'with_crystals'])
 def test_fluka_input_line(ignore_crystals):
+    print(f"\nTesting FLUKA input generation for line (ignore_crystals={ignore_crystals})... in {Path.cwd()}")
+    if xc.fluka.engine.is_running():
+        xc.fluka.engine.stop()
     beam = 1
     path = Path(__file__).parent
     env = xt.load(path / 'data' / f'sequence_lhc_run3_b{beam}.json')

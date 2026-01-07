@@ -201,16 +201,34 @@ class FlukaEnvironment(BaseEnvironment):
     def set_flair_environment(self):
         self.brute_force_path('flair')
 
-    def set_fedb_environment(self):
+    def set_fedb_environment(self, fedb=None):
         self.store_environment()
-        self.brute_force_path(self.fedb)
+        if fedb is None:
+            fedb = self.fedb
+        self.brute_force_path(fedb)
         self.brute_force_path('linebuilder')
-        os.environ['FEDB_PATH'] = self.fedb.as_posix()
+        os.environ['FEDB_PATH'] = fedb.as_posix()
         os.environ['LB_PATH'] = self.linebuilder.as_posix()
         # Brute-force the system paths
         sys.path.insert(0, (self.linebuilder / "src").as_posix())
         sys.path.insert(0, (self.linebuilder / "lib").as_posix())
-        sys.path.insert(0, self.fedb.as_posix())
+        sys.path.insert(0, fedb.as_posix())
+
+
+    def create_temp_fedb(self, assemblies):
+        fedb = FsPath('temp_fedb').resolve()
+        fedb.mkdir(parents=True)
+        (fedb / 'assemblies').mkdir(parents=True)
+        (fedb / 'bodies').mkdir(parents=True)
+        (fedb / 'regions').mkdir(parents=True)
+        (fedb / 'materials').mkdir(parents=True)
+        (fedb / 'stepsizes').mkdir(parents=True)
+        (fedb / 'tools').symlink_to(self.fedb / 'tools')
+        (self.fedb / 'structure.py').copy_to(fedb / 'structure.py')
+        (self.fedb / 'materials' / 'materials.inp').copy_to(fedb / 'materials' / 'materials.inp')
+        for assm in assemblies:
+            assm.populate_into_temp_fedb(fedb)
+        return fedb
 
 
     def run_flair(self, input_file=None):

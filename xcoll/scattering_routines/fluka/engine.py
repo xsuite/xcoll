@@ -329,7 +329,7 @@ class FlukaEngine(BaseEngine):
     def _get_input_files_to_clean(self, input_file, cwd, **kwargs):
         if cwd is not None:
             files_to_delete = ['prototypes.lbp', 'assignmat.inp', 'linebuilder.log',
-                               'new_collgaps.dat']
+                               'new_collgaps.dat', 'temp_fedb']
             files_to_delete = [cwd / f for f in files_to_delete]
             files_to_delete += list(cwd.glob(f'include_*.inp'))
             if input_file is not None:

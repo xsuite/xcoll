@@ -72,18 +72,7 @@ def create_generic_assembly(**kwargs):
     kwargs_body.pop('side')
     body = FlukaPrototype(fedb_series, f'{fedb_tag}_B', _allow_generic=True, **kwargs_body)
     assm = FlukaAssembly(fedb_series, fedb_tag, _allow_generic=True, **kwargs)
-    # Create and assign the files
-    if kwargs['is_crystal']:
-            body_file, tank_file = _crystal_body_file(fedb_tag, **kwargs)
-            _crystal_region_file(fedb_tag, **kwargs)
-            _crystal_material_file(fedb_tag, **kwargs)
-    else:
-        body_file, tank_file = _body_file(fedb_tag, **kwargs)
-        _region_file(fedb_tag, **kwargs)
-        _material_file(fedb_tag, **kwargs)
-    body.body_file = body_file
-    tank.body_file = tank_file
-    assm.assembly_file = _assembly_file(fedb_tag, **kwargs)
+    assm._prototypes = [tank, body]
     return assm
 
 
@@ -91,8 +80,6 @@ def _validate_kwargs(kwargs):
     kwargs.setdefault('is_crystal', False)
     from ...materials import _resolve_material
     kwargs['material'] = _resolve_material(kwargs['material'], ref='fluka', allow_none=False)
-    if kwargs['material'].fluka_name is None or kwargs['material'].fluka_name.startswith('XCOLL'):
-        kwargs['material']._generate_fluka_code()
     if kwargs['is_crystal']:
         for field in _generic_crystal_required_fields:
             if field not in kwargs or kwargs[field] is None:
@@ -118,7 +105,7 @@ def _validate_kwargs(kwargs):
     kwargs['angle'] = 0             # Only horizontal assembly (angle will be provided by LineBuilder)
 
 
-def _assembly_file(fedb_tag, side, **kwargs):
+def _assembly_file(fedb, fedb_tag, side, **kwargs):
     template_assembly = f"""\
 # --------------------------------------------------------------------------------------------------------------
 PROTOTYPE       {fedb_tag}_T
@@ -190,16 +177,16 @@ ROT-DEFI             0.0         0.0         0.0         0.0         0.0        
 * rotate by 180 deg the negative jaw:
 ROT-DEFI           300.0         0.0       180.0         0.0         0.0         0.0 JAW_NEG
 """
-    return _write_file("assemblies", f"generic_{fedb_tag}.lbp",
+    return _write_file(fedb, "assemblies", f"generic_{fedb_tag}.lbp",
                        template_assembly)
 
 
-def _body_file(fedb_tag, length, width, height, **kwargs):
+def _body_file(fedb, fedb_tag, length, width, height, **kwargs):
     template_body = f"""\
 RPP {fedb_tag}_B   0.0 {100*width} -{100*height/2} {100*height/2} -{length*100/2} {length*100/2}
 """
-    body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
-                        template_body)
+    body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
+                            template_body)
 
     # Tank body should fit in blackhole (0.8m x 0.8m) for any angle, so maximally 0.8*sqrt(2)/2 = 0.565 for each side
     template_tank = f"""\
@@ -209,45 +196,46 @@ RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 *RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
 *RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 1e-12} {length*100 + 1e-12}
 """
-    tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
-                        template_tank)
+    tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
+                            template_tank)
     return body_file, tank_file
 
 
-def _region_file(fedb_tag, **kwargs):
+def _region_file(fedb, fedb_tag, **kwargs):
     template_body_reg = f"""\
 {fedb_tag}_B     5 +{fedb_tag}_B
 """
-    _write_file("regions", f"generic_{fedb_tag}_B.regions",
-                template_body_reg)
+    body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
+                            template_body_reg)
 
     template_tank_reg = f"""\
 {fedb_tag}_T     5 +{fedb_tag}_T -{fedb_tag}_I
 {fedb_tag}_I     5 +{fedb_tag}_I
 """
-    _write_file("regions", f"generic_{fedb_tag}_T.regions",
-                template_tank_reg)
+    tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
+                            template_tank_reg)
+    return body_file, tank_file
 
 
-def _material_file(fedb_tag, material, **kwargs):
+def _material_file(fedb, fedb_tag, material, **kwargs):
     mat = material.fluka_name
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
 """
-    _write_file("materials", f"generic_{fedb_tag}_B.assignmat",
-                template_body_mat)
+    body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
+                            template_body_mat)
 
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
 ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
-    _write_file("materials", f"generic_{fedb_tag}_T.assignmat",
-                template_tank_mat)
+    tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
+                            template_tank_mat)
+    return body_file, tank_file
 
-
-def _crystal_body_file(fedb_tag, length, bending_radius, width, height, **kwargs):
+def _crystal_body_file(fedb, fedb_tag, length, bending_radius, width, height, **kwargs):
     template_body = f"""\
 RPP {fedb_tag}_B   0.0 {width*(100+10)} -{height*(100+10)/2} {height*(100+10)/2} -{length*(100+20)} {length*(100+20)}
 YCC {fedb_tag}Z1  0.0 {bending_radius*100} {bending_radius*100}
@@ -255,18 +243,18 @@ YCC {fedb_tag}Z2  0.0 {bending_radius*100} {bending_radius*100-width*100}
 PLA {fedb_tag}P1  1.0 0.0 {np.cos(length/bending_radius)/np.sin(length/bending_radius)} {bending_radius*100} 0.0 0.0
 XYP {fedb_tag}P2  0.0
 """
-    body_file = _write_file("bodies", f"generic_{fedb_tag}_B.bodies",
+    body_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_B.bodies",
                             template_body)
     template_tank = f"""\
 RPP {fedb_tag}_T  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 RPP {fedb_tag}_I  -28 28 -28 28 -{length*100 + 5} {length*100 + 5}
 """
-    tank_file = _write_file("bodies", f"generic_{fedb_tag}_T.bodies",
+    tank_file = _write_file(fedb, "bodies", f"generic_{fedb_tag}_T.bodies",
                             template_tank)
     return body_file, tank_file
 
 
-def _crystal_region_file(fedb_tag, **kwargs):
+def _crystal_region_file(fedb, fedb_tag, **kwargs):
     template_body_reg = f"""\
 {fedb_tag}_B     5 | +{fedb_tag}_B +{fedb_tag}Z1 -{fedb_tag}Z2 +{fedb_tag}P1 - {fedb_tag}P2
 {fedb_tag}B2     5 | +{fedb_tag}_B +{fedb_tag}Z2
@@ -274,37 +262,37 @@ def _crystal_region_file(fedb_tag, **kwargs):
                    | +{fedb_tag}_B -{fedb_tag}P1
                    | +{fedb_tag}_B +{fedb_tag}P2 -{fedb_tag}Z2
 """
-    _write_file("regions", f"generic_{fedb_tag}_B.regions",
-                template_body_reg)
+    body_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_B.regions",
+                            template_body_reg)
     template_body_tank = f"""\
 {fedb_tag}_T     5 | +{fedb_tag}_T -{fedb_tag}_I
 {fedb_tag}_I     5 | +{fedb_tag}_I
 """
-    _write_file("regions", f"generic_{fedb_tag}_T.regions",
-                template_body_tank)
+    tank_file = _write_file(fedb, "regions", f"generic_{fedb_tag}_T.regions",
+                            template_body_tank)
+    return body_file, tank_file
 
 
-def _crystal_material_file(fedb_tag, material, **kwargs):
+def _crystal_material_file(fedb, fedb_tag, material, **kwargs):
     mat = material.fluka_name
     template_body_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA    {mat:>8}  {fedb_tag:>6}_B
-ASSIGNMA     VACUUM  {fedb_tag:>6}B2
+ASSIGNMA      VACUUM  {fedb_tag:>6}B2
 """
-    _write_file("materials", f"generic_{fedb_tag}_B.assignmat",
-                template_body_mat)
+    body_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_B.assignmat",
+                            template_body_mat)
     template_tank_mat = f"""\
 * ..+....1....+....2....+....3....+....4....+....5....+....6....+....7..
 ASSIGNMA      VACUUM  {fedb_tag:>6}_T
 ASSIGNMA      VACUUM  {fedb_tag:>6}_I
 """
-    _write_file("materials", f"generic_{fedb_tag}_T.assignmat",
-                template_tank_mat)
+    tank_file = _write_file(fedb, "materials", f"generic_{fedb_tag}_T.assignmat",
+                            template_tank_mat)
+    return body_file, tank_file
 
 
-def _write_file(directory, filename, content):
-    import xcoll as xc
-    fedb = xc.fluka.environment.fedb
+def _write_file(fedb, directory, filename, content):
     path = fedb / directory / filename
     with path.open('w') as fid:
         fid.write(content)
