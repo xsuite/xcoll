@@ -1,6 +1,6 @@
 [project]
 name = "xcoll"
-version = "0.9.0rc0"
+version = "0.9.0"
 description = "Xsuite collimation package"
 authors = [
     {name="Frederik F. Van der Veken", email="frederik@cern.ch"},
@@ -22,10 +22,10 @@ dependencies = [
     "ruamel-yaml (>=0.17.31,<0.18.15)",
     "numpy>=1.0",
     "pandas>=1.4",
-    "xobjects>=0.5.11",
+    "xobjects>=0.5.12",
     "xdeps>=0.10.10",
-    "xpart>=0.23.3",
-    "xtrack>=0.98.5",
+    "xpart>=0.23.5",
+    "xtrack>=0.98.10",
     "meson"
 ]
 
