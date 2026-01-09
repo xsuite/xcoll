@@ -325,16 +325,19 @@ def test_everest_crystal(test_context):
     _check_all_elements(elem, everest_crystal_fields, everest_crystal_dict_fields, \
                         everest_crystal_user_fields, everest_crystal_user_fields_read_only)
 
+@pytest.mark.fluka
 def test_fluka():
     # Test instantiation
     elem = xc.FlukaCollimator(length=1, assembly='lhc_tcp')
     _check_all_elements(elem, fluka_fields, fluka_dict_fields, [], [])
 
+@pytest.mark.fluka
 def test_fluka_generic():
     # Test instantiation
     elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreCarbon)
     _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields, [], [])
 
+# @pytest.mark.fluka
 # def test_fluka_crystal():
 #     # Test instantiation
 #     elem = xc.FlukaCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, bending_radius=20, side='+')
