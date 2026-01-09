@@ -108,8 +108,8 @@ test_fluka_assemblies.py::test_new_assembly
 test_fluka_assemblies.py::test_assembly_with_files
 test_fluka_input.py::test_fluka_input_single[collimator]
 test_fluka_input.py::test_fluka_input_single[crystal]
-test_fluka_input.py::test_fluka_input_line[True]
-test_fluka_input.py::test_fluka_input_line[False]
+test_fluka_input.py::test_fluka_input_line[no_crystals]
+test_fluka_input.py::test_fluka_input_line[with_crystals]
 test_geant4.py::test_reload_bdsim[ContextCpu]
 test_geant4.py::test_reload_bdsim[ContextCpu:auto]
 test_geant4.py::test_black_absorbers[ContextCpu]
