@@ -4,6 +4,7 @@
 # ######################################### #
 
 import pytest
+import numpy as np
 
 import xtrack as xt
 import xpart as xp
@@ -65,3 +66,40 @@ def test_blow_up(beam, plane, test_context):
             assert mon.nemitt_y.argmax() > 0.95*num_turns
             # x should not have changed (max 10%):
             assert all([abs(nn-nemitt_x)/nemitt_x < 1.e-1 for nn in mon.nemitt_x])
+
+
+@for_all_test_contexts
+def test_monitor_reset(test_context):
+    beam = 1
+    plane = 'V'
+    env = xt.load(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+    line = env[f'lhcb{beam}']
+    pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
+    pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
+    name = f'adtk{plane.lower()}.{pos}.b{beam}'
+    tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
+    tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
+    adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
+    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
+                            stop_at_turn=num_turns, use_individual_kicks=True)
+    mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns)
+
+    line.build_tracker(_context=test_context)
+    if plane == 'H':
+        adt.calibrate_by_emittance(nemitt=nemitt_x)
+    else:
+        adt.calibrate_by_emittance(nemitt=nemitt_y)
+
+    part_init = xp.generate_matched_gaussian_bunch(num_particles=int(num_part/5), total_intensity_particles=1.6e11,
+                                                   nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)
+
+    adt.activate()
+    for _ in range(2):
+        part = part_init.copy()
+        line.track(part, num_turns=num_turns, with_progress=1)
+
+        assert np.unique(part.state) == np.array([1])  # Sanity check for test
+        assert np.all(mon.count == int(num_part/5) * np.ones(num_turns))  # Ensure no new particles added
+
+        # Reset monitor for next tracking
+        mon.reset()
