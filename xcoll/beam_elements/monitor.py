@@ -145,6 +145,15 @@ class EmittanceMonitor(xt.BeamElement):
         self._line = line
         return self
 
+    def reset(self):
+        """Reset the monitor data (to avoid accumulation after re-tracking)."""
+        for field in [f.name for f in EmittanceMonitorRecord._fields]:
+            ff = getattr(self.data, field)
+            zeros = np.zeros(len(ff), dtype=ff._itemtype._dtype)
+            setattr(self.data, field, zeros)
+        self._cached = False
+        self._cached_modes = False
+
 
     @property
     def gemitt_x(self):
@@ -398,7 +407,7 @@ class EmittanceMonitor(xt.BeamElement):
                     + f"One of the coordinates might be close to zero or not "
                     + f"varying enough among the different particles. Only "
                     + f"{N[i]} particles were logged at this step.")
-            
+
             rank = np.linalg.matrix_rank(covariance_S)
             expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
             if rank < expected_rank:
