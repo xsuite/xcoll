@@ -582,7 +582,7 @@ class LossMap:
         length_all = np.concatenate([self._coll_length, coll_length])
 
         key = np.rint(s_all / ds).astype(np.int64)
-        _, inv, first = np.unique(key, return_inverse=True, return_index=True)
+        _, first, inv = np.unique(key, return_index=True, return_inverse=True)
         order = np.argsort(first)
 
         s_rep      = s_all[first]
@@ -719,7 +719,7 @@ class LossMap:
         length_all = np.concatenate([self._aper_length, aper_length])
 
         key = np.rint(s_all / ds).astype(np.int64)
-        _, inv, first = np.unique(key, return_inverse=True, return_index=True)
+        _, first, inv = np.unique(key, return_index=True, return_inverse=True)
         order = np.argsort(first)
 
         s_rep      = s_all[first]
@@ -964,6 +964,7 @@ def _validate_str_meta(values_all, values_rep, inv, s_rep, label, label_s):
     vals = np.unique(values_all[inv == g])
     raise ValueError(
         f"{label} mismatch at {label_s} ≈ {s_rep[g]!r}:\n"
+        f"  representative: {values_rep[g]!r}\n"
         f"  values found: {vals}"
     )
 
@@ -979,5 +980,6 @@ def _validate_float_meta(values_all, values_rep, inv, s_rep, label,
     vals = np.unique(values_all[inv == g])
     raise ValueError(
         f"{label} mismatch at {label_s} ≈ {s_rep[g]!r}:\n"
+        f"  representative: {values_rep[g]!r}\n"
         f"  values found: {vals}"
     )
