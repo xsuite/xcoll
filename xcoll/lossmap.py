@@ -6,7 +6,6 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import json
 
 import xtrack as xt
 import xobjects as xo
@@ -16,6 +15,7 @@ from .beam_elements import (collimator_classes, crystal_classes,
                             FlukaCollimator, FlukaCrystal,
                             Geant4Collimator, Geant4Crystal)
 from .compare import deep_equal
+from .json import json_load, json_dump
 from .general import __version__
 from .plot import plot_lossmap
 from .constants import (USE_IN_LOSSMAP,
@@ -92,19 +92,18 @@ class LossMap:
         return lm
 
     def to_json(self, file):
-        with open(Path(file), 'w') as fid:
-            json.dump({
-                'xcoll': self._xcoll,
-                'date': self._date,
-                'momentum': self.momentum,
-                'beam_type': self._beam_type,
-                'num_initial': self.num_initial,
-                'tot_energy_initial': self.tot_energy_initial,
-                'cold_regions': self.cold_regions,
-                'warm_regions': self.warm_regions,
-                's_range': self.s_range,
-                **self.lossmap
-            }, fid, indent=True, cls=xo.JEncoder)
+        json_dump({
+            'xcoll': self._xcoll,
+            'date': self._date,
+            'momentum': self.momentum,
+            'beam_type': self._beam_type,
+            'num_initial': self.num_initial,
+            'tot_energy_initial': self.tot_energy_initial,
+            'cold_regions': self.cold_regions,
+            'warm_regions': self.warm_regions,
+            's_range': self.s_range,
+            **self.lossmap
+        }, Path(file), indent=True)
 
     def save_summary(self, file):
         with open(Path(file), 'w') as fid:
@@ -422,8 +421,7 @@ class LossMap:
             return
         if not Path(file).exists():
             raise FileNotFoundError(f"File {file} not found.")
-        with open(Path(file), 'r') as fid:
-            lossmap = json.load(fid)
+        lossmap = json_load(Path(file))
         LossMap._assert_valid_json(lossmap)
         if 'momentum' in lossmap:
             self.momentum = lossmap['momentum']
