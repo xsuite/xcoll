@@ -12,6 +12,7 @@ def plot_lossmap(lossmap: dict, *,
                  show=True,
                  zoom=None,
                  savefig=None,
+                 titles=None,
                  norm="total",
                  energy=False,
                  energy_in_joules=False,
@@ -20,31 +21,38 @@ def plot_lossmap(lossmap: dict, *,
                  **kwargs):
     import matplotlib.pyplot as plt
 
+    # Resolve zoom and titles parameters
+    zoom = _resolve_zoom(zoom)
+    if titles is None:
+        titles = []
+    if not hasattr(titles, "__iter__") or isinstance(titles, str):
+        titles = [titles]
+    if len(titles) != len(zoom) + 1:
+        raise ValueError("When zoom is used, titles must be a list of as many titles as zoom intervals plus one.")
+
     font = {'family': 'serif', 'size': 17}
     format_dict = {f"font.{prop}": font[prop] for prop in font}
     with plt.rc_context(format_dict):
-        if zoom is not None:
-            if not hasattr(zoom, "__iter__") or len(zoom) != 2 or isinstance(zoom, str):
-                raise ValueError("Zoom must be a list/array of 2 elements [s_min, s_max].")
-            if ax is None:
-                _, ax = plt.subplots(2, 1, figsize=(16, 8))
-            fig = ax[0].figure
-            if not isinstance(ax, np.ndarray) or ax.ndim != 1 or ax.shape[0] != 2:
-                raise ValueError("When zoom is used, ax must be a list/array of 2 axes.")
-            xlim = kwargs.pop("xlim", None)
-            _plot_lossmap_base(lossmap, ax=ax[0], norm=norm, energy=energy, xlim=xlim,
+        if ax is None:
+            _, ax = plt.subplots(len(zoom) + 1, 1, figsize=(16, (len(zoom) + 1)*4))
+        if not zoom:
+            ax = [ax]
+        fig = ax[0].figure
+        if not isinstance(ax, np.ndarray) or ax.ndim != 1 or ax.shape[0] != len(zoom) + 1:
+            raise ValueError("When zoom is used, ax must be a list of as many axes as zoom intervals.")
+        xlim = kwargs.pop("xlim", None)
+        _plot_lossmap_base(lossmap, ax=ax[0], norm=norm, energy=energy, xlim=xlim,
+                            energy_in_joules=energy_in_joules, cold_regions=cold_regions,
+                            warm_regions=warm_regions, **kwargs)
+        if titles:
+            ax[0].set_title(titles[0])
+        for i, zz in enumerate(zoom):
+            _plot_lossmap_base(lossmap, ax=ax[i+1], norm=norm, energy=energy, xlim=zz,
                                energy_in_joules=energy_in_joules, cold_regions=cold_regions,
                                warm_regions=warm_regions, **kwargs)
-            _plot_lossmap_base(lossmap, ax=ax[1], norm=norm, energy=energy, xlim=zoom,
-                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
-                               warm_regions=warm_regions, **kwargs)
-        else:
-            if ax is None:
-                _, ax = plt.subplots(figsize=(16, 4))
-            fig = ax.figure
-            _plot_lossmap_base(lossmap, ax=ax, norm=norm, energy=energy,
-                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
-                               warm_regions=warm_regions, **kwargs)
+            if titles:
+                ax[i+1].set_title(titles[i+1])
+
         plt.tight_layout()
         if savefig:
             plt.savefig(savefig, dpi=300, bbox_inches='tight')
@@ -52,7 +60,10 @@ def plot_lossmap(lossmap: dict, *,
             plt.show()
         else:
             plt.close()
+    if zoom:
         return fig, ax
+    else:
+        return fig, ax[0]
 
 
 def _plot_lossmap_base(lossmap: dict, *,
@@ -205,7 +216,25 @@ def _plot_lossmap_base(lossmap: dict, *,
     ax.set_ylabel(y_label)
 
     if legend:
-        ax.legend(loc='best', fancybox=True, framealpha=0.8, fontsize="small")
+        ax.legend(loc='upper right', fancybox=True, framealpha=0.8, fontsize="small")
+
+
+
+def _valid_single_zoom(zz, allow_str=False):
+    if isinstance(zz, str):
+        return allow_str
+    return hasattr(zz, "__iter__")  and len(zz) == 2 and not hasattr(zz[0], "__iter__") \
+           and not hasattr(zz[1], "__iter__")
+
+def _resolve_zoom(zoom, allow_str=False):
+    if _valid_single_zoom(zoom, allow_str=allow_str):
+        zoom = [zoom]
+    if zoom is None:
+        zoom = []
+    if not hasattr(zoom, "__iter__") or isinstance(zoom, str) \
+    or np.any([not _valid_single_zoom(zz, allow_str=allow_str) for zz in zoom]):
+        raise ValueError("Zoom must be a list of 2 elements [s_min, s_max], or a list of such lists.")
+    return zoom
 
 
 def _label_from_norm(norm, energy, energy_in_joules):

@@ -18,7 +18,7 @@ from .beam_elements import (collimator_classes, crystal_classes,
 from .compare import deep_equal
 from .json import json_load, json_dump
 from .general import __version__
-from .plot import plot_lossmap
+from .plot import plot_lossmap, _resolve_zoom
 from .constants import (USE_IN_LOSSMAP,
     LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
     LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
@@ -325,18 +325,25 @@ class LossMap:
         cold_regions = self._cold_regions
         warm_regions = self._warm_regions
         xlim = kwargs.pop('xlim', None)
-        zoom = kwargs.pop('zoom', None)
-        energy = kwargs.pop('energy', None)
         if isinstance(xlim, str) and xlim in self.s_range:
             xlim = self.s_range[xlim]
-        if isinstance(zoom, str) and zoom in self.s_range:
-            zoom = self.s_range[zoom]
+        zoom = _resolve_zoom(kwargs.pop('zoom', None), allow_str=True)
+        for zz in zoom:
+            if isinstance(zz, str) and zz not in self.s_range:
+                raise ValueError(f"Zoom string '{zz}' not found in `s_range`.")
+        titles = kwargs.pop('titles', None)
+        if np.all([isinstance(zz, str) for zz in zoom]):
+            titles = ["Full ring",
+                      *[f"Zoom on {zz} insertion" for zz in zoom]
+                      ]
+        zoom = [self.s_range[zz] if isinstance(zz, str) else zz for zz in zoom]
+        energy = kwargs.pop('energy', None)
         if energy is None:
             energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
                              for tt in self._coll_type])
         return plot_lossmap(self.lossmap, xlim=xlim, energy=energy, zoom=zoom,
                             cold_regions=cold_regions, warm_regions=warm_regions,
-                            **kwargs)
+                            titles=titles, **kwargs)
 
 
     def add_particles(self, part, line, *, line_is_reversed=False, interpolation=None,
@@ -470,7 +477,7 @@ class LossMap:
         self._xcoll = np.array(_xcoll)
         self._date = np.array(_date)
         if verbose:
-            print(f"Loaded {i} files into loss map.")
+            print(f"Loaded {i} file{'s' if i > 1 else ''} into loss map.")
 
 
     def _correct_absorbed(self, part, line, verbose=True, aperture_loc='both'):
