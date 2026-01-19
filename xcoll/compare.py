@@ -45,26 +45,42 @@ def _is_sequence_like(obj):
 
 def deep_equal(x, y, *, rtol=1e-7, atol=0.0, compare_iterators=False, max_depth=200):
     def _eq(a, b, depth):
+        if a is b:
+            return True
+
         if depth > max_depth:
             raise RecursionError(f"Max depth {max_depth} exceeded (possible cycle).")
 
-        if hasattr(a, 'to_dict') and callable(a.to_dict):
-            a = a.to_dict()
-        if hasattr(b, 'to_dict') and callable(b.to_dict):
-            b = b.to_dict()
-        if hasattr(a, 'tolist') and callable(a.tolist):
-            a = a.tolist()
-        if hasattr(b, 'tolist') and callable(b.tolist):
-            b = b.tolist()
+        # Cheap type mismatch early
+        ta, tb = type(a), type(b)
+        if ta is not tb:
+            # allow numeric-ish comparisons later; don't immediately fail for numpy scalars etc.
+            pass
 
-        if a is b:
-            return True
+        # NumPy scalars: compare as Python scalars (fast)
+        if isinstance(a, np.generic) or isinstance(b, np.generic):
+            if not (isinstance(a, np.generic) and isinstance(b, np.generic)):
+                return False
+            # float-like uses isclose
+            if isinstance(a, (np.floating, np.complexfloating)) or isinstance(b, (np.floating, np.complexfloating)):
+                return np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=True)
+            return a == b
 
         # NumPy arrays / array-like
         if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
             if not (isinstance(a, np.ndarray) and isinstance(b, np.ndarray)):
                 return False
             return _arrays_equal(a, b, rtol=rtol, atol=atol)
+
+        # to_dict only for non-basic objects (avoid repeated hasattr on primitives)
+        if not isinstance(a, (str, bytes, bytearray, int, float, bool, type(None), tuple, list, dict)):
+            td = getattr(a, "to_dict", None)
+            if td is not None and callable(td):
+                a = td()
+        if not isinstance(b, (str, bytes, bytearray, int, float, bool, type(None), tuple, list, dict)):
+            td = getattr(b, "to_dict", None)
+            if td is not None and callable(td):
+                b = td()
 
         # Mappings (dict and friends)
         if isinstance(a, Mapping) or isinstance(b, Mapping):
@@ -110,6 +126,9 @@ def deep_equal(x, y, *, rtol=1e-7, atol=0.0, compare_iterators=False, max_depth=
             return True
 
         # Fallback: atomic comparison
-        return a == b
+        try:
+            return a == b
+        except Exception:
+            return False
 
     return _eq(x, y, 0)

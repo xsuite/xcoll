@@ -151,9 +151,11 @@ def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals
             cold_regions = dct.pop('cold_regions', None)
             warm_regions = dct.pop('warm_regions', None)
             s_range = dct.pop('s_range', None)
+            cold_regions = np.array(cold_regions) if cold_regions is not None else None
+            warm_regions = np.array(warm_regions) if warm_regions is not None else None
             assert deep_equal(cold_regions, ThisLM.cold_regions)
             assert deep_equal(warm_regions, ThisLM.warm_regions)
-            assert deep_equal(s_range, ThisLM.s_range)
+            assert deep_equal(np.array(s_range), ThisLM.s_range)
             assert deep_equal(dct, clean_lm_dct)
         ThisLM2 = xc.LossMap.from_json(f"lossmap-{this_id}.json")
         assert ThisLM == ThisLM2
