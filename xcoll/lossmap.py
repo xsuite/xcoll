@@ -6,9 +6,10 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from types import GeneratorType
+from concurrent.futures import ThreadPoolExecutor
 
 import xtrack as xt
-import xobjects as xo
 import xtrack.particles.pdg as pdg
 
 from .beam_elements import (collimator_classes, crystal_classes,
@@ -276,12 +277,13 @@ class LossMap:
     @cold_regions.setter
     def cold_regions(self, value):
         if value is not None:
+            value = np.array(value)
             if self.cold_regions is not None:
                 if self.warm_regions is not None:
                     raise ValueError("Cannot set both cold_regions and warm_regions.")
                 if not deep_equal(self.cold_regions, value):
                     raise ValueError("New cold_regions do not match existing cold_regions.")
-            self._cold_regions = np.array(value)
+            self._cold_regions = value
 
     @property
     def warm_regions(self):
@@ -290,12 +292,13 @@ class LossMap:
     @warm_regions.setter
     def warm_regions(self, value):
         if value is not None:
+            value = np.array(value)
             if self.warm_regions is not None:
                 if self.cold_regions is not None:
                     raise ValueError("Cannot set both cold_regions and warm_regions.")
                 if not deep_equal(self.warm_regions, value):
                     raise ValueError("New warm_regions do not match existing warm_regions.")
-            self._warm_regions = np.array(value)
+            self._warm_regions = value
 
     @property
     def s_range(self):
@@ -304,6 +307,7 @@ class LossMap:
     @s_range.setter
     def s_range(self, value):
         if value is not None:
+            value = {kk: np.array(vv) for kk, vv in value.items()}
             if self._s_range:
                 if set(value.keys()) != set(self._s_range.keys()):
                     raise ValueError("s_range is already set.")
@@ -403,56 +407,69 @@ class LossMap:
         self._date = np.append(self._date, pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
-    def add_from_json(self, file, verbose=True):
+    def add_from_json(self, files, verbose=True):
         """
         Add loss map data from a JSON file or an iterable of files. The loss map
         is updated with the data from the file(s).
         """
-        # TODO: do this in C? Or be smarter about it? It is quite inefficient now.
-        if hasattr(file, '__iter__') and not isinstance(file, (str, bytes, Path)):
-            i = 0
-            for ff in file:
-                self.add_from_json(ff)
-                i += 1
-            if i == 0:
-                raise ValueError("No valid files found.")
-            if verbose:
-                print(f"Loaded {i} files into loss map.")
-            return
-        if not Path(file).exists():
-            raise FileNotFoundError(f"File {file} not found.")
-        lossmap = json_load(Path(file))
-        LossMap._assert_valid_json(lossmap)
-        if 'momentum' in lossmap:
-            self.momentum = lossmap['momentum']
-        if 'beam_type' in lossmap:
-            self.beam_type = lossmap['beam_type']
-        if 'xcoll' in lossmap:
-            xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
-            if len(self._xcoll) > 0 and not set(self._xcoll).intersection(xcoll) and verbose:
-                print("Warning: The xcoll version is different from the one used "
-                      "to create the loss map.")
-            self._xcoll = np.concatenate((self._xcoll, xcoll))
-        if 'date' in lossmap:
-            date = [lossmap['date']] if isinstance(lossmap['date'], str) else lossmap['date']
-            self._date = np.concatenate((self._date, date))
-        self.line_is_reversed = lossmap['reversed']
-        self.machine_length = lossmap['machine_length']
-        self.interpolation = lossmap['interpolation']
-        if 'cold_regions' in lossmap:
-            self.cold_regions = lossmap['cold_regions']
-        if 'warm_regions' in lossmap:
-            self.warm_regions = lossmap['warm_regions']
-        if 's_range' in lossmap:
-            self._s_range = lossmap['s_range']
-        self._load_coll_summary(lossmap['collimator'])
-        self._load_aperture_losses(lossmap['aperture'])
-        if 'num_initial' in lossmap and 'tot_energy_initial' in lossmap:
-            self._num_initial += lossmap['num_initial']
-            self._tot_energy_initial += lossmap['tot_energy_initial']
-        elif not np.isclose(self.num_initial, 0) or not np.isclose(self.tot_energy_initial, 0):
-            raise ValueError("num_initial and tot_energy_initial must be provided "
-                             "in the JSON file when adding to a non-empty LossMap.")
+        if not isinstance(files, (list, tuple, set, GeneratorType)):
+            files = [files]
+        files = list(files)
+
+        # Define optimal parameters for parallelisation based on file size
+        sz = Path(files[0]).stat().st_size
+        if sz < 100_000:
+            max_workers, chunksize = 16, 32
+        elif sz < 500_000:
+            max_workers, chunksize = 16, 16
+        elif sz < 2_000_000:
+            max_workers, chunksize = 16, 8
+        else:
+            max_workers, chunksize = 8, 4
+
+        i = 0
+        _xcoll = self._xcoll.tolist()
+        _date = self._date.tolist()
+        for lossmap in iter_lossmaps(files, max_workers=max_workers, chunksize=chunksize):
+            LossMap._assert_valid_json(lossmap)
+            if 'momentum' in lossmap:
+                self.momentum = lossmap['momentum']
+            if 'beam_type' in lossmap:
+                self.beam_type = lossmap['beam_type']
+            if 'xcoll' in lossmap:
+                xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
+                _xcoll.extend(xcoll)
+            if 'date' in lossmap:
+                date = [lossmap['date']] if isinstance(lossmap['date'], str) else lossmap['date']
+                _date.extend(date)
+            self.line_is_reversed = lossmap['reversed']
+            self.machine_length = lossmap['machine_length']
+            self.interpolation = lossmap['interpolation']
+            if 'cold_regions' in lossmap:
+                self.cold_regions = lossmap['cold_regions']
+            if 'warm_regions' in lossmap:
+                self.warm_regions = lossmap['warm_regions']
+            if 's_range' in lossmap:
+                self._s_range = lossmap['s_range']
+            self._load_coll_summary(lossmap['collimator'])
+            self._load_aperture_losses(lossmap['aperture'])
+            if 'num_initial' in lossmap and 'tot_energy_initial' in lossmap:
+                self._num_initial += lossmap['num_initial']
+                self._tot_energy_initial += lossmap['tot_energy_initial']
+            elif not np.isclose(self.num_initial, 0) or not np.isclose(self.tot_energy_initial, 0):
+                raise ValueError("num_initial and tot_energy_initial must be provided "
+                                "in the JSON file when adding to a non-empty LossMap.")
+            i += 1
+        if i == 0:
+            raise ValueError("No valid files found.")
+        if verbose and _xcoll:
+            uniq = set(_xcoll)
+            if len(uniq) > 1:
+                print("Warning: Multiple xcoll versions are used in this loss map.")
+        self._xcoll = np.array(_xcoll)
+        self._date = np.array(_date)
+        if verbose:
+            print(f"Loaded {i} files into loss map.")
 
 
     def _correct_absorbed(self, part, line, verbose=True, aperture_loc='both'):
@@ -981,3 +998,9 @@ def _validate_float_meta(values_all, values_rep, inv, s_rep, label,
         f"  representative: {values_rep[g]!r}\n"
         f"  values found: {vals}"
     )
+
+
+def iter_lossmaps(paths, max_workers=16, chunksize=16):
+    # Parallel loading of JSON files (validation and aggregation is not parallellised to avoid race conditions)
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        yield from ex.map(json_load, paths, chunksize=chunksize)

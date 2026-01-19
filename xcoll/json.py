@@ -4,7 +4,6 @@
 # ######################################### #
 
 import numpy as np
-from pathlib import Path
 
 import xobjects as xo
 
@@ -16,27 +15,33 @@ except (ImportError, ModuleNotFoundError):
 import json as stdjson
 
 
-def json_load(path: Path):
-    data = path.read_bytes()
-    if orjson is None:
-        return stdjson.loads(data.decode("utf-8"))
-    return orjson.loads(data)
-
-
-def json_dump(obj, path: Path, *, indent=None):
-    if orjson is None:
-        return path.write_text(stdjson.dumps(obj, indent=indent, cls=xo.JEncoder), encoding="utf-8")
-    opt = 0
-    if indent is not None:
-        # orjson ignores `indent`; use OPT_INDENT_2 for pretty
-        opt |= orjson.OPT_INDENT_2
+def json_load(path):
     try:
-        # Fast path: numeric numpy arrays
-        bdata = orjson.dumps(obj, option=opt | orjson.OPT_SERIALIZE_NUMPY)
-    except TypeError as e:
-        # Fallback: convert ndarrays (incl. string/object) to lists
-        bdata = orjson.dumps(obj, option=opt, default=_orjson_default)
-    path.write_bytes(bdata)
+        if orjson is None:
+            with open(path, "r", encoding="utf-8") as fp:
+                return stdjson.load(fp)
+        else:
+            with open(path, "rb") as fp:
+                return orjson.loads(fp.read())
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File {path} not found.") from None
+
+
+def json_dump(obj, path, *, indent=None):
+    if orjson is None:
+        with open(path, "w", encoding="utf-8") as fp:
+            stdjson.dump(obj, fp, indent=indent, cls=xo.JEncoder)
+    else:
+        # orjson ignores `indent`; use OPT_INDENT_2 for pretty
+        opt = orjson.OPT_INDENT_2 if indent is not None else 0
+        try:
+            # Fast path: numeric numpy arrays
+            bdata = orjson.dumps(obj, option=opt | orjson.OPT_SERIALIZE_NUMPY)
+        except TypeError:
+            # Fallback: convert ndarrays (incl. string/object) to lists
+            bdata = orjson.dumps(obj, option=opt, default=_orjson_default)
+        with open(path, "wb") as fp:
+            fp.write(bdata)
 
 
 def _orjson_default(obj):
@@ -50,3 +55,12 @@ def _orjson_default(obj):
     if np.issubdtype(type(obj), np.bool_):
         return bool(obj)
     raise TypeError
+
+# def atomic_write_bytes(path: Path, bdata: bytes):
+#     path = Path(path)
+#     tmp = path.with_suffix(path.suffix + ".tmp")
+#     with open(tmp, "wb") as f:
+#         f.write(bdata)
+#         f.flush()
+#         os.fsync(f.fileno())
+#     os.replace(tmp, path)
