@@ -77,7 +77,7 @@ def test_elemental_material_creation():
         'A': 12.01,
         'Z': 6,
         'density': np.float64(2.265)
-    }, verbose=True)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.265),
         '_ZA_mean': np.float64(0.4995836802664446),
@@ -99,7 +99,7 @@ def test_elemental_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    }, verbose=True)
+    }, debug=True)
 
     # Remove Z
     mat.Z = None
@@ -410,7 +410,7 @@ def test_compound_material_creation():
         'n_atoms': np.array([2, 6, 1]),
         'state': 'liquid',
         'density': np.float64(0.78945)
-    }, verbose=True)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(0.78945),
         '_ZA_mean': np.float64(0.5643708350517702),
@@ -432,7 +432,7 @@ def test_compound_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    }, verbose=True)
+    }, debug=True)
 
     # Remove density
     mat.density = None
@@ -626,7 +626,7 @@ def test_mixture_material_creation():
                                     0.337021, 0.013, 0.044, 0.014]),
         'state': 'solid',
         'density': np.float64(2.35)
-    }, verbose=True)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.35),
         '_ZA_mean': np.float64(0.5027459683349229),
@@ -648,7 +648,7 @@ def test_mixture_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    }, verbose=True)
+    }, debug=True)
 
 
 def test_different_fractions():
