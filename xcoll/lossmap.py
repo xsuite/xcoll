@@ -351,9 +351,13 @@ class LossMap:
         if energy is None:
             energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
                              for tt in self._coll_type])
+        beam_intensity = kwargs.pop('beam_intensity', None)
+        if beam_intensity is not None:
+            beam_intensity /= self.num_initial
         return plot_lossmap(self.lossmap, xlim=xlim, energy=energy, zoom=zoom,
                             cold_regions=cold_regions, warm_regions=warm_regions,
-                            titles=titles, **kwargs)
+                            titles=titles, rescaled_beam_intensity=beam_intensity,
+                            **kwargs)
 
 
     def add_particles(self, part, line, *, line_is_reversed=False, interpolation=None,
@@ -572,8 +576,8 @@ class LossMap:
         coll_lengths = [line[name].length for name in names]
 
         L = self.machine_length
-        coll_pos = [(line.get_s_position(name) + cl/2 + line_shift_s)%L
-                    for name, cl in zip(names, coll_lengths)]
+        coll_pos = np.array([(line.get_s_position(name) + cl/2 + line_shift_s)%L
+                    for name, cl in zip(names, coll_lengths)])
         if self.line_is_reversed:
             coll_pos = L - coll_pos
 

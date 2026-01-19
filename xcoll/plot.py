@@ -7,6 +7,9 @@ import numpy as np
 from numbers import Number
 
 
+_NORMS = ["total", "coll_max", "max", "none", "raw", "deposited_energy"]
+
+
 def plot_lossmap(lossmap: dict, *,
                  ax=None,
                  show=True,
@@ -15,7 +18,7 @@ def plot_lossmap(lossmap: dict, *,
                  titles=None,
                  norm="total",
                  energy=False,
-                 energy_in_joules=False,
+                 rescaled_beam_intensity=None,
                  cold_regions=None,
                  warm_regions=None,
                  **kwargs):
@@ -42,13 +45,13 @@ def plot_lossmap(lossmap: dict, *,
             raise ValueError("When zoom is used, ax must be a list of as many axes as zoom intervals.")
         xlim = kwargs.pop("xlim", None)
         _plot_lossmap_base(lossmap, ax=ax[0], norm=norm, energy=energy, xlim=xlim,
-                            energy_in_joules=energy_in_joules, cold_regions=cold_regions,
-                            warm_regions=warm_regions, **kwargs)
+                           rescaled_beam_intensity=rescaled_beam_intensity, cold_regions=cold_regions,
+                           warm_regions=warm_regions, **kwargs)
         if titles:
             ax[0].set_title(titles[0])
         for i, zz in enumerate(zoom):
             _plot_lossmap_base(lossmap, ax=ax[i+1], norm=norm, energy=energy, xlim=zz,
-                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
+                               rescaled_beam_intensity=rescaled_beam_intensity, cold_regions=cold_regions,
                                warm_regions=warm_regions, **kwargs)
             if titles:
                 ax[i+1].set_title(titles[i+1])
@@ -71,7 +74,7 @@ def _plot_lossmap_base(lossmap: dict, *,
                        grid=True,
                        norm="total",
                        energy=False,
-                       energy_in_joules=False,
+                       rescaled_beam_intensity=None,
                        cold_regions=None,
                        warm_regions=None,
                        xlim=None,
@@ -84,11 +87,16 @@ def _plot_lossmap_base(lossmap: dict, *,
     import matplotlib.pyplot as plt
     if not isinstance(ax, plt.Axes):
         raise ValueError("ax must be a matplotlib Axes instance.")
-    _NORMS = ["total", "coll_max", "max", "none", "raw"]
     if isinstance(norm, str) and norm.lower() in _NORMS:
         norm = norm.lower()
     elif not isinstance(norm, Number):
         raise ValueError(f"Norm must be one of {_NORMS} or a number, not {norm}.")
+
+    if norm == "deposited_energy":
+        energy = True
+        if rescaled_beam_intensity is None:
+            raise ValueError("When norm is 'deposited_energy', beam_intensity " \
+                           + "or rescaled_beam_intensity must be provided.")
 
     coll_s = lossmap['collimator']['s']
     coll_val = lossmap['collimator']['e'] if energy else lossmap['collimator']['n']
@@ -153,20 +161,19 @@ def _plot_lossmap_base(lossmap: dict, *,
             scale = coll_val.max()
         elif norm == "max":
             scale = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
+        elif norm == "deposited_energy":
+            scale = 1 / (rescaled_beam_intensity * 1.60218e-19)
         elif norm == "none":
             scale = 1
-        else:
+        else:  # numeric
             scale = norm
         cold_val = cold_val / scale / cold_length
         warm_val = warm_val / scale / warm_length
         aper_val = aper_val / scale / aper_length
-        coll_val = coll_val / scale / lossmap['collimator']['length']
-    if energy and energy_in_joules:
-        scale = 1.60218e-19
-        cold_val = cold_val * scale
-        warm_val = warm_val * scale
-        aper_val = aper_val * scale
-        coll_val = coll_val * scale
+        if norm == "deposited_energy":   # TODO: this is incorrect!
+            coll_val = coll_val / scale
+        else:
+            coll_val = coll_val / scale / lossmap['collimator']['length']
 
     if xlim is None:
         xlim = [-0.01*L, 1.01*L]
@@ -212,7 +219,7 @@ def _plot_lossmap_base(lossmap: dict, *,
         x_label = "s [m]"
     ax.set_xlabel(x_label)
     if y_label is None:
-        y_label = _label_from_norm(norm, energy, energy_in_joules)
+        y_label = _label_from_norm(norm, energy)
     ax.set_ylabel(y_label)
 
     if legend:
@@ -237,21 +244,17 @@ def _resolve_zoom(zoom, allow_str=False):
     return zoom
 
 
-def _label_from_norm(norm, energy, energy_in_joules):
+def _label_from_norm(norm, energy):
     if norm == "raw":
         if energy:
-            if energy_in_joules:
-                return "Deposited energy [J]"
-            else:
-                return "Deposited energy [eV]"
+            return "Deposited energy [eV]"
         else:
             return "Particles absorbed [-]"
+    elif norm == "deposited_energy":
+        return "Deposited energy [J]"
     elif norm == "none":
         if energy:
-            if energy_in_joules:
-                return "Deposited energy [J/m]"
-            else:
-                return "Deposited energy [eV/m]"
+            return "Deposited energy [eV/m]"
         else:
             return "Particles absorbed [1/m]"
     elif norm == "total":
@@ -271,10 +274,7 @@ def _label_from_norm(norm, energy, energy_in_joules):
             return "Inefficiency (norm. by coll max) [1/m]"
     else:
         if energy:
-            if energy_in_joules:
-                return f"Deposited energy [J/m]"
-            else:
-                return f"Deposited energy [eV/m]"
+            return f"Deposited energy [eV/m]"
         else:
             return f"Inefficiency [1/m]"
 
