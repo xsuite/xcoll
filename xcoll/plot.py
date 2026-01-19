@@ -36,7 +36,7 @@ def plot_lossmap(lossmap: dict, *,
         if ax is None:
             _, ax = plt.subplots(len(zoom) + 1, 1, figsize=(16, (len(zoom) + 1)*4))
         if not zoom:
-            ax = [ax]
+            ax = np.array([ax])
         fig = ax[0].figure
         if not isinstance(ax, np.ndarray) or ax.ndim != 1 or ax.shape[0] != len(zoom) + 1:
             raise ValueError("When zoom is used, ax must be a list of as many axes as zoom intervals.")

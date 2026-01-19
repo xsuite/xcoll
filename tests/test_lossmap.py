@@ -102,7 +102,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
             part.y[(part.y > 0) & (part.state > -99999)] += 1e-5
             part.y[(part.y < 0) & (part.state > -99999)] -= 1e-5
     line.scattering.enable()
-    line.track(part, num_turns=num_turns, with_progress=True)
+    line.track(part, num_turns=num_turns, with_progress=1)
     line.scattering.disable()
 
     if engine == "everest":
@@ -118,7 +118,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
     ThisLM = _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals,
                              coll_cls, cry_cls, this_id)
     if do_plot:
-        ThisLM.plot(show=False, savefig=f"test-{this_id}.jpg")
+        zoom = 'betatron' if not ignore_crystals else None
+        ThisLM.plot(show=False, zoom=zoom, savefig=f"test-{this_id}.jpg")
         assert Path(f"test-{this_id}.jpg").exists()
         Path(f"test-{this_id}.jpg").unlink()
 

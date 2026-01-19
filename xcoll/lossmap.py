@@ -76,13 +76,13 @@ class LossMap:
     def __eq__(self, other):
         if not isinstance(other, LossMap):
             return False
-        if not deep_equal(self.lossmap, other.lossmap, expand_numpy_and_hybridclass=True):
+        if not deep_equal(self.lossmap, other.lossmap):
             return False
-        if not deep_equal(self.cold_regions, other.cold_regions, expand_numpy_and_hybridclass=True):
+        if not deep_equal(self.cold_regions, other.cold_regions):
             return False
-        if not deep_equal(self.warm_regions, other.warm_regions, expand_numpy_and_hybridclass=True):
+        if not deep_equal(self.warm_regions, other.warm_regions):
             return False
-        if not deep_equal(self.s_range, other.s_range, expand_numpy_and_hybridclass=True):
+        if not deep_equal(self.s_range, other.s_range):
             return False
         return True
 
@@ -214,6 +214,8 @@ class LossMap:
             if self._interpolation is not None and not np.isclose(self._interpolation, value):
                 raise ValueError("The interpolation step is different from the one "
                                 "used to create the loss map.")
+            if hasattr(value, 'tolist') and callable(value.tolist):
+                value = value.tolist()
             self._interpolation = value
 
     @property
@@ -227,6 +229,8 @@ class LossMap:
                 if self._line_is_reversed != value:
                     raise ValueError("The line_is_reversed is different from the one "
                                     "used to create the loss map.")
+            if hasattr(value, 'tolist') and callable(value.tolist):
+                value = value.tolist()
             self._line_is_reversed = value
 
     @property
@@ -240,6 +244,8 @@ class LossMap:
                 if not np.isclose(self._momentum, value):
                     raise ValueError("The reference momentum is different from the one "
                                      "used to create the loss map.")
+            if hasattr(value, 'tolist') and callable(value.tolist):
+                value = value.tolist()
             self._momentum = value
 
     @property
@@ -253,6 +259,8 @@ class LossMap:
                 if self._beam_type != value:
                     raise ValueError("The beam type is different from the one "
                                      "used to create the loss map.")
+            if hasattr(value, 'tolist') and callable(value.tolist):
+                value = value.tolist()
             if value == 0:
                 value = 2212  # Assume proton if undefined
             self._beam_type = value
@@ -268,6 +276,8 @@ class LossMap:
                 if not np.isclose(self._machine_length, value):
                     raise ValueError("The machine_length is different from the one "
                                      "used to create the loss map.")
+            if hasattr(value, 'tolist') and callable(value.tolist):
+                value = value.tolist()
             self._machine_length = value
 
     @property
