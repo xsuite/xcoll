@@ -7,12 +7,17 @@ import numpy as np
 from numbers import Number
 
 
-_NORMS = ["total", "coll_max", "max", "none", "raw"]
-
-
-def plot_lossmap(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
-                legend=True, grid=True, energy=False, show=True, zoom=None,
-                cold_regions=None, warm_regions=None, savefig=None):
+def plot_lossmap(lossmap: dict, *,
+                 ax=None,
+                 show=True,
+                 zoom=None,
+                 savefig=None,
+                 norm="total",
+                 energy=False,
+                 energy_in_joules=False,
+                 cold_regions=None,
+                 warm_regions=None,
+                 **kwargs):
     import matplotlib.pyplot as plt
 
     font = {'family': 'serif', 'size': 17}
@@ -26,19 +31,20 @@ def plot_lossmap(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
             fig = ax[0].figure
             if not isinstance(ax, np.ndarray) or ax.ndim != 1 or ax.shape[0] != 2:
                 raise ValueError("When zoom is used, ax must be a list/array of 2 axes.")
-            _plot_lossmap_base(lossmap, norm=norm, ax=ax[0], xlim=xlim, ylim=ylim,
-                            legend=legend, grid=grid, energy=energy,
-                            cold_regions=cold_regions, warm_regions=warm_regions)
-            _plot_lossmap_base(lossmap, norm=norm, ax=ax[1], xlim=zoom, ylim=ylim,
-                            legend=legend, grid=grid, energy=energy,
-                            cold_regions=cold_regions, warm_regions=warm_regions)
+            xlim = kwargs.pop("xlim", None)
+            _plot_lossmap_base(lossmap, ax=ax[0], norm=norm, energy=energy, xlim=xlim,
+                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
+                               warm_regions=warm_regions, **kwargs)
+            _plot_lossmap_base(lossmap, ax=ax[1], norm=norm, energy=energy, xlim=zoom,
+                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
+                               warm_regions=warm_regions, **kwargs)
         else:
             if ax is None:
                 _, ax = plt.subplots(figsize=(16, 4))
             fig = ax.figure
-            _plot_lossmap_base(lossmap, norm=norm, ax=ax, xlim=xlim, ylim=ylim,
-                            legend=legend, grid=grid, energy=energy,
-                            cold_regions=cold_regions, warm_regions=warm_regions)
+            _plot_lossmap_base(lossmap, ax=ax, norm=norm, energy=energy,
+                               energy_in_joules=energy_in_joules, cold_regions=cold_regions,
+                               warm_regions=warm_regions, **kwargs)
         plt.tight_layout()
         if savefig:
             plt.savefig(savefig, dpi=300, bbox_inches='tight')
@@ -49,13 +55,26 @@ def plot_lossmap(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
         return fig, ax
 
 
-def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=None,
-                       legend=True, grid=True, energy=False, cold_regions=None,
-                       warm_regions=None):
+def _plot_lossmap_base(lossmap: dict, *,
+                       ax=None,
+                       grid=True,
+                       norm="total",
+                       energy=False,
+                       energy_in_joules=False,
+                       cold_regions=None,
+                       warm_regions=None,
+                       xlim=None,
+                       ylim=None,
+                       x_label=None,
+                       y_label=None,
+                       xticks=None,
+                       yticks=None,
+                       legend=True):
     import matplotlib.pyplot as plt
     if not isinstance(ax, plt.Axes):
         raise ValueError("ax must be a matplotlib Axes instance.")
-    if norm in _NORMS:
+    _NORMS = ["total", "coll_max", "max", "none", "raw"]
+    if isinstance(norm, str) and norm.lower() in _NORMS:
         norm = norm.lower()
     elif not isinstance(norm, Number):
         raise ValueError(f"Norm must be one of {_NORMS} or a number, not {norm}.")
@@ -131,6 +150,12 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
         warm_val = warm_val / scale / warm_length
         aper_val = aper_val / scale / aper_length
         coll_val = coll_val / scale / lossmap['collimator']['length']
+    if energy and energy_in_joules:
+        scale = 1.60218e-19
+        cold_val = cold_val * scale
+        warm_val = warm_val * scale
+        aper_val = aper_val * scale
+        coll_val = coll_val * scale
 
     if xlim is None:
         xlim = [-0.01*L, 1.01*L]
@@ -167,23 +192,37 @@ def _plot_lossmap_base(lossmap: dict, *, norm="total", ax=None, xlim=None, ylim=
     ax.set_ylim(ylim)
     ax.set_xlim(xlim)
 
-    ax.set_yticks([10**i for i in range(int(np.log10(ylim[0])), 1 + int(np.log10(ylim[1])))])
-    ax.set_xlabel("s [m]")
-    ax.set_ylabel(_label_from_norm(norm, energy))
+    if xticks is not None:
+        ax.set_xticks(xticks)
+    if yticks is None:
+        yticks = [10**i for i in range(int(np.log10(ylim[0])), 1 + int(np.log10(ylim[1])))]
+    ax.set_yticks(yticks)
+    if x_label is None:
+        x_label = "s [m]"
+    ax.set_xlabel(x_label)
+    if y_label is None:
+        y_label = _label_from_norm(norm, energy, energy_in_joules)
+    ax.set_ylabel(y_label)
 
     if legend:
         ax.legend(loc='best', fancybox=True, framealpha=0.8, fontsize="small")
 
 
-def _label_from_norm(norm, energy):
+def _label_from_norm(norm, energy, energy_in_joules):
     if norm == "raw":
         if energy:
-            return "Deposited energy [eV]"
+            if energy_in_joules:
+                return "Deposited energy [J]"
+            else:
+                return "Deposited energy [eV]"
         else:
             return "Particles absorbed [-]"
     elif norm == "none":
         if energy:
-            return "Deposited energy [eV/m]"
+            if energy_in_joules:
+                return "Deposited energy [J/m]"
+            else:
+                return "Deposited energy [eV/m]"
         else:
             return "Particles absorbed [1/m]"
     elif norm == "total":
@@ -193,19 +232,22 @@ def _label_from_norm(norm, energy):
             return "Norm. inefficiency [1/m]"
     elif norm == "max":
         if energy:
-            return "Energy (max norm) [1/m]"
+            return "Energy (norm. by max) [1/m]"
         else:
-            return "Inefficiency (max norm) [1/m]"
+            return "Inefficiency (norm. by max) [1/m]"
     elif norm == "coll_max":
         if energy:
-            return "Energy (coll max norm) [1/m]"
+            return "Energy (norm. by coll max) [1/m]"
         else:
-            return "Inefficiency (coll max norm) [1/m]"
+            return "Inefficiency (norm. by coll max) [1/m]"
     else:
         if energy:
-            return f"Energy (norm. by {norm}) [1/m]"
+            if energy_in_joules:
+                return f"Deposited energy [J/m]"
+            else:
+                return f"Deposited energy [eV/m]"
         else:
-            return f"Inefficiency (norm. by {norm}) [1/m]"
+            return f"Inefficiency [1/m]"
 
 
 def _unwrap_and_check(pairs, L):

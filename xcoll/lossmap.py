@@ -321,10 +321,12 @@ class LossMap:
     # === Methods === #
     # =============== #
 
-    def plot(self, *, norm="total", ax=None, xlim=None, ylim=None, legend=True,
-             grid=True, energy=None, show=True, zoom=None, savefig=None):
+    def plot(self, **kwargs):
         cold_regions = self._cold_regions
         warm_regions = self._warm_regions
+        xlim = kwargs.pop('xlim', None)
+        zoom = kwargs.pop('zoom', None)
+        energy = kwargs.pop('energy', None)
         if isinstance(xlim, str) and xlim in self.s_range:
             xlim = self.s_range[xlim]
         if isinstance(zoom, str) and zoom in self.s_range:
@@ -332,10 +334,9 @@ class LossMap:
         if energy is None:
             energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
                              for tt in self._coll_type])
-        return plot_lossmap(self.lossmap, norm=norm, ax=ax, xlim=xlim,
-                            ylim=ylim, legend=legend, grid=grid, energy=energy,
-                            show=show, zoom=zoom, cold_regions=cold_regions,
-                            warm_regions=warm_regions, savefig=savefig)
+        return plot_lossmap(self.lossmap, xlim=xlim, energy=energy, zoom=zoom,
+                            cold_regions=cold_regions, warm_regions=warm_regions,
+                            **kwargs)
 
 
     def add_particles(self, part, line, *, line_is_reversed=False, interpolation=None,
