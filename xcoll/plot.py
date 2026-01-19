@@ -7,7 +7,7 @@ import numpy as np
 from numbers import Number
 
 
-_NORMS = ["total", "coll_max", "max", "none", "raw", "deposited_energy"]
+_NORMS = ["total", "coll_max", "max", "none", "raw", "deposited_energy", "deposited_energy_per_length"]
 
 
 def plot_lossmap(lossmap: dict, *,
@@ -73,6 +73,7 @@ def _plot_lossmap_base(lossmap: dict, *,
                        ax=None,
                        grid=True,
                        norm="total",
+                       normalise_by_length=None,
                        energy=False,
                        rescaled_beam_intensity=None,
                        cold_regions=None,
@@ -87,17 +88,33 @@ def _plot_lossmap_base(lossmap: dict, *,
     import matplotlib.pyplot as plt
     if not isinstance(ax, plt.Axes):
         raise ValueError("ax must be a matplotlib Axes instance.")
+
+    # Resolve normalisation
     if isinstance(norm, str) and norm.lower() in _NORMS:
         norm = norm.lower()
     elif not isinstance(norm, Number):
         raise ValueError(f"Norm must be one of {_NORMS} or a number, not {norm}.")
-
-    if norm == "deposited_energy":
+    if norm == "deposited_energy" or norm == "deposited_energy_per_length":
         energy = True
         if rescaled_beam_intensity is None:
             raise ValueError("When norm is 'deposited_energy', beam_intensity " \
                            + "or rescaled_beam_intensity must be provided.")
+    if normalise_by_length is None:
+        if norm == "raw" or norm == "deposited_energy":
+            normalise_by_length = False
+        else:
+            normalise_by_length = True
+    elif norm == 'raw' and normalise_by_length:
+        normalise_by_length = False
+        print("Warning: norm is 'raw', normalise_by_length set to False.")
+    elif norm == 'deposited_energy' and normalise_by_length:
+        normalise_by_length = False
+        print("Warning: norm is 'deposited_energy', normalise_by_length set to False.")
+    elif norm == 'deposited_energy_per_length' and not normalise_by_length:
+        normalise_by_length = True
+        print("Warning: norm is 'deposited_energy_per_length', normalise_by_length set to True.")
 
+    # Create arrays for plotting
     coll_s = lossmap['collimator']['s']
     coll_val = lossmap['collimator']['e'] if energy else lossmap['collimator']['n']
     if lossmap['interpolation']:
@@ -154,26 +171,27 @@ def _plot_lossmap_base(lossmap: dict, *,
         aper_val = np.array([], dtype=aper_val.dtype)
         aper_length = 1
 
-    if norm != "raw":
-        if norm == "total":
-            scale = coll_val.sum() + cold_val.sum() + warm_val.sum() + aper_val.sum()
-        elif norm == "coll_max":
-            scale = coll_val.max()
-        elif norm == "max":
-            scale = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
-        elif norm == "deposited_energy":
-            scale = 1 / (rescaled_beam_intensity * 1.60218e-19)
-        elif norm == "none":
-            scale = 1
-        else:  # numeric
-            scale = norm
-        cold_val = cold_val / scale / cold_length
-        warm_val = warm_val / scale / warm_length
-        aper_val = aper_val / scale / aper_length
-        if norm == "deposited_energy":   # TODO: this is incorrect!
-            coll_val = coll_val / scale
-        else:
-            coll_val = coll_val / scale / lossmap['collimator']['length']
+    if norm == "total":
+        scale = coll_val.sum() + cold_val.sum() + warm_val.sum() + aper_val.sum()
+    elif norm == "coll_max":
+        scale = coll_val.max()
+    elif norm == "max":
+        scale = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
+    elif norm == "deposited_energy" or norm == "deposited_energy_per_length":
+        scale = 1 / (rescaled_beam_intensity * 1.60218e-19)
+    elif norm == "none" or norm == 'raw':
+        scale = 1
+    else:  # numeric
+        scale = norm
+    cold_val = cold_val / scale
+    warm_val = warm_val / scale
+    aper_val = aper_val / scale
+    coll_val = coll_val / scale
+    if normalise_by_length:
+        cold_val = cold_val / cold_length
+        warm_val = warm_val / warm_length
+        aper_val = aper_val / aper_length
+        coll_val = coll_val / lossmap['collimator']['length']
 
     if xlim is None:
         xlim = [-0.01*L, 1.01*L]
