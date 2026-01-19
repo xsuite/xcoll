@@ -76,13 +76,13 @@ class LossMap:
     def __eq__(self, other):
         if not isinstance(other, LossMap):
             return False
-        if not deep_equal(self.lossmap, other.lossmap):
+        if not deep_equal(self.lossmap, other.lossmap, expand_numpy_and_hybridclass=True):
             return False
-        if not deep_equal(self.cold_regions, other.cold_regions):
+        if not deep_equal(self.cold_regions, other.cold_regions, expand_numpy_and_hybridclass=True):
             return False
-        if not deep_equal(self.warm_regions, other.warm_regions):
+        if not deep_equal(self.warm_regions, other.warm_regions, expand_numpy_and_hybridclass=True):
             return False
-        if not deep_equal(self.s_range, other.s_range):
+        if not deep_equal(self.s_range, other.s_range, expand_numpy_and_hybridclass=True):
             return False
         return True
 
@@ -325,10 +325,10 @@ class LossMap:
              grid=True, energy=None, show=True, zoom=None, savefig=None):
         cold_regions = self._cold_regions
         warm_regions = self._warm_regions
-        if isinstance(xlim, str) and xlim in self._s_range:
-            xlim = self._s_range[xlim]
-        if isinstance(zoom, str) and zoom in self._s_range:
-            zoom = self._s_range[zoom]
+        if isinstance(xlim, str) and xlim in self.s_range:
+            xlim = self.s_range[xlim]
+        if isinstance(zoom, str) and zoom in self.s_range:
+            zoom = self.s_range[zoom]
         if energy is None:
             energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
                              for tt in self._coll_type])
@@ -402,7 +402,7 @@ class LossMap:
             if 'warm_regions' in line.env.metadata['collimation']:
                 self.warm_regions = line.env.metadata['collimation']['warm_regions']
             if 's_range' in line.env.metadata['collimation']:
-                self._s_range = line.env.metadata['collimation']['s_range']
+                self.s_range = line.env.metadata['collimation']['s_range']
         self._xcoll = np.append(self._xcoll, __version__)
         self._date = np.append(self._date, pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
 
@@ -450,7 +450,7 @@ class LossMap:
             if 'warm_regions' in lossmap:
                 self.warm_regions = lossmap['warm_regions']
             if 's_range' in lossmap:
-                self._s_range = lossmap['s_range']
+                self.s_range = lossmap['s_range']
             self._load_coll_summary(lossmap['collimator'])
             self._load_aperture_losses(lossmap['aperture'])
             if 'num_initial' in lossmap and 'tot_energy_initial' in lossmap:
