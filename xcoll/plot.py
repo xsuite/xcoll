@@ -251,7 +251,7 @@ def _label_from_norm(norm, energy):
         else:
             return "Particles absorbed [-]"
     elif norm == "deposited_energy":
-        return "Deposited energy [J]"
+        return "Deposited energy [J]"  # TODO: should be [J/m]
     elif norm == "none":
         if energy:
             return "Deposited energy [eV/m]"
