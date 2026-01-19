@@ -19,6 +19,3 @@ xc.fluka.environment.compile(flukaio_lib=path / 'fluka4-5.1' / 'lib' / 'libFluka
 
 # Import a FLUKA FEDB
 xc.fluka.environment.import_fedb(fedb_path=path / 'fedb_coupling', verbose=True, overwrite=False)
-
-# Delete any leftover generic assemblies and prototypes from previous runs
-xc.fluka.reset_generic()
