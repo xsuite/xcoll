@@ -97,9 +97,12 @@ def test_monitor_reset(test_context):
     for _ in range(2):
         part = part_init.copy()
         line.track(part, num_turns=num_turns, with_progress=1)
+        part.move() # Ensure particles are back on CPU context
+        mon2 = mon.copy()
+        mon2.move()  # Ensure monitor is back on CPU context
 
         assert np.unique(part.state) == np.array([1])  # Sanity check for test
-        assert np.all(mon.count == int(num_part/5) * np.ones(num_turns))  # Ensure no new particles added
+        assert np.all(mon2.count == int(num_part/5) * np.ones(num_turns))  # Ensure no new particles added
 
         # Reset monitor for next tracking
         mon.reset()

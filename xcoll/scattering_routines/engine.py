@@ -441,7 +441,7 @@ class BaseEngine(xo.HybridClass):
                 assert np.isclose(particles.energy0[0]**2, particles.p0c[0]**2 + particles.mass0**2)
                 assert np.isclose(particles.mass0, new_mass)
                 # No need to update chi, delta, etc as they depend on the RATIO m0/m and this is unchanged.
-                self._print(f"Warning: reference mass in particles object differ"
+                self._print(f"Warning: reference mass in particles object differs "
                           + f"from reference mass in engine. Overwritten by the latter.")
             else:
                 # The reference particle in the engine was changed unintentionally
