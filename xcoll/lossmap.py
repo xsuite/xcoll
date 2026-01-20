@@ -342,7 +342,7 @@ class LossMap:
             if isinstance(zz, str) and zz not in self.s_range:
                 raise ValueError(f"Zoom string '{zz}' not found in `s_range`.")
         titles = kwargs.pop('titles', None)
-        if np.all([isinstance(zz, str) for zz in zoom]):
+        if zoom and np.all([isinstance(zz, str) for zz in zoom]):
             titles = ["Full ring",
                       *[f"Zoom on {zz} insertion" for zz in zoom]
                       ]
@@ -352,7 +352,7 @@ class LossMap:
             energy = np.any([tt.startswith('Geant4') or tt.startswith('Fluka')
                              for tt in self._coll_type])
         beam_intensity = kwargs.pop('beam_intensity', None)
-        if beam_intensity is not None:
+        if beam_intensity is not None and self.num_initial > 0:
             beam_intensity /= self.num_initial
         return plot_lossmap(self.lossmap, xlim=xlim, energy=energy, zoom=zoom,
                             cold_regions=cold_regions, warm_regions=warm_regions,
@@ -361,7 +361,8 @@ class LossMap:
 
 
     def add_particles(self, part, line, *, line_is_reversed=False, interpolation=None,
-                      line_shift_s=0, weights=None, weight_function=None, verbose=True):
+                      line_shift_s=0, weights=None, weight_function=None,
+                      correct_aperture_absorption=True, verbose=True):
         """
         Add particles to the loss map. Aperture losses are interpolated and the
         collimator summary is updated.
@@ -380,6 +381,12 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
+
+        if correct_aperture_absorption not in (True, False) \
+        and correct_aperture_absorption.lower() not in ('after', 'before', 'both'):
+            raise ValueError("correct_aperture_absorption must be True, "
+                             "False, 'after', 'before', or 'both'.")
+
         self.line_is_reversed = line_is_reversed
         self.machine_length = line.get_length()
         self.momentum = line.particle_ref.p0c[0]
@@ -401,7 +408,9 @@ class LossMap:
 
         # Correct particles that are lost in aperture directly after collimator.
         # These should be absorbed.
-        self._correct_absorbed(part, line, verbose=verbose, aperture_loc='after')
+        if correct_aperture_absorption is True \
+        or correct_aperture_absorption == 'after' or correct_aperture_absorption == 'both':
+            self._correct_absorbed(part, line, verbose=verbose, aperture_loc='after')
 
         # Loss location refinement
         if self._interpolation:
@@ -410,7 +419,9 @@ class LossMap:
         # Correct particles that are lost in aperture directly before collimator
         # (after interpolation to avoid moving too much losses incorrectly).
         # These should be absorbed.
-        self._correct_absorbed(part, line, verbose=verbose, aperture_loc='before')
+        if (correct_aperture_absorption is True and not self._interpolation) \
+        or correct_aperture_absorption == 'before' or correct_aperture_absorption == 'both':
+            self._correct_absorbed(part, line, verbose=verbose, aperture_loc='before')
 
         self._make_coll_summary(part, line, line_shift_s, weights)
         self._get_aperture_losses(part, line, line_shift_s, weights)
@@ -480,7 +491,7 @@ class LossMap:
                 self._tot_energy_initial += lossmap['tot_energy_initial']
             elif not np.isclose(self.num_initial, 0) or not np.isclose(self.tot_energy_initial, 0):
                 raise ValueError("num_initial and tot_energy_initial must be provided "
-                                "in the JSON file when adding to a non-empty LossMap.")
+                                 "in the JSON file when adding to a non-empty LossMap.")
             i += 1
         if i == 0:
             raise ValueError("No valid files found.")
@@ -494,13 +505,11 @@ class LossMap:
             print(f"Loaded {i} file{'s' if i > 1 else ''} into loss map.")
 
 
-    def _correct_absorbed(self, part, line, verbose=True, aperture_loc='both'):
+    def _correct_absorbed(self, part, line, verbose, aperture_loc):
         # Correct particles that are at an aperture directly before or after a collimator
         # TODO: should this be done if collimator has limited width/height?
-        coll_classes = list(set(collimator_classes))# - set(crystal_classes))
+        coll_classes = list(set(collimator_classes) - set(crystal_classes))
         coll_elements = line.get_elements_of_type(coll_classes)[1]
-        if aperture_loc.lower() not in ('after', 'before', 'both'):
-            raise ValueError("aperture_loc must be 'after', 'before', or 'both'.")
         for idx, elem in enumerate(part.at_element):
             if part.state[idx] == 0:
                 prev_elem = elem - 1 if elem > 0 else len(line.element_names)-1

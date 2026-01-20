@@ -30,8 +30,9 @@ def plot_lossmap(lossmap: dict, *,
         titles = []
     if not hasattr(titles, "__iter__") or isinstance(titles, str):
         titles = [titles]
-    if len(titles) != len(zoom) + 1:
-        raise ValueError("When zoom is used, titles must be a list of as many titles as zoom intervals plus one.")
+    if zoom:
+        if len(titles) != len(zoom) + 1:
+            raise ValueError("When zoom is used, titles must be a list of as many titles as zoom intervals plus one.")
 
     font = {'family': 'serif', 'size': 17}
     format_dict = {f"font.{prop}": font[prop] for prop in font}
