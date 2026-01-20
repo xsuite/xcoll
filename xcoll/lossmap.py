@@ -95,7 +95,6 @@ class LossMap:
     def to_json(self, file):
         json_dump({
             'xcoll': self._xcoll,
-            'date': self._date,
             'momentum': self.momentum,
             'beam_type': self._beam_type,
             'num_initial': self.num_initial,
@@ -103,7 +102,8 @@ class LossMap:
             'cold_regions': self.cold_regions,
             'warm_regions': self.warm_regions,
             's_range': self.s_range,
-            **self.lossmap
+            **self.lossmap,
+            'date': self._date
         }, Path(file), indent=True)
 
     def save_summary(self, file):
@@ -153,11 +153,11 @@ class LossMap:
         coll_summary = self.summary[self.summary.n > 0].to_dict('list')
         coll_summary = {kk: np.array(vv) for kk, vv in coll_summary.items()}
         return {
-                'collimator':         coll_summary,
-                'aperture':           self.aperture_losses,
                 'machine_length':     self.machine_length,
                 'interpolation':      self.interpolation,
-                'reversed':           self.line_is_reversed
+                'reversed':           self.line_is_reversed,
+                'collimator':         coll_summary,
+                'aperture':           self.aperture_losses
             }
 
     @property
@@ -436,7 +436,12 @@ class LossMap:
                 self.warm_regions = line.env.metadata['collimation']['warm_regions']
             if 's_range' in line.env.metadata['collimation']:
                 self.s_range = line.env.metadata['collimation']['s_range']
-        self._xcoll = np.append(self._xcoll, __version__)
+        if len(self._xcoll) == 0:
+            self._xcoll = np.append(self._xcoll, __version__)
+        elif __version__ not in self._xcoll:
+            if verbose:
+                print(f"Warning: xcoll version changed from {self._xcoll[-1]} to {__version__}.")
+            self._xcoll = np.append(self._xcoll, __version__)
         self._date = np.append(self._date, pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
@@ -495,11 +500,10 @@ class LossMap:
             i += 1
         if i == 0:
             raise ValueError("No valid files found.")
-        if verbose and _xcoll:
-            uniq = set(_xcoll)
-            if len(uniq) > 1:
+        _xcoll = np.unique(_xcoll)
+        if verbose and len(_xcoll) > 1:
                 print("Warning: Multiple xcoll versions are used in this loss map.")
-        self._xcoll = np.array(_xcoll)
+        self._xcoll = np.unique(_xcoll)
         self._date = np.array(_date)
         if verbose:
             print(f"Loaded {i} file{'s' if i > 1 else ''} into loss map.")
