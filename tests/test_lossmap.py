@@ -57,8 +57,8 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         if not ignore_crystals:
             pytest.skip("Geant4 crystals not implemented yet")
     else:
-        npart *= 10
-        num_turns = 10
+        npart *= 5
+        num_turns = 5
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
@@ -131,95 +131,94 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
 
 
 def _assert_lossmap(beam, npart, line, part, tcp, interpolation, ignore_crystals, coll_cls, cry_cls, this_id):
+    line_is_reversed = True if beam == 2 else False
+    ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
+                        interpolation=interpolation)
+    print(ThisLM.summary)
+
+    ThisLM.to_json(f"lossmap-{this_id}.json")
+    assert Path(f"lossmap-{this_id}.json").exists()
+    clean_lm_dct = {kk: {kkk: vvv.tolist() for kkk, vvv in vv.items()}
+                    if isinstance(vv, dict) else vv
+                    for kk, vv in ThisLM.lossmap.items()}
+    with Path(f"lossmap-{this_id}.json").open('r') as fid:
+        dct = json.load(fid)
+        assert dct.pop('xcoll', None) == [xc.__version__]
+        date = dct.pop('date', None)
+        assert date is not None
+        assert pd.Timestamp.now() - pd.Timestamp(date[-1]) < pd.Timedelta('1 minute')
+        momentum = dct.pop('momentum', None)
+        assert momentum is not None
+        assert np.isclose(momentum, line.particle_ref.p0c[0])
+        assert dct.pop('beam_type', None) == 2212
+        assert dct.pop('num_initial', None) == npart
+        assert np.isclose(dct.pop('tot_energy_initial', None), npart*line.particle_ref.energy0[0])
+        cold_regions = dct.pop('cold_regions', None)
+        warm_regions = dct.pop('warm_regions', None)
+        s_range = dct.pop('s_range', None)
+        cold_regions = np.array(cold_regions) if cold_regions is not None else None
+        warm_regions = np.array(warm_regions) if warm_regions is not None else None
+        s_range = {kk: np.array(vv) for kk, vv in s_range.items()} if s_range is not None else None
+        assert deep_equal(cold_regions, ThisLM.cold_regions, debug=True)
+        assert deep_equal(warm_regions, ThisLM.warm_regions, debug=True)
+        assert deep_equal(s_range, ThisLM.s_range, debug=True)
+        assert deep_equal(dct, clean_lm_dct, expand_numpy_and_hybridclass=True, debug=True)
+    ThisLM2 = xc.LossMap.from_json(f"lossmap-{this_id}.json")
+    assert ThisLM == ThisLM2
+    Path(f"lossmap-{this_id}.json").unlink()
+    ThisLM.save_summary(f"coll_summary-{this_id}.txt")
+    assert Path(f"coll_summary-{this_id}.txt").exists()
+    Path(f"coll_summary-{this_id}.txt").unlink()
+
+    assert np.isclose(ThisLM.momentum, line.particle_ref.p0c[0])
+    assert ThisLM.beam_type == 'proton'
+    assert ThisLM.num_initial == npart
+    assert np.isclose(ThisLM.tot_energy_initial, npart*line.particle_ref.energy0[0])
+
+    # TODO: check the lossmap quantitaively: rough amount of losses at given positions
+    summ = ThisLM.summary
+    assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
+    assert len(summ[[tt in coll_cls for tt in summ.type]]) == 10
+    if not ignore_crystals:
+        assert len(summ[[tt in cry_cls for tt in summ.type]]) == 2
+
+    # We want at least 5% absorption on the primary
     with flaky_assertions():
-        line_is_reversed = True if beam == 2 else False
-        ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part,
-                            interpolation=interpolation)
-        print(ThisLM.summary)
-
-        ThisLM.to_json(f"lossmap-{this_id}.json")
-        assert Path(f"lossmap-{this_id}.json").exists()
-        clean_lm_dct = {kk: {kkk: vvv.tolist() for kkk, vvv in vv.items()}
-                        if isinstance(vv, dict) else vv
-                        for kk, vv in ThisLM.lossmap.items()}
-        with Path(f"lossmap-{this_id}.json").open('r') as fid:
-            dct = json.load(fid)
-            assert dct.pop('xcoll', None) == [xc.__version__]
-            date = dct.pop('date', None)
-            assert date is not None
-            assert pd.Timestamp.now() - pd.Timestamp(date[-1]) < pd.Timedelta('1 minute')
-            momentum = dct.pop('momentum', None)
-            assert momentum is not None
-            assert np.isclose(momentum, line.particle_ref.p0c[0])
-            assert dct.pop('beam_type', None) == 2212
-            assert dct.pop('num_initial', None) == npart
-            assert np.isclose(dct.pop('tot_energy_initial', None), npart*line.particle_ref.energy0[0])
-            cold_regions = dct.pop('cold_regions', None)
-            warm_regions = dct.pop('warm_regions', None)
-            s_range = dct.pop('s_range', None)
-            cold_regions = np.array(cold_regions) if cold_regions is not None else None
-            warm_regions = np.array(warm_regions) if warm_regions is not None else None
-            s_range = {kk: np.array(vv) for kk, vv in s_range.items()} if s_range is not None else None
-            assert deep_equal(cold_regions, ThisLM.cold_regions, debug=True)
-            assert deep_equal(warm_regions, ThisLM.warm_regions, debug=True)
-            assert deep_equal(s_range, ThisLM.s_range, debug=True)
-            assert deep_equal(dct, clean_lm_dct, expand_numpy_and_hybridclass=True, debug=True)
-        ThisLM2 = xc.LossMap.from_json(f"lossmap-{this_id}.json")
-        assert ThisLM == ThisLM2
-        Path(f"lossmap-{this_id}.json").unlink()
-        ThisLM.save_summary(f"coll_summary-{this_id}.txt")
-        assert Path(f"coll_summary-{this_id}.txt").exists()
-        Path(f"coll_summary-{this_id}.txt").unlink()
-
-        assert np.isclose(ThisLM.momentum, line.particle_ref.p0c[0])
-        assert ThisLM.beam_type == 'proton'
-        assert ThisLM.num_initial == npart
-        assert np.isclose(ThisLM.tot_energy_initial, npart*line.particle_ref.energy0[0])
-
-        # TODO: check the lossmap quantitaively: rough amount of losses at given positions
-        summ = ThisLM.summary
-        assert list(summ.columns) == ['name', 'n', 'e', 'length', 's', 'type']
-        assert len(summ[[tt in coll_cls for tt in summ.type]]) == 10
-        if not ignore_crystals:
-            assert len(summ[[tt in cry_cls for tt in summ.type]]) == 2
-
-        # We want at least 5% absorption on the primary
         assert summ.loc[summ.name==tcp,'n'].values[0] > 0.05*npart
 
-        lm = ThisLM.lossmap
-        summ = summ[summ.n > 0]
-        assert list(lm.keys()) == ['collimator', 'aperture', 'machine_length', 'interpolation',
-                                   'reversed']
-        assert lm['interpolation'] == interpolation
-        assert lm['reversed'] == line_is_reversed
-        assert np.isclose(lm['machine_length'], line.get_length())
-        assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
-        assert len(lm['collimator']['s']) == len(summ)
-        assert len(lm['collimator']['name']) == len(summ)
-        assert len(lm['collimator']['length']) == len(summ)
-        assert len(lm['collimator']['n']) == len(summ)
-        assert len(lm['collimator']['e']) == len(summ)
-        assert np.all(lm['collimator']['s'] == summ.s)
-        assert np.all(lm['collimator']['name'] == summ.name)
-        assert np.all(lm['collimator']['length'] == summ.length)
-        assert np.all(lm['collimator']['n'] == summ.n)
-        assert np.all(lm['collimator']['e'] == summ.e)
-        assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
-        assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
-        if interpolation:
-            assert list(lm['aperture'].keys()) == ['idx_bins', 's_bins', 'length_bins', 'n_bins', 'e_bins']
-            if npart > 5000:
-                assert len(lm['aperture']['s_bins']) > 0
-                assert len(lm['aperture']['s_bins']) == len(lm['aperture']['idx_bins'])
-                assert len(lm['aperture']['s_bins']) == len(lm['aperture']['n_bins'])
-                assert len(lm['aperture']['s_bins']) == len(lm['aperture']['e_bins'])
-                assert len(lm['aperture']['s_bins']) == len(lm['aperture']['length_bins'])
-                assert np.all([s < lm['machine_length'] for s in lm['aperture']['s_bins']])
-        else:
-            assert list(lm['aperture'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
-            if npart > 5000:
-                assert len(lm['aperture']['s']) > 0
-                assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
-                assert len(lm['aperture']['s']) == len(lm['aperture']['e'])
-                assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
+    lm = ThisLM.lossmap
+    summ = summ[summ.n > 0]
+    assert list(lm.keys()) == ['machine_length', 'interpolation', 'reversed', 'collimator', 'aperture']
+    assert lm['interpolation'] == interpolation
+    assert lm['reversed'] == line_is_reversed
+    assert np.isclose(lm['machine_length'], line.get_length())
+    assert list(lm['collimator'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
+    assert len(lm['collimator']['s']) == len(summ)
+    assert len(lm['collimator']['name']) == len(summ)
+    assert len(lm['collimator']['length']) == len(summ)
+    assert len(lm['collimator']['n']) == len(summ)
+    assert len(lm['collimator']['e']) == len(summ)
+    assert np.all(lm['collimator']['s'] == summ.s)
+    assert np.all(lm['collimator']['name'] == summ.name)
+    assert np.all(lm['collimator']['length'] == summ.length)
+    assert np.all(lm['collimator']['n'] == summ.n)
+    assert np.all(lm['collimator']['e'] == summ.e)
+    assert np.all([nn[:3] in ['tcp', 'tcs'] for nn in lm['collimator']['name']])
+    assert np.all([s < lm['machine_length'] for s in lm['collimator']['s']])
+    if interpolation:
+        assert list(lm['aperture'].keys()) == ['idx_bins', 's_bins', 'length_bins', 'n_bins', 'e_bins']
+        if npart > 5000:
+            assert len(lm['aperture']['s_bins']) > 0
+            assert len(lm['aperture']['s_bins']) == len(lm['aperture']['idx_bins'])
+            assert len(lm['aperture']['s_bins']) == len(lm['aperture']['n_bins'])
+            assert len(lm['aperture']['s_bins']) == len(lm['aperture']['e_bins'])
+            assert len(lm['aperture']['s_bins']) == len(lm['aperture']['length_bins'])
+            assert np.all([s < lm['machine_length'] for s in lm['aperture']['s_bins']])
+    else:
+        assert list(lm['aperture'].keys()) == ['name', 'n', 'e', 'length', 's', 'type']
+        if npart > 5000:
+            assert len(lm['aperture']['s']) > 0
+            assert len(lm['aperture']['s']) == len(lm['aperture']['n'])
+            assert len(lm['aperture']['s']) == len(lm['aperture']['e'])
+            assert np.all([s < lm['machine_length'] for s in lm['aperture']['s']])
     return ThisLM

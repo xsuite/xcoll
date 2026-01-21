@@ -62,8 +62,6 @@ def test_positions(engine, jaw, angle, tilt):
         particle_ref = xc.fluka.engine.particle_ref
 
     elif engine == "geant4":
-        if jaw == jaws[2] or jaw == jaws[3]:
-            pytest.skip("BDSIM coupling can not yet handle fully positive or negative jaws")  # TODO
         num_part = 50_000
         capacity = 2*num_part
         jaw_band = 1e-8
