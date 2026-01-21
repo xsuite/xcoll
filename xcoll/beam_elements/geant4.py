@@ -201,4 +201,7 @@ class Geant4CollimatorTip(Geant4Collimator):
 
 class Geant4Crystal(BaseCrystal):
     def __init__(self, **kwargs):
+        import xcoll as xc
+        if xc.geant4.engine.is_running():
+            raise ValueError('Cannot create Geant4Crystal while engine is running.')
         raise NotImplementedError("Geant4Crystal not yet implemented.")

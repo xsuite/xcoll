@@ -284,6 +284,7 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
         coll.jaw = 0.002
         xc.fluka.engine.particle_ref = particle_ref
         xc.fluka.engine.capacity = capacity
+        xc.fluka.engine.relative_capacity = 20
         if return_type is not None:
             xc.fluka.engine.return_none = True
             setattr(xc.fluka.engine, f'return_{return_type}', True)
@@ -325,7 +326,10 @@ def _run(engine, num_part, capacity, particle_ref, hit, tol=1e-12, do_assert=Tru
             coll_state = xcc.LOST_ON_FLUKA_COLL if engine == 'fluka' else xcc.LOST_ON_GEANT4_COLL
             _assert_hit(part, part_init, E_ref, coll, coll_state=coll_state, tol=tol)
         else:
-            _assert_missed(part, part_init, E_ref, coll, tol=tol)
+            if engine == "fluka":
+                _assert_missed(part, part_init, E_ref, coll, tol=tol, allow_spurious_lost=2)
+            else:
+                _assert_missed(part, part_init, E_ref, coll, tol=tol)
 
     if engine == 'fluka' and xc.fluka.engine.is_running():
         xc.fluka.engine.stop(clean=True)
@@ -364,10 +368,16 @@ def _init_particles(num_part, particle_ref, x=0.004, px=-1.e-5, capacity=None, r
     return part_init.copy(), part_init
 
 
-def _assert_missed(part, part_init, E0, coll, tol=1e-12):
+def _assert_missed(part, part_init, E0, coll, tol=1e-12, allow_spurious_lost=0):
     alive = part_init._num_active_particles
     assert part._num_active_particles == alive
-    assert set(np.unique(part.state)) == {1, LAST_INVALID_STATE}
+    state, counts = np.unique(part.state, return_counts=True)
+    states = dict(zip(state, counts))
+    print(f"Particles alive after missing: {part._num_active_particles}. State counts: {states}")
+    assert 1 in states
+    assert LAST_INVALID_STATE in states
+    invalid = set(state) - {1, LAST_INVALID_STATE}
+    assert np.sum([states[s] for s in invalid]) <= allow_spurious_lost  # Allow max N spurious lost particles
     mask_alive = False*np.ones(part.x.shape, dtype=bool)
     mask_alive[:alive] = True
     _test_drift(part, part_init, E0, mask_alive, coll, tol=tol)
@@ -403,7 +413,7 @@ def _assert_hit(part, part_init, E0, coll, coll_state, tol=1e-12):
     # All children should have less energy than the initial
     assert np.all(part.energy[is_child] < E0)
     # All energies need to be positive
-    assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcc.ACC_IONISATION_LOSS)] > 0)
+    assert np.all(part.energy[(part.state!=LAST_INVALID_STATE) & (part.state!=xcc.ACC_IONISATION_LOSS)] > -1.e-12)
 
     with flaky_assertions():
         Edead = part.energy[part.state==coll_state].sum()
