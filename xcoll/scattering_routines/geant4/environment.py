@@ -52,9 +52,11 @@ class Geant4Environment(BaseEnvironment):
     def compiled(self):
         if self.geant4 is None or self.bdsim is None:
             return False
-        ver = f"{sys.version_info.major}{sys.version_info.minor}"
-        so = list((self.data_dir).glob(f'g4interface.*-{ver}-*.so'))
-        return len(so) >= 1 and all([o.exists() for o in so])
+        try:
+            from g4interface import XtrackInterface
+            return True
+        except (ModuleNotFoundError, ImportError) as error:
+            return False
 
     @property
     def ready(self):
