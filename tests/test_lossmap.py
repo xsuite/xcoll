@@ -48,10 +48,12 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
 
     if engine == "fluka":
         num_turns = 2
+        capacity = 5*npart
         if xc.fluka.engine.is_running():
             xc.fluka.engine.stop(clean=True)
     elif engine == "geant4":
         num_turns = 2
+        capacity = 5*npart
         if xc.geant4.engine.is_running():
             xc.geant4.engine.stop(clean=True)
         if not ignore_crystals:
@@ -59,6 +61,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
     else:
         npart *= 5
         num_turns = 5
+        capacity = None
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     line = env[f'lhcb{beam}']
@@ -88,12 +91,12 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         line.collimators.align_to_beam_divergence()
 
     if engine == "fluka":
-        xc.fluka.engine.start(line=line, capacity=2*npart, verbose=True)
+        xc.fluka.engine.start(line=line, capacity=capacity, verbose=True)
     elif engine == "geant4":
         xc.geant4.engine.start(line=line, verbose=True)
 
     tcp  = f"tcp.{'c' if plane=='H' else 'd'}6{'l' if beam==1 else 'r'}7.b{beam}"
-    part = line[tcp].generate_pencil(npart)
+    part = line[tcp].generate_pencil(npart, _capacity=capacity)
     if engine == "fluka":
         # Make sure all primaries hit the collimator (not trivial because of assembly)
         if plane == 'H':
