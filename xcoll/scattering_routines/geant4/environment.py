@@ -4,6 +4,7 @@
 # ######################################### #
 
 import os
+import sys
 import requests
 from subprocess import run
 
@@ -51,7 +52,8 @@ class Geant4Environment(BaseEnvironment):
     def compiled(self):
         if self.geant4 is None or self.bdsim is None:
             return False
-        so = list((self.data_dir).glob('g4interface.*so'))
+        ver = f"{sys.version_info.major}{sys.version_info.minor}"
+        so = list((self.data_dir).glob(f'g4interface.*-{ver}-*.so'))
         return len(so) >= 1 and all([o.exists() for o in so])
 
     @property

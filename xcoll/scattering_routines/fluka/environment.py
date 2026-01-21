@@ -38,7 +38,8 @@ class FlukaEnvironment(BaseEnvironment):
 
     @property
     def compiled(self):
-        so = list(self.data_dir.glob('pyflukaf.*so'))
+        ver = f"{sys.version_info.major}{sys.version_info.minor}"
+        so = list(self.data_dir.glob(f'pyflukaf.*-{ver}-*.so'))
         return len(so) > 0
 
     def compile(self, flukaio_lib=None, flukaio_path=None, verbose=False):

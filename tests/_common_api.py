@@ -26,7 +26,7 @@ all_engine_params = [
     pytest.param("geant4", marks=pytest.mark.geant4)
 ]
 
-def check_skip(engine, check_old_bdsim=False):
+def check_skip(engine):
     if engine == "fluka":
         if not xc.fluka.environment.ready:
             pytest.skip("FLUKA installation not found")

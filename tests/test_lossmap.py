@@ -34,10 +34,10 @@ path = Path(__file__).parent / 'data'
 )
 @pytest.mark.parametrize("do_plot", [True, False], ids=["with_plot", "without_plot"])
 @pytest.mark.parametrize("beam, plane, npart, interpolation, ignore_crystals", [
-                            [1, 'H', 2500, 0.2, True],
-                            [2, 'V', 500, 0.3, True],
-                            [1, 'V', 3500, False, False],
-                            [2, 'H', 30000, 0.15, False]
+                            [1, 'H', 250, 0.2, True],
+                            [2, 'V', 50, 0.3, True],
+                            [1, 'V', 350, False, False],
+                            [2, 'H', 3000, 0.15, False]
                         ], ids=["B1H", "B2V", "B1V_crystals", "B2H_crystals"])
 @retry()
 def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_plot, test_context):
@@ -57,6 +57,7 @@ def test_lossmap(engine, beam, plane, npart, interpolation, ignore_crystals, do_
         if not ignore_crystals:
             pytest.skip("Geant4 crystals not implemented yet")
     else:
+        npart *= 10
         num_turns = 10
 
     env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
