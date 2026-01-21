@@ -88,6 +88,10 @@ class BaseEngine(xo.HybridClass):
 
     @property
     def environment(self):
+        if self._environment is None:
+            raise RuntimeError(f"{self.__class__.__name__} environment not set up! "
+                             + f"Do not manually create an instance of the engine, but use "
+                             + f"xcoll.{self.__class__.__name__}.engine instead.")
         return self._environment
 
     @property

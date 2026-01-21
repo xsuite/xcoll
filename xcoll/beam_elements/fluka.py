@@ -53,6 +53,8 @@ class FlukaCollimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         import xcoll as xc
+        if xc.fluka.engine.is_running():
+            raise ValueError('Cannot create FlukaCollimator while engine is running.')
         with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
@@ -303,8 +305,10 @@ class FlukaCrystal(BaseCrystal):
         return self
 
     def __init__(self, **kwargs):
+        import xcoll as xc
+        if xc.fluka.engine.is_running():
+            raise ValueError('Cannot create FlukaCrystal while engine is running.')
         with self.__class__._in_constructor(self):
-            import xcoll as xc
             to_assign = {}
             generic = False
             if '_xobject' not in kwargs:

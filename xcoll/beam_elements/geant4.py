@@ -49,6 +49,8 @@ class Geant4Collimator(BaseCollimator):
 
     def __init__(self, **kwargs):
         import xcoll as xc
+        if xc.geant4.engine.is_running():
+            raise ValueError('Cannot create Geant4Collimator while engine is running.')
         with self.__class__._in_constructor(self):
             to_assign = {}
             if '_xobject' not in kwargs:
@@ -173,6 +175,9 @@ class Geant4CollimatorTip(Geant4Collimator):
         return self
 
     def __init__(self, **kwargs):
+        import xcoll as xc
+        if xc.geant4.engine.is_running():
+            raise ValueError('Cannot create Geant4CollimatorTip while engine is running.')
         with self.__class__._in_constructor():
             to_assign = {}
             if '_xobject' not in kwargs:
