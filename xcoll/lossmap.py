@@ -30,7 +30,8 @@ class LossMap:
     _version_changes = ["0.6.0", "0.8.0.dev1+fluka"]
 
     def __init__(self, line=None, part=None, *, line_is_reversed=None, interpolation=None,
-                 line_shift_s=0, weights=None, weight_function=None, verbose=True):
+                 line_shift_s=0, weights=None, weight_function=None, verbose=True,
+                 correct_aperture_absorption=True):
         self._line_is_reversed = None
         self._interpolation = None
         self._machine_length = None
@@ -63,6 +64,7 @@ class LossMap:
             self.add_particles(part=part, line=line, line_is_reversed=line_is_reversed,
                                interpolation=interpolation, line_shift_s=line_shift_s,
                                weights=weights, weight_function=weight_function,
+                               correct_aperture_absorption=correct_aperture_absorption,
                                verbose=verbose)
 
     def __str__(self):
@@ -381,11 +383,17 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
-
-        if correct_aperture_absorption not in (True, False) \
-        and correct_aperture_absorption.lower() not in ('after', 'before', 'both'):
-            raise ValueError("correct_aperture_absorption must be True, "
-                             "False, 'after', 'before', or 'both'.")
+        if not isinstance(correct_aperture_absorption, dict):
+            coll_classes = list(set(collimator_classes) - set(crystal_classes))
+            coll_elements = line.get_elements_of_type(coll_classes)[1]
+            correct_aperture_absorption = {coll: correct_aperture_absorption
+                                            for coll in coll_elements}
+        for coll, this_aper_corr in correct_aperture_absorption.items():
+            if this_aper_corr not in (True, False) \
+            and this_aper_corr.lower() not in ('after', 'before', 'both'):
+                raise ValueError("correct_aperture_absorption must be True, "
+                                "False, 'after', 'before', 'both', or a dict "
+                                "mapping collimator names to these values.")
 
         self.line_is_reversed = line_is_reversed
         self.machine_length = line.get_length()
@@ -401,16 +409,19 @@ class LossMap:
                 raise ValueError("Use either 'weights' or 'weight_function', not both!")
             if len(weights) != len(part.x):
                 raise ValueError("The length of the weights array must be equal to "
-                                "the number of particles.")
+                                 "the number of particles.")
 
         if line_shift_s != 0:
             raise NotImplementedError("Line shift not implemented yet.")
 
-        # Correct particles that are lost in aperture directly after collimator.
-        # These should be absorbed.
-        if correct_aperture_absorption is True \
-        or correct_aperture_absorption == 'after' or correct_aperture_absorption == 'both':
-            self._correct_absorbed(part, line, verbose=verbose, aperture_loc='after')
+        # Correct particles that are lost in aperture directly after collimator
+        # (before interpolation to avoid issues with backtracking in collimators).
+        aper_corr_coll = []
+        for coll, this_aper_corr in correct_aperture_absorption.items():
+            if this_aper_corr is True or isinstance(this_aper_corr, str) \
+            and (this_aper_corr.lower() == 'both' or this_aper_corr.lower() == 'after'):
+                aper_corr_coll.append(coll)
+        self._correct_absorbed(part, line, verbose=verbose, aperture_loc='after', collimators=aper_corr_coll)
 
         # Loss location refinement
         if self._interpolation:
@@ -418,10 +429,13 @@ class LossMap:
 
         # Correct particles that are lost in aperture directly before collimator
         # (after interpolation to avoid moving too much losses incorrectly).
-        # These should be absorbed.
-        if (correct_aperture_absorption is True and not self._interpolation) \
-        or correct_aperture_absorption == 'before' or correct_aperture_absorption == 'both':
-            self._correct_absorbed(part, line, verbose=verbose, aperture_loc='before')
+        aper_corr_coll = []
+        for coll, this_aper_corr in correct_aperture_absorption.items():
+            if (this_aper_corr is True and self._interpolation) or isinstance(this_aper_corr, str) \
+            and (this_aper_corr.lower() == 'both' or this_aper_corr.lower() == 'before'):
+                # Only correct before if interpolation was done (to avoid moving too much losses)
+                aper_corr_coll.append(coll)
+        self._correct_absorbed(part, line, verbose=verbose, aperture_loc='before', collimators=aper_corr_coll)
 
         self._make_coll_summary(part, line, line_shift_s, weights)
         self._get_aperture_losses(part, line, line_shift_s, weights)
@@ -509,54 +523,53 @@ class LossMap:
             print(f"Loaded {i} file{'s' if i > 1 else ''} into loss map.")
 
 
-    def _correct_absorbed(self, part, line, verbose, aperture_loc):
+    def _correct_absorbed(self, part, line, verbose, aperture_loc, collimators=[]):
         # Correct particles that are at an aperture directly before or after a collimator
         # TODO: should this be done if collimator has limited width/height?
-        coll_classes = list(set(collimator_classes) - set(crystal_classes))
-        coll_elements = line.get_elements_of_type(coll_classes)[1]
-        for idx, elem in enumerate(part.at_element):
-            if part.state[idx] == 0:
-                prev_elem = elem - 1 if elem > 0 else len(line.element_names)-1
-                next_elem = elem + 1 if elem < len(line.element_names)-1 else 0
-                if line.element_names[prev_elem] in coll_elements \
-                and aperture_loc.lower() in ('after', 'both') \
-                and line[prev_elem].active:
-                    move_to = prev_elem
-                elif line.element_names[next_elem] in coll_elements \
-                and aperture_loc.lower() in ('before', 'both') \
-                and line[next_elem].active:
-                    move_to = next_elem
-                else:
-                    continue
-                if verbose:
-                    print(f"Found at {line.element_names[elem]}, "
-                        + f"moved to {line.element_names[move_to]}")
-                part.at_element[idx] = move_to
-                what_type = line[move_to].__class__.__name__
-                if what_type == 'EverestBlock':
-                    part.state[idx] = LOST_ON_EVEREST_BLOCK
-                elif what_type == 'EverestCollimator':
-                    part.state[idx] = LOST_ON_EVEREST_COLL
-                elif what_type == 'EverestCrystal':
-                    part.state[idx] = LOST_ON_EVEREST_CRYSTAL
-                elif what_type == 'FlukaBlock':
-                    part.state[idx] = LOST_ON_FLUKA_BLOCK
-                elif what_type == 'FlukaCollimator':
-                    part.state[idx] = LOST_ON_FLUKA_COLL
-                elif what_type == 'FlukaCrystal':
-                    part.state[idx] = LOST_ON_FLUKA_CRYSTAL
-                elif what_type == 'Geant4Block':
-                    part.state[idx] = LOST_ON_GEANT4_BLOCK
-                elif what_type.startswith('Geant4Collimator'):
-                    part.state[idx] = LOST_ON_GEANT4_COLL
-                elif what_type == 'Geant4Crystal':
-                    part.state[idx] = LOST_ON_GEANT4_CRYSTAL
-                elif what_type == 'BlackAbsorber':
-                    part.state[idx] = LOST_ON_BLACK_ABSORBER
-                elif what_type == 'BlackCrystal':
-                    part.state[idx] = LOST_ON_BLACK_CRYSTAL
-                else:
-                    raise ValueError(f"Unknown collimator type {what_type}")
+        tt = line.get_table()
+        for coll in collimators:
+            elem = line.element_names.index(coll)
+            if aperture_loc.lower() == 'before':
+                aper = elem
+                while not xt.line._is_aperture(line[aper], line):
+                    aper = aper - 1 if aper > 0 else len(line.element_names) - 1
+                mask  = (part.state == 0) & (part.at_element == aper)
+                mask &= np.isclose(part.s, tt.rows[coll].s_start[0])
+            elif aperture_loc.lower() == 'after':
+                aper = elem
+                while not xt.line._is_aperture(line[aper], line):
+                    aper = aper + 1 if aper < len(line.element_names) - 1 else 0
+                mask  = (part.state == 0) & (part.at_element == aper)
+                mask &= np.isclose(part.s, tt.rows[coll].s_end[0])
+            part.at_element[mask] = elem
+            what_type = line[elem].__class__.__name__
+            if what_type == 'EverestBlock':
+                part.state[mask] = LOST_ON_EVEREST_BLOCK
+            elif what_type == 'EverestCollimator':
+                part.state[mask] = LOST_ON_EVEREST_COLL
+            elif what_type == 'EverestCrystal':
+                part.state[mask] = LOST_ON_EVEREST_CRYSTAL
+            elif what_type == 'FlukaBlock':
+                part.state[mask] = LOST_ON_FLUKA_BLOCK
+            elif what_type == 'FlukaCollimator':
+                part.state[mask] = LOST_ON_FLUKA_COLL
+            elif what_type == 'FlukaCrystal':
+                part.state[mask] = LOST_ON_FLUKA_CRYSTAL
+            elif what_type == 'Geant4Block':
+                part.state[mask] = LOST_ON_GEANT4_BLOCK
+            elif what_type.startswith('Geant4Collimator'):
+                part.state[mask] = LOST_ON_GEANT4_COLL
+            elif what_type == 'Geant4Crystal':
+                part.state[mask] = LOST_ON_GEANT4_CRYSTAL
+            elif what_type == 'BlackAbsorber':
+                part.state[mask] = LOST_ON_BLACK_ABSORBER
+            elif what_type == 'BlackCrystal':
+                part.state[mask] = LOST_ON_BLACK_CRYSTAL
+            else:
+                raise ValueError(f"Unknown collimator type {what_type}")
+            if verbose and mask.sum() > 0:
+                print(f"Found {mask.sum()} losses at {line.element_names[aper]}, "
+                    + f"moved to {line.element_names[elem]}")
 
 
     def _interpolate(self, part, line, verbose=True):
