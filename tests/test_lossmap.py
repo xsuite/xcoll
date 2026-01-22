@@ -25,8 +25,7 @@ except (ImportError, ModuleNotFoundError):
     plt = None
 
 
-
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.parametrize("engine", all_engine_params)

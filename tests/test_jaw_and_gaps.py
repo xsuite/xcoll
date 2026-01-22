@@ -11,8 +11,7 @@ import xtrack as xt
 import xcoll as xc
 
 
-
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])

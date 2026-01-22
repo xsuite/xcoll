@@ -19,7 +19,7 @@ num_turns = 25
 num_part = 5000
 nemitt_x = 3.5e-6
 nemitt_y = 2.5e-6
-path = xc._pkg_root.parent / 'examples' / 'machines'
+path = Path(__file__).parents[1] / 'examples' / 'machines'
 
 
 @retry()
