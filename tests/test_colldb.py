@@ -5,11 +5,11 @@
 
 import json
 from pathlib import Path
+
 import xcoll as xc
-import pandas as pd
 
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 def test_loading():

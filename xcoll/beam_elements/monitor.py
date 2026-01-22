@@ -13,8 +13,7 @@ from ..general import _pkg_root
 
 
 class ParticleStatsMonitorRecord(xo.Struct):
-    # count            = xo.Int64[:]  # TODO: once atomicadd in Xtrack is updated
-    count            = xo.Float64[:]
+    count            = xo.Int64[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
     y_sum1           = xo.Float64[:]
@@ -70,7 +69,6 @@ class ParticleStatsMonitor(xt.BeamElement):
 
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
-        xt._pkg_root.joinpath('headers/atomicadd.h'),  # TODO: once atomicadd in Xtrack is updated, this should be an include in the monitor file.
         _pkg_root.joinpath('beam_elements/elements_src/monitor.h')
     ]
 
@@ -183,28 +181,28 @@ class ParticleStatsMonitor(xt.BeamElement):
             monitor_zeta = kwargs.pop('monitor_zeta', None)
             monitor_pzeta = kwargs.pop('monitor_pzeta', None)
             monitor_delta = kwargs.pop('monitor_delta', None)
-            monitor_horizontal = kwargs.pop('monitor_horizontal', None)
-            monitor_vertical = kwargs.pop('monitor_vertical', None)
-            monitor_longitudinal = kwargs.pop('monitor_longitudinal', None)
+            monitor_horizontal = kwargs.pop('horizontal', None)
+            monitor_vertical = kwargs.pop('vertical', None)
+            monitor_longitudinal = kwargs.pop('longitudinal', None)
             if monitor_horizontal is not None:
                 if monitor_x is not None:
-                    raise ValueError("Cannot specify both monitor_horizontal and monitor_x!")
+                    raise ValueError("Cannot specify both `horizontal` and `monitor_x`!")
                 if monitor_px is not None:
-                    raise ValueError("Cannot specify both monitor_horizontal and monitor_px!")
+                    raise ValueError("Cannot specify both `horizontal` and `monitor_px`!")
                 monitor_x = monitor_horizontal
                 monitor_px = monitor_horizontal
             if monitor_vertical is not None:
                 if monitor_y is not None:
-                    raise ValueError("Cannot specify both monitor_vertical and monitor_y!")
+                    raise ValueError("Cannot specify both `vertical` and `monitor_y`!")
                 if monitor_py is not None:
-                    raise ValueError("Cannot specify both monitor_vertical and monitor_py!")
+                    raise ValueError("Cannot specify both `vertical` and `monitor_py`!")
                 monitor_y = monitor_vertical
                 monitor_py = monitor_vertical
             if monitor_longitudinal is not None:
                 if monitor_zeta is not None:
-                    raise ValueError("Cannot specify both monitor_longitudinal and monitor_zeta!")
+                    raise ValueError("Cannot specify both `longitudinal` and `monitor_zeta`!")
                 if monitor_pzeta is not None:
-                    raise ValueError("Cannot specify both monitor_longitudinal and monitor_pzeta!")
+                    raise ValueError("Cannot specify both `longitudinal` and `monitor_pzeta`!")
                 monitor_zeta = monitor_longitudinal
                 monitor_pzeta = monitor_longitudinal
                 monitor_delta = monitor_longitudinal
@@ -257,6 +255,7 @@ class ParticleStatsMonitor(xt.BeamElement):
 
             # Prepare the arrays. Explicitely init with zeros (instead of size only) to have consistent initial values
             if "data" not in kwargs:
+                # explicitely init with zeros (instead of size only) to have consistent initial values
                 size = int(round((kwargs['stop_at_turn'] - kwargs['start_at_turn']) \
                                   * kwargs['sampling_frequency'] / kwargs['frev']))
                 kwargs['data'] = {}
@@ -336,6 +335,23 @@ class ParticleStatsMonitor(xt.BeamElement):
         self._mass0 = mass0
         return self
 
+    def copy(self):
+        """Create a copy of the monitor including its data."""
+        line = self.line
+        del self._line    # Have to delete to avoid copying all line elements (including monitor itself)
+        new_monitor = super().copy()
+        self._line = line # Restore
+        new_monitor._line = line
+        return new_monitor
+
+    def reset(self):
+        """Reset the monitor data (to avoid accumulation after re-tracking)."""
+        for field in [f.name for f in ParticleStatsMonitorRecord._fields]:
+            ff = getattr(self.data, field)
+            zeros = np.zeros(len(ff), dtype=ff._itemtype._dtype)
+            setattr(self.data, field, zeros)
+        self._cached = False
+
     @classmethod
     def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
         self = cls(**kwargs)
@@ -345,6 +361,7 @@ class ParticleStatsMonitor(xt.BeamElement):
         self._name = name
         self._line = line
         return self
+
 
     @property
     def name(self):
@@ -541,12 +558,14 @@ class EmittanceMonitor(ParticleStatsMonitor):
         if '_xobject' not in kwargs:
             kwargs['monitor_mean'] = True
             kwargs['monitor_variance'] = True
-            kwargs['monitor_horizontal'] = kwargs.pop('horizontal', None)
-            kwargs['monitor_vertical'] = kwargs.pop('vertical', None)
-            kwargs['monitor_longitudinal'] = kwargs.pop('longitudinal', None)
         super().__init__(**kwargs)
         if not hasattr(self, '_cached_modes'):
             self._cached_modes = False
+
+    def reset(self):
+        super().reset()
+        self._cached_modes = False
+
 
     @property
     def gemitt_x(self):
@@ -713,6 +732,14 @@ class EmittanceMonitor(ParticleStatsMonitor):
                                             [block_xy.T, block_y,    block_yz],
                                             [block_xz.T, block_yz.T, block_z]]),
                                   S)
+
+            # Check for all zero matrix -> zero emittance
+            if np.all(covariance_S < 1E-16):
+                gemitt_I.append(0)
+                gemitt_II.append(0)
+                gemitt_III.append(0)
+                continue
+
             cond_number = np.linalg.cond(covariance_S)
             if cond_number > 1e10:
                 print(f"Warning: High condition number when calculating "
@@ -720,6 +747,7 @@ class EmittanceMonitor(ParticleStatsMonitor):
                     + f"One of the coordinates might be close to zero or not "
                     + f"varying enough among the different particles. Only "
                     + f"{N[i]} particles were logged at this step.")
+
             rank = np.linalg.matrix_rank(covariance_S)
             expected_rank = int(self.horizontal) + int(self.vertical) + int(self.longitudinal)
             if rank < expected_rank:

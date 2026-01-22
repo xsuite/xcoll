@@ -15,13 +15,18 @@
 
 
 /*gpufun*/
-double nuclear_interaction(EverestData restrict everest, LocalParticle* part, double pc) {
+double nuclear_interaction(EverestData restrict everest, MaterialData restrict material,
+                           LocalParticle* part, double pc) {
+    if (MaterialData_get__cross_section(material, 0) < 0){
+        // Unsupported material for nuclear interaction
+        return pc;
+    }
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
 
 #ifdef XCOLL_REFINE_ENERGY
-    calculate_scattering(everest, pc);
+    calculate_scattering(everest, material, pc);
 #endif
 
     //Choose nuclear interaction

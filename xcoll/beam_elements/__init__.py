@@ -7,6 +7,8 @@ from .base import BaseBlock, BaseCollimator, BaseCrystal
 from .absorber import BlackAbsorber, BlackCrystal
 from .transparent import TransparentCollimator, TransparentCrystal
 from .everest import EverestBlock, EverestCollimator, EverestCrystal
+from .fluka import FlukaCollimator, FlukaCrystal
+from .geant4 import Geant4Collimator, Geant4CollimatorTip, Geant4Crystal
 from .blowup import BlowUp
 from .monitor import ParticleStatsMonitor, EmittanceMonitor
 

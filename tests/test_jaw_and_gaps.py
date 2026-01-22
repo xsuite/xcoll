@@ -3,26 +3,22 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-from pathlib import Path
 import pytest
 import numpy as np
+from pathlib import Path
 
-import xobjects as xo
 import xtrack as xt
 import xcoll as xc
-from xpart.test_helpers import flaky_assertions, retry
-from xobjects.test_helpers import for_all_test_contexts
+
 
 
 path = xc._pkg_root.parent / 'tests' / 'data'
 
 
-@for_all_test_contexts(
-    excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
-)
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_gaps(beam, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+def test_gaps(beam):
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     coll = xc.BlackAbsorber(length=1.738, angle=127.5)
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
     line.collimators.install(name, coll, need_apertures=True)
@@ -114,6 +110,7 @@ def change_and_check(coll, parameter, val=None, is_third=False): # this is ugly
             coll.tilt = val
             check = np.isclose(coll.tilt, val, atol=1e-9)
     return check
+
 
 def check_3_times(coll, newval, succession, round):
     """

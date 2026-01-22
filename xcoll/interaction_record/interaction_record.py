@@ -6,34 +6,17 @@
 import xobjects as xo
 import xtrack as xt
 
+from .interaction_types import interactions_src, interaction_names, shortcuts
 from ..general import _pkg_root
+from ..headers.particle_states import particle_states_src
 
 import numpy as np
 import pandas as pd
 
-
-with open(_pkg_root / 'interaction_record' / 'interaction_record_src' / 'interaction_types.h', 'r') as fid:
-    interaction_types_source = fid.read()
-
-interactions = {
-    int(line.split()[2]): line.split()[1][3:].replace('_',' ').title().\
+interaction_names = {kk: vv.replace('_', ' ').title().\
                             replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
                             replace(' Ch',' CH').replace(' Vr',' VR')
-    for line in interaction_types_source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}
-
-shortcuts = {
-    int(line.split()[2]): line.split()[4]
-    for line in interaction_types_source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}
-
-is_point = {
-    int(line.split()[2]): line.split()[6].lower() == 'point'
-    for line in interaction_types_source.split('\n')
-    if len(line.split()) > 1 and line.split()[1][:3] == 'XC_' # select the source lines with the definitions
-}
+                     for kk, vv in interaction_names.items()}
 
 
 class InteractionRecord(xt.BeamElement):
@@ -75,8 +58,9 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        _pkg_root / 'interaction_record/interaction_record_src/interaction_types.h',
-        _pkg_root / 'interaction_record/interaction_record_src/interaction_record.h'
+        interactions_src,
+        particle_states_src,
+        _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
     ]
 
 
@@ -206,7 +190,7 @@ class InteractionRecord(xt.BeamElement):
 
     @property
     def interaction_type(self):
-        return np.array([interactions[inter] for inter in self._inter])
+        return np.array([interaction_names[inter] for inter in self._inter])
 
     def _collimator_name(self, element_id):
         if not hasattr(self, '_coll_names'):
@@ -237,7 +221,7 @@ class InteractionRecord(xt.BeamElement):
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'interaction_type':  [interactions[inter] for inter in self._inter[:n_rows]]
+                'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
                 } | {
                     f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
                     for p in ['before', 'after']

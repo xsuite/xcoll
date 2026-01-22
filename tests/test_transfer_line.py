@@ -9,8 +9,10 @@ start_time = time.time()
 
 import xpart as xp
 import xtrack as xt
-import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
+
+import xcoll as xc
+from xcoll.compare import deep_equal
 
 
 num_part = int(1e6)
@@ -23,8 +25,10 @@ def test_transfer_line(test_context):
     # Create the line
     line = _create_transfer_line()
     air = _add_air_regions(line)
-    assert xt.line._dicts_equal(line["Air 1"].material.to_dict(), air.to_dict())
-    assert xt.line._dicts_equal(line["Air 2"].material.to_dict(), air.to_dict())
+    assert line["Air 1"].material == air
+    assert line["Air 2"].material == air
+    assert deep_equal(line["Air 1"].material.to_dict(), air.to_dict())
+    assert deep_equal(line["Air 2"].material.to_dict(), air.to_dict())
     _add_monitors(line)
     line.build_tracker(_context=test_context)
     line.scattering.disable()  # Scattering need to be disabled to be able to twiss
@@ -33,12 +37,12 @@ def test_transfer_line(test_context):
     line.track(part)
     nemitt_x = np.array([el.nemitt_x for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
     nemitt_y = np.array([el.nemitt_y for el in line.get_elements_of_type(xc.EmittanceMonitor)[0]])
-    assert np.allclose(nemitt_x[0:2],  7.7e-6, atol=1e-7)
-    assert np.allclose(nemitt_x[2:2], 10.7e-6, atol=1e-7)
-    assert np.allclose(nemitt_x[4:2], 15.7e-6, atol=1e-7)
-    assert np.allclose(nemitt_y[0:2],  3.5e-6, atol=1e-7)
-    assert np.allclose(nemitt_y[2:2],  6.6e-6, atol=1e-7)
-    assert np.allclose(nemitt_y[4:2], 10.9e-6, atol=1e-7)
+    assert np.allclose(nemitt_x[0:2],  7.65e-6, atol=1e-7)
+    assert np.allclose(nemitt_x[2:4], 10.75e-6, atol=1e-7)
+    assert np.allclose(nemitt_x[4:6], 15.68e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[0:2],  3.53e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[2:4],  6.54e-6, atol=1e-7)
+    assert np.allclose(nemitt_y[4:6], 10.87e-6, atol=1e-7)
 
 
 def _create_transfer_line():
@@ -66,8 +70,7 @@ def _create_transfer_line():
 
 
 def _add_air_regions(line):
-    X0_air = 301
-    air = xc.Material(radiation_length=X0_air, name="Air (1 atm 20C)")
+    air = xc.materials.Air
     line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 1", at_s=20)
     line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 2", at_s=50)
     return air

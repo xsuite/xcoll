@@ -10,7 +10,8 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-from .beam_elements import collimator_classes, BaseCrystal
+from .beam_elements import (collimator_classes, BaseCrystal, Geant4Collimator,
+                            Geant4Crystal, FlukaCollimator, FlukaCrystal)
 
 
 def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', pencil_spread=1e-6,
@@ -25,13 +26,17 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     coll = line[name]
     if not isinstance(coll, tuple(collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
-    if longitudinal_betatron_cut:
-        raise NotImplementedError("Longitudinal betatron cut not implemented yet!")
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
+
     num_particles = int(num_particles)
-    #if _capacity is None and len(line.get_elements_of_type((Geant4Collimator, Geant4Crystal))[0]) > 0:
-    #    _capacity = 2*num_particles
+    if _capacity is None and len(line.get_elements_of_type(
+                                (FlukaCollimator, FlukaCrystal))[0]) > 0:
+        import xcoll as xc
+        _capacity = cap if (cap := xc.fluka.engine.capacity) else 5*num_particles
+    if _capacity is None and len(line.get_elements_of_type(
+                                (Geant4Collimator, Geant4Crystal))[0]) > 0:
+        _capacity = 5*num_particles
 
     # Define the plane
     angle = coll.angle
@@ -61,7 +66,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
             twiss = tw
 
     if twiss is None:
-        twiss = line.twiss(reverse=False)
+        twiss = line.twiss()
 
     # Longitudinal plane
     if _longitudinal_coords:
@@ -146,7 +151,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
         raise ValueError("The variable 'plane' needs to be either 'x' or 'y'!")
 
     if twiss is None:
-        twiss = line.twiss(reverse=False)
+        twiss = line.twiss()
 
     beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
     beam_sizes = beam_sizes.rows[at_element:f'{at_element}>>1'][f'sigma_{plane}']
@@ -158,7 +163,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
 
 
 def _generate_4D_pencil_one_jaw(line, name, num_particles, plane, side, impact_parameter,
-                                pencil_spread, twiss=None, _capacity=None, **kwargs):
+                                pencil_spread, twiss=None, **kwargs):
     coll = line[name]
     beam_sizes = twiss.get_beam_covariance(nemitt_x=coll.nemitt_x, nemitt_y=coll.nemitt_y)
 

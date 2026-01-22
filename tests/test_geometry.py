@@ -4,15 +4,14 @@
 # ######################################### #
 
 import sys
-import numpy as np
-import pandas as pd
 import json
+import numpy as np
+from pathlib import Path
 
-import xobjects as xo
 import xcoll as xc
 
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 sys.path.insert(1, path.as_posix())
 from xcoll_geometry_test import XcollGeometryTest
 

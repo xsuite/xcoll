@@ -53,7 +53,8 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 // Amorphous transport is just Multiple Coulomb scattering
 /*gpufun*/
-double amorphous_transport(EverestData restrict everest, LocalParticle* part, double pc, double length, int8_t transition) {
+double amorphous_transport(EverestData restrict everest, MaterialData restrict material,
+                           LocalParticle* part, double pc, double length, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
@@ -62,8 +63,9 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
 
     // Accumulated effect of mcs on the angles (with initial energy)
     // TODO: pc is energy
-    // TODO: missing factor (1 + 0.038*log( L / dlri) )  ( *Z if not protons)
-    double dya = (13.6/pc)*sqrt(length/everest->coll->dlri)*1.0e-3; // RMS of coloumb scattering MCS (rad)
+    // TODO: missing factor (1 + 0.038*log( L / radl) )  ( *Z if not protons)
+    double radl = MaterialData_get__radiation_length(material);
+    double dya = (13.6/pc)*sqrt(length/radl)*1.0e-3; // RMS of coloumb scattering MCS (rad)
     double kxmcs, kymcs;
 
     if (transition == XC_MULTIPLE_COULOMB_TRANS_VR){
@@ -80,7 +82,7 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
     Drift_single_particle_4d(part, length);
 
     // Energy lost because of ionisation process[GeV]
-    pc = calcionloss(everest, part, length, pc, 1);
+    pc = calcionloss(everest, (MaterialData) material, part, length, pc, 1);
 
     // Store new angles
     LocalParticle_add_to_xp_yp(part, kxmcs, kymcs);
@@ -92,10 +94,10 @@ double amorphous_transport(EverestData restrict everest, LocalParticle* part, do
 }
 
 
-double Channel(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
-double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
+double Channel(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length);
+double Amorphous(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI);
 
-double volume_interaction(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
+double volume_interaction(EverestData restrict everest, MaterialData restrict material, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t transition){
 #ifdef XCOLL_REFINE_ENERGY
     calculate_VI_parameters(everest, part, pc);
 #endif
@@ -104,7 +106,7 @@ double volume_interaction(EverestData restrict everest, LocalParticle* part, Cry
         // Volume Reflection
         volume_reflection(everest, part, transition);
         // We call the main Amorphous function for the leftover
-        pc = Amorphous(everest, part, cg, pc, length, 0);
+        pc = Amorphous(everest, material, part, cg, pc, length, 0);
 
     } else {
         // Volume Capture
@@ -117,15 +119,16 @@ double volume_interaction(EverestData restrict everest, LocalParticle* part, Cry
         calculate_initial_angle(everest, part, cg);
         calculate_opening_angle(everest, part, cg);
         #ifdef XCOLL_REFINE_ENERGY
-            calculate_critical_angle(everest, part, cg, pc);
+            calculate_critical_angle(everest, material, part, cg, pc);
         #endif
-        pc = Channel(everest, part, cg, pc, length);
+        pc = Channel(everest, material, part, cg, pc, length);
     }
     return pc;
 }
 
 // /*gpufun*/
-double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
+double Amorphous(EverestData restrict everest, MaterialData restrict material,
+           LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
 
     if (LocalParticle_get_state(part) < 1){
         // Do nothing if already absorbed
@@ -163,7 +166,8 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
     // ----------------------------------------------------
     // Calculate longitudinal length of nuclear interaction
     // ----------------------------------------------------
-    double length_nucl = everest->coll->collnt*RandomExponential_generate(part);
+    double collnt = MaterialData_get__nuclear_collision_length(material);
+    double length_nucl = collnt*RandomExponential_generate(part);
 
     // --------------------------------------------------------------
     // Calculate longitudinal length of volume interaction (VR or VC)
@@ -210,20 +214,20 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
 
     if (length_nucl < fmin(length_VI, length_exit)) {
         // MCS to nuclear interaction
-        pc = amorphous_transport(everest, part, pc, length_nucl, 0);
+        pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
         // interact
-        pc = nuclear_interaction(everest, part, pc);
+        pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
         if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
         } else {
             // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, cg, pc, length - length_nucl, 1);
+            pc = Amorphous(everest, material, part, cg, pc, length - length_nucl, 1);
         }
 
     } else if (length_VI <= length_exit && allow_VI == 1){
         // MCS to volume interaction
-        pc = amorphous_transport(everest, part, pc, length_VI, 0);
-        pc = volume_interaction(everest, part, cg, pc, length - length_VI, 0);
+        pc = amorphous_transport(everest, material, part, pc, length_VI, 0);
+        pc = volume_interaction(everest, material, part, cg, pc, length - length_VI, 0);
 
     } else if (length_VR_trans <= length_exit && allow_VI == 1){
         // We estimate where we are in the transition region (rather on the VR side or rather on the AM side)
@@ -233,8 +237,8 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
         double prob_MCS = (length_VI - length_exit) / (length_VI - length_VR_trans);
         if (RandomUniform_generate(part) > prob_MCS){
             // We are on the VR side
-            pc = amorphous_transport(everest, part, pc, length_VR_trans, 0);
-            pc = volume_interaction(everest, part, cg, pc, length - length_VR_trans, XC_VOLUME_REFLECTION_TRANS_MCS);
+            pc = amorphous_transport(everest, material, part, pc, length_VR_trans, 0);
+            pc = volume_interaction(everest, material, part, cg, pc, length - length_VR_trans, XC_VOLUME_REFLECTION_TRANS_MCS);
             // // Volume Reflection
             // volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
             // // We call the main Amorphous function for the leftover
@@ -242,21 +246,21 @@ double Amorphous(EverestData restrict everest, LocalParticle* part, CrystalGeome
         } else {
             // We are on the AM side
             // if (sc) InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
-            pc = amorphous_transport(everest, part, pc, length_VR_trans, XC_MULTIPLE_COULOMB_TRANS_VR);
-            pc = Amorphous(everest, part, cg, pc, length - length_VR_trans, 0);
+            pc = amorphous_transport(everest, material, part, pc, length_VR_trans, XC_MULTIPLE_COULOMB_TRANS_VR);
+            pc = Amorphous(everest, material, part, cg, pc, length - length_VR_trans, 0);
         }
 
     } else {
         // Exit crystal
         // MCS to exit point
-        pc = amorphous_transport(everest, part, pc, length_exit, 0);
+        pc = amorphous_transport(everest, material, part, pc, length_exit, 0);
         // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
         double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
         if (s3 < fmin(s1, s2) && s4 < s2){
             // We drift until re-entry
             Drift_single_particle_4d(part, s4 - exit_point);
             // We call the main Amorphous function for the leftover
-            pc = Amorphous(everest, part, cg, pc, length - length_exit - s4 + exit_point, 1);
+            pc = Amorphous(everest, material, part, cg, pc, length - length_exit - s4 + exit_point, 1);
         }
     }
 

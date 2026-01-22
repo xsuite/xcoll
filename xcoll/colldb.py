@@ -1,11 +1,12 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import io
 import re
 import json
+import warnings
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -13,16 +14,17 @@ from pathlib import Path
 import xtrack as xt
 
 from .accessors import XcollAccessor
-from .beam_elements import BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, \
-                           BaseCollimator, BaseCrystal, collimator_classes
-from .scattering_routines.everest.materials import SixTrack_to_xcoll
+from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
+                            FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
 
+# TODO: install transparent collimators
 
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
-    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None})
+    fields.update({'overwritten_keys': [], 'side': 'both', 'material': None, 'stage': None, 'assembly': None})
     fields.update({'length': 0, 'collimator_type': None, 'active': True, 'crystal': None, 'tilt': 0})
     fields.update({'bending_radius': None, 'bending_angle': None, 'width': 0, 'height': 0, 'miscut': 0})
+    fields.update({'s_center': None, 'tip_material': None, 'tip_thickness': 0})  # TODO: add s_start and s_end and make them sync etc
     for f, val in fields.items():
         if f not in dct.keys():
             dct[f] = val
@@ -37,7 +39,7 @@ def _dict_keys_to_lower(dct):
     else:
         return dct
 
-
+# TODO: need better handling of beam argument (not hardcoded 'b1' and 'b2' strings)
 def _get_coll_dct_by_beam(coll, beam):
     # The dictionary can be a CollimatorDatabase for a single beam (beam=None)
     # or for both beams (beam='b1' or beam='b2)
@@ -52,7 +54,7 @@ def _get_coll_dct_by_beam(coll, beam):
             raise ValueError("Need to specify a beam, because the given dict is for both beams!")
         return coll[beam]
 
-    elif len(beam_in_db) == 1:
+    elif len(beam_in_db) == 1 and beam_in_db[0].lower() in ['b1','b2']:
         if beam is None:
             beam = beam_in_db[0].lower()
         elif beam != beam_in_db[0].lower():
@@ -79,6 +81,9 @@ class CollimatorDatabase(XcollAccessor):
                          kwargs_to_set.pop('ignore_crystals', True))
         kwargs_to_set['_elements'] = {}
         kwargs_to_set['_eltype'] = 'settings'
+        # TODO: want gemitt as well
+        self.nemitt_x = kwargs['nemitt_x'] # TODO: is this correct/needed?
+        self.nemitt_y = kwargs['nemitt_y'] # TODO: is this correct/needed?
         super().__init__(db=coll, family_db=fam, **kwargs_to_set)
 
 
@@ -416,6 +421,10 @@ class CollimatorDatabase(XcollAccessor):
     # ====================================
 
     def _get_names_from_line(self, line, names, families):
+        if names is not None and (not hasattr(names, '__iter__') or isinstance(names, str)):
+            names = [names]
+        if families is not None and (not hasattr(families, '__iter__') or isinstance(families, str)):
+            families = [families]
         if names is None and families is None:
             names = self.names
         elif names is None:
@@ -425,6 +434,7 @@ class CollimatorDatabase(XcollAccessor):
         return list(set(names)) # Remove duplicates
 
     def _check_installed(self, line, name, collimator_class):
+        if name in line.element_names:
             # Check that collimator is not installed as different type
             # TODO: automatically replace collimator type and print warning
             if isinstance(line[name], collimator_classes):
@@ -439,6 +449,10 @@ class CollimatorDatabase(XcollAccessor):
                                + f"but the line element to replace is not an xtrack.Marker "
                                + f"(or xtrack.Drift)!\nPlease check the name, or correct the "
                                + f"element.")
+        else:
+            if getattr(self, 's_center')[name] is None:
+                raise ValueError(f"Collimator {name} not found in line as Marker, nor  `s_center` "
+                               + f"defined, cannot install in line at correct position!")
 
     def _create_collimator(self, cls, line, name, **kwargs):
         self._check_installed(line, name, cls)
@@ -450,7 +464,8 @@ class CollimatorDatabase(XcollAccessor):
         prop_dict.update(kwargs)
         el = cls(**prop_dict)
         el.emittance = [self.nemitt_x, self.nemitt_y]
-        if 'family' in self[name] and self[name]['family'].lower() != 'unknown':
+        if 'family' in self[name] and self[name]['family'] \
+        and self[name]['family'].lower() != 'unknown':
             if self[name]['family'] == name:
                 raise ValueError(f"Collimator {name} has the same name as its family!")
             el.family = self[name]['family']
@@ -458,7 +473,8 @@ class CollimatorDatabase(XcollAccessor):
         el.name = name
         return el
 
-    def install_black_absorbers(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+    def install_black_absorbers(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
         names = self._get_names_from_line(line, names, families)
         for name in names:
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
@@ -466,27 +482,151 @@ class CollimatorDatabase(XcollAccessor):
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
             else:
                 self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
+        at_s = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at_s.append(None)
+            else:
+                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
+
+    def install_everest_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            mat = self[name]['material']
+            if mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']):
+                self._create_collimator(EverestCrystal, line, name, material=mat, verbose=verbose)
+            else:
+                self._create_collimator(EverestCollimator, line, name, material=mat, verbose=verbose)
+        at_s = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at_s.append(None)
+            else:
+                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
+
+    def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
+                                  fluka_input_file=None, remove_missing=True):
+        import xcoll as xc
+        if xc.fluka.engine.is_running():
+            print("Warning: FlukaEngine is already running. Stopping it to install collimators.")
+            xc.fluka.engine.stop()
+        names = self._get_names_from_line(line, names, families)
+        for name in names:
+            mat = self[name]['material']
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+            crystal_assembly = False
+            extra_kwargs = {}
+            if 'assembly' in self[name] and self[name]['assembly']:
+                self[name].pop('material', None)
+                self[name].pop('side', None)
+                self[name].pop('bending_radius', None)
+                self[name].pop('bending_angle', None)
+                if self[name]['assembly'] in xc.fluka.assemblies:
+                    pro = xc.fluka.assemblies[self[name]['assembly']]
+                elif self[name]['assembly'] in xc.fluka.prototypes:
+                    pro = xc.fluka.prototypes[self[name]['assembly']]
+                else:
+                    raise ValueError(f"Unknown assembly or prototype "
+                                   + f"'{self[name]['assembly']}'.")
+                crystal_assembly = pro.is_crystal
+            else:
+                for kwarg in ['assembly', 'material', 'side', 'bending_radius', 'bending_angle']:
+                    if self[name].get(kwarg):
+                        extra_kwargs[kwarg] = self[name][kwarg]
+            if ('bending_radius' in self[name] and self[name]['bending_radius']) \
+            or ('bending_angle' in self[name] and self[name]['bending_angle']) \
+            or crystal_assembly:
+                self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
+            else:
+                self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)
         elements = [self._elements[name] for name in names]
         line.collimators.install(names, elements, need_apertures=need_apertures)
 
-    def install_everest_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True):
+    def install_geant4_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
+        import xcoll as xc
+        if xc.geant4.engine.is_running():
+            print("Warning: Geant4Engine is already running. Stopping it to install collimators.")
+            xc.geant4.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = SixTrack_to_xcoll(self[name]['material'])
+            mat = self[name]['material']
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+            tip_material = self[name]['tip_material']
+            tip_thickness = self[name]['tip_thickness']
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']):
-                self._create_collimator(EverestCrystal, line, name, material=mat[1],
+                raise ValueError("Geant4Crystal not yet supported!")
+            elif tip_material is not None and tip_thickness > 0:
+                self._create_collimator(Geant4CollimatorTip, line, name, material=mat,
+                                        tip_material=tip_material, tip_thickness=tip_thickness,
                                         verbose=verbose)
             else:
-                self._create_collimator(EverestCollimator, line, name, material=mat[0],
-                                        verbose=verbose)
-        elements = [self._elements[name] for name in names]
-        line.collimators.install(names, elements, need_apertures=need_apertures)
+                self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
+        at_s = []
+        elements = []
+        for name in names:
+            s_center = getattr(self, 's_center')[name]
+            if s_center is None:
+                at_s.append(None)
+            else:
+                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+            elements.append(self._elements[name])
+        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+                                 need_apertures=need_apertures, s_tol=s_tol)
 
 
     # ==================================
     # ====== Accessing attributes ======
     # ==================================
+
+# # TODO: is this still needed? Usefull?
+#     @property
+#     def collimator_names(self):
+#         return list(self._collimator_dict.keys())
+#
+#     @property
+#     def collimator_families(self):
+#         families = {fam: [] for fam in self._family_dict.keys()}
+#         families["no family"] = []
+#         for name in self.collimator_names:
+#             if 'family' not in self[name] or self[name]['family'].lower() == 'unknown':
+#                 families["no family"].append(name)
+#             else:
+#                 families[self[name]['family']].append(name)
+#         return families
+#
+#     def get_collimators_from_family(self, family):
+#         if not hasattr(family, '__iter__') and not isinstance(family, str):
+#             family = [family]
+#         result = []
+#         for fam in family:
+#             if fam not in self.collimator_families:
+#                 raise ValueError(f"Family '{fam}' not found in CollimatorDatabase!")
+#             result += self.collimator_families[fam]
+#         return result
 
     @property
     def properties(self):

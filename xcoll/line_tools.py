@@ -8,8 +8,12 @@ from warnings import warn
 
 import xtrack as xt
 
+<<<<<<< HEAD
 from .accessors import XcollAccessor
 from .beam_elements import element_classes, collimator_classes, block_classes
+=======
+from .beam_elements import element_classes, collimator_classes, block_classes, crystal_classes
+>>>>>>> main
 
 
 class XcollScatteringAPI(XcollAccessor):
@@ -224,8 +228,7 @@ class XcollCollimatorAPI(XcollAccessor):
                 aper_mid = self.get_apertures_at_s(s=(s_start+s_end)/2, table=table, s_tol=s_tol)
                 if aper_mid is None:
                     raise ValueError(f"No aperture found for {name}! Please provide one.")
-                if self.line[aper_mid].allow_rot_and_shift \
-                and xt.base_element._tranformations_active(self.line[aper_mid]):
+                if self.line[aper_mid].transformations_active:
                     print(f"Warning: Using the centre aperture for {name}, but "
                         + f"transformations are present. Proceed with caution.")
                 aper1 = aper_mid
@@ -245,14 +248,8 @@ class XcollCollimatorAPI(XcollAccessor):
             length = self.line[element_name].length if hasattr(self.line[element_name], 'length') else 0
             self.line.element_dict[element_name] = xt.Drift(length=length)
 
-    def get_optics_at(self, names, *, twiss=None, tw=None):
-        if tw is not None:
-            warn("The argument tw is deprecated. Please use twiss instead.", FutureWarning)
-            if twiss is None:
-                twiss = tw
+    def get_optics_at(self, names, *, twiss=None):
         if twiss is None:
-            if not self.line._has_valid_tracker():
-                raise Exception("Please build the tracker before computing the optics for the openings!")
             twiss = self.line.twiss(reverse=False)
         if not hasattr(names, '__iter__') and not isinstance(names, str):
             names = [names]
@@ -262,18 +259,19 @@ class XcollCollimatorAPI(XcollAccessor):
         tw_exit.name = tw_entry.name
         return tw_entry, tw_exit
 
-    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None, tw=None):
-        if tw is not None:
-            warn("The argument tw is deprecated. Please use twiss instead.", FutureWarning)
-            if twiss is None:
-                twiss = tw
-        if not self.line._has_valid_tracker():
-            raise Exception("Please build tracker before setting the openings!")
+    def assign_optics(self, *, nemitt_x=None, nemitt_y=None, twiss=None):
         tw_upstream, tw_downstream = self.get_optics_at(self.names, twiss=twiss)
         beta_gamma_rel = self.line.particle_ref._xobject.gamma0[0]*self.line.particle_ref._xobject.beta0[0]
         for name, coll in self.items():
             coll.assign_optics(name=name, nemitt_x=nemitt_x, nemitt_y=nemitt_y, twiss_upstream=tw_upstream,
                                twiss_downstream=tw_downstream, beta_gamma_rel=beta_gamma_rel)
+
+    def align_to_beam_divergence(self):
+        crystals = self.line.get_elements_of_type(crystal_classes)[0]
+        if len(crystals) == 0:
+            warn("No crystals found in line to align to beam divergence.")
+        for el in crystals:
+            el.align_to_beam_divergence()
 
     def _get_s_start(self, name, *, length, table=None):
         if table is None:

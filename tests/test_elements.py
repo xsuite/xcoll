@@ -3,10 +3,11 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
-import xcoll as xc
 import xtrack as xt
-from xtrack.line import _dicts_equal
 from xobjects.test_helpers import for_all_test_contexts
+
+import xcoll as xc
+from xcoll.compare import deep_equal
 
 import numpy as np
 import pytest
@@ -125,8 +126,8 @@ base_coll_user_fields = base_user_fields + [
     {'field': 'jaw_R',     'val':  -0.011,           'expected': {'jaw_LU': 0.007327751926056947, 'jaw_RU': -0.01894105054291073, 'jaw_LD': 0.018672248073943076, 'jaw_RD': -0.0030589494570893994, 'tilt':  [0.0087266463, 0.0122173048]}},
     {'field': 'gap_L',     'val':  5,                'expected': {'gap': [5, None],  'gap_L': 5, 'gap_R': None}},
     {'field': 'gap_R',     'val':  -3,               'expected': {'gap': [5, -3],    'gap_L': 5, 'gap_R': -3}},
-    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
-    {'field': 'align',     'val':  'downstream',     'expected': {'_align': 1, 'align': 'downstream'}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'align': 'upstream'}},
+    {'field': 'align',     'val':  'downstream',     'expected': {'align': 'downstream'}},
     {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,  'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
     {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6, 'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
     {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,  'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
@@ -170,7 +171,7 @@ base_crystal_dict_fields = base_dict_fields + [
 ]
 base_crystal_user_fields = base_user_fields + [
     {'field': 'jaw_U',     'val':  0.013,            'expected': {'jaw': 0.013, 'jaw_U': 0.013, 'jaw_D': 0.06513730900985289}},
-    {'field': 'align',     'val':  'upstream',       'expected': {'_align': 0, 'align': 'upstream'}},
+    {'field': 'align',     'val':  'upstream',       'expected': {'align': 'upstream'}},
     {'field': 'emittance', 'val':  3.5e-6,           'expected': {'emittance': 3.5e-6,           'nemitt_x': 3.5e-6,  'nemitt_y': 3.5e-6}},
     {'field': 'emittance', 'val':  [3.25e-6],        'expected': {'emittance': 3.25e-6,          'nemitt_x': 3.25e-6, 'nemitt_y': 3.25e-6}},
     {'field': 'emittance', 'val':  [3.0e-6, 3.0e-6], 'expected': {'emittance': 3.0e-6,           'nemitt_x': 3.0e-6,  'nemitt_y': 3.0e-6}},
@@ -210,12 +211,12 @@ everest_crystal_fields = base_crystal_fields | {
     'miscut':            1.2e-6,
     '_orient':           2,
     '_critical_angle':   1.3e-6,
-    '_material':         xc.materials.TungstenCrystal,
+    '_material':         xc.materials.Tungsten,
     'rutherford_rng':    xt.RandomRutherford(lower_val=0.002, upper_val=0.98, A=34, B=0.1, Newton_iterations=20),
     '_tracking':         False
 }
 everest_crystal_dict_fields = base_crystal_dict_fields + [
-    {'field': 'material', 'val': xc.materials.SiliconCrystal, 'expected': {'_material': xc.materials.SiliconCrystal}},
+    {'field': 'material', 'val': xc.materials.Silicon, 'expected': {'_material': xc.materials.Silicon}},
     {'field': 'lattice', 'val': 'strip',        'expected': {'_orient': 1}},
     {'field': 'lattice', 'val': '110',          'expected': {'_orient': 1}},
     {'field': 'lattice', 'val': 110,            'expected': {'_orient': 1}},
@@ -226,6 +227,39 @@ everest_crystal_dict_fields = base_crystal_dict_fields + [
 everest_crystal_user_fields = base_crystal_user_fields
 everest_crystal_user_fields_read_only = [*base_crystal_user_fields_read_only, 'critical_radius', 'critical_angle']
 
+# FlukaCollimator
+fluka_fields = base_coll_fields | {
+    'fluka_id':              137,
+    'length_front':          0.4125,
+    'length_back':           0.738,
+    '_tracking':             1,
+    '_acc_ionisation_loss':  4.349234923e18
+}
+fluka_dict_fields = [*base_coll_dict_fields[:-9],
+    {'field': 'assembly', 'val': 'hilumi_tcppm',
+        'expected': {'material': None, 'height': None, 'width': None, 'side': None}}
+]
+fluka_generic_dict_fields = base_coll_dict_fields + [
+    {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
+    {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
+    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
+    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+]
+
+# FlukaCrystal
+fluka_crystal_fields = base_crystal_fields | {
+    'fluka_id':              137,
+    'length_front':          0.4125,
+    'length_back':           0.738,
+    '_tracking':             1,
+    '_acc_ionisation_loss':  4.349234923e18
+}
+fluka_crystal_dict_fields = base_crystal_dict_fields + [
+    {'field': 'material', 'val': xc.materials.Yttrium, 'expected': {'material': xc.materials.Yttrium}},
+    {'field': 'height', 'val': 0.03, 'expected': {'height': 0.03}},
+    {'field': 'width',  'val': 0.02, 'expected': {'width': 0.02}},
+    {'field': 'side',   'val': 'right', 'expected': {'side': 'right'}},
+]
 
 
 # Tests
@@ -255,10 +289,10 @@ def test_black_crystal(test_context):
 )
 def test_everest_block(test_context):
     # Test instantiation
-    elem = xc.EverestBlock(length=1.3, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestBlock(length=1.3, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     assert np.isclose(elem.length, 1.3)
     assert elem._tracking == True
-    assert xt.line._dicts_equal(elem.material.to_dict(), xc.materials.Carbon.to_dict())
+    assert deep_equal(elem.material.to_dict(), xc.materials.CarbonFibreCarbon.to_dict())
     assert np.isclose(elem.rutherford_rng.lower_val, 0.0009982)
     assert np.isclose(elem.rutherford_rng.upper_val, 0.02)
     assert np.isclose(elem.rutherford_rng.A, 0.0012280392539122623)
@@ -277,7 +311,7 @@ def test_everest_block(test_context):
 )
 def test_everest(test_context):
     # Test instantiation
-    elem = xc.EverestCollimator(length=1, material=xc.materials.Carbon, _context=test_context)
+    elem = xc.EverestCollimator(length=1, material=xc.materials.CarbonFibreCarbon, _context=test_context)
     _check_all_elements(elem, everest_fields, everest_dict_fields, everest_user_fields, \
                         everest_user_fields_read_only)
 
@@ -287,15 +321,32 @@ def test_everest(test_context):
 )
 def test_everest_crystal(test_context):
     # Test instantiation
-    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.SiliconCrystal, side='-', _context=test_context)
+    elem = xc.EverestCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, side='-', _context=test_context)
     _check_all_elements(elem, everest_crystal_fields, everest_crystal_dict_fields, \
                         everest_crystal_user_fields, everest_crystal_user_fields_read_only)
 
+@pytest.mark.fluka
+def test_fluka():
+    # Test instantiation
+    elem = xc.FlukaCollimator(length=1, assembly='lhc_tcp')
+    _check_all_elements(elem, fluka_fields, fluka_dict_fields, [], [])
+
+@pytest.mark.fluka
+def test_fluka_generic():
+    # Test instantiation
+    elem = xc.FlukaCollimator(length=1, material=xc.materials.CarbonFibreCarbon)
+    _check_all_elements(elem, fluka_fields, fluka_generic_dict_fields, [], [])
+
+# @pytest.mark.fluka
+# def test_fluka_crystal():
+#     # Test instantiation
+#     elem = xc.FlukaCrystal(length=1, jaw=0.99, material=xc.materials.Silicon, bending_radius=20, side='+')
+#     _check_all_elements(elem, fluka_crystal_fields, fluka_crystal_dict_fields, [], [])
 
 
 def _assert_all_close(expected, setval):
     if hasattr(expected, 'to_dict'):
-        assert _dicts_equal(expected.to_dict(), setval.to_dict())
+        assert deep_equal(expected.to_dict(), setval.to_dict())
     elif hasattr(expected, '__iter__') and not isinstance(expected, str):
         for exp, stv in zip(expected, setval):
             _assert_all_close(exp, stv)

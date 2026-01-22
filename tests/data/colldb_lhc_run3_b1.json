@@ -3,14 +3,14 @@
     "tcp3": {
       "gap": 15,
       "stage": "primary",
-      "material": "C",
+      "material": "CFC",
       "length": 0.6,
       "parking": 0.025
     },
     "TCSG3": {
       "gap": 18,
       "stage": "secondary",
-      "material": "C",
+      "material": "CFC",
       "length": 1,
       "parking": 0.025
     },
@@ -24,14 +24,14 @@
     "TCP7": {
       "gap": 5,
       "stage": "Primary",
-      "material": "C",
+      "material": "CFC",
       "length": 0.6,
       "parking": 0.025
     },
     "TCSG7": {
       "gap": 6.5,
       "stage": "secondary",
-      "material": "C",
+      "material": "CFC",
       "length": 1,
       "parking": 0.025
     },
@@ -54,7 +54,7 @@
     "TCLI": {
       "Gap": null,
       "stage": "tertiary",
-      "material": "C",
+      "material": "CFC",
       "length": 1,
       "angle": 90,
       "parking": 0.025
@@ -70,7 +70,7 @@
     "TCDQ": {
       "gap": 7.3,
       "stage": "tertiary",
-      "material": "C",
+      "material": "CFC",
       "length": 3,
       "angle": 0,
       "parking": 0.025,
@@ -79,7 +79,7 @@
     "TCSP": {
       "gap": 7.3,
       "stage": "SECONDARY",
-      "material": "C",
+      "material": "CFC",
       "Length": 1,
       "angle": 0,
       "parking": 0.025

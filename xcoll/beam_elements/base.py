@@ -156,12 +156,6 @@ class BaseCollimator(BaseBlock):
         '_tan_yR':        xo.Float64,
         # Other
         '_side':          xo.Int8,
-        # These are not used in C, but need to be an xofield to get them in the to_dict:
-        '_align':         xo.Int8,
-        '_gap_L':         xo.Float64,
-        '_gap_R':         xo.Float64,
-        '_nemitt_x':      xo.Float64,
-        '_nemitt_y':      xo.Float64
     }
 
     allow_double_sided = True
@@ -259,8 +253,11 @@ class BaseCollimator(BaseBlock):
             to_assign['emittance'] = kwargs.pop('emittance', None)
 
         super().__init__(**kwargs)
-        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
-        # We also have to manually initialise them for xobject generation
+        self._align = 'upstream'
+        self._gap_L = OPEN_GAP
+        self._gap_R = -OPEN_GAP
+        self._nemitt_x = 0.
+        self._nemitt_y = 0.
         if not hasattr(self, '_optics'):
             self._optics = None
         for key, val in to_assign.items():
@@ -570,6 +567,8 @@ class BaseCollimator(BaseBlock):
 
     @tilt_L.setter   # This assumes jaw_L remains fixed (hence jaw_LU and jaw_LD change)
     def tilt_L(self, val):
+        if val is None:
+            val = 0
         if self.side == 'right' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_L (right-sided collimator).")
@@ -593,6 +592,8 @@ class BaseCollimator(BaseBlock):
 
     @tilt_R.setter   # This assumes jaw_R remains fixed (hence jaw_RU and jaw_RD change)
     def tilt_R(self, val):
+        if val is None:
+            val = 0
         if self.side == 'left' and val != 0:
             val = 0
             print("Warning: Ignored value for tilt_R (left-sided collimator).")
@@ -786,23 +787,19 @@ class BaseCollimator(BaseBlock):
 
     @property
     def align(self):
-        if self._align == 0:
-            return 'upstream'
-        elif self._align == 1:
-            return 'downstream'
-        else:
-            raise ValueError(f"The attribute `align` can only be 'upstream' or "
-                            +f"'downstream', but stored as {self._align}.")
+        return self._align
 
     @align.setter
     def align(self, val):
-        if val == 'upstream':
-            self._align = 0
-        elif val == 'downstream':
-            self._align = 1
-        else:
-            raise ValueError(f"The attribute `align` can only be 'upstream' or "
-                            +f"'downstream', but got {val}.")
+        if val.lower() not in ['up', 'down','upstream', 'downstream']:
+            raise ValueError(f"The attribute `align` can only be 'up', "
+                           + f"'down', 'upstream', or 'downstream', but got "
+                           + f"{val}.")
+        if val.lower() == 'up':
+            val = 'upstream'
+        elif val.lower() == 'down':
+            val = 'downstream'
+        self._align = val.lower()
         self._apply_optics()
 
 
@@ -1022,7 +1019,7 @@ class BaseCollimator(BaseBlock):
 
         # Verify bools
         if '_side' in self._xofields:  # Not the case e.g. for FlukaCollimator
-            assert self._side in [-1, 1, 0]
+            assert self._side in [-1, 0, 1]
         assert isinstance(self._jaws_parallel, bool) or self._jaws_parallel in [0, 1]
 
     def jaw_func(self, pos):
@@ -1058,16 +1055,11 @@ class BaseCrystal(BaseBlock):
         '_tan_y':             xo.Float64,
         # Other
         '_side':              xo.Int8,
-        # These are not used in C, but need to be an xofield to get them in the to_dict:
-        '_align':             xo.Int8,
-        '_gap':               xo.Float64,
-        '_nemitt_x':          xo.Float64,
-        '_nemitt_y':          xo.Float64,
         # Crystal specific
         '_bending_radius':    xo.Float64,
         '_bending_angle':     xo.Float64,
-        '_width':              xo.Float64,
-        '_height':             xo.Float64
+        '_width':             xo.Float64,
+        '_height':            xo.Float64
         # 'thick':              xo.Float64
     }
 
@@ -1153,6 +1145,10 @@ class BaseCrystal(BaseBlock):
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
+        self._align = 'upstream'
+        self._gap = OPEN_GAP
+        self._nemitt_x = 0.
+        self._nemitt_y = 0.
         if not hasattr(self, '_optics'):
             self._optics = None
         for key, val in to_assign.items():
@@ -1435,10 +1431,8 @@ class BaseCrystal(BaseBlock):
 
     @side.setter
     def side(self, val):
-        temp = self._side
         BaseCollimator.side.fset(self, val)
         if self._side == 0:
-            self._side = temp
             raise ValueError("Crystal cannot be two-sided! Please set `side` "
                            + "to 'left' or 'right'.")
 

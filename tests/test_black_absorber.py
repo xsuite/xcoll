@@ -11,14 +11,16 @@ import xpart as xp
 import xtrack as xt
 import xcoll as xc
 
-from xpart.test_helpers import flaky_assertions, retry
 from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
+
 n_part = int(2.e6)
+
 
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
 )
+@fix_random_seed(3482634)
 def test_with_parallel_beam(test_context):
     jaw_L, jaw_R, _, _, _, _, _, _, L, coll = _make_absorber(_context=test_context)
     # Create particles
@@ -64,6 +66,7 @@ def test_with_parallel_beam(test_context):
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # BlackAbsorber not on GPU
 )
+@fix_random_seed(3482634)
 def test_with_generic_beam(test_context, angle_L, angle_R, tilt_L, tilt_R):
     # Create collimator
     j_LU, j_RU, j_LD, j_RD, s_LU, s_RU, s_LD, s_RD, L, coll = _make_absorber(angle=[angle_L, angle_R], tilts=[tilt_L, tilt_R], _context=test_context)

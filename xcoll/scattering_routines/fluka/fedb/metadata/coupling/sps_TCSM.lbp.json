@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCSM",
+    "fedb_series": "sps",
+    "fedb_tag": "TCSM",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "test collimator (hollow jaw)",
+    "extra_commands": null,
+    "is_broken": false
+}

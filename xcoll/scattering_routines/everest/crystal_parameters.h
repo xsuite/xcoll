@@ -79,19 +79,19 @@ void calculate_opening_angle(EverestData restrict everest, LocalParticle* part, 
 
 
 /*gpufun*/
-double _critical_angle0(EverestCollData restrict coll, double pc){
+double _critical_angle0(MaterialData restrict material, double pc){
     // Define typical angles/probabilities for orientation 110
-    double eum = coll->eum;
-    double eta = coll->eta;
+    double eum = MaterialData_get__crystal_potential(material);
+    double eta = MaterialData_get__eta(material);
     return sqrt(2.e-9*eta*eum/pc); // Critical angle (rad) for straight crystals    // pc is actually beta pc
 }
 
 /*gpufun*/
-double _critical_radius(EverestCollData restrict coll, double pc){
+double _critical_radius(MaterialData restrict material, double pc){
     // Define typical angles/probabilities for orientation 110
-    double eum = coll->eum;
-    double ai  = coll->ai;
-    double eta = coll->eta;
+    double eum = MaterialData_get__crystal_potential(material);
+    double ai  = MaterialData_get__crystal_plane_distance(material);
+    double eta = MaterialData_get__eta(material);
     return pc/(2.e-6*sqrt(eta)*eum)*ai;  // Critical curvature radius [m]   // pc is actually beta pc
 }
 
@@ -109,10 +109,11 @@ double _critical_angle(EverestCollData restrict coll, double t_c0, double Rc_ove
 }
 
 /*gpufun*/
-void calculate_critical_angle(EverestData restrict everest, LocalParticle* part, CrystalGeometry restrict cg, double pc){
+void calculate_critical_angle(EverestData restrict everest, MaterialData restrict material,
+                              LocalParticle* part, CrystalGeometry restrict cg, double pc){
     // Define typical angles/probabilities for orientation 110
-    everest->t_c0  = _critical_angle0(everest->coll, pc);
-    double Rcrit = _critical_radius(everest->coll, pc);
+    everest->t_c0  = _critical_angle0(material, pc);
+    double Rcrit = _critical_radius(material, pc);
     everest->Rc_over_R = Rcrit / fabs(cg->bending_radius);
     everest->t_c = _critical_angle(everest->coll, everest->t_c0, everest->Rc_over_R);
 }
@@ -120,7 +121,6 @@ void calculate_critical_angle(EverestData restrict everest, LocalParticle* part,
 
 /*gpufun*/
 void calculate_VI_parameters(EverestData restrict everest, LocalParticle* part, double pc){
-
     double ratio = everest->Rc_over_R;
     double t_c0  = everest->t_c0;
 

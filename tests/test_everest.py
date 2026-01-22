@@ -5,11 +5,11 @@
 
 import json
 from pathlib import Path
+
 import numpy as np
 import xpart as xp
 import xcoll as xc
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
 
 
 path = xc._pkg_root.parent / 'tests' / 'data_test_everest'
@@ -151,7 +151,6 @@ def test_crystals():
 
 
 def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, atolz=1e-11, atold=2e-8, _context=None):
-    print(f"Testing {name}")
     if _context is None:
         _context = xo.ContextCpu()
 #     _context._cffi_verbose = True
@@ -173,13 +172,6 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, at
     with open(Path(path, 'Ref',name+'.json'), 'r') as fid:
         part_ref = xp.Particles.from_dict(json.load(fid))
     part_ref.sort(interleave_lost_particles=True)
-    assert np.array_equal(part.particle_id[part.state<1], part_ref.particle_id[part_ref.state<1])
-    assert np.allclose(part.x[part.state>0],     part_ref.x[part_ref.state>0], atol=atolx, rtol=0)
-    assert np.allclose(part.y[part.state>0],     part_ref.y[part_ref.state>0], atol=atoly, rtol=0)
-    assert np.allclose(part.px[part.state>0],    part_ref.px[part_ref.state>0], atol=atolpx, rtol=0)
-    assert np.allclose(part.py[part.state>0],    part_ref.py[part_ref.state>0], atol=atolpy, rtol=0)
-    assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
-    assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)
     # for p, pref, pid in zip(part.x[part.state>0],     part_ref.x[part_ref.state>0], part.particle_id[part.state>0]):
     #     if not np.allclose(p, pref, atol=atolx, rtol=0):
     #         print(f"{pid}   x    : {abs(p-pref):.12}")
@@ -198,5 +190,10 @@ def _track_collimator(name, atolx=3e-9, atoly=3e-9, atolpx=5e-9, atolpy=5e-9, at
     # for p, pref, pid in zip(part.delta[part.state>0], part_ref.delta[part_ref.state>0], part.particle_id[part.state>0]):
     #     if not np.allclose(p, pref, atol=atold, rtol=0):
     #         print(f"{pid}   delta: {abs(p-pref):.12}")
-    # assert False
-
+    assert np.array_equal(part.particle_id[part.state<1], part_ref.particle_id[part_ref.state<1])
+    assert np.allclose(part.x[part.state>0],     part_ref.x[part_ref.state>0], atol=atolx, rtol=0)
+    assert np.allclose(part.y[part.state>0],     part_ref.y[part_ref.state>0], atol=atoly, rtol=0)
+    assert np.allclose(part.px[part.state>0],    part_ref.px[part_ref.state>0], atol=atolpx, rtol=0)
+    assert np.allclose(part.py[part.state>0],    part_ref.py[part_ref.state>0], atol=atolpy, rtol=0)
+    assert np.allclose(part.zeta[part.state>0],  part_ref.zeta[part_ref.state>0], atol=atolz, rtol=0)
+    assert np.allclose(part.delta[part.state>0], part_ref.delta[part_ref.state>0], atol=atold, rtol=0)

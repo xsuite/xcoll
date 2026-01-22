@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCSPMC",
+    "fedb_series": "lhc",
+    "fedb_tag": "TCSPMC",
+    "side": null,
+    "angle": 0,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "OLD - secondary with jaw in MoGr coated (5um)",
+    "extra_commands": null,
+    "is_broken": false
+}

@@ -4,26 +4,7 @@
  "inactive_front": 0,
  "inactive_back": 0,
  "angle": 0,
- "material": {
-  "__class__": "Material",
-  "name": "Carbon",
-  "Z": 6,
-  "A": 12.01,
-  "density": 1.67,
-  "excitation_energy": 7.8e-08,
-  "nuclear_radius": 0.25,
-  "nuclear_elastic_slope": 70,
-  "cross_section": [
-   0.337,
-   0.232,
-   0,
-   0,
-   0,
-   7.6e-05
-  ],
-  "hcut": 0.02,
-  "radiation_length": 0.2557
- },
+ "material": "K2CarbonFibreCarbon",
  "jaw_L": 0.0011246217070530209,
  "jaw_R": -0.0011256434643127458
 }

@@ -5,14 +5,14 @@
 
 import pytest
 import numpy as np
+from pathlib import Path
 
 import xtrack as xt
-import xpart as xp
 import xcoll as xc
 from xobjects.test_helpers import for_all_test_contexts
 
 
-path = xc._pkg_root.parent / 'tests' / 'data'
+path = Path(__file__).parent / 'data'
 
 
 @for_all_test_contexts(
@@ -20,7 +20,8 @@ path = xc._pkg_root.parent / 'tests' / 'data'
 )
 @pytest.mark.parametrize('beam', [1, 2])
 def test_line_accessor(beam, test_context):
-    line = xt.Line.from_json(path / f'sequence_lhc_run3_b{beam}.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+    line = env[f'lhcb{beam}']
     colldb = xc.CollimatorDatabase.from_yaml(path / 'colldb_lhc_run3.yaml', beam=beam)
     assert str(line.collimators) == ''
     assert len(line.collimators) == 0

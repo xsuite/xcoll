@@ -18,23 +18,27 @@ except (ImportError, ModuleNotFoundError):
 
 
 class BaseEnvironment:
-    _pkg_root
     _config_dir = FsPath(_pkg_root / 'config').resolve()
     _data_dir   = FsPath(_pkg_root / 'lib').resolve()
     # _config_dir = FsPath(user_config_dir('xcoll')).resolve()
     # _data_dir   = FsPath(user_data_dir('xcoll')).resolve()
     _paths = {} # The value is the parent depth that needs to be brute-forced (0 = file itself, None = no brute-force)
+    _optional_paths = {}
     _read_only_paths = {}
 
     def __init__(self, *args, **kwargs):
         self._old_sys_path = None
         self._old_os_env = None
         self._temp_dir = None
+        self._in_constructor = True
         for path in self._paths.keys():
             setattr(self, f'_{path}', None)
+        for path in self._optional_paths.keys():
+            setattr(self, f'_{path}', None)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
         self._config_file = self._config_dir / f'{self.__class__.__name__[:-11].lower()}.config.json'
         sys.path.append(self._data_dir.as_posix())
-        self._in_constructor = True
         self.load()
         self._in_constructor = False
 
@@ -63,10 +67,20 @@ class BaseEnvironment:
                     res.append(f"    {path:<20} None")
                 else:
                     res.append(f"    {path:<20} {value.as_posix()}")
+            for path in self._optional_paths.keys():
+                value = getattr(self, f'_{path}', None)
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (optional)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (optional)")
             for path in self._read_only_paths.keys():
                 value = getattr(self, path)
-                path = f'{path} (read-only):'
-                res.append(f"    {path:<20} {value.as_posix()}")
+                path = f'{path}:'
+                if value is None:
+                    res.append(f"    {path:<20} None (read-only)")
+                else:
+                    res.append(f"    {path:<20} {value.as_posix()} (read-only)")
             if self._old_sys_path and self._old_os_env:
                 res.append("")
                 res.append("Custom environment stored:")
@@ -97,6 +111,10 @@ class BaseEnvironment:
     @property
     def compiled(self):
         raise NotImplementedError("This property should be implemented in the subclass.")
+
+    @property
+    def ready(self):
+        return self.initialised and self.compiled
 
     @property
     def temp_dir(self):
@@ -135,12 +153,32 @@ class BaseEnvironment:
     def save(self):
         if not self._config_dir.exists():
             self._config_dir.mkdir(parents=True, exist_ok=True)
-        data = {}
+        data = {'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}
         for path in self._paths.keys():
             value = getattr(self, path, None)
             if value:
                 value = FsPath(value).as_posix()
-            data[path] = value
+            data['paths'][path] = value
+        for path in self._optional_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['optional_paths'][path] = value
+        for path in self._read_only_paths.keys():
+            value = getattr(self, path, None)
+            if value:
+                value = FsPath(value).as_posix()
+            data['read_only_paths'][path] = value
+        # Check if anything changed
+        with open(self._config_file, 'r') as fid:
+            try:
+                existing_data = json.load(fid)
+            except json.JSONDecodeError:
+                # File corrupted, need to save
+                existing_data = {}
+        if data == existing_data:
+            return
+        # If yes, save to file
         with open(self._config_file, 'w') as fid:
             json.dump(data, fid, indent=4)
 
@@ -148,9 +186,20 @@ class BaseEnvironment:
         if not self._config_file.exists():
             self.save()
         with open(self._config_file, 'r') as fid:
-            data = json.load(fid)
-        for key, value in data.items():
+            try:
+                data = json.load(fid)
+            except json.JSONDecodeError:
+                with open(self._config_file, 'w') as fid:
+                    json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
+                return
+        if 'paths' not in data or 'read_only_paths' not in data or 'optional_paths' not in data:
+            return
+        for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)
+        for key, value in data['optional_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
+        for key, value in data['read_only_paths'].items():
+            setattr(self, f'_{key}', FsPath(value) if value else None)
 
     def store_environment(self):
         self._old_sys_path = sys.path.copy()
@@ -165,15 +214,18 @@ class BaseEnvironment:
             self._old_os_env = None
 
     def brute_force_path(self, path):
-        num_parents = 0
-        if path in self._paths:
-            num_parents = self._paths[path]
-            path = getattr(self, path)
-        if path in self._read_only_paths:
-            num_parents = self._read_only_paths[path]
-            path = getattr(self, path)
         if path is None:
             return
+        num_parents = 0
+        if str(path) in self._paths:
+            num_parents = self._paths[path]
+            path = getattr(self, path)
+        if str(path) in self._optional_paths:
+            num_parents = self._optional_paths[path]
+            path = getattr(self, path)
+        if str(path) in self._read_only_paths:
+            num_parents = self._read_only_paths[path]
+            path = getattr(self, path)
         path = FsPath(path).resolve()
         if num_parents > 0:
             path = path.parents[num_parents-1]
@@ -185,11 +237,11 @@ class BaseEnvironment:
             # No tree executable. Return as no more can be done. TODO: alternatives for mac and windows?
             return
         if cmd.returncode != 0:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            stderr = cmd.stderr.decode('UTF-8').strip()
             raise RuntimeError(f"Could not resolve {path} tree!\nError given is:\n{stderr}")
 
     def __getattr__(self, key):
-        if key in self._paths.keys():
+        if key in self._paths | self._optional_paths | self._read_only_paths:
             value = getattr(self, f'_{key}', None)
             if value:
                 return FsPath(value)
@@ -197,14 +249,23 @@ class BaseEnvironment:
             raise AttributeError(f"{self.__class__.__name__} has no attribute '{key}'")
 
     def __setattr__(self, key, value):
-        if key in self._paths.keys():
+        if key in self._paths.keys() or key in self._optional_paths.keys():
             if value:
                 value = FsPath(value)
                 if not self._in_constructor:
                     self.brute_force_path(value)
-            setattr(self, f'_{key}', value)
-            if not self._in_constructor:
-                self.save()
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(f'_{key}', value)
+                if not self._in_constructor:
+                    self.save()
+        elif key.startswith('_') and key[1:] in self._read_only_paths.keys():
+            # Read-only attribute can only be set internally
+            old_value = getattr(self, f'_{key}', None)
+            if value != old_value:
+                super().__setattr__(key, value)
+                if not self._in_constructor:
+                    self.save()
         elif key in self._read_only_paths.keys():
             raise AttributeError(f"Attribute '{key}' of {self.__class__.__name__} "
                                + f"is read-only!")
@@ -212,86 +273,111 @@ class BaseEnvironment:
             super().__setattr__(key, value)
 
     def __delattr__(self, item):
-        if item in self._paths.keys():
+        if item in self._paths.keys() or item in self._optional_paths.keys():
             self.__setattr__(self, f'_{item}', None)
             self.save()
 
-    def assert_make_installed(self, verbose=False):
-        if hasattr(self, '_make_installed') and hasattr(self, '_cmake_installed'):
-            return self._make_installed and self._cmake_installed
-        try:
-            cmd = run(["make", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._make_installed = False
-            raise RuntimeError("Could not find make installation!")
-        if cmd.returncode == 0:
-            self._make_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._make_installed = False
-            raise RuntimeError(f"Could not run make! Verify its installation.\nError given is:\n{stderr}")
-        try:
-            cmd = run(["cmake", "--version"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._cmake_installed = False
-            raise RuntimeError("Could not find cmake installation!")
-        if cmd.returncode == 0:
-            self._cmake_installed = True
-        else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._cmake_installed = False
-            raise RuntimeError(f"Could not run cmake! Verify its installation.\nError given is:\n{stderr}")
+    def assert_environment_ready(self):
+        if not self.initialised:
+            raise RuntimeError(f"{self.__class__.__name__} not initialised! "
+                             + f"Please set all paths in the environment before "
+                             + f"starting the engine.")
+        if not self.compiled:
+            raise RuntimeError(f"{self.__class__.__name__} not compiled! "
+                             + f"Please compile before starting the engine.")
 
-    def assert_gcc_isntalled(self, verbose=False):
-        if hasattr(self, '_gcc_installed'):
-            return self._gcc_installed
-        try:
-            cmd = run(["gcc", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
-            self._gcc_installed = False
-            raise RuntimeError("Could not find gcc installation! Need gcc 9 or higher.")
-        if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gcc_installed = False
-                raise RuntimeError(f"Need gcc 9 or higher, but found gcc {version}!")
-            self._gcc_installed = True
-            if verbose:
-                cmd2 = run(["which", "gcc"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gcc {version} in {file}", flush=True)
+    def assert_installed(self, program, *, program_name=None, version_cmd="--version", verbose=False):
+        if program_name is None:
+            program_name = program
+        if not hasattr(self, f'_{program}_installed'):
+            try:
+                cmd = run(["which", program], stdout=PIPE, stderr=PIPE)
+            except Exception as err:
+                new_err = RuntimeError(f"Could not run `which {program}`!")
+                new_err.__cause__ = err
+                setattr(self, f'_{program}_installed', [new_err, None])
+            else:
+                if cmd.returncode != 0:
+                    stderr = cmd.stderr.decode('UTF-8').strip()
+                    err = RuntimeError(f"Could not run `which {program}` (output "
+                                    f"error code {cmd.returncode})!\nError given is:\n"
+                                    f"{stderr}")
+                    setattr(self, f'_{program}_installed', [err, None])
                 else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gcc`!\nError given is:\n{stderr}")
+                    file = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                    try:
+                        cmd = run([program, version_cmd], stdout=PIPE, stderr=PIPE)
+                    except Exception as err:
+                        new_err = RuntimeError(f"Could not run `{program} {version_cmd}`!")
+                        new_err.__cause__ = err
+                        setattr(self, f'_{program}_installed', [file, new_err])
+                    else:
+                        if cmd.returncode != 0:
+                            stderr = cmd.stderr.decode('UTF-8').strip()
+                            err = RuntimeError(f"Could not run `{program} {version_cmd}` "
+                                            f"(output error code {cmd.returncode})!\nError "
+                                            f"given is:\n{stderr}")
+                            setattr(self, f'_{program}_installed', [file, err])
+                        else:
+                            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                            setattr(self, f'_{program}_installed', [file, version])
+        file, version = getattr(self, f'_{program}_installed')
+        if isinstance(file, Exception):
+            # Which failed!
+            raise file
+        elif isinstance(version, Exception):
+            # Version command failed!
+            if verbose:
+                print(f"Found {program_name} in {file}", flush=True)
+            raise version
         else:
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gcc_installed = False
-            raise RuntimeError(f"Could not run gcc! Verify its installation.\nError given is:\n{stderr}")
+            if verbose:
+                print(f"Found {program_name} ({version}) in {file}", flush=True)
+            return file, version
 
-    def assert_gfortran_installed(self, verbose=False):
-        if hasattr(self, '_gfortran_installed'):
-            return self._gfortran_installed
-        try:
-            cmd = run(["gfortran", "-dumpversion"], stdout=PIPE, stderr=PIPE)
-        except FileNotFoundError:
+
+    def assert_gcc_installed(self, minimum_version=9, verbose=False):
+        gcc = os.environ.get('CC', 'gcc')
+        _, version = self.assert_installed(gcc, program_name='CC', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gcc_installed = False
+            raise RuntimeError(f"Need gcc {minimum_version} or higher, but found gcc {version}!")
+
+    def assert_gxx_installed(self, minimum_version=9, verbose=False):
+        gxx = os.environ.get('CXX', 'g++')
+        _, version = self.assert_installed(gxx, program_name='CXX', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
+            self._gxx_installed = False
+            raise RuntimeError(f"Need gxx {minimum_version} or higher, but found gxx {version}!")
+
+    def assert_gfortran_installed(self, minimum_version=9, verbose=False):
+        gfortran = os.environ.get('FC', 'gfortran')
+        _, version = self.assert_installed(gfortran, program_name='FC', version_cmd='-dumpversion',
+                                           verbose=verbose)
+        if int(version.split('.')[0]) < minimum_version:
             self._gfortran_installed = False
-            raise RuntimeError("Could not find gfortran installation! Need gfortran 9 or higher.")
+            raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")
+
+    def whoami(self):
+        if not hasattr(self, '_whoami'):
+            # Get username
+            cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
+            if cmd.returncode == 0:
+                self._whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            else:
+                self.stop()
+                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
+        return self._whoami
+
+    def running_processes(self):
+        # Get fluka processes for this user
+        cmd = run(["ps", "-u", self.whoami()], stdout=PIPE, stderr=PIPE)
         if cmd.returncode == 0:
-            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-            if int(version.split('.')[0]) < 9:
-                self._gfortran_installed = False
-                raise RuntimeError(f"Need gfortran 9 or higher, but found gfortran {version}!")
-            self._gfortran_installed = True
-            if verbose:
-                cmd2 = run(["which", "gfortran"], stdout=PIPE, stderr=PIPE)
-                if cmd2.returncode == 0:
-                    file = cmd2.stdout.decode('UTF-8').strip().split('\n')[0]
-                    print(f"Found gfortran {version} in {file}", flush=True)
-                else:
-                    stderr = cmd2.stderr.decode('UTF-8').strip().split('\n')
-                    raise RuntimeError(f"Could not run `which gfortran`!\nError given is:\n{stderr}")
+            return cmd.stdout.decode('UTF-8').strip().split('\n')
         else:
+            self.stop()
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            self._gfortran_installed = False
-            raise RuntimeError(f"Could not run gfortran! Verify its installation.\nError given is:\n{stderr}")
+            raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")

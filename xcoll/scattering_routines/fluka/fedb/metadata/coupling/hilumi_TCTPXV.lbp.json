@@ -1,0 +1,17 @@
+{
+    "__class__": "FlukaAssembly",
+    "name": "TCTPXV",
+    "fedb_series": "hilumi",
+    "fedb_tag": "TCTPXV",
+    "side": null,
+    "angle": 1.5707963267948966,
+    "length": null,
+    "width": null,
+    "height": null,
+    "material": null,
+    "is_crystal": false,
+    "bending_radius": null,
+    "info": "OLD - alternative tertiary",
+    "extra_commands": null,
+    "is_broken": false
+}

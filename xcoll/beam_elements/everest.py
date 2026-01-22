@@ -3,13 +3,12 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import numpy as np
-
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseBlock, BaseCollimator, BaseCrystal
-from ..scattering_routines.everest import Material, CrystalMaterial, EverestEngine
+from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
+from ..scattering_routines.everest import EverestEngine
+from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
 
 
@@ -27,19 +26,25 @@ class EverestBlock(BaseBlock):
         '_tracking':        xo.Int8
     }
 
-    needs_rng         = True
-    allow_track       = True
-    _depends_on       = [EverestEngine]
-    _noexpr_fields    = BaseBlock._noexpr_fields | {'material'}
-    _skip_in_to_dict  = BaseBlock._skip_in_to_dict + ['_material']
-    _store_in_to_dict = BaseBlock._store_in_to_dict + ['material']
-    _extra_c_sources  = [
-        xt._pkg_root / 'headers/checks.h',
-        xt._pkg_root / 'headers/particle_states.h',
-        xt._pkg_root / 'random/random_src/rutherford.h',
-        _pkg_root / 'headers/checks.h',
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'beam_elements/elements_src/everest_block.h']
+    isthick = True
+    needs_rng = True
+    allow_track = True
+    allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
+    _noexpr_fields         = BaseBlock._noexpr_fields | {'material'}
+    _skip_in_to_dict       = BaseBlock._skip_in_to_dict + ['_material', '_tracking']
+    _store_in_to_dict      = BaseBlock._store_in_to_dict + ['material']
+    _internal_record_class = BaseBlock._internal_record_class
+
+    _depends_on = [BaseBlock, EverestEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
+    ]
 
     _kernels = {
         'EverestBlock_set_material': xo.Kernel(
@@ -48,11 +53,12 @@ class EverestBlock(BaseBlock):
             )
         }
 
+
     def __init__(self, **kwargs):
         to_assign = {}
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = Material()
+            kwargs['_material'] = _DEFAULT_MATERIAL
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
@@ -62,17 +68,13 @@ class EverestBlock(BaseBlock):
 
     @property
     def material(self):
-        return self._material
+        if self._material != _DEFAULT_MATERIAL:
+            return self._material
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = Material()
-        if isinstance(material, dict):
-            material = Material.from_dict(material)
-        if not isinstance(material, Material):
-            raise ValueError("Invalid material!")
-        if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
+        material = _resolve_material(material)
+        if self.material != material:
             self._material = material
             self.EverestBlock_set_material(el=self)
 
@@ -80,19 +82,25 @@ class EverestBlock(BaseBlock):
 class EverestCollimator(BaseCollimator):
     _xofields = EverestBlock._xofields | BaseCollimator._xofields
 
-    needs_rng         = True
-    allow_track       = True
-    _depends_on       = [EverestEngine]
-    _noexpr_fields    = BaseCollimator._noexpr_fields | {'material'}
-    _skip_in_to_dict  = BaseCollimator._skip_in_to_dict + ['_material']
-    _store_in_to_dict = BaseCollimator._store_in_to_dict + ['material']
-    _extra_c_sources  = [
-        xt._pkg_root / 'headers/checks.h',
-        xt._pkg_root / 'headers/particle_states.h',
-        xt._pkg_root / 'random/random_src/rutherford.h',
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'headers/checks.h',
-        _pkg_root / 'beam_elements/elements_src/everest_collimator.h']
+    isthick = True
+    needs_rng = True
+    allow_track = True
+    allow_double_sided = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
+    _noexpr_fields         = BaseCollimator._noexpr_fields | {'material'}
+    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict + ['_material']
+    _store_in_to_dict      = BaseCollimator._store_in_to_dict + ['material']
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    _depends_on = [BaseCollimator, EverestEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
+    ]
 
     _kernels = {
         'EverestCollimator_set_material': xo.Kernel(
@@ -106,7 +114,7 @@ class EverestCollimator(BaseCollimator):
         to_assign = {}
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = Material()
+            kwargs['_material'] = _DEFAULT_MATERIAL
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
             kwargs.setdefault('_tracking', True)
         super().__init__(**kwargs)
@@ -115,43 +123,44 @@ class EverestCollimator(BaseCollimator):
 
     @property
     def material(self):
-        return self._material
+        if self._material != _DEFAULT_MATERIAL:
+            return self._material
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = Material()
-        if isinstance(material, dict):
-            material = Material.from_dict(material)
-        if not isinstance(material, Material):
-            raise ValueError("Invalid material!")
-        if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
+        material = _resolve_material(material)
+        if self.material != material:
             self._material = material
             self.EverestCollimator_set_material(el=self)
 
 
 class EverestCrystal(BaseCrystal):
     _xofields = EverestBlock._xofields | BaseCrystal._xofields | {
-        '_material':          CrystalMaterial,
         'miscut':             xo.Float64,
         '_orient':            xo.Int8,
         '_critical_angle':    xo.Float64,
         '_critical_radius':   xo.Float64
     }
 
-    needs_rng         = True
-    allow_track       = True
-    _depends_on       = [EverestEngine]
-    _noexpr_fields    = BaseCrystal._noexpr_fields | {'material', 'lattice'}
-    _skip_in_to_dict  = BaseCrystal._skip_in_to_dict + ['_material', '_orient']
-    _store_in_to_dict = BaseCrystal._store_in_to_dict + ['material', 'lattice']
-    _extra_c_sources  = [
-        xt._pkg_root / 'headers/checks.h',
-        xt._pkg_root / 'headers/particle_states.h',
-        xt._pkg_root / 'random/random_src/rutherford.h',
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'headers/checks.h',
-        _pkg_root / 'beam_elements/elements_src/everest_crystal.h']
+    isthick = True
+    needs_rng = True
+    allow_track = True
+    allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
+    _noexpr_fields         = BaseCrystal._noexpr_fields | {'material', 'lattice'}
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict + ['_orient', '_material']
+    _store_in_to_dict      = BaseCrystal._store_in_to_dict + ['lattice', 'material']
+    _internal_record_class = BaseCrystal._internal_record_class
+
+    _depends_on = [BaseCrystal, EverestEngine]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')
+    ]
 
     _kernels = {
         'EverestCrystal_set_material': xo.Kernel(
@@ -165,7 +174,7 @@ class EverestCrystal(BaseCrystal):
         to_assign = {}
         if '_xobject' not in kwargs:
             to_assign['material'] = kwargs.pop('material', None)
-            kwargs['_material'] = CrystalMaterial()
+            kwargs['_material'] = _DEFAULT_MATERIAL
             to_assign['lattice'] = kwargs.pop('lattice', 'strip')
             kwargs.setdefault('miscut', 0)
             kwargs.setdefault('rutherford_rng', xt.RandomRutherford())
@@ -177,17 +186,13 @@ class EverestCrystal(BaseCrystal):
 
     @property
     def material(self):
-        return self._material
+        if self._material != _DEFAULT_MATERIAL:
+            return self._material
 
     @material.setter
     def material(self, material):
-        if material is None:
-            material = CrystalMaterial()
-        if isinstance(material, dict):
-            material = CrystalMaterial.from_dict(material)
-        if not isinstance(material, CrystalMaterial):
-            raise ValueError("Invalid material!")
-        if not xt.line._dicts_equal(self.material.to_dict(), material.to_dict()):
+        material = _resolve_material(material, everest_crystal=True)
+        if self.material != material:
             self._material = material
             self.EverestCrystal_set_material(el=self)
 

@@ -32,7 +32,7 @@ int8_t EverestBlockData_get_record_scatterings(EverestBlockData el){
 void EverestBlock_set_material(EverestBlockData el){
     MaterialData material = EverestBlockData_getp__material(el);
     RandomRutherfordData rng = EverestBlockData_getp_rutherford_rng(el);
-    RandomRutherford_set_by_xcoll_material(rng, (GeneralMaterialData) material);
+    RandomRutherford_set_by_xcoll_material(rng, material);
 }
 
 
@@ -40,20 +40,8 @@ void EverestBlock_set_material(EverestBlockData el){
 EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int8_t active){
     EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
-        // Random generator and material
+        // Random generator
         coll->rng = EverestBlockData_getp_rutherford_rng(el);
-        MaterialData material = EverestBlockData_getp__material(el);
-        coll->exenergy = MaterialData_get_excitation_energy(material)*1.0e3; // MeV
-        coll->rho      = MaterialData_get_density(material);
-        coll->anuc     = MaterialData_get_A(material);
-        coll->zatom    = MaterialData_get_Z(material);
-        coll->bnref    = MaterialData_get_nuclear_elastic_slope(material);
-        coll->radl     = MaterialData_get_radiation_length(material);
-        coll->csref[0] = MaterialData_get_cross_section(material, 0);
-        coll->csref[1] = MaterialData_get_cross_section(material, 1);
-        coll->csref[5] = MaterialData_get_cross_section(material, 5);
-        coll->only_mcs = MaterialData_get__only_mcs(material);
-
         // Impact table
         coll->record = EverestBlockData_getp_internal_record(el, part0);
         coll->record_index = NULL;
@@ -63,19 +51,20 @@ EverestCollData EverestBlock_init(EverestBlockData el, LocalParticle* part0, int
             coll->record_scatterings = EverestBlockData_get_record_scatterings(el);
         }
     }
+    coll->orient = 0;
     return coll;
 }
 
 
 /*gpufun*/
-EverestData EverestBlock_init_data(LocalParticle* part, EverestCollData coll){
+EverestData EverestBlock_init_data(LocalParticle* part, MaterialData restrict material, EverestCollData coll){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
     everest->coll = coll;
     everest->rescale_scattering = 1;
     // Preinitialise scattering parameters
     double energy = LocalParticle_get_energy(part) / 1e9; // energy in GeV
-    calculate_scattering(everest, energy);
-    calculate_ionisation_properties(everest, energy);
+    calculate_scattering(everest, material, energy);
+    calculate_ionisation_properties(everest, material, energy);
     return everest;
 }
 
@@ -89,6 +78,7 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
     // Initialise collimator data
     // TODO: we want this to happen before tracking (instead of every turn), as a separate kernel
     EverestCollData coll = EverestBlock_init(el, part0, active);
+    MaterialData material = EverestBlockData_getp__material(el);
 
     //start_per_particle_block (part0->part);
         if (!active){
@@ -121,8 +111,8 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
                 double const pc_in   = (1 + delta)*p0c*qq0/chi;
                 double pc_out;
 
-                EverestData everest = EverestBlock_init_data(part, coll);
-                pc_out = jaw(everest, part, pc_in, length, 0);
+                EverestData everest = EverestBlock_init_data(part, material, coll);
+                pc_out = jaw(everest, material, part, pc_in, length, 0);
                 free(everest);
                 LocalParticle_add_to_s(part, s_block);
 
@@ -156,7 +146,6 @@ void EverestBlock_track_local_particle(EverestBlockData el, LocalParticle* part0
     //end_per_particle_block
     free(coll);
 }
-
 
 
 #endif /* XCOLL_EVEREST_BLOCK_H */

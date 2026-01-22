@@ -111,7 +111,16 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 
 
 /*gpufun*/
-void mcs(EverestData restrict everest, LocalParticle* part, double length, double pc, int edge_check){
+void mcs(EverestData restrict everest, MaterialData restrict material,
+         LocalParticle* part, double length, double pc, int edge_check){
+
+    double const radl = MaterialData_get__radiation_length(material);
+    if (radl <= 0){
+        // Unsupported material for MCS
+        Drift_single_particle_4d(part, length);
+        return;
+    }
+
     InteractionRecordData record = everest->coll->record;
     RecordIndex record_index     = everest->coll->record_index;
     int8_t sc = everest->coll->record_scatterings;
@@ -120,7 +129,6 @@ void mcs(EverestData restrict everest, LocalParticle* part, double length, doubl
     int64_t i_slot = -1;
     if (sc) i_slot = InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_SCATTERING);
 
-    double const radl = everest->coll->radl;
     double s;
     double theta = 13.6e-3/pc;
     double h   = 0.001;
