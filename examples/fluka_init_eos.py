@@ -17,6 +17,3 @@ xc.fluka.environment.compile(flukaio_path='/eos/project-c/collimation-team/softw
 
 # Import a FLUKA FEDB
 xc.fluka.environment.import_fedb(fedb_path='/eos/project/c/collimation-team/software/fedb_coupling', verbose=True, overwrite=False)
-
-# Delete any leftover generic assemblies and prototypes from previous runs
-xc.fluka.reset_generic()

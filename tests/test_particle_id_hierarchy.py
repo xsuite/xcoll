@@ -23,6 +23,12 @@ particle_ref = xt.Particles('proton', p0c=6.8e12)
 @pytest.mark.parametrize("engine", engine_params)
 @retry()
 def test_hierarchy(engine):
+    if engine == "fluka":
+        if xc.fluka.engine.is_running():
+            xc.fluka.engine.stop(clean=True)
+    elif engine == "geant4":
+        if xc.geant4.engine.is_running():
+            xc.geant4.engine.stop(clean=True)
     length = 1.2
     num_slices = 2000
     jaw = 0.001

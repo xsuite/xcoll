@@ -71,8 +71,13 @@ def test_elemental_material_creation():
     assert np.isclose(mat._atoms_per_volume, mat.atoms_per_volume)
     assert np.isclose(mat.num_effective_nucleons, 3.704356404188558)
     assert np.isclose(mat._num_nucleons_eff, mat.num_effective_nucleons)
-    assert deep_equal(mat.to_dict(), {'__class__': 'Material', 'name': 'TestMAT',
-                                                'A': 12.01, 'Z': 6, 'density': 2.265})
+    assert deep_equal(mat.to_dict(), {
+        '__class__': 'Material',
+        'name': 'TestMAT',
+        'A': 12.01,
+        'Z': 6,
+        'density': np.float64(2.265)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.265),
         '_ZA_mean': np.float64(0.4995836802664446),
@@ -94,7 +99,7 @@ def test_elemental_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    })
+    }, debug=True)
 
     # Remove Z
     mat.Z = None
@@ -402,9 +407,10 @@ def test_compound_material_creation():
         'components': [mdb['C'].to_dict(), mdb['H'].to_dict(), mdb['O'].to_dict()],
         'temperature': 293.15,
         'name': 'Ethanol',
-        'n_atoms': [2, 6, 1],
+        'n_atoms': np.array([2, 6, 1]),
         'state': 'liquid',
-        'density': 0.78945})
+        'density': np.float64(0.78945)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(0.78945),
         '_ZA_mean': np.float64(0.5643708350517702),
@@ -426,7 +432,7 @@ def test_compound_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    })
+    }, debug=True)
 
     # Remove density
     mat.density = None
@@ -616,10 +622,11 @@ def test_mixture_material_creation():
     assert deep_equal(mat.to_dict(), {'__class__': 'Material',
         'components': [mdb[nn].to_dict() for nn in ['H', 'C', 'O', 'Na', 'Mg', 'Al', 'Si', 'K', 'Ca', 'Fe']],
         'name': 'Concrete',
-        'mass_fractions': [0.01, 0.001, 0.529107, 0.016, 0.002, 0.033872,
-                            0.337021, 0.013, 0.044, 0.014],
+        'mass_fractions': np.array([0.01, 0.001, 0.529107, 0.016, 0.002, 0.033872,
+                                    0.337021, 0.013, 0.044, 0.014]),
         'state': 'solid',
-        'density': 2.35})
+        'density': np.float64(2.35)
+    }, debug=True)
     assert deep_equal(mat._xobject._to_dict(), {
         '_density': np.float64(2.35),
         '_ZA_mean': np.float64(0.5027459683349229),
@@ -641,7 +648,7 @@ def test_mixture_material_creation():
         '_crystal_potential': np.float64(-1.0),
         '_nuclear_collision_length': np.float64(-1.0),
         '_eta': np.float64(-1.0)
-    })
+    }, debug=True)
 
 
 def test_different_fractions():

@@ -38,8 +38,11 @@ class FlukaEnvironment(BaseEnvironment):
 
     @property
     def compiled(self):
-        so = list(self.data_dir.glob('pyflukaf.*so'))
-        return len(so) > 0
+        try:
+            from pyflukaf import track_fluka
+            return True
+        except (ModuleNotFoundError, ImportError) as error:
+            return False
 
     def compile(self, flukaio_lib=None, flukaio_path=None, verbose=False):
         # Check all dependencies

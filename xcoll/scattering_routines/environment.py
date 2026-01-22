@@ -358,3 +358,25 @@ class BaseEnvironment:
         if int(version.split('.')[0]) < minimum_version:
             self._gfortran_installed = False
             raise RuntimeError(f"Need gfortran {minimum_version} or higher, but found gfortran {version}!")
+
+    def whoami(self):
+        if not hasattr(self, '_whoami'):
+            # Get username
+            cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
+            if cmd.returncode == 0:
+                self._whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+            else:
+                self.stop()
+                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+                raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
+        return self._whoami
+
+    def running_processes(self):
+        # Get fluka processes for this user
+        cmd = run(["ps", "-u", self.whoami()], stdout=PIPE, stderr=PIPE)
+        if cmd.returncode == 0:
+            return cmd.stdout.decode('UTF-8').strip().split('\n')
+        else:
+            self.stop()
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")

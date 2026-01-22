@@ -175,21 +175,33 @@ class Geant4Engine(BaseEngine):
             tilt_R = 0.0 if el.tilt_R is None else el.tilt_R
             jaw_L -= 1.e-9  # Correct for 1e-9 shift that is added in BDSIM
             jaw_R += 1.e-9  # Correct for 1e-9 shift that is added in BDSIM
+            if jaw_L < jaw_R:
+                self.stop(clean=True)
+                raise ValueError(f"Geant4Collimator {el.name} has jaw_L < jaw_R: "
+                             + f"jaw_L={el.jaw_L}, jaw_R={el.jaw_R}!")
+            xOffset = 0
+            yOffset = 0
             if jaw_L <= 0:
-                self.stop(clean=True)
-                raise NotImplementedError(f"Geant4Collimator {el.name} has negative left jaw: "
-                               + f"jaw_L={el.jaw_L}! BDSIM cannot handle this.")
+                xOffset = (jaw_L + jaw_R)/2
+                jaw_L -= xOffset
+                jaw_R -= xOffset
+                xOffset_temp = xOffset*np.cos(np.deg2rad(el.angle_L)) - yOffset*np.sin(np.deg2rad(el.angle_L))
+                yOffset = xOffset*np.sin(np.deg2rad(el.angle_L)) + yOffset*np.cos(np.deg2rad(el.angle_L))
+                xOffset = xOffset_temp
             if jaw_R >= 0:
-                self.stop(clean=True)
-                raise NotImplementedError(f"Geant4Collimator {el.name} has positive right jaw: "
-                               + f"jaw_R={el.jaw_R}! BDSIM cannot handle this.")
+                xOffset = (jaw_L + jaw_R)/2
+                jaw_L -= xOffset
+                jaw_R -= xOffset
+                xOffset_temp = xOffset*np.cos(np.deg2rad(el.angle_R)) - yOffset*np.sin(np.deg2rad(el.angle_R))
+                yOffset = xOffset*np.sin(np.deg2rad(el.angle_R)) + yOffset*np.cos(np.deg2rad(el.angle_R))
+                xOffset = xOffset_temp
             tip_material = el.tip_material.geant4_name if isinstance(el, Geant4CollimatorTip) else ''
             tip_thickness = el.tip_thickness if isinstance(el, Geant4CollimatorTip) else 0
             self._g4link.addCollimator(f'{el.geant4_id}', el.material.geant4_name,
                                        tip_material, tip_thickness, el.length,
                                        apertureLeft=jaw_L, apertureRight=-jaw_R,
                                        rotation=np.deg2rad(el.angle),
-                                       xOffset=0, yOffset=0, side=side,
+                                       xOffset=xOffset, yOffset=yOffset, side=side,
                                        jawTiltLeft=tilt_L, jawTiltRight=tilt_R,
                                        isACrystal=isinstance(el, BaseCrystal))
         self._already_started = True

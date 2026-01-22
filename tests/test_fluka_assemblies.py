@@ -9,8 +9,8 @@ from pathlib import Path
 import xcoll as xc
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_registry_initialisation():
     xc.fluka.environment # Force initialization
     assert xc.FlukaPrototype._registry is xc.FlukaAssembly._registry
@@ -19,8 +19,8 @@ def test_registry_initialisation():
     assert len([pro for pro in xc.FlukaPrototype._registry if not isinstance(pro, xc.FlukaAssembly)]) >= 6
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_new_null():
     xc.fluka.environment # Force initialization
     new_pro = xc.FlukaPrototype()
@@ -31,8 +31,8 @@ def test_new_null():
     assert new_pro not in xc.FlukaPrototype._registry
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_new_prototype():
     xc.fluka.environment # Force initialization
     prototypes_before = xc.FlukaPrototype._registry.copy()
@@ -81,8 +81,8 @@ def test_new_prototype():
     new_pro.delete()
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_prototype_with_files():
     new_pro1 = xc.FlukaPrototype(fedb_series='test', fedb_tag='proto1')
     new_pro2 = xc.FlukaPrototype(fedb_series='test', fedb_tag='proto2')
@@ -173,8 +173,8 @@ def test_prototype_with_files():
     assert str(new_pro2) == "FlukaPrototype 'proto2': tag proto2 in test series <defunct>"
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_new_assembly():
     xc.fluka.environment # Force initialization
     assemblies_before = xc.FlukaAssembly._registry.copy()
@@ -220,8 +220,8 @@ def test_new_assembly():
     new_assm.delete(_ignore_files=True)
 
 
-@pytest.mark.fluka
 @pytest.mark.serial
+@pytest.mark.fluka
 def test_assembly_with_files():
     xc.fluka.environment # Force initialization
     # Create prototypes needed for the assembly

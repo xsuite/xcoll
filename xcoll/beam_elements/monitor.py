@@ -40,6 +40,7 @@ class EmittanceMonitorRecord(xo.Struct):
     zeta_pzeta_sum2  = xo.Float64[:]
     pzeta_pzeta_sum2 = xo.Float64[:]
 
+
 class EmittanceMonitor(xt.BeamElement):
     _xofields={
         'part_id_start':      xo.Int64,
@@ -133,6 +134,16 @@ class EmittanceMonitor(xt.BeamElement):
             self._cached = False
         if not hasattr(self, '_cached_modes'):
             self._cached_modes = False
+
+
+    def copy(self):
+        """Create a copy of the monitor including its data."""
+        line = self.line
+        del self._line    # Have to delete to avoid copying all line elements (including monitor itself)
+        new_monitor = super().copy()
+        self._line = line # Restore
+        new_monitor._line = line
+        return new_monitor
 
 
     @classmethod

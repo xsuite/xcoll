@@ -55,6 +55,7 @@ class FlukaEngine(BaseEngine):
         self._network_nfo = None
         self._server_process = None
         self._flukaio_connected = False
+        self._rfluka_warning_given = False
         kwargs.setdefault('_timeout_sec', 36000)
         kwargs.setdefault('_network_port', -1)
         kwargs.setdefault('_max_particle_id', -1)
@@ -176,6 +177,7 @@ class FlukaEngine(BaseEngine):
 
 
     def _stop_engine(self, **kwargs):
+        self._rfluka_warning_given = False
         self._stop_fortran()
         # If the Popen process is still running, terminate it
         if self._server_process is not None:
@@ -203,23 +205,8 @@ class FlukaEngine(BaseEngine):
         elif self._server_process.poll() is not None:
             self.stop()
             return False
-        # Get username (need a whoami for the next command)
-        cmd = run(["whoami"], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
-            whoami = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
-        else:
-            self.stop()
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise RuntimeError(f"Could not find username! Error given is:\n{stderr}")
-        # Get fluka processes for this user
-        cmd = run(["ps", "-u", whoami], stdout=PIPE, stderr=PIPE)
-        if cmd.returncode == 0:
-            processes = cmd.stdout.decode('UTF-8').strip().split('\n')
-        else:
-            self.stop()
-            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            raise RuntimeError(f"Could not list running processes! Error given is:\n{stderr}")
-        processes = [proc for proc in processes if 'rfluka' in proc and 'defunct' not in proc]
+        processes = [proc for proc in self.environment.running_processes()
+                     if 'rfluka' in proc and 'defunct' not in proc]
         if len(processes) == 0:
             # Could not find a running rfluka
             self.stop()
@@ -227,7 +214,9 @@ class FlukaEngine(BaseEngine):
         elif len(processes) == 1 and str(self.server_pid) in processes[0]:
             return True
         elif np.any([str(self.server_pid) in proc for proc in processes]):
-            self._print("Warning: Found other instances of rfluka besides the current one!")
+            if not self._rfluka_warning_given:
+                self._print("Warning: Found other instances of rfluka besides the current one!")
+                self._rfluka_warning_given = True
             return True
         else:
             self._print("Warning: Found other instances of rfluka but not the current one!")
