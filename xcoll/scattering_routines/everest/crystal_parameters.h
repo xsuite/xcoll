@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/everest/everest.h>
 
 
 /*gpufun*/

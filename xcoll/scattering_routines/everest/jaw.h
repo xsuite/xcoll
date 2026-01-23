@@ -8,11 +8,11 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
-// #include <xcoll/scattering_routines/everest/ionisation_loss.h>
-// #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/ionisation_loss.h>
+#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
+#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
 
 
 /*gpufun*/

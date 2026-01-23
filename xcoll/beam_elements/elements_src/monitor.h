@@ -10,8 +10,8 @@
 #define C_LIGHT 299792458.0
 #endif
 
-// #include <headers/track.h>
-// #include <headers/atomicadd.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/atomicadd.h>
 
 
 /*gpufun*/
@@ -61,8 +61,7 @@ void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, Loca
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
 
             if (slot >= 0 && slot < max_slot){
-                // GPUGLMEM int64_t *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);  // TODO: once atomicadd in Xtrack is updated
-                GPUGLMEM double *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1.);
+                GPUGLMEM int64_t *count = ParticleStatsMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
 
                 // Read coordinates only if needed
                 if (monitor_x){ x = LocalParticle_get_x(part); }

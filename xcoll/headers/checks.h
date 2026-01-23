@@ -6,11 +6,11 @@
 #ifndef XCOLL_CHECKS_H
 #define XCOLL_CHECKS_H
 
-// #include <headers/track.h>
-// #include <headers/checks.h>
-// #include <headers/particle_states.h>
-// #include <random/random_src/rutherford.h>
-// #include <xcoll/headers/particle_states.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/headers/particle_states.h>
+#include <xtrack/random/random_src/rutherford.h>
+#include <xcoll/headers/particle_states.h>
 
 // This is a quick macro to use inside a function body on a parameter that is not
 // used inside the function (this avoids throwing warnings at compilation time).

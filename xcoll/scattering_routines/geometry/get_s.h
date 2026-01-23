@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/methods.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/geometry/methods.h>
 
 // IMPORTANT:
 // These functions assume that the particle moves towards positive s!

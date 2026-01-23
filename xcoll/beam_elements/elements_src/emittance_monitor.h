@@ -6,7 +6,7 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
-// #include <headers/track.h>
+#include <xtrack/headers/track.h>
 
 
 /*gpufun*/

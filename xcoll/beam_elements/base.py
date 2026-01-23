@@ -158,12 +158,24 @@ class BaseCollimator(BaseBlock):
         '_side':          xo.Int8,
     }
 
+    isthick = True
+    needs_rng = False
+    allow_track = False
     allow_double_sided = True
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
     _noexpr_fields     = BaseBlock._noexpr_fields | {'align', 'side'}
     _skip_in_to_dict   = BaseBlock._skip_in_to_dict + \
                          [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict  = BaseBlock._store_in_to_dict + \
                          ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+
+    _depends_on = [BaseBlock]
+
+    _internal_record_class = BaseBlock._internal_record_class
 
 
     # This is an abstract class and cannot be instantiated
@@ -1063,12 +1075,25 @@ class BaseCrystal(BaseBlock):
         # 'thick':              xo.Float64
     }
 
+    isthick = True
+    needs_rng = False
+    allow_track = False
+    allow_double_sided = False
+    behaves_like_drift = True
+    allow_rot_and_shift = False
+    allow_loss_refinement = True
+    skip_in_loss_location_refinement = True
+
     _noexpr_fields    = BaseBlock._noexpr_fields | {'align', 'side'}
     _skip_in_to_dict  = BaseBlock._skip_in_to_dict + \
                         [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = BaseBlock._store_in_to_dict + \
                         ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
                          'width', 'height', 'bending_radius', 'bending_angle']
+
+    _depends_on = [BaseCollimator]
+
+    _internal_record_class = BaseBlock._internal_record_class
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):

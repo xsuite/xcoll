@@ -8,10 +8,10 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/headers/particle_states.h>
-// #include <xcoll/scattering_routines/geometry/get_s.h>
-// #include <xcoll/scattering_routines/geometry/rotation.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/headers/particle_states.h>
+#include <xcoll/scattering_routines/geometry/get_s.h>
+#include <xcoll/scattering_routines/geometry/rotation.h>
 
 
 typedef struct CrystalGeometry_ {

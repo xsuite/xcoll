@@ -9,15 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/headers/particle_states.h>
-// #include <xcoll/scattering_routines/everest/everest.h>
-// #include <xcoll/scattering_routines/everest/constants.h>
-// #include <xcoll/scattering_routines/everest/ionisation_loss.h>
-// #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
-// #include <xcoll/scattering_routines/everest/crystal_parameters.h>
-// #include <xcoll/scattering_routines/everest/amorphous.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/headers/particle_states.h>
+#include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/constants.h>
+#include <xcoll/scattering_routines/everest/ionisation_loss.h>
+#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
+#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+#include <xcoll/scattering_routines/everest/crystal_parameters.h>
+#include <xcoll/scattering_routines/everest/amorphous.h>
 
 
 // Convention:

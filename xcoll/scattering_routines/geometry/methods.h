@@ -12,8 +12,8 @@
 
 #define S_MAX 1.e21
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/objects.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/geometry/objects.h>
 
 
 /*gpufun*/

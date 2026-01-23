@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/sort.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/geometry/sort.h>
 
 // These functions compare a particle trajectory (straight line with slope part_tan going
 // through the point [0, part_x]) with a given segment of specific type.

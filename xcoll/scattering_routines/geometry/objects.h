@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// #include <headers/track.h>
-// #include <xcoll/scattering_routines/geometry/segments.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/scattering_routines/geometry/segments.h>
 
 // Assumption for all objects: the particle at -inf is outside the object (otherwise some comparisons might give wrong results)
 

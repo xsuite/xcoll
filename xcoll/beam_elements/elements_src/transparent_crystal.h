@@ -6,9 +6,9 @@
 #ifndef XCOLL_TRANSPAREN_CRY_H
 #define XCOLL_TRANSPAREN_CRY_H
 
-// #include <headers/track.h>
-// #include <headers/checks.h>
-// #include <xcoll/headers/particle_states.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xcoll/headers/particle_states.h>
 
 
 /*gpufun*/

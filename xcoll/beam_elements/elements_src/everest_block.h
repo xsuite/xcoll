@@ -8,9 +8,9 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <headers/track.h>
-// #include <xcoll/headers/checks.h>
-// #include <xcoll/headers/particle_states.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/headers/checks.h>
+#include <xcoll/headers/particle_states.h>
 
 
 /*gpufun*/

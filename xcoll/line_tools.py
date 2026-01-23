@@ -8,12 +8,8 @@ from warnings import warn
 
 import xtrack as xt
 
-<<<<<<< HEAD
 from .accessors import XcollAccessor
-from .beam_elements import element_classes, collimator_classes, block_classes
-=======
 from .beam_elements import element_classes, collimator_classes, block_classes, crystal_classes
->>>>>>> main
 
 
 class XcollScatteringAPI(XcollAccessor):

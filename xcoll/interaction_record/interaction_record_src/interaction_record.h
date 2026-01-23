@@ -7,8 +7,8 @@
 #ifndef XCOLL_IMPACTS_H
 #define XCOLL_IMPACTS_H
 
-// #include <headers/track.h>
-// #include <xcoll/interaction_record/interaction_record_src/interaction_types.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/interaction_record/interaction_record_src/interaction_types.h>
 
 
 // TODO: do we need to pass RecordIndex?

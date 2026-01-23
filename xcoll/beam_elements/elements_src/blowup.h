@@ -6,8 +6,8 @@
 #ifndef XCOLL_BLOWUP_H
 #define XCOLL_BLOWUP_H
 
-// #include <headers/track.h>
-// #include <xcoll/headers/particle_states.h>
+#include <xtrack/headers/track.h>
+#include <xcoll/headers/particle_states.h>
 
 
 /*gpufun*/
