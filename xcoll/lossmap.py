@@ -333,6 +333,20 @@ class LossMap:
     # === Methods === #
     # =============== #
 
+    def update_metadata(self, metadata):
+        if not isinstance(metadata, dict):
+            raise ValueError("metadata must be a dictionary.")
+        for kk, vv in metadata.items():
+            if kk == 'cold_regions':
+                self.cold_regions = vv
+            elif kk == 'warm_regions':
+                self.warm_regions = vv
+            elif kk == 's_range':
+                self.s_range = vv
+            else:
+                raise ValueError(f"Unknown metadata key '{kk}'.")
+
+
     def plot(self, **kwargs):
         cold_regions = self._cold_regions
         warm_regions = self._warm_regions
