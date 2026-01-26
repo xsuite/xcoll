@@ -95,7 +95,8 @@ class CollimatorDatabase:
         crystals = []
         for thiscoll, settings in coll.items():
             settings = {k.lower(): v for k,v in settings.items()}
-            if 'family' in settings.keys() and settings['family'] is not None:
+            if 'family' in settings.keys() and settings['family'] is not None \
+            and isinstance(settings['family'], str):
                 settings['family'] = settings['family'].lower()
                 thisfam = settings['family']
                 if thisfam not in fam.keys():
