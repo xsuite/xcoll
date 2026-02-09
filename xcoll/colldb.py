@@ -517,23 +517,18 @@ class CollimatorDatabase:
         line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
-    def install_fluka_collimators(self, line, *, names=None, families=None, verbose=False, need_apertures=True,
-                                  fluka_input_file=None, remove_missing=True):
+    def install_fluka_collimators(self, line, *, names=None, families=None, apertures=None,
+                                need_apertures=True, s_tol=1e-6, verbose=False):
         import xcoll as xc
         if xc.fluka.engine.is_running():
             print("Warning: FlukaEngine is already running. Stopping it to install collimators.")
             xc.fluka.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = self[name]['material']
-            if mat and mat.lower() == 'c':
-                mat = 'CFC'
-                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
-                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
             crystal_assembly = False
             extra_kwargs = {}
             if 'assembly' in self[name] and self[name]['assembly']:
-                self[name].pop('material', None)
+                mat = self[name].pop('material', None)
                 self[name].pop('side', None)
                 self[name].pop('bending_radius', None)
                 self[name].pop('bending_angle', None)
@@ -546,13 +541,18 @@ class CollimatorDatabase:
                                    + f"'{self[name]['assembly']}'.")
                 crystal_assembly = pro.is_crystal
             else:
-                for kwarg in ['assembly', 'material', 'side', 'bending_radius', 'bending_angle']:
+                for kwarg in ['assembly', 'side', 'bending_radius', 'bending_angle']:
                     if self[name].get(kwarg):
                         extra_kwargs[kwarg] = self[name][kwarg]
+            mat = self[name].get('material')
+            if mat and mat.lower() == 'c':
+                mat = 'CFC'
+                warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
+                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']) \
             or crystal_assembly:
-                self._create_collimator(FlukaCrystal, line, name, verbose=verbose, **extra_kwargs)
+                self._create_collimator(FlukaCrystal, line, name, material=mat, verbose=verbose, **extra_kwargs)
             else:
                 self._create_collimator(FlukaCollimator, line, name, material=mat, verbose=verbose, **extra_kwargs)
         elements = [self._elements[name] for name in names]
@@ -566,7 +566,7 @@ class CollimatorDatabase:
             xc.geant4.engine.stop()
         names = self._get_names_from_line(line, names, families)
         for name in names:
-            mat = self[name]['material']
+            mat = self[name].get('material')
             if mat and mat.lower() == 'c':
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
