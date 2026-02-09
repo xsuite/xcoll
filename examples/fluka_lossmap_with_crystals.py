@@ -94,8 +94,10 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu())
 
 # Save loss map to json
+lm_time = time.time()
 line_is_reversed = True if f'{beam}' == '2' else False
 ThisLM = xc.LossMap(line, line_is_reversed=line_is_reversed, part=part)
+print(f"Loss map created in {time.time()-lm_time:.1f}s.")
 ThisLM.to_json(file=path_out / 'results' / f'lossmap_fluka_crystals_B{beam}{plane}.json')
 
 # Save a summary of the collimator losses to a text file
