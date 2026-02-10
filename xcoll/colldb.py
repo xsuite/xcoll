@@ -200,7 +200,11 @@ class CollimatorDatabase:
                     raise ValueError(f"Error in {coll}: Cannot use merging for families "
                                     + "and manually specify family as well!")
                 elif len(full_coll.merge) > 0:
-                    coll['family'] = full_coll.merge[0][1].anchor.value.lower()
+                    try:
+                        coll['family'] = full_coll.merge[0][1].anchor.value.lower()
+                    except KeyError:
+                        # Newer ruamel
+                        coll['family'] = full_coll.merge[0].anchor.value.lower()
                     # Check if some family settings are overwritten for this collimator
                     overwritten_keys = [key.lower() for key in full_coll.keys()
                                         if full_coll._unmerged_contains(key)
