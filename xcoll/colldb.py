@@ -308,9 +308,13 @@ class CollimatorDatabase:
         names = ['name', 'gap', 'material', 'length', 'angle', 'offset']
 
         df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
+        df['gap'] = df['gap'].astype('object')
+        df['material'] = df['material'].astype('object')
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
+        df['family'] = df['family'].astype('object')
         df.insert(5,'stage', df['gap'].apply(lambda s: None if s in family_types else 'UNKNOWN'))
+        df['stage'] = df['stage'].astype('object')
 
         df['gap'] = df['gap'].apply(lambda s: None if not isinstance(s, str) and s > 900 else s)
         df['gap'] = df['gap'].apply(lambda s: None if isinstance(s, str) else s)
@@ -334,6 +338,7 @@ class CollimatorDatabase:
         df['side'] = ['both'  if s==0 else s for s in df['side']]
         df['side'] = ['left'  if s==1 else s for s in df['side']]
         df['side'] = ['right' if s==2 else s for s in df['side']]
+        df['side'] = df['side'].astype('object')
         if not np.allclose(np.unique(df.offset.values), 0):
             print("Warning: Keyword 'offset' is currently not supported in xcoll! Ignoring.")
         df = df.drop('offset', axis=1)
