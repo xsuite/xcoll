@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2025.                 #
+// Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 #ifndef XCOLL_EMITTANCE_MONITOR_H
