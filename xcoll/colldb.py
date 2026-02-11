@@ -10,12 +10,24 @@ import warnings
 import numpy as np
 import pandas as pd
 from pathlib import Path
+try:
+    from ruamel.yaml import YAML
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
+    yaml_found = True
+except (ImportError, ModuleNotFoundError):
+    yaml_found = False
+
 
 import xtrack as xt
 
 from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
                             FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
 
+
+def check_yaml_available():
+    if not yaml_found:
+        raise ImportError("The ruamel.yaml package is required for this "
+                          "functionality.")
 
 def _initialise_None(dct):
     fields = {'gap': None, 'angle': 0, 'offset': 0, 'parking': 1, 'jaw': None, 'family': None}
@@ -30,12 +42,37 @@ def _initialise_None(dct):
         if key not in fields.keys():
             raise ValueError(f"Illegal setting {key} in collimator!")
 
-
 def _dict_keys_to_lower(dct):
     if isinstance(dct, dict):
         return {k.lower(): _dict_keys_to_lower(v) for k,v in dct.items()}
     else:
         return dct
+
+def _yaml_explicitly_present(cm, key) -> bool:
+    """
+    Return True if `key` appears explicitly in `cm` (not only via YAML merge).
+
+    Uses ruamel's private _unmerged_contains() when present.
+    Otherwise falls back to comparing line numbers (works well when anchors
+    are defined earlier in the file, as in your example).
+    """
+    # Best: ruamel's own logic (older versions, and some newer ones)
+    fn = getattr(cm, "_unmerged_contains", None)
+    if callable(fn):
+        return fn(key)
+
+    # Fallback: use line/col bookkeeping
+    try:
+        # key location in source
+        key_line = cm.lc.data[key][0]  # (line, col)
+        map_line = cm.lc.line          # start line of this mapping
+    except Exception:
+        # If we can't determine, be conservative: assume not explicit
+        return False
+
+    # Heuristic: explicit keys are located at/after the mapping start line
+    return key_line >= map_line
+
 
 # TODO: need better handling of beam argument (not hardcoded 'b1' and 'b2' strings)
 def _get_coll_dct_by_beam(coll, beam):
@@ -145,18 +182,21 @@ class CollimatorDatabase:
         self._collimator_dict = coll
         self._family_dict = fam
 
+
     # =======================================
     # ====== Loading/dumping functions ======
     # =======================================
 
     @classmethod
     def from_yaml(cls, file, **kwargs):
-        # Only do the import here, as to not force people to install
-        # ruamel if they don't load CollimatorDatabase yaml's
-        from ruamel.yaml import YAML
+        check_yaml_available()
         yaml = YAML(typ='safe')
         if isinstance(file, io.IOBase):
             dct = yaml.load(file)
+            try:
+                file.seek(0)
+            except Exception:
+                pass
         else:
             file = Path(file).resolve()
             with file.open('r') as fid:
@@ -173,6 +213,10 @@ class CollimatorDatabase:
             yaml = YAML()
             if isinstance(file, io.IOBase):
                 full_dct = yaml.load(file)
+                try:
+                    file.seek(0)
+                except Exception:
+                    pass
             else:
                 with open(file, 'r') as fid:
                     full_dct = yaml.load(fid)
@@ -206,21 +250,26 @@ class CollimatorDatabase:
                         # Newer ruamel
                         coll['family'] = full_coll.merge[0].anchor.value.lower()
                     # Check if some family settings are overwritten for this collimator
-                    overwritten_keys = [key.lower() for key in full_coll.keys()
-                                        if full_coll._unmerged_contains(key)
-                                        and key.lower() in families[coll['family']].keys()]
-                    if len(overwritten_keys) > 0:
-                        coll['overwritten_keys'] = overwritten_keys
+                    overwritten_keys = [
+                        str(key).lower()
+                        for key in full_coll.keys()
+                        if _yaml_explicitly_present(full_coll, key)
+                        and str(key).lower() in families[coll["family"]].keys()
+                    ]
+                    if overwritten_keys:
+                        coll["overwritten_keys"] = overwritten_keys
                 else:
                     coll['family'] = None
-
         return cls.from_dict(dct, _yaml_merged=_yaml_merged, **kwargs)
-
 
     @classmethod
     def from_json(cls, file, **kwargs):
         if isinstance(file, io.IOBase):
             dct = json.load(file)
+            try:
+                file.seek(0)
+            except Exception:
+                pass
         else:
             file = Path(file).resolve()
             with file.open('r') as fid:
@@ -264,7 +313,6 @@ class CollimatorDatabase:
 
         return cls(collimator_dict=coll, family_dict=fam, nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    beam=beam, _yaml_merged=_yaml_merged, ignore_crystals=ignore_crystals)
-
 
     @classmethod
     def from_SixTrack(cls, file, ignore_crystals=True, **kwargs):
@@ -369,7 +417,6 @@ class CollimatorDatabase:
     def to_pandas(self):
         return pd.DataFrame(self._collimator_dict).transpose()
 
-
     def to_dict(self):
         default_values = {}
         _initialise_None(default_values)
@@ -393,10 +440,13 @@ class CollimatorDatabase:
             'collimators': colls
         }
 
-
     def to_json(self, file, **kwargs):
         if isinstance(file, io.IOBase):
             json.dump(self.to_dict(), file, **kwargs)
+            try:
+                file.seek(0)
+            except Exception:
+                pass
         else:
             file = Path(file).resolve()
             if file.suffix != '.json':
@@ -404,22 +454,106 @@ class CollimatorDatabase:
             with file.open('w') as fid:
                 json.dump(self.to_dict(), fid, indent=4, **kwargs)
 
-
     def to_yaml(self, file, **kwargs):
-        # Only do the import here, as to not force people to install
-        # ruamel if they don't load CollimatorDatabase yaml's
-        from ruamel.yaml import YAML
-        yaml = YAML() # Cannot be typ='safe' because we need to keep the ordering
-        yaml.default_flow_style = False  # More readable format
+        check_yaml_available()
+        data = self.to_dict(**kwargs)
+
+        families = data.get("families", {}) or {}
+        colls = data.get("collimators", {}) or {}
+
+        # ---- Build ALL (optional; here only parking if common) ----
+        all_dict = None
+        if families and all("parking" in f for f in families.values()):
+            pvals = {f["parking"] for f in families.values()}
+            if len(pvals) == 1:
+                all_dict = {"parking": next(iter(pvals))}
+
+        all_node = None
+        if all_dict is not None:
+            all_node = _flow(_anchor(_cm(all_dict), "ALL"))
+
+        # ---- Build Families list with anchors ----
+        fam_seq = _cs()
+        fam_nodes = {}  # family_name_lower -> anchored CommentedMap
+
+        for fam_name, fam_vals in families.items():
+            fam_name_l = str(fam_name).lower()
+            fam_anchor = fam_name_l.upper()
+
+            fam_map = _cm()
+            if all_node is not None:
+                fam_map["<<"] = all_node
+                for k, v in fam_vals.items():
+                    if k in all_dict and all_dict[k] == v:
+                        continue
+                    fam_map[k] = v
+            else:
+                fam_map.update(fam_vals)
+
+            _flow(fam_map)
+            _anchor(fam_map, fam_anchor)
+
+            fam_seq.append(fam_map)
+            fam_nodes[fam_name_l] = fam_map
+
+        # ---- Build flat collimators mapping ----
+        colls_out = _cm()
+
+        for coll_name, coll_vals in colls.items():
+            fam = str(coll_vals.get("family", "")).lower().strip() or None
+
+            node = _cm()
+            if fam and fam in fam_nodes:
+                node["<<"] = fam_nodes[fam]
+
+                fam_keys = set(families[fam].keys())
+                # “overwritten” = keys explicitly present in collimator that also exist in family
+                # plus any extra per-coll keys not in family
+                for k, v in coll_vals.items():
+                    if k == "family":
+                        continue
+                    node[k] = v
+            else:
+                # no family or unknown family -> just dump explicit keys except family
+                for k, v in coll_vals.items():
+                    if k != "family":
+                        node[k] = v
+
+            _flow(node)
+            colls_out[str(coll_name)] = node
+
+        # ---- Assemble top-level document ----
+        doc = _cm()
+        if all_node is not None:
+            doc["All"] = _cs([all_node])
+        doc["families"] = fam_seq
+
+        # keep other top-level keys (e.g. emittance) in original order
+        for k, v in data.items():
+            if k in ("families", "collimators"):
+                continue
+            doc[k] = v
+
+        doc["collimators"] = colls_out
+
+        # ---- Dump ----
+        yaml = YAML()
+        yaml.default_flow_style = False
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        yaml.sort_base_mapping_type_on_output = False
 
         if isinstance(file, io.IOBase):
-            yaml.dump(self.to_dict(), file, **kwargs)
+            yaml.dump(doc, file)
+            try:
+                file.seek(0)
+            except Exception:
+                pass
         else:
             file = Path(file).resolve()
-            if file.suffix != '.yaml':
-                file = file.with_suffix('.yaml')
-            with file.open('w') as fid:
-                yaml.dump(self.to_dict(), fid, **kwargs)
+            if file.suffix != ".yaml":
+                file = file.with_suffix(".yaml")
+            with file.open("w") as fid:
+                yaml.dump(doc, fid)
 
 
     # ====================================
@@ -652,3 +786,26 @@ class CollimatorDatabase:
         else:
             raise ValueError(f"Family nor collimator `{name}` found in CollimatorDatabase!")
 
+
+def _cm(d=None):
+    cm = CommentedMap()
+    if d:
+        cm.update(d)
+    return cm
+
+
+def _cs(items=None):
+    cs = CommentedSeq()
+    if items:
+        cs.extend(items)
+    return cs
+
+
+def _anchor(node, name: str):
+    node.yaml_set_anchor(name, always_dump=True)
+    return node
+
+
+def _flow(node):
+    node.fa.set_flow_style()  # emit as { ... }
+    return node
