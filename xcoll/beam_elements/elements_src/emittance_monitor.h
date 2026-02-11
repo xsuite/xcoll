@@ -12,7 +12,6 @@
 
 /*gpufun*/
 void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticle* part0){
-    EmittanceMonitorData_set__cached(el, 0);
     int64_t const start_at_turn = EmittanceMonitorData_get_start_at_turn(el);
     int64_t const part_id_start = EmittanceMonitorData_get_part_id_start(el);
     int64_t const part_id_end   = EmittanceMonitorData_get_part_id_end(el);
@@ -50,6 +49,8 @@ void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticl
 
             if (slot >= 0 && slot < max_slot){
                 /*gpuglmem*/ double *count = EmittanceMonitorRecord_getp1_count(record, slot); atomicAdd(count, 1);
+                EmittanceMonitorRecord_set_cached(record, slot, 0);
+                EmittanceMonitorRecord_set_cached_modes(record, slot, 0);
 
                 if (monitor_horizontal){
                     x  = LocalParticle_get_x(part);

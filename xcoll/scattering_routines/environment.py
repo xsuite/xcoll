@@ -279,13 +279,14 @@ class BaseEnvironment:
     def assert_environment_ready(self):
         if not self.initialised:
             raise RuntimeError(f"{self.__class__.__name__} not initialised! "
-                             + f"Please set all paths in the environment before "
-                             + f"starting the engine.")
+                            f"Please set all paths in the environment before "
+                            f"starting the engine.")
         if not self.compiled:
             raise RuntimeError(f"{self.__class__.__name__} not compiled! "
-                             + f"Please compile before starting the engine.")
+                            f"Please compile before starting the engine.")
 
-    def assert_installed(self, program, *, program_name=None, version_cmd="--version", verbose=False):
+    def assert_installed(self, program, *, program_name=None,
+                         version_cmd="--version", verbose=False):
         if program_name is None:
             program_name = program
         if not hasattr(self, f'_{program}_installed'):
@@ -296,14 +297,16 @@ class BaseEnvironment:
                 new_err.__cause__ = err
                 setattr(self, f'_{program}_installed', [new_err, None])
             else:
+                stdout = cmd.stdout.decode('UTF-8').strip()
                 if cmd.returncode != 0:
                     stderr = cmd.stderr.decode('UTF-8').strip()
-                    err = RuntimeError(f"Could not run `which {program}` (output "
-                                    f"error code {cmd.returncode})!\nError given is:\n"
-                                    f"{stderr}")
+                    err = RuntimeError(f"Could not run `which {program}` ("
+                                    f"output error code {cmd.returncode})!\n"
+                                    f"Output given is:\n{stdout}\nError given "
+                                    f"is:\n{stderr}")
                     setattr(self, f'_{program}_installed', [err, None])
                 else:
-                    file = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                    file = stdout.split('\n')[0]
                     try:
                         cmd = run([program, version_cmd], stdout=PIPE, stderr=PIPE)
                     except Exception as err:
@@ -311,14 +314,16 @@ class BaseEnvironment:
                         new_err.__cause__ = err
                         setattr(self, f'_{program}_installed', [file, new_err])
                     else:
+                        stdout = cmd.stdout.decode('UTF-8').strip()
                         if cmd.returncode != 0:
                             stderr = cmd.stderr.decode('UTF-8').strip()
-                            err = RuntimeError(f"Could not run `{program} {version_cmd}` "
-                                            f"(output error code {cmd.returncode})!\nError "
-                                            f"given is:\n{stderr}")
+                            err = RuntimeError(f"Could not run `{program} "
+                                    f"{version_cmd}` (output error code "
+                                    f"{cmd.returncode})!\nOutput given is:\n"
+                                    f"{stdout}\nError given is:\n{stderr}")
                             setattr(self, f'_{program}_installed', [file, err])
                         else:
-                            version = cmd.stdout.decode('UTF-8').strip().split('\n')[0]
+                            version = stdout.split('\n')[0]
                             setattr(self, f'_{program}_installed', [file, version])
         file, version = getattr(self, f'_{program}_installed')
         if isinstance(file, Exception):
