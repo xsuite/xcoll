@@ -346,20 +346,30 @@ class EmittanceMonitor(xt.BeamElement):
                     attr_name = f'_{x1}_{x2}_var'
                     arr = getattr(self, attr_name, None)
                     if arr is None:
-                        arr = np.full(self.count.shape, np.nan, dtype=float)
+                        arr = np.full(self.count.shape, -1, dtype=float)
                         setattr(self, attr_name, arr)
                     arr[mask] = variance
+
+        # Set calculated values as cached
         for i in np.arange(len(self.count))[mask]:
             self.data.cached[i] = 1
             self.data.cached_modes[i] = 0
 
-        # Calculate emittances
-        gemitt_x = np.sqrt(self.x_x_var * self.px_px_var - self.x_px_var**2)
-        gemitt_y = np.sqrt(self.y_y_var * self.py_py_var - self.y_py_var**2)
-        gemitt_zeta = np.sqrt(self.zeta_zeta_var * self.pzeta_pzeta_var - self.zeta_pzeta_var**2)
-        setattr(self, '_gemitt_x', gemitt_x)
-        setattr(self, '_gemitt_y', gemitt_y)
-        setattr(self, '_gemitt_zeta', gemitt_zeta)
+        # Store calculated emittances in attributes (create if needed):
+        gemitt_x = np.sqrt(self.x_x_var[mask] * self.px_px_var[mask]
+                           - self.x_px_var[mask]**2)
+        gemitt_y = np.sqrt(self.y_y_var[mask] * self.py_py_var[mask]
+                           - self.y_py_var[mask]**2)
+        gemitt_zeta = np.sqrt(self.zeta_zeta_var[mask]
+                              * self.pzeta_pzeta_var[mask]
+                              - self.zeta_pzeta_var[mask]**2)
+        for nn, val in zip(['gemitt_x', 'gemitt_y', 'gemitt_zeta'],
+                           [gemitt_x, gemitt_y, gemitt_zeta]):
+            arr = getattr(self, f'_{nn}', None)
+            if arr is None:
+                arr = np.full(self.count.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+            arr[mask] = np.array(val)
 
 
     def _calculate_modes(self):
@@ -456,11 +466,18 @@ class EmittanceMonitor(xt.BeamElement):
             gemitt_II.append(eigenvalues[1].imag)
             gemitt_III.append(eigenvalues[2].imag)
 
-        setattr(self, '_gemitt_I',   np.array(gemitt_I))
-        setattr(self, '_gemitt_II',  np.array(gemitt_II))
-        setattr(self, '_gemitt_III', np.array(gemitt_III))
+        # Set calculated modes as cached
         for i in np.arange(len(self.count))[mask]:
             self.data.cached_modes[i] = 1
+
+        # Store calculated modes in attributes (create if needed):
+        for nn, val in zip(['gemitt_I', 'gemitt_II', 'gemitt_III'],
+                           [gemitt_I, gemitt_II, gemitt_III]):
+            arr = getattr(self, f'_{nn}', None)
+            if arr is None:
+                arr = np.full(self.count.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+            arr[mask] = np.array(val)
 
 
     def __getattr__(self, attr):
