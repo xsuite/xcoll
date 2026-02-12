@@ -346,7 +346,7 @@ class EmittanceMonitor(xt.BeamElement):
                     attr_name = f'_{x1}_{x2}_var'
                     arr = getattr(self, attr_name, None)
                     if arr is None:
-                        arr = np.full(self.count.shape, np.nan, dtype=float)
+                        arr = np.full(self.count.shape, -1, dtype=float)
                         setattr(self, attr_name, arr)
                     arr[mask] = variance
         for i in np.arange(len(self.count))[mask]:
@@ -456,9 +456,13 @@ class EmittanceMonitor(xt.BeamElement):
             gemitt_II.append(eigenvalues[1].imag)
             gemitt_III.append(eigenvalues[2].imag)
 
-        setattr(self, '_gemitt_I',   np.array(gemitt_I))
-        setattr(self, '_gemitt_II',  np.array(gemitt_II))
-        setattr(self, '_gemitt_III', np.array(gemitt_III))
+        for nn, val in zip(['gemitt_I', 'gemitt_II', 'gemitt_III'],
+                           [gemitt_I, gemitt_II, gemitt_III]):
+            arr = getattr(self, f'_{nn}', None)
+            if arr is None:
+                arr = np.full(self.count.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+            arr[mask] = np.array(val)
         for i in np.arange(len(self.count))[mask]:
             self.data.cached_modes[i] = 1
 
