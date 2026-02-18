@@ -41,115 +41,6 @@ double eval_spline(const Spline* spline, size_t n, double* sqrt_s) {
     return 1e21; // should never reach here
 }
 
-
-// =======================================================
-// ====== Nuclear interaction length and cross sections ======
-// =======================================================
-void _get_R(double* A, double* R) {
-    if (*A > 21) {
-        *R = 1.1*pow(*A, 1.0/3.0)*1e-15 * 0.9; // [m], 0.8 < f(A) < 1.0
-    } else {
-        *R = 1.1*pow(*A, 1.0/3.0)*1e-15 * 1.05; // [m], 1.0 < f(A) < 1.1
-    }
-}
-
-/*gpufun*/
-void get_interaction_length(MaterialData restrict material, double* sqrt_s, double* lambda, double cs_type){
-    double N_A = 6.02214076e23;  // Avogadro's number
-    double A = MaterialData_get__atomic_mass(material);
-    double molar_mass = MaterialData_get__molar_mass(material);
-    double rho = MaterialData_get__density(material);
-    double R;
-
-    if (A < 4) {
-        // Semi-supported material
-        if (cs_type == 1){ // get total cs 
-            double cs_tot_A;
-            _calculate_total_cross_section(material, &cs_tot_A, &A, sqrt_s);
-            *lambda = (molar_mass*A)/(N_A*rho*cs_tot_A);
-
-        } else if (cs_type == 2){ // get elastic cs
-            double cs_el_A;
-            _calculate_elastic_cross_section(material, &cs_el_A, &A, sqrt_s);
-            *lambda = (molar_mass*A)/(N_A*rho*cs_el_A);
-
-        } else if (cs_type == 3){ // get inelastic cs
-            double cs_inel_A;
-            _calculate_inelastic_cross_section(material, &cs_inel_A, &A, sqrt_s);
-            *lambda = (molar_mass*A)/(N_A*rho*cs_inel_A);
-
-        } else if (cs_type == 4){ // get single diffractive cs
-            double cs_sd_A;
-            _calculate_single_diff_cross_section(material, &cs_sd_A, &A, sqrt_s);
-            *lambda = (molar_mass*A)/(N_A*rho*cs_sd_A);
-
-        } else {
-            // Unsupported cs type 
-            *lambda = 1e21; // effectively infinite interaction length
-        }
-    } else {
-         if (cs_type == 1){ 
-            // Total 
-            double cs_tot_hA, cs_tot_hN;
-            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
-            _get_R(&A, &R);
-            cs_tot_hA = 2*M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(2*M_PI*pow(R,2))); // Glauber-Gribov approximation
-            *lambda = (molar_mass)/(N_A*rho*cs_tot_hA);
-
-        } else if (cs_type == 2){ 
-            // Inelastic
-            double cs_inel_hA, cs_tot_hN;
-            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
-            _get_R(&A, &R);
-            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            *lambda = (molar_mass)/(N_A*rho*cs_inel_hA);
-
-        } else if (cs_type == 3){ 
-            // Elastic: Total - Inelastic
-            double cs_inel_hA;
-            double cs_tot_hA, cs_tot_hN;
-            double cs_el_hA;
-            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
-            _get_R(&A, &R);
-            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            cs_tot_hA = 2*M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(2*M_PI*pow(R,2))); // Glauber-Gribov approximation
-            cs_el_hA = cs_tot_hA - cs_inel_hA; // elastic is total - inelastic
-            if (cs_el_hA < 0){
-                cs_el_hA = 1e-10; // In case. Makes Lambda large
-            } else{
-                *lambda = (molar_mass)/(N_A*rho*cs_el_hA);
-            }
-        } else if (cs_type == 5){ 
-            // Production
-            double cs_inel_hA;
-            double cs_prod_hA, cs_inel_hN;
-            _calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
-            _get_R(&A, &R);
-            cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            *lambda = (molar_mass)/(N_A*rho*cs_prod_hA);
-            
-        } else if (cs_type == 4){ 
-            // Quasi-Elastic: Inelastic - Production
-            double cs_inel_hA, cs_tot_hN;
-            double cs_prod_hA, cs_inel_hN;
-            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
-            _calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
-            _get_R(&A, &R);
-            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            cs_qel_hA = cs_inel_hA - cs_prod_hA; // quasi-elastic is inelastic - production
-            if (cs_qel_hA < 0){
-                cs_qel_hA = 1e-10; // In case. Makes Lambda large
-            } else{ 
-                *lambda = (molar_mass)/(N_A*rho*cs_qel_hA);
-            }
-        } else {
-            // Unsupported cs type 
-            *lambda = 1e21; // effectively infinite interaction length
-        }
-    }
-}
-
 // ================ Hadron - Nucleus cross sections ================
 // Proton - Nucleus
 void _calculate_total_cross_section_pH(MaterialData restrict material, double* cs_tot_hN, double* A, double* sqrt_s){
@@ -192,18 +83,124 @@ void calculate_inelastic_cross_section(MaterialData restrict material, double* c
     *cs_inel_hN = Z*cs_inel_pp + (*A - Z)*cs_inel_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
 }
 
-void calculate_single_diff_cross_section(MaterialData restrict material, double* cs_sd_hN, double* A, double* sqrt_s){
-    //...
-}
-
-    //....get the splines and the poly of the cs. 
-    // if A get file A get polynomial for A
-    // if B get file B get polynomial for B
-    // if C get file C get polynomial for C
-    // ...
-
-// calc cs el ++
-// compare lengths (but probs in jaw ? )
-
 // ======== slopes ============
 // angles, and slopes part 2 :) 
+
+// =======================================================
+// ====== Nuclear interaction length and cross sections ======
+// =======================================================
+void _get_R(double* A, double* R) {
+    if (*A > 21) {
+        *R = 1.1*pow(*A, 1.0/3.0)*1e-15 * 0.9; // [m], 0.8 < f(A) < 1.0
+    } else {
+        *R = 1.1*pow(*A, 1.0/3.0)*1e-15 * 1.05; // [m], 1.0 < f(A) < 1.1
+    }
+}
+
+/*gpufun*/
+void get_interaction_length(MaterialData restrict material, double* sqrt_s, double* lambda, double cs_type){
+    double N_A = 6.02214076e23;  // Avogadro's number
+    double A = MaterialData_get__atomic_mass(material);
+    double molar_mass = MaterialData_get__molar_mass(material);
+    double rho = MaterialData_get__density(material);
+    double R;
+
+    if (A < 4) {
+        // Semi-supported material
+        if (cs_type == 1){ // get total cs 
+            double cs_tot_hN;
+            _calculate_total_cross_section_pH(material, &cs_tot_hN, &A, sqrt_s);
+            *lambda = (molar_mass*A)/(N_A*rho*cs_tot_hN);
+
+        } else if (cs_type == 2){ // get inelastic cs
+            double cs_inel_hN;
+            _calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
+            *lambda = (molar_mass*A)/(N_A*rho*cs_inel_hN);
+
+        } else if (cs_type == 3){ // get elastic cs
+            double cs_el_hN;
+            _calculate_elastic_cross_section(material, &cs_el_hN, &A, sqrt_s); // TODO: decide either this or tot - inel
+            *lambda = (molar_mass*A)/(N_A*rho*cs_el_hN);
+
+        } else if (cs_type == 4){ // get production cs
+            double cs_prod_hN;
+            _calculate_inelastic_cross_section(material, &cs_prod_hN, &A, sqrt_s);
+            *lambda = (molar_mass*A)/(N_A*rho*cs_prod_hN);
+
+        } else {
+            // Unsupported cs type 
+            *lambda = 1e21; // effectively infinite interaction length
+        }
+    } else {
+         if (cs_type == 1){ 
+            // Total 
+            double cs_tot_hA, cs_tot_hN;
+            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            cs_tot_hA = 2*M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(2*M_PI*pow(R,2))); // Glauber-Gribov approximation
+            *lambda = (molar_mass)/(N_A*rho*cs_tot_hA);
+
+        } else if (cs_type == 2){ 
+            // Inelastic
+            double cs_inel_hA, cs_tot_hN;
+            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
+            *lambda = (molar_mass)/(N_A*rho*cs_inel_hA);
+
+        } else if (cs_type == 3){ 
+            // Elastic: Total - Inelastic   // TODO: we do have the spline tho, so we can use it directly
+            double cs_inel_hA;
+            double cs_tot_hA, cs_tot_hN;
+            double cs_el_hA;
+            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
+            cs_tot_hA = 2*M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(2*M_PI*pow(R,2))); // Glauber-Gribov approximation
+            cs_el_hA = cs_tot_hA - cs_inel_hA; // elastic is total - inelastic
+            if (cs_el_hA < 0){
+                cs_el_hA = 1e-10; // In case. Makes Lambda large
+            } else{
+                *lambda = (molar_mass)/(N_A*rho*cs_el_hA);
+            }
+
+        } else if (cs_type == 4){ 
+            // Production
+            double cs_inel_hA;
+            double cs_prod_hA, cs_inel_hN;
+            _calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
+            *lambda = (molar_mass)/(N_A*rho*cs_prod_hA);
+            
+        } else if (cs_type == 5){ 
+            // Quasi-Elastic: Inelastic - Production
+            double cs_inel_hA, cs_tot_hN;
+            double cs_prod_hA, cs_inel_hN;
+            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
+            _calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            cs_inel_hA = M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
+            cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
+            cs_qel_hA = cs_inel_hA - cs_prod_hA; // quasi-elastic is inelastic - production
+            if (cs_qel_hA < 0){
+                cs_qel_hA = 1e-10; // In case. Makes Lambda large
+            } else{ 
+                *lambda = (molar_mass)/(N_A*rho*cs_qel_hA);
+            }
+
+        } else if (cs_type == 6){ 
+            // Single diffractive
+            double cs_sd_hA, cs_tot_hN, alpha;
+            _calculate_total_cross_section(material, &cs_tot_hN, &A, sqrt_s);
+            _get_R(&A, &R);
+            alpha = (cs_tot_hN)/(2*M_PI*pow(R,2) + cs_tot_hN);
+            cs_sd_hA = M_PI*pow(R,2) * (alpha - log(1 + alpha)); // Glauber-Gribov approximation
+            *lambda = (molar_mass)/(N_A*rho*cs_sd_hA);
+
+        } else {
+            // Unsupported cs type 
+            *lambda = 1e21; // effectively infinite interaction length
+        }
+    }
+}
