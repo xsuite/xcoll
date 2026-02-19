@@ -41,6 +41,11 @@ double eval_spline(const Spline* spline, size_t n, double* sqrt_s) {
     return 1e21; // should never reach here
 }
 
+
+// =======================================================
+// ====== Cross sections ======
+// =======================================================
+
 // ================ Hadron - Nucleus cross sections ================
 // Proton - Nucleus
 void _calculate_total_cross_section_pH(MaterialData restrict material, double* cs_tot_hN, double* A, double* sqrt_s){
@@ -86,9 +91,11 @@ void calculate_inelastic_cross_section(MaterialData restrict material, double* c
 // ======== slopes ============
 // angles, and slopes part 2 :) 
 
+
 // =======================================================
-// ====== Nuclear interaction length and cross sections ======
+// ====== Nuclear interaction length ======
 // =======================================================
+
 void _get_R(double* A, double* R) {
     if (*A > 21) {
         *R = 1.1*pow(*A, 1.0/3.0)*1e-15 * 0.9; // [m], 0.8 < f(A) < 1.0
@@ -99,6 +106,8 @@ void _get_R(double* A, double* R) {
 
 /*gpufun*/
 void get_interaction_length(MaterialData restrict material, double* sqrt_s, double* lambda, double cs_type){
+    // cs_type: 1 = total, 2 = inelastic, 3 = elastic, 4 = production, 5 = quasi-elastic, 6 = single diffractive
+
     double N_A = 6.02214076e23;  // Avogadro's number
     double A = MaterialData_get__atomic_mass(material);
     double molar_mass = MaterialData_get__molar_mass(material);
