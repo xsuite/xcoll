@@ -64,7 +64,7 @@ def test_roundtrip_path_str(tmp_path: Path, backends: tuple, stream: str):
     if stream == "str":
         p = str(tmp_path / "lm.json")
     elif stream == "pathlib":
-        p = Path.cwd() / f"lm_{backends[0]}_{backends[1]}.json"
+        p = tmp_path / "lm.json"
     elif stream == "gz":
         p = tmp_path / "lm.json.gz"
     elif stream == "bytesio":
