@@ -12,6 +12,7 @@ from pathlib import Path
 
 # Different json backends
 import json as stdjson
+from json import JSONDecodeError
 try:
     import msgspec
 except (ImportError, ModuleNotFoundError):
@@ -20,6 +21,9 @@ try:
     import orjson
 except (ImportError, ModuleNotFoundError):
     orjson = None
+
+
+__all__ = {"dump", "load", "dumps", "loads", "JSONDecodeError"}
 
 
 # =========================
@@ -42,33 +46,40 @@ _TAG_BYTES = [tag.encode("utf-8") for tag in (
 # ================
 
 def _validate_backend(backend):
-    if backend == "msgspec":
-        if msgspec is None:
-            raise ImportError("msgspec is not installed. Install it "
-                              "with `pip install msgspec`.")
-    elif backend == "orjson":
-        if orjson is None:
-            raise ImportError("orjson is not installed. Install it "
-                              "with `pip install orjson`.")
-    elif backend != "json":
-        raise ValueError(f"Invalid backend {backend!r}. Must be one of "
-                         f"'msgspec', 'orjson', or 'json'.")
+    if isinstance(backend, str) or not hasattr(backend, "__iter__"):
+        backend = [backend]
+    for bb in backend:
+        if bb not in ("json", "orjson", "msgspec"):
+            raise ValueError(f"Invalid backend {bb!r}. Must be one of "
+                             f"'msgspec', 'orjson', or 'json'.")
+        if bb == "json":
+            return "json"
+        elif bb == "orjson":
+            if orjson is not None:
+                return "orjson"
+        elif bb == "msgspec":
+            if msgspec is not None:
+                return "msgspec"
+    raise ImportError(f"None of the requested backends ({backend}) are"
+                       "installed.")
 
 
 # ===================
 # === I/O helpers ===
 # ===================
 
-def _open_stream(file, mode):
+def _open_stream(file, mode, *, check=False):
     if isinstance(file, io.IOBase):
         return file, False
-    path = Path(file)
+    path = Path(file).expanduser().resolve()
+    if check and not path.exists():
+        raise FileNotFoundError(f"File {path} does not exist!")
     if path.suffix == ".gz":
         return gzip.open(path, mode), True
     return open(path, mode), True
 
 def _read(file):
-    fp, close = _open_stream(file, "rb")
+    fp, close = _open_stream(file, "rb", check=True)
     try:
         string = fp.read()
     finally:
@@ -259,26 +270,24 @@ def _decode_json(obj, *, hook: bool = True):
 # === JSON API ===
 # ================
 
-def dump(data, file, *, indent=None, backend=None):
-    if backend is None:
-        if orjson is not None:
-            backend = "orjson"
-        elif msgspec is not None:
-            backend = "msgspec"
-        else:
-            backend = "json"
-    _validate_backend(backend)
+def dumps(data, *, indent=None, backend="json", _return_binary=False):
+    backend = _validate_backend(backend)
+    if indent is True:
+        indent = 2
 
-    # Encode
     if backend == "orjson":
         # no support for arbitrary indent but always use 2 spaces
-        opt = orjson.OPT_INDENT_2 if indent is not None else 0
+        opt = orjson.OPT_INDENT_2 if indent else 0
         if not _needs_special_encoding(data):
             # fast path
             bdata = orjson.dumps(data, option=opt | orjson.OPT_SERIALIZE_NUMPY)
         else:
             data = _encode_json(data, hook=False)
             bdata = orjson.dumps(data, option=opt)
+        if _return_binary:
+            return bdata
+        else:
+            return bdata.decode("utf-8")
 
     elif backend == "msgspec":
         if not _needs_special_encoding(data):
@@ -287,37 +296,30 @@ def dump(data, file, *, indent=None, backend=None):
         else:
             data = _encode_json(data, hook=False)
             bdata = msgspec.json.encode(data)
+        if indent:
+            bdata = msgspec.json.format(bdata, indent=indent)
+        if _return_binary:
+            return bdata
+        else:
+            return bdata.decode("utf-8")
 
     else:
+        # stdlib fallback
         try:
             s = stdjson.dumps(data, allow_nan=False, default=_encode_json,
                               indent=indent)
         except ValueError:
             data = _encode_json(data, hook=False)
             s = stdjson.dumps(data, allow_nan=False, indent=indent)
-        bdata = s.encode("utf-8")
-
-    # Write bytes
-    _write(file, bdata)
-
-
-def load(file=None, string=None, backend=None):
-    if file is not None and string is not None:
-        raise ValueError("Cannot specify both file and string")
-    if file is None and string is None:
-        raise ValueError("Must specify either file or string")
-
-    if backend is None:
-        if orjson is not None:
-            backend = "orjson"
-        elif msgspec is not None:
-            backend = "msgspec"
+        if _return_binary:
+            return s.encode("utf-8")
         else:
-            backend = "json"
-    _validate_backend(backend)
+            return s
 
-    if file is not None:
-        string = _read(file)
+
+def loads(string=None, *, backend="json"):
+    backend = _validate_backend(backend)
+
     if isinstance(string, str):
         # Make string into binary
         string = string.encode("utf-8")
@@ -339,3 +341,20 @@ def load(file=None, string=None, backend=None):
     else:
         # stdlib fallback
         return stdjson.loads(string.decode("utf-8"), object_hook=_decode_json)
+
+
+def dump(data, file, *, indent=None, backend="json"):
+    bdata = dumps(data, indent=indent, backend=backend, _return_binary=True)
+    _write(file, bdata)
+
+
+def load(file=None, string=None, *, backend="json"):
+    if file is not None and string is not None:
+        raise ValueError("Cannot specify both file and string")
+    if file is None and string is None:
+        raise ValueError("Must specify either file or string")
+
+    if file is not None:
+        string = _read(file)
+
+    return loads(string=string, backend=backend)

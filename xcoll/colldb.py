@@ -5,7 +5,6 @@
 
 import io
 import re
-import json
 import warnings
 import numpy as np
 import pandas as pd
@@ -13,6 +12,7 @@ from pathlib import Path
 
 import xtrack as xt
 
+from . import json
 from .accessors import XcollAccessor
 from .beam_elements import (BlackAbsorber, BlackCrystal, EverestCollimator, EverestCrystal, FlukaCrystal,
                             FlukaCollimator, Geant4Collimator, Geant4CollimatorTip, collimator_classes)
@@ -223,12 +223,7 @@ class CollimatorDatabase(XcollAccessor):
 
     @classmethod
     def from_json(cls, file, **kwargs):
-        if isinstance(file, io.IOBase):
-            dct = json.load(file)
-        else:
-            file = Path(file).resolve()
-            with file.open('r') as fid:
-                dct = json.load(fid)
+        dct = json.load(file)
         dct = _dict_keys_to_lower(dct)
         return cls.from_dict(dct, **kwargs)
 
@@ -398,15 +393,8 @@ class CollimatorDatabase(XcollAccessor):
         }
 
 
-    def to_json(self, file, **kwargs):
-        if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(), file, **kwargs)
-        else:
-            file = Path(file).resolve()
-            if file.suffix != '.json':
-                file = file.with_suffix('.json')
-            with file.open('w') as fid:
-                json.dump(self.to_dict(), fid, indent=4, **kwargs)
+    def to_json(self, file, indent=2):
+        json.dump(self.to_dict(), file, indent=indent)
 
 
     def to_yaml(self, file, **kwargs):

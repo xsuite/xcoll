@@ -5,11 +5,11 @@
 
 import os
 import sys
-import json
 import tempfile
 from subprocess import run, PIPE
 # from platformdirs import user_config_dir, user_data_dir
 
+from .. import json
 from ..general import _pkg_root
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this
@@ -170,29 +170,27 @@ class BaseEnvironment:
                 value = FsPath(value).as_posix()
             data['read_only_paths'][path] = value
         # Check if anything changed
-        with open(self._config_file, 'r') as fid:
-            try:
-                existing_data = json.load(fid)
-            except json.JSONDecodeError:
-                # File corrupted, need to save
-                existing_data = {}
+        try:
+            existing_data = json.load(self._config_file)
+        except json.JSONDecodeError:
+            # File corrupted, need to save
+            existing_data = {}
         if data == existing_data:
             return
         # If yes, save to file
-        with open(self._config_file, 'w') as fid:
-            json.dump(data, fid, indent=4)
+        json.dump(data, self._config_file, indent=2)
 
     def load(self):
         if not self._config_file.exists():
             self.save()
-        with open(self._config_file, 'r') as fid:
-            try:
-                data = json.load(fid)
-            except json.JSONDecodeError:
-                with open(self._config_file, 'w') as fid:
-                    json.dump({'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}, fid, indent=4)
-                return
-        if 'paths' not in data or 'read_only_paths' not in data or 'optional_paths' not in data:
+        try:
+            data = json.load(self._config_file)
+        except json.JSONDecodeError:
+            init = {'paths': {}, 'read_only_paths': {}, 'optional_paths': {}}
+            json.dump(init, self._config_file, indent=2)
+            return
+        if 'paths' not in data or 'read_only_paths' not in data \
+        or 'optional_paths' not in data:
             return
         for key, value in data['paths'].items():
             setattr(self, key, FsPath(value) if value else None)

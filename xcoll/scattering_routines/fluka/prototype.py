@@ -3,11 +3,8 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
-import json
 import time
 import numpy as np
-
-import xobjects as xo
 
 try:
     from xaux import FsPath, ranID  # TODO: once xaux is in Xsuite keep only this
@@ -15,6 +12,7 @@ except (ImportError, ModuleNotFoundError):
     from ...xaux import FsPath, ranID
 
 from .environment import format_fluka_float
+from ... import json
 from ...beam_elements.base import BaseCollimator
 from ...materials import Material
 from ...compare import deep_equal
@@ -202,13 +200,7 @@ class FlukaPrototype:
 
     @classmethod
     def from_json(cls, path):
-        if isinstance(path, str):
-            path = FsPath(path)
-        if not path.exists():
-            raise FileNotFoundError(f"File {path} does not exist!")
-        with path.open('r') as fid:
-            data = json.load(fid)
-        return cls.from_dict(data)
+        return cls.from_dict(json.load(path))
 
     @property
     def name(self):
@@ -266,8 +258,8 @@ class FlukaPrototype:
         target = fedb / "bodies" / f"{self.fedb_series}_{self.fedb_tag}.bodies"
         if path != target:
             path.copy_to(target, method='mount')
-        with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json', 'w') as fid:
-            json.dump(self.to_dict(), fid, indent=4, cls=xo.JEncoder)
+        file = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.bodies.json'
+        json.dump(self.to_dict(), file, indent=2)
 
     @property
     def material_file(self):
@@ -710,14 +702,15 @@ class FlukaAssembly(FlukaPrototype):
         target = fedb / "assemblies" / f"{self.fedb_series}_{self.fedb_tag}.lbp"
         if path != target:
             path.copy_to(target, method='mount')
-        with open(fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json', 'w') as fid:
-            dct = self.to_dict()
-            # Remove fluka_name for previously auto-generated material,
-            # such that the material code can be re-generated
-            if 'material' in dct and dct['material'] is not None and 'fluka_name' in dct['material'] \
-            and dct['material']['fluka_name'] is not None and dct['material']['fluka_name'].startswith('XCOLL'):
-                dct['material'].pop('fluka_name')
-            json.dump(dct, fid, indent=4, cls=xo.JEncoder)
+        # Store
+        dct = self.to_dict()
+        # Remove fluka_name for previously auto-generated material,
+        # such that the material code can be re-generated
+        if 'material' in dct and dct['material'] is not None and 'fluka_name' in dct['material'] \
+        and dct['material']['fluka_name'] is not None and dct['material']['fluka_name'].startswith('XCOLL'):
+            dct['material'].pop('fluka_name')
+        file = fedb / "metadata" / f'{self.fedb_series}_{self.fedb_tag}.lbp.json'
+        json.dump(dct, file, indent=2)
 
     @property
     def body_file(self):

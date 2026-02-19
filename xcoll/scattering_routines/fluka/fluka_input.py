@@ -4,11 +4,11 @@
 # ######################################### #
 
 import os
-import json
 import numpy as np
 from subprocess import run, PIPE
 from contextlib import redirect_stdout
 
+from ... import json
 from ...beam_elements import FlukaCrystal
 from ...beam_elements.base import OPEN_GAP, OPEN_JAW
 from .prototype import FlukaPrototype
@@ -190,8 +190,7 @@ def _element_dict_to_fluka(element_dict, dump=False):
         }
     if dump:
         # dump coll_dictionary in json format
-        with open('collimator_dict.json', 'w') as fp:
-            json.dump(collimator_dict, fp, indent=4)
+        json.dump(collimator_dict, 'collimator_dict.json', indent=2)
     return collimator_dict
 
 

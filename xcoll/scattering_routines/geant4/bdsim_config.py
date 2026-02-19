@@ -3,11 +3,11 @@
 # Copyright (c) CERN, 2025                  #
 # ######################################### #
 
-import json
 import numpy as np
 
 from xtrack.particles.pdg import get_properties_from_pdg_id, is_proton, is_ion
 
+from ... import json
 from ...materials import RefMaterial
 try:
     from xaux import FsPath  # TODO: once xaux is in Xsuite keep only this

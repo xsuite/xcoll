@@ -106,7 +106,7 @@ class LossMap:
             's_range': self.s_range,
             **self.lossmap,
             'date': self._date
-        }, Path(file), indent=True)
+        }, Path(file), indent=2, backend=["orjson", "msgspec", "json"])
 
     def save_summary(self, file):
         with open(Path(file), 'w') as fid:
@@ -1062,7 +1062,11 @@ def _validate_float_meta(values_all, values_rep, inv, s_rep, label,
     )
 
 
+def _loader(*args, **kwargs):
+    return json.load(*args, backend=["orjson", "msgspec", "json"], **kwargs)
+
 def iter_lossmaps(paths, max_workers=16, chunksize=16):
-    # Parallel loading of JSON files (validation and aggregation is not parallellised to avoid race conditions)
+    # Parallel loading of JSON files (validation and aggregation is not
+    # parallellised to avoid race conditions)
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        yield from ex.map(json.load, paths, chunksize=chunksize)
+        yield from ex.map(_loader, paths, chunksize=chunksize)
