@@ -12,11 +12,11 @@ from concurrent.futures import ThreadPoolExecutor
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
+from . import json
 from .beam_elements import (collimator_classes, crystal_classes,
                             FlukaCollimator, FlukaCrystal,
                             Geant4Collimator, Geant4Crystal)
 from .compare import deep_equal
-from .json import json_load, json_dump
 from .general import __version__
 from .plot import plot_lossmap, _resolve_zoom
 from .constants import (USE_IN_LOSSMAP,
@@ -95,7 +95,7 @@ class LossMap:
         return lm
 
     def to_json(self, file):
-        json_dump({
+        json.dump({
             'xcoll': self._xcoll,
             'momentum': self.momentum,
             'beam_type': self._beam_type,
@@ -1065,4 +1065,4 @@ def _validate_float_meta(values_all, values_rep, inv, s_rep, label,
 def iter_lossmaps(paths, max_workers=16, chunksize=16):
     # Parallel loading of JSON files (validation and aggregation is not parallellised to avoid race conditions)
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        yield from ex.map(json_load, paths, chunksize=chunksize)
+        yield from ex.map(json.load, paths, chunksize=chunksize)

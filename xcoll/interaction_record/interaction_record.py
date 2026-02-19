@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2025.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import xobjects as xo
@@ -221,12 +221,12 @@ class InteractionRecord(xt.BeamElement):
         df = pd.DataFrame({
                 'turn':              self.at_turn[:n_rows],
                 coll_header:         [self._collimator_name(element_id) for element_id in self.at_element[:n_rows]],
-                'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]],
-                } | {
-                    f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
-                    for p in ['before', 'after']
-                    for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
-                })
+                'interaction_type':  [interaction_names[inter] for inter in self._inter[:n_rows]]
+            } | {
+                f'{val}_{p}': getattr(self, f'{val}_{p}')[:n_rows]
+                for p in ['before', 'after']
+                for val in ['id', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'energy', 'mass', 'charge', 'z', 'a', 'pdgid']
+            })
         return df
 
     # TODO: list of impacted collimators
@@ -301,4 +301,3 @@ def _get_xcoll_elements(line=None, elements=None, names=None):
             name = name[idx] if names is not None else element.__class__.__name__
             raise ValueError(f"Element {name} not an Xcoll element!")
     return elements, names
-

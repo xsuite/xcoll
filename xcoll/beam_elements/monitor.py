@@ -9,7 +9,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
+from .. import json
 
 
 class ParticleStatsMonitorRecord(xo.Struct):
@@ -50,6 +50,7 @@ class ParticleStatsMonitorRecord(xo.Struct):
     pzeta_delta_sum2 = xo.Float64[:]
     delta_delta_sum2 = xo.Float64[:]
 
+
 class ParticleStatsMonitor(xt.BeamElement):
     _xofields = {
         'part_id_start':      xo.Int64,
@@ -58,9 +59,9 @@ class ParticleStatsMonitor(xt.BeamElement):
         'stop_at_turn':       xo.Int64,
         'frev':               xo.Float64,
         'sampling_frequency': xo.Float64,
+        'cached':             xo.Int8[:],
         '_index':             xt.RecordIndex,
         'data':               ParticleStatsMonitorRecord,
-        '_cached':            xo.Int8,
         '_selector':          xo.Int16
     }
 
@@ -69,10 +70,10 @@ class ParticleStatsMonitor(xt.BeamElement):
 
     _noexpr_fields   = {'name', 'line'}
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/monitor.h')
+        "#include xcoll/beam_elements/elements_src/monitor.h"
     ]
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, _cache_names=['cached'], **kwargs):
         """
         Monitor to save particle statistics (mean and variance of x, px, y, py,
         zeta, pzeta, delta) of (potentially a subset of) particles over a range
@@ -116,42 +117,15 @@ class ParticleStatsMonitor(xt.BeamElement):
                 turn number to sample index). Defaults to 1.
             sampling_frequency (float):
                 Sampling frequency in Hz. Defaults to 1.
-            monitor_mean (bool):
+            mean (bool):
                 Whether or not to monitor means. Defaults to True.
-            monitor_variance (bool):
+            variance (bool):
                 Whether or not to monitor variances. Defaults to True, unless
-                monitor_mean is explicitly set to True.
-            monitor_horizontal (bool):
-                Whether or not to monitor x and px. Defaults to False, unless
-                no coordinates are specified, in which case all are monitored.
-            monitor_vertical (bool):
-                Whether or not to monitor y and py. Defaults to False, unless
-                no coordinates are specified, in which case all are monitored.
-            monitor_longitudinal (bool):
-                Whether or not to monitor zeta and pzeta. Defaults to False,
-                unless no coordinates are specified, in which case all are
-                monitored.
-            monitor_x (bool):
-                Whether or not to monitor x. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_px (bool):
-                Whether or not to monitor px. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_y (bool):
-                Whether or not to monitor y. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_py (bool):
-                Whether or not to monitor py. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_zeta (bool):
-                Whether or not to monitor zeta. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_pzeta (bool):
-                Whether or not to monitor pzeta. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
-            monitor_delta (bool):
-                Whether or not to monitor delta. Defaults to False, unless no
-                coordinates are specified, in which case all are monitored.
+                mean is explicitly set to True.
+            coordinates (list of str):
+                List of coordinates to monitor. Can include any of 'x', 'px',
+                'y', 'py', 'zeta', 'pzeta', 'delta'. Defaults to empty list, in
+                which case all coordinates are monitored.
         """
 
         if '_xobject' not in kwargs:
@@ -174,39 +148,23 @@ class ParticleStatsMonitor(xt.BeamElement):
             kwargs.setdefault('sampling_frequency', 1.)
 
             # Get all flags related to what to monitor
-            monitor_x = kwargs.pop('monitor_x', None)
-            monitor_px = kwargs.pop('monitor_px', None)
-            monitor_y = kwargs.pop('monitor_y', None)
-            monitor_py = kwargs.pop('monitor_py', None)
-            monitor_zeta = kwargs.pop('monitor_zeta', None)
-            monitor_pzeta = kwargs.pop('monitor_pzeta', None)
-            monitor_delta = kwargs.pop('monitor_delta', None)
-            monitor_horizontal = kwargs.pop('horizontal', None)
-            monitor_vertical = kwargs.pop('vertical', None)
-            monitor_longitudinal = kwargs.pop('longitudinal', None)
-            if monitor_horizontal is not None:
-                if monitor_x is not None:
-                    raise ValueError("Cannot specify both `horizontal` and `monitor_x`!")
-                if monitor_px is not None:
-                    raise ValueError("Cannot specify both `horizontal` and `monitor_px`!")
-                monitor_x = monitor_horizontal
-                monitor_px = monitor_horizontal
-            if monitor_vertical is not None:
-                if monitor_y is not None:
-                    raise ValueError("Cannot specify both `vertical` and `monitor_y`!")
-                if monitor_py is not None:
-                    raise ValueError("Cannot specify both `vertical` and `monitor_py`!")
-                monitor_y = monitor_vertical
-                monitor_py = monitor_vertical
-            if monitor_longitudinal is not None:
-                if monitor_zeta is not None:
-                    raise ValueError("Cannot specify both `longitudinal` and `monitor_zeta`!")
-                if monitor_pzeta is not None:
-                    raise ValueError("Cannot specify both `longitudinal` and `monitor_pzeta`!")
-                monitor_zeta = monitor_longitudinal
-                monitor_pzeta = monitor_longitudinal
-                monitor_delta = monitor_longitudinal
-            if all(v is None for v in [monitor_x, monitor_px, monitor_y, monitor_py,
+            monitor_mean = kwargs.pop('mean', None)
+            monitor_variance = kwargs.pop('variance', None)
+            if monitor_mean is None and monitor_variance is None:
+                monitor_mean = monitor_variance = True
+            elif monitor_mean is None:
+                monitor_mean = True
+            elif monitor_variance is None:
+                monitor_variance = not monitor_mean
+            coordinates = kwargs.pop('coordinates', [])
+            monitor_x = 'x' in coordinates
+            monitor_px = 'px' in coordinates
+            monitor_y = 'y' in coordinates
+            monitor_py = 'py' in coordinates
+            monitor_zeta = 'zeta' in coordinates
+            monitor_pzeta = 'pzeta' in coordinates
+            monitor_delta = 'delta' in coordinates
+            if all(v is False for v in [monitor_x, monitor_px, monitor_y, monitor_py,
                                        monitor_zeta, monitor_pzeta, monitor_delta]):
                 monitor_x = True
                 monitor_px = True
@@ -215,34 +173,6 @@ class ParticleStatsMonitor(xt.BeamElement):
                 monitor_zeta = True
                 monitor_pzeta = True
                 monitor_delta = True
-            else:
-                # This little hack allows to do monitor_delta = False implying all else should be True
-                setval = np.unique([v for v in [monitor_x, monitor_px, monitor_y, monitor_py,
-                                               monitor_zeta, monitor_pzeta, monitor_delta]
-                                   if v is not None])
-                if len(setval) > 1:
-                    setval = False
-                else:
-                    setval = not setval[0]
-                if monitor_x is None: monitor_x = setval
-                if monitor_px is None: monitor_px = setval
-                if monitor_y is None: monitor_y = setval
-                if monitor_py is None: monitor_py = setval
-                if monitor_zeta is None: monitor_zeta = setval
-                if monitor_pzeta is None: monitor_pzeta = setval
-                if monitor_delta is None: monitor_delta = setval
-            if all(v is False for v in [monitor_x, monitor_px, monitor_y, monitor_py,
-                                        monitor_zeta, monitor_pzeta, monitor_delta]):
-                raise ValueError("At least one of the coordinates must be monitored!")
-            monitor_mean = kwargs.pop('monitor_mean', None)
-            monitor_variance = kwargs.pop('monitor_variance', None)
-            if monitor_mean is None and monitor_variance is None:
-                monitor_mean = True
-                monitor_variance = True
-            elif monitor_mean is None:
-                monitor_mean = True
-            elif monitor_variance is None:
-                monitor_variance = not monitor_mean
             kwargs['_selector']  =     int(monitor_x)
             kwargs['_selector'] +=   2*int(monitor_px)
             kwargs['_selector'] +=   4*int(monitor_y)
@@ -261,8 +191,7 @@ class ParticleStatsMonitor(xt.BeamElement):
                 kwargs['data'] = {}
                 for field in ParticleStatsMonitorRecord._fields:
                     if field.name == 'count':
-                        # kwargs['data'].update({field.name: np.zeros(size, dtype=np.int64)})  # TODO: once atomicadd in Xtrack is updated
-                        kwargs['data'].update({field.name: np.zeros(size)})
+                        kwargs['data'].update({field.name: np.zeros(size, dtype=np.int64)})
                     elif field.name.endswith('_sum1'):
                         if not monitor_mean:
                             kwargs['data'].update({field.name: np.zeros(1, dtype=np.float64)})
@@ -295,9 +224,13 @@ class ParticleStatsMonitor(xt.BeamElement):
                                 kwargs['data'].update({field.name: np.zeros(size, dtype=np.float64)})
                     else:
                         raise ValueError(f"Unknown field {field.name} in ParticleStatsMonitorRecord!")
+            for cc in _cache_names:
+                if cc not in kwargs:
+                    kwargs[cc] = np.zeros(len(kwargs['data']['count']), dtype=np.int8)
         super().__init__(**kwargs)
-        if not hasattr(self, '_cached'):
-            self._cached = False
+        self._beta0 = None
+        self._gamma0 = None
+        self._mass0 = None
 
     def to_json(self, file, indent=2):
         dct = self.to_dict()
@@ -305,7 +238,7 @@ class ParticleStatsMonitor(xt.BeamElement):
         dct['beta0'] = self.beta0
         dct['gamma0'] = self.gamma0
         dct['mass0'] = self.mass0
-        xt.json.dump(dct, file, indent=indent)
+        json.dump(dct, file, indent=indent)
 
     @classmethod
     def from_json(cls, file):
@@ -314,7 +247,7 @@ class ParticleStatsMonitor(xt.BeamElement):
         dct = {}
         data = {}
         for f in file:
-            this_dct = xt.json.load(f)
+            this_dct = json.load(f)
             this_data = this_dct.pop('data')
             if dct == {}:
                 dct = this_dct
@@ -350,47 +283,18 @@ class ParticleStatsMonitor(xt.BeamElement):
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
         line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
-        self._name = name
-        self._line = line
+        self._beta0 = line.particle_ref.beta0[0]
+        self._gamma0 = line.particle_ref.gamma0[0]
+        self._mass0 = line.particle_ref.mass0
         return self
 
     def reset(self):
         """Reset the monitor data (to avoid accumulation after re-tracking)."""
-        for field in [f.name for f in EmittanceMonitorRecord._fields]:
+        for field in [f.name for f in ParticleStatsMonitorRecord._fields]:
             ff = getattr(self.data, field)
             zeros = np.zeros(len(ff), dtype=ff._itemtype._dtype)
             setattr(self.data, field, zeros)
 
-    @property
-    def suppress_warnings(self):
-        return self._suppress_warnings
-
-    @suppress_warnings.setter
-    def suppress_warnings(self, val):
-        self._suppress_warnings = bool(val
-
-
-    @property
-    def name(self):
-        if not hasattr(self, '_name'):
-            raise ValueError(f"Name not set! Install the monitor using {self.__class__.__name__}.install() "
-                              "or manually set the name after installation.")
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = val
-
-    @property
-    def line(self):
-        if not hasattr(self, '_line'):
-            raise ValueError(f"Line not set! Install the monitor using {self.__class__.__name__}.install() "
-                              "or manually set the line after installation.")
-        return self._line
-
-    @line.setter
-    def line(self, val):
-        self._line = val
 
     @property
     def beta0(self):
@@ -447,18 +351,6 @@ class ParticleStatsMonitor(xt.BeamElement):
     @property
     def monitor_variance(self):
         return bool((self._selector >> 8) % 2)
-
-    @property
-    def horizontal(self):
-        return self.monitor_x and self.monitor_px
-
-    @property
-    def vertical(self):
-        return self.monitor_y and self.monitor_py
-
-    @property
-    def longitudinal(self):
-        return self.monitor_zeta and self.monitor_pzeta
 
     @property
     def turns(self):
@@ -550,7 +442,9 @@ class ParticleStatsMonitor(xt.BeamElement):
 
 
 class EmittanceMonitor(ParticleStatsMonitor):
-    _xofields = ParticleStatsMonitor._xofields
+    _xofields = ParticleStatsMonitor._xofields | {
+        'cached_modes': xo.Int8[:]
+    }
 
     behaves_like_drift = True
     allow_loss_refinement = True
@@ -558,17 +452,77 @@ class EmittanceMonitor(ParticleStatsMonitor):
     _depends_on      = [ParticleStatsMonitor]
     _noexpr_fields   = ParticleStatsMonitor._noexpr_fields
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/emittance_monitor.h')
+        "#include xcoll/beam_elements/elements_src/emittance_monitor.h"
     ]
 
     def __init__(self, **kwargs):
-        if '_xobject' not in kwargs:
-            kwargs['monitor_mean'] = True
-            kwargs['monitor_variance'] = True
-        super().__init__(**kwargs)
-        if not hasattr(self, '_cached_modes'):
-            self._cached_modes = False
+        """
+        Monitor to save the normalised beam emittance
 
+        Similar to the BeamSizeMonitor and BeamPositionMonitor, it allows for
+        arbitrary sampling rate and can thus not only be used to monitor bunch
+        emittance, but also to record coasting beams. See their documentation
+        for more information on how to use `frev` and `sampling_frequency`.
+
+        Args:
+            num_particles (int, optional): Number of particles to monitor,
+                starting from 0. Defaults to -1 which means ALL.
+            particle_id_range (tuple, optional): Range of particle ids to
+                monitor (start, stop). Stop is exclusive. Defaults to
+                (particle_id_start, particle_id_start+num_particles).
+            start_at_turn (int): First turn of reference particle (inclusive)
+                at which to monitor. Defaults to 0.
+            stop_at_turn (int): Last turn of reference particle (exclusive) at
+                which to monitor. Defaults to start_at_turn + 1.
+            frev (float): Revolution frequency in Hz of circulating beam (used
+                to relate turn number to sample index). Defaults to 1.
+            sampling_frequency (float): Sampling frequency in Hz. Defaults to 1.
+            horizontal (bool): Whether or not to monitor the horizontal plane.
+                Defaults to True.
+            vertical (bool): Whether or not to monitor the vertical plane.
+                Defaults to True.
+            longitudinal (bool): Whether or not to monitor the longitudinal plane.
+                Defaults to True.
+        """
+        if '_xobject' not in kwargs:
+            kwargs['mean'] = True
+            kwargs['variance'] = True
+            horizontal = kwargs.pop('horizontal', None)
+            vertical = kwargs.pop('vertical', None)
+            longitudinal = kwargs.pop('longitudinal', None)
+            # Small hack to allow e.g. horizontal=False to imply
+            # vertical=True and longitudinal=True
+            setval = np.unique([v for v in [horizontal, vertical, longitudinal]
+                                if v is not None])
+            if len(setval) == 0:
+                setval = True
+            elif len(setval) == 1:
+                setval = not setval[0]
+            else:
+                setval = False
+            if horizontal is None: horizontal = setval
+            if vertical is None: vertical = setval
+            if longitudinal is None: longitudinal = setval
+            kwargs['coordinates'] = []
+            if horizontal:
+                kwargs['coordinates'] += ['x', 'px']
+            if vertical:
+                kwargs['coordinates'] += ['y', 'py']
+            if longitudinal:
+                kwargs['coordinates'] += ['zeta', 'pzeta']
+            if kwargs.pop('monitor_delta', False):
+                kwargs['coordinates'] += ['delta']
+            suppress_warnings = kwargs.pop('suppress_warnings', False)
+        super().__init__(_cache_names=['cached', 'cached_modes'], **kwargs)
+        self._suppress_warnings = suppress_warnings
+
+    @property
+    def suppress_warnings(self):
+        return self._suppress_warnings
+
+    @suppress_warnings.setter
+    def suppress_warnings(self, val):
+        self._suppress_warnings = bool(val)
 
     @property
     def gemitt_x(self):
@@ -647,6 +601,19 @@ class EmittanceMonitor(ParticleStatsMonitor):
         self._calculate()
         self._calculate_modes()
         return self._gemitt_III * self.beta0 * self.gamma0
+
+
+    @property
+    def horizontal(self):
+        return self.monitor_x and self.monitor_px
+
+    @property
+    def vertical(self):
+        return self.monitor_y and self.monitor_py
+
+    @property
+    def longitudinal(self):
+        return self.monitor_zeta and self.monitor_pzeta
 
 
     def _check_horizontal(self):

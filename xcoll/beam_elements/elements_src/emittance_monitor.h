@@ -6,12 +6,27 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
-#include <xtrack/headers/track.h>
+#include <xcoll/beam_elements/elements_src/monitor.h>
 
 
-/*gpufun*/
-void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticle* part0){
-    ParticleStatsMonitor_track_local_particle((ParticleStatsMonitorData) el, part0);
+GPUFUN void EmittanceMonitor_track_local_particle(
+    EmittanceMonitorData el,
+    LocalParticle* part0
+){
+    // Use the stats monitor to track
+    ParticleStatsMonitor_track_local_particle(
+        (ParticleStatsMonitorData) el, part0
+    );
+
+    // Set the cached modes to 0 for the emittance monitor
+    START_PER_PARTICLE_BLOCK(part0->part);
+        int64_t slot = ParticleStatsMonitorData_get_slot(
+            (ParticleStatsMonitorData) el, part
+        );
+        if (slot >= 0){
+            EmittanceMonitorData_set_cached_modes(el, slot, 0);
+        }
+	END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XCOLL_EMITTANCE_MONITOR_H */

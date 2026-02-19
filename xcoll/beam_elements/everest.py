@@ -6,7 +6,7 @@
 import xobjects as xo
 import xtrack as xt
 
-from .base import BaseBlock, BaseCollimator, BaseCrystal, InvalidXcoll
+from .base import BaseBlock, BaseCollimator, BaseCrystal
 from ..scattering_routines.everest import EverestEngine
 from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
 from ..general import _pkg_root
