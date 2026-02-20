@@ -6,9 +6,15 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
+#ifdef XO_CONTEXT_CPU
+#include <math.h>    // for round
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
 #ifndef C_LIGHT
 #define C_LIGHT 299792458.0
 #endif
+
 
 /*gpufun*/
 void EmittanceMonitor_track_local_particle(EmittanceMonitorData el, LocalParticle* part0){

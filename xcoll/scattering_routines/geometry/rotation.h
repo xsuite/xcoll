@@ -5,8 +5,10 @@
 
 #ifndef XCOLL_GEOM_ROT_H
 #define XCOLL_GEOM_ROT_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
+#endif  // XO_CONTEXT_CPU
 
 
 /*gpufun*/

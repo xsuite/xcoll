@@ -5,8 +5,12 @@
 
 #ifndef XCOLL_CRY_GEOM_H
 #define XCOLL_CRY_GEOM_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
 
 typedef struct CrystalGeometry_ {
     // Crystal inner upstream corner (with tilt)

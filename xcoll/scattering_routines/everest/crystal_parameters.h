@@ -5,9 +5,10 @@
 
 #ifndef XCOLL_EVEREST_CRYSTAL_PARAMETERS_H
 #define XCOLL_EVEREST_CRYSTAL_PARAMETERS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#endif  // XO_CONTEXT_CPU
 
 
 /*gpufun*/

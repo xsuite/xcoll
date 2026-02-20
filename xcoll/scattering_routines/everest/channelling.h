@@ -5,9 +5,12 @@
 
 #ifndef XCOLL_EVEREST_CHANNELLING_H
 #define XCOLL_EVEREST_CHANNELLING_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 
 // Convention:

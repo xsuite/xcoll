@@ -5,9 +5,11 @@
 
 #ifndef XCOLL_EVEREST_AMORPHOUS_H
 #define XCOLL_EVEREST_AMORPHOUS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
 
 
 /*gpufun*/

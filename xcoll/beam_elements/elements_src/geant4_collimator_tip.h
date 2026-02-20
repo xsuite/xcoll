@@ -6,6 +6,11 @@
 #ifndef XCOLL_GEANT4_TIP_H
 #define XCOLL_GEANT4_TIP_H
 
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
+
 
 /*gpufun*/
 int8_t Geant4CollimatorTipData_get_record_impacts(Geant4CollimatorTipData el){

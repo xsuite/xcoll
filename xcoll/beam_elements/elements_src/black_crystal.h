@@ -6,6 +6,11 @@
 #ifndef XCOLL_ABSORBER_CRY_H
 #define XCOLL_ABSORBER_CRY_H
 
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
+
 
 /*gpufun*/
 int8_t BlackCrystalData_get_record_impacts(BlackCrystalData el){
