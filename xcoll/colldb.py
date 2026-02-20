@@ -320,8 +320,10 @@ class CollimatorDatabase:
         df.insert(5,'stage', df['gap'].apply(lambda s: None if s in family_types else 'UNKNOWN'))
         df['stage'] = df['stage'].astype('object')
 
-        df['gap'] = df['gap'].apply(lambda s: None if not isinstance(s, str) and s > 900 else s)
-        df['gap'] = df['gap'].apply(lambda s: None if isinstance(s, str) else s)
+        sss = pd.to_numeric(df['gap'], errors='coerce')
+        sss = sss.mask(sss > 900).astype(object)
+        sss[pd.isna(sss)] = None
+        df['gap'] = sss
 
         # TODO this breaks code if a key has upper case, e.g. gap_L
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
