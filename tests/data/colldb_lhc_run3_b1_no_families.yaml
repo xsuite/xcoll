@@ -48,7 +48,7 @@ TCSG.e5r7.b1:       { gap: 6.5, stage: secondary, material: CFC,  length: 1,   a
 tcspm.e5r7.b1:      { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle: 130.5, parking: 0.025 }
 tcsg.6r7.b1:        { gap: 6.5, stage: secondary, material: CFC,  length: 1,   angle:   0.5, parking: 0.025, active: false }
 tcspm.6r7.b1:       { gap: 6.5, stage: secondary, material: MoGR, length: 1,   angle:   0.5, parking: 0.025 }
-tcla.a6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:  90,   parking: 0.025 }
+tcla.a6r7.b1:       { gap: 13.2,stage: tertiary,  material: Iner, length: 1,   angle:  90,   parking: 0.025 }
 tcla.b6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }
 tcla.c6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:  90,   parking: 0.025 }
 tcla.d6r7.b1:       { gap: 10,  stage: tertiary,  material: Iner, length: 1,   angle:   0,   parking: 0.025 }

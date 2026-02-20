@@ -6,6 +6,11 @@
 #ifndef XCOLL_EVEREST_ENGINE_H
 #define XCOLL_EVEREST_ENGINE_H
 
+#ifdef XO_CONTEXT_CPU
+#include <math.h>
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
 #define XCOLL_TRANSITION_VRCH
 #define XCOLL_TRANSITION_VRAM
 // #define XCOLL_TRANSITION_VRAM_OLD

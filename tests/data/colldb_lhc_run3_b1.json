@@ -340,7 +340,8 @@
     },
     "tcla.a6r7.b1": {
       "family": "TCLA7",
-      "angle":  90
+      "angle":  90,
+      "gap": 13.2
     },
     "TCLA.b6r7.b1": {
       "family": "TCLA7",

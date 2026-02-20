@@ -320,8 +320,10 @@ class CollimatorDatabase:
         df.insert(5,'stage', df['gap'].apply(lambda s: None if s in family_types else 'UNKNOWN'))
         df['stage'] = df['stage'].astype('object')
 
-        df['gap'] = df['gap'].apply(lambda s: None if not isinstance(s, str) and s > 900 else s)
-        df['gap'] = df['gap'].apply(lambda s: None if isinstance(s, str) else s)
+        sss = pd.to_numeric(df['gap'], errors='coerce')
+        sss = sss.mask(sss > 900).astype(object)
+        sss[pd.isna(sss)] = None
+        df['gap'] = sss
 
         # TODO this breaks code if a key has upper case, e.g. gap_L
         df['name'] = df['name'].str.lower() # Make the names lowercase for easy processing
@@ -508,7 +510,7 @@ class CollimatorDatabase:
             if mat.lower() == 'c':
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
-                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']):
                 self._create_collimator(EverestCrystal, line, name, material=mat, verbose=verbose)
@@ -557,7 +559,7 @@ class CollimatorDatabase:
             if mat and mat.lower() == 'c':
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
-                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \
             or ('bending_angle' in self[name] and self[name]['bending_angle']) \
             or crystal_assembly:
@@ -579,7 +581,7 @@ class CollimatorDatabase:
             if mat and mat.lower() == 'c':
                 mat = 'CFC'
                 warnings.warn(f"Material 'C' now refers to plain 'Carbon'. In K2 this pointed to 'CFC'. "
-                            + f"Changed into 'CFC' for backward compatibility.", DeprecationWarning)
+                            + f"Changed into 'CFC' for backward compatibility.", FutureWarning)
             tip_material = self[name]['tip_material']
             tip_thickness = self[name]['tip_thickness']
             if ('bending_radius' in self[name] and self[name]['bending_radius']) \

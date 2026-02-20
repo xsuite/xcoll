@@ -66,10 +66,10 @@ def test_rf_sweep_old_style():
 
     sweep = -300
     rf_sweep = xc.RFSweep(line)
-    with pytest.warns(DeprecationWarning, match="The `sweep` argument is deprecated."):
-        with pytest.warns(DeprecationWarning, match="The `num_turns` argument is deprecated."):
+    with pytest.warns(FutureWarning, match="The `sweep` argument is deprecated."):
+        with pytest.warns(FutureWarning, match="The `num_turns` argument is deprecated."):
             rf_sweep.info(sweep=sweep, num_turns=num_turns)
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(FutureWarning):
         rf_sweep.track(sweep=sweep, num_turns=num_turns, particles=part)
 
     # This sweep is 3.5 buckets, so check that all particles are at least 3 buckets away

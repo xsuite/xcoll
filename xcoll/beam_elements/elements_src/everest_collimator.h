@@ -5,8 +5,11 @@
 
 #ifndef XCOLL_EVEREST_COLL_H
 #define XCOLL_EVEREST_COLL_H
-#include <math.h>
-#include <stdio.h>
+
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 
 /*gpufun*/

@@ -84,7 +84,7 @@ collimators:
     tcspm.e5r7.b1:      { <<: *TCSG7,  angle: 130.5,  material: MoGR  }
     tcsg.6r7.b1:        { <<: *TCSG7,  angle:   0.5,  active: false   }
     tcspm.6r7.b1:       { <<: *TCSG7,  angle:   0.5,  MATERIAL: MoGR  }
-    tcla.a6r7.b1:       { <<: *TCLA7,  angle:  90     }
+    tcla.a6r7.b1:       { <<: *TCLA7,  angle:  90, gap: 13.2     }
     tcla.b6r7.b1:       { <<: *TCLA7,  angle:   0     }
     tcla.c6r7.b1:       { <<: *TCLA7,  angle:  90     }
     tcla.d6r7.b1:       { <<: *TCLA7,  angle:   0     }
