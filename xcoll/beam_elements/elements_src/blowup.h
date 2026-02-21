@@ -1,10 +1,14 @@
 // copyright ############################### #
 // This file is part of the Xcoll package.   #
-// Copyright (c) CERN, 2025.                 #
+// Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 #ifndef XCOLL_BLOWUP_H
 #define XCOLL_BLOWUP_H
+
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 #include <xcoll/headers/particle_states.h>

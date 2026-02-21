@@ -5,8 +5,11 @@
 
 #ifndef XCOLL_EVEREST_NUCL_H
 #define XCOLL_EVEREST_NUCL_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 #include <xcoll/headers/particle_states.h>

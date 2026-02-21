@@ -6,6 +6,11 @@
 #ifndef XCOLL_EMITTANCE_MONITOR_H
 #define XCOLL_EMITTANCE_MONITOR_H
 
+#ifdef XO_CONTEXT_CPU
+#include <math.h>    // for round
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
+
 #include <xcoll/beam_elements/elements_src/monitor.h>
 
 

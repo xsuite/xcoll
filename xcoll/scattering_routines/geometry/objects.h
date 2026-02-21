@@ -5,10 +5,13 @@
 
 #ifndef XCOLL_GEOM_OBJECTS_H
 #define XCOLL_GEOM_OBJECTS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 #include <xcoll/scattering_routines/geometry/segments.h>
@@ -105,9 +108,11 @@ Segment* create_crystal(double R, double width, double length, double jaw_U, dou
     double sin_a = length/fabs(R);
     double cos_a = sqrt(1 - length*length/R/R);
     if (fabs(R) < 1.e-12){
-        // straight crystal - not yet implemented 
-        printf("Straight crystal not yet implemented!"); //only_for_context cpu_serial
-        fflush(stdout);                 //only_for_context cpu_serial
+        // straight crystal - not yet implemented
+#ifdef XO_CONTEXT_CPU
+        printf("Straight crystal not yet implemented!");
+        fflush(stdout);
+#endif  // XO_CONTEXT_CPU
         return NULL;
 
     } else if (R < 0){

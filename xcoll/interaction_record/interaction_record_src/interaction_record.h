@@ -3,9 +3,12 @@
 // Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
-
 #ifndef XCOLL_IMPACTS_H
 #define XCOLL_IMPACTS_H
+
+#ifdef XO_CONTEXT_CPU
+#include <stdint.h>  // for int64_t etc
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 

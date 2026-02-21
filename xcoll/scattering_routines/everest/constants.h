@@ -45,7 +45,7 @@
 // Classical radius of electron [m]
 #if !defined( XC_CRADE )
     #define   XC_CRADE ( 2.817940285e-15 )
-#endif 
+#endif
 
 
 #endif /* XCOLL_EVEREST_CONSTANTS_H */

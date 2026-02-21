@@ -85,9 +85,9 @@ class RFSweep:
     def info(self, sweep=None, num_turns=None):
         if sweep is not None or num_turns is not None:
             if sweep is not None:
-                warn("The `sweep` argument is deprecated.", DeprecationWarning)
+                warn("The `sweep` argument is deprecated.", FutureWarning)
             if num_turns is not None:
-                warn("The `num_turns` argument is deprecated.", DeprecationWarning)
+                warn("The `num_turns` argument is deprecated.", FutureWarning)
             self.prepare(sweep=sweep, num_turns=num_turns)
         if self.sweep_per_turn is None:
             raise ValueError("RFSweep not prepared. Call `prepare` first.")
@@ -121,7 +121,7 @@ class RFSweep:
     # For backward compatibility
     def track(self, sweep=0, particles=None, num_turns=0, verbose=True, *args, **kwargs):
         warn("Using RFSweep.track() is deprecated. Please use RFSweep.prepare() "
-           + "and then xt.Line.track().", DeprecationWarning)
+           + "and then xt.Line.track().", FutureWarning)
         self.prepare(sweep=sweep, num_turns=num_turns)
         self.line.track(particles=particles, num_turns=num_turns, *args, **kwargs)
 

@@ -5,8 +5,12 @@
 
 #ifndef XCOLL_EVEREST_MCS_H
 #define XCOLL_EVEREST_MCS_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 #include <xcoll/headers/particle_states.h>

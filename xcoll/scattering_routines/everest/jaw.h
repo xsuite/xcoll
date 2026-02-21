@@ -5,8 +5,10 @@
 
 #ifndef XCOLL_EVEREST_JAW_H
 #define XCOLL_EVEREST_JAW_H
+
+#ifdef XO_CONTEXT_CPU
 #include <math.h>
-#include <stdio.h>
+#endif  // XO_CONTEXT_CPU
 
 #include <xtrack/headers/track.h>
 #include <xcoll/scattering_routines/everest/everest.h>

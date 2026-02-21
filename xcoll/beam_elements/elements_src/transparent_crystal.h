@@ -6,6 +6,12 @@
 #ifndef XCOLL_TRANSPAREN_CRY_H
 #define XCOLL_TRANSPAREN_CRY_H
 
+#ifdef XO_CONTEXT_CPU
+
+#include <stdint.h>  // for int64_t etc
+#include <stdlib.h>  // for malloc and free
+#endif  // XO_CONTEXT_CPU
+
 #include <xtrack/headers/track.h>
 #include <xtrack/headers/checks.h>
 #include <xcoll/headers/particle_states.h>

@@ -76,7 +76,7 @@ tcsg.b5r7.b1                                                TCSG7 CFC       1.00
 tcsg.d5r7.b1                                                TCSG7 CFC       1.000     51.4         0.
 tcspm.e5r7.b1                                               TCSG7 MoGR      1.000    130.5         0.
 tcspm.6r7.b1                                                TCSG7 MoGR      1.000      0.5         0.
-tcla.a6r7.b1                                                TCLA7 Iner      1.000     90.0         0.
+tcla.a6r7.b1                                                 13.2 Iner      1.000     90.0         0.
 tcla.b6r7.b1                                                TCLA7 Iner      1.000      0.0         0.
 tcla.c6r7.b1                                                TCLA7 Iner      1.000     90.0         0.
 tcla.d6r7.b1                                                TCLA7 Iner      1.000      0.0         0.
