@@ -11,24 +11,33 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xcoll/headers/checks.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/collimator_geometry.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t FlukaCollimatorData_get_record_impacts(FlukaCollimatorData el){
     return FlukaCollimatorData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t FlukaCollimatorData_get_record_exits(FlukaCollimatorData el){
     return (FlukaCollimatorData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t FlukaCollimatorData_get_record_scatterings(FlukaCollimatorData el){
     return (FlukaCollimatorData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CollimatorGeometry FlukaCollimator_init_geometry(FlukaCollimatorData el, LocalParticle* part0){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     // Jaw corners (with tilts)
@@ -78,7 +87,7 @@ CollimatorGeometry FlukaCollimator_init_geometry(FlukaCollimatorData el, LocalPa
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void FlukaCollimator_free(CollimatorGeometry restrict cg){
     if (cg->side != -1){
         destroy_jaw(cg->segments_L);
@@ -90,7 +99,7 @@ void FlukaCollimator_free(CollimatorGeometry restrict cg){
 }
 
 
-/*gpufun*/
+GPUFUN
 void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle* part0){
     int8_t active = FlukaCollimatorData_get_active(el);
     active       *= FlukaCollimatorData_get__tracking(el);
@@ -101,9 +110,9 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
         cg = FlukaCollimator_init_geometry(el, part0);
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
+            // Drift full length (use global setting for expanded vs exact drift)
             double length = FlukaCollimatorData_get_length(el);
             length += FlukaCollimatorData_get_length_front(el);
             length += FlukaCollimatorData_get_length_back(el);
@@ -133,12 +142,8 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
                     // Only check. Particle will be at start position.
                     is_hit = hit_jaws_check(part, cg);
                     if (is_hit == 0){
-                        // Drift to end.
-#ifdef XCOLL_USE_EXACT
-                        Drift_single_particle(part, cg->length);
-#else
-                        Drift_single_particle_expanded(part, cg->length);
-#endif
+                        // Drift to end (FLUKA uses exact drift)
+                        Drift_single_particle_exact(part, cg->length);
                     }
                 }
 
@@ -149,7 +154,7 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         FlukaCollimator_free(cg);
     }

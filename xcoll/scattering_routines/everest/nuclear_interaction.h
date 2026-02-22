@@ -11,13 +11,19 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/constants.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xtrack/random/random_src/exponential.h>
+#include <xtrack/random/random_src/rutherford.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 #include <xcoll/scattering_routines/everest/properties.h>
 
 
-/*gpufun*/
+GPUFUN
 double nuclear_interaction(EverestData restrict everest, MaterialData restrict material,
                            LocalParticle* part, double pc) {
     if (MaterialData_get__cross_section(material, 0) < 0){
@@ -95,7 +101,7 @@ double nuclear_interaction(EverestData restrict everest, MaterialData restrict m
         // theta = arccos(1 + t/(2p^2))  =>  tan(theta) = sqrt( -t/p^2 * (1 + t/(4p^2)) ) / (1 + t/(2p^2))
         // Note that in elastic scattering, t < 0, but we sampled t > 0 so we need to flip the sign
         double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
-        double alpha = 2*M_PI*RandomUniform_generate(part);
+        double alpha = 2*PI*RandomUniform_generate(part);
         double tan_theta_x = tan_theta*cos(alpha);
         double tan_theta_y = tan_theta*sin(alpha);
 

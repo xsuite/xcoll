@@ -11,24 +11,33 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xcoll/headers/checks.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/collimator_geometry.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t Geant4CollimatorData_get_record_impacts(Geant4CollimatorData el){
     return Geant4CollimatorData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t Geant4CollimatorData_get_record_exits(Geant4CollimatorData el){
     return (Geant4CollimatorData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t Geant4CollimatorData_get_record_scatterings(Geant4CollimatorData el){
     return (Geant4CollimatorData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CollimatorGeometry Geant4Collimator_init_geometry(Geant4CollimatorData el, LocalParticle* part0, int8_t active){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     if (active){ // This is needed in order to avoid that the initialisation is called during a twiss!
@@ -79,7 +88,7 @@ CollimatorGeometry Geant4Collimator_init_geometry(Geant4CollimatorData el, Local
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void Geant4Collimator_free(CollimatorGeometry restrict cg, int8_t active){
     if (active){
         if (cg->side != -1){
@@ -93,9 +102,8 @@ void Geant4Collimator_free(CollimatorGeometry restrict cg, int8_t active){
 }
 
 
-/*gpufun*/
+GPUFUN
 void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticle* part0){
-
     // Collimator active and length
     int8_t active = Geant4CollimatorData_get_active(el);
     active       *= Geant4CollimatorData_get__tracking(el);
@@ -103,14 +111,11 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
     // Get geometry
     CollimatorGeometry cg = Geant4Collimator_init_geometry(el, part0, active);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
-#ifdef XCOLL_USE_EXACT
+            // Drift full length (use global setting for expanded vs exact drift)
             Drift_single_particle(part, cg->length);
-#else
-            Drift_single_particle_expanded(part, cg->length);
-#endif
+
         } else {
             // Check collimator initialisation
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
@@ -135,12 +140,8 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
                     // Only check. Particle will be at start position.
                     is_hit = hit_jaws_check(part, cg);
                     if (is_hit == 0){
-                        // Drift to end.
-#ifdef XCOLL_USE_EXACT
-                        Drift_single_particle(part, cg->length);
-#else
-                        Drift_single_particle_expanded(part, cg->length);
-#endif
+                        // Drift to end (Geant4 uses exact drift)
+                        Drift_single_particle_exact(part, cg->length);
                     }
                 }
 
@@ -151,7 +152,7 @@ void Geant4Collimator_track_local_particle(Geant4CollimatorData el, LocalParticl
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     Geant4Collimator_free(cg, active);
 }
 

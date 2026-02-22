@@ -11,11 +11,16 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/beam_elements/elements_src/track_srotation.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xtrack/beam_elements/elements_src/track_xyshift.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/geometry/get_s.h>
 #include <xcoll/scattering_routines/geometry/rotation.h>
+
 
 typedef struct CollimatorGeometry_ {
     // Collimator jaws (with tilts)
@@ -50,7 +55,7 @@ typedef CollimatorGeometry_* CollimatorGeometry;
 
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
-/*gpufun*/
+GPUFUN
 int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry restrict cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
@@ -97,7 +102,7 @@ int8_t hit_jaws_check(LocalParticle* part, CollimatorGeometry restrict cg){
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
-/*gpufun*/
+GPUFUN
 int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry restrict cg){
     double part_x, part_tan;
     int8_t is_hit = 0;
@@ -219,7 +224,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
 
 
 // Return to start position after having logged the impact.
-/*gpufun*/
+GPUFUN
 void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
     if (is_hit == 1){
         // Rotate back from tilt
@@ -261,7 +266,7 @@ void hit_jaws_return(int8_t is_hit, LocalParticle* part, CollimatorGeometry rest
 }
 
 
-/*gpufun*/
+GPUFUN
 void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeometry restrict cg){
     if (is_hit != 0 && LocalParticle_get_state(part) > 0){
         if (cg->record_exits){
@@ -310,6 +315,5 @@ void hit_jaws_transform_back(int8_t is_hit, LocalParticle* part, CollimatorGeome
         SRotation_single_particle(part, -cg->sin_zR, cg->cos_zR);
     }
 }
-
 
 #endif /* XCOLL_COLL_GEOM_H */

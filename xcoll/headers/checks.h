@@ -15,7 +15,7 @@
 #include <xtrack/headers/checks.h>
 #include <xtrack/headers/particle_states.h>
 #include <xtrack/random/random_src/rutherford.h>
-#include <xcoll/headers/particle_states.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
 
 
 // This is a quick macro to use inside a function body on a parameter that is not
@@ -24,29 +24,30 @@
 #define UNUSED(expr) (void)(expr)
 #endif
 
-/*gpufun*/
+
+GPUFUN
 int8_t xcoll_check_particle_init(RandomRutherfordData rng, LocalParticle* part) {
     int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
-#ifdef XO_CONTEXT_CPU
+#ifdef XO_CONTEXT_CPU_SERIAL
     if (!is_tracking){
         printf("Collimator tracking code is called, but we are not supposed to be tracking!");
         fflush(stdout);
     }
-#endif  // XO_CONTEXT_CPU
+#endif  // XO_CONTEXT_CPU_SERIAL
     int8_t rng_is_set  = assert_rng_set(part, RNG_ERR_SEEDS_NOT_SET);
-#ifdef XO_CONTEXT_CPU
+#ifdef XO_CONTEXT_CPU_SERIAL
     if (!rng_is_set){
         printf("Random generator seeds in particles object are not set!");
         fflush(stdout);
     }
-#endif  // XO_CONTEXT_CPU
+#endif  // XO_CONTEXT_CPU_SERIAL
     int8_t ruth_is_set = assert_rutherford_set(rng, part, RNG_ERR_RUTH_NOT_SET);
-#ifdef XO_CONTEXT_CPU
+#ifdef XO_CONTEXT_CPU_SERIAL
     if (!ruth_is_set){
         printf("Rutherford random generator not initialised!");
         fflush(stdout);
     }
-#endif  // XO_CONTEXT_CPU
+#endif  // XO_CONTEXT_CPU_SERIAL
     return is_tracking*rng_is_set*ruth_is_set;
 }
 

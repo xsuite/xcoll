@@ -13,13 +13,14 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#define S_MAX 1.e21
-
-#include <xtrack/headers/track.h>
+#include <xobjects/headers/common.h>
 #include <xcoll/scattering_routines/geometry/objects.h>
 
 
-/*gpufun*/
+#define S_MAX 1.e21
+
+
+GPUFUN
 void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
                        Segment* segments, int8_t n_segments){
     for (int8_t i=0; i<n_segments;i++) {
@@ -33,7 +34,7 @@ void find_crossing(int8_t* n_hit, double* s, double part_x, double part_tan, \
 // The array and interval are assumed to be sorted!
 // Furthermore, the array should have one extra slot allocated at the end, in case it needs to be expanded..
 // This is always true for the arrays created by get_s, as we create them with 2*n_segments slots.
-/*gpufun*/
+GPUFUN
 void calculate_overlap_array_interval(double* arr, int8_t* length, double* interval){
     if (arr[0] > interval[1]){
         // No overlap
@@ -87,7 +88,7 @@ void calculate_overlap_array_interval(double* arr, int8_t* length, double* inter
 }
 
 
-/*gpufun*/
+GPUFUN
 void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double part_tan_x, \
                                double part_y, double part_tan_y, Segment* segments, \
                                int8_t n_segments, double y_min, double y_max){
@@ -112,6 +113,5 @@ void find_crossing_with_vlimit(int8_t* n_hit, double* s, double part_x, double p
         free(restrict_s);
     }
 }
-
 
 #endif /* XCOLL_GEOM_METHODS_H */

@@ -10,13 +10,15 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
 #include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xtrack/particles/local_particle_custom_api.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
 
 
-/*gpufun*/
+GPUFUN
 void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
-
     int8_t plane          = BlowUpData_get__plane(el);
     double max_kick       = BlowUpData_get__max_kick(el);
     int8_t active         = BlowUpData_get__active(el);
@@ -24,7 +26,7 @@ void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
     int64_t start_at_turn = BlowUpData_get_start_at_turn(el);
     int64_t stop_at_turn  = BlowUpData_get_stop_at_turn(el);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (active){
             int64_t at_turn = LocalParticle_get_at_turn(part);
             if (at_turn >= start_at_turn && at_turn < stop_at_turn){
@@ -44,7 +46,7 @@ void BlowUp_track_local_particle(BlowUpData el, LocalParticle* part0){
                 }
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XCOLL_BLOWUP_H */

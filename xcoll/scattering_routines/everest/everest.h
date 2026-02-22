@@ -11,11 +11,14 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xtrack/random/random_src/rutherford.h>
+
+
 #define XCOLL_TRANSITION_VRCH
 #define XCOLL_TRANSITION_VRAM
 // #define XCOLL_TRANSITION_VRAM_OLD
-
-#include <xtrack/headers/track.h>
 
 
 typedef struct EverestCollData_ {
@@ -60,7 +63,7 @@ typedef struct EverestData_ {
 typedef EverestData_ *EverestData;
 
 
-/*gpufun*/
+GPUFUN
 double LocalParticle_get_energy(LocalParticle* part){
     double mass_ratio = LocalParticle_get_charge_ratio(part) / LocalParticle_get_chi(part);
     return (LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part) \
@@ -68,21 +71,21 @@ double LocalParticle_get_energy(LocalParticle* part){
 }
 
 
-/*gpufun*/
+GPUFUN
 double drift_zeta_single(double rvv, double xp, double yp, double length){
     double const rv0v = 1./rvv;
-    double const dzeta = 1 - rv0v * (1. + (pow(xp,2.) + pow(yp,2.))/2.);
+    double const dzeta = 1 - rv0v * (1. + (POW2(xp) + POW2(yp))/2.);
     return length * dzeta;
 }
 
-/*gpufun*/
+GPUFUN
 void Drift_single_particle_4d(LocalParticle* part, double length){
     double zeta = LocalParticle_get_zeta(part);
     Drift_single_particle(part, length);
     LocalParticle_set_zeta(part, zeta);
 }
 
-/*gpukern*/
+GPUKERN
 void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, MaterialData material){
     double const A   = MaterialData_get__Z2_eff(material);
     double const emr = MaterialData_get__nuclear_radius(material);
@@ -93,7 +96,7 @@ void RandomRutherford_set_by_xcoll_material(RandomRutherfordData ran, MaterialDa
     double const hcut = MaterialData_get__hcut(material);
     double const lcut = 0.0009982;
     double const c = 0.8561e3; // TODO: Where tha fuck does this come from??
-    double B = c*pow(emr,2);
+    double B = c*POW2(emr);
     RandomRutherford_set(ran, A, B, lcut, hcut);
 }
 

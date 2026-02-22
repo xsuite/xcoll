@@ -11,27 +11,38 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
 #include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xtrack/random/random_src/rutherford.h>
 #include <xcoll/headers/checks.h>
-#include <xcoll/headers/particle_states.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/crystal_geometry.h>
+#include <xcoll/scattering_routines/everest/properties.h>
+#include <xcoll/scattering_routines/everest/ionisation_loss.h>
+#include <xcoll/scattering_routines/everest/crystal_parameters.h>
+#include <xcoll/scattering_routines/everest/channelling.h>
 
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCrystalData_get_record_impacts(EverestCrystalData el){
     return EverestCrystalData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCrystalData_get_record_exits(EverestCrystalData el){
     return (EverestCrystalData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
     return (EverestCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 void EverestCrystal_set_material(EverestCrystalData el){
     MaterialData material = EverestCrystalData_getp__material(el);
     RandomRutherfordData rng = EverestCrystalData_getp_rutherford_rng(el);
@@ -39,7 +50,7 @@ void EverestCrystal_set_material(EverestCrystalData el){
 }
 
 
-/*gpufun*/
+GPUFUN
 CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticle* part0){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     cg->length = EverestCrystalData_get_length(el);
@@ -118,7 +129,7 @@ CrystalGeometry EverestCrystal_init_geometry(EverestCrystalData el, LocalParticl
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void EverestCrystal_free(CrystalGeometry restrict cg){
     destroy_crystal(cg->segments);
     free(cg);
@@ -127,7 +138,7 @@ void EverestCrystal_free(CrystalGeometry restrict cg){
 
 // TODO: it would be great if we could set EverestData as an xofield, because then we could
 // run this function at creation of the collimator instead of every turn
-/*gpufun*/
+GPUFUN
 EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0){
     EverestCollData coll = (EverestCollData) malloc(sizeof(EverestCollData_));
     // Random generator
@@ -144,7 +155,7 @@ EverestCollData EverestCrystal_init(EverestCrystalData el, LocalParticle* part0)
 }
 
 
-/*gpufun*/
+GPUFUN
 EverestData EverestCrystal_init_data(LocalParticle* part, MaterialData restrict material,
         EverestCollData restrict coll, CrystalGeometry restrict cg){
     EverestData everest = (EverestData) malloc(sizeof(EverestData_));
@@ -160,7 +171,7 @@ EverestData EverestCrystal_init_data(LocalParticle* part, MaterialData restrict 
 }
 
 
-/*gpufun*/
+GPUFUN
 void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* part0) {
     int8_t active = EverestCrystalData_get_active(el);
     active       *= EverestCrystalData_get__tracking(el);
@@ -189,9 +200,9 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
         }
     }
 
-    //start_per_particle_block (part0->part);
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
+            // Drift full length (use global setting for expanded vs exact drift)
             Drift_single_particle(part, length);
 
         } else {
@@ -263,12 +274,11 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
                 }
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         EverestCrystal_free(cg);
         free(coll);
     }
 }
-
 
 #endif /* XCOLL_EVEREST_CRYSTAL_H */

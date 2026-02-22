@@ -12,13 +12,19 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xtrack/random/random_src/normal.h>
+#include <xtrack/random/random_src/exponential.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 #include <xcoll/scattering_routines/everest/constants.h>
+#include <xcoll/scattering_routines/everest/properties.h>
 #include <xcoll/scattering_routines/everest/ionisation_loss.h>
 #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
 #include <xcoll/scattering_routines/everest/crystal_parameters.h>
 #include <xcoll/scattering_routines/everest/amorphous.h>
 
@@ -30,7 +36,7 @@
 //       r: radius from position to bending centre (including t_I):  L = t*r
 
 
-/*gpufun*/
+GPUFUN
 double channelling_average_density(EverestData restrict everest, MaterialData restrict material,
                                    CrystalGeometry restrict cg, LocalParticle* part, double pc) {
 
@@ -47,14 +53,14 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
     int np     = x_i/XC_PLANE_DISTANCE;          //Calculate in which crystalline plane the particle enters
     x_i       -= (np + 0.5)*XC_PLANE_DISTANCE;   //Rescale the incoming x to the middle of the crystalline plane
 
-    double pv   = pow(pc, 2.)/sqrt(pow(pc, 2.) + pow(XC_PROTON_MASS*1.0e-3, 2.))*1.0e9; //Calculate pv=P/E   TODO: this is beta?
-    double Ueff = eum*4.*pow(x_i/XC_PLANE_DISTANCE, 2.) + pv*x_i/bend_r; //Calculate effective potential
-    double Et   = pv*pow(xp, 2.)/2. + Ueff;       //Calculate transverse energy
-    double Ec   = eum*pow(1. - ratio, 2.);         //Calculate critical energy in bent crystals
+    double pv   = POW2(pc)/sqrt(POW2(pc) + POW2(XC_PROTON_MASS*1.0e-3))*1.0e9; //Calculate pv=P/E   TODO: this is beta?
+    double Ueff = eum*4.*POW2(x_i/XC_PLANE_DISTANCE) + pv*x_i/bend_r; //Calculate effective potential
+    double Et   = pv*POW2(xp)/2. + Ueff;       //Calculate transverse energy
+    double Ec   = eum*POW2(1. - ratio);         //Calculate critical energy in bent crystals
 
     //To avoid negative Et
-    double xminU = -pow(XC_PLANE_DISTANCE, 2.)*pc*1.0e9/(8.*eum*bend_r);
-    double Umin  = fabs(eum*4.*pow(xminU/XC_PLANE_DISTANCE, 2.) + pv*xminU/bend_r);
+    double xminU = -POW2(XC_PLANE_DISTANCE)*pc*1.0e9/(8.*eum*bend_r);
+    double Umin  = fabs(eum*4.*POW2(xminU/XC_PLANE_DISTANCE) + pv*xminU/bend_r);
     Et    = Et + Umin;
     Ec    = Ec + Umin;
 
@@ -68,11 +74,11 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
 
     //Calculate atomic density at min and max of the trajectory oscillation
     // erf returns the error function of complex argument
-    double rho_max = erf(x_max/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_max       -= erf((XC_PLANE_DISTANCE-x_max)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
+    double rho_max = erf(x_max/sqrt(2*POW2(XC_THERMAL_VIBRATIONS)));
+    rho_max       -= erf((XC_PLANE_DISTANCE-x_max)/sqrt(2*POW2(XC_THERMAL_VIBRATIONS)));
     rho_max       *= atoms*XC_PLANE_DISTANCE/2.;
-    double rho_min = erf(x_min/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
-    rho_min       -= erf((XC_PLANE_DISTANCE-x_min)/sqrt(2*pow(XC_THERMAL_VIBRATIONS, 2.)));
+    double rho_min = erf(x_min/sqrt(2*POW2(XC_THERMAL_VIBRATIONS)));
+    rho_min       -= erf((XC_PLANE_DISTANCE-x_min)/sqrt(2*POW2(XC_THERMAL_VIBRATIONS)));
     rho_min       *= atoms*XC_PLANE_DISTANCE/2.;
 
     //"zero-approximation" of average nuclear density seen along the trajectory
@@ -83,7 +89,7 @@ double channelling_average_density(EverestData restrict everest, MaterialData re
 }
 
 
-/*gpufun*/
+GPUFUN
 double* channel_transport(EverestData restrict everest, MaterialData restrict material,
                           LocalParticle* part, double pc, double L_chan, double t_I, double t_P) {
     // Channelling: happens over an arc length L_chan (potentially less if dechannelling)
@@ -189,7 +195,7 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
     // Calculate curved length L_dechan of dechannelling
     // ------------------------------------------------
     double const_dech = calculate_dechannelling_length(everest, material, pc);
-    double TLdech1 = const_dech*pc*pow(1. - ratio, 2.); //Updated calculate typical dech. length(m)
+    double TLdech1 = const_dech*pc*POW2(1. - ratio); //Updated calculate typical dech. length(m)
     double N_atom = 1.0e-1;
     if(RandomUniform_generate(part) <= N_atom) {
         TLdech1 /= 200.;   // Updated dechannelling length (m)

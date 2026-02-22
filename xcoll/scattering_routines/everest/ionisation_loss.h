@@ -11,13 +11,17 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-
-#include <xtrack/headers/track.h>
-#include <xcoll/scattering_routines/everest/constants.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xtrack/random/random_src/normal.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/everest/everest.h>
+#include <xcoll/scattering_routines/everest/constants.h>
 
 
-/*gpufun*/
+GPUFUN
 void calculate_ionisation_properties(EverestData restrict everest, MaterialData restrict material, double pc) {
     double exenergy = MaterialData_get__excitation_energy(material);
     if (exenergy < 0){
@@ -32,7 +36,7 @@ void calculate_ionisation_properties(EverestData restrict everest, MaterialData 
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]
-    double energy   = sqrt(pow(momentum, 2.) + pow(XC_PROTON_MASS, 2.)); // [MeV]
+    double energy   = sqrt(POW2(momentum) + POW2(XC_PROTON_MASS)); // [MeV]
     double gammar   = energy/XC_PROTON_MASS;
     double betar    = momentum/energy;
     double bgr      = betar*gammar;
@@ -40,7 +44,7 @@ void calculate_ionisation_properties(EverestData restrict everest, MaterialData 
 
     // tmax is max energy loss from kinematics
     // mep = mass_electron / mass_beam
-    double tmax = 2.*XC_ELECTRON_MASS*pow(bgr, 2.)/ (1. + 2.*gammar*mep + pow(mep, 2.));  // [MeV]
+    double tmax = 2.*XC_ELECTRON_MASS*POW2(bgr)/ (1. + 2.*gammar*mep + POW2(mep));  // [MeV]
     double plen = sqrt(rho*ZA_mean)*28.816e-6; // [MeV]
 
     // TODO: Bete-Bloch needs to be adapted for high energy (more loss due to delta ray radiation)
@@ -50,15 +54,15 @@ void calculate_ionisation_properties(EverestData restrict everest, MaterialData 
     everest->energy_loss_xi_m = BB_fac*rho*1.0e-1; // [GeV/m]   xi per meter
     double e_ionisation = log(2.*XC_ELECTRON_MASS*bgr*bgr/exenergy);
     double density = 2*log(plen/exenergy) + 2*log(bgr) - 1;
-    everest->energy_loss_m = e_ionisation + log(tmax/exenergy) - 2*pow(betar, 2.) - density;
+    everest->energy_loss_m = e_ionisation + log(tmax/exenergy) - 2*POW2(betar) - density;
     everest->energy_loss_m *= everest->energy_loss_xi_m; // [GeV/m]
 
     // Straggling: energy loss is Gaussian for thick absorbers (TODO: it's Landau-Vavilov for thin absorbers when eps << Tmax)
     // TODO: does it come naturally from variations in trajectory (when using NewGeometry)?
-    everest->energy_loss_most_probable_m = e_ionisation - log(exenergy*1.e-3) + 0.194 - pow(betar, 2.) - density;
+    everest->energy_loss_most_probable_m = e_ionisation - log(exenergy*1.e-3) + 0.194 - POW2(betar) - density;
     everest->energy_loss_most_probable_m *= everest->energy_loss_xi_m; // [GeV/m]   missing factor xi ln xi
 
-    everest->energy_loss_tail_m = e_ionisation+ log(tmax/exenergy) - 2*pow(betar, 2.) - density;  // Bethe-Bloch
+    everest->energy_loss_tail_m = e_ionisation+ log(tmax/exenergy) - 2*POW2(betar) - density;  // Bethe-Bloch
     everest->energy_loss_tail_m += 2*tmax*tmax/8/energy/energy;
     everest->energy_loss_tail_m *= everest->energy_loss_xi_m; // [GeV/m]
 
@@ -68,15 +72,15 @@ void calculate_ionisation_properties(EverestData restrict everest, MaterialData 
     double const prob_factor = everest->energy_loss_xi_m*1.e3; // [MeV/m]
     everest->prob_tail_c1 = prob_factor / Tt;
     everest->prob_tail_c2 = prob_factor * (
-                        2*tmax/(4.*pow(energy, 2.)) - 1/tmax
-                        - log(tmax/Tt)*pow(betar,2.)/tmax
+                        2*tmax/(4.*POW2(energy)) - 1/tmax
+                        - log(tmax/Tt)*POW2(betar)/tmax
                    );  // * dz
-    everest->prob_tail_c3 = prob_factor * pow(betar,2.)/tmax;   // * dz * log(dz)
-    everest->prob_tail_c4 = -prob_factor * Tt/(2.*pow(energy, 2.));  // * dz * dz
+    everest->prob_tail_c3 = prob_factor * POW2(betar)/tmax;   // * dz * log(dz)
+    everest->prob_tail_c4 = -prob_factor * Tt/(2.*POW2(energy));  // * dz * dz
 }
 
 
-/*gpufun*/
+GPUFUN
 double calcionloss(EverestData restrict everest, MaterialData restrict material, LocalParticle* part,
                    double ionisation_length, double pc, double scale_factor) {
     if (MaterialData_get__excitation_energy(material) < 0){
@@ -94,7 +98,7 @@ double calcionloss(EverestData restrict everest, MaterialData restrict material,
     int8_t sc = everest->coll->record_scatterings;
 
     double mp = LocalParticle_get_mass0(part)/1.e9;  // [GeV]   TODO: update when allowing other than protons
-    double kinetic_energy = sqrt(pow(pc, 2.) + pow(mp, 2.)) - mp;
+    double kinetic_energy = sqrt(POW2(pc) + POW2(mp)) - mp;
     int8_t dead = 0;
     double cutoff = 1.e-6; // Lower cutoff of 1keV
     double new_pc = 0;
@@ -131,7 +135,7 @@ double calcionloss(EverestData restrict everest, MaterialData restrict material,
         // All energy lost due to ionisation!
         dead = 1;
     } else {
-        new_pc_2 = pow(kinetic_energy - ionisation_loss + mp, 2.) - pow(mp, 2.);
+        new_pc_2 = POW2(kinetic_energy - ionisation_loss + mp) - POW2(mp);
         if (new_pc_2 <= 1.e-12 || new_pc_2 != new_pc_2){
             // Rounding error. Kill particle to avoid NaN  (a != a is true only for NaN)
             dead = 1;

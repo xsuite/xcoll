@@ -10,9 +10,10 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
+#include <xobjects/headers/common.h>
 
-/*gpufun*/
+
+GPUFUN
 double YRotation_single_particle_rotate_only(LocalParticle* part, double s, double angle){
     double x   = LocalParticle_get_x(part);
     double rpp = LocalParticle_get_rpp(part);

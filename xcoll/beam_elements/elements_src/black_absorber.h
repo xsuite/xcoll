@@ -11,24 +11,34 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/collimator_geometry.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t BlackAbsorberData_get_record_impacts(BlackAbsorberData el){
     return BlackAbsorberData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackAbsorberData_get_record_exits(BlackAbsorberData el){
     return (BlackAbsorberData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackAbsorberData_get_record_scatterings(BlackAbsorberData el){
     return (BlackAbsorberData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalParticle* part0){
     CollimatorGeometry cg = (CollimatorGeometry) malloc(sizeof(CollimatorGeometry_));
     // Jaw corners (with tilts)
@@ -76,7 +86,7 @@ CollimatorGeometry BlackAbsorber_init_geometry(BlackAbsorberData el, LocalPartic
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void BlackAbsorber_free(CollimatorGeometry restrict cg){
     if (cg->side != -1){
         destroy_jaw(cg->segments_L);
@@ -88,7 +98,7 @@ void BlackAbsorber_free(CollimatorGeometry restrict cg){
 }
 
 
-/*gpufun*/
+GPUFUN
 void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* part0){
     int8_t active = BlackAbsorberData_get_active(el);
     active       *= BlackAbsorberData_get__tracking(el);
@@ -102,9 +112,9 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
         record_scatterings = BlackAbsorberData_get_record_scatterings(el);
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
+            // Drift full length (use global setting for expanded vs exact drift)
             Drift_single_particle(part, length);
 
         } else {
@@ -131,7 +141,7 @@ void BlackAbsorber_track_local_particle(BlackAbsorberData el, LocalParticle* par
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         BlackAbsorber_free(cg);
     }

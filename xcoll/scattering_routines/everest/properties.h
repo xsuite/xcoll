@@ -10,12 +10,13 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/constants.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 #include <xcoll/scattering_routines/everest/constants.h>
 
 
-/*gpufun*/
+GPUFUN
 void calculate_scattering(EverestData restrict everest, MaterialData restrict material,double pc) {
     // Material properties
     double const atoms = MaterialData_get__atoms_per_volume(material);
@@ -33,10 +34,10 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
     everest->xln15s = log(0.15*ecmsq);
 
     // Claudia Fit from COMPETE collaboration points "arXiv:hep-ph/0206172v1 19Jun2002"
-    double pptot = 0.041084 - 0.0023302*log(ecmsq) + 0.00031514*pow(log(ecmsq), 2.);
+    double pptot = 0.041084 - 0.0023302*log(ecmsq) + 0.00031514*POW2(log(ecmsq));
 
     // Claudia used the fit from TOTEM for ppel (in barn)
-    double ppel = (11.7 - 1.59*log(ecmsq) + 0.134*pow(log(ecmsq), 2.))/1e3;   // TODO /1.e3
+    double ppel = (11.7 - 1.59*log(ecmsq) + 0.134*POW2(log(ecmsq)))/1e3;   // TODO /1.e3
 
     // Claudia updated SD cross that cointains renormalized pomeron flux (in barn)
     double ppsd = (4.3 + 0.3*log(ecmsq))/1e3;
@@ -91,7 +92,7 @@ void calculate_scattering(EverestData restrict everest, MaterialData restrict ma
 }
 
 
-/*gpufun*/
+GPUFUN
 double calculate_dechannelling_length(EverestData restrict everest, MaterialData restrict material, double pc) {
 
     // Material properties
@@ -104,13 +105,12 @@ double calculate_dechannelling_length(EverestData restrict everest, MaterialData
 
     // Energy variables
     double momentum = pc*1.0e3;   // [MeV]
-    double energy   = sqrt(pow(momentum, 2.) + pow(XC_PROTON_MASS, 2.)); // [MeV]
+    double energy   = sqrt(POW2(momentum) + POW2(XC_PROTON_MASS)); // [MeV]
     double gammar   = energy/XC_PROTON_MASS;
 
-    double const_dech = 256.0/(9.*pow(M_PI, 2.)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy/1000) - 1.);
+    double const_dech = 256.0/(9.*POW2(PI)) / (log(2.*XC_ELECTRON_MASS*gammar/exenergy/1000) - 1.);
     const_dech       *= (XC_SCREENING*XC_PLANE_DISTANCE)/(XC_CRADE*XC_ELECTRON_MASS)*1.0e3; // [m/GeV]
     return const_dech;
 }
-
 
 #endif /* XCOLL_EVEREST_PROP_H */

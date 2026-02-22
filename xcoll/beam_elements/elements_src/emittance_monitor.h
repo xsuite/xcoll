@@ -11,10 +11,13 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/track.h>
 #include <xcoll/beam_elements/elements_src/monitor.h>
 
 
-GPUFUN void EmittanceMonitor_track_local_particle(
+GPUFUN
+void EmittanceMonitor_track_local_particle(
     EmittanceMonitorData el,
     LocalParticle* part0
 ){
@@ -24,8 +27,8 @@ GPUFUN void EmittanceMonitor_track_local_particle(
     );
 
     // Set the cached modes to 0 for the emittance monitor
-    START_PER_PARTICLE_BLOCK(part0->part);
-        int64_t slot = ParticleStatsMonitorData_get_slot(
+    START_PER_PARTICLE_BLOCK(part0, part);
+        int64_t slot = ParticleStatsMonitor_get_slot(
             (ParticleStatsMonitorData) el, part
         );
         if (slot >= 0){

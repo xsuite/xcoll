@@ -11,16 +11,21 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xtrack/random/random_src/normal.h>
+#include <xtrack/random/random_src/exponential.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 #include <xcoll/scattering_routines/everest/ionisation_loss.h>
 #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
 #include <xcoll/scattering_routines/everest/crystal_parameters.h>
 
 
-/*gpufun*/
+GPUFUN
 void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t transition) {
 
     InteractionRecordData record = everest->coll->record;
@@ -54,7 +59,7 @@ void volume_reflection(EverestData restrict everest, LocalParticle* part, int8_t
 
 
 // Amorphous transport is just Multiple Coulomb scattering
-/*gpufun*/
+GPUFUN
 double amorphous_transport(EverestData restrict everest, MaterialData restrict material,
                            LocalParticle* part, double pc, double length, int8_t transition) {
 
@@ -128,7 +133,7 @@ double volume_interaction(EverestData restrict everest, MaterialData restrict ma
     return pc;
 }
 
-// /*gpufun*/
+//GPUFUN
 double Amorphous(EverestData restrict everest, MaterialData restrict material,
            LocalParticle* part, CrystalGeometry restrict cg, double pc, double length, int8_t allow_VI) {
 

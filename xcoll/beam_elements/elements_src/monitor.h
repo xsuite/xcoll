@@ -6,19 +6,19 @@
 #ifndef XCOLL_MONITOR_H
 #define XCOLL_MONITOR_H
 
-#ifndef C_LIGHT
-#define C_LIGHT 299792458.0
-#endif
-
-#include <xtrack/headers/track.h>
+#include <xobjects/headers/common.h>
 #include <xobjects/headers/atomicadd.h>
+#include <xtrack/headers/constants.h>
+#include <xtrack/headers/track.h>
 
 
-GPUFUN int64_t ParticleStatsMonitor_get_slot(ParticleStatsMonitorData el, LocalParticle* part){
+GPUFUN
+int64_t ParticleStatsMonitor_get_slot(ParticleStatsMonitorData el, LocalParticle* part){
     int64_t slot = 0;
     int64_t const particle_id = LocalParticle_get_particle_id(part);
     int64_t const part_id_start = ParticleStatsMonitorData_get_part_id_start(el);
     int64_t const part_id_end   = ParticleStatsMonitorData_get_part_id_end(el);
+    ParticleStatsMonitorRecord record = ParticleStatsMonitorData_getp_data(el);
 
     if (part_id_end < 0 || (part_id_start <= particle_id && particle_id < part_id_end)){
         // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
@@ -42,8 +42,9 @@ GPUFUN int64_t ParticleStatsMonitor_get_slot(ParticleStatsMonitorData el, LocalP
 }
 
 
-GPUFUN void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, LocalParticle* part0){
-
+GPUFUN
+void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData el, LocalParticle* part0){
+    double const beta0 = LocalParticle_get_beta0(part0);
     ParticleStatsMonitorRecord record = ParticleStatsMonitorData_getp_data(el);
 
     // Decode _selector
@@ -58,7 +59,7 @@ GPUFUN void ParticleStatsMonitor_track_local_particle(ParticleStatsMonitorData e
     int16_t const monitor_mean      = (_selector >> 7) % 2;
     int16_t const monitor_variance  = (_selector >> 8) % 2;
 
-    START_PER_PARTICLE_BLOCK(part0->part);
+    START_PER_PARTICLE_BLOCK(part0, part);
         int64_t slot = ParticleStatsMonitor_get_slot(el, part);
         if (slot >= 0){
             double x = 0;

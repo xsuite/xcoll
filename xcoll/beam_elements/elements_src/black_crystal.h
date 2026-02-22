@@ -11,28 +11,34 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
 #include <xtrack/headers/track.h>
 #include <xtrack/headers/checks.h>
-#include <xcoll/headers/particle_states.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/crystal_geometry.h>
 
 
-/*gpufun*/
+GPUFUN
 int8_t BlackCrystalData_get_record_impacts(BlackCrystalData el){
     return BlackCrystalData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackCrystalData_get_record_exits(BlackCrystalData el){
     return (BlackCrystalData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t BlackCrystalData_get_record_scatterings(BlackCrystalData el){
     return (BlackCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* part0){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     cg->length = BlackCrystalData_get_length(el);
@@ -74,14 +80,14 @@ CrystalGeometry BlackCrystal_init_geometry(BlackCrystalData el, LocalParticle* p
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void BlackCrystal_free(CrystalGeometry restrict cg){
     destroy_crystal(cg->segments);
     free(cg);
 }
 
 
-/*gpufun*/
+GPUFUN
 void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0){
     int8_t active = BlackCrystalData_get_active(el);
     active       *= BlackCrystalData_get__tracking(el);
@@ -99,9 +105,9 @@ void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0
         }
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
+            // Drift full length (use global setting for expanded vs exact drift)
             Drift_single_particle(part, length);
 
         } else {
@@ -128,7 +134,7 @@ void BlackCrystal_track_local_particle(BlackCrystalData el, LocalParticle* part0
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         BlackCrystal_free(cg);
     }

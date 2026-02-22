@@ -12,17 +12,19 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/random/random_src/uniform.h>
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 
 
-/*gpufun*/
+GPUFUN
 double iterat(double a, double b, double dh, double s) {
     double ds = s;
     while (1) {
         ds = ds*0.5;
-        if (pow(s,3) < pow((a+b*s),2)) {
+        if (POW3(s) < POW2(a + b*s)) {
             s = s+ds;
         } else {
             s = s-ds;
@@ -37,11 +39,11 @@ double iterat(double a, double b, double dh, double s) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double soln3(double a, double b, double dh, double smax) {
     double s;
     if (b == 0) {
-        s = pow(a,0.6666666666666667);
+        s = pow(a, 0.6666666666666667);
         if (s > smax) {
             s = smax;
         }
@@ -49,7 +51,7 @@ double soln3(double a, double b, double dh, double smax) {
     }
     if (a == 0) {
         if (b > 0) {
-            s = pow(b,2);
+            s = POW2(b);
         } else {
             s = 0;
         }
@@ -59,7 +61,7 @@ double soln3(double a, double b, double dh, double smax) {
         return s;
     }
     if (b > 0) {
-        if (pow(smax,3) <= pow((a + b*smax),2)) {
+        if (POW3(smax) <= POW2(a + b*smax)) {
             s = smax;
             return s;
         } else {
@@ -69,7 +71,7 @@ double soln3(double a, double b, double dh, double smax) {
     } else {
         double c = (-1*a)/b;
         if (smax < c) {
-            if ((pow(smax,3)) <= pow((a + b*smax),2)) {
+            if (POW3(smax) <= POW2(a + b*smax)) {
                 s = smax;
                 return s;
             } else {
@@ -85,7 +87,7 @@ double soln3(double a, double b, double dh, double smax) {
 }
 
 
-/*gpufun*/
+GPUFUN
 double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     double* result = (double*)malloc(2 * sizeof(double));
 
@@ -96,7 +98,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
     while (1) {
         v1 = 2*RandomUniform_generate(part) - 1;
         v2 = 2*RandomUniform_generate(part) - 1;
-        r2 = pow(v1,2) + pow(v2,2);
+        r2 = POW2(v1) + POW2(v2);
         if(r2 < 1) {
             break;
         }
@@ -114,7 +116,7 @@ double* scamcs(LocalParticle* part, double x0, double xp0, double s) {
 }
 
 
-/*gpufun*/
+GPUFUN
 void mcs(EverestData restrict everest, MaterialData restrict material,
          LocalParticle* part, double length, double pc, int edge_check){
 

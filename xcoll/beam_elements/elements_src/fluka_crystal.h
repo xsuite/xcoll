@@ -11,24 +11,33 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
+#include <xobjects/headers/common.h>
+#include <xtrack/headers/track.h>
+#include <xtrack/headers/checks.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xcoll/headers/checks.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/scattering_routines/geometry/objects.h>
+#include <xcoll/scattering_routines/geometry/crystal_geometry.h>
 
-/*gpufun*/
+
+GPUFUN
 int8_t FlukaCrystalData_get_record_impacts(FlukaCrystalData el){
     return FlukaCrystalData_get__record_interactions(el) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t FlukaCrystalData_get_record_exits(FlukaCrystalData el){
     return (FlukaCrystalData_get__record_interactions(el) >> 1) % 2;
 }
 
-/*gpufun*/
+GPUFUN
 int8_t FlukaCrystalData_get_record_scatterings(FlukaCrystalData el){
     return (FlukaCrystalData_get__record_interactions(el) >> 2) % 2;
 }
 
 
-/*gpufun*/
+GPUFUN
 CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* part0){
     CrystalGeometry cg = (CrystalGeometry) malloc(sizeof(CrystalGeometry_));
     cg->length = FlukaCrystalData_get_length(el);
@@ -70,14 +79,14 @@ CrystalGeometry FlukaCrystal_init_geometry(FlukaCrystalData el, LocalParticle* p
     return cg;
 }
 
-/*gpufun*/
+GPUFUN
 void FlukaCrystal_free(CrystalGeometry restrict cg){
     destroy_crystal(cg->segments);
     free(cg);
 }
 
 
-/*gpufun*/
+GPUFUN
 void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0){
     int8_t active = FlukaCrystalData_get_active(el);
     active       *= FlukaCrystalData_get__tracking(el);
@@ -91,9 +100,9 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
         }
     }
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
         if (!active){
-            // Drift full length
+            // Drift full length (use global setting for expanded vs exact drift)
             double length = FlukaCrystalData_get_length(el);
             length += FlukaCrystalData_get_length_front(el);
             length += FlukaCrystalData_get_length_back(el);
@@ -104,13 +113,9 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
             int8_t is_tracking = assert_tracking(part, XC_ERR_INVALID_TRACK);
 
             if (is_tracking) {
-                // Move to start of crystal
+                // Move to start of crystal (FLUKA uses exact drift)
                 double length_front = FlukaCrystalData_get_length_front(el);
-#ifdef XCOLL_USE_EXACT
                 Drift_single_particle_exact(part, length_front);
-#else
-                Drift_single_particle_expanded(part, length_front);
-#endif
 
                 // Store s-location of start of crystal
                 double s_coll = LocalParticle_get_s(part);
@@ -131,38 +136,26 @@ void FlukaCrystal_track_local_particle(FlukaCrystalData el, LocalParticle* part0
                     // Only check. Particle will be at start position.
                     is_hit = hit_crystal_check(part, cg);
                     if (is_hit == 0){
-                        // Drift to end.
-#ifdef XCOLL_USE_EXACT
+                        // Drift to end (FLUKA uses exact drift)
                         Drift_single_particle_exact(part, cg->length);
-#else
-                        Drift_single_particle_expanded(part, cg->length);
-#endif
                     }
                 }
 
                 if (is_hit == 0){
-                    // Drift to end.
+                    // Drift to end (FLUKA uses exact drift)
                     double length_back = FlukaCrystalData_get_length_back(el);
-#ifdef XCOLL_USE_EXACT
                     Drift_single_particle_exact(part, length_back);
-#else
-                    Drift_single_particle_expanded(part, length_back);
-#endif
 
                 } else {
                     // Mark for FLUKA processing.
                     LocalParticle_set_state(part, XC_HIT_ON_FLUKA_COLL);
-                    // Return to start position
-#ifdef XCOLL_USE_EXACT
+                    // Return to start position (FLUKA uses exact drift)
                     Drift_single_particle_exact(part, -length_front);
-#else
-                    Drift_single_particle_expanded(part, -length_front);
-#endif
                 }
                 LocalParticle_add_to_s(part, s_coll);
             }
         }
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
     if (active){
         FlukaCrystal_free(cg);
     }

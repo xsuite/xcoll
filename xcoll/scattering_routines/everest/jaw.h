@@ -10,14 +10,15 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/random/random_src/exponential.h>
 #include <xcoll/scattering_routines/everest/everest.h>
 #include <xcoll/scattering_routines/everest/ionisation_loss.h>
 #include <xcoll/scattering_routines/everest/nuclear_interaction.h>
 #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
 
 
-/*gpufun*/
+GPUFUN
 double jaw(EverestData restrict everest, MaterialData restrict material, LocalParticle* part,
            double pc, double length, int edge_check) {
     if (LocalParticle_get_state(part) < 1){

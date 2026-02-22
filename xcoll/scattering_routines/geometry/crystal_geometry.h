@@ -11,9 +11,14 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-
-#include <xtrack/headers/track.h>
-#include <xcoll/headers/particle_states.h>
+#include <xobjects/headers/common.h>
+#include <xtrack/particles/local_particle_custom_api.h>
+#include <xtrack/beam_elements/elements_src/track_srotation.h>
+#include <xtrack/beam_elements/elements_src/track_drift.h>
+#include <xtrack/beam_elements/elements_src/track_xyshift.h>
+#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
+#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
 #include <xcoll/scattering_routines/geometry/get_s.h>
 #include <xcoll/scattering_routines/geometry/rotation.h>
 
@@ -53,7 +58,7 @@ typedef CrystalGeometry_* CrystalGeometry;
 
 // This function checks if a particle hits a jaw (and which).
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
-/*gpufun*/
+GPUFUN
 int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry restrict cg){
     double part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
@@ -95,7 +100,7 @@ int8_t hit_crystal_check(LocalParticle* part, CrystalGeometry restrict cg){
 // Return value: 0 (no hit), 1 (hit on left jaw), -1 (hit on right jaw).
 // Furthermore, the particle is moved to the location where it hits the jaw (drifted to the end if no hit),
 //              and transformed to the reference frame of that jaw.
-/*gpufun*/
+GPUFUN
 int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry restrict cg){
     double part_x, part_tan_x, part_y, part_tan_y;
     double s = 1.e21;
@@ -166,7 +171,7 @@ int8_t hit_crystal_check_and_transform(LocalParticle* part, CrystalGeometry rest
 
 
 // Return to start position after having logged the impact.
-/*gpufun*/
+GPUFUN
 void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
     if (is_hit != 0){
         if (cg->side == -1){
@@ -194,7 +199,7 @@ void hit_crystal_return(int8_t is_hit, LocalParticle* part, CrystalGeometry rest
 }
 
 
-/*gpufun*/
+GPUFUN
 void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeometry restrict cg){
     if (is_hit != 0){
         if (LocalParticle_get_state(part) > 0){
@@ -227,6 +232,5 @@ void hit_crystal_transform_back(int8_t is_hit, LocalParticle* part, CrystalGeome
         SRotation_single_particle(part, -cg->sin_z, cg->cos_z);
     }
 }
-
 
 #endif /* XCOLL_CRY_GEOM_H */
