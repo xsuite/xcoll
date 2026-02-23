@@ -273,23 +273,8 @@ class ParticleStatsMonitor(xt.BeamElement):
                         raise ValueError(f"JSON file {f} not compatible with "
                                           "previous ones!")
                     data[key] += np.array(value)
-        # beta0 = dct.pop('beta0')
-        # gamma0 = dct.pop('gamma0')
-        # mass0 = dct.pop('mass0')
         self = cls.from_dict(dct | {'data': data})
-        # self._beta0 = beta0
-        # self._gamma0 = gamma0
-        # self._mass0 = mass0
         return self
-
-    # def copy(self, *args, **kwargs):
-    #     """Create a copy of the monitor including its data."""
-    #     line = self.line
-    #     del self._line    # Have to delete to avoid copying all line elements (including monitor itself)
-    #     new_monitor = super().copy(*args, **kwargs)
-    #     self._line = line # Restore
-    #     new_monitor._line = line
-    #     return new_monitor
 
     @classmethod
     def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
@@ -305,6 +290,24 @@ class ParticleStatsMonitor(xt.BeamElement):
         self.configure(line)
         return self
 
+    def configure(self, line=None, *, beta0=None, gamma0=None, mass0=None):
+        """Set optics parameters from line's reference particle. If
+        `line` is not provided, `beta0`, `gamma0` and `mass0` must be
+        provided explicitly.
+        """
+        if beta0 is not None and gamma0 is not None and mass0 is not None:
+            self._beta0 = beta0
+            self._gamma0 = gamma0
+            self._mass0 = mass0
+        elif line is not None and hasattr(line, 'particle_ref') \
+        and line.particle_ref is not None:
+            self._beta0 = line.particle_ref.beta0[0]
+            self._gamma0 = line.particle_ref.gamma0[0]
+            self._mass0 = line.particle_ref.mass0
+        else:
+            raise ValueError("Either a line with a particle_ref, or beta0, "
+                             "gamma0 and mass0 must be provided!")
+
     def reset(self):
         """Reset the monitor data (to avoid unwanted accumulation)."""
         for field in [f.name for f in ParticleStatsMonitorRecord._fields]:
@@ -313,23 +316,6 @@ class ParticleStatsMonitor(xt.BeamElement):
             setattr(self.data, field, zeros)
         for i in np.arange(len(self.count)):
             self.cached[i] = 0
-
-    def configure(self, line=None, *, beta0=None, gamma0=None, mass0=None):
-        """Set optics parameters from line's reference particle. If
-        `line` is not provided, `beta0`, `gamma0` and `mass0` must be
-        provided explicitly.
-        """
-        if line is not None:
-            self._beta0 = line.particle_ref.beta0[0]
-            self._gamma0 = line.particle_ref.gamma0[0]
-            self._mass0 = line.particle_ref.mass0
-        elif beta0 is None or gamma0 is None or mass0 is None:
-            raise ValueError("Either line or beta0, gamma0 and mass0 must be "
-                             "provided!")
-        else:
-            self._beta0 = beta0
-            self._gamma0 = gamma0
-            self._mass0 = mass0
 
     @property
     def beta0(self):

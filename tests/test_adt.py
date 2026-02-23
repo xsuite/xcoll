@@ -46,9 +46,9 @@ def test_blow_up(beam, plane, test_context):
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
-        adt.calibrate_by_emittance(nemitt=nemitt_x)
+        adt.calibrate_by_emittance(nemitt=nemitt_x, line=line)
     else:
-        adt.calibrate_by_emittance(nemitt=nemitt_y)
+        adt.calibrate_by_emittance(nemitt=nemitt_y, line=line)
 
     part = xp.generate_matched_gaussian_bunch(num_particles=num_part, total_intensity_particles=1.6e11,
                                               nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line,
@@ -82,19 +82,8 @@ def test_blow_up(beam, plane, test_context):
     mon2 = xc.EmittanceMonitor.from_json(outfile)
     dct1 = mon.to_dict()
     dct2 = mon2.to_dict()
-    # TODO: this compares ArrNFloat64 ids, however, should do to_nparray()
     assert xc.compare.deep_equal(dct1, dct2, rtol=1e-15, atol=1e-15,
                                  expand_numpy_and_hybridclass=True)
-    # # assert xt.line._dicts_equal(dct1, dct2)
-    # assert set(dct1.keys()) == set(dct2.keys())
-    # assert set(dct1['data'].keys()) == set(dct2['data'].keys())
-    # for kk in dct1['data'].keys():
-    #     assert np.allclose(dct1['data'][kk].to_nparray(), dct2['data'][kk].to_nparray(),
-    #                        rtol=1e-15, atol=1e-15)
-    # dct1.pop('data')
-    # dct2.pop('data')
-    # assert xt.line._dicts_equal(dct1, dct2)
-
     outfile.unlink()
 
 
@@ -116,9 +105,9 @@ def test_monitor_reset(test_context):
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
-        adt.calibrate_by_emittance(nemitt=nemitt_x)
+        adt.calibrate_by_emittance(nemitt=nemitt_x, line=line)
     else:
-        adt.calibrate_by_emittance(nemitt=nemitt_y)
+        adt.calibrate_by_emittance(nemitt=nemitt_y, line=line)
 
     part_init = xp.generate_matched_gaussian_bunch(num_particles=int(num_part/5), total_intensity_particles=1.6e11,
                                                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=7.55e-2, line=line)

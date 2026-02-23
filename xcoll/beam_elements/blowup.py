@@ -8,7 +8,6 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-# TODO: remove line and name
 
 class BlowUp(xt.BeamElement):
     _xofields = {
@@ -31,7 +30,8 @@ class BlowUp(xt.BeamElement):
 
     _noexpr_fields    = {'plane', 'name', 'line'}
     _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
-    _store_in_to_dict = ['amplitude', 'plane', 'calibration']
+    _store_in_to_dict = ['amplitude', 'plane', 'calibration', 'beta0',
+                         'gamma0', 'name']
 
     _depends_on = [xt.RandomUniform]
     _extra_c_sources = [
@@ -45,25 +45,35 @@ class BlowUp(xt.BeamElement):
             stop_at_turn  = int(kwargs.get('stop_at_turn', start_at_turn+1))
             kwargs['start_at_turn'] = start_at_turn
             kwargs['stop_at_turn'] = stop_at_turn
-            kwargs['_rans'] = 2*np.random.uniform(size=stop_at_turn-start_at_turn) - 1
+            rans = np.random.uniform(size=stop_at_turn-start_at_turn)
+            kwargs['_rans'] = 2*rans - 1
             if 'plane' in kwargs:
                 to_assign['plane'] = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
             to_assign['amplitude'] = kwargs.pop('amplitude', 1)
             kwargs['_calibration'] = 1.
+            to_assign['_beta0'] = kwargs.pop('beta0', None)
+            to_assign['_gamma0'] = kwargs.pop('gamma0', None)
+            to_assign['_name'] = kwargs.pop('name', None)
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, **kwargs):
+    def install(cls, line, name, *, at_s=None, at=None, need_apertures=True,
+                aperture=None, s_tol=1.e-6, **kwargs):
+        """Shortcut to install a BlowUp in a line, which also sets the
+        optics parameters. If `need_apertures` is True, the BlowUp will
+        be installed together with upstream and downstream apertures.
+        """
         self = cls(**kwargs)
         if name in line.element_names:
-            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
-        line.insert_element(element=self, name=name, at_s=at_s, at=at, s_tol=s_tol)
+            raise ValueError(f"Element {name} already exists in the line as "
+                             f"{line[name].__class__.__name__}.")
+        line.insert_element(element=self, name=name, at_s=at_s, at=at,
+                            s_tol=s_tol)
         self._name = name
-        self._line = line
         if need_apertures:
             if aperture is not None:
                 aper_upstream   = aperture.copy()
@@ -81,10 +91,28 @@ class BlowUp(xt.BeamElement):
                         aper_downstream = line.elements[idx].copy()
                         break
                     idx += 1
-            line.insert_element(element=aper_upstream, name=f'{name}_aper_upstream', at=name, s_tol=s_tol)
+            line.insert_element(element=aper_upstream, at=name, s_tol=s_tol,
+                                name=f'{name}_aper_upstream')
             idx = line.element_names.index(name) + 1
-            line.insert_element(element=aper_downstream, name=f'{name}_aper_downstream', at=idx, s_tol=s_tol)
+            line.insert_element(element=aper_downstream, at=idx, s_tol=s_tol,
+                                name=f'{name}_aper_downstream')
+        if hasattr(line, 'particle_ref') and line.particle_ref is not None:
+            self._beta0 = line.particle_ref.beta0[0]
+            self._gamma0 = line.particle_ref.gamma0[0]
         return self
+
+
+    @property
+    def beta0(self):
+        return self._beta0
+
+    @property
+    def gamma0(self):
+        return self._gamma0
+
+    @property
+    def name(self):
+        return self._name
 
 
     @property
@@ -103,7 +131,8 @@ class BlowUp(xt.BeamElement):
         elif val.lower() == 'v':
             self._plane = -1
         else:
-            raise ValueError("The plane of the BlowUp must be either 'H' or 'V'.")
+            raise ValueError("The plane of the BlowUp must be either 'H' or "
+                             "'V'.")
 
     @property
     def amplitude(self):
@@ -127,66 +156,60 @@ class BlowUp(xt.BeamElement):
         self._calibration = val
         self.amplitude = previous_amplitude
 
-    @property
-    def name(self):
-        if not hasattr(self, '_name'):
-            raise ValueError("Name not set! Install the blow-up using xc.BlowUp.install() "
-                             "or manually set the name after installation.")
-        return self._name
 
-    @name.setter
-    def name(self, val):
-        self._name = val
-
-    @property
-    def line(self):
-        if not hasattr(self, '_line'):
-            raise ValueError("Line not set! Install the blow-up using xc.BlowUp.install() "
-                             "or manually set the line after installation.")
-        return self._line
-
-    @line.setter
-    def line(self, val):
-        self._line = val
-
-
-    def calibrate_by_emittance(self, nemitt, *, twiss=None, beta_gamma_rel=None):
-        # The emittance gained per turn of blow up can be calculated as follows:
+    def calibrate_by_emittance(self, nemitt, *, line=None, twiss=None,
+                               name=None, beta0=None, gamma0=None):
+        # The emittance gained per turn of blow up can be calculated as
+        # follows:
         #     <px^2> = gamma * eps
         #     gamma * eps = <px^2> = <(px0 + dpx)^2>
-        # where px0 is the initial momentum and dpx is the kick, and eps0 and eps
-        # are the geometric emittance before resp. after the kick, and gamma is the
-        # Courant-Snyder parameter.
-        # If each particle gets another random kick, we can write:
+        # where px0 is the initial momentum and dpx is the kick, and
+        # eps0 and eps are the geometric emittance before resp. after
+        # the kick, and gamma is the Courant-Snyder parameter. If each
+        # particle gets another random kick, we can write:
         #     <(px0 + dpx)^2> = <px0^2> + 2<px0 dpx> + <dpx^2>
         #                     = gamma * eps0 + 2<px0 dpx> + 1/3 dpx_max^2    (variance of uniform distribution is 1/12(b-a)^2)
         # The covariance can be estimated with an upper bound:
         #     0  <=  2<px0 dpx>  <=  2*sqrt(<px0^2> <dpx^2>)
         #                         = 2/sqrt(3) * sqrt(gamma * eps0) * dpx_max
-        # So that we finally get for the emittance growth after one turn of blow-up:
+        # So that we finally get for the emittance growth after one turn
+        # of blow-up:
         #     deps = (eps-eps0)/eps0 = [dPM^2, dPM^2 + 2dPM]    (dPM = dpx_max/sqrt(3 * gamma * eps0))
         # Or, to get an emittance growth of deps, we need:
         #     dpx_max = [sqrt(3* gamma * eps0 * deps), sqrt(3 * gamma * eps0)*(sqrt(1+deps) -1)]
         # If all particles get the same kick, we can write:
         #     <(px0 + dpx)^2> = <px0^2> + 2<px0> dpx
-        # However, now things get a bit more complicated. At the start <px0> is the closed orbit,
-        # but when the bunch has had a kick in the previous turn, the bunch is no longer centred
-        # around the closed orbit. We can write:
+        # However, now things get a bit more complicated. At the start
+        # <px0> is the closed orbit, but when the bunch has had a kick
+        # in the previous turn, the bunch is no longer centred around
+        # the closed orbit. We can write:
         #     deps = (eps-eps0)/eps0 = 2<px0> dpx/gamma/eps0
-        name = self.name
-        line = self.line
-        if beta_gamma_rel is None:
-            if not hasattr(line, 'particle_ref'):
-                raise ValueError("The provided line has no reference particle. Use the argument `beta_gamma_rel`")
-            beta_gamma_rel = line.particle_ref.gamma0[0]*line.particle_ref.beta0[0]
+        if beta0 is None or gamma0 is None:
+            if self._beta0 is not None and self._gamma0 is not None:
+                beta0 = self._beta0
+                gamma0 = self._gamma0
+            elif line is not None and hasattr(line, 'particle_ref') \
+            and line.particle_ref is not None:
+                beta0 = line.particle_ref.beta0[0]
+                gamma0 = line.particle_ref.gamma0[0]
+            else:
+                raise ValueError("Either a line with a particle_ref, or "
+                                 "beta0 and gamma0 must be provided!")
         if twiss is None:
+            if line is None:
+                raise ValueError("Either `line` or `twiss` must be provided!")
             twiss = line.twiss(reverse=False)
-        gamma = twiss.rows[name][f"gam{'x' if self.plane == 'H' else 'y'}"][0]
-        # Asumming a Gaussian beam, we will have shifted all beam beyond 5 sigma with an emittance growth
-        # of around a factor 60. In practive, a ~50x increase is enough due to the covariance terms.
-        # We want to do this slowly, over 1000 turns.
+        coord = f"gam{'x' if self.plane == 'H' else 'y'}"
+        if name is None:
+            name = self.name
+        gamma = twiss.rows[name][coord][0]
+        # Asumming a Gaussian beam, we will have shifted all beam beyond
+        # 5 sigma with an emittance growth of around a factor 60. In
+        # practice, a ~50x increase is enough due to the covariance
+        # terms. We want to do this slowly, over 1000 turns.
         deps = 50/1000
-        self.calibration = np.sqrt(3*gamma*nemitt/beta_gamma_rel*deps)
+        gemitt = nemitt / beta0 / gamma0
+        self.calibration = np.sqrt(3*gamma*gemitt*deps)
 
     def activate(self):
         self._active = True
