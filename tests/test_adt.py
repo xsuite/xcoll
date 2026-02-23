@@ -27,6 +27,11 @@ path = Path(__file__).parents[1] / 'examples' / 'machines'
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blow_up(beam, plane, test_context):
+    # Check for leftover file from previous test runs and remove it if exists
+    outfile = Path(f'monitor_{beam}{plane}{test_context}.json')
+    if outfile.exists():
+        outfile.unlink()
+
     env = xt.load(path / f'lhc_run3_b{beam}_no_aper.json')
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
@@ -72,25 +77,25 @@ def test_blow_up(beam, plane, test_context):
             assert all([abs(nn-nemitt_x)/nemitt_x < 1.e-1 for nn in mon.nemitt_x])
 
     # Quick test to check storing
-    file = Path(f'monitor_{beam}{plane}{test_context}.json')
-    assert not file.exists()
-    mon.to_json(file)
-    assert file.exists()
-    mon2 = xc.EmittanceMonitor.from_json(file)
+    mon.to_json(outfile)
+    assert outfile.exists()
+    mon2 = xc.EmittanceMonitor.from_json(outfile)
     dct1 = mon.to_dict()
     dct2 = mon2.to_dict()
     # TODO: this compares ArrNFloat64 ids, however, should do to_nparray()
+    assert xc.compare.deep_equal(dct1, dct2, rtol=1e-15, atol=1e-15,
+                                 expand_numpy_and_hybridclass=True)
+    # # assert xt.line._dicts_equal(dct1, dct2)
+    # assert set(dct1.keys()) == set(dct2.keys())
+    # assert set(dct1['data'].keys()) == set(dct2['data'].keys())
+    # for kk in dct1['data'].keys():
+    #     assert np.allclose(dct1['data'][kk].to_nparray(), dct2['data'][kk].to_nparray(),
+    #                        rtol=1e-15, atol=1e-15)
+    # dct1.pop('data')
+    # dct2.pop('data')
     # assert xt.line._dicts_equal(dct1, dct2)
-    assert set(dct1.keys()) == set(dct2.keys())
-    assert set(dct1['data'].keys()) == set(dct2['data'].keys())
-    for kk in dct1['data'].keys():
-        assert np.allclose(dct1['data'][kk].to_nparray(), dct2['data'][kk].to_nparray(),
-                           rtol=1e-15, atol=1e-15)
-    dct1.pop('data')
-    dct2.pop('data')
-    assert xt.line._dicts_equal(dct1, dct2)
 
-    file.unlink()
+    outfile.unlink()
 
 
 @for_all_test_contexts

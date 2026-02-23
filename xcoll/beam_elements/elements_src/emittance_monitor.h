@@ -25,16 +25,6 @@ void EmittanceMonitor_track_local_particle(
     ParticleStatsMonitor_track_local_particle(
         (ParticleStatsMonitorData) el, part0
     );
-
-    // Set the cached modes to 0 for the emittance monitor
-    START_PER_PARTICLE_BLOCK(part0, part);
-        int64_t slot = ParticleStatsMonitor_get_slot(
-            (ParticleStatsMonitorData) el, part
-        );
-        if (slot >= 0){
-            EmittanceMonitorData_set_cached_modes(el, slot, 0);
-        }
-	END_PER_PARTICLE_BLOCK;
 }
 
 #endif /* XCOLL_EMITTANCE_MONITOR_H */
