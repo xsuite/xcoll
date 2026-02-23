@@ -8,8 +8,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from ..general import _pkg_root
-
+# TODO: remove line and name
 
 class BlowUp(xt.BeamElement):
     _xofields = {
@@ -36,8 +35,8 @@ class BlowUp(xt.BeamElement):
 
     _depends_on = [xt.RandomUniform]
     _extra_c_sources = [
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'beam_elements/elements_src/blowup.h']
+        "#include <xcoll/beam_elements/elements_src/blowup.h>"
+    ]
 
     def __init__(self, **kwargs):
         to_assign = {}
@@ -45,13 +44,13 @@ class BlowUp(xt.BeamElement):
             start_at_turn = int(kwargs.get('start_at_turn', 0))
             stop_at_turn  = int(kwargs.get('stop_at_turn', start_at_turn+1))
             kwargs['start_at_turn'] = start_at_turn
-            kwargs['stop_at_turn']  = stop_at_turn
+            kwargs['stop_at_turn'] = stop_at_turn
             kwargs['_rans'] = 2*np.random.uniform(size=stop_at_turn-start_at_turn) - 1
             if 'plane' in kwargs:
-                to_assign['plane']   = kwargs.pop('plane')
+                to_assign['plane'] = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
-            to_assign['amplitude']   = kwargs.pop('amplitude', 1)
-            kwargs['_calibration']   = 1.
+            to_assign['amplitude'] = kwargs.pop('amplitude', 1)
+            kwargs['_calibration'] = 1.
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)

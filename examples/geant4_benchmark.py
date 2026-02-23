@@ -1,12 +1,8 @@
 import numpy as np
 import xpart as xp
 import xtrack as xt
-import xtrack.particles.pdg as pdg
 import xcoll as xc
-from  xcoll import constants as xcs
 import time
-
-import matplotlib.pyplot as plt
 
 
 if xc.geant4.engine.is_running():

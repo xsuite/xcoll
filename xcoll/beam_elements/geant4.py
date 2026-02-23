@@ -32,7 +32,7 @@ class Geant4Collimator(BaseCollimator):
     _depends_on = [BaseCollimator, Geant4Engine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','geant4_collimator.h')
+        "#include <xcoll/beam_elements/elements_src/geant4_collimator.h>"
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
@@ -159,7 +159,7 @@ class Geant4CollimatorTip(Geant4Collimator):
     skip_in_loss_location_refinement = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements', 'elements_src', 'geant4_collimator_tip.h')
+        "#include <xcoll/beam_elements/elements_src/geant4_collimator_tip.h>"
     ]
 
     _depends_on = [*Geant4Collimator._depends_on]

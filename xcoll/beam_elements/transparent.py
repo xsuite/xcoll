@@ -16,14 +16,10 @@ class TransparentCollimator(BaseCollimator):
     }
 
     allow_track      = True
-    _depends_on      = [XcollGeometry, xt.RandomRutherford]
+    _depends_on      = [XcollGeometry]
     _extra_c_sources = [
-        xt._pkg_root / 'headers/checks.h',
-        xt._pkg_root / 'headers/particle_states.h',
-        xt._pkg_root / 'random/random_src/rutherford.h',
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'headers/checks.h',
-        _pkg_root / 'beam_elements/elements_src/transparent_collimator.h']
+        "#include <xcoll/beam_elements/elements_src/transparent_collimator.h>"
+    ]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
@@ -39,14 +35,10 @@ class TransparentCrystal(BaseCrystal):
     }
 
     allow_track      = True
-    _depends_on      = [XcollGeometry, xt.RandomRutherford]
+    _depends_on      = [XcollGeometry]
     _extra_c_sources = [
-        xt._pkg_root / 'headers/checks.h',
-        xt._pkg_root / 'headers/particle_states.h',
-        xt._pkg_root / 'random/random_src/rutherford.h',
-        _pkg_root / 'headers/checks.h',
-        _pkg_root / 'headers/particle_states.h',
-        _pkg_root / 'beam_elements/elements_src/transparent_crystal.h']
+        "#include <xcoll/beam_elements/elements_src/transparent_crystal.h>"
+    ]
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:

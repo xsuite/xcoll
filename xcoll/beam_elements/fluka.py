@@ -36,7 +36,7 @@ class FlukaCollimator(BaseCollimator):
     _depends_on = [BaseCollimator, FlukaEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','fluka_collimator.h')
+        "#include <xcoll/beam_elements/elements_src/fluka_collimator.h>"
     ]
 
     _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
@@ -294,7 +294,7 @@ class FlukaCrystal(BaseCrystal):
     _depends_on = [BaseCrystal, FlukaEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','fluka_crystal.h')
+        "#include <xcoll/beam_elements/elements_src/fluka_crystal.h>"
     ]
 
     _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']

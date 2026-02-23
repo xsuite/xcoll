@@ -6,9 +6,8 @@
 import xobjects as xo
 import xtrack as xt
 
-from .interaction_types import interactions_src, interaction_names, shortcuts
+from .interaction_types import interaction_names, shortcuts
 from ..general import _pkg_root
-from ..headers.particle_states import particle_states_src
 
 import numpy as np
 import pandas as pd
@@ -58,9 +57,7 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        interactions_src,
-        particle_states_src,
-        _pkg_root.joinpath('interaction_record','interaction_record_src','interaction_record.h')
+        "#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>"
     ]
 
 

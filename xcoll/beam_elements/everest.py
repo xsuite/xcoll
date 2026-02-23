@@ -9,7 +9,6 @@ import xtrack as xt
 from .base import BaseBlock, BaseCollimator, BaseCrystal
 from ..scattering_routines.everest import EverestEngine
 from ..materials import Material, _DEFAULT_MATERIAL, _resolve_material
-from ..general import _pkg_root
 
 
 # TODO:
@@ -43,7 +42,7 @@ class EverestBlock(BaseBlock):
     _depends_on = [BaseBlock, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','everest_block.h')
+        "#include <xcoll/beam_elements/elements_src/everest_block.h>"
     ]
 
     _kernels = {
@@ -99,7 +98,7 @@ class EverestCollimator(BaseCollimator):
     _depends_on = [BaseCollimator, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','everest_collimator.h')
+        "#include <xcoll/beam_elements/elements_src/everest_collimator.h>"
     ]
 
     _kernels = {
@@ -159,7 +158,7 @@ class EverestCrystal(BaseCrystal):
     _depends_on = [BaseCrystal, EverestEngine]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements','elements_src','everest_crystal.h')
+        "#include <xcoll/beam_elements/elements_src/everest_crystal.h>"
     ]
 
     _kernels = {

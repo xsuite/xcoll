@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from enum import Enum
+from pathlib import Path
 from warnings import warn
 from types import MappingProxyType, ModuleType
 from typing import Dict, Mapping, Optional, Union, Tuple, Type, List, Set
@@ -597,6 +598,13 @@ class _ConstantsMeta(type):
         if include_groups and hasattr(cls, "_groups") and f"{category}_groups" not in all_list:
             all_list.append(f"{category}_groups")
         setattr(mod, "__all__", all_list)
+
+    def export_src(cls, path: str | Path) -> None:
+        """Export C header file with the defined constants."""
+        mod = sys.modules[cls.__module__]
+        plural = cls._plural_
+        with open(path, "w") as f:
+            f.write(getattr(mod, f"{plural}_src"))
 
 
 class Constants(metaclass=_ConstantsMeta):
