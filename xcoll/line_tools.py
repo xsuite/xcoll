@@ -261,14 +261,34 @@ class XcollCollimatorAPI(XcollLineAccessor):
             el._name = name
 
         # Install
-        self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)
+        insertions = []
+        env = self.line.env
+        to_be_removed = []
+        for nn, ee, ss in zip(names, elements, s_start):
+            if nn in env.elements:
+                # remove placeholders wth the same name
+                to_be_removed.append(nn)
+            insertions.append(env.place(nn, at=ss, anchor='start'))
 
-        # Install apertures
+        if len(to_be_removed) > 0:
+            self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
+
+        # remove old elements from environment (after placing new ones to avoid issues with names)
+        for nn in to_be_removed:
+            del env.elements[nn]
+
+        # Add new elements to environment
+        for nn, ee in zip(names, elements):
+            env.elements[nn] = ee
+
+        # Apertures
         if need_apertures:
             for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream, aper_downstream):
-                self.line.insert_element(element=aper1, name=f'{name}_aper_upstream', at=name, s_tol=s_tol)
-                idx = self.line.element_names.index(name) + 1
-                self.line.insert_element(element=aper2, name=f'{name}_aper_downstream', at=idx, s_tol=s_tol)
+                env.elements[f'{name}_aper_upstream'] = aper1
+                env.elements[f'{name}_aper_downstream'] = aper2
+                insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
+                insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+        self.line.insert(insertions, s_tol=s_tol)
 
     def check_position(self, name, *, s_start, s_end, at_s, length=None, s_tol=1.e-6):
         if at_s is None:
