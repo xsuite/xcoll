@@ -270,7 +270,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 to_be_removed.append(nn)
             insertions.append(env.place(nn, at=ss, anchor='start'))
 
-        self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
+        if len(to_be_removed) > 0:
+            self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
 
         # remove old elements from environment (after placing new ones to avoid issues with names)
         for nn in to_be_removed:
