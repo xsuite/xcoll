@@ -57,14 +57,20 @@ double do_nuclear_interaction(EverestData restrict everest, FindRoot finder, Loc
         }
         if (min_index == 1){
             // Inelastic
+            //die 
         } else if (min_index == 2){
             // Elastic
+            double b;
+            get_slope_hadron_nucleus(&A, &ecmsq, &b);
         } else if (min_index == 3){
             // Production
+            // die?
         } else if (min_index == 4){
             // Single diffractive
+            get_slope_single_diffraction(&ecmsq, &b);
         } else if (min_index == 5){
             // Proton-proton / proton-neutron
+            get_slope_proton_proton(&ecmsq, &b);
         }
     }
 }
