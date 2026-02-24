@@ -263,13 +263,22 @@ class XcollCollimatorAPI(XcollLineAccessor):
         # Install
         insertions = []
         env = self.line.env
+        to_be_removed = []
         for nn, ee, ss in zip(names, elements, s_start):
             if nn in env.elements:
                 # remove placeholders wth the same name
-                self.line.remove(nn, s_tol=s_tol) # replaces it with a drift if needed
-                del env.elements[nn]
-            env.elements[nn] = ee
+                to_be_removed.append(nn)
             insertions.append(env.place(nn, at=ss, anchor='start'))
+
+        self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
+
+        # remove old elements from environment (after placing new ones to avoid issues with names)
+        for nn in to_be_removed:
+            del env.elements[nn]
+
+        # Add new elements to environment
+        for nn, ee in zip(names, elements):
+            env.elements[nn] = ee
 
         # Apertures
         if need_apertures:
