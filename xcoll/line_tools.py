@@ -261,8 +261,6 @@ class XcollCollimatorAPI(XcollLineAccessor):
             el._name = name
 
         # Install
-        # self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)
-
         insertions = []
         env = self.line.env
         for nn, ee, ss in zip(names, elements, s_start):
@@ -273,7 +271,7 @@ class XcollCollimatorAPI(XcollLineAccessor):
             env.elements[nn] = ee
             insertions.append(env.place(nn, at=ss, anchor='start'))
 
-        # Install apertures
+        # Apertures
         if need_apertures:
             for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream, aper_downstream):
                 env.elements[f'{name}_aper_upstream'] = aper1
