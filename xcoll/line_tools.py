@@ -261,18 +261,26 @@ class XcollCollimatorAPI(XcollLineAccessor):
             el._name = name
 
         # Install
-        self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)
+        # self.line._insert_thick_elements_at_s(element_names=list(names), elements=elements, at_s=s_start, s_tol=s_tol)
+
+        insertions = []
+        env = self.line.env
+        for nn, ee, ss in zip(names, elements, s_start):
+            if nn in env.elements:
+                # remove placeholders wth the same name
+                self.line.remove(nn, s_tol=s_tol) # replaces it with a drift if needed
+                del env.elements[nn]
+            env.elements[nn] = ee
+            insertions.append(env.place(nn, at=ss, anchor='start'))
 
         # Install apertures
         if need_apertures:
-            insertions = []
-            env = self.line.env
             for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream, aper_downstream):
                 env.elements[f'{name}_aper_upstream'] = aper1
                 env.elements[f'{name}_aper_downstream'] = aper2
                 insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
                 insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
-            self.line.insert(insertions, s_tol=s_tol)
+        self.line.insert(insertions, s_tol=s_tol)
 
     def check_position(self, name, *, s_start, s_end, at_s, length=None, s_tol=1.e-6):
         if at_s is None:
