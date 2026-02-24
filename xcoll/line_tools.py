@@ -265,10 +265,14 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
         # Install apertures
         if need_apertures:
+            insertions = []
+            env = self.line.env
             for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream, aper_downstream):
-                self.line.insert_element(element=aper1, name=f'{name}_aper_upstream', at=name, s_tol=s_tol)
-                idx = self.line.element_names.index(name) + 1
-                self.line.insert_element(element=aper2, name=f'{name}_aper_downstream', at=idx, s_tol=s_tol)
+                env.elements[f'{name}_aper_upstream'] = aper1
+                env.elements[f'{name}_aper_downstream'] = aper2
+                insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
+                insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+            self.line.insert(insertions, s_tol=s_tol)
 
     def check_position(self, name, *, s_start, s_end, at_s, length=None, s_tol=1.e-6):
         if at_s is None:
