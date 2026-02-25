@@ -6,19 +6,25 @@
 #ifndef XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 
-double do_nuclear_interaction(EverestData restrict everest, FindRoot finder, LocalTrajectory traj, MaterialData restrict material, double pc) {
+/*gpufun*/
+double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part, FindRoot finder, 
+                              LocalTrajectory traj, MaterialData restrict material, double pc) {
     // 0 get lengths
     // 1 compare lengths
     // 2 either return for MCS or do nuclear interaction
     // 3 if nuclear interaction, get remanining lengths and do nucl int
-
     double interaction_length_tot;
-    double A = MaterialData_get__atomic_mass(material);
+    double A          = MaterialData_get__atomic_mass(material);
     double molar_mass = MaterialData_get__molar_mass(material);
-    double rho = MaterialData_get__density(material);
-    everest->ecmsq = 2*XC_PROTON_MASS*1.0e-3*pc;
-    double ecmsq = everest->ecmsq;
-    total_cross_section(material, &interaction_length_tot, &A, &molar_mass, &rho, &ecmsq);
+    double rho        = MaterialData_get__density(material);
+    everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
+    double sqrt_s      = sqrt(everest->ecmsq);
+
+    InteractionRecordData record = everest->coll->record;
+    RecordIndex record_index     = everest->coll->record_index;
+    int8_t scatter               = everest->coll->record_scatterings;
+
+    total_cross_section(material, &interaction_length_tot, &A, &molar_mass, &rho, &sqrt_s);
     FindRoot_find_path_length(finder, traj);
     double mcs_path_length = FindRoot_get_path_length(finder);
 
@@ -30,12 +36,14 @@ double do_nuclear_interaction(EverestData restrict everest, FindRoot finder, Loc
         // Nuclear interaction dominates: return path length for nuclear interaction and do the interaction
         double interaction_length_inel, interaction_length_el, interaction_length_prod, interaction_length_sd;
         double interaction_length_pp_pn;
-        get_interaction_length(everest, &interaction_length_inel, &A, &molar_mass, &rho, &ecmsq, &interaction_length_tot, 2);
-        get_interaction_length(everest, &interaction_length_el, &A, &molar_mass, &rho, &ecmsq, &interaction_length_tot, 3);
-        get_interaction_length(everest, &interaction_length_prod, &A, &molar_mass, &rho, &ecmsq, &interaction_length_tot, 4);
-        get_interaction_length(everest, &interaction_length_sd, &A, &molar_mass, &rho, &ecmsq, &interaction_length_tot, 6);
-        get_interaction_length(everest, &interaction_length_pp_pn, &A, &molar_mass, &rho, &ecmsq, &interaction_length_tot, 7);
-
+        // TODO: Is absorbed = prod + inel?
+        get_interaction_length(everest, &interaction_length_inel, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 1);
+        get_interaction_length(everest, &interaction_length_el, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 2);
+        get_interaction_length(everest, &interaction_length_prod, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 3);
+        get_interaction_length(everest, &interaction_length_sd, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 5);
+        get_interaction_length(everest, &interaction_length_pp_pn, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 6);
+        // add Coulomb
+    
         double min_length = interaction_length_inel;
         int min_index = 1;  // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn
 
@@ -55,22 +63,72 @@ double do_nuclear_interaction(EverestData restrict everest, FindRoot finder, Loc
             min_length = interaction_length_pp_pn;
             min_index = 5;
         }
+        if (interaction_length_coulomb < min_length) {
+            min_length = interaction_length_coulomb;
+            min_index = 6;
+        }
         if (min_index == 1){
             // Inelastic
-            //die 
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);
+
+            //die
         } else if (min_index == 2){
             // Elastic
-            double b;
-            get_slope_hadron_nucleus(&A, &ecmsq, &b);
+            double b_nuclear_elastic;
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
+            get_slope_hadron_nucleus(&A, &b_nuclear_elastic);
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/b_nuclear_elastic)/pc;
+
         } else if (min_index == 3){
             // Production
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);
             // die?
+
         } else if (min_index == 4){
             // Single diffractive
-            get_slope_single_diffraction(&ecmsq, &b);
+            double pc_in = pc;
+            pc = pc*(1 - xm2/everest->sqrt_s);
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
+
+            if (pc <= 1.e-9 || pc != pc) {
+                // Very small (<1eV) or NaN
+                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+                pc = 1.e-9; 
+                sqrt_t_p = 0;
+            } else {
+                get_slope_single_diffraction(everest->ecmsq, &b_sd);
+                sqrt_t_p = sqrt(RandomExponential_generate(part)/b_sd)/sqrt(pc_in*pc);
+            }
+
         } else if (min_index == 5){
             // Proton-proton / proton-neutron
-            get_slope_proton_proton(&ecmsq, &b);
+            double b_pp_pn;
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+            get_slope_proton_proton(everest->ecmsq, &b_pp_pn);
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/b_pp_pn)/pc;
+
+        } else if (min_index == 6){
+            // Coulomb
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
+            sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
+
+        } else {
+            // Unsupported interaction type
         }
+        double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
+        double alpha = 2*M_PI*RandomUniform_generate(part);
+        double tan_theta_x = tan_theta*cos(alpha);
+        double tan_theta_y = tan_theta*sin(alpha);
+
+        // Change the angles
+        #ifdef XCOLL_USE_EXACT
+                LocalParticle_add_to_exact_xp_yp(part, tan_theta_x, tan_theta_y);
+        #else
+                LocalParticle_add_to_xp_yp(part, tan_theta_x, tan_theta_y);
+        #endif
+
+            if (sc) InteractionRecordData_log_child(record, i_slot, part);
     }
+    return pc;
 }
