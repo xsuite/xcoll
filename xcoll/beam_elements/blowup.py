@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
@@ -60,14 +61,18 @@ class BlowUp(InvalidXcoll):
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, **kwargs):
-        self = cls(**kwargs)
+    def install(cls, line, name, *, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, at_s=None, **kwargs):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+        self = cls(**kwargs)
         env = line.env
         env.elements[name] = self
         insertions = []
-        insertions.append(env.place(name, at=at_s))
+        insertions.append(env.place(name, at=at))
         self._name = name
         self._line = line
         if need_apertures:

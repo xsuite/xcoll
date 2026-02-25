@@ -32,9 +32,9 @@ def test_blow_up(beam, plane, test_context):
     tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
     tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
     adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
+    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=False, plane=plane,
                             stop_at_turn=num_turns, use_individual_kicks=True)
-    mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns)
+    mon = xc.EmittanceMonitor.install(line, name="monitor", at=adt_pos, stop_at_turn=num_turns)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
@@ -80,9 +80,9 @@ def test_monitor_reset(test_context):
     tank_start = f'adtk{plane.lower()}.{pos}.a.b{beam}'
     tank_end   = f'adtk{plane.lower()}.{pos}.d.b{beam}'
     adt_pos = 0.5*line.get_s_position(tank_start) + 0.5*line.get_s_position(tank_end)
-    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at_s=adt_pos, need_apertures=False, plane=plane,
+    adt = xc.BlowUp.install(line, name=f'{name}_blowup', at=adt_pos, need_apertures=False, plane=plane,
                             stop_at_turn=num_turns, use_individual_kicks=True)
-    mon = xc.EmittanceMonitor.install(line, name="monitor", at_s=adt_pos, stop_at_turn=num_turns)
+    mon = xc.EmittanceMonitor.install(line, name="monitor", at=adt_pos, stop_at_turn=num_turns)
 
     line.build_tracker(_context=test_context)
     if plane == 'H':
