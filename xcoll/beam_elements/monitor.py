@@ -4,11 +4,13 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
 
 from ..general import _pkg_root
+
 
 class EmittanceMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
@@ -147,11 +149,15 @@ class EmittanceMonitor(xt.BeamElement):
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
-        self = cls(**kwargs)
+    def install(cls, line, name, *, at=None, s_tol=1.e-6, at_s=None, **kwargs):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
-        line.insert(name, self, at=at_s, s_tol=s_tol)
+        self = cls(**kwargs)
+        line.insert(name, self, at=at, s_tol=s_tol)
         self._name = name
         self._line = line
         return self
@@ -385,17 +391,23 @@ class EmittanceMonitor(xt.BeamElement):
                       [ 0., 0.,-1., 0., 0., 0.],
                       [ 0., 0., 0., 0., 0., 1.],
                       [ 0., 0., 0., 0.,-1., 0.]])
-        gemitt_I   = []
-        gemitt_II  = []
-        gemitt_III = []
 
-        N = N[mask]
+        # Create arrays for modes in attributes if needed
+        for nn in ['gemitt_I', 'gemitt_II', 'gemitt_III']:
+            if getattr(self, f'_{nn}', None) is None:
+                arr = np.full(N.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+
+        # Loop over turns
         for i in range(len(N)):
+            if not mask[i]:
+                continue
+
             if N[i] < 25:
                 # Not enough statistics for a reliable calculation of the modes
-                gemitt_I.append(0)
-                gemitt_II.append(0)
-                gemitt_III.append(0)
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
                 continue
 
             if self.horizontal:
@@ -443,9 +455,9 @@ class EmittanceMonitor(xt.BeamElement):
 
             # Check for all zero matrix -> zero emittance
             if np.all(covariance_S < 1E-16):
-                gemitt_I.append(0)
-                gemitt_II.append(0)
-                gemitt_III.append(0)
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
                 continue
 
             cond_number = np.linalg.cond(covariance_S)
@@ -462,22 +474,12 @@ class EmittanceMonitor(xt.BeamElement):
 
             from xtrack.linear_normal_form import compute_linear_normal_form
             _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
-            gemitt_I.append(eigenvalues[0].imag)
-            gemitt_II.append(eigenvalues[1].imag)
-            gemitt_III.append(eigenvalues[2].imag)
+            self._gemitt_I[i] = eigenvalues[0].imag
+            self._gemitt_II[i] = eigenvalues[1].imag
+            self._gemitt_III[i] = eigenvalues[2].imag
 
-        # Set calculated modes as cached
-        for i in np.arange(len(self.count))[mask]:
+            # Set calculated modes as cached
             self.data.cached_modes[i] = 1
-
-        # Store calculated modes in attributes (create if needed):
-        for nn, val in zip(['gemitt_I', 'gemitt_II', 'gemitt_III'],
-                           [gemitt_I, gemitt_II, gemitt_III]):
-            arr = getattr(self, f'_{nn}', None)
-            if arr is None:
-                arr = np.full(self.count.shape, -1, dtype=float)
-                setattr(self, f'_{nn}', arr)
-            arr[mask] = np.array(val)
 
 
     def __getattr__(self, attr):
