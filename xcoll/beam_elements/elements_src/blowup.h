@@ -10,11 +10,11 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/headers/track.h>
-#include <xtrack/particles/local_particle_custom_api.h>
-#include <xtrack/random/random_src/uniform.h>
-#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include "xobjects/headers/common.h"
+#include "xtrack/headers/track.h"
+#include "xtrack/particles/local_particle_custom_api.h"
+#include "xtrack/random/random_src/uniform.h"
+#include "xcoll/generated_src/particle_states.h"      // from xcoll/headers/particle_states.py
 
 
 GPUFUN

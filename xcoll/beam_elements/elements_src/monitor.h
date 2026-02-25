@@ -6,10 +6,10 @@
 #ifndef XCOLL_MONITOR_H
 #define XCOLL_MONITOR_H
 
-#include <xobjects/headers/common.h>
-#include <xobjects/headers/atomicadd.h>
-#include <xtrack/headers/constants.h>
-#include <xtrack/headers/track.h>
+#include "xobjects/headers/common.h"
+#include "xobjects/headers/atomicadd.h"
+#include "xtrack/headers/constants.h"
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

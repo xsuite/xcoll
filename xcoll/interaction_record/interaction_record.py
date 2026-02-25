@@ -3,14 +3,13 @@
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
+import numpy as np
+import pandas as pd
+
 import xobjects as xo
 import xtrack as xt
 
 from .interaction_types import interaction_names, shortcuts
-from ..general import _pkg_root
-
-import numpy as np
-import pandas as pd
 
 interaction_names = {kk: vv.replace('_', ' ').title().\
                             replace('Pn ','PN ').replace('Pp ','PP ').replace(' Mcs',' MCS').\
@@ -57,7 +56,7 @@ class InteractionRecord(xt.BeamElement):
     allow_track = False
 
     _extra_c_sources = [
-        "#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>"
+        '#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"'
     ]
 
 

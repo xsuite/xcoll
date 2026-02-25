@@ -19,6 +19,6 @@ class EverestEngine(xt.BeamElement):
                    xt.RandomNormal, xt.RandomRutherford, xt.Drift, XcollGeometry]
 
     _extra_c_sources = [
-        "#include <xcoll/scattering_routines/everest/jaw.h>",
-        "#include <xcoll/scattering_routines/everest/channelling.h>"
+        '#include "xcoll/scattering_routines/everest/jaw.h"',
+        '#include "xcoll/scattering_routines/everest/channelling.h"'
     ]

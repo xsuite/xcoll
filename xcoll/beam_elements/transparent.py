@@ -7,7 +7,6 @@ import xtrack as xt
 import xobjects as xo
 from .base import BaseCollimator, BaseCrystal
 from ..scattering_routines.geometry import XcollGeometry
-from ..general import _pkg_root
 
 
 class TransparentCollimator(BaseCollimator):
@@ -15,10 +14,12 @@ class TransparentCollimator(BaseCollimator):
         '_tracking':        xo.Int8
     }
 
-    allow_track      = True
+    allow_track = True
+    skip_in_loss_location_refinement = True
+
     _depends_on      = [XcollGeometry]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/transparent_collimator.h>"
+        '#include "xcoll/beam_elements/elements_src/transparent_collimator.h"'
     ]
 
     def __init__(self, **kwargs):
@@ -34,10 +35,12 @@ class TransparentCrystal(BaseCrystal):
         '_tracking':        xo.Int8
     }
 
-    allow_track      = True
-    _depends_on      = [XcollGeometry]
+    allow_track = True
+    skip_in_loss_location_refinement = True
+
+    _depends_on = [XcollGeometry]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/transparent_crystal.h>"
+        '#include "xcoll/beam_elements/elements_src/transparent_crystal.h"'
     ]
 
     def __init__(self, **kwargs):

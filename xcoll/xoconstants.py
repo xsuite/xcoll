@@ -603,7 +603,9 @@ class _ConstantsMeta(type):
         """Export C header file with the defined constants."""
         mod = sys.modules[cls.__module__]
         plural = cls._plural_
-        with open(path, "w") as f:
+        path = Path(path)
+        path.parent.mkdir(exist_ok=True, parents=True)
+        with path.open("w") as f:
             f.write(getattr(mod, f"{plural}_src"))
 
 

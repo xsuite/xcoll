@@ -11,11 +11,11 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xtrack/headers/track.h>
-#include <xtrack/headers/checks.h>
-#include <xtrack/headers/particle_states.h>
-#include <xtrack/random/random_src/rutherford.h>
-#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/checks.h"
+#include "xtrack/headers/particle_states.h"
+#include "xtrack/random/random_src/rutherford.h"
+#include "xcoll/generated_src/particle_states.h"      // from xcoll/headers/particle_states.py
 
 
 // This is a quick macro to use inside a function body on a parameter that is not

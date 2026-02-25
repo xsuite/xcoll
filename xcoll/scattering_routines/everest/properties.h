@@ -10,10 +10,10 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/headers/constants.h>
-#include <xcoll/scattering_routines/everest/everest.h>
-#include <xcoll/scattering_routines/everest/constants.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/headers/constants.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/scattering_routines/everest/constants.h"
 
 
 GPUFUN

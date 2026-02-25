@@ -13,8 +13,8 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xcoll/scattering_routines/geometry/sort.h>
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/geometry/sort.h"
 
 // These functions compare a particle trajectory (straight line with slope part_tan going
 // through the point [0, part_x]) with a given segment of specific type.

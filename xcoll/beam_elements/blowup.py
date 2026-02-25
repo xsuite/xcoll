@@ -21,22 +21,28 @@ class BlowUp(xt.BeamElement):
         '_active':              xo.Int8,
     }
 
-    isthick = False
+    _isthick = False
     needs_rng = True
+    prototype = "blowup"
     allow_track = True
+    iscollective = False
+    has_backtrack = False
     behaves_like_drift = False
+    allow_rot_and_shift = True
     allow_loss_refinement = False
-    skip_in_loss_location_refinement = True
+    name_associated_aperture = None
+    skip_in_loss_location_refinement = False
 
-    _noexpr_fields    = {'plane', 'name', 'line'}
-    _skip_in_to_dict  = ['_max_kick', '_plane', '_calibration', '_active']
+    _noexpr_fields = {'plane', 'name', 'line'}
+    _skip_in_to_dict = ['_max_kick', '_plane', '_calibration', '_active']
     _store_in_to_dict = ['amplitude', 'plane', 'calibration', 'beta0',
                          'gamma0', 'name']
 
     _depends_on = [xt.RandomUniform]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/blowup.h>"
+        '#include "xcoll/beam_elements/elements_src/blowup.h"'
     ]
+
 
     def __init__(self, **kwargs):
         to_assign = {}

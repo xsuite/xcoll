@@ -11,9 +11,9 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/beam_elements/elements_src/track_drift.h>
-#include <xtrack/random/random_src/rutherford.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/random/random_src/rutherford.h"
 
 
 #define XCOLL_TRANSITION_VRCH

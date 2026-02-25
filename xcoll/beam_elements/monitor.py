@@ -67,12 +67,21 @@ class ParticleStatsMonitor(xt.BeamElement):
         '_selector':          xo.Int16
     }
 
+    _isthick = False
+    needs_rng = False
+    prototype = "monitor"
+    allow_track = True
+    iscollective = False
+    has_backtrack = False
     behaves_like_drift = True
-    allow_loss_refinement = True
+    allow_rot_and_shift = True
+    allow_loss_refinement = False
+    name_associated_aperture = None
+    skip_in_loss_location_refinement = True
 
-    _noexpr_fields   = {'name', 'line'}
+    _noexpr_fields = {'name', 'line'}
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/monitor.h>"
+        '#include "xcoll/beam_elements/elements_src/monitor.h"'
     ]
     _store_in_to_dict = ["beta0", "gamma0", "mass0"]
 
@@ -467,14 +476,9 @@ class ParticleStatsMonitor(xt.BeamElement):
 
 class EmittanceMonitor(ParticleStatsMonitor):
     _xofields = ParticleStatsMonitor._xofields
-
-    behaves_like_drift = True
-    allow_loss_refinement = True
-
     _depends_on = [ParticleStatsMonitor]
-    _noexpr_fields = ParticleStatsMonitor._noexpr_fields
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/emittance_monitor.h>"
+        '#include "xcoll/beam_elements/elements_src/emittance_monitor.h"'
     ]
 
     def __init__(self, **kwargs):

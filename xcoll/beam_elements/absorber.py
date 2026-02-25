@@ -14,10 +14,16 @@ class BlackAbsorber(BaseCollimator):
         '_tracking':        xo.Int8
     }
 
-    allow_track      = True
-    _depends_on      = [XcollGeometry]
+    allow_track = True
+
+    _noexpr_fields = BaseCollimator._noexpr_fields
+    _skip_in_to_dict = BaseCollimator._skip_in_to_dict
+    _store_in_to_dict = BaseCollimator._store_in_to_dict
+    _internal_record_class = BaseCollimator._internal_record_class
+
+    _depends_on = [BaseCollimator, XcollGeometry]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/black_absorber.h>"
+        '#include "xcoll/beam_elements/elements_src/black_absorber.h"'
     ]
 
     def __init__(self, **kwargs):
@@ -33,10 +39,16 @@ class BlackCrystal(BaseCrystal):
         '_tracking':        xo.Int8
     }
 
-    allow_track      = True
-    _depends_on      = [XcollGeometry]
+    allow_track = True
+
+    _noexpr_fields = BaseCrystal._noexpr_fields
+    _skip_in_to_dict = BaseCrystal._skip_in_to_dict
+    _store_in_to_dict = BaseCrystal._store_in_to_dict
+    _internal_record_class = BaseCrystal._internal_record_class
+
+    _depends_on = [BaseCrystal, XcollGeometry]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/black_crystal.h>"
+        '#include "xcoll/beam_elements/elements_src/black_crystal.h"'
     ]
 
     def __init__(self, **kwargs):

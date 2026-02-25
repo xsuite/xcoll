@@ -11,18 +11,18 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/headers/track.h>
-#include <xtrack/beam_elements/elements_src/track_drift.h>
-#include <xtrack/random/random_src/rutherford.h>
-#include <xcoll/headers/checks.h>
-#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
-#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
-#include <xcoll/scattering_routines/geometry/objects.h>
-#include <xcoll/scattering_routines/geometry/collimator_geometry.h>
-#include <xcoll/scattering_routines/everest/properties.h>
-#include <xcoll/scattering_routines/everest/ionisation_loss.h>
-#include <xcoll/scattering_routines/everest/jaw.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/random/random_src/rutherford.h"
+#include "xcoll/headers/checks.h"
+#include "xcoll/generated_src/particle_states.h"      // from xcoll/headers/particle_states.py
+#include "xcoll/generated_src/interaction_types.h"    // from xcoll/interaction_record/interaction_types.py
+#include "xcoll/scattering_routines/geometry/objects.h"
+#include "xcoll/scattering_routines/geometry/collimator_geometry.h"
+#include "xcoll/scattering_routines/everest/properties.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
+#include "xcoll/scattering_routines/everest/jaw.h"
 
 
 GPUFUN

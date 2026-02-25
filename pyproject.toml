@@ -43,7 +43,7 @@ download = "https://pypi.python.org/pypi/xcoll"
 include = "xcoll"
 
 [tool.poetry]
-exclude = ["xcoll/lib", "xcoll/config"]
+exclude = ["xcoll/lib", "xcoll/config", "xcoll/generated_src"]
 
 [poetry.group.dev.dependencies]
 pytest = ">=7.3"

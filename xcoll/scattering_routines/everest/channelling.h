@@ -12,21 +12,21 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/random/random_src/uniform.h>
-#include <xtrack/random/random_src/normal.h>
-#include <xtrack/random/random_src/exponential.h>
-#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
-#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
-#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
-#include <xcoll/scattering_routines/everest/everest.h>
-#include <xcoll/scattering_routines/everest/constants.h>
-#include <xcoll/scattering_routines/everest/properties.h>
-#include <xcoll/scattering_routines/everest/ionisation_loss.h>
-#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-// #include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
-#include <xcoll/scattering_routines/everest/crystal_parameters.h>
-#include <xcoll/scattering_routines/everest/amorphous.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/uniform.h"
+#include "xtrack/random/random_src/normal.h"
+#include "xtrack/random/random_src/exponential.h"
+#include "xcoll/generated_src/particle_states.h"      // from xcoll/headers/particle_states.py
+#include "xcoll/generated_src/interaction_types.h"    // from xcoll/interaction_record/interaction_types.py
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/scattering_routines/everest/constants.h"
+#include "xcoll/scattering_routines/everest/properties.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
+#include "xcoll/scattering_routines/everest/nuclear_interaction.h"
+// #include "xcoll/scattering_routines/everest/multiple_coulomb_scattering.h"
+#include "xcoll/scattering_routines/everest/crystal_parameters.h"
+#include "xcoll/scattering_routines/everest/amorphous.h"
 
 
 // Convention:

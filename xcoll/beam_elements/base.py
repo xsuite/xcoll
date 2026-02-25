@@ -22,24 +22,30 @@ class BaseBlock(xt.BeamElement):
         '_record_interactions':  xo.Int8
     }
 
-    isthick = True
+    _isthick = True
     needs_rng = False
+    prototype = "target"
     allow_track = False
+    iscollective = False
+    has_backtrack = False
     allow_double_sided = False
     behaves_like_drift = True
     allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
+    allow_loss_refinement = False
+    name_associated_aperture = None
+    skip_in_loss_location_refinement = False
 
     _noexpr_fields = {'name'}
-    _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
+    _skip_in_to_dict = ['_record_interactions']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
+                         'record_scatterings']
     _internal_record_class = InteractionRecord
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
         if cls is BaseBlock:
-            raise Exception("Abstract class `BaseBlock` cannot be instantiated!")
+            raise Exception("Abstract class `BaseBlock` cannot be "
+                            "instantiated!")
         instance = super().__new__(cls)
         return instance
 
@@ -52,10 +58,12 @@ class BaseBlock(xt.BeamElement):
             kwargs.setdefault('active', True)
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
-            to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
+            to_assign['record_scatterings'] = kwargs.pop('record_scatterings',
+                                                         False)
         super().__init__(**kwargs)
-        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
-        # We also have to manually initialise them for xobject generation
+        # Careful: non-xofields are not passed correctly between copy's /
+        # to_dict. This messes with flags etc.. We also have to manually
+        # initialise them for xobject generation
         for key, val in to_assign.items():
             setattr(self, key, val)
         BaseBlock._verify_consistency(self)
@@ -158,24 +166,28 @@ class BaseCollimator(BaseBlock):
         '_side':          xo.Int8,
     }
 
-    isthick = True
+    _isthick = True
     needs_rng = False
+    prototype = "collimator"
     allow_track = False
+    iscollective = False
+    has_backtrack = False
     allow_double_sided = True
     behaves_like_drift = True
     allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
+    allow_loss_refinement = False
+    name_associated_aperture = None
+    skip_in_loss_location_refinement = False
 
-    _noexpr_fields     = BaseBlock._noexpr_fields | {'align', 'side'}
-    _skip_in_to_dict   = BaseBlock._skip_in_to_dict + \
-                         [f for f in _xofields if f.startswith('_')]
-    _store_in_to_dict  = BaseBlock._store_in_to_dict + \
-                         ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance']
+    _noexpr_fields = BaseBlock._noexpr_fields | {'align', 'side'}
+    _skip_in_to_dict = BaseBlock._skip_in_to_dict + \
+                       [f for f in _xofields if f.startswith('_')]
+    _store_in_to_dict = BaseBlock._store_in_to_dict + \
+                        ['angle', 'jaw', 'tilt', 'gap', 'side', 'align',
+                         'emittance']
+    _internal_record_class = BaseBlock._internal_record_class
 
     _depends_on = [BaseBlock]
-
-    _internal_record_class = BaseBlock._internal_record_class
 
 
     # This is an abstract class and cannot be instantiated
@@ -265,15 +277,19 @@ class BaseCollimator(BaseBlock):
             to_assign['emittance'] = kwargs.pop('emittance', None)
 
         super().__init__(**kwargs)
-        self._align = 'upstream'
-        self._gap_L = OPEN_GAP
-        self._gap_R = -OPEN_GAP
-        self._nemitt_x = 0.
-        self._nemitt_y = 0.
+
         if not hasattr(self, '_optics'):
             self._optics = None
-        for key, val in to_assign.items():
-            setattr(self, key, val)
+        if to_assign:
+            # Initalise python-only underscore attributes
+            self._align = 'upstream'
+            self._gap_L = OPEN_GAP
+            self._gap_R = -OPEN_GAP
+            self._nemitt_x = 0.
+            self._nemitt_y = 0.
+            # Initalise python-only attributes from kwargs
+            for key, val in to_assign.items():
+                setattr(self, key, val)
         self._update_tilts()
         BaseCollimator._verify_consistency(self)
 
@@ -631,7 +647,7 @@ class BaseCollimator(BaseBlock):
         return self._optics
 
     def optics_ready(self):
-        return self.emittance is not None and self.optics is not None
+        return self.optics is not None and self.emittance is not None
 
     def assign_optics(self, *, nemitt_x=None, nemitt_y=None, beta_gamma_rel=None, name=None, twiss=None,
                       twiss_upstream=None, twiss_downstream=None):
@@ -1075,25 +1091,30 @@ class BaseCrystal(BaseBlock):
         # 'thick':              xo.Float64
     }
 
-    isthick = True
+    _isthick = True
     needs_rng = False
+    prototype = "crystal"
     allow_track = False
+    iscollective = False
+    has_backtrack = False
     allow_double_sided = False
     behaves_like_drift = True
     allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
+    allow_loss_refinement = False
+    name_associated_aperture = None
+    skip_in_loss_location_refinement = False
 
-    _noexpr_fields    = BaseBlock._noexpr_fields | {'align', 'side'}
-    _skip_in_to_dict  = BaseBlock._skip_in_to_dict + \
-                        [f for f in _xofields if f.startswith('_')]
+    _noexpr_fields = BaseBlock._noexpr_fields | {'align', 'side'}
+    _skip_in_to_dict = BaseBlock._skip_in_to_dict + \
+                       [f for f in _xofields if f.startswith('_')]
     _store_in_to_dict = BaseBlock._store_in_to_dict + \
-                        ['angle', 'jaw', 'tilt', 'gap', 'side', 'align', 'emittance',
-                         'width', 'height', 'bending_radius', 'bending_angle']
+                        ['angle', 'jaw', 'tilt', 'gap', 'side', 'align',
+                         'emittance', 'width', 'height', 'bending_radius',
+                         'bending_angle']
+    _internal_record_class = BaseBlock._internal_record_class
 
     _depends_on = [BaseCollimator]
 
-    _internal_record_class = BaseBlock._internal_record_class
 
     # This is an abstract class and cannot be instantiated
     def __new__(cls, *args, **kwargs):
@@ -1168,16 +1189,17 @@ class BaseCrystal(BaseBlock):
             to_assign['height'] = kwargs.pop('height', 1)
 
         super().__init__(**kwargs)
-        # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
-        # We also have to manually initialise them for xobject generation
-        self._align = 'upstream'
-        self._gap = OPEN_GAP
-        self._nemitt_x = 0.
-        self._nemitt_y = 0.
         if not hasattr(self, '_optics'):
             self._optics = None
-        for key, val in to_assign.items():
-            setattr(self, key, val)
+        if to_assign:
+            # Initalise python-only underscore attributes
+            self._align = 'upstream'
+            self._gap = OPEN_GAP
+            self._nemitt_x = 0.
+            self._nemitt_y = 0.
+            # Initalise python-only attributes from kwargs
+            for key, val in to_assign.items():
+                setattr(self, key, val)
         if self.side == 'right':
             if np.isclose(self._jaw_U, OPEN_JAW):
                 self._jaw_U *= -1

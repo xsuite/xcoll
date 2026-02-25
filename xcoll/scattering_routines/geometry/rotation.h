@@ -10,7 +10,7 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
+#include "xobjects/headers/common.h"
 
 
 GPUFUN

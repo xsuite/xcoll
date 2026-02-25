@@ -13,8 +13,8 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xcoll/scattering_routines/geometry/objects.h>
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/geometry/objects.h"
 
 
 #define S_MAX 1.e21

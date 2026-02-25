@@ -12,11 +12,11 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/random/random_src/uniform.h>
-#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
-#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
-#include <xcoll/scattering_routines/everest/everest.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/uniform.h"
+#include "xcoll/generated_src/interaction_types.h"    // from xcoll/interaction_record/interaction_types.py
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
+#include "xcoll/scattering_routines/everest/everest.h"
 
 
 GPUFUN

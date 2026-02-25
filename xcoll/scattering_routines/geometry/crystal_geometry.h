@@ -11,16 +11,16 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/particles/local_particle_custom_api.h>
-#include <xtrack/beam_elements/elements_src/track_srotation.h>
-#include <xtrack/beam_elements/elements_src/track_drift.h>
-#include <xtrack/beam_elements/elements_src/track_xyshift.h>
-#include <xcoll/lib/particle_states.h>      // auto-generated from xcoll/headers/particle_states.py
-#include <xcoll/lib/interaction_types.h>    // auto-generated from xcoll/interaction_record/interaction_types.py
-#include <xcoll/interaction_record/interaction_record_src/interaction_record.h>
-#include <xcoll/scattering_routines/geometry/get_s.h>
-#include <xcoll/scattering_routines/geometry/rotation.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/particles/local_particle_custom_api.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/beam_elements/elements_src/track_xyshift.h"
+#include "xcoll/generated_src/particle_states.h"      // from xcoll/headers/particle_states.py
+#include "xcoll/generated_src/interaction_types.h"    // from xcoll/interaction_record/interaction_types.py
+#include "xcoll/interaction_record/interaction_record_src/interaction_record.h"
+#include "xcoll/scattering_routines/geometry/get_s.h"
+#include "xcoll/scattering_routines/geometry/rotation.h"
 
 
 typedef struct CrystalGeometry_ {

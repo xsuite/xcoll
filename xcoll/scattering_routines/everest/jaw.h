@@ -10,12 +10,12 @@
 #include <math.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/random/random_src/exponential.h>
-#include <xcoll/scattering_routines/everest/everest.h>
-#include <xcoll/scattering_routines/everest/ionisation_loss.h>
-#include <xcoll/scattering_routines/everest/nuclear_interaction.h>
-#include <xcoll/scattering_routines/everest/multiple_coulomb_scattering.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/random/random_src/exponential.h"
+#include "xcoll/scattering_routines/everest/everest.h"
+#include "xcoll/scattering_routines/everest/ionisation_loss.h"
+#include "xcoll/scattering_routines/everest/nuclear_interaction.h"
+#include "xcoll/scattering_routines/everest/multiple_coulomb_scattering.h"
 
 
 GPUFUN

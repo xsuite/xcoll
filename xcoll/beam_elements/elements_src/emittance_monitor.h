@@ -11,9 +11,9 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xtrack/headers/track.h>
-#include <xcoll/beam_elements/elements_src/monitor.h>
+#include "xobjects/headers/common.h"
+#include "xtrack/headers/track.h"
+#include "xcoll/beam_elements/elements_src/monitor.h"
 
 
 GPUFUN

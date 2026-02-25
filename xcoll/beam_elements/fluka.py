@@ -10,7 +10,6 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
-from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, create_generic_assembly
 from ..materials import _resolve_material
@@ -26,25 +25,21 @@ class FlukaCollimator(BaseCollimator):
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
 
-    isthick = True
     allow_track = True
     iscollective = True
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    skip_in_loss_location_refinement = True
+
+    _noexpr_fields = BaseCollimator._noexpr_fields | {'material', 'assembly'}
+    _skip_in_to_dict = BaseCollimator._skip_in_to_dict + \
+                       ['_tracking', '_acc_ionisation_loss']
+    _store_in_to_dict = BaseCollimator._store_in_to_dict + \
+                             ['material', 'assembly', 'height', 'width',
+                              'side']
+    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     _depends_on = [BaseCollimator, FlukaEngine]
-
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/fluka_collimator.h>"
+        '#include "xcoll/beam_elements/elements_src/fluka_collimator.h"'
     ]
-
-    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
-    _internal_record_class = BaseCollimator._internal_record_class
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -279,25 +274,22 @@ class FlukaCrystal(BaseCrystal):
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
 
-    isthick = True
     allow_track = True
     iscollective = True
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    skip_in_loss_location_refinement = True
 
-    _noexpr_fields         = {*BaseCrystal._noexpr_fields, 'material', 'assembly'}
-    _skip_in_to_dict       = [*BaseCrystal._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
-    _store_in_to_dict      = [*BaseCrystal._store_in_to_dict, 'material', 'assembly', 'height', 'width', 'side']
-    _internal_record_class = BaseCrystal._internal_record_class
+    _noexpr_fields         = BaseCrystal._noexpr_fields | \
+                             {'material', 'assembly'}
+    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict + \
+                             ['_tracking', '_acc_ionisation_loss']
+    _store_in_to_dict      = BaseCrystal._store_in_to_dict + \
+                             ['material', 'assembly', 'height', 'width',
+                              'side']
+    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     _depends_on = [BaseCrystal, FlukaEngine]
-
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/fluka_crystal.h>"
+        '#include "xcoll/beam_elements/elements_src/fluka_crystal.h"'
     ]
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():

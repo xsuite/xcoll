@@ -12,8 +12,8 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xcoll/scattering_routines/geometry/methods.h>
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/geometry/methods.h"
 
 // IMPORTANT:
 // These functions assume that the particle moves towards positive s!

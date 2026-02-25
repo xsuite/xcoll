@@ -25,33 +25,23 @@ class EverestBlock(BaseBlock):
         '_tracking':        xo.Int8
     }
 
-    isthick = True
     needs_rng = True
     allow_track = True
-    allow_double_sided = False
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
 
-    _noexpr_fields         = BaseBlock._noexpr_fields | {'material'}
-    _skip_in_to_dict       = BaseBlock._skip_in_to_dict + ['_material', '_tracking']
-    _store_in_to_dict      = BaseBlock._store_in_to_dict + ['material']
-    _internal_record_class = BaseBlock._internal_record_class
+    _noexpr_fields = BaseBlock._noexpr_fields | {'material'}
+    _skip_in_to_dict = BaseBlock._skip_in_to_dict + ['_material', '_tracking']
+    _store_in_to_dict = BaseBlock._store_in_to_dict + ['material']
 
     _depends_on = [BaseBlock, EverestEngine]
-
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/everest_block.h>"
+        '#include "xcoll/beam_elements/elements_src/everest_block.h"'
     ]
-
     _kernels = {
         'EverestBlock_set_material': xo.Kernel(
                 c_name='EverestBlock_set_material',
                 args=[xo.Arg(xo.ThisClass, name='el')]
             )
         }
-
 
     def __init__(self, **kwargs):
         to_assign = {}
@@ -63,7 +53,6 @@ class EverestBlock(BaseBlock):
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
-
 
     @property
     def material(self):
@@ -81,33 +70,24 @@ class EverestBlock(BaseBlock):
 class EverestCollimator(BaseCollimator):
     _xofields = EverestBlock._xofields | BaseCollimator._xofields
 
-    isthick = True
     needs_rng = True
     allow_track = True
-    allow_double_sided = True
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
 
-    _noexpr_fields         = BaseCollimator._noexpr_fields | {'material'}
-    _skip_in_to_dict       = BaseCollimator._skip_in_to_dict + ['_material']
-    _store_in_to_dict      = BaseCollimator._store_in_to_dict + ['material']
-    _internal_record_class = BaseCollimator._internal_record_class
+    _noexpr_fields = BaseCollimator._noexpr_fields | {'material'}
+    _skip_in_to_dict = BaseCollimator._skip_in_to_dict + \
+                       ['_material', '_tracking']
+    _store_in_to_dict = BaseCollimator._store_in_to_dict + ['material']
 
     _depends_on = [BaseCollimator, EverestEngine]
-
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/everest_collimator.h>"
+        '#include "xcoll/beam_elements/elements_src/everest_collimator.h"'
     ]
-
     _kernels = {
         'EverestCollimator_set_material': xo.Kernel(
                 c_name='EverestCollimator_set_material',
                 args=[xo.Arg(xo.ThisClass, name='el')]
             )
         }
-
 
     def __init__(self, **kwargs):
         to_assign = {}
@@ -141,33 +121,23 @@ class EverestCrystal(BaseCrystal):
         '_critical_radius':   xo.Float64
     }
 
-    isthick = True
     needs_rng = True
     allow_track = True
-    allow_double_sided = False
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
 
-    _noexpr_fields         = BaseCrystal._noexpr_fields | {'material', 'lattice'}
-    _skip_in_to_dict       = BaseCrystal._skip_in_to_dict + ['_orient', '_material']
-    _store_in_to_dict      = BaseCrystal._store_in_to_dict + ['lattice', 'material']
-    _internal_record_class = BaseCrystal._internal_record_class
+    _noexpr_fields = BaseCrystal._noexpr_fields | {'material', 'lattice'}
+    _skip_in_to_dict = BaseCrystal._skip_in_to_dict + ['_orient', '_material']
+    _store_in_to_dict = BaseCrystal._store_in_to_dict + ['lattice', 'material']
 
-    _depends_on = [BaseCrystal, EverestEngine]
-
+    _depends_on = [EverestEngine]
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/everest_crystal.h>"
+        '#include "xcoll/beam_elements/elements_src/everest_crystal.h"'
     ]
-
     _kernels = {
         'EverestCrystal_set_material': xo.Kernel(
                 c_name='EverestCrystal_set_material',
                 args=[xo.Arg(xo.ThisClass, name='el')]
             )
         }
-
 
     def __init__(self, **kwargs):
         to_assign = {}

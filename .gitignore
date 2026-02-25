@@ -1,5 +1,6 @@
 xcoll/lib
 xcoll/config
+xcoll/generated_src
 tests/assets/
 tests/pytest*results.html
 
@@ -20,8 +21,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!xcoll/scattering_routines/geant4/collimasim/lib/
-!xcoll/scattering_routines/geant4/collimasim/lib/pybind11/
 lib64/
 parts/
 sdist/
@@ -162,5 +161,3 @@ __pycache__/
 *$py.class
 *.egg-info/
 *.egg
-
-*config/

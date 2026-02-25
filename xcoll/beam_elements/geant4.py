@@ -9,7 +9,6 @@ import xobjects as xo
 import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
-from ..general import _pkg_root
 from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core, track_post
 from ..materials import _DEFAULT_MATERIAL, _resolve_material
 
@@ -21,26 +20,19 @@ class Geant4Collimator(BaseCollimator):
         '_acc_ionisation_loss':  xo.Float64,  # TODO: this is not very robust, for when a track is done with new particles etc
     }
 
-    isthick = True
     allow_track = True
     iscollective = True
-    behaves_like_drift = True
-    allow_rot_and_shift = False
-    allow_loss_refinement = True
-    skip_in_loss_location_refinement = True
+
+    _noexpr_fields = BaseCollimator._noexpr_fields | {'material'}
+    _skip_in_to_dict = BaseCollimator._skip_in_to_dict + \
+                       ['_tracking', '_acc_ionisation_loss']
+    _store_in_to_dict = BaseCollimator._store_in_to_dict + ['material']
+    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     _depends_on = [BaseCollimator, Geant4Engine]
-
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/geant4_collimator.h>"
+        '#include "xcoll/beam_elements/elements_src/geant4_collimator.h"'
     ]
-
-    _noexpr_fields         = {*BaseCollimator._noexpr_fields, 'material'}
-    _skip_in_to_dict       = [*BaseCollimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
-    _store_in_to_dict      = [*BaseCollimator._store_in_to_dict, 'material']
-    _internal_record_class = BaseCollimator._internal_record_class
-
-    _allowed_fields_when_frozen = ['_tracking', '_acc_ionisation_loss']
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():
@@ -147,27 +139,17 @@ class Geant4Collimator(BaseCollimator):
 
 
 class Geant4CollimatorTip(Geant4Collimator):
-
     _xofields = Geant4Collimator._xofields | {
         'tip_thickness': xo.Float64
     }
 
-    isthick = True
-    allow_track = True
-    iscollective = True
-    behaves_like_drift = True
-    skip_in_loss_location_refinement = True
+    _noexpr_fields = Geant4Collimator._noexpr_fields | {'tip_material'}
+    _store_in_to_dict = Geant4Collimator._store_in_to_dict + ['tip_material']
 
+    _depends_on = Geant4Collimator._depends_on
     _extra_c_sources = [
-        "#include <xcoll/beam_elements/elements_src/geant4_collimator_tip.h>"
+        '#include "xcoll/beam_elements/elements_src/geant4_collimator_tip.h"'
     ]
-
-    _depends_on = [*Geant4Collimator._depends_on]
-
-    _noexpr_fields         = {*Geant4Collimator._noexpr_fields, 'tip_material'}
-    _skip_in_to_dict       = [*Geant4Collimator._skip_in_to_dict, '_tracking', '_acc_ionisation_loss']
-    _store_in_to_dict      = [*Geant4Collimator._store_in_to_dict, 'tip_material']
-    _internal_record_class = Geant4Collimator._internal_record_class
 
     def __new__(cls, *args, **kwargs):
         with cls._in_constructor():

@@ -13,8 +13,8 @@
 #include <stdlib.h>  // for malloc and free
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
-#include <xcoll/scattering_routines/geometry/segments.h>
+#include "xobjects/headers/common.h"
+#include "xcoll/scattering_routines/geometry/segments.h"
 
 // Assumption for all objects: the particle at -inf is outside the object (otherwise some comparisons might give wrong results)
 

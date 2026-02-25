@@ -10,7 +10,7 @@
 #include <stdint.h>  // for int64_t etc
 #endif  // XO_CONTEXT_CPU
 
-#include <xobjects/headers/common.h>
+#include "xobjects/headers/common.h"
 
 
 // TODO: do we need to pass RecordIndex?
