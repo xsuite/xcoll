@@ -71,8 +71,8 @@ def _create_transfer_line():
 
 def _add_air_regions(line):
     air = xc.materials.Air
-    line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 1", at_s=20)
-    line.insert_element(element=xc.EverestBlock(length=10, material=air), name="Air 2", at_s=50)
+    line.insert("Air 1", xc.EverestBlock(length=10, material=air), anchor='start', at=20, s_tol=1e-6)
+    line.insert("Air 2", xc.EverestBlock(length=10, material=air), anchor='start', at=50, s_tol=1e-6)
     return air
 
 

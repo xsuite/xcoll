@@ -5,6 +5,7 @@
 
 import io
 import numpy as np
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
@@ -286,16 +287,18 @@ class ParticleStatsMonitor(xt.BeamElement):
         return self
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, s_tol=1.e-6, **kwargs):
+    def install(cls, line, name, *, at=None, s_tol=1.e-6, at_s=None, **kwargs):
         """Install a monitor in the line. The monitor will be configured
         with the line's reference particle parameters.
         """
-        self = cls(**kwargs)
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
         if name in line.element_names:
-            raise ValueError(f"Element {name} already exists in the line as "
-                             f"{line[name].__class__.__name__}.")
-        line.insert_element(element=self, name=name, at_s=at_s, at=at,
-                            s_tol=s_tol)
+            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+        self = cls(**kwargs)
+        line.insert(name, self, at=at, s_tol=s_tol)
         self.configure(line)
         return self
 
@@ -702,17 +705,23 @@ class EmittanceMonitor(ParticleStatsMonitor):
                       [ 0., 0.,-1., 0., 0., 0.],
                       [ 0., 0., 0., 0., 0., 1.],
                       [ 0., 0., 0., 0.,-1., 0.]])
-        gemitt_I   = []
-        gemitt_II  = []
-        gemitt_III = []
 
-        N = N[N > 0]
+        # Create arrays for modes in attributes if needed
+        for nn in ['gemitt_I', 'gemitt_II', 'gemitt_III']:
+            if getattr(self, f'_{nn}', None) is None:
+                arr = np.full(N.shape, -1, dtype=float)
+                setattr(self, f'_{nn}', arr)
+
+        # Loop over turns
         for i in range(len(N)):
+            if not mask[i]:
+                continue
+
             if N[i] < 25:
                 # Not enough statistics for a reliable calculation of the modes
-                gemitt_I.append(0)
-                gemitt_II.append(0)
-                gemitt_III.append(0)
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
                 continue
 
             if self.horizontal:
@@ -760,9 +769,9 @@ class EmittanceMonitor(ParticleStatsMonitor):
 
             # Check for all zero matrix -> zero emittance
             if np.all(covariance_S < 1E-16):
-                gemitt_I.append(0)
-                gemitt_II.append(0)
-                gemitt_III.append(0)
+                self._gemitt_I[i] = 0
+                self._gemitt_II[i] = 0
+                self._gemitt_III[i] = 0
                 continue
 
             cond_number = np.linalg.cond(covariance_S)
@@ -779,11 +788,10 @@ class EmittanceMonitor(ParticleStatsMonitor):
 
             from xtrack.linear_normal_form import compute_linear_normal_form
             _, _, _, eigenvalues = compute_linear_normal_form(covariance_S)
-            gemitt_I.append(eigenvalues[0].imag)
-            gemitt_II.append(eigenvalues[1].imag)
-            gemitt_III.append(eigenvalues[2].imag)
+            self._gemitt_I[i] = eigenvalues[0].imag
+            self._gemitt_II[i] = eigenvalues[1].imag
+            self._gemitt_III[i] = eigenvalues[2].imag
 
-        setattr(self, '_gemitt_I',   np.array(gemitt_I))
-        setattr(self, '_gemitt_II',  np.array(gemitt_II))
-        setattr(self, '_gemitt_III', np.array(gemitt_III))
-        self.cached_modes[:] = 1
+            # Set calculated modes as cached
+            self.data.cached_modes[i] = 1
+

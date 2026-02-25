@@ -23,9 +23,9 @@ dependencies = [
     "numpy>=1.0",
     "pandas>=1.4",
     "xobjects>=0.5.12",
-    "xdeps>=0.10.11",
-    "xpart>=0.23.8",
-    "xtrack>=0.99.4",
+    "xdeps>=0.10.12",
+    "xpart>=0.23.9",
+    "xtrack>=0.99.5",
     "meson"
 ]
 

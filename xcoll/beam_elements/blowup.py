@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 
 import xobjects as xo
 import xtrack as xt
@@ -67,18 +68,18 @@ class BlowUp(xt.BeamElement):
 
 
     @classmethod
-    def install(cls, line, name, *, at_s=None, at=None, need_apertures=True,
-                aperture=None, s_tol=1.e-6, **kwargs):
-        """Shortcut to install a BlowUp in a line, which also sets the
-        optics parameters. If `need_apertures` is True, the BlowUp will
-        be installed together with upstream and downstream apertures.
-        """
-        self = cls(**kwargs)
+    def install(cls, line, name, *, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, at_s=None, **kwargs):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
         if name in line.element_names:
-            raise ValueError(f"Element {name} already exists in the line as "
-                             f"{line[name].__class__.__name__}.")
-        line.insert_element(element=self, name=name, at_s=at_s, at=at,
-                            s_tol=s_tol)
+            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+        self = cls(**kwargs)
+        env = line.env
+        env.elements[name] = self
+        insertions = []
+        insertions.append(env.place(name, at=at))
         self._name = name
         if need_apertures:
             if aperture is not None:
@@ -97,14 +98,12 @@ class BlowUp(xt.BeamElement):
                         aper_downstream = line.elements[idx].copy()
                         break
                     idx += 1
-            line.insert_element(element=aper_upstream, at=name, s_tol=s_tol,
-                                name=f'{name}_aper_upstream')
-            idx = line.element_names.index(name) + 1
-            line.insert_element(element=aper_downstream, at=idx, s_tol=s_tol,
-                                name=f'{name}_aper_downstream')
-        if hasattr(line, 'particle_ref') and line.particle_ref is not None:
-            self._beta0 = line.particle_ref.beta0[0]
-            self._gamma0 = line.particle_ref.gamma0[0]
+            env.elements[f'{name}_aper_upstream'] = aper_upstream
+            env.elements[f'{name}_aper_downstream'] = aper_downstream
+            insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
+            insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+        line.insert(insertions, s_tol=s_tol)
+
         return self
 
 
