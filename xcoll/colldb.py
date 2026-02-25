@@ -82,8 +82,8 @@ class CollimatorDatabase(XcollAccessor):
         kwargs_to_set['_elements'] = {}
         kwargs_to_set['_eltype'] = 'settings'
         # TODO: want gemitt as well
-        self.nemitt_x = kwargs['nemitt_x'] # TODO: is this correct/needed?
-        self.nemitt_y = kwargs['nemitt_y'] # TODO: is this correct/needed?
+        self.nemitt_x = kwargs_to_set['nemitt_x'] # TODO: is this correct/needed?
+        self.nemitt_y = kwargs_to_set['nemitt_y'] # TODO: is this correct/needed?
         super().__init__(db=coll, family_db=fam, **kwargs_to_set)
 
 
@@ -313,6 +313,7 @@ class CollimatorDatabase(XcollAccessor):
         df = pd.read_csv(io.StringIO(coll_data_string), sep=r'\s+', index_col=False, names=names)
         df['gap'] = df['gap'].astype('object')
         df['material'] = df['material'].astype('object')
+        df['material'][df['material'] == 'C'] = 'CFC' # Change material 'C' to 'CFC' for backward compatibility with older SixTrack versions
         df['family'] = df['gap'].copy()
         df['family'] = df['family'].apply(lambda s: None if re.match(r'^-?\d+(\.\d+)?$', str(s)) else s)
         df['family'] = df['family'].astype('object')

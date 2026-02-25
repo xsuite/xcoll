@@ -26,6 +26,8 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
     coll = line[name]
     if not isinstance(coll, tuple(collimator_classes)):
         raise ValueError("Need to provide a valid collimator!")
+    if longitudinal_betatron_cut:
+        raise NotImplementedError("Longitudinal betatron cut not implemented yet!")
     if coll.optics is None:
         raise ValueError("Need to assign optics to collimators before generating pencil distribution!")
 
@@ -66,7 +68,7 @@ def generate_pencil_on_collimator(line, name, num_particles, *, side='+-', penci
             twiss = tw
 
     if twiss is None:
-        twiss = line.twiss()
+        twiss = line.twiss(reverse=False)
 
     # Longitudinal plane
     if _longitudinal_coords:
@@ -151,7 +153,7 @@ def generate_delta_from_dispersion(line, at_element, *, plane, position_mm, nemi
         raise ValueError("The variable 'plane' needs to be either 'x' or 'y'!")
 
     if twiss is None:
-        twiss = line.twiss()
+        twiss = line.twiss(reverse=False)
 
     beam_sizes = twiss.get_beam_covariance(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
     beam_sizes = beam_sizes.rows[at_element:f'{at_element}>>1'][f'sigma_{plane}']

@@ -12,7 +12,6 @@ from .beam_elements import (BlackAbsorber, BlackCrystal, TransparentCollimator, 
                             collimator_classes, crystal_classes, element_classes)
 from .materials import Material, RefMaterial
 from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
-from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
 from .rf_sweep import RFSweep, prepare_rf_sweep
