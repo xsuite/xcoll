@@ -24,7 +24,7 @@ def _is_ion(pdg_id):
 
 
 def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblies=[],
-                      bb_int=False, touches=False, **kwargs):
+                      bb_int=False, **kwargs):
 
     import xcoll as xc
     phys = xc.fluka.engine._physics_settings
@@ -40,7 +40,8 @@ def get_include_files(particle_ref, include_files=[], *, verbose=True, assemblie
                                              include_showers=phys.include_showers)
         this_include_files.append(physics_file)
     if 'include_custom_scoring.inp' not in [file.name for file in this_include_files]:
-        scoring_file = _scoring_include_file(verbose=verbose, return_list=phys, get_touches=touches,
+        scoring_file = _scoring_include_file(verbose=verbose, return_list=phys,
+                                             get_touches=kwargs.get('touches', False),
                                              use_crystals=any([assm.is_crystal for assm in assemblies]))
         this_include_files.append(scoring_file)
     if 'include_custom_assignmat.inp' not in [file.name for file in this_include_files]:
