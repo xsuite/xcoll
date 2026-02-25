@@ -67,22 +67,19 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
             min_length = interaction_length_coulomb;
             min_index = 6;
         }
-        if (min_index == 1){
-            // Inelastic
+        if (min_index == 1 || min_index == 3){
+            // Inelastic or Production: particle is absorbed
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);
+            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
+            pc = 1.e-9; 
+            sqrt_t_p = 0;
 
-            //die
         } else if (min_index == 2){
             // Elastic
             double b_nuclear_elastic;
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
             get_slope_hadron_nucleus(&A, &b_nuclear_elastic);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/b_nuclear_elastic)/pc;
-
-        } else if (min_index == 3){
-            // Production
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);
-            // die?
 
         } else if (min_index == 4){
             // Single diffractive
