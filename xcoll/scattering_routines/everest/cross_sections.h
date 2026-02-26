@@ -10,6 +10,15 @@
 #include <stddef.h>
 
 // ====== Splines & Helper functions =============
+/*gpufun*/
+void _get_R(double A, double* R) {
+    if (A > 21) {
+        *R = 1.1*pow(A, 1.0/3.0)*1e-15 * 0.9;  // [m], 0.8 < f(A) < 1.0
+    } else {
+        *R = 1.1*pow(A, 1.0/3.0)*1e-15 * 1.05; // [m], 1.0 < f(A) < 1.1
+    }
+}
+
 // Horner's method for evaluating polynomials
 static inline double eval_interval(const Spline* s, double sqrt_s) {
     double dx = sqrt_s - s->x0;
@@ -43,8 +52,7 @@ double eval_spline(const Spline* spline, size_t n, double sqrt_s) {
 
 // Allen & Hastings Approximation for the Exponential Integral function E1(x) = int_x^inf (e^-t / t) dt
 /*gpufun*/
-static inline void approx_E1(double* E1_approx, double* x)
-{
+static inline void approx_E1(double* E1_approx, double* x) {
     if (*x <= 0.0) {
         *E1_approx = 1e21;  // E1 undefined for x <= 0
         return;
@@ -90,7 +98,7 @@ static inline void approx_E1(double* E1_approx, double* x)
 }
 
 // =======================================================
-// ====== Cross sections ======
+// ====== Cross sections & Slopes =======================
 // =======================================================
 
 // ================ Hadron - Nucleus cross sections ================ 
@@ -175,17 +183,36 @@ void calculate_coulomb_cross_section(double Z, double A, double pc, double theta
     E1_approx(E1, &(R*R*(*b_coulomb)*t_cut));
     *cs_coulomb = -constant * (R*R*(*b_coulomb)*(*E1) - exp(-R*R*(*b_coulomb)*t_cut)/t_cut);
 }
+
+// ======== Slopes ============
+/*gpufun*/
+void get_slope_hadron_nucleus(double A, double* b){
+    // we can add pions, its a bit different
+    // From GEANT4
+    if (A <= 62){
+        *b = 14.5 * pow(A, 2.0/3.0); 
+    } else {
+        *b = 60.0 * pow(A, 1.0/3.0);
+    }
+}
+/*gpufun*/
+void get_slope_proton_proton(double s, double* b){
+    // from russian guy
+    double B0 = 9.3; // +- 0.3 
+    double alpha_1 = 0.11; // +- 0.06
+    double alpha_2 = 0.03; // +- 0.01
+    *b = B0 + 2*alpha_1*log(s) + alpha_2*pow(log(sqrt(s)), 2);
+}
+/*gpufun*/
+void get_slope_single_diffraction(double s, double* b){
+    // from pythia
+    double M_2 = exp(RandomUniform_generate(part)*(log(0.15*s)));
+    *b = 2*2.3 + 2*0.25*log((*s/M_2));
+}
+
 // =======================================================
 // ====== Nuclear interaction length =====================
 // =======================================================
-/*gpufun*/
-void _get_R(double A, double* R) {
-    if (A > 21) {
-        *R = 1.1*pow(A, 1.0/3.0)*1e-15 * 0.9;  // [m], 0.8 < f(A) < 1.0
-    } else {
-        *R = 1.1*pow(A, 1.0/3.0)*1e-15 * 1.05; // [m], 1.0 < f(A) < 1.1
-    }
-}
 
 /*gpufun*/
 void get_interaction_length(double interaction_lengths[6], double cs_tot, double A, double Z, 
@@ -273,30 +300,4 @@ void get_interaction_length(double interaction_lengths[6], double cs_tot, double
         //     *lambda = (molar_mass)/(N_A*(rho)*cs_qel_hA);
         // }
     }
-}
-
-// ======== slopes ============
-/*gpufun*/
-void get_slope_hadron_nucleus(double A, double* b){
-    // we can add pions, its a bit different
-    // From GEANT4
-    if (A <= 62){
-        *b = 14.5 * pow(A, 2.0/3.0); 
-    } else {
-        *b = 60.0 * pow(A, 1.0/3.0);
-    }
-}
-/*gpufun*/
-void get_slope_proton_proton(double s, double* b){
-    // from russian guy
-    double B0 = 9.3; // +- 0.3 
-    double alpha_1 = 0.11; // +- 0.06
-    double alpha_2 = 0.03; // +- 0.01
-    *b = B0 + 2*alpha_1*log(s) + alpha_2*pow(log(sqrt(s)), 2);
-}
-/*gpufun*/
-void get_slope_single_diffraction(double s, double* b){
-    // from pythia
-    double M_2 = exp(RandomUniform_generate(part)*(log(0.15*s)));
-    *b = 2*2.3 + 2*0.25*log((*s/M_2));
 }
