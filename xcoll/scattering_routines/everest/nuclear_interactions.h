@@ -16,6 +16,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
     double interaction_length_tot;
     double A          = MaterialData_get__atomic_mass(material);
     double molar_mass = MaterialData_get__molar_mass(material);
+    double Z          = MaterialData_get__atomic_number(material);
     double rho        = MaterialData_get__density(material);
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
@@ -36,16 +37,24 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
         // Nuclear interaction dominates: return path length for nuclear interaction and do the interaction
         double interaction_length_inel, interaction_length_el, interaction_length_prod, interaction_length_sd;
         double interaction_length_pp_pn;
+        double interaction_length_coulomb;
+        double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
         // TODO: Is absorbed = prod + inel?
-        get_interaction_length(everest, &interaction_length_inel, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 1);
-        get_interaction_length(everest, &interaction_length_el, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 2);
-        get_interaction_length(everest, &interaction_length_prod, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 3);
-        get_interaction_length(everest, &interaction_length_sd, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 5);
-        get_interaction_length(everest, &interaction_length_pp_pn, &A, &molar_mass, &rho, &sqrt_s, &interaction_length_tot, 6);
-        // add Coulomb
-    
+
+        // Get interaction lengths for all types of interactions, to find the dominant one
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_inel, &sqrt_s, &interaction_length_tot, 1);
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_el, &sqrt_s, &interaction_length_tot, 2);
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_prod, &sqrt_s, &interaction_length_tot, 3);
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_sd, &sqrt_s, &interaction_length_tot, 5);
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_pp_pn, &sqrt_s, &interaction_length_tot ,6);
+        get_interaction_length(everest, material, &pc, &theta_init, &interaction_length_coulomb, &sqrt_s, &interaction_length_tot, 7);
+        // cs_type: Nucleus: 1 = inelastic, 2 = elastic, 3 = production, 4 = quasi-elastic, 
+        //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron, 
+        //                   7 = Coulomb
+
+        // Finding the smallest length
         double min_length = interaction_length_inel;
-        int min_index = 1;  // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn
+        int min_index = 1;  // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 
         if (interaction_length_el < min_length) {
             min_length = interaction_length_el;
@@ -67,6 +76,8 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
             min_length = interaction_length_coulomb;
             min_index = 6;
         }
+
+        // Doing the nuclear interaction
         if (min_index == 1 || min_index == 3){
             // Inelastic or Production: particle is absorbed
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);

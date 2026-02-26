@@ -9,7 +9,7 @@
 #include <splines.h>
 #include <stddef.h>
 
-// ====== Splines =============
+// ====== Splines & Helper functions =============
 // Horner's method for evaluating polynomials
 static inline double eval_interval(const Spline* s, double* sqrt_s) {
     double dx = *sqrt_s - s->x0;
@@ -41,6 +41,54 @@ double eval_spline(const Spline* spline, size_t n, double* sqrt_s) {
 }
 
 
+// Allen & Hastings Approximation for the Exponential Integral function E1(x) = int_x^inf (e^-t / t) dt
+/*gpufun*/
+static inline void approx_E1(double* E1_approx, double* x)
+{
+    if (*x <= 0.0) {
+        *E1_approx = 1e21;  // E1 undefined for x <= 0
+        return;
+    }
+    if (*x <= 1.0) {
+
+        // Small x expansion
+        const double a0 = -0.57722;
+        const double a1 =  0.99999;
+        const double a2 = -0.24991;
+        const double a3 =  0.05519;
+        const double a4 = -0.00976;
+        const double a5 =  0.00108;
+
+        double x2 = *x * *x;
+        double x3 = x2 * *x;
+        double x4 = x3 * *x;
+        double x5 = x4 * *x;
+
+        *E1_approx = -log(*x) + (a0 + a1*(*x) + a2*x2 + a3*x3 + a4*x4 + a5*x5);
+
+    } else {
+
+        // Large x rational approximation
+        const double b0 =  0.26777;
+        const double b1 =  8.63476;
+        const double b2 = 18.05902;
+        const double b3 =  8.57333;
+
+        const double c0 =  3.95850;
+        const double c1 = 21.09965;
+        const double c2 = 25.63296;
+        const double c3 =  9.57332;
+
+        double x2 = *x * *x;
+        double x3 = x2 * *x;
+
+        double numerator   = b0 + b1*(*x) + b2*x2 + b3*x3;
+        double denominator = c0 + c1*(*x) + c2*x2 + c3*x3;
+
+        *E1_approx = (exp(-(*x)) / (*x)) * (numerator / denominator);
+    }
+}
+
 // =======================================================
 // ====== Cross sections ======
 // =======================================================
@@ -48,8 +96,7 @@ double eval_spline(const Spline* spline, size_t n, double* sqrt_s) {
 // ================ Hadron - Nucleus cross sections ================ 
 // Proton - Nucleus
 /*gpufun*/
-void total_cross_section(MaterialData restrict material, double* lambda, double* A, double* molar_mass, double* rho, double* sqrt_s){
-    double Z = MaterialData_get__atomic_number(material);
+void total_cross_section(double* Z, double* lambda, double* A, double* molar_mass, double* rho, double* sqrt_s){
     double cs_tot_pp  = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
     double cs_tot_pn, R;
     if (sqrt_s < 30) {
@@ -63,7 +110,7 @@ void total_cross_section(MaterialData restrict material, double* lambda, double*
     if (cs_tot_pn > 1e20){  // pn is proton - neutron
         cs_tot_pn = 0;
     }
-    double cs_tot_hN = Z*cs_tot_pp + (*A - Z)*cs_tot_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
+    double cs_tot_hN = *Z*cs_tot_pp + (*A - *Z)*cs_tot_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
     if (*A < 4) {
         *lambda = (*molar_mass*(*A))/(N_A*(*rho)*cs_tot_hN);
         return;
@@ -75,8 +122,7 @@ void total_cross_section(MaterialData restrict material, double* lambda, double*
 }
 
 /*gpufun*/
-void calculate_elastic_cross_section(MaterialData restrict material, double* cs_el_hN, double* A, double* sqrt_s){
-    double Z = MaterialData_get__atomic_number(material);
+void calculate_elastic_cross_section(double* Z, double* cs_el_hN, double* A, double* sqrt_s){
     double cs_el_pp  = eval_spline(spline_el_pp, N_spline_el_pp, sqrt_s);
     double cs_el_pn = 0;
     if (sqrt_s < 30) {
@@ -90,11 +136,10 @@ void calculate_elastic_cross_section(MaterialData restrict material, double* cs_
     if (cs_el_pn > 1e20){  // pn is proton`- neutron
         cs_el_pn = 0;
     }
-    *cs_el_hN = Z*cs_el_pp + (*A - Z)*cs_el_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
+    *cs_el_hN = *Z*cs_el_pp + (*A - *Z)*cs_el_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
 }
 /*gpufun*/
-void calculate_inelastic_cross_section(MaterialData restrict material, double* cs_inel_hN, double* A, double* sqrt_s){
-    double Z = MaterialData_get__atomic_number(material);
+void calculate_inelastic_cross_section(double* Z, double* cs_inel_hN, double* A, double* sqrt_s){
     double cs_inel_pp  = eval_spline(spline_inel_pp, N_spline_inel_pp, sqrt_s);
     double cs_inel_pn;
     if (sqrt_s < 30) {
@@ -108,9 +153,22 @@ void calculate_inelastic_cross_section(MaterialData restrict material, double* c
     if (cs_inel_pn > 1e20){  // pn is proton - neutron
         cs_inel_pn = 0;
     }
-    *cs_inel_hN = Z*cs_inel_pp + (*A - Z)*cs_inel_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
+    *cs_inel_hN = *Z*cs_inel_pp + (*A - *Z)*cs_inel_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
 }
 
+void calculate_coulomb_cross_section(double* Z, double* A, double* pc, double* theta_init, double* cs_coulomb){
+    double* b_coulomb;
+    double* E1;
+    double R;
+    double t_cut = ((*pc)*2.325*(*theta_init))*((*pc)*2.325*(*theta_init));
+    double hbar_c = sqrt(0.389); // [mb*GeV^2]
+    double constant = (4*M_PI*(*Z)*(*Z)*(1./137.)*(1./137.)*(hbar_c*hbar_c));
+
+    get_slope_hadron_nucleus(A, b_coulomb);
+    R = 2*hbar_c*sqrt(*b_coulomb);
+    E1_approx(E1, &(R*R*(*b_coulomb)*t_cut));
+    *cs_coulomb = -constant * (R*R*(*b_coulomb)*(*E1) - exp(-R*R*(*b_coulomb)*t_cut)/t_cut);
+}
 // =======================================================
 // ====== Nuclear interaction length =====================
 // =======================================================
@@ -124,42 +182,50 @@ void _get_R(double* A, double* R) {
 }
 
 /*gpufun*/
-void get_interaction_length(EverestData restrict everest, double* lambda, double* A, double* molar_mass, 
-                            double* rho, double* sqrt_s, double* cs_tot, double cs_type){
+void get_interaction_length(EverestData restrict everest, MaterialData restrict material, double* theta_init, double* pc, double* lambda, double* sqrt_s, 
+                            double* cs_tot, double cs_type){
     // cs_type: Nucleus: 1 = inelastic, 2 = elastic, 3 = production, 4 = quasi-elastic, 
-    //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron
+    //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron, 7 = Coulomb
     double N_A = 6.02214076e23;  // Avogadro's number
     double R;
+    double A          = MaterialData_get__atomic_mass(material);
+    double molar_mass = MaterialData_get__molar_mass(material);
+    double Z          = MaterialData_get__atomic_number(material);
+    double rho        = MaterialData_get__density(material);
 
-    if (*A < 4) {
+    if (A < 4) {
         // Semi-supported material
         if (cs_type == 1){
             // Inelastic
             double cs_inel_hN;
-            calculate_inelastic_cross_section(material, &cs_inel_hN, A, sqrt_s);
-            *lambda = (*molar_mass*(*A))/(N_A*(*rho)*cs_inel_hN);
+            calculate_inelastic_cross_section(&Z, &cs_inel_hN, &A, sqrt_s);
+            *lambda = (molar_mass*(A))/(N_A*(rho)*cs_inel_hN);
 
         } else if (cs_type == 2){
             // Elastic
             double cs_el_hN;
-            calculate_elastic_cross_section(material, &cs_el_hN, A, sqrt_s); // TODO: decide either this or tot - inel
-            *lambda = (*molar_mass*(*A))/(N_A*(*rho)*cs_el_hN);
+            calculate_elastic_cross_section(&Z, &cs_el_hN, &A, sqrt_s); // TODO: decide either this or tot - inel
+            *lambda = (molar_mass*(A))/(N_A*(rho)*cs_el_hN);
 
         } else if (cs_type == 3){
             // Production
             double cs_prod_hN;
-            calculate_inelastic_cross_section(material, &cs_prod_hN, A, sqrt_s);
-            *lambda = (*molar_mass*(*A))/(N_A*(*rho)*cs_prod_hN);
+            calculate_inelastic_cross_section(&Z, &cs_prod_hN, &A, sqrt_s);
+            *lambda = (molar_mass*(A))/(N_A*(rho)*cs_prod_hN);
 
         } else if (cs_type == 6){ 
             // Proton-proton / proton-neutron
             double Neff = MaterialData_get__num_nucleons_effective(material);
             double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-            *lambda = (*molar_mass)/(N_A*(*rho)*cs_pp_hN*Neff);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_pp_hN*Neff);
 
+        } else if (cs_type == 7){
+            // Coulomb
+            double cs_coulomb;
+            calculate_coulomb_cross_section(&Z, &A, pc, theta_init, &cs_coulomb);
+            *lambda = (molar_mass*(A))/(N_A*(rho)*cs_coulomb);
         } else {
-            // Unsupported cs type 
-            *lambda = 1e21;
+            *lambda = 1e21; // should never reach here
         }
     } else {
         if (cs_type == 1){ 
@@ -167,7 +233,7 @@ void get_interaction_length(EverestData restrict everest, double* lambda, double
             double cs_inel_hA, cs_tot_hN;
             _get_R(&A, &R);
             cs_inel_hA = M_PI*pow(R,2) * log(1 + (*cs_tot)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            *lambda = (*molar_mass)/(N_A*(*rho)*cs_inel_hA);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_inel_hA);
 
         } else if (cs_type == 2){ 
             // Elastic: Total - Inelastic   // TODO: we do have the spline tho, so we can use it directly
@@ -181,23 +247,23 @@ void get_interaction_length(EverestData restrict everest, double* lambda, double
             if (cs_el_hA < 0){
                 cs_el_hA = 1e-10; // In case. Makes Lambda large
             } else {
-                *lambda = (*molar_mass)/(N_A*(*rho)*cs_el_hA);
+                *lambda = (molar_mass)/(N_A*(rho)*cs_el_hA);
             }
 
         } else if (cs_type == 3){ 
             // Production
             double cs_inel_hA;
             double cs_prod_hA, cs_inel_hN;
-            calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
+            calculate_inelastic_cross_section(&Z, &cs_inel_hN, &A, sqrt_s);
             _get_R(&A, &R);
             cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
-            *lambda = (*molar_mass)/(N_A*(*rho)*cs_prod_hA);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_prod_hA);
             
         } else if (cs_type == 4){ 
             // Quasi-Elastic: Inelastic - Production
             double cs_inel_hA, cs_tot_hN;
             double cs_prod_hA, cs_inel_hN;
-            calculate_inelastic_cross_section(material, &cs_inel_hN, &A, sqrt_s);
+            calculate_inelastic_cross_section(&Z, &cs_inel_hN, &A, sqrt_s);
             _get_R(&A, &R);
             cs_inel_hA = M_PI*pow(R,2) * log(1 + (*cs_tot)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
             cs_prod_hA = M_PI*pow(R,2) * log(1 + (cs_inel_hN)/(M_PI*pow(R,2))); // Glauber-Gribov approximation
@@ -205,7 +271,7 @@ void get_interaction_length(EverestData restrict everest, double* lambda, double
             if (cs_qel_hA < 0){
                 cs_qel_hA = 1e-10; // In case. Makes Lambda large
             } else { 
-                *lambda = (*molar_mass)/(N_A*(*rho)*cs_qel_hA);
+                *lambda = (molar_mass)/(N_A*(rho)*cs_qel_hA);
             }
 
         } else if (cs_type == 5){ 
@@ -214,18 +280,21 @@ void get_interaction_length(EverestData restrict everest, double* lambda, double
             _get_R(&A, &R);
             alpha = (*cs_tot)/(2*M_PI*pow(R,2) + *cs_tot);
             cs_sd_hA = M_PI*pow(R,2) * (alpha - log(1 + alpha)); // Glauber-Gribov approximation
-            *lambda = (*molar_mass)/(N_A*(*rho)*cs_sd_hA);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_sd_hA);
 
         } else if (cs_type == 6){ 
             // Proton-proton / proton-neutron
             double Neff = MaterialData_get__num_nucleons_effective(material);
             double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-            *lambda = (*molar_mass)/(N_A*(*rho)*cs_pp_hN*Neff);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_pp_hN*Neff);
 
-        } else {
-            // Unsupported cs type 
-            *lambda = 1e21; // effectively infinite interaction length
-        }
+        } else if (cs_type == 7){
+            // Coulomb
+            double cs_coulomb;
+            calculate_coulomb_cross_section(&Z, &A, pc, theta_init, &cs_coulomb);
+            *lambda = (molar_mass)/(N_A*(rho)*cs_coulomb);
+        } else 
+            *lambda = 1e21; // should never reach here
     }
 }
 
