@@ -14,6 +14,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
     // 2 either return for MCS or do nuclear interaction
     // 3 if nuclear interaction, get remanining lengths and do nucl int
     double interaction_length_tot;
+    double cross_section_tot;
     double A          = MaterialData_get__atomic_mass(material);
     double molar_mass = MaterialData_get__molar_mass(material);
     double Z          = MaterialData_get__atomic_number(material);
@@ -25,7 +26,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
     RecordIndex record_index     = everest->coll->record_index;
     int8_t scatter               = everest->coll->record_scatterings;
 
-    total_cross_section(material, &interaction_length_tot, &A, &molar_mass, &rho, &sqrt_s);
+    total_cross_section(&interaction_length_tot, &cross_section_tot, A, Z, molar_mass, rho, sqrt_s);
     FindRoot_find_path_length(finder, traj);
     double mcs_path_length = FindRoot_get_path_length(finder);
 
@@ -39,7 +40,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
         double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
 
         // Get interaction lengths for all types of interactions, to find the dominant one
-        get_interaction_length(everest, material, pc, &theta_init, interaction_lengths, sqrt_s, interaction_length_tot);
+        get_interaction_length(interaction_lengths[6], cross_section_tot, A, Z, molar_mass, rho, theta_init, sqrt_s, pc);
         // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 
         // Finding the smallest length
@@ -90,7 +91,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
 
             if (pc <= 1.e-9 || pc != pc) {
                 // Very small (<1eV) or NaN
-                if (sc) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
+                if (scatter) InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
                 LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
                 pc = 1.e-9; 
                 sqrt_t_p = 0;
@@ -112,8 +113,9 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;
 
         } else {
-            // Unsupported interaction type
+            return pc; // No interaction, return original momentum
         }
+
         double tan_theta = sqrt_t_p * sqrt(1 - sqrt_t_p*sqrt_t_p/4)/(1 - sqrt_t_p*sqrt_t_p/2);
         double alpha = 2*M_PI*RandomUniform_generate(part);
         double tan_theta_x = tan_theta*cos(alpha);
@@ -126,7 +128,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
                 LocalParticle_add_to_xp_yp(part, tan_theta_x, tan_theta_y);
         #endif
 
-            if (sc) InteractionRecordData_log_child(record, i_slot, part);
+        if (scatter) InteractionRecordData_log_child(record, i_slot, part);
     }
     return pc;
 }

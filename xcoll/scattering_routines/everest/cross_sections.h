@@ -96,14 +96,10 @@ static inline void approx_E1(double* E1_approx, double* x)
 // ================ Hadron - Nucleus cross sections ================ 
 // Proton - Nucleus
 /*gpufun*/
-void total_cross_section(MaterialData restrict material, double* lambda, double* cs_tot, double sqrt_s){
+void total_cross_section(double* lambda, double* cs_tot, double A, double Z, double molar_mass, 
+                         double rho, double sqrt_s){
     double cs_tot_pp  = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
     double cs_tot_pn, R;
-    double N_A = 6.02214076e23;  // Avogadro's number
-    double A = MaterialData_get__atomic_mass(material);
-    double Z = MaterialData_get__atomic_number(material);
-    double rho = MaterialData_get__density(material);
-    double molar_mass = MaterialData_get__molar_mass(material);
 
     if (sqrt_s < 30) {
         cs_tot_pn  = eval_spline(spline_tot_pn, N_spline_tot_pn, sqrt_s); // There is only world data to 30 GeV
@@ -120,13 +116,13 @@ void total_cross_section(MaterialData restrict material, double* lambda, double*
     double cs_tot_hN = Z*cs_tot_pp + (A - Z)*cs_tot_pn; //  cs * A = Z*cs_pp + (A-Z)*cs_pn
 
     if (A < 4) {
-        *lambda = (molar_mass*A)/(N_A*rho*cs_tot_hN);
+        *lambda = (molar_mass*A)/(XC_AVOGADRO*rho*cs_tot_hN);
         *cs_tot = cs_tot_hN;
         return;
     } else {
         _get_R(A, &R);
         double cs_tot_hA = 2*M_PI*pow(R,2) * log(1 + (cs_tot_hN)/(2*M_PI*pow(R,2))); // Glauber-Gribov approximation
-        *lambda = (molar_mass)/(N_A*rho*cs_tot_hA);
+        *lambda = (molar_mass)/(XC_AVOGADRO*rho*cs_tot_hA);
         *cs_tot = cs_tot_hA;
     }
 }
@@ -192,16 +188,11 @@ void _get_R(double A, double* R) {
 }
 
 /*gpufun*/
-void get_interaction_length(EverestData restrict everest, MaterialData restrict material, double theta_init, double pc, 
-                            double interaction_lengths[6], double sqrt_s, double cs_tot){
+void get_interaction_length(double interaction_lengths[6], double cs_tot, double A, double Z, 
+                            double molar_mass, double rho, double theta_init, double sqrt_s, double pc) {
     // cs_type: Nucleus: 1 = inelastic, 2 = elastic, 3 = production, 4 = quasi-elastic, 
     //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron, 7 = Coulomb
-    double N_A = 6.02214076e23;  // Avogadro's number
     double R;
-    double A          = MaterialData_get__atomic_mass(material);
-    double molar_mass = MaterialData_get__molar_mass(material);
-    double Z          = MaterialData_get__atomic_number(material);
-    double rho        = MaterialData_get__density(material);
 
     if (A < 4) {
         // Semi-supported material
@@ -210,13 +201,13 @@ void get_interaction_length(EverestData restrict everest, MaterialData restrict 
         calculate_elastic_cross_section(&Z, &cs_el_hN, &A, sqrt_s); // TODO: decide either this or tot - inel
 
         // Inelastic
-        interaction_lengths[0] = (molar_mass*(A))/(N_A*(rho)*cs_inel_hN);
+        interaction_lengths[0] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_inel_hN);
 
         // Elastic
-        interaction_lengths[1] = (molar_mass*(A))/(N_A*(rho)*cs_el_hN);
+        interaction_lengths[1] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_el_hN);
 
         // Production
-        interaction_lengths[2] = (molar_mass*(A))/(N_A*(rho)*cs_inel_hN);
+        interaction_lengths[2] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_inel_hN);
 
         // Single diffractive
         interaction_lengths[3] = 1e20; // single diffractive not supported for A < 4
@@ -224,12 +215,12 @@ void get_interaction_length(EverestData restrict everest, MaterialData restrict 
         // Proton-proton / proton-neutron
         double Neff = MaterialData_get__num_nucleons_effective(material);
         double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-        interaction_lengths[4] = (molar_mass)/(N_A*(rho)*cs_pp_hN*Neff);
+        interaction_lengths[4] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_pp_hN*Neff);
 
         // Coulomb
         double cs_coulomb;
         calculate_coulomb_cross_section(&Z, &A, pc, theta_init, &cs_coulomb);
-        interaction_lengths[5] = (molar_mass*(A))/(N_A*(rho)*cs_coulomb);
+        interaction_lengths[5] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_coulomb);
     
     } else {
         double cs_inel_hA, cs_el_hA;// A after GG, N before
@@ -241,34 +232,33 @@ void get_interaction_length(EverestData restrict everest, MaterialData restrict 
         
         // Inelastic
         cs_inel_hA = M_PI*R*R * log(1 + (cs_tot)/(M_PI*(R*R))); // Glauber-Gribov approximation
-        interaction_lengths[0] = (molar_mass)/(N_A*(rho)*cs_inel_hA);
+        interaction_lengths[0] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_inel_hA);
 
         // Elastic: Total - Inelastic
         cs_el_hA = cs_tot - cs_inel_hA;
         if (cs_el_hA < 0){
             cs_el_hA = 1e-10; // In case. Makes Lambda large
         } else {
-            interaction_lengths[1] = (molar_mass)/(N_A*(rho)*cs_el_hA);
+            interaction_lengths[1] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_el_hA);
         }
 
         // Production
         cs_prod_hA = M_PI*R*R * log(1 + (cs_inel_hN)/(M_PI*R*R)); // Glauber-Gribov approximation
-        interaction_lengths[2] = (molar_mass)/(N_A*(rho)*cs_prod_hA);
+        interaction_lengths[2] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_prod_hA);
 
         // Single diffractive
         alpha = cs_tot/(2*M_PI*R*R + cs_tot);
         cs_sd_hA = M_PI*R*R * (alpha - log(1 + alpha)); // Glauber-Gribov approximation
-        interaction_lengths[3] = (molar_mass)/(N_A*(rho)*cs_sd_hA);
+        interaction_lengths[3] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_sd_hA);
 
         // Proton-proton / proton-neutron
         double Neff = MaterialData_get__num_nucleons_effective(material);
         double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-        interaction_lengths[4] = (molar_mass)/(N_A*(rho)*cs_pp_hN*Neff);
+        interaction_lengths[4] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_pp_hN*Neff);
 
         // Coulomb
         calculate_coulomb_cross_section(Z, A, pc, theta_init, &cs_coulomb);
-        interaction_lengths[5] = (molar_mass)/(N_A*(rho)*cs_coulomb);
-
+        interaction_lengths[5] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_coulomb);
         // Quasi-Elastic: Inelastic - Production
         // double cs_inel_hA, cs_tot_hN;
         // double cs_prod_hA, cs_inel_hN;
