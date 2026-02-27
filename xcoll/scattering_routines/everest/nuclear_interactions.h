@@ -5,7 +5,7 @@
 
 #ifndef XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
-
+#include <math.h>
 /*gpufun*/
 double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part, FindRoot finder, 
                               LocalTrajectory traj, MaterialData restrict material, double pc) {
@@ -15,6 +15,8 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
     // 3 if nuclear interaction, get remanining lengths and do nucl int
     double interaction_length_tot;
     double cross_section_tot;
+    double sqrt_t_p;
+    int64_t i_slot = -1;
     double A          = MaterialData_get__atomic_mass(material);
     double molar_mass = MaterialData_get__molar_mass(material);
     double Z          = MaterialData_get__atomic_number(material);
@@ -35,6 +37,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
         return 0; // false for nucl int.
 
     } else {
+        // do MCS!!!!! OK so probably need one function for IS there nuclear interaction, if yes then ok but lets do MCS in jaw, THEN ion loss, THEN nucl.
         // Nuclear interaction dominates: return path length for nuclear interaction and do the interaction
         double interaction_lengths[6];
         double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
@@ -86,6 +89,7 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
         } else if (min_index == 4){
             // Single diffractive
             double pc_in = pc;
+            double xm2 = exp(RandomUniform_generate(part)*everest->xln15s);
             pc = pc*(1 - xm2/everest->ecmsq);
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_SINGLE_DIFFRACTIVE);
 
@@ -96,7 +100,8 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
                 pc = 1.e-9; 
                 sqrt_t_p = 0;
             } else {
-                get_slope_single_diffraction(everest->ecmsq, &b_sd);
+                double b_sd;
+                get_slope_single_diffraction(everest->ecmsq, &b_sd, part);
                 sqrt_t_p = sqrt(RandomExponential_generate(part)/b_sd)/sqrt(pc_in*pc);
             }
 
@@ -132,3 +137,4 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
     }
     return pc;
 }
+#endif // XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
