@@ -68,13 +68,15 @@ class BlowUp(xt.BeamElement):
 
 
     @classmethod
-    def install(cls, line, name, *, at=None, need_apertures=True, aperture=None, s_tol=1.e-6, at_s=None, **kwargs):
+    def install(cls, line, name, *, at=None, need_apertures=True,
+                aperture=None, s_tol=1.e-6, at_s=None, **kwargs):
         if at_s is not None:
             warn("Warning: `at_s` is deprecated and will be removed in "
                  "the future. Please use `at` instead.", FutureWarning)
             at = at_s
         if name in line.element_names:
-            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+            raise ValueError(f"Element {name} already exists in the line as "
+                             f"{line[name].__class__.__name__}.")
         self = cls(**kwargs)
         env = line.env
         env.elements[name] = self
@@ -83,8 +85,11 @@ class BlowUp(xt.BeamElement):
         self._name = name
         if need_apertures:
             if aperture is not None:
-                aper_upstream   = aperture.copy()
-                aper_downstream = aperture.copy()
+                aper_name = f'{name}_aper'
+                env.elements[aper_name] = aperture
+                self.name_associated_aperture = aper_name
+                env.new(f'{aper_name}_upstream', aper_name, mode='replica')
+                env.new(f'{aper_name}_downstream', aper_name, mode='replica')
             else:
                 idx = line.element_names.index(name)
                 while True:
@@ -98,10 +103,12 @@ class BlowUp(xt.BeamElement):
                         aper_downstream = line.elements[idx].copy()
                         break
                     idx += 1
-            env.elements[f'{name}_aper_upstream'] = aper_upstream
-            env.elements[f'{name}_aper_downstream'] = aper_downstream
-            insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
-            insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+                env.elements[f'{name}_aper_upstream'] = aper_upstream
+                env.elements[f'{name}_aper_downstream'] = aper_downstream
+            insertions.append(env.place(f'{name}_aper_upstream',
+                                        at=name+'@start'))
+            insertions.append(env.place(f'{name}_aper_downstream',
+                                        at=name+'@end'))
         line.insert(insertions, s_tol=s_tol)
 
         return self

@@ -9,7 +9,8 @@ from warnings import warn
 import xtrack as xt
 
 from .accessors import XcollAccessor
-from .beam_elements import element_classes, collimator_classes, block_classes, crystal_classes
+from .beam_elements import (element_classes, collimator_classes, block_classes,
+                            crystal_classes)
 
 
 class XcollScatteringAPI(XcollAccessor):
@@ -19,7 +20,8 @@ class XcollScatteringAPI(XcollAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the collimators dynamically
+        # This makes sure the accessor can access the names of the
+        # elements dynamically
         return self.line.get_elements_of_type(element_classes)[1]
 
     @property
@@ -61,7 +63,8 @@ class XcollCollimatorAPI(XcollAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the collimators dynamically
+        # This makes sure the accessor can access the names of the
+        # collimators dynamically
         return self.line.get_elements_of_type(collimator_classes)[1]
 
     @property
@@ -86,10 +89,15 @@ class XcollCollimatorAPI(XcollAccessor):
         else:
             raise NotImplementedError("Need to move this to new type manager or so.")
 
-    def install(self, names, elements, *, at_s=None, apertures=None, need_apertures=False, s_tol=1.e-6):
+    def install(self, names, elements, *, at=None, need_apertures=False,
+                apertures=None, s_tol=1.e-6, at_s=None):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in "
+                 "the future. Please use `at` instead.", FutureWarning)
+            at = at_s
         if self.line._has_valid_tracker():
-            raise Exception("Tracker already built!\nPlease install collimators before building "
-                        + "tracker!")
+            raise Exception("Tracker already built!\nPlease install "
+                            "collimators before building tracker!")
 
         if not hasattr(names, '__iter__') or isinstance(names, str):
             names = [names]
@@ -98,9 +106,9 @@ class XcollCollimatorAPI(XcollAccessor):
         names = np.array(names)
         length = np.array([coll.length for coll in elements])
         assert len(length) == len(names)
-        if not hasattr(at_s, '__iter__'):
-            at_s = [at_s for _ in range(len(names))]
-        assert len(at_s) == len(names)
+        if not hasattr(at, '__iter__'):
+            at = [at for _ in range(len(names))]
+        assert len(at) == len(names)
         if isinstance(apertures, str) or not hasattr(apertures, '__iter__'):
             apertures = [apertures for _ in range(len(names))]
         assert len(apertures) == len(names)
@@ -114,9 +122,10 @@ class XcollCollimatorAPI(XcollAccessor):
 
         # Get positions
         tab = self.line.get_table()
-        tt = tab.rows[[name for name in names if name in self.line.element_names]]
+        tt = tab.rows[[name for name in names
+                       if name in self.line.element_names]]
         s_start = []
-        for name, s, l in zip(names, at_s, length):
+        for name, s, l in zip(names, at, length):
             if s is None:
                 s_start.append(self._get_s_start(name, length=l, table=tt))
             else:
@@ -126,24 +135,24 @@ class XcollCollimatorAPI(XcollAccessor):
 
         # Check positions
         l_line = self.line.get_length()
-        for s1, s2, name, s3 in zip(s_start, s_end, names, at_s):
-            self.check_position(name, s_start=s1, s_end=s2, at_s=s3, length=l_line, s_tol=s_tol)
+        for s1, s2, name, s3 in zip(s_start, s_end, names, at):
+            self.check_position(name, s_start=s1, s_end=s2, at_s=s3,
+                                length=l_line, s_tol=s_tol)
 
         # Look for apertures
-        aper_upstream   = []
-        aper_downstream = []
-        for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
-            if not need_apertures:
-                aper_upstream.append(None)
-                aper_downstream.append(None)
-            else:
-                aper1, aper2 = self.get_aperture(name, s_start=s1, s_end=s2, aperture=aper, table=tab, s_tol=s_tol)
+        if need_apertures:
+            aper_upstream   = []
+            aper_downstream = []
+            for s1, s2, name, aper in zip(s_start, s_end, names, apertures):
+                aper1, aper2 = self.get_aperture(name, s_start=s1, s_end=s2,
+                                        aperture=aper, table=tab, s_tol=s_tol)
                 aper_upstream.append(aper1)
                 aper_downstream.append(aper2)
 
         # Remove elements at location of collimator (by changing them into markers)
         for s1, s2, name, el in zip(s_start, s_end, names, elements):
-            self.prepare_space(name, s_start=s1, s_end=s2, table=tab, s_tol=s_tol)
+            self.prepare_space(name, s_start=s1, s_end=s2, table=tab,
+                               s_tol=s_tol)
             el._line = self.line
             el._name = name
 
@@ -158,9 +167,11 @@ class XcollCollimatorAPI(XcollAccessor):
             insertions.append(env.place(nn, at=ss, anchor='start'))
 
         if len(to_be_removed) > 0:
-            self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
+            # replaces it with a drift if needed
+            self.line.remove(to_be_removed, s_tol=s_tol)
 
-        # remove old elements from environment (after placing new ones to avoid issues with names)
+        # remove old elements from environment (after placing new ones
+        # to avoid issues with names)
         for nn in to_be_removed:
             del env.elements[nn]
 

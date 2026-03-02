@@ -296,7 +296,8 @@ class ParticleStatsMonitor(xt.BeamElement):
                  "the future. Please use `at` instead.", FutureWarning)
             at = at_s
         if name in line.element_names:
-            raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+            raise ValueError(f"Element {name} already exists in the line as "
+                             f"{line[name].__class__.__name__}.")
         self = cls(**kwargs)
         line.insert(name, self, at=at, s_tol=s_tol)
         self.configure(line)
@@ -792,6 +793,5 @@ class EmittanceMonitor(ParticleStatsMonitor):
             self._gemitt_II[i] = eigenvalues[1].imag
             self._gemitt_III[i] = eigenvalues[2].imag
 
-            # Set calculated modes as cached
-            self.data.cached_modes[i] = 1
-
+        # Set calculated modes as cached
+        self.cached_modes[mask] = 1
