@@ -34,11 +34,13 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
 
     if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
         // MCS to exit
+        // since mcs is already done.. then either we do ionsiaton loss here, or outside
         return 0; // false for nucl int.
-
     } else {
-        // do MCS!!!!! OK so probably need one function for IS there nuclear interaction, if yes then ok but lets do MCS in jaw, THEN ion loss, THEN nucl.
-        // Nuclear interaction dominates: return path length for nuclear interaction and do the interaction
+        // do mcs to nucl int. length i suppose ? mcs_s(lambda), mcs_x(lambda)?
+        // ionisation loss with lamba
+        // then this? 
+        // need to move all this into another function probably? Like this to check if? Or "nuclear?" outside, THEN this function if yes. 
         double interaction_lengths[6];
         double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
 
