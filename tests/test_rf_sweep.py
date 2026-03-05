@@ -5,6 +5,7 @@
 
 import pytest
 import numpy as np
+import scipy.constants as sc
 from pathlib import Path
 
 import xobjects as xo
@@ -51,6 +52,51 @@ def test_rf_sweep(sweep, beam, test_context):
         assert np.all(part.delta > 3*bh)
     else:
         assert np.all(part.delta < -3*bh)
+
+
+def test_rf_sweep_harmonic_number():
+    """Test that RFSweep correctly resolves frequency from harmonic when frequency==0."""
+    num_turns = 6000
+    num_particles = 5
+    env = xt.load(path / f'sequence_lhc_run3_b2.json')
+    line = env['lhcb2']
+
+    # Find the main RF cavity and record its frequency, then switch to harmonic number
+    tt_c = line.get_table().rows[[nn for nn, ttt in zip(
+        line.get_table().name, line.get_table().element_type)
+        if 'Cavity' in ttt and 'CrabCavity' not in ttt]]
+    cav_name = tt_c.name[0]
+    original_freq = env[cav_name].frequency
+    beta0 = line.particle_ref.beta0[0]
+    L = line.get_length()
+    harmonic = int(np.round(original_freq * L / beta0 / sc.c))
+
+    # Set harmonic number instead of frequency
+    env[cav_name].frequency = 0
+    env[cav_name].harmonic = harmonic
+
+    assert np.isclose(env[cav_name].frequency, 0)
+    assert env[cav_name].harmonic == harmonic
+
+    line.build_tracker()
+
+    part = line.build_particles(delta=np.linspace(-2e-4, 2e-4, num_particles),
+                                x_norm=0, px_norm=0, y_norm=0, py_norm=0)
+
+    sweep = -300
+    rf_sweep = xc.RFSweep(line)
+    rf_sweep.prepare(sweep_per_turn=sweep/num_turns)
+
+    # After prepare, frequency should have been resolved and harmonic zeroed
+    assert np.isclose(env[cav_name].harmonic, 0)
+    assert np.isclose(env[cav_name].frequency, original_freq, rtol=1e-6)
+
+    rf_sweep.info()
+    line.track(particles=part, num_turns=num_turns)
+
+    # Same result as the standard LHC b2 negative sweep test
+    part.move(_context=xo.ContextCpu())
+    assert np.all(part.delta > 1.5e-3)
 
 
 def test_rf_sweep_old_style():
