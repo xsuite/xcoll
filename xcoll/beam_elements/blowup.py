@@ -46,15 +46,17 @@ class BlowUp(InvalidXcoll):
         to_assign = {}
         if '_xobject' not in kwargs:
             start_at_turn = int(kwargs.get('start_at_turn', 0))
-            stop_at_turn  = int(kwargs.get('stop_at_turn', start_at_turn+1))
+            stop_at_turn = int(kwargs.get('stop_at_turn', start_at_turn+1))
+            if stop_at_turn <= start_at_turn:
+                raise ValueError("`stop_at_turn` must be larger than `start_at_turn`!")
             kwargs['start_at_turn'] = start_at_turn
-            kwargs['stop_at_turn']  = stop_at_turn
+            kwargs['stop_at_turn'] = stop_at_turn
             kwargs['_rans'] = 2*np.random.uniform(size=stop_at_turn-start_at_turn) - 1
             if 'plane' in kwargs:
-                to_assign['plane']   = kwargs.pop('plane')
+                to_assign['plane'] = kwargs.pop('plane')
             to_assign['calibration'] = kwargs.pop('calibration', 1.)
-            to_assign['amplitude']   = kwargs.pop('amplitude', 1)
-            kwargs['_calibration']   = 1.
+            to_assign['amplitude'] = kwargs.pop('amplitude', 1)
+            kwargs['_calibration'] = 1.
         super().__init__(**kwargs)
         for key, val in to_assign.items():
             setattr(self, key, val)
@@ -77,21 +79,26 @@ class BlowUp(InvalidXcoll):
         self._line = line
         if need_apertures:
             if aperture is not None:
-                aper_upstream   = aperture.copy()
-                aper_downstream = aperture.copy()
+                if not hasattr(aperture, '__iter__') and not isinstance(aperture, str):
+                    aperture = [aperture]
+                if len(aperture) == 1:
+                    aperture = [aperture[0], aperture[0]]
+                elif len(aperture) != 2:
+                    raise ValueError("`aperture` must be either a single element or a list of two elements.")
+                aper_upstream   = aperture[0].copy()
+                aper_downstream = aperture[1].copy()
             else:
-                idx = line.element_names.index(name)
-                while True:
-                    if xt.line._is_aperture(line.elements[idx], line):
-                        aper_upstream = line.elements[idx].copy()
-                        break
-                    idx -= 1
-                idx = line.element_names.index(name)
-                while True:
-                    if xt.line._is_aperture(line.elements[idx], line):
-                        aper_downstream = line.elements[idx].copy()
-                        break
-                    idx += 1
+                tt = line.get_table()
+                try:
+                    ttt = tt.rows[0.:at:'s']
+                except IndexError:
+                    ttt = tt.rows[:at]
+                aper_upstream = ttt.rows.match('Limit.*', 'element_type').name[-1]
+                try:
+                    ttt = tt.rows[at:tt.s[-1]:'s']
+                except IndexError:
+                    ttt = tt.rows[at:]
+                aper_downstream = ttt.rows.match('Limit.*', 'element_type').name[0]
             env.elements[f'{name}_aper_upstream'] = aper_upstream
             env.elements[f'{name}_aper_downstream'] = aper_downstream
             insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
