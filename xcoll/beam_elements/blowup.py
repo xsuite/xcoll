@@ -5,6 +5,7 @@
 
 import numpy as np
 from warnings import warn
+from numbers import Number
 
 import xobjects as xo
 import xtrack as xt
@@ -68,8 +69,15 @@ class BlowUp(InvalidXcoll):
             warn("Warning: `at_s` is deprecated and will be removed in "
                  "the future. Please use `at` instead.", FutureWarning)
             at = at_s
+        if not isinstance(at, Number):
+            # TODO: this could be generalised to allow the same API as
+            # line.insert, however, this has to be implemented cautiously
+            # and well-tested.
+            raise NotImplementedError("`at` must be a number indicating the s "
+                                      "position of the blow-up element.")
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
+
         self = cls(**kwargs)
         env = line.env
         env.elements[name] = self
@@ -89,16 +97,12 @@ class BlowUp(InvalidXcoll):
                 aper_downstream = aperture[1].copy()
             else:
                 tt = line.get_table()
-                try:
-                    ttt = tt.rows[0.:at:'s']
-                except IndexError:
-                    ttt = tt.rows[:at]
-                aper_upstream = ttt.rows.match('Limit.*', 'element_type').name[-1]
-                try:
-                    ttt = tt.rows[at:tt.s[-1]:'s']
-                except IndexError:
-                    ttt = tt.rows[at:]
-                aper_downstream = ttt.rows.match('Limit.*', 'element_type').name[0]
+                ttt = tt.rows[0.:at:'s']
+                aper_upstream = ttt.rows.match('Limit.*', 'element_type')
+                aper_upstream = line.get(aper_upstream.name[-1])
+                ttt = tt.rows[at:tt.s[-1]:'s']
+                aper_downstream = ttt.rows.match('Limit.*', 'element_type')
+                aper_downstream = line.get(aper_downstream.name[0])
             env.elements[f'{name}_aper_upstream'] = aper_upstream
             env.elements[f'{name}_aper_downstream'] = aper_downstream
             insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))

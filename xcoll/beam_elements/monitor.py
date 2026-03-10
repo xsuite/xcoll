@@ -210,6 +210,7 @@ class EmittanceMonitor(xt.BeamElement):
             warn("Warning: `at_s` is deprecated and will be removed in "
                  "the future. Please use `at` instead.", FutureWarning)
             at = at_s
+
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
         self = cls(**kwargs)
