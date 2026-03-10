@@ -5,6 +5,7 @@
 
 import pytest
 import numpy as np
+from pathlib import Path
 
 import xtrack as xt
 import xpart as xp
@@ -17,6 +18,9 @@ num_turns = 25
 num_part = 5000
 nemitt_x = 3.5e-6
 nemitt_y = 2.5e-6
+
+path = Path(__file__).parent / 'data'
+
 
 # TODO: need to test frev and sampling_frequency with coasting beams!
 
@@ -184,9 +188,9 @@ def test_monitor_instance(cls):
 def test_blowup_install(beam, plane, aper, test_context):
     aperture = None
     if aper == 'auto':
-        env = xt.load(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
     else:
-        env = xt.load(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
         if aper == 'single':
             aperture = xt.LimitEllipse(a=0.01, b=0.01)
         elif aper == 'both':
@@ -209,7 +213,7 @@ def test_blowup_install(beam, plane, aper, test_context):
 @pytest.mark.parametrize("beam, plane", [[1,'H'], [1,'V'], [2,'H'], [2,'V']],
                          ids=["B1H", "B1V", "B2H", "B2V"])
 def test_blowup(beam, plane, test_context):
-    env = xt.load(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
@@ -257,7 +261,7 @@ def test_blowup(beam, plane, test_context):
 def test_monitor_reset(test_context):
     beam = 1
     plane = 'V'
-    env = xt.load(xc._pkg_root.parent / 'examples' / 'machines' / f'lhc_run3_b{beam}_no_aper.json')
+    env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
     line = env[f'lhcb{beam}']
     pos = 'b5l4' if f'{beam}' == '1' and plane == 'H' else 'b5r4'
     pos = 'b5l4' if f'{beam}' == '2' and plane == 'V' else pos
