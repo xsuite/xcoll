@@ -496,18 +496,19 @@ class LossMap:
         i = 0
         _xcoll = self._xcoll.tolist()
         _date = self._date.tolist()
-        for lossmap in iter_lossmaps(files, max_workers=max_workers, chunksize=chunksize):
+        for lossmap in iter_lossmaps(files, max_workers=max_workers,
+                                     chunksize=chunksize):
             LossMap._assert_valid_json(lossmap)
             if 'momentum' in lossmap:
                 self.momentum = lossmap['momentum']
             if 'beam_type' in lossmap:
                 self.beam_type = lossmap['beam_type']
             if 'xcoll' in lossmap:
-                xcoll = [lossmap['xcoll']] if isinstance(lossmap['xcoll'], str) else lossmap['xcoll']
-                _xcoll.extend(xcoll)
+                _xcoll.extend(lossmap['xcoll'])
             if 'date' in lossmap:
-                date = [lossmap['date']] if isinstance(lossmap['date'], str) else lossmap['date']
-                _date.extend(date)
+                if isinstance(lossmap['date'], str):
+                    [lossmap['date']] = [lossmap['date']]
+                _date.extend(lossmap['date'])
             self.line_is_reversed = lossmap['reversed']
             self.machine_length = lossmap['machine_length']
             self.interpolation = lossmap['interpolation']
@@ -827,6 +828,11 @@ class LossMap:
                 n_ver += 0.2
             return n_ver
         if 'xcoll' in lossmap:
+            if isinstance(lossmap['xcoll'], str):
+                lossmap['xcoll'] = [lossmap['xcoll']]
+            if not hasattr(lossmap['xcoll'], '__iter__') \
+            or isinstance(lossmap['xcoll'], str):
+                lossmap['xcoll'] = [lossmap['xcoll']]
             vers = [get_ver(vv) for vv in lossmap['xcoll']]
             for vv in reversed(LossMap._version_changes):
                 if any([v >= get_ver(vv) for v in vers]):
