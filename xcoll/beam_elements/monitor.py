@@ -16,7 +16,6 @@ class EmittanceMonitorRecord(xo.Struct):
     count            = xo.Float64[:]
     cached           = xo.Int8[:]
     cached_modes     = xo.Int8[:]
-    count            = xo.Float64[:]
     x_sum1           = xo.Float64[:]
     px_sum1          = xo.Float64[:]
     y_sum1           = xo.Float64[:]
@@ -48,8 +47,8 @@ class EmittanceMonitorRecord(xo.Struct):
 
 class EmittanceMonitor(xt.BeamElement):
     _xofields={
-        'part_id_start':      xo.Int64,
-        'part_id_end':        xo.Int64,
+        'particle_id_start':  xo.Int64,
+        'particle_id_stop':   xo.Int64,
         'start_at_turn':      xo.Int64,
         'stop_at_turn':       xo.Int64,
         'frev':               xo.Float64,
@@ -78,6 +77,10 @@ class EmittanceMonitor(xt.BeamElement):
         for more information on how to use `frev` and `sampling_frequency`.
 
         Args:
+            particle_id_start (int, optional): Id of first particle to monitor.
+                Defaults to 0.
+            particle_id_stop (int, optional): Id of last particle to monitor.
+                Defaults to -1 which means ALL.
             num_particles (int, optional): Number of particles to monitor,
                 starting from 0. Defaults to -1 which means ALL.
             particle_id_range (tuple, optional): Range of particle ids to
@@ -94,30 +97,83 @@ class EmittanceMonitor(xt.BeamElement):
                 Defaults to True.
             vertical (bool): Whether or not to monitor the vertical plane.
                 Defaults to True.
-            longitudinal (bool): Whether or not to monitor the longitudinal plane.
-                Defaults to True.
+            longitudinal (bool): Whether or not to monitor the longitudinal
+                plane. Defaults to True.
+            suppress_warnings (bool): Whether or not to suppress warnings
+                about high condition number or rank deficiency in the
+                calculation of the emittance modes. Defaults to False.
         """
         if '_xobject' not in kwargs:
+            if 'part_id_start' in kwargs:
+                warn("Warning: `part_id_start` is deprecated and will be removed in "
+                     "the future. Please use `particle_id_start` instead.", FutureWarning)
+                kwargs['particle_id_start'] = kwargs.pop('part_id_start')
+            if 'part_id_end' in kwargs:
+                warn("Warning: `part_id_end` is deprecated and will be removed in "
+                     "the future. Please use `particle_id_stop` instead.", FutureWarning)
+                kwargs['particle_id_stop'] = kwargs.pop('part_id_end')
             if 'particle_id_range' in kwargs:
-                assert 'num_particles' not in kwargs
+                if 'num_particles' in kwargs:
+                    raise ValueError("Cannot specify both `particle_id_range` "
+                                     "and `num_particles`!")
+                if 'particle_id_start' in kwargs or 'particle_id_stop' in kwargs:
+                    raise ValueError("Cannot specify `particle_id_start` or "
+                                     "`particle_id_stop` together with "
+                                     "`particle_id_range`!")
                 particle_id_range = kwargs.pop('particle_id_range')
-                kwargs['part_id_start'] = int(particle_id_range[0])
-                kwargs['part_id_end'] = int(particle_id_range[1])
-            else:
-                num_particles = int(kwargs.pop('num_particles', -1))
+                if not hasattr(particle_id_range, '__iter__') or isinstance(particle_id_range, str) or len(particle_id_range) != 2:
+                    raise ValueError("`particle_id_range` must be an iterable of length 2!")
+                kwargs['particle_id_start'] = particle_id_range[0]
+                kwargs['particle_id_stop'] = particle_id_range[1]
+            elif 'num_particles' in kwargs:
+                num_particles = kwargs.pop('num_particles', -1)
                 if num_particles == -1:
-                    kwargs['part_id_start'] = 0
-                    kwargs['part_id_end'] = -1
+                    if 'particle_id_start' in kwargs or 'particle_id_stop' in kwargs:
+                        raise ValueError("Cannot specify `particle_id_start` or "
+                                         "`particle_id_stop` together with "
+                                         "`num_particles=-1` (which means ALL).")
                 else:
-                    kwargs['part_id_start'] = kwargs.pop('particle_id_start', 0)
-                    kwargs['part_id_end'] = kwargs['part_id_start'] + num_particles
-            kwargs['start_at_turn'] = int(kwargs.get('start_at_turn', 0))
-            kwargs['stop_at_turn']  = int(kwargs.get('stop_at_turn', kwargs['start_at_turn']+1))
+                    if 'particle_id_start' in kwargs and 'particle_id_stop' in kwargs:
+                        raise ValueError("Cannot specify both `particle_id_start` and "
+                                         "`particle_id_stop` together with "
+                                         "`num_particles`!")
+                    if 'particle_id_stop' in kwargs:
+                        kwargs['particle_id_start'] = kwargs['particle_id_stop'] - num_particles
+                    else:
+                        kwargs['particle_id_stop'] = kwargs.get('particle_id_start', 0) + num_particles
+            kwargs.setdefault('particle_id_start', 0)
+            kwargs.setdefault('particle_id_stop', -1)
+            if kwargs['particle_id_start'] < 0:
+                raise ValueError("`particle_id_start` must be non-negative!")
+            if kwargs['particle_id_stop'] < 0 and kwargs['particle_id_stop'] != -1:
+                raise ValueError("`particle_id_stop` must be non-negative or -1 (for ALL)!")
+            if kwargs['particle_id_stop'] != -1 and kwargs['particle_id_stop'] <= kwargs['particle_id_start']:
+                raise ValueError("`particle_id_stop` must be larger than `particle_id_start`!")
+            kwargs['start_at_turn'] = kwargs.get('start_at_turn', 0)
+            kwargs['stop_at_turn']  = kwargs.get('stop_at_turn', kwargs['start_at_turn']+1)
+            if kwargs['stop_at_turn'] <= kwargs['start_at_turn']:
+                raise ValueError("`stop_at_turn` must be larger than `start_at_turn`!")
             kwargs.setdefault('frev', 1.)
             kwargs.setdefault('sampling_frequency', 1.)
-            horizontal = kwargs.pop('horizontal', True)
-            vertical = kwargs.pop('vertical', True)
-            longitudinal = kwargs.pop('longitudinal', True)
+            horizontal = kwargs.pop('horizontal', None)
+            vertical = kwargs.pop('vertical', None)
+            longitudinal = kwargs.pop('longitudinal', None)
+            # Small hack to allow e.g. horizontal=False to imply
+            # vertical=True and longitudinal=True
+            setval = np.unique([v for v in [horizontal, vertical, longitudinal]
+                                if v is not None])
+            if len(setval) == 0:
+                setval = True
+            elif len(setval) == 1:
+                setval = not setval[0]
+            else:
+                setval = False
+            if horizontal is None: horizontal = setval
+            if vertical is None: vertical = setval
+            if longitudinal is None: longitudinal = setval
+            if not horizontal and not vertical and not longitudinal:
+                raise ValueError("At least one of `horizontal`, `vertical` and "
+                                 "`longitudinal` must be True!")
             kwargs['_plane_selector']  =   int(horizontal)
             kwargs['_plane_selector'] += 2*int(vertical)
             kwargs['_plane_selector'] += 4*int(longitudinal)
@@ -154,6 +210,7 @@ class EmittanceMonitor(xt.BeamElement):
             warn("Warning: `at_s` is deprecated and will be removed in "
                  "the future. Please use `at` instead.", FutureWarning)
             at = at_s
+
         if name in line.element_names:
             raise ValueError(f"Element {name} already exists in the line as {line[name].__class__.__name__}.")
         self = cls(**kwargs)

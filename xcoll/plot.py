@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 from numbers import Number
 
 
@@ -81,14 +82,29 @@ def _plot_lossmap_base(lossmap: dict, *,
                        warm_regions=None,
                        xlim=None,
                        ylim=None,
-                       x_label=None,
-                       y_label=None,
+                       xshift=None,
+                       xlabel=None,
+                       ylabel=None,
                        xticks=None,
                        yticks=None,
-                       legend=True):
+                       legend=True,
+                       x_label=None,
+                       y_label=None):
+    if x_label is not None:
+        warn("Warning: `x_label` is deprecated and will be removed in the "
+             "future. Please use `xlabel` instead.", FutureWarning)
+        xlabel = x_label
+    if y_label is not None:
+        warn("Warning: `y_label` is deprecated and will be removed in the "
+             "future. Please use `ylabel` instead.", FutureWarning)
+        ylabel = y_label
+
     import matplotlib.pyplot as plt
     if not isinstance(ax, plt.Axes):
         raise ValueError("ax must be a matplotlib Axes instance.")
+
+    if xshift is None:
+        xshift = 0
 
     # Resolve normalisation
     if isinstance(norm, str) and norm.lower() in _NORMS:
@@ -195,17 +211,15 @@ def _plot_lossmap_base(lossmap: dict, *,
         coll_val = coll_val / lossmap['collimator']['length']
 
     if xlim is None:
-        xlim = [-0.01*L, 1.01*L]
+        xlim = [-0.01*L - xshift, 1.01*L - xshift]
     if xlim[1] < xlim[0]:
-        xlim[0] -= L
-        cold_s = np.concatenate([cold_s - L, cold_s])
-        warm_s = np.concatenate([warm_s - L, warm_s])
-        aper_s = np.concatenate([aper_s - L, aper_s])
-        coll_s = np.concatenate([coll_s - L, coll_s])
-        cold_val = np.concatenate([cold_val, cold_val])
-        warm_val = np.concatenate([warm_val, warm_val])
-        aper_val = np.concatenate([aper_val, aper_val])
-        coll_val = np.concatenate([coll_val, coll_val])
+        xlim[1] += L
+        if np.isclose(xshift, 0):
+            xshift = L
+    cold_s = cold_s - xshift
+    warm_s = warm_s - xshift
+    aper_s = aper_s - xshift
+    coll_s = coll_s - xshift
     if ylim is None:
         minimum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).min()
         maximum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
@@ -234,12 +248,12 @@ def _plot_lossmap_base(lossmap: dict, *,
     if yticks is None:
         yticks = [10**i for i in range(int(np.log10(ylim[0])), 1 + int(np.log10(ylim[1])))]
     ax.set_yticks(yticks)
-    if x_label is None:
-        x_label = "s [m]"
-    ax.set_xlabel(x_label)
-    if y_label is None:
-        y_label = _label_from_norm(norm, energy)
-    ax.set_ylabel(y_label)
+    if xlabel is None:
+        xlabel = "s [m]"
+    ax.set_xlabel(xlabel)
+    if ylabel is None:
+        ylabel = _label_from_norm(norm, energy)
+    ax.set_ylabel(ylabel)
 
     if legend:
         ax.legend(loc='upper right', fancybox=True, framealpha=0.8, fontsize="small")

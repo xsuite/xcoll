@@ -126,6 +126,25 @@ class RFSweep:
         self.line.track(particles=particles, num_turns=num_turns, *args, **kwargs)
 
 
+    def _resolve_cavity_frequency(self):
+        """Ensure all cavities have a nonzero frequency attribute.
+        If frequency==0, compute it from harmonic, zero out harmonic, and write back frequency."""
+        for cav_name in self.cavities:
+            freq = self.env[cav_name].frequency
+            if not np.isclose(freq, 0):
+                continue
+            harmonic = self.env[cav_name].harmonic
+            if harmonic is None or np.isclose(harmonic, 0):
+                raise ValueError(
+                    f"Cavity '{cav_name}' has frequency=0 and no valid harmonic number set."
+                )
+            beta0 = self.line.particle_ref.beta0[0]
+            L = self.line.get_length()
+            freq = float(harmonic) * beta0 * sc.c / L
+            self.env[cav_name].harmonic = 0
+            self.env[cav_name].frequency = freq
+
+
     def _get_cavity_data(self):
         # Cavity data not yet extracted
         tt = self.line.get_table()
@@ -142,6 +161,7 @@ class RFSweep:
                     raise ValueError(f"Cavity `{cav}` not found in environment!")
         if len(self.cavities) == 0:
             raise ValueError("No cavities found in the line!")
+        self._resolve_cavity_frequency()
         freq = np.array([self.env[cav].frequency for cav in self.cavities])
         volt = np.array([self.env[cav].voltage for cav in self.cavities])
         lag  = np.array([self.env[cav].lag for cav in self.cavities])

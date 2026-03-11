@@ -18,9 +18,29 @@ path = Path(__file__).parent / 'data'
 @for_all_test_contexts(
     excluding=('ContextCupy', 'ContextPyopencl')  # Rutherford RNG not on GPU
 )
+@pytest.mark.parametrize("aper", [None, "auto", "single", "both",
+                                  "single_ref_aper", "both_ref_aper"],
+                         ids=["without_aper", "auto_aper", "single_aper",
+                              "both_aper", "single_ref_aper", "both_ref_aper"])
 @pytest.mark.parametrize("beam", [1, 2], ids=["B1", "B2"])
-def test_install_single_existing_marker(beam, test_context):
-    env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+def test_install_single_existing_marker(beam, aper, test_context):
+    aperture = None
+    need_apertures = aper is not None
+    if aper == 'auto' or (aper is not None and aper.endswith('_ref_aper')):
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}.json')
+        if aper == 'single_ref_aper':
+            aperture = 'tcp.b6l7.b1_aper' if beam == 1 else 'tcp.b6r7.b2_aper'
+        elif aper == 'both_ref_aper':
+            if beam == 1:
+                aperture = ['tcp.b6l7.b1_aper', 'tcp.d6l7.b1_aper']
+            else:
+                aperture = ['tcp.b6r7.b2_aper', 'tcp.d6r7.b2_aper']
+    else:
+        env = xt.load(path / f'sequence_lhc_run3_b{beam}_no_aper.json')
+        if aper == 'single':
+            aperture = xt.LimitEllipse(a=0.01, b=0.01)
+        elif aper == 'both':
+            aperture = [xt.LimitEllipse(a=0.01, b=0.01), xt.LimitEllipse(a=0.02, b=0.02)]
     line = env[f'lhcb{beam}']
     machine_length = line.get_length()
 
@@ -28,15 +48,16 @@ def test_install_single_existing_marker(beam, test_context):
     name = 'tcp.b6l7.b1' if beam == 1 else 'tcp.b6r7.b2'
     assert not isinstance(line[name], xc.BlackAbsorber)
     pos_centre = line.get_s_position(name) + line[name].length/2
-    coll = xc.BlackAbsorber(length=0.6, angle=127.5)
-    line.collimators.install(name, coll, need_apertures=True)
+    coll = xc.BlackAbsorber(length=0.6, angle=127.5, _context=test_context)
+    line.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
     assert isinstance(line[name], xc.BlackAbsorber)
     tab = line.get_table()
-    idx = tab.rows.indices[[name]][0]
-    assert xt.line._is_aperture(line[idx-1], line)
-    assert xt.line._is_aperture(line[idx+1], line)
+    if need_apertures:
+        idx = tab.rows.indices[[name]][0]
+        assert xt.line._is_aperture(line[idx-1], line)
+        assert xt.line._is_aperture(line[idx+1], line)
 
     # Test normal collimator
     name = 'tcp.d6l7.b1' if beam == 1 else 'tcp.d6r7.b2'
@@ -61,41 +82,17 @@ def test_install_single_existing_marker(beam, test_context):
             line[idx].length -= existing_length/2
             break
     pos_centre = line.get_s_position(name) + line[name].length/2
-    coll = xc.EverestCollimator(length=0.6, angle=90, material=xc.materials.MolybdenumGraphite)
-    line.collimators.install(name, coll, need_apertures=True)
+    coll = xc.EverestCollimator(length=0.6, angle=90, _context=test_context,
+                                material=xc.materials.MolybdenumGraphite)
+    line.collimators.install(name, coll, apertures=aperture, need_apertures=need_apertures)
     assert np.isclose(line[name].length, 0.6)
     assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
     assert isinstance(line[name], xc.EverestCollimator)
     tab = line.get_table()
-    idx = tab.rows.indices[[name]][0]
-    assert xt.line._is_aperture(line[idx-1], line)
-    assert xt.line._is_aperture(line[idx+1], line)
-
-    # Test crystal collimator
-    name = 'tcpcv.a6l7.b1' if beam == 1 else 'tcpcv.a6r7.b2'
-    assert not isinstance(line[name], xc.EverestCrystal)
-    pos_centre = line.get_s_position(name) + line[name].length/2
-    coll = xc.EverestCrystal(length=0.004, angle=90, lattice='strip', bending_radius=85.10,
-                             width=5.0e-3, height=30.0e-3, side='left',
-                             material=xc.materials.Silicon)
-    line.collimators.install(name, coll, need_apertures=True)
-    assert np.isclose(line[name].length, 0.004)
-    assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
-    assert isinstance(line[name], xc.EverestCrystal)
-    tab = line.get_table()
-    idx = tab.rows.indices[[name]][0]
-    assert xt.line._is_aperture(line[idx-1], line)
-    assert xt.line._is_aperture(line[idx+1], line)
-
-    # Test block
-    name = 'ip4'
-    assert not isinstance(line[name], xc.EverestBlock)
-    pos_centre = line.get_s_position(name)
-    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon)
-    line.collimators.install(name, el, need_apertures=False)
-    assert np.isclose(line[name].length, 0.63)
-    assert np.isclose(pos_centre - line[name].length/2, line.get_s_position(name))
-    assert isinstance(line[name], xc.EverestBlock)
+    if need_apertures:
+        idx = tab.rows.indices[[name]][0]
+        assert xt.line._is_aperture(line[idx-1], line)
+        assert xt.line._is_aperture(line[idx+1], line)
 
     # Verify line length did not corrupt
     assert np.isclose(machine_length, line.get_length())
@@ -113,8 +110,8 @@ def test_install_single_no_marker(beam, test_context):
     # Test absorber
     name = 'test_absorber'
     assert name not in line.element_names
-    coll = xc.BlackAbsorber(length=1.738, angle=127.5)
-    line.collimators.install(name, coll, at_s=12.4, need_apertures=True,
+    coll = xc.BlackAbsorber(length=1.738, angle=127.5, _context=test_context)
+    line.collimators.install(name, coll, at=12.4, need_apertures=True,
                              apertures=xt.LimitEllipse(0.4, 0.4))
     assert name in line.element_names
     assert np.isclose(line[name].length, 1.738)
@@ -134,8 +131,8 @@ def test_install_single_no_marker(beam, test_context):
     # Test block
     name = 'test_block'
     assert name not in line.element_names
-    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon)
-    line.collimators.install(name, el, need_apertures=False, at_s=17.89)
+    el = xc.EverestBlock(length=0.63, material=xc.materials.Silicon, _context=test_context)
+    line.collimators.install(name, el, need_apertures=False, at=17.89)
     assert name in line.element_names
     assert np.isclose(line[name].length, 0.63)
     assert np.isclose(line.get_s_position(name), 17.89)

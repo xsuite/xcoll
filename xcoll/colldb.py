@@ -490,16 +490,16 @@ class CollimatorDatabase:
                 self._create_collimator(BlackCrystal, line, name, verbose=verbose)
             else:
                 self._create_collimator(BlackAbsorber, line, name, verbose=verbose)
-        at_s = []
+        at = []
         elements = []
         for name in names:
             s_center = getattr(self, 's_center')[name]
             if s_center is None:
-                at_s.append(None)
+                at.append(None)
             else:
-                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+        line.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
     def install_everest_collimators(self, line, *, names=None, families=None, apertures=None,
@@ -516,16 +516,16 @@ class CollimatorDatabase:
                 self._create_collimator(EverestCrystal, line, name, material=mat, verbose=verbose)
             else:
                 self._create_collimator(EverestCollimator, line, name, material=mat, verbose=verbose)
-        at_s = []
+        at = []
         elements = []
         for name in names:
             s_center = getattr(self, 's_center')[name]
             if s_center is None:
-                at_s.append(None)
+                at.append(None)
             else:
-                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+        line.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
     def install_fluka_collimators(self, line, *, names=None, families=None, apertures=None,
@@ -593,16 +593,16 @@ class CollimatorDatabase:
                                         verbose=verbose)
             else:
                 self._create_collimator(Geant4Collimator, line, name, material=mat, verbose=verbose)
-        at_s = []
+        at = []
         elements = []
         for name in names:
             s_center = getattr(self, 's_center')[name]
             if s_center is None:
-                at_s.append(None)
+                at.append(None)
             else:
-                at_s.append(s_center - 0.5*getattr(self, 'length')[name])
+                at.append(s_center - 0.5*getattr(self, 'length')[name])
             elements.append(self._elements[name])
-        line.collimators.install(names, elements, at_s=at_s, apertures=apertures,
+        line.collimators.install(names, elements, at=at, apertures=apertures,
                                  need_apertures=need_apertures, s_tol=s_tol)
 
 

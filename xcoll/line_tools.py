@@ -5,10 +5,17 @@
 
 import numpy as np
 from warnings import warn
+from numbers import Number
 
 import xtrack as xt
+from xtrack import line
 
-from .beam_elements import element_classes, collimator_classes, block_classes, crystal_classes
+from .beam_elements import (element_classes, collimator_classes, block_classes,
+                            crystal_classes)
+
+
+def _iterable(obj):
+    return  hasattr(obj, '__iter__') and not isinstance(obj, str)
 
 
 class XcollLineAccessor:
@@ -16,9 +23,14 @@ class XcollLineAccessor:
 
     def __init__(self, line, names=None):
         super().__setattr__('_line', line)
+        super().__setattr__('_env', line.env)
         if names:
             super().__setattr__('names', names)
             # self.names = names
+
+    @property
+    def env(self):
+        return self._env
 
     @property
     def line(self):
@@ -62,7 +74,8 @@ class XcollLineAccessor:
                 properties[name] = getattr(el, attr)
         if len(properties) == 0:
             raise AttributeError(f"Attribute `{attr}` not found.")
-        if len({tuple(ii) if isinstance(ii, list) else ii for ii in properties.values()}) == 1:
+        if len({tuple(ii) if isinstance(ii, list) else ii
+                for ii in properties.values()}) == 1:
             # If all values are the same, return a single value
             return next(iter(properties.values()))
         return properties
@@ -72,11 +85,12 @@ class XcollLineAccessor:
             for name, el in self.items():
                 if name in value:
                     if not hasattr(el, attr):
-                        raise AttributeError(f"Attribute `{attr}` not found in "
-                                           + f"{self._typename} `{name}`.")
+                        raise AttributeError(f"Attribute `{attr}` not found in"
+                                             f" {self._typename} `{name}`.")
                     setattr(el, attr, value[name])
         else:
-            # If value is not a dict, we assume it is a single value to set for all collimators
+            # If value is not a dict, we assume it is a single value to
+            # set for all collimators
             for name, el in self.items():
                 if hasattr(el, attr):
                     setattr(el, attr, value)
@@ -85,7 +99,8 @@ class XcollLineAccessor:
         if name in self.names:
             return self.line[name]
         else:
-            raise ValueError(f"{self._typename.capitalize()} `{name}` not found in line!")
+            raise ValueError(f"{self._typename.capitalize()} `{name}` not "
+                             f"found in line!")
 
     def __repr__(self):
         return f"<{self.__class__.__name__} at {hex(id(self))}>"
@@ -95,7 +110,8 @@ class XcollLineAccessor:
             return ''
         res = [f'{self._typename.capitalize()}s:']
         for name in self.names:
-            res.append(f"    {name:<16} ({self.line[name].__class__.__name__})")
+            cls_name = self.line[name].__class__.__name__
+            res.append(f"    {name:<16} ({cls_name})")
         return "\n".join(res)
 
 
@@ -103,7 +119,8 @@ class XcollScatteringAPI(XcollLineAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the collimators dynamically
+        # This makes sure the accessor can access the names of the
+        # collimators dynamically
         return self.line.get_elements_of_type(element_classes)[1]
 
     def enable(self):
@@ -121,7 +138,7 @@ class XcollScatteringAPI(XcollLineAccessor):
                     if not np.isclose(el.nemitt_x, nemitt_x) \
                     or not np.isclose(el.nemitt_y, nemitt_y):
                         raise ValueError("Not all collimators have the same "
-                                    + "emittance. This is not supported.")
+                                         "emittance. This is not supported.")
                 if hasattr(el, 'enable_scattering'):
                     el.enable_scattering()
 
@@ -149,7 +166,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
     @property
     def names(self):
-        # This makes sure the accessor can access the names of the collimators dynamically
+        # This makes sure the accessor can access the names of the
+        # collimators dynamically
         return self.line.get_elements_of_type(collimator_classes)[1]
 
     @property
@@ -178,8 +196,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
         elif name in self.names:
             return self.line[name]
         else:
-            raise ValueError(f"Neither family nor collimator `{name}` found in line!")
-
+            raise ValueError(f"Neither family nor collimator `{name}` found in"
+                             f" line!")
 
     def open(self, names=None):
         if names is None:
@@ -188,8 +206,8 @@ class XcollCollimatorAPI(XcollLineAccessor):
             print("No collimators found in line.")
         else:
             for coll in names:
-                self.line[coll].open_jaws(keep_tilts=False)
-                self.line[coll].gap = None
+                self.line.get(coll).open_jaws(keep_tilts=False)
+                self.line.get(coll).gap = None
 
     def to_parking(self, names=None):
         if names is None:
@@ -197,50 +215,96 @@ class XcollCollimatorAPI(XcollLineAccessor):
         if len(names) == 0:
             print("No collimators found in line.")
         else:
-            raise NotImplementedError("Need to move this to new type manager or so.")
+            raise NotImplementedError("Need to move this to new type manager "
+                                      "or so.")
 
-    def install(self, names, elements, *, at_s=None, apertures=None, need_apertures=False, s_tol=1.e-6):
-        if self.line._has_valid_tracker():
-            raise Exception("Tracker already built!\nPlease install collimators before building "
-                        + "tracker!")
-
-        if not hasattr(names, '__iter__') or isinstance(names, str):
+    def install(self, names, elements, *, at=None, apertures=None,
+                need_apertures=False, s_tol=1.e-6, at_s=None):
+        if at_s is not None:
+            warn("Warning: `at_s` is deprecated and will be removed in the "
+                 "future. Please use `at` instead.", FutureWarning)
+            at = at_s
+        if not _iterable(names) or not _iterable(elements) \
+        or not _iterable(at):
+            if _iterable(names):
+                raise ValueError("`names` should not be a list if any of the "
+                                 "other arguments is not a list.")
+            if _iterable(elements):
+                raise ValueError("`elements` should not be a list if any of "
+                                 "the other arguments is not a list.")
+            if _iterable(at):
+                raise ValueError("`at` should not be a list if any of the "
+                                 "other arguments is not a list.")
             names = [names]
-        if not hasattr(elements, '__iter__') or isinstance(elements, str):
             elements = [elements]
+            at = [at for _ in range(len(names))]
+            apertures = [apertures for _ in range(len(names))]
+        if not _iterable(apertures):
+            apertures = [apertures for _ in range(len(names))]
         names = np.array(names)
         length = np.array([coll.length for coll in elements])
-        assert len(length) == len(names)
-        if not hasattr(at_s, '__iter__'):
-            at_s = [at_s for _ in range(len(names))]
-        assert len(at_s) == len(names)
-        if isinstance(apertures, str) or not hasattr(apertures, '__iter__'):
-            apertures = [apertures for _ in range(len(names))]
-        assert len(apertures) == len(names)
+        if len(length) != len(names):
+            raise ValueError("Length of `elements` does not match length of "
+                             "`names`.")
+        if len(at) != len(names):
+            raise ValueError("Length of `at` does not match length of "
+                             "`names`.")
+        if len(apertures) != len(names):
+            raise ValueError("Length of `apertures` does not match length of "
+                             "`names`.")
 
         # Verify elements
         for name, el in zip(names, elements):
-            assert isinstance(el, block_classes)
+            if not isinstance(el, block_classes):
+                raise ValueError(f"Element {el} is not a valid block or "
+                                 f"collimator class.")
             el._tracking = False
             if el.name is None:
                 el.name = name
 
         # Get positions
-        tab = self.line.get_table()
-        tt = tab.rows[[name for name in names if name in self.line.element_names]]
+        tt = self.line.get_table()
         s_start = []
-        for name, s, l in zip(names, at_s, length):
-            if s is None:
-                s_start.append(self._get_s_start(name, length=l, table=tt))
-            else:
-                s_start.append(s)
+        for name, s, l in zip(names, at, length):
+            if s is not None and not isinstance(s, Number):
+                # TODO: this could be generalised to allow the same API as
+                # line.insert, however, this has to be implemented cautiously
+                # and well-tested.
+                raise NotImplementedError("`at` must be a number indicating "
+                                    "the s position of the blow-up element.")
+            existing_length = 0
+            if name in tt.name:
+                if hasattr(self.line[name], 'length'):
+                    existing_length = self.line[name].length
+                else:
+                    existing_length = 0
+                existing_s = tt.rows[name].s_start[0]
+                new_s = existing_s + existing_length/2. - l/2
+                if s is not None and not np.isclose(s, new_s, atol=s_tol):
+                    raise ValueError(f"Element {name} already exists in line "
+                            f"at location {existing_s} with length "
+                            f"{existing_length}. Provided `at` = {s} is "
+                            f"different from the existing one. Please provide "
+                            f"an `at` for this element that corresponds to the"
+                            f" existing location or use `at=None`, or remove "
+                            f"the element first.")
+                s = new_s
+            elif s is None:
+                raise ValueError(f"Element {name} not found in line. Need to "
+                                 f"manually provide `at`.")
+            s_start.append(s)
         s_start = np.array(s_start)
         s_end = s_start + length
 
         # Check positions
-        l_line = self.line.get_length()
-        for s1, s2, name, s3 in zip(s_start, s_end, names, at_s):
-            self.check_position(name, s_start=s1, s_end=s2, at_s=s3, length=l_line, s_tol=s_tol)
+        l_line = tt.s_end[-1]
+        for s1, s2, name in zip(s_start, s_end, names):
+            if s1 <= s_tol:
+                raise ValueError(f"Position of {name} too close to start of "
+                                 f"line. Please cycle.")
+            if s2 >= l_line - s_tol:
+                raise ValueError(f"Position of {name} too close to end of "
+                                 f"line. Please cycle.")
 
         # Look for apertures
         aper_upstream   = []
@@ -250,31 +314,39 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 aper_upstream.append(None)
                 aper_downstream.append(None)
             else:
-                aper1, aper2 = self.get_aperture(name, s_start=s1, s_end=s2, aperture=aper, table=tab, s_tol=s_tol)
+                aper1, aper2 = self.find_aperture(name, s_start=s1, s_end=s2,
+                                                  aperture=aper, table=tt,
+                                                  s_tol=s_tol)
                 aper_upstream.append(aper1)
                 aper_downstream.append(aper2)
 
-        # Remove elements at location of collimator (by changing them into markers)
+        # Remove elements at location of collimator (by changing them
+        # into markers) and add pointers to line and names to elements
+        to_remove = []
         for s1, s2, name, el in zip(s_start, s_end, names, elements):
-            self.prepare_space(name, s_start=s1, s_end=s2, table=tab, s_tol=s_tol)
+            self.prepare_space(name, s_start=s1, s_end=s2, table=tt,
+                               s_tol=s_tol, to_remove=to_remove)
             el._line = self.line
             el._name = name
 
         # Install
         insertions = []
+        to_delete = []
         env = self.line.env
-        to_be_removed = []
         for nn, ee, ss in zip(names, elements, s_start):
             if nn in env.elements:
-                # remove placeholders wth the same name
-                to_be_removed.append(nn)
+                # remove placeholders with the same name
+                to_remove.append(nn)
+                to_delete.append(nn) # only delete original elements/markers
             insertions.append(env.place(nn, at=ss, anchor='start'))
 
-        if len(to_be_removed) > 0:
-            self.line.remove(to_be_removed, s_tol=s_tol) # replaces it with a drift if needed
+        if len(to_remove) > 0:
+            # replaces it with a drift if needed
+            self.line.remove(to_remove, s_tol=s_tol)
 
-        # remove old elements from environment (after placing new ones to avoid issues with names)
-        for nn in to_be_removed:
+        # remove old elements/markers from environment (after placing new
+        # ones to avoid issues with names)
+        for nn in to_delete:
             del env.elements[nn]
 
         # Add new elements to environment
@@ -283,55 +355,49 @@ class XcollCollimatorAPI(XcollLineAccessor):
 
         # Apertures
         if need_apertures:
-            for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream, aper_downstream):
-                env.elements[f'{name}_aper_upstream'] = aper1
-                env.elements[f'{name}_aper_downstream'] = aper2
-                insertions.append(env.place(f'{name}_aper_upstream', at=name+'@start'))
-                insertions.append(env.place(f'{name}_aper_downstream', at=name+'@end'))
+            for s1, name, aper1, aper2 in zip(s_start, names, aper_upstream,
+                                              aper_downstream):
+                nn1 = f'{name}_aper_upstream'
+                nn2 = f'{name}_aper_downstream'
+                env.elements[nn1] = aper1
+                env.elements[nn2] = aper2
+                insertions.append(env.place(nn1, at=name+'@start'))
+                insertions.append(env.place(nn2, at=name+'@end'))
         self.line.insert(insertions, s_tol=s_tol)
 
-    def check_position(self, name, *, s_start, s_end, at_s, length=None, s_tol=1.e-6):
-        if at_s is None:
-            if name not in self.line.element_names:
-                raise ValueError(f"Element {name} not found in line. Provide `at_s`.")
-        elif name in self.line.element_names:
-            if at_s < s_start or at_s > s_end:
-                raise ValueError(f"Element {name} already exists in line at different "
-                            + f"location: at_s = {at_s}, exists at [{s_start}, {s_end}].")
-        if length is None:
-            length = self.line.get_length()
-        if s_start <= s_tol:
-            raise ValueError(f"Position of {name} too close to start of line. Please cycle.")
-        if s_end >= length - s_tol:
-            raise ValueError(f"Position of {name} too close to end of line. Please cycle.")
-
-    def get_apertures_at_s(self, s, *, table=None, s_tol=1.e-6):
-        if table is None:
-            table = self.line.get_table()
-        tab_s = table.rows[s-s_tol:s+s_tol:'s']
-        aper = tab_s.rows[[cls.startswith('Limit') for cls in tab_s.element_type]]
-        if len(aper) == 0:
-            return None
-        elif len(aper) == 1:
-            return aper.name[0]
-        else:
-            raise ValueError(f"Multiple apertures found at location {s} with "
-                           + f"tolerance {s_tol}: {aper.name}. Not supported.")
-
-    def get_aperture(self, name, *, s_start, s_end, aperture=None, table=None, s_tol=1.e-6):
+    def find_aperture(self, name, *, s_start, s_end, aperture=None, table=None,
+                     s_tol=1.e-6):
         if aperture is not None:
             if isinstance(aperture, str):
-                aper1 = self.line[aperture]
-                aper2 = self.line[aperture]
-            elif hasattr(aperture, '__iter__'):
-                if len(aperture) != 2:
-                    raise ValueError(f"The value `aperture` should be None or a list "
-                                + f"[upstream, downstream].")
-                assert aperture[0] is not None and aperture[1] is not None
+                try:
+                    aper1 = self.env.get(aperture)
+                except KeyError:
+                    aper1 = self.line.get(aperture)
+                aper2 = aper1
+            elif _iterable(aperture):
+                if len(aperture) == 1:
+                    aperture = [aperture[0], aperture[0]]
+                elif len(aperture) != 2:
+                    raise ValueError("The value `aperture` should be None or "
+                                     "a list [upstream, downstream].")
+                if aperture[0] is None or aperture[1] is None:
+                    raise ValueError("Both upstream and downstream apertures "
+                                     "must be provided if `aperture` is a "
+                                     "list.")
                 if isinstance(aperture[0], str):
-                    aper1 = self.line[aperture[0]]
+                    try:
+                        aper1 = self.env.get(aperture[0])
+                    except KeyError:
+                        aper1 = self.line.get(aperture[0])
+                else:
+                    aper1 = aperture[0]
                 if isinstance(aperture[1], str):
-                    aper2 = self.line[aperture[1]]
+                    try:
+                        aper2 = self.env.get(aperture[1])
+                    except KeyError:
+                        aper2 = self.line.get(aperture[1])
+                else:
+                    aper2 = aperture[1]
             else:
                 aper1 = aperture
                 aper2 = aperture
@@ -339,48 +405,69 @@ class XcollCollimatorAPI(XcollLineAccessor):
                 raise ValueError(f"Not a valid aperture: {aper1}")
             if not xt.line._is_aperture(aper2, self.line):
                 raise ValueError(f"Not a valid aperture: {aper2}")
-            return aper1.copy(), aper2.copy()
+            return aper1, aper2
         else:
             if table is None:
                 table = self.line.get_table()
-            aper1 = self.get_apertures_at_s(s=s_start, table=table, s_tol=s_tol)
-            aper2 = self.get_apertures_at_s(s=s_end, table=table, s_tol=s_tol)
+            # We look for apertures, prioritising the ones closest to the
+            # centre of the collimator, and from there (if absent),
+            # searching towards the upstream and downstream side.
+            s_centre = (s_start + s_end)/2
+            # Upstream aperture
+            tt = table.rows[s_start-s_tol:s_centre+s_tol:'s']
+            tt_aper = tt.rows.match('Limit.*', 'element_type')
+            if len(tt_aper.name) == 0:
+                aper1 = None
+            else:
+                aper_name = tt_aper.name[-1]
+                aper1 = self.line.get(aper_name)
+                if aper1.transformations_active:
+                    s_aper = tt.rows[aper_name].s_start[0]
+                    if not np.isclose(s_aper, s_start, atol=s_tol):
+                        print(f"Warning: Using aperture {aper_name} upstream "
+                              f"of {name}, but transformations are present. "
+                              f"Proceed with caution.")
+            # Downstream aperture
+            tt = table.rows[s_centre-s_tol:s_end+s_tol:'s']
+            tt_aper = tt.rows.match('Limit.*', 'element_type')
+            if len(tt_aper.name) == 0:
+                aper2 = None
+            else:
+                aper_name = tt_aper.name[0]
+                aper2 = self.line.get(aper_name)
+                if aper2.transformations_active:
+                    s_aper = tt.rows[aper_name].s_end[0]
+                    if not np.isclose(s_aper, s_end, atol=s_tol):
+                        print(f"Warning: Using aperture {aper_name} downstream"
+                              f" of {name}, but transformations are present. "
+                              f"Proceed with caution.")
             if aper1 is None and aper2 is not None:
                 aper1 = aper2
-                print(f"Warning: Could not find upstream aperture for {name}! "
-                    + f"Used copy of downstream aperture. Proceed with caution.")
             elif aper2 is None and aper1 is not None:
                 aper2 = aper1
-                print(f"Warning: Could not find downstream aperture for {name}! "
-                    + f"Used copy of upstream aperture. Proceed with caution.")
             elif aper1 is None and aper2 is None:
-                aper_mid = self.get_apertures_at_s(s=(s_start+s_end)/2, table=table, s_tol=s_tol)
-                if aper_mid is None:
-                    raise ValueError(f"No aperture found for {name}! Please provide one.")
-                if self.line[aper_mid].transformations_active:
-                    print(f"Warning: Using the centre aperture for {name}, but "
-                        + f"transformations are present. Proceed with caution.")
-                aper1 = aper_mid
-                aper2 = aper_mid
-            return self.line[aper1].copy(), self.line[aper2].copy()
+                raise ValueError(f"No aperture found for {name}! Please "
+                                 f"provide one.")
+            return aper1, aper2
 
-    def prepare_space(self, name, *, s_start, s_end, table=None, s_tol=1.e-6):
+    def prepare_space(self, name, *, s_start, s_end, table=None,
+                      s_tol=1.e-6, to_remove=[]):
         if table is None:
             table = self.line.get_table()
         tt = table.rows[s_start-s_tol:s_end+s_tol:'s']
-        for element_name, element_type in zip(tt.name[:-1], tt.element_type[:-1]):
-            if element_type == 'Marker' or element_type.startswith('Drift'):
+        for el_name, el_type in zip(tt.name[:-1], tt.element_type[:-1]):
+            if el_type == 'Marker' or el_type.startswith('Drift'):
                 continue
-            if not element_type.startswith('Limit'):
-                print(f"Warning: Removed active element {element_name} "
+            if not el_type.startswith('Limit'):
+                print(f"Warning: Removed active element {el_name} "
                     + f"at location inside collimator {name}!")
-            length = self.line[element_name].length if hasattr(self.line[element_name], 'length') else 0
-            self.line.element_dict[element_name] = xt.Drift(length=length)
+            to_remove.append(el_name)
+        return to_remove
 
     def get_optics_at(self, names, *, twiss=None):
         if twiss is None:
             twiss = self.line.twiss()
-        if not hasattr(names, '__iter__') and not isinstance(names, str):
+        if not _iterable(names):
             names = [names]
         coll_entry_indices = twiss.rows.indices[names]
         tw_entry = twiss.rows[coll_entry_indices]
@@ -401,14 +488,3 @@ class XcollCollimatorAPI(XcollLineAccessor):
             warn("No crystals found in line to align to beam divergence.")
         for el in crystals:
             el.align_to_beam_divergence()
-
-    def _get_s_start(self, name, *, length, table=None):
-        if table is None:
-            table = self.line.get_table()
-        if name in self.line.element_names and hasattr(self.line[name], 'length'):
-            existing_length = self.line[name].length
-        else:
-            existing_length = 0
-        if name not in table.name:
-            raise ValueError(f"Element {name} not found in line. Need to manually provide `at_s`.")
-        return table.rows[name].s[0] + existing_length/2. - length/2
