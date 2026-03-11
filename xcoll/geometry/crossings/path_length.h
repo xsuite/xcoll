@@ -13,21 +13,26 @@
 void simpson(FindRoot finder, LocalTrajectory traj, int32_t subintervals) {
     double l1 = 0;
     double l2 = FindRoot_get_solution_l(finder, 0);
-    if (subintervals % 2 != 1) {
+    if (subintervals % 2 == 1) {
         subintervals++;
     }
     double step_size = (l2 - l1) / subintervals;
-    double sum = sqrt(1 + LocalTrajectory_deriv_x(traj, l1)*LocalTrajectory_deriv_x(traj, l1)) + 
-                 sqrt(1 + LocalTrajectory_deriv_x(traj, l2)*LocalTrajectory_deriv_x(traj, l2));  // f(l1) + f(l2)
+    double sum = sqrt(LocalTrajectory_deriv_x(traj, l1)*LocalTrajectory_deriv_x(traj, l1) + 
+                      LocalTrajectory_deriv_s(traj, l1)*LocalTrajectory_deriv_s(traj, l1)) + 
+                 sqrt(LocalTrajectory_deriv_x(traj, l2)*LocalTrajectory_deriv_x(traj, l2) + 
+                      + LocalTrajectory_deriv_s(traj, l2)*LocalTrajectory_deriv_s(traj, l2));  // f(l1) + f(l2)
     // Add subintervals to the sum
     for (int i = 1; i < subintervals; i++) {
         double l = l1 + i * step_size;
         // Even indices (except the endpoints) are multiplied by 2. Odd indices are multiplied by 4
         if (i % 2 == 0) {
-            sum += 2.0 * sqrt(1 + LocalTrajectory_deriv_x(traj, l)*LocalTrajectory_deriv_x(traj, l));
+            sum += 2.0 * sqrt(LocalTrajectory_deriv_x(traj, l)*LocalTrajectory_deriv_x(traj, l) + 
+                              LocalTrajectory_deriv_s(traj, l)*LocalTrajectory_deriv_s(traj, l));
         } else {
-            sum += 4.0 * sqrt(1 + LocalTrajectory_deriv_x(traj, l)*LocalTrajectory_deriv_x(traj, l));
+            sum += 4.0 * sqrt(LocalTrajectory_deriv_x(traj, l)*LocalTrajectory_deriv_x(traj, l) + 
+                              LocalTrajectory_deriv_s(traj, l)*LocalTrajectory_deriv_s(traj, l));
         }
+        fflush(stdout);
     }
     sum *= step_size / 3.;
     if (sum < 0) {
@@ -53,14 +58,15 @@ void find_path_length_analytic(FindRoot finder, LocalTrajectory traj){
     // only for drift for now
 }
 /*gpufun*/
-void FindRoot_find_path_length(FindRoot finder, LocalSegment seg, LocalTrajectory traj){
-    if (LocalSegment_typeid(seg) == LocalSegment_BezierSegment_t){
-        return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
-    }
+void FindRoot_find_path_length(FindRoot finder, LocalTrajectory traj){
+    //if (LocalSegment_typeid(seg) == LocalSegment_BezierSegment_t){
+    //    return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
+    //}
     // TODO: Check with Frederik. I assume we always use the first solution as the second solution might not
     // even be relevant (say out - in again, then we actually never go in again. IN-OUT -> we change to mcs before out)
     if (LocalTrajectory_typeid(traj) == LocalTrajectory_DriftTrajectory_t){
-        return find_path_length_analytic(finder, traj);
+        //return find_path_length_analytic(finder, traj);
+        return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
     } else {
         return simpson(finder, traj, XC_GEOM_SIMPSON_SUBINTERVALS);
     }

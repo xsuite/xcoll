@@ -8,11 +8,9 @@ import xobjects as xo
 
 XC_GEOM_EPSILON = 1.e-15
 XC_GEOM_S_MAX = 1.e21
-XC_GEOM_ROOT_NEWTON_EPSILON = 1.e-10
+XC_GEOM_ROOT_NEWTON_EPSILON = 1.e-14
 XC_GEOM_ROOT_NEWTON_MAX_ITER = 100         # Maximum number of iterations in Newton's method
-XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL = 1e-10 # Threshold for small derivative
-XC_GEOM_ROOT_GRID_MAX_INTER = 10           # Maximum number of intervals for grid search
-XC_GEOM_ROOT_GRID_POINTS = 1000            # Number of points to search in grid
+XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL = 1e-14 # Threshold for small derivative
 XC_GEOM_SIMPSON_SUBINTERVALS = 500
 
 define_src = f"""
@@ -41,14 +39,6 @@ define_src = f"""
 
 #ifndef XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL
 #define XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL {XC_GEOM_ROOT_NEWTON_DERIVATIVE_TOL}
-#endif
-
-#ifndef XC_GEOM_ROOT_GRID_MAX_INTER
-#define XC_GEOM_ROOT_GRID_MAX_INTER {XC_GEOM_ROOT_GRID_MAX_INTER}
-#endif
-
-#ifndef XC_GEOM_ROOT_GRID_POINTS
-#define XC_GEOM_ROOT_GRID_POINTS {XC_GEOM_ROOT_GRID_POINTS}
 #endif
 
 #ifndef XC_GEOM_SIMPSON_SUBINTERVALS

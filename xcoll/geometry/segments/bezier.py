@@ -51,6 +51,9 @@ class BezierSegment(xo.Struct):
     _max_crossings = {DriftTrajectory: 3, MultipleCoulombTrajectory: 6} #CircularTrajectory: 6
 
     def __init__(self, *args, **kwargs):#*, s1, x1, s2, x2, cs1, cx1, cs2, cx2, **kwargs):
+        #if '_buffer' in kwargs: Needed to test in python
+        #    super().__init__(*args, **kwargs)
+        #    return
         kwargs['_s1'] = kwargs['s1']
         kwargs['_x1'] = kwargs['x1']
         kwargs['_s2'] = kwargs['s2']

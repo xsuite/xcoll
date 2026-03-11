@@ -82,4 +82,30 @@ void HalfOpenLineSegment_update_box(HalfOpenLineSegment seg, BoundingBox box, do
     BoundingBox_set(box, rC, sin_tC, cos_tC, l, w, sin_tb, cos_tb);
 }
 
+/*gpufun*/
+void HalfOpenLineSegment_crossing_drift(HalfOpenLineSegment seg, double solution_t[3], int8_t* num_solutions, double s0, double x0, double xm){
+    // Get segment data
+    double s1 = HalfOpenLineSegment_get_s1(seg);
+    double x1 = HalfOpenLineSegment_get_x1(seg);
+    double s2 = s1 + HalfOpenLineSegment_get_cos_t1(seg); //TODO: replace 10 with a parameter
+    double x2 = x1 + HalfOpenLineSegment_get_sin_t1(seg);
+    double denom = (x2 - x1) - (s2 - s1)*xm;
+    if (fabs(denom) < XC_GEOM_EPSILON){
+        // Trajectory is parallel to the segment
+        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_GEOM_EPSILON){
+            solution_t[*num_solutions] = 0.0;
+            (*num_solutions)++;
+            // We do not add t=1 as it is a half-open segment
+        } else {
+            // No hit
+            return;
+        }
+    } else {
+        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
+        if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
+            solution_t[*num_solutions] = t;
+            (*num_solutions)++;
+        }
+    }
+}
 #endif /* XCOLL_GEOM_SEG_HALFOPENLINE_H */

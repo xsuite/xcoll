@@ -10,201 +10,14 @@
 #include <stdio.h>
 
 /*gpufun*/
-void DriftTrajectory_analytical_solution_l(FindRoot finder, DriftTrajectory traj, double s, double x){
+void DriftTrajectory_analytical_solution_l(DriftTrajectory traj, double solution_l[3], int8_t num_solutions, double s, double x){
     if (DriftTrajectory_get_cos_t0(traj) - DriftTrajectory_get_cos_t0(traj) < XC_GEOM_EPSILON){
-        FindRoot_set_solution_l(finder, FindRoot_get_num_solutions(finder), (x - DriftTrajectory_get_x0(traj)) / DriftTrajectory_get_sin_t0(traj));
+        solution_l[num_solutions] = (x - DriftTrajectory_get_x0(traj)) / DriftTrajectory_get_sin_t0(traj);
     } else {
-        FindRoot_set_solution_l(finder, FindRoot_get_num_solutions(finder), (s - DriftTrajectory_get_s0(traj)) / DriftTrajectory_get_cos_t0(traj));}
+        solution_l[num_solutions] = (s - DriftTrajectory_get_s0(traj)) / DriftTrajectory_get_cos_t0(traj);
+    }
 }
 
-/*gpufun*/
-void LineSegment_crossing_drift(FindRoot finder, LineSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
-    // Get segment data
-    double s1 = LineSegment_get_s1(seg);
-    double x1 = LineSegment_get_x1(seg);
-    double s2 = LineSegment_get_s2(seg);
-    double x2 = LineSegment_get_x2(seg);
-    double denom = (x2 - x1) - (s2 - s1)*xm;
-    if (fabs(denom) < XC_GEOM_EPSILON){
-        // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_GEOM_EPSILON){
-            // Trajectory overlaps with the segment
-            // TODO: This is situational; we should return s1 if <get_s_first and current_s if after current_s
-            //       For now we hit twice (because we go nor IN nor OUT)
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
-            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, 0.0), LineSegment_func_x(seg, 0.0));
-            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 1.0);
-            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, 1.0), LineSegment_func_x(seg, 1.0));
-            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-        } else {
-            // No crossing
-            return;
-        }
-    } else {
-        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
-        if (t >= 0 && t <= 1){
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-            DriftTrajectory_analytical_solution_l(finder, traj, LineSegment_func_s(seg, t), LineSegment_func_x(seg, t));
-            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-        }
-    }
-}
-/*gpufun*/
-void HalfOpenLineSegment_crossing_drift(FindRoot finder, HalfOpenLineSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
-    // Get segment data
-    double s1 = HalfOpenLineSegment_get_s1(seg);
-    double x1 = HalfOpenLineSegment_get_x1(seg);
-    double s2 = s1 + HalfOpenLineSegment_get_cos_t1(seg); //TODO: replace 10 with a parameter
-    double x2 = x1 + HalfOpenLineSegment_get_sin_t1(seg);
-    double denom = (x2 - x1) - (s2 - s1)*xm;
-    if (fabs(denom) < XC_GEOM_EPSILON){
-        // Trajectory is parallel to the segment
-        if (fabs((x0 - x1)/(s0 - s1) - xm) < XC_GEOM_EPSILON){
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), 0.0);
-            DriftTrajectory_analytical_solution_l(finder, traj, HalfOpenLineSegment_func_s(seg, 0.0), HalfOpenLineSegment_func_x(seg, 0.0));
-            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-            // We do not add t=1 as it is a half-open segment
-        } else {
-            // No hit
-            return;
-        }
-    } else {
-        double t = (x0 - x1 - (s0 - s1)*xm) / denom;
-        if (t >= 0){  // We do not check for t<=1 as it is a half-open segment
-            FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-            DriftTrajectory_analytical_solution_l(finder, traj, HalfOpenLineSegment_func_s(seg, t), HalfOpenLineSegment_func_x(seg, t));
-            FindRoot_set_converged(finder, FindRoot_get_num_solutions(finder), 1);
-            FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-        }
-    }
-}
-/*gpufun*/
-void BezierSegment_crossing_drift(FindRoot finder, BezierSegment seg, DriftTrajectory traj, double s0, double x0, double xm){
-    // Get segment data
-    double s1  = BezierSegment_get__s1(seg);
-    double x1  = BezierSegment_get__x1(seg);
-    double s2  = BezierSegment_get__s2(seg);
-    double x2  = BezierSegment_get__x2(seg);
-    double cs1 = BezierSegment_get__cs1(seg);
-    double cx1 = BezierSegment_get__cx1(seg);
-    double cs2 = BezierSegment_get__cs2(seg);
-    double cx2 = BezierSegment_get__cx2(seg);
-    // The Bézier curve is defined by the parametric equations (with t in [0, 1]):
-    // s(t) = (1-t)^3*s1 + 3(1-t)^2*t*cs1 + 3(1-t)*t^2*cs2 + t^3*s2
-    // x(t) = (1-t)^3*x1 + 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3*x2
-    // Plug the parametric eqs into the drift trajectory x(t) = m*(s(t) - s0) + x0 and solve for t
-    // The solutions for t (which we get by Cardano's method) are valid if in [0, 1]
-    double a = (xm*s1 - x1) - (xm*s2 - x2) - 3*(xm*cs1 - cx1) + 3*(xm*cs2 - cx2);
-    double b = 6*(xm*cs1 - cx1) - 3*(xm*cs2 - cx2) - 3*(xm*s1 - x1);
-    double c = 3*(xm*s1 - x1) - 3*(xm*cs1 - cx1);
-    double d = (xm*s0 - x0) - (xm*s1 - x1);
-    double t;
-    // // Edge cases
-    if (fabs(a) < XC_GEOM_EPSILON){
-        if (fabs(b) < XC_GEOM_EPSILON){
-            if (fabs(c) < XC_GEOM_EPSILON){
-                if (fabs(d) < XC_GEOM_EPSILON){
-                    // The trajectory is on the Bézier curve
-                    // TODO: This cannot happen because we don't have a cubic trajectory.
-                    //       Adapt if these ever would be implemented.
-                    return;
-                } else {
-                    // No solutions
-                    return;
-                }
-            } else {
-                // This is a linear equation
-                t = -d/c;
-                if (0 <= t && t <= 1){
-                    FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                    FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-                }
-            }
-        } else {
-            // This is a quadratic equation
-            double disc = c*c - 4*b*d;
-            if (disc < 0){
-                // No solutions
-                return;
-            }
-            for (int8_t i = 0; i < 2; i++) {
-                double sgnD = i*2-1; // negative and positive solutions; if multiplicity 2, we add the same solution twice
-                t = (-c + sgnD*sqrt(fabs(disc)))/(2*b);
-                if (0 <= t && t <= 1){
-                    FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                    FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-                }
-            }
-        }
-    } else {
-        // Full cubic equation. Coefficients for the depressed cubic t^3 + p*t + q = 0:
-        double p = (3*a*c - b*b)/(3*a*a);
-        double q = (2*b*b*b - 9*a*b*c + 27*a*a*d)/(27*a*a*a);
-        double disc = -p*p*p/27 - q*q/4;  // This is the discriminant of the depressed cubic but divided by (4*27)
-        if (fabs(disc) < XC_GEOM_EPSILON){
-            if (fabs(p) < XC_GEOM_EPSILON){
-                // One real root with multiplicity 3
-                t = -b/(3*a);
-                if (0 <= t && t <= 1){
-                    FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                    FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-                }
-            } else {
-                // Two real roots (one simple and one with multiplicity 2)
-                t = 3*q/p - b/(3*a);
-                if (0 <= t && t <= 1){
-                    FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                    FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-                }
-                t = -3*q/(2*p) - b/(3*a);
-                if (0 <= t && t <= 1){
-                    FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                    DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                    FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-                }
-            }
-        } else if (disc < 0){
-            // One real root
-            t = cbrt(-q/2 + sqrt(fabs(disc))) + cbrt(-q/2 - sqrt(fabs(disc))) - b/(3*a);
-            if (0 <= t && t <= 1){
-                FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-            }
-        } else {
-            // Three real roots
-            double phi = acos(3*q/(2*p)*sqrt(fabs(3/p)));
-            t = 2*sqrt(fabs(p/3))*cos(phi/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-            }
-            t = 2*sqrt(fabs(p/3))*cos((phi + 2*M_PI)/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-            }
-            t = 2*sqrt(fabs(p/3))*cos((phi + 4*M_PI)/3) - b/(3*a);
-            if (0 <= t && t <= 1){
-                FindRoot_set_solution_t(finder, FindRoot_get_num_solutions(finder), t);
-                DriftTrajectory_analytical_solution_l(finder, traj, BezierSegment_func_s(seg, t), BezierSegment_func_x(seg, t));
-                FindRoot_set_num_solutions(finder, FindRoot_get_num_solutions(finder)+1);
-            }
-        }
-    }
-}
 /*gpufun*/
 void LocalCrossing_func(LocalSegment seg, LocalTrajectory traj, double TS[2], double t, double l){
     // Here we get the expr from segment and traj, and we connect them to create TSs and TSx
@@ -252,6 +65,16 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
             FindRoot_set_converged(finder, num, converged);
             continue;
         }
+        corr0 = J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]; // delta for l
+        corr1 = J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]; // delta for t
+        new_t = guess_t - corr1;
+        new_l = guess_l - corr0;
+        // For convergence study -----
+        FindRoot_set_delta_t(finder, i, fabs(new_t - guess_t));
+        FindRoot_set_delta_l(finder, i, fabs(new_l - guess_l));
+        FindRoot_set_res_t(finder, i, fabs(TS[0]));
+        FindRoot_set_res_l(finder, i, fabs(TS[1]));
+        // ---------------------------
         // Residual convergence checks
         if (fabs(TS[0]) < XC_GEOM_ROOT_NEWTON_EPSILON && fabs(TS[1]) < XC_GEOM_ROOT_NEWTON_EPSILON) {
             FindRoot_set_solution_t(finder, num, guess_t);
@@ -259,10 +82,6 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
             FindRoot_set_converged(finder, num, converged);
             return;
         }
-        corr0 = J_inv[0][0]*TS[0] + J_inv[0][1]*TS[1]; // delta for l
-        corr1 = J_inv[1][0]*TS[0] + J_inv[1][1]*TS[1]; // delta for t
-        new_t = guess_t - corr1;
-        new_l = guess_l - corr0;
         // Check for parameter update convergence
         if ((fabs(new_t -  guess_t) < XC_GEOM_ROOT_NEWTON_EPSILON) && (fabs(new_l - guess_l) < XC_GEOM_ROOT_NEWTON_EPSILON)){
             FindRoot_set_solution_t(finder, num, guess_t);
@@ -282,16 +101,16 @@ void FindRoot_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj, do
 }
 // TODO: make this more clean pls
 int8_t XC_SLICING_NUM_STEPS = 4;
-int8_t XC_SLICING_MAX_NEST_LEVEL = 8;
+int8_t XC_SLICING_MAX_NEST_LEVEL = 6;
 
 /*gpufun*/
 void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj,
                          double t1, double t2, double l1, double l2, int8_t nest_level){
     // Prepare initial guesses for Newton-Raphson root finding
-    BoundingBox_ _box_seg;
-    BoundingBox_ _box_traj;
-    BoundingBox box_seg = (BoundingBox)&_box_seg; // safe: BoundingBox_ has same layout as BoundingBox
-    BoundingBox box_traj = (BoundingBox)&_box_traj;
+    BoundingBox_ _box_seg = {0};
+    BoundingBox_ _box_traj = {0};
+    BoundingBox box_seg = &_box_seg; // safe: BoundingBox_ has same layout as BoundingBox
+    BoundingBox box_traj = &_box_traj;
     double t_step = (t2 - t1) / XC_SLICING_NUM_STEPS;
     double l_step = (l2 - l1) / XC_SLICING_NUM_STEPS;
     double t, l;
@@ -305,8 +124,8 @@ void slice_before_newton(FindRoot finder, LocalSegment seg, LocalTrajectory traj
             if (BoundingBox_overlaps(box_seg, box_traj)){
                 if (nest_level >= XC_SLICING_MAX_NEST_LEVEL - 1){
                     // We reached the maximum nesting level, return the midpoint of the current t-interval
-                    if (FindRoot_get_num_solutions(finder) >= FindRoot_get_max_solutions(finder)){
-                        printf("Warning: Maximum number of solutions (%d) reached in slice_before_newton. Some solutions may be missed.\n", FindRoot_get_max_solutions(finder));
+                    if (FindRoot_get_num_solutions(finder) >= 100.){
+                        printf("Warning: Maximum number of solutions (100) reached in slice_before_newton. Some solutions may be missed.\n");
                         fflush(stdout);
                         return;
                     }
@@ -361,36 +180,57 @@ void find_crossing_approximate(FindRoot finder, LocalSegment seg, LocalTrajector
     }
 }
 /*gpufun*/
-void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory traj){ //, double guess_l, double guess_t){
+void FindRoot_find_crossing(FindRoot finder, LocalSegment seg, LocalTrajectory traj){ // TODO: Temporary arrays
 // this will act as the crossing main function - C magic
 // First we check for the analytical solutions by checking what trajectory we have
-    printf("Finding crossing...\n");
-    fflush(stdout);
+    int8_t num_solutions = 0;
+    double solution_t[3];
+    double solution_l[3];
     switch (LocalTrajectory_typeid(traj)){
         case LocalTrajectory_DriftTrajectory_t:
-            printf("Using analytical crossing method for drift trajectory.\n");
-            double sin = DriftTrajectory_get_sin_t0((DriftTrajectory) LocalTrajectory_member(traj));
-            double cos = DriftTrajectory_get_cos_t0((DriftTrajectory) LocalTrajectory_member(traj));
-            double xp  = sin / cos;
+            double xp  = DriftTrajectory_get_tan_t0((DriftTrajectory) LocalTrajectory_member(traj));
             double s0  = DriftTrajectory_get_s0((DriftTrajectory) LocalTrajectory_member(traj));
             double x0  = DriftTrajectory_get_x0((DriftTrajectory) LocalTrajectory_member(traj));
             switch (LocalSegment_typeid(seg)){
                 case LocalSegment_LineSegment_t:
-                    LineSegment_crossing_drift(finder, (LineSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
+                    LineSegment_crossing_drift((LineSegment) LocalSegment_member(seg), solution_t, &num_solutions, s0, x0, xp);
+                    for (int i = 0; i < num_solutions; i++){
+                        DriftTrajectory_analytical_solution_l((DriftTrajectory) LocalTrajectory_member(traj), solution_l, i, 
+                                                               LineSegment_func_s((LineSegment) LocalSegment_member(seg), solution_t[i]), 
+                                                               LineSegment_func_x((LineSegment) LocalSegment_member(seg), solution_t[i]));
+                        FindRoot_set_solution_t(finder, i, solution_t[i]); //Todo: temporary so we can transport to python
+                        FindRoot_set_solution_l(finder, i, solution_l[i]);
+                    }
                     return;
                     break;
                 case LocalSegment_HalfOpenLineSegment_t:
-                    return HalfOpenLineSegment_crossing_drift(finder, (HalfOpenLineSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
+                    HalfOpenLineSegment_crossing_drift((HalfOpenLineSegment) LocalSegment_member(seg), solution_t, &num_solutions, s0, x0, xp);
+                    for (int i = 0; i < num_solutions; i++){
+                        DriftTrajectory_analytical_solution_l((DriftTrajectory) LocalTrajectory_member(traj), solution_l, i, 
+                                                               HalfOpenLineSegment_func_s((HalfOpenLineSegment) LocalSegment_member(seg), solution_t[i]), 
+                                                               HalfOpenLineSegment_func_x((HalfOpenLineSegment) LocalSegment_member(seg), solution_t[i]));
+                        FindRoot_set_solution_t(finder, i, solution_t[i]); //Todo: temporary so we can transport to python
+                        FindRoot_set_solution_l(finder, i, solution_l[i]);
+                    }   
+                    return;
                     break;
                 case LocalSegment_BezierSegment_t:
-                    return BezierSegment_crossing_drift(finder, (BezierSegment) LocalSegment_member(seg), (DriftTrajectory) LocalTrajectory_member(traj), s0, x0, xp);
+                    BezierSegment_crossing_drift((BezierSegment) LocalSegment_member(seg), solution_t, &num_solutions, s0, x0, xp);
+                    for (int i = 0; i < num_solutions; i++){
+                        DriftTrajectory_analytical_solution_l((DriftTrajectory) LocalTrajectory_member(traj), solution_l, i, 
+                                                               BezierSegment_func_s((BezierSegment) LocalSegment_member(seg), solution_t[i]), 
+                                                               BezierSegment_func_x((BezierSegment) LocalSegment_member(seg), solution_t[i]));
+                        FindRoot_set_solution_t(finder, i, solution_t[i]); //Todo: temporary so we can transport to python
+                        FindRoot_set_solution_l(finder, i, solution_l[i]);
+                    }
+                    return;
+                    break;
                 default:
                     // Custom segment
                     return find_crossing_approximate(finder, seg, traj);
             }
             break;
         default:
-            printf("Using approximate crossing method.\n");
             return find_crossing_approximate(finder, seg, traj);
     }
 }

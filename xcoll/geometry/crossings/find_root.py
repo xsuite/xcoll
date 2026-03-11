@@ -18,6 +18,12 @@ class FindRoot(xo.Struct):
     guess_t       = xo.Float64[MAX_SOLUTIONS]
     guess_l       = xo.Float64[MAX_SOLUTIONS]
     converged     = xo.Int8[MAX_SOLUTIONS]
+    ### this is for convergence study
+    delta_l       = xo.Float64[MAX_SOLUTIONS]
+    res_l        = xo.Float64[MAX_SOLUTIONS]
+    delta_t       = xo.Float64[MAX_SOLUTIONS]
+    res_t        = xo.Float64[MAX_SOLUTIONS]
+    #################################
     num_solutions = xo.Int16
     path_length   = xo.Float64
 
@@ -43,7 +49,6 @@ class FindRoot(xo.Struct):
                             c_name="FindRoot_find_path_length",
                             args=[
                                 xo.Arg(xo.ThisClass, name="finder"),
-                                xo.Arg(LocalSegment, name="seg"),
                                 xo.Arg(LocalTrajectory, name="traj"),
                             ], ret=None)}
     _needs_compilation = True
@@ -59,6 +64,12 @@ class FindRoot(xo.Struct):
         kwargs.setdefault('guess_t',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
         kwargs.setdefault('guess_l',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
         kwargs.setdefault('converged',  np.full(MAX_SOLUTIONS, 1e21, dtype=np.int8))
+        ###### for convergence study only
+        kwargs.setdefault('delta_l',   np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('res_l',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('delta_t',   np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        kwargs.setdefault('res_t',    np.full(MAX_SOLUTIONS, 1e21, dtype=np.float64))
+        ######
         kwargs.setdefault('path_length', 0)
         super().__init__(**kwargs)
 
