@@ -20,8 +20,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     int64_t i_slot = -1;
     double A          = MaterialData_get_A(material);
     double molar_mass = MaterialData_get_molar_mass(material);
-    double Z          = MaterialData_get_Z(material);
-    double rho        = MaterialData_get_density(material);
+    double Z          = sqrt(MaterialData_get__Z2_eff(material));
+    double rho        = MaterialData_get__density(material);
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
 
