@@ -14,6 +14,9 @@
     #define   XC_ELECTRON_MASS ( 0.51099890 )
 #endif
 
+#if !defined( XC_AVOGADRO )
+    #define   XC_AVOGADRO ( 6.02214076e23 )
+#endif
 // Constant in front bethe-bloch [mev g^-1 cm^2]
 #if !defined( XC_BETHE_BLOCH )
     #define   XC_BETHE_BLOCH ( 0.307075 )

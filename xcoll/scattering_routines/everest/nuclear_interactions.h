@@ -7,8 +7,9 @@
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
 /*gpufun*/
-double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, FindRoot finder, 
-                                                  LocalTrajectory traj, MaterialData restrict material, double pc) {
+double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
+                                                  MaterialData restrict material, double pc){
+                                                //   LocalTrajectory traj, MaterialData restrict material, double pc) {
     // 0 get lengths
     // 1 compare lengths
     // 2 either return for MCS or do nuclear interaction
@@ -17,10 +18,10 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double cross_section_tot;
     double sqrt_t_p;
     int64_t i_slot = -1;
-    double A          = MaterialData_get__atomic_mass(material);
-    double molar_mass = MaterialData_get__molar_mass(material);
-    double Z          = MaterialData_get__atomic_number(material);
-    double rho        = MaterialData_get__density(material);
+    double A          = MaterialData_get_A(material);
+    double molar_mass = MaterialData_get_molar_mass(material);
+    double Z          = MaterialData_get_Z(material);
+    double rho        = MaterialData_get_density(material);
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
 
@@ -29,9 +30,9 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     int8_t scatter               = everest->coll->record_scatterings;
 
     total_cross_section(&interaction_length_tot, &cross_section_tot, A, Z, molar_mass, rho, sqrt_s);
-    FindRoot_find_path_length(finder, traj);
-    double mcs_path_length = FindRoot_get_path_length(finder);
-
+    //FindRoot_find_path_length(finder, traj);
+    //double mcs_path_length = FindRoot_get_path_length(finder);
+    double mcs_path_length = length;
     if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
         // MCS to exit
         // since mcs is already done.. then either we do ionsiaton loss here outside
@@ -41,10 +42,12 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         return pc; // false for nucl int.
     } else {
         double interaction_lengths[6];
-        double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
+        double Neff = MaterialData_get__num_nucleons_eff(material);
+        // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
+        double theta_init = atan2(LocalParticle_get_xp(part), 1);
 
         // Get interaction lengths for all types of interactions, to find the dominant one
-        get_interaction_length(interaction_lengths[6], cross_section_tot, A, Z, molar_mass, rho, theta_init, sqrt_s, pc);
+        get_interaction_length(interaction_lengths, cross_section_tot, A, Z, molar_mass, rho, Neff, theta_init, sqrt_s, pc);
         // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 
         // Finding the smallest length
@@ -88,7 +91,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             // Elastic
             double b_nuclear_elastic;
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            get_slope_hadron_nucleus(&A, &b_nuclear_elastic);
+            get_slope_hadron_nucleus(A, &b_nuclear_elastic);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/b_nuclear_elastic)/pc;
 
         } else if (min_index == 4){
