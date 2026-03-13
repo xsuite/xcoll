@@ -7,12 +7,12 @@
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
 /*gpufun*/
-double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part, FindRoot finder, 
-                              LocalTrajectory traj, MaterialData restrict material, double pc) {
+double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, FindRoot finder, 
+                                                  LocalTrajectory traj, MaterialData restrict material, double pc) {
     // 0 get lengths
     // 1 compare lengths
     // 2 either return for MCS or do nuclear interaction
-    // 3 if nuclear interaction, get remanining lengths and do nucl int
+    // 3 if nuclear interaction, ionisation loss, get remanining lengths and do nucl int
     double interaction_length_tot;
     double cross_section_tot;
     double sqrt_t_p;
@@ -34,13 +34,12 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
 
     if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
         // MCS to exit
-        // since mcs is already done.. then either we do ionsiaton loss here, or outside
-        return 0; // false for nucl int.
+        // since mcs is already done.. then either we do ionsiaton loss here outside
+        // Ionisation loss to interaction point
+        calculate_ionisation_properties(everest, material, pc);
+        pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
+        return pc; // false for nucl int.
     } else {
-        // do mcs to nucl int. length i suppose ? mcs_s(lambda), mcs_x(lambda)?
-        // ionisation loss with lamba
-        // then this? 
-        // need to move all this into another function probably? Like this to check if? Or "nuclear?" outside, THEN this function if yes. 
         double interaction_lengths[6];
         double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
 
@@ -72,6 +71,10 @@ double do_nuclear_interaction(EverestData restrict everest, LocalParticle* part,
             min_length = interaction_lengths[5];
             min_index = 6;
         }
+
+        // Ionisation loss to interaction point
+        calculate_ionisation_properties(everest, material, pc);
+        pc = calcionloss(everest, material, part, min_length, pc, 1);
 
         // Doing the nuclear interaction
         if (min_index == 1 || min_index == 3){
