@@ -91,6 +91,8 @@ class BentChannellingDev(InvalidXcoll):
         # If <0 --> automatic step selection (Μ2, Μ3 --> 60/harmonic period and M4 --> 10 per harmonic period)
         'n_steps' : xo.Int64,
         '_n_steps_auto': xo.Float64,
+        
+
     }
 
     isthick = True
@@ -153,7 +155,7 @@ class BentChannellingDev(InvalidXcoll):
             kwargs['n_steps'] = -1  # trigger for automatic
             method = kwargs['method']
             if method ==4:
-                npp = 8
+                npp = 10
             else: 
                 npp = 60 
             length = kwargs['length']
@@ -174,7 +176,8 @@ class BentChannellingDev(InvalidXcoll):
             omega = np.sqrt(Uxx0) * beta_i/aTF  # 1/m
 
             kwargs['_n_steps_auto'] = length * npp * omega / (2.0 * np.pi)
-
+            
+      
         # =========================================================
         # constructor LAST
         # =========================================================
