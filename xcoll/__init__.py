@@ -5,13 +5,15 @@
 
 from .general import _pkg_root, __version__, citation
 
-from .beam_elements import (BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal,
-                            EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator,
-                            Geant4CollimatorTip, Geant4Crystal, FlukaCollimator, FlukaCrystal,
-                            BlowUp, EmittanceMonitor, collimator_classes, crystal_classes,
-                            element_classes)
+from .beam_elements import (
+    BlackAbsorber, BlackCrystal, TransparentCollimator, TransparentCrystal,
+    EverestBlock, EverestCollimator, EverestCrystal, Geant4Collimator,
+    Geant4CollimatorTip, Geant4Crystal, FlukaCollimator, FlukaCrystal, BlowUp,
+    EmittanceMonitor, SweepCavity, collimator_classes,crystal_classes,
+    element_classes)
 from .materials import Material, RefMaterial
-from .scattering_routines.fluka import FlukaPrototype, FlukaAssembly, create_generic_assembly
+from .scattering_routines.fluka import (FlukaPrototype, FlukaAssembly,
+                                        create_generic_assembly)
 from .scattering_routines.geant4 import Geant4Engine
 from .colldb import CollimatorDatabase
 from .interaction_record import InteractionRecord
@@ -19,7 +21,9 @@ from .rf_sweep import RFSweep, prepare_rf_sweep
 from .lossmap import LossMap, MultiLossMap
 from .particles_tree import ParticlesTree
 
-from .constants import particle_states, particle_state_names, interactions, interaction_names
+from .constants import (
+    particle_states, particle_state_names, interactions, interaction_names
+)
 
 # Initialise FLUKA environment
 from .scattering_routines.fluka.wrapper import FlukaWrapper as _FlukaWrapper
