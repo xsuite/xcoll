@@ -217,7 +217,7 @@ void calculate_coulomb_cross_section(double Z, double A, double pc, double theta
 
 /*gpufun*/
 void get_interaction_length(double interaction_lengths[6], double cs_tot, double A, double Z, 
-                            double molar_mass, double rho, double Neff, double theta_init, double sqrt_s, double pc) {
+                            double N, double Neff, double theta_init, double sqrt_s, double pc) {
     // cs_type: Nucleus: 1 = inelastic, 2 = elastic, 3 = production, 4 = quasi-elastic, 
     //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron, 7 = Coulomb
     double R;
@@ -229,25 +229,25 @@ void get_interaction_length(double interaction_lengths[6], double cs_tot, double
         calculate_elastic_cross_section(Z, &cs_el_hN, A, sqrt_s); // TODO: decide either this or tot - inel
 
         // Inelastic
-        interaction_lengths[0] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_inel_hN);
+        interaction_lengths[0] = ((A))/(N*cs_inel_hN);
 
         // Elastic
-        interaction_lengths[1] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_el_hN);
+        interaction_lengths[1] = ((A))/(N*cs_el_hN);
 
         // Production
-        interaction_lengths[2] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_inel_hN);
+        interaction_lengths[2] = ((A))/(N*cs_inel_hN);
 
         // Single diffractive
         interaction_lengths[3] = 1e20; // single diffractive not supported for A < 4
 
         // Proton-proton / proton-neutron
         double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-        interaction_lengths[4] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_pp_hN*Neff);
+        interaction_lengths[4] = ((A))/(N*cs_pp_hN*Neff);
 
         // Coulomb
         double cs_coulomb;
         calculate_coulomb_cross_section(Z, A, pc, theta_init, &cs_coulomb);
-        interaction_lengths[5] = (molar_mass*(A))/(XC_AVOGADRO*(rho)*cs_coulomb);
+        interaction_lengths[5] = ((A))/(N*cs_coulomb);
     
     } else {
         double cs_inel_hA, cs_el_hA;// A after GG, N before
@@ -259,32 +259,32 @@ void get_interaction_length(double interaction_lengths[6], double cs_tot, double
         
         // Inelastic
         cs_inel_hA = M_PI*R*R * log(1 + (cs_tot)/(M_PI*(R*R))); // Glauber-Gribov approximation
-        interaction_lengths[0] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_inel_hA);
+        interaction_lengths[0] = ((A))/(N*cs_inel_hA);
 
         // Elastic: Total - Inelastic
         cs_el_hA = cs_tot - cs_inel_hA;
         if (cs_el_hA < 0){
             cs_el_hA = 1e-10; // In case. Makes Lambda large
         } else {
-            interaction_lengths[1] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_el_hA);
+            interaction_lengths[1] = ((A))/(N*cs_el_hA);
         }
 
         // Production
         cs_prod_hA = M_PI*R*R * log(1 + (cs_inel_hN)/(M_PI*R*R)); // Glauber-Gribov approximation
-        interaction_lengths[2] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_prod_hA);
+        interaction_lengths[2] = ((A))/(N*cs_prod_hA);
 
         // Single diffractive
         alpha = cs_tot/(2*M_PI*R*R + cs_tot);
         cs_sd_hA = M_PI*R*R * (alpha - log(1 + alpha)); // Glauber-Gribov approximation
-        interaction_lengths[3] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_sd_hA);
+        interaction_lengths[3] = ((A))/(N*cs_sd_hA);
 
         // Proton-proton / proton-neutron
         double cs_pp_hN = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
-        interaction_lengths[4] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_pp_hN*Neff);
+        interaction_lengths[4] = ((A))/(N*cs_pp_hN*Neff);
 
         // Coulomb
         calculate_coulomb_cross_section(Z, A, pc, theta_init, &cs_coulomb);
-        interaction_lengths[5] = (molar_mass)/(XC_AVOGADRO*(rho)*cs_coulomb);
+        interaction_lengths[5] = ((A))/(N*cs_coulomb);
         // Quasi-Elastic: Inelastic - Production
         // double cs_inel_hA, cs_tot_hN;
         // double cs_prod_hA, cs_inel_hN;

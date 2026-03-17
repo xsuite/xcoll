@@ -19,9 +19,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double sqrt_t_p;
     int64_t i_slot = -1;
     double A          = MaterialData_get_A(material);
-    double molar_mass = MaterialData_get_molar_mass(material);
+    double N          = MaterialData_get__atomic_per_volume(material);
     double Z          = sqrt(MaterialData_get__Z2_eff(material));
-    double rho        = MaterialData_get__density(material);
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
 
@@ -29,7 +28,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     RecordIndex record_index     = everest->coll->record_index;
     int8_t scatter               = everest->coll->record_scatterings;
 
-    total_cross_section(&interaction_length_tot, &cross_section_tot, A, Z, molar_mass, rho, sqrt_s);
+    total_cross_section(&interaction_length_tot, &cross_section_tot, A, Z, N, sqrt_s);
     //FindRoot_find_path_length(finder, traj);
     //double mcs_path_length = FindRoot_get_path_length(finder);
     double mcs_path_length = length;
@@ -47,7 +46,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double theta_init = atan2(LocalParticle_get_xp(part), 1);
 
         // Get interaction lengths for all types of interactions, to find the dominant one
-        get_interaction_length(interaction_lengths, cross_section_tot, A, Z, molar_mass, rho, Neff, theta_init, sqrt_s, pc);
+        get_interaction_length(interaction_lengths, cross_section_tot, A, Z, N, Neff, theta_init, sqrt_s, pc);
         // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 
         // Finding the smallest length
