@@ -130,8 +130,7 @@ void get_slope_single_diffraction(double s, double* b, LocalParticle* part){
 // ================ Hadron - Nucleus cross sections ================ 
 // Proton - Nucleus
 /*gpufun*/
-void total_cross_section(double* lambda, double* cs_tot, double A, double Z, double molar_mass, 
-                         double rho, double sqrt_s){
+void total_cross_section(double* lambda, double* cs_tot, double A, double Z, double N, double sqrt_s, double material_id){
     double cs_tot_pp  = eval_spline(spline_tot_pp, N_spline_tot_pp, sqrt_s);
     double cs_tot_pn, R;
 
