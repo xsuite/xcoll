@@ -6,19 +6,20 @@
 """
 xcoll_cs_common.py
 ------------------
-Shared physics used by both stage1_elements.py and stage2_materials.py:
+Shared physics used by stage1_elements.py:
 
   - PDG data loading and spline fitting
   - Nucleon-level cross sections (pp, pn)
   - Glauber-Gribov nucleus cross sections for a single element
-  - Material composition flattening (element / compound / mixture)
+
+Material composition (flattening to elements, molar fractions) is NOT here.
+That is handled by the Material class itself via mat.molar_fractions and
+mat.components, which already recurse through nested compounds correctly.
 """
 
 import math
-from collections import defaultdict
 
 import numpy as np
-import xcoll as xc
 from scipy.interpolate import UnivariateSpline
 
 
@@ -83,7 +84,8 @@ def load_all_splines():
     """
     Load the four PDG splines, print their data ranges, and return
     (splines_dict, grid_min, grid_max) where the grid bounds are the
-    intersection of all data ranges.
+    intersection of all data ranges — i.e. the safe range where every
+    spline has real data.
     """
     datasets = [
         ("pp tot", "ppcrosstot.dat", 2000),
@@ -122,6 +124,7 @@ def make_nucleon_cs_fns(splines):
     """
     Return a bundle of functions that evaluate nucleon-level cross sections
     at a given sqrt(s), bound to the provided spline dict.
+    Returns (cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN).
     """
     def cs_tot_pp(sqrt_s):
         return float(splines["pp tot"](np.log(sqrt_s)))
@@ -146,7 +149,7 @@ def make_nucleon_cs_fns(splines):
 
     def cs_hN(A, Z, sqrt_s):
         """
-        Hadron-nucleon cross sections combining pp and pn with nuclear weights.
+        Hadron-nucleon cross sections: Z*sigma_pp + (A-Z)*sigma_pn.
         Returns (cs_tot_hN, cs_inel_hN, cs_el_hN).
         """
         tot  = Z * cs_tot_pp(sqrt_s)  + (A - Z) * cs_tot_pn(sqrt_s)
@@ -179,8 +182,7 @@ def glauber_element_single(A, Z, sqrt_s, cs_hN_fn):
     Returns dict with keys: cs_tot_hA, cs_inel_hA, cs_el_hA,
                              cs_prod_hA, cs_sd_hA, cs_qel_hA.
 
-    For A < 4, GG shadowing is not applied (H, He, Li have no nuclear
-    shadowing — the nucleus is too small for multiple scattering).
+    For A < 4, GG shadowing is not applied.
     """
     piR2                      = pi_R2_mb(A)
     sig_tot, sig_inel, sig_el = cs_hN_fn(A, Z, sqrt_s)
@@ -211,71 +213,3 @@ def glauber_element_single(A, Z, sqrt_s, cs_hN_fn):
         "cs_sd_hA":   cs_sd_hA,
         "cs_qel_hA":  cs_qel_hA,
     }
-
-
-# ===========================================================================
-# Material composition flattening
-# ===========================================================================
-
-def _is_element(mat) -> bool:
-    return (
-        hasattr(mat, 'Z') and mat.Z is not None
-        and not (hasattr(mat, 'components') and mat.components)
-    )
-
-def _effective_A(mat) -> float:
-    """Mean atomic mass of a material, molar-fraction weighted."""
-    return sum(A * f for (Z, A), f in flatten_material(mat).items())
-
-def flatten_material(mat) -> dict:
-    """
-    Recursively reduce any xcoll Material to {(Z, A): molar_fraction}.
-    All fractions sum to 1.
-
-    Compound    (n_atoms=[1,2])         f_j = n_j / sum(n)
-    Molar mix   (molar_fractions=[...]) used directly, normalised
-    Mass mix    (mass_fractions=[...])  converted to molar via w_j/A_j_eff
-    """
-    if _is_element(mat):
-        return {(int(mat.Z), float(mat.A)): 1.0}
-
-    components = mat.components
-
-    if hasattr(mat, 'n_atoms') and mat.n_atoms is not None:
-        n = np.array(mat.n_atoms, dtype=float)
-        mol_fracs = n / n.sum()
-
-    elif hasattr(mat, 'molar_fractions') and mat.molar_fractions is not None:
-        mol_fracs = np.array(mat.molar_fractions, dtype=float)
-        mol_fracs = mol_fracs / mol_fracs.sum()
-
-    elif hasattr(mat, 'mass_fractions') and mat.mass_fractions is not None:
-        w      = np.array(mat.mass_fractions, dtype=float)
-        A_effs = np.array([_effective_A(c) for c in components])
-        num    = w / A_effs
-        mol_fracs = num / num.sum()
-
-    else:
-        raise ValueError(
-            f"Cannot determine composition of {mat!r}: "
-            "no n_atoms, molar_fractions, or mass_fractions found."
-        )
-
-    combined: dict = defaultdict(float)
-    for comp, frac in zip(components, mol_fracs):
-        for (Z, A), child_frac in flatten_material(comp).items():
-            combined[(Z, A)] += frac * child_frac
-
-    total = sum(combined.values())
-    return {k: v / total for k, v in combined.items()}
-
-
-def material_composition(mat) -> list:
-    """
-    Return [(Z, A, molar_fraction), ...] sorted by Z.
-    This is the only thing Stage 2 needs from the composition step.
-    """
-    return sorted(
-        [(Z, A, f) for (Z, A), f in flatten_material(mat).items()],
-        key=lambda x: x[0]
-    )
