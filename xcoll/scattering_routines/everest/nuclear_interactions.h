@@ -35,7 +35,6 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double mcs_path_length = length;
     if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
         // MCS to exit
-        // since mcs is already done.. then either we do ionsiaton loss here outside
         // Ionisation loss to interaction point
         calculate_ionisation_properties(everest, material, pc);
         pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
@@ -46,7 +45,6 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
         double theta_init = atan2(LocalParticle_get_xp(part), 1);
 
-        // Get interaction lengths for all types of interactions, to find the dominant one
         get_interaction_length(material, interaction_lengths, cross_section_tot, A, Z, N, Neff, theta_init, sqrt_s, pc);
         // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 

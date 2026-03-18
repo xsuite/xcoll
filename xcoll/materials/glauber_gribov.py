@@ -2,21 +2,6 @@
 # This file is part of the Xcoll package.   #
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
-
-"""
-xcoll_cs_common.py
-------------------
-Shared physics used by stage1_elements.py:
-
-  - PDG data loading and spline fitting
-  - Nucleon-level cross sections (pp, pn)
-  - Glauber-Gribov nucleus cross sections for a single element
-
-Material composition (flattening to elements, molar fractions) is NOT here.
-That is handled by the Material class itself via mat.molar_fractions and
-mat.components, which already recurse through nested compounds correctly.
-"""
-
 import math
 
 import numpy as np

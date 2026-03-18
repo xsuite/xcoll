@@ -36,7 +36,7 @@ Typical usage (from the Material class)
 
 import numpy as np
 
-from .xcoll_cs_common import GG_KEYS, NUCLEON_KEYS
+from .glauber_gribov import GG_KEYS, NUCLEON_KEYS
 
 
 def load_element_cache(filename="elements_cs.npz"):
