@@ -7,68 +7,6 @@
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
 
-
-// Allen & Hastings Approximation for the Exponential Integral function E1(x) = int_x^inf (e^-t / t) dt
-/*gpufun*/
-inline void E1_approx(double* E1_approx, double x) {
-    if (x <= 0.0) {
-        *E1_approx = 1e21;  // E1 undefined for x <= 0
-        return;
-    }
-    if (x <= 1.0) {
-
-        // Small x expansion
-        const double a0 = -0.57722;
-        const double a1 =  0.99999;
-        const double a2 = -0.24991;
-        const double a3 =  0.05519;
-        const double a4 = -0.00976;
-        const double a5 =  0.00108;
-
-        double x2 = x * x;
-        double x3 = x2 * x;
-        double x4 = x3 * x;
-        double x5 = x4 * x;
-
-        *E1_approx = -log(x) + (a0 + a1*x + a2*x2 + a3*x3 + a4*x4 + a5*x5);
-
-    } else {
-
-        // Large x rational approximation
-        const double b0 =  0.26777;
-        const double b1 =  8.63476;
-        const double b2 = 18.05902;
-        const double b3 =  8.57333;
-
-        const double c0 =  3.95850;
-        const double c1 = 21.09965;
-        const double c2 = 25.63296;
-        const double c3 =  9.57332;
-
-        double x2 = x * x;
-        double x3 = x2 * x;
-
-        double numerator   = b0 + b1*x + b2*x2 + b3*x3;
-        double denominator = c0 + c1*x + c2*x2 + c3*x3;
-        *E1_approx = (exp(-(x)) / x) * (numerator / denominator);
-    }
-}
-
-void get_coulomb_interaction_length(double Z, double A, double pc, double theta_init, double* lambda_coulomb){
-    double b_coulomb;
-    double E1, cs_coulomb;
-    double R;
-    double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
-    double hbar_c = sqrt(0.389); // [mb*GeV^2]
-    double constant = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c*hbar_c));
-
-    get_slope_hadron_nucleus(A, &b_coulomb);
-    R = 2*hbar_c*sqrt(b_coulomb);
-    E1_approx(&E1, (R*R*(b_coulomb)*t_cut));
-    cs_coulomb = -constant * (R*R*(b_coulomb)*(E1) - exp(-R*R*(b_coulomb)*t_cut)/t_cut);
-    *lambda_coulomb = 1. / (N * cs_coulomb);
-}
-
 /*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
                                                   MaterialData restrict material, double pc){
