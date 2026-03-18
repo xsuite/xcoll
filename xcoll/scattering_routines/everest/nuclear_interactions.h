@@ -6,6 +6,69 @@
 #ifndef XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #define XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
 #include <math.h>
+
+
+// Allen & Hastings Approximation for the Exponential Integral function E1(x) = int_x^inf (e^-t / t) dt
+/*gpufun*/
+inline void E1_approx(double* E1_approx, double x) {
+    if (x <= 0.0) {
+        *E1_approx = 1e21;  // E1 undefined for x <= 0
+        return;
+    }
+    if (x <= 1.0) {
+
+        // Small x expansion
+        const double a0 = -0.57722;
+        const double a1 =  0.99999;
+        const double a2 = -0.24991;
+        const double a3 =  0.05519;
+        const double a4 = -0.00976;
+        const double a5 =  0.00108;
+
+        double x2 = x * x;
+        double x3 = x2 * x;
+        double x4 = x3 * x;
+        double x5 = x4 * x;
+
+        *E1_approx = -log(x) + (a0 + a1*x + a2*x2 + a3*x3 + a4*x4 + a5*x5);
+
+    } else {
+
+        // Large x rational approximation
+        const double b0 =  0.26777;
+        const double b1 =  8.63476;
+        const double b2 = 18.05902;
+        const double b3 =  8.57333;
+
+        const double c0 =  3.95850;
+        const double c1 = 21.09965;
+        const double c2 = 25.63296;
+        const double c3 =  9.57332;
+
+        double x2 = x * x;
+        double x3 = x2 * x;
+
+        double numerator   = b0 + b1*x + b2*x2 + b3*x3;
+        double denominator = c0 + c1*x + c2*x2 + c3*x3;
+        *E1_approx = (exp(-(x)) / x) * (numerator / denominator);
+    }
+}
+
+void get_coulomb_interaction_length(double Z, double A, double pc, double theta_init, double* lambda_coulomb){
+    double b_coulomb;
+    double E1, cs_coulomb;
+    double R;
+    double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
+    double hbar_c = sqrt(0.389); // [mb*GeV^2]
+    double constant = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c*hbar_c));
+
+    get_slope_hadron_nucleus(A, &b_coulomb);
+    R = 2*hbar_c*sqrt(b_coulomb);
+    E1_approx(&E1, (R*R*(b_coulomb)*t_cut));
+    cs_coulomb = -constant * (R*R*(b_coulomb)*(E1) - exp(-R*R*(b_coulomb)*t_cut)/t_cut);
+    *lambda_coulomb = 1. / (N * cs_coulomb);
+}
+
 /*gpufun*/
 double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, LocalParticle* part, double length,// FindRoot finder, 
                                                   MaterialData restrict material, double pc){
@@ -40,36 +103,36 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
         return pc; // false for nucl int.
     } else {
-        double interaction_lengths[6];
+        double interaction_lengths[6], coulomb_length;
         double Neff = MaterialData_get__num_nucleons_eff(material);
         // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
         double theta_init = atan2(LocalParticle_get_xp(part), 1);
 
         // Get interaction lengths for all types of interactions, to find the dominant one
-        get_interaction_length(interaction_lengths, cross_section_tot, A, Z, N, Neff, theta_init, sqrt_s, pc);
+        get_interaction_length(material, interaction_lengths, cross_section_tot, A, Z, N, Neff, theta_init, sqrt_s, pc);
         // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
 
         // Finding the smallest length
-        double min_length = interaction_lengths[0];
+        double min_length = interaction_lengths[0]; // Inelastic
         int min_index = 1;
 
-        if (interaction_lengths[1] < min_length) {
+        if (interaction_lengths[1] < min_length) { // Elastic
             min_length = interaction_lengths[1];
             min_index = 2;
         }
-        if (interaction_lengths[2] < min_length) {
+        if (interaction_lengths[2] < min_length) { // Production
             min_length = interaction_lengths[2];
             min_index = 3;
         }
-        if (interaction_lengths[3] < min_length) {
+        if (interaction_lengths[3] < min_length) { // Single diffractive
             min_length = interaction_lengths[3];
             min_index = 4;
         }
-        if (interaction_lengths[4] < min_length) {
+        if (interaction_lengths[4] < min_length) { // Proton-proton / proton-neutron
             min_length = interaction_lengths[4];
             min_index = 5;
         }
-        if (interaction_lengths[5] < min_length) {
+        if (interaction_lengths[5] < min_length) { // Coulomb
             min_length = interaction_lengths[5];
             min_index = 6;
         }
