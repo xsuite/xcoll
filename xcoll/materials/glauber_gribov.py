@@ -3,10 +3,9 @@
 # Copyright (c) CERN, 2026.                 #
 # ######################################### #
 import math
-
 import numpy as np
 from scipy.interpolate import UnivariateSpline
-
+from pathlib import Path
 
 # ===========================================================================
 # Physical constants
@@ -19,7 +18,7 @@ NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"]
 
 
 # ===========================================================================
-# PDG data loading and spline fitting
+# PDG data saving and spline fitting
 # ===========================================================================
 
 def plab_to_sqrts(plab):
@@ -29,14 +28,14 @@ def plab_to_sqrts(plab):
     return np.sqrt(2*MP**2 + 2*MP*E)
 
 
-def load_pdg_table(filename):
+def load_pdg_table(filepath):
     """
     Read a PDG-format reaction data file.
     Column 1 (0-indexed) = plab [GeV/c],  column 4 = sigma [mb].
     Lines with fewer than 9 columns or non-numeric values are skipped.
     """
     plab, sigma = [], []
-    with open(filename) as f:
+    with open(filepath) as f:
         for line in f:
             parts = line.split()
             if len(parts) < 9:
@@ -48,7 +47,7 @@ def load_pdg_table(filename):
             plab.append(nums[1])
             sigma.append(nums[4])
     if not plab:
-        raise ValueError(f"No numeric data found in {filename!r}")
+        raise ValueError(f"No numeric data found in {filepath!r}")
     return np.array(plab), np.array(sigma)
 
 
@@ -57,55 +56,67 @@ def build_spline(filename, smoothing):
     Load a PDG file, convert plab -> sqrt(s), sort, fit a smoothing spline
     in log(sqrt_s) space.  Returns (spline, sqrts_array).
     """
-    plab, sigma = load_pdg_table(filename)
+    filepath    = Path(__file__).parent / "data" / filename
+    plab, sigma = load_pdg_table(filepath)
     sqrts       = plab_to_sqrts(plab)
     idx         = np.argsort(sqrts)
     sqrts, sigma = sqrts[idx], sigma[idx]
     spline      = UnivariateSpline(np.log(sqrts), sigma, s=smoothing)
-    return spline, sqrts
+    return spline, sqrts, sigma   # also return sigma for saving
 
+
+def save_splines_npz(out_path,
+                     fname_tot="ppcrosstot.dat",
+                     fname_el="ppcross.dat",
+                     fname_pn="pncrosstot.dat"):
+    """
+    Build splines from raw PDG dat files and save the raw data points
+    (in log(sqrt_s) space) to an NPZ file.  Run this once to generate
+    splines_data.npz.
+
+    Parameters
+    ----------
+    out_path : str or Path
+        Where to write the NPZ, e.g. "xcoll/materials/data/splines_data.npz"
+    fname_tot, fname_el, fname_pn : str
+        Paths to the three PDG dat files.
+    """
+    _, sqrts_tot, sigma_tot = build_spline(fname_tot, smoothing=2000)
+    _, sqrts_el,  sigma_el  = build_spline(fname_el,  smoothing=150)
+    _, sqrts_pn,  sigma_pn  = build_spline(fname_pn,  smoothing=140)
+
+    np.savez(out_path,
+             x_tot=np.log(sqrts_tot), y_tot=sigma_tot,
+             x_el=np.log(sqrts_el),   y_el=sigma_el,
+             x_pn=np.log(sqrts_pn),   y_pn=sigma_pn)
+    print(f"Saved splines data -> {out_path}")
+
+# ===========================================================================
+# Loading splines
+# ==========================================================================
 
 def load_all_splines():
     """
-    Load the four PDG splines, print their data ranges, and return
-    (splines_dict, grid_min, grid_max) where the grid bounds are the
-    intersection of all data ranges — i.e. the safe range where every
-    spline has real data.
+    Load the PDG splines from splines_data.npz bundled with the package.
+    Returns splines_dict with keys 'pp tot', 'pp el', 'pn tot'.
     """
-    datasets = [
-        ("pp tot", "ppcrosstot.dat", 2000),
-        ("pp el",  "ppcross.dat",    150),
-        ("pn tot", "pncrosstot.dat", 140),
-        ("pd tot", "pdcrosstot.dat", 200),
-    ]
+    data = np.load(Path(__file__).parent / "data" / "splines_data.npz")
 
-    print("Loading PDG spline tables ...")
-    print(f"  {'Dataset':<10}  {'Points':>6}  {'sqrt(s) min [GeV]':>18}  "
-          f"{'sqrt(s) max [GeV]':>18}  File")
-    print(f"  {'-'*10}  {'-'*6}  {'-'*18}  {'-'*18}  {'-'*20}")
-
-    splines      = {}
-    sqrts_ranges = []
-    for label, fname, s in datasets:
-        spline, sqrts = build_spline(fname, s)
-        splines[label] = spline
-        sqrts_ranges.append((sqrts.min(), sqrts.max()))
-        print(f"  {label:<10}  {len(sqrts):>6}  {sqrts.min():>18.6g}  "
-              f"{sqrts.max():>18.6g}  {fname}")
-
-    grid_min = max(lo for lo, hi in sqrts_ranges)
-    grid_max = min(hi for lo, hi in sqrts_ranges)
-    print(f"\n  Auto grid: sqrt(s) = {grid_min:.6g} to {grid_max:.6g} GeV")
-    print("  (intersection of all spline data ranges)\n")
+    splines = {
+        "pp tot": UnivariateSpline(data["x_tot"], data["y_tot"], s=2000),
+        "pp el":  UnivariateSpline(data["x_el"],  data["y_el"],  s=150),
+        "pn tot": UnivariateSpline(data["x_pn"],  data["y_pn"],  s=140),
+    }
+    grid_min = max(np.exp(data[x].min()) for x in ["x_tot", "x_el"])
+    grid_max = min(np.exp(data[x].max()) for x in ["x_tot", "x_el"])
 
     return splines, grid_min, grid_max
-
 
 # ===========================================================================
 # Nucleon-level cross sections
 # ===========================================================================
 
-def make_nucleon_cs_fns(splines):
+def make_nucleon_cs(splines):
     """
     Return a bundle of functions that evaluate nucleon-level cross sections
     at a given sqrt(s), bound to the provided spline dict.
@@ -134,7 +145,7 @@ def make_nucleon_cs_fns(splines):
 
     def cs_hN(A, Z, sqrt_s):
         """
-        Hadron-nucleon cross sections: Z*sigma_pp + (A-Z)*sigma_pn.
+        Hadron-nucleon cross sections: A*sigma = Z*sigma_pp + (A-Z)*sigma_pn.
         Returns (cs_tot_hN, cs_inel_hN, cs_el_hN).
         """
         tot  = Z * cs_tot_pp(sqrt_s)  + (A - Z) * cs_tot_pn(sqrt_s)
@@ -160,7 +171,7 @@ def pi_R2_mb(A):
     R_fm = get_R(A) * 1e15
     return math.pi * R_fm**2 * 10.0
 
-def glauber_element_single(A, Z, sqrt_s, cs_hN_fn):
+def glauber_element_single(A, Z, sqrt_s, cs_hN):
     """
     GG nucleus cross sections [mb] for one element at one energy.
 
@@ -170,23 +181,23 @@ def glauber_element_single(A, Z, sqrt_s, cs_hN_fn):
     For A < 4, GG shadowing is not applied.
     """
     piR2                      = pi_R2_mb(A)
-    sig_tot, sig_inel, sig_el = cs_hN_fn(A, Z, sqrt_s)
+    A_sig_tot, A_sig_inel, A_sig_el = cs_hN(A, Z, sqrt_s)
 
     if A < 4:
         return {
-            "cs_tot_hA":  sig_tot,
-            "cs_inel_hA": sig_inel,
-            "cs_el_hA":   sig_el,
-            "cs_prod_hA": sig_inel,
+            "cs_tot_hA":  A_sig_tot,
+            "cs_inel_hA": A_sig_inel,
+            "cs_el_hA":   A_sig_el,
+            "cs_prod_hA": A_sig_inel,
             "cs_sd_hA":   0.0,
             "cs_qel_hA":  0.0,
         }
 
-    cs_tot_hA  = 2 * piR2 * math.log(1.0 + sig_tot  / (2 * piR2))
-    cs_inel_hA =     piR2 * math.log(1.0 + cs_tot_hA /      piR2)
+    cs_tot_hA  = 2 * piR2 * math.log(1.0 + A_sig_tot  / (2 * piR2))
+    cs_inel_hA =     piR2 * math.log(1.0 + A_sig_tot /      piR2)
     cs_el_hA   = max(0.0, cs_tot_hA - cs_inel_hA)
-    cs_prod_hA =     piR2 * math.log(1.0 + sig_inel  /      piR2)
-    alpha      = cs_tot_hA / (2 * piR2 + cs_tot_hA)
+    cs_prod_hA =     piR2 * math.log(1.0 + A_sig_inel  /      piR2)
+    alpha      =  A_sig_tot / (2 * piR2 + A_sig_tot)
     cs_sd_hA   =     piR2 * (alpha - math.log(1.0 + alpha))
     cs_qel_hA  = max(0.0, cs_inel_hA - cs_prod_hA)
 

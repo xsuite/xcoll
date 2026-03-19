@@ -13,19 +13,9 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .materials_cross_section import load_element_cache, get_material_cs
-
+from .glauber_gribov import GG_KEYS, load_all_splines
+from .element_cross_section import compute_elements
 _materials_context = xo.ContextCpu()
-
-# module-level cache — loaded once on first Material construction
-_element_cs_cache = None
-_sqrt_s_arr_cache = None
-
-def _get_element_cache():
-    global _element_cs_cache, _sqrt_s_arr_cache
-    if _element_cs_cache is None:
-        _element_cs_cache, _sqrt_s_arr_cache = load_element_cache()
-    return _element_cs_cache, _sqrt_s_arr_cache
 
 # CLASS INHERITANCE DOES NOT WORK WITH DYNAMIC XOFIELDS
 # Because then the memory offsets between parent and child might no longer be the same,
@@ -42,24 +32,24 @@ class Material(xo.HybridClass):
         '_Z2_eff':                  xo.Float64,     # Effective Z for Rutherford scattering
         '_atoms_per_volume':        xo.Float64,     # [atoms/m^3]
         '_num_nucleons_eff':        xo.Float64,     # Effective number of nucleons for nuclear interactions
-        # Cross sections
-        # Grid metadata in C
-        '_cs_sqrt_s_min':   xo.Float64,
-        '_cs_sqrt_s_max':   xo.Float64,
-        '_cs_log_sqrt_s_min': xo.Float64,
-        '_cs_log_step':     xo.Float64,
-        # GG nucleus cross sections [mb]
-        '_cs_tot_hA':       xo.Float64[N_CS_POINTS],
-        '_cs_inel_hA':      xo.Float64[N_CS_POINTS],
-        '_cs_el_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_prod_hA':      xo.Float64[N_CS_POINTS],
-        '_cs_sd_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_qel_hA':       xo.Float64[N_CS_POINTS],
-        # Nucleon-level cross sections [mb]
-        '_cs_tot_pp':       xo.Float64[N_CS_POINTS],
-        '_cs_el_pp':        xo.Float64[N_CS_POINTS],
-        '_cs_inel_pp':      xo.Float64[N_CS_POINTS],
-        '_cs_tot_pn':       xo.Float64[N_CS_POINTS],
+        # # Cross sections
+        # # Grid metadata in C
+        # '_cs_sqrt_s_min':   xo.Float64,
+        # '_cs_sqrt_s_max':   xo.Float64,
+        # '_cs_log_sqrt_s_min': xo.Float64,
+        # '_cs_log_step':     xo.Float64,
+        # # GG nucleus cross sections [mb]
+        # '_cs_tot_hA':       xo.Float64[N_CS_POINTS],
+        # '_cs_inel_hA':      xo.Float64[N_CS_POINTS],
+        # '_cs_el_hA':        xo.Float64[N_CS_POINTS],
+        # '_cs_prod_hA':      xo.Float64[N_CS_POINTS],
+        # '_cs_sd_hA':        xo.Float64[N_CS_POINTS],
+        # '_cs_qel_hA':       xo.Float64[N_CS_POINTS],
+        # # Nucleon-level cross sections [mb]
+        # '_cs_tot_pp':       xo.Float64[N_CS_POINTS],
+        # '_cs_el_pp':        xo.Float64[N_CS_POINTS],
+        # '_cs_inel_pp':      xo.Float64[N_CS_POINTS],
+        # '_cs_tot_pn':       xo.Float64[N_CS_POINTS],
 
         # Auto-calculated fields but can be provided for more precision
         '_radiation_length':        xo.Float64,     # [m]
@@ -182,19 +172,6 @@ class Material(xo.HybridClass):
         self.radiation_length = kwargs.pop('radiation_length', None)   # Can be provided for more precision
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
-        try:
-            element_cs, sqrt_s_arr = _get_element_cache()
-            cs = get_material_cs(self, element_cs, sqrt_s_arr)
-            self._cs_sqrt_s_min    = float(sqrt_s_arr[0])
-            self._cs_sqrt_s_max    = float(sqrt_s_arr[-1])
-            self._cs_log_sqrt_s_min = np.log(sqrt_s_arr[0])
-            self._cs_log_step      = (np.log(sqrt_s_arr[-1]) - np.log(sqrt_s_arr[0])) / (len(sqrt_s_arr) - 1)
-            for key in ['cs_tot_hA', 'cs_inel_hA', 'cs_el_hA',
-                        'cs_prod_hA', 'cs_sd_hA', 'cs_qel_hA',
-                        'cs_tot_pp', 'cs_el_pp', 'cs_inel_pp', 'cs_tot_pn']:
-                setattr(self, f'_{key}', cs[key])
-        except FileNotFoundError: 
-            pass # elements_cs.npz not found — cross section arrays left at -1
 
         # Assign optional properties
         for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut',
@@ -393,6 +370,31 @@ class Material(xo.HybridClass):
         # Normalise mass fractions
         self._mass_fractions /= self._mass_fractions.sum()
 
+    def get_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
+        """
+        Compute Glauber-Gribov cross sections for this element over a
+        log-spaced sqrt(s) grid.  Returns a dict of numpy arrays [mb].
+        Only supported for elemental materials (single Z, A).
+        """
+        if not self.is_elemental:
+            raise NotImplementedError(
+                "get_cross_sections currently only supports elemental materials.")
+
+        splines, grid_min, grid_max = load_all_splines()
+        n_points   = n_points   or N_CS_POINTS
+        sqrt_s_min = sqrt_s_min or grid_min
+        sqrt_s_max = sqrt_s_max or grid_max
+        print(f"sqrt s max: {sqrt_s_max:.2f} GeV, sqrt s min: {sqrt_s_min:.2f} GeV")
+        sqrt_s_arr = np.logspace(np.log10(sqrt_s_min), np.log10(sqrt_s_max), n_points)
+
+        element_cs = compute_elements(sqrt_s_arr, splines, only=[(self.Z, self.A)])
+
+        return {
+            "sqrt_s": sqrt_s_arr,
+            **element_cs[0],              # nucleon-level arrays
+            **{k: element_cs[self.Z][k]   # GG arrays for this element
+            for k in GG_KEYS},
+        }
 
     # ===========
     # === API ===
@@ -635,40 +637,6 @@ class Material(xo.HybridClass):
             self.radiation_length = None   # Recompute radiation length
         if not self._excitation_energy_set_manually:
             self.excitation_energy = None  # Recompute excitation energy
-
-    def get_cross_sections(self, element_cs, sqrt_s_arr):
-        """
-        Return the Glauber-Gribov cross sections for this material as a dict
-        of numpy arrays, one per cross section type, sampled over sqrt_s_arr.
-    
-        For elements this is a direct lookup.  For compounds and mixtures the
-        cross section is the molar-fraction weighted sum of the constituent
-        elemental cross sections (Stage 2).
-    
-        Parameters
-        ----------
-        element_cs : dict
-            Elemental cross section cache loaded via load_element_cache().
-        sqrt_s_arr : np.array
-            Energy grid [GeV] from the same cache.
-    
-        Returns
-        -------
-        dict with keys:
-            sqrt_s        np.array [GeV]
-            cs_tot_hA     np.array [mb]
-            cs_inel_hA    np.array [mb]
-            cs_el_hA      np.array [mb]
-            cs_prod_hA    np.array [mb]
-            cs_sd_hA      np.array [mb]
-            cs_qel_hA     np.array [mb]
-            cs_tot_pp     np.array [mb]
-            cs_el_pp      np.array [mb]
-            cs_inel_pp    np.array [mb]
-            cs_tot_pn     np.array [mb]
-        """
-        from .materials_cross_section import get_material_cs
-        return get_material_cs(self, element_cs, sqrt_s_arr)
 
     # =======================
     # === Main Properties ===

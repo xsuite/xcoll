@@ -37,16 +37,13 @@ Usage
   python stage1_elements.py --n-points 500 --out elements_cs.npz
 """
 
-import argparse
-import math
-
 import numpy as np
 import xcoll as xc
 
 from .glauber_gribov import (
     GG_KEYS, NUCLEON_KEYS,
     load_all_splines,
-    make_nucleon_cs_fns,
+    make_nucleon_cs,
     glauber_element_single,
 )
 
@@ -72,25 +69,29 @@ def find_all_elements():
     return dict(sorted(elements.items()))
 
 
-def compute_all_elements(sqrt_s_arr, splines):
+def compute_elements(sqrt_s_arr, splines, only=None):
     """
     Compute GG cross sections for all elements over the energy grid.
 
-    Returns element_cs dict:
-        element_cs[Z] = {"A": float, "name": str,
-                         "cs_tot_hA": np.array, ...}
-        element_cs[0] = nucleon-level pp/pn arrays (element-independent)
+    Parameters
+    ----------
+    only : list of (Z, A) tuples or None
+        If provided, only compute for these specific elements.
+        e.g. only=[(6, 12.011), (74, 183.84)]
+        If None, compute for all elements found in xc.materials.
     """
     cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN = \
-        make_nucleon_cs_fns(splines)
+        make_nucleon_cs(splines)
 
-    elements = find_all_elements()
+    if only is not None:
+        elements = {Z: (f"Z{Z}", A) for Z, A in only}
+    else:
+        elements = find_all_elements()
+
     print(f"Stage 1: computing GG cross sections for {len(elements)} elements "
           f"over {len(sqrt_s_arr)} energy points ...")
 
     element_cs = {}
-
-    # Z=0: nucleon-level arrays, shared across all elements
     element_cs[0] = {
         "cs_tot_pp":  np.array([cs_tot_pp(s)  for s in sqrt_s_arr]),
         "cs_el_pp":   np.array([cs_el_pp(s)   for s in sqrt_s_arr]),
@@ -98,12 +99,28 @@ def compute_all_elements(sqrt_s_arr, splines):
         "cs_tot_pn":  np.array([cs_tot_pn(s)  for s in sqrt_s_arr]),
     }
 
+    # Print nucleon-level spot check
+    print("\nNucleon-level cross sections at selected energies [mb]:")
+    print(f"  {'sqrt_s [GeV]':>14}  {'cs_tot_pp':>12}  {'cs_el_pp':>12}  {'cs_inel_pp':>12}  {'cs_tot_pn':>12}")
+    for s in [10, 20, 50, 100, 115]:
+        print(f"  {s:>14}  {cs_tot_pp(s):>12.4f}  {cs_el_pp(s):>12.4f}  "
+            f"{cs_inel_pp(s):>12.4f}  {cs_tot_pn(s):>12.4f}")
+
     for Z, (name, A) in elements.items():
         rows = [glauber_element_single(A, Z, s, cs_hN) for s in sqrt_s_arr]
         element_cs[Z] = {"A": A, "name": name}
         for key in GG_KEYS:
             element_cs[Z][key] = np.array([r[key] for r in rows])
 
+        # Print GG spot check for this element
+        print(f"\nGG cross sections for {name} (Z={Z}, A={A}) at selected energies [mb]:")
+        print(f"  {'sqrt_s [GeV]':>14}  {'cs_tot_hA':>12}  {'cs_inel_hA':>12}  "
+            f"{'cs_el_hA':>12}  {'cs_prod_hA':>12}  {'cs_sd_hA':>12}  {'cs_qel_hA':>12}")
+        for s in [10, 20, 50, 100, 115]:
+            r = glauber_element_single(A, Z, s, cs_hN)
+            print(f"  {s:>14}  {r['cs_tot_hA']:>12.10f}  {r['cs_inel_hA']:>12.10f}  "
+                f"{r['cs_el_hA']:>12.10f}  {r['cs_prod_hA']:>12.10f}  "
+                f"{r['cs_sd_hA']:>12.10f}  {r['cs_qel_hA']:>12.10f}")
     print("  Done.\n")
     return element_cs
 
@@ -139,37 +156,37 @@ def save_elements_npz(element_cs, sqrt_s_arr, filename="elements_cs.npz"):
           f"(Z = {Zs[0]} .. {Zs[-1]})")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Stage 1: compute GG cross sections for all elements."
-    )
-    parser.add_argument("--sqrt-s-min", type=float, default=None,
-                        help="Min sqrt(s) [GeV]  (default: auto from spline data)")
-    parser.add_argument("--sqrt-s-max", type=float, default=None,
-                        help="Max sqrt(s) [GeV]  (default: auto from spline data)")
-    parser.add_argument("--n-points",   type=int,   default=1000,
-                        help="Number of energy grid points")
-    parser.add_argument("--out",        default="elements_cs.npz",
-                        help="Output NPZ file")
-    args = parser.parse_args()
+# def main():
+#     parser = argparse.ArgumentParser(
+#         description="Stage 1: compute GG cross sections for all elements."
+#     )
+#     parser.add_argument("--sqrt-s-min", type=float, default=None,
+#                         help="Min sqrt(s) [GeV]  (default: auto from spline data)")
+#     parser.add_argument("--sqrt-s-max", type=float, default=None,
+#                         help="Max sqrt(s) [GeV]  (default: auto from spline data)")
+#     parser.add_argument("--n-points",   type=int,   default=1000,
+#                         help="Number of energy grid points")
+#     parser.add_argument("--out",        default="elements_cs.npz",
+#                         help="Output NPZ file")
+#     args = parser.parse_args()
 
-    # Load splines and determine grid
-    splines, grid_min, grid_max = load_all_splines()
+#     # Load splines and determine grid
+#     splines, grid_min, grid_max = load_all_splines()
 
-    sqrt_s_min = args.sqrt_s_min if args.sqrt_s_min is not None else grid_min
-    sqrt_s_max = args.sqrt_s_max if args.sqrt_s_max is not None else grid_max
+#     sqrt_s_min = args.sqrt_s_min if args.sqrt_s_min is not None else grid_min
+#     sqrt_s_max = args.sqrt_s_max if args.sqrt_s_max is not None else grid_max
 
-    sqrt_s_arr = (
-        np.logspace(math.log10(sqrt_s_min), math.log10(sqrt_s_max), args.n_points)
-    )
+#     sqrt_s_arr = (
+#         np.logspace(math.log10(sqrt_s_min), math.log10(sqrt_s_max), args.n_points)
+#     )
 
-    print(f"Grid: {args.n_points} points, "
-          f"sqrt(s) = {sqrt_s_min:.4g} to {sqrt_s_max:.4g} GeV\n")
+#     print(f"Grid: {args.n_points} points, "
+#           f"sqrt(s) = {sqrt_s_min:.4g} to {sqrt_s_max:.4g} GeV\n")
 
-    # Run Stage 1
-    element_cs = compute_all_elements(sqrt_s_arr, splines)
-    save_elements_npz(element_cs, sqrt_s_arr, args.out)
+#     # Run Stage 1
+#     element_cs = compute_all_elements(sqrt_s_arr, splines)
+#     save_elements_npz(element_cs, sqrt_s_arr, args.out)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
