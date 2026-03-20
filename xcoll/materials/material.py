@@ -1,10 +1,11 @@
 # copyright ############################### #
 # This file is part of the Xcoll package.   #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 # ######################################### #
 
 import numpy as np
 import scipy.constants as sc
+from scipy.interpolate import CubicSpline
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
@@ -14,8 +15,7 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .glauber_gribov import GG_KEYS, NUCLEON_KEYS, load_all_splines
-from .element_cross_section import compute_elements
+from .glauber_gribov import GG_KEYS, NUCLEON_KEYS, glauber_isotope_weighted, load_all_splines, make_nucleon_cs
 _materials_context = xo.ContextCpu()
 
 # CLASS INHERITANCE DOES NOT WORK WITH DYNAMIC XOFIELDS
@@ -23,7 +23,6 @@ _materials_context = xo.ContextCpu()
 # as xobjects enforces a strict order: static fields first, and then dynamic fields.
 # See struct.py, in __new__ of MetaStruct
 N_CS_POINTS = 1000
-
 @dataclass(frozen=True)
 class IsotopeData:
     """
@@ -49,25 +48,45 @@ class Material(xo.HybridClass):
         '_Z2_eff':                  xo.Float64,     # Effective Z for Rutherford scattering
         '_atoms_per_volume':        xo.Float64,     # [atoms/m^3]
         '_num_nucleons_eff':        xo.Float64,     # Effective number of nucleons for nuclear interactions
-        # # Cross sections
-        # # Grid metadata in C
-        # '_cs_sqrt_s_min':   xo.Float64,
-        # '_cs_sqrt_s_max':   xo.Float64,
-        # '_cs_log_sqrt_s_min': xo.Float64,
-        # '_cs_log_step':     xo.Float64,
-        # # GG nucleus cross sections [mb]
-        # '_cs_tot_hA':       xo.Float64[N_CS_POINTS],
-        # '_cs_inel_hA':      xo.Float64[N_CS_POINTS],
-        # '_cs_el_hA':        xo.Float64[N_CS_POINTS],
-        # '_cs_prod_hA':      xo.Float64[N_CS_POINTS],
-        # '_cs_sd_hA':        xo.Float64[N_CS_POINTS],
-        # '_cs_qel_hA':       xo.Float64[N_CS_POINTS],
-        # # Nucleon-level cross sections [mb]
-        # '_cs_tot_pp':       xo.Float64[N_CS_POINTS],
-        # '_cs_el_pp':        xo.Float64[N_CS_POINTS],
-        # '_cs_inel_pp':      xo.Float64[N_CS_POINTS],
-        # '_cs_tot_pn':       xo.Float64[N_CS_POINTS],
 
+        # # Cross sections
+        '_cs_knots':          xo.Float64[N_CS_POINTS],      # log(sqrt_s) knot positions
+        '_n_points':          xo.Int64,                    # Number of points in the GG arrays
+        '_cs_sqrt_s_min':     xo.Float64,                    # Minimum sqrt(s) for the spline
+        '_cs_log_sqrt_s_min': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
+        '_cs_log_step':       xo.Float64,                    # Step size for the spline
+        # GG raw values (for diagnostics)
+        '_cs_tot_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_inel_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_el_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_prod_hA':       xo.Float64[N_CS_POINTS],
+        '_cs_sd_hA':         xo.Float64[N_CS_POINTS],
+        '_cs_qel_hA':        xo.Float64[N_CS_POINTS],
+        # Spline coefficients — shape (N_CS_POINTS - 1,) per coefficient
+        '_cs_tot_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_tot_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_inel_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_inel_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_inel_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_inel_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_el_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_el_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_hA_a':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_hA_b':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_hA_c':     xo.Float64[N_CS_POINTS-1],
+        '_cs_prod_hA_d':     xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_hA_a':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_hA_b':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_hA_c':       xo.Float64[N_CS_POINTS-1],
+        '_cs_sd_hA_d':       xo.Float64[N_CS_POINTS-1],
+        '_cs_qel_hA_a':      xo.Float64[N_CS_POINTS-1],
+        '_cs_qel_hA_b':      xo.Float64[N_CS_POINTS-1],
+        '_cs_qel_hA_c':      xo.Float64[N_CS_POINTS-1],
+        '_cs_qel_hA_d':      xo.Float64[N_CS_POINTS-1],
         # Auto-calculated fields but can be provided for more precision
         '_radiation_length':        xo.Float64,     # [m]
         '_excitation_energy':       xo.Float64,     # [eV]
@@ -104,7 +123,12 @@ class Material(xo.HybridClass):
                          'pressure', 'info', 'name', 'short_name',
                          'geant4_name', 'fluka_name','isotopes']
 
-
+    _kernels = {'evaluate_glauber_spline': xo.Kernel(
+                                c_name='Material_evaluate_glauber_spline',
+                                args=[xo.Arg(xo.ThisClass, name="material"),
+                                      xo.Arg(xo.Float64, name="sqrt_s")],
+                                ret=xo.Float64),
+                }
     # ======================
     # === Initialisation ===
     # ======================
@@ -191,6 +215,8 @@ class Material(xo.HybridClass):
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
         self.isotopes = kwargs.pop('isotopes', None)
+        self._get_element_cross_sections()
+
         # Assign optional properties
         for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut',
                    'crystal_plane_distance', 'crystal_potential', 'eta',
@@ -388,26 +414,59 @@ class Material(xo.HybridClass):
         # Normalise mass fractions
         self._mass_fractions /= self._mass_fractions.sum()
 
-    def get_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
-        if not self.is_elemental:
-            raise NotImplementedError(
-                "get_cross_sections currently only supports elemental materials.")
+    def _get_element_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
         splines, grid_min, grid_max = load_all_splines()
         n_points   = n_points   or N_CS_POINTS
         sqrt_s_min = sqrt_s_min or grid_min
         sqrt_s_max = sqrt_s_max or grid_max
         sqrt_s_arr = np.logspace(np.log10(sqrt_s_min), np.log10(sqrt_s_max), n_points)
-    
-        # compute_elements expects material names — use self.name if available,
-        # otherwise fall back to direct computation via only=None with Z lookup
-        element_cs = compute_elements(sqrt_s_arr, splines, only=[self.name] if self.name else None)
-    
-        return {
-            "sqrt_s": sqrt_s_arr,
-            **{k: element_cs[self.Z][k] for k in GG_KEYS},
-            **{k: element_cs[0][k]      for k in NUCLEON_KEYS},
-        }
+        log_sqrt_s = np.log(sqrt_s_arr)
 
+        _,_,_,_, cs_hN = make_nucleon_cs(splines)
+        gg = self.glauber_isotope_weighted(int(self.Z), self, sqrt_s_arr, cs_hN)
+
+        # Store grid metadata
+        self._cs_sqrt_s_min     = float(sqrt_s_arr[0])
+        self._cs_sqrt_s_max     = float(sqrt_s_arr[-1])
+        self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
+        self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+        self._cs_knots          = log_sqrt_s
+        self._n_points          = n_points
+
+        # Store raw GG arrays and fit spline coefficients
+        self._cs_tot_hA = gg['cs_tot_hA']
+        self._cs_inel_hA = gg['cs_inel_hA']
+        self._cs_el_hA = gg['cs_el_hA']
+        self._cs_prod_hA = gg['cs_prod_hA']
+        self._cs_sd_hA = gg['cs_sd_hA']
+        self._cs_qel_hA = gg['cs_qel_hA']
+
+        self._cs_tot_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[0]
+        self._cs_tot_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[1]
+        self._cs_tot_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[2]
+        self._cs_tot_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[3]
+
+        self._cs_inel_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[0]
+        self._cs_inel_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[1]
+        self._cs_inel_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[2]
+        self._cs_inel_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[3]
+
+        self._cs_el_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[0]
+        self._cs_el_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[1]
+        self._cs_el_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[2]
+        self._cs_el_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[3]
+
+        self._cs_prod_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[0]
+        self._cs_prod_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[1]
+        self._cs_prod_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[2]
+        self._cs_prod_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[3]
+
+        self._cs_sd_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[0]
+        self._cs_sd_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
+        self._cs_sd_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
+        self._cs_sd_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
+
+        return {"sqrt_s": sqrt_s_arr, **gg}
     # ===========
     # === API ===
     # ===========
