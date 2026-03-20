@@ -132,10 +132,15 @@ def make_nucleon_cs(splines):
         return max(0.0, cs_tot_pp(sqrt_s) - cs_el_pp(sqrt_s))
 
     def cs_tot_pn(sqrt_s):
-        """pn spline below 30 GeV; fall back to pp above (no world data)."""
-        if sqrt_s < 30.0:
-            return float(splines["pn tot"](np.log(sqrt_s)))
-        return cs_tot_pp(sqrt_s)
+        pn = float(splines["pn tot"](np.log(sqrt_s)))
+        pp = float(splines["pp tot"](np.log(sqrt_s)))
+        lo, hi = 25.0, 35.0
+        if sqrt_s <= lo:
+            return pn
+        if sqrt_s >= hi:
+            return pp
+        t = (sqrt_s - lo) / (hi - lo)   # 0 at lo, 1 at hi
+        return (1 - t) * pn + t * pp
 
     def cs_inel_pn(sqrt_s):
         return cs_inel_pp(sqrt_s)   # no pn inelastic data
