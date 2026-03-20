@@ -47,11 +47,10 @@ from .glauber_gribov import (
     glauber_element_single,
 )
 
-
 def find_all_elements():
     """
     Scan xc.materials for pure elements (have Z and A, no components).
-    Returns a dict  {Z: (name, A)}  sorted by Z.
+    Returns a dict {Z: material_object} sorted by Z.
     """
     elements = {}
     for name in dir(xc.materials):
@@ -61,36 +60,106 @@ def find_all_elements():
                     and hasattr(mat, 'A') and mat.A is not None
                     and not (hasattr(mat, 'components') and mat.components)):
                 Z = int(mat.Z)
-                A = float(mat.A)
                 if Z not in elements:
-                    elements[Z] = (name, A)
+                    elements[Z] = mat
         except Exception:
             continue
     return dict(sorted(elements.items()))
-
-
-def compute_elements(sqrt_s_arr, splines, only=None):
+ 
+ 
+def resolve_materials(only=None):
     """
-    Compute GG cross sections for all elements over the energy grid.
-
+    Return {Z: material_object} for the requested materials.
+ 
     Parameters
     ----------
-    only : list of (Z, A) tuples or None
-        If provided, only compute for these specific elements.
-        e.g. only=[(6, 12.011), (74, 183.84)]
-        If None, compute for all elements found in xc.materials.
+    only : list of str or None
+        Material names e.g. ['Carbon', 'Tungsten'].
+        If None, all elements in xc.materials are used.
     """
-    cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN = \
-        make_nucleon_cs(splines)
-
-    if only is not None:
-        elements = {Z: (f"Z{Z}", A) for Z, A in only}
+    if only is None:
+        return find_all_elements()
+ 
+    elements = {}
+    for name in only:
+        mat = getattr(xc.materials, name, None)
+        if mat is None:
+            raise ValueError(f"Material {name!r} not found in xc.materials.")
+        if not (hasattr(mat, 'Z') and mat.Z is not None
+                and hasattr(mat, 'A') and mat.A is not None
+                and not (hasattr(mat, 'components') and mat.components)):
+            raise ValueError(f"{name!r} is not a pure element.")
+        Z = int(mat.Z)
+        elements[Z] = mat
+ 
+    return dict(sorted(elements.items()))
+ 
+ 
+# ---------------------------------------------------------------------------
+# Core computation
+# ---------------------------------------------------------------------------
+ 
+def _gg_isotope_weighted(Z, mat, sqrt_s_arr, cs_hN):
+    """
+    Compute isotope-abundance-weighted GG cross sections for one element.
+ 
+    If the material has isotope data with known abundances, the result is:
+        sigma = sum_i  f_i * GG(A_i, Z, sqrt_s)
+    where f_i = abundance_i / sum(abundances).
+ 
+    Falls back to mean A if no isotope data is available.
+ 
+    Returns dict {key: np.array} for all GG_KEYS.
+    """
+    # Get stable isotopes (abundance is not None)
+    stable = []
+    if hasattr(mat, 'isotopes') and mat.isotopes:
+        stable = [iso for iso in mat.isotopes if iso.abundance is not None]
+ 
+    if stable:
+        total    = sum(iso.abundance for iso in stable)
+        combined = {k: np.zeros(len(sqrt_s_arr)) for k in GG_KEYS}
+        for iso in stable:
+            frac = iso.abundance / total
+            rows = [glauber_element_single(iso.atomic_mass, Z, s, cs_hN)
+                    for s in sqrt_s_arr]
+            for k in GG_KEYS:
+                combined[k] += frac * np.array([r[k] for r in rows])
+        return combined
     else:
-        elements = find_all_elements()
-
-    print(f"Stage 1: computing GG cross sections for {len(elements)} elements "
-          f"over {len(sqrt_s_arr)} energy points ...")
-
+        # Fallback: use mean atomic weight
+        A    = float(mat.A)
+        rows = [glauber_element_single(A, Z, s, cs_hN) for s in sqrt_s_arr]
+        return {k: np.array([r[k] for r in rows]) for k in GG_KEYS}
+ 
+ 
+def compute_elements(sqrt_s_arr, splines, only=None, testing=False):
+    """
+    Compute isotope-weighted GG cross sections for elements over the energy grid.
+ 
+    Parameters
+    ----------
+    sqrt_s_arr : np.array
+        Energy grid [GeV].
+    splines : dict
+        Spline dict from load_all_splines().
+    only : list of str or None
+        Material names to compute, e.g. ['Carbon'].
+        If None, all elements in xc.materials are computed.
+ 
+    Returns
+    -------
+    element_cs : dict
+        element_cs[0]  = nucleon-level pp/pn arrays (shared)
+        element_cs[Z]  = {"A": float, "name": str, cs_key: np.array, ...}
+    """
+    cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN = make_nucleon_cs(splines)
+ 
+    elements = resolve_materials(only)
+ 
+    print(f"Stage 1: computing GG cross sections for {len(elements)} element(s) "
+          f"over {len(sqrt_s_arr)} SQRT(S) points ...")
+ 
     element_cs = {}
     element_cs[0] = {
         "cs_tot_pp":  np.array([cs_tot_pp(s)  for s in sqrt_s_arr]),
@@ -98,63 +167,65 @@ def compute_elements(sqrt_s_arr, splines, only=None):
         "cs_inel_pp": np.array([cs_inel_pp(s) for s in sqrt_s_arr]),
         "cs_tot_pn":  np.array([cs_tot_pn(s)  for s in sqrt_s_arr]),
     }
-
-    # Print nucleon-level spot check
-    print("\nNucleon-level cross sections at selected energies [mb]:")
-    print(f"  {'sqrt_s [GeV]':>14}  {'cs_tot_pp':>12}  {'cs_el_pp':>12}  {'cs_inel_pp':>12}  {'cs_tot_pn':>12}")
-    for s in [10, 20, 50, 100, 115]:
-        print(f"  {s:>14}  {cs_tot_pp(s):>12.4f}  {cs_el_pp(s):>12.4f}  "
-            f"{cs_inel_pp(s):>12.4f}  {cs_tot_pn(s):>12.4f}")
-
-    for Z, (name, A) in elements.items():
-        rows = [glauber_element_single(A, Z, s, cs_hN) for s in sqrt_s_arr]
-        element_cs[Z] = {"A": A, "name": name}
-        for key in GG_KEYS:
-            element_cs[Z][key] = np.array([r[key] for r in rows])
-
-        # Print GG spot check for this element
-        print(f"\nGG cross sections for {name} (Z={Z}, A={A}) at selected energies [mb]:")
+    if testing:
+        # Print nucleon-level spot check
+        print(f"\n  Nucleon-level cross sections at selected energies [mb]:")
+        print(f"  {'sqrt_s [GeV]':>14}  {'cs_tot_pp':>12}  {'cs_el_pp':>12}  "
+            f"{'cs_inel_pp':>12}  {'cs_tot_pn':>12}")
+        for s in [10, 20, 50, 100]:
+            if s >= sqrt_s_arr.min() and s <= sqrt_s_arr.max():
+                print(f"  {s:>14}  {cs_tot_pp(s):>12.4f}  {cs_el_pp(s):>12.4f}  "
+                    f"{cs_inel_pp(s):>12.4f}  {cs_tot_pn(s):>12.4f}")
+ 
+    for Z, mat in elements.items():
+        name = mat.name or f"Z{Z}"
+        A    = float(mat.A)
+ 
+        gg = _gg_isotope_weighted(Z, mat, sqrt_s_arr, cs_hN)
+ 
+        element_cs[Z] = {"A": A, "name": name, **gg}
+    if testing:
+        # Spot check
+        print(f"\n  GG cross sections for {name} (Z={Z}, A={A}) [mb]:")
         print(f"  {'sqrt_s [GeV]':>14}  {'cs_tot_hA':>12}  {'cs_inel_hA':>12}  "
-            f"{'cs_el_hA':>12}  {'cs_prod_hA':>12}  {'cs_sd_hA':>12}  {'cs_qel_hA':>12}")
-        for s in [10, 20, 50, 100, 115]:
-            r = glauber_element_single(A, Z, s, cs_hN)
-            print(f"  {s:>14}  {r['cs_tot_hA']:>12.10f}  {r['cs_inel_hA']:>12.10f}  "
-                f"{r['cs_el_hA']:>12.10f}  {r['cs_prod_hA']:>12.10f}  "
-                f"{r['cs_sd_hA']:>12.10f}  {r['cs_qel_hA']:>12.10f}")
-    print("  Done.\n")
+              f"{'cs_el_hA':>12}  {'cs_prod_hA':>12}  {'cs_sd_hA':>12}  {'cs_qel_hA':>12}")
+        for s in [10, 20, 50, 100]:
+            if s >= sqrt_s_arr.min() and s <= sqrt_s_arr.max():
+                r = glauber_element_single(A, Z, s, cs_hN)
+                print(f"  {s:>14}  {r['cs_tot_hA']:>12.4f}  {r['cs_inel_hA']:>12.4f}  "
+                      f"{r['cs_el_hA']:>12.4f}  {r['cs_prod_hA']:>12.4f}  "
+                      f"{r['cs_sd_hA']:>12.4f}  {r['cs_qel_hA']:>12.4f}")
+ 
+    print("\n  Done.\n")
     return element_cs
-
-
-def save_elements_npz(element_cs, sqrt_s_arr, filename="elements_cs.npz"):
-    """
-    Save all elemental cross section arrays to a single NPZ file.
-
-    Keys follow the pattern  "Z{z}_cs_inel_hA"  for GG arrays and
-    "nucleon_cs_tot_pp" for nucleon-level arrays.  Metadata arrays
-    "element_Z" and "element_A" list which elements are present.
-    """
-    arrays = {"sqrt_s": sqrt_s_arr}
-
-    # Nucleon-level arrays
-    for key in NUCLEON_KEYS:
-        arrays[f"nucleon_{key}"] = element_cs[0][key]
-
-    # Per-element GG arrays + metadata
-    Zs, As = [], []
-    for Z in sorted(k for k in element_cs if k > 0):
-        for key in GG_KEYS:
-            arrays[f"Z{Z}_{key}"] = element_cs[Z][key]
-        Zs.append(Z)
-        As.append(element_cs[Z]["A"])
-
-    arrays["element_Z"] = np.array(Zs)
-    arrays["element_A"] = np.array(As)
-
-    np.savez(filename, **arrays)
-    print(f"Saved {len(Zs)} elements -> {filename}")
-    print(f"  Keys: sqrt_s, nucleon_cs_*, Z{{z}}_cs_*  "
-          f"(Z = {Zs[0]} .. {Zs[-1]})")
-
+ 
+ 
+# # ---------------------------------------------------------------------------
+# # Save to NPZ
+# # ---------------------------------------------------------------------------
+ 
+# def save_elements_npz(element_cs, sqrt_s_arr, filename="elements_cs.npz"):
+#     """Save all elemental cross section arrays to a single NPZ file."""
+#     arrays = {"sqrt_s": sqrt_s_arr}
+ 
+#     for key in NUCLEON_KEYS:
+#         arrays[f"nucleon_{key}"] = element_cs[0][key]
+ 
+#     Zs, As = [], []
+#     for Z in sorted(k for k in element_cs if k > 0):
+#         for key in GG_KEYS:
+#             arrays[f"Z{Z}_{key}"] = element_cs[Z][key]
+#         Zs.append(Z)
+#         As.append(element_cs[Z]["A"])
+ 
+#     arrays["element_Z"] = np.array(Zs)
+#     arrays["element_A"] = np.array(As)
+ 
+#     np.savez(filename, **arrays)
+#     print(f"Saved {len(Zs)} element(s) -> {filename}")
+#     print(f"  Keys: sqrt_s, nucleon_cs_*, Z{{z}}_cs_*  (Z = {Zs[0]} .. {Zs[-1]})")
+ 
+ 
 
 # def main():
 #     parser = argparse.ArgumentParser(

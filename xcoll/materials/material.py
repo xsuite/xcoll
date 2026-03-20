@@ -6,14 +6,15 @@
 import numpy as np
 import scipy.constants as sc
 from collections import defaultdict
-
+from dataclasses import dataclass
+from typing import Optional
 import xobjects as xo
 
 from .parameters import (_approximate_radiation_length, _default_excitation_energies,
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .glauber_gribov import GG_KEYS, load_all_splines
+from .glauber_gribov import GG_KEYS, NUCLEON_KEYS, load_all_splines
 from .element_cross_section import compute_elements
 _materials_context = xo.ContextCpu()
 
@@ -22,6 +23,22 @@ _materials_context = xo.ContextCpu()
 # as xobjects enforces a strict order: static fields first, and then dynamic fields.
 # See struct.py, in __new__ of MetaStruct
 N_CS_POINTS = 1000
+
+@dataclass(frozen=True)
+class IsotopeData:
+    """
+    One isotope of an element.
+ 
+    Attributes
+    ----------
+    mass_number  : integer A
+    atomic_mass  : precise atomic mass in unified atomic mass units [u]
+    abundance    : natural isotopic abundance (fraction, sums to 1 per element).
+                   None for isotopes with no stable natural occurrence.
+    """
+    mass_number: int
+    atomic_mass: float
+    abundance:   Optional[float]
 
 class Material(xo.HybridClass):
     _xofields = {
@@ -85,7 +102,7 @@ class Material(xo.HybridClass):
                          'nuclear_collision_length', 'eta',
                          'cross_section', 'hcut', 'state', 'temperature',
                          'pressure', 'info', 'name', 'short_name',
-                         'geant4_name', 'fluka_name']
+                         'geant4_name', 'fluka_name','isotopes']
 
 
     # ======================
@@ -138,6 +155,7 @@ class Material(xo.HybridClass):
         self._frozen = False  # Pre-defined materials will be frozen at package import
         self._generated_geant4_code = None
         self._generated_fluka_code = None
+        self._isotopes = None
 
         # For the mandatory fields, decide how to initialise (elemental or compound)
         if ('Z' in kwargs or 'A' in kwargs) and ('components' in kwargs \
@@ -172,7 +190,7 @@ class Material(xo.HybridClass):
         self.radiation_length = kwargs.pop('radiation_length', None)   # Can be provided for more precision
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
-
+        self.isotopes = kwargs.pop('isotopes', None)
         # Assign optional properties
         for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut',
                    'crystal_plane_distance', 'crystal_potential', 'eta',
@@ -371,29 +389,23 @@ class Material(xo.HybridClass):
         self._mass_fractions /= self._mass_fractions.sum()
 
     def get_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
-        """
-        Compute Glauber-Gribov cross sections for this element over a
-        log-spaced sqrt(s) grid.  Returns a dict of numpy arrays [mb].
-        Only supported for elemental materials (single Z, A).
-        """
         if not self.is_elemental:
             raise NotImplementedError(
                 "get_cross_sections currently only supports elemental materials.")
-
         splines, grid_min, grid_max = load_all_splines()
         n_points   = n_points   or N_CS_POINTS
         sqrt_s_min = sqrt_s_min or grid_min
         sqrt_s_max = sqrt_s_max or grid_max
-        print(f"sqrt s max: {sqrt_s_max:.2f} GeV, sqrt s min: {sqrt_s_min:.2f} GeV")
         sqrt_s_arr = np.logspace(np.log10(sqrt_s_min), np.log10(sqrt_s_max), n_points)
-
-        element_cs = compute_elements(sqrt_s_arr, splines, only=[(self.Z, self.A)])
-
+    
+        # compute_elements expects material names — use self.name if available,
+        # otherwise fall back to direct computation via only=None with Z lookup
+        element_cs = compute_elements(sqrt_s_arr, splines, only=[self.name] if self.name else None)
+    
         return {
             "sqrt_s": sqrt_s_arr,
-            **element_cs[0],              # nucleon-level arrays
-            **{k: element_cs[self.Z][k]   # GG arrays for this element
-            for k in GG_KEYS},
+            **{k: element_cs[self.Z][k] for k in GG_KEYS},
+            **{k: element_cs[0][k]      for k in NUCLEON_KEYS},
         }
 
     # ===========
@@ -950,6 +962,13 @@ class Material(xo.HybridClass):
         if A1_3 is not None:
             return 2*np.pi*dn*(3/4/np.pi)**(1/3) * A1_3
 
+    @property
+    def isotopes(self):
+        return self._isotopes
+
+    @isotopes.setter
+    def isotopes(self, val):
+        self._isotopes = val
 
     # =======================
     # === Meta Properties ===
