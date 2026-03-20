@@ -20,8 +20,11 @@ double Material_evaluate_glauber_spline(Material material, double sqrt_s) {
 
     // O(1) index
     int i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
-    if (i < 0)            i = 0;
-    if (i >= n_points-1)  i = n_points - 2;
+    if (i < 0){
+        i = 0;
+    } else if (i >= n_points-1) {
+        i = n_points - 2;
+    }
     // Horner's method
     double dx = log(sqrt_s) - knots[i];
     return ((a[i]*dx + b[i])*dx + c[i])*dx + d[i];
