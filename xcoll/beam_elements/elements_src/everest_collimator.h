@@ -195,7 +195,8 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
                 LocalParticle_set_zeta(part, zeta_in);
 
                 // Hit and survived particles need correcting:
-                if (is_hit!=0 && LocalParticle_get_state(part)>0){
+                if (is_hit!=0 && LocalParticle_get_state(part) > 0){
+                    LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
                     double const rpp_old  = LocalParticle_get_rpp(part);
                     LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
                     // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)

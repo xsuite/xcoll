@@ -211,9 +211,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
         pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
         // interact
         pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
-        if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
-        } else {
+        if (LocalParticle_get_state(part) > 0){
             // We call the main Amorphous function for the leftover
             pc = Amorphous(everest, material, part, cg, pc, length - length_nucl, 1);
         }

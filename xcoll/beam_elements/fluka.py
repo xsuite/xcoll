@@ -14,7 +14,7 @@ from ..general import _pkg_root
 from ..scattering_routines.fluka import track_pre, track_core, track_post, FlukaEngine, \
                                         FlukaPrototype, create_generic_assembly
 from ..materials import _resolve_material
-from ..constants import HIT_ON_FLUKA_COLL
+from ..constants import HIT_ON_FLUKA
 
 
 class FlukaCollimator(BaseCollimator):
@@ -211,7 +211,7 @@ class FlukaCollimator(BaseCollimator):
             if self.material != "vacuum" and False:
                 super().track(part)
             else:
-                part.state[part.state == 1] = HIT_ON_FLUKA_COLL
+                part.state[part.state == 1] = HIT_ON_FLUKA
             track_core(self, part)
             if self.material != "vacuum":
                 track_post(self, part)
@@ -488,7 +488,7 @@ class FlukaCrystal(BaseCrystal):
     def track(self, part):
         if track_pre(self, part):
             # super().track(part)
-            part.state[part.state == 1] = HIT_ON_FLUKA_COLL
+            part.state[part.state == 1] = HIT_ON_FLUKA
             track_core(self, part)
             track_post(self, part)
         else:

@@ -156,7 +156,7 @@ int8_t hit_jaws_check_and_transform(LocalParticle* part, CollimatorGeometry rest
     // if rightsided and hit:    right frame
     // if leftsided  and no hit: lab   frame
     // if leftsided  and hit:    left  frame
-    // if bothsided  and no hit: lab  frame
+    // if bothsided  and no hit: lab   frame
     // if bothsided  and hit:    hit   frame
 
     // Drift to the impact position or end, and move to jaw frame if relevant

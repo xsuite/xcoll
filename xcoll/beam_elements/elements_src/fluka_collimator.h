@@ -144,7 +144,11 @@ void FlukaCollimator_track_local_particle(FlukaCollimatorData el, LocalParticle*
 
                 if (is_hit != 0){
                     // Mark for FLUKA processing.
-                    LocalParticle_set_state(part, XC_HIT_ON_FLUKA_COLL);
+                    if (LocalParticle_get_state(part) == XC_SECONDARY_PARTICLE){
+                        LocalParticle_set_state(part, XC_HIT_ON_FLUKA_SEC);
+                    } else {
+                        LocalParticle_set_state(part, XC_HIT_ON_FLUKA);
+                    }
                 }
                 LocalParticle_add_to_s(part, s_coll);
             }

@@ -235,9 +235,7 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         calculate_scattering(everest, (MaterialData) material, pc);
 #endif
         pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
-        if (LocalParticle_get_state(part) == XC_LOST_ON_EVEREST_COLL){
-            LocalParticle_set_state(part, XC_LOST_ON_EVEREST_CRYSTAL);
-        } else {
+        if (LocalParticle_get_state(part) > 0){
             // We call the main Amorphous function for the leftover
             everest->rescale_scattering = 1;
 #ifndef XCOLL_REFINE_ENERGY
