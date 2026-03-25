@@ -15,7 +15,8 @@ from .parameters import (_approximate_radiation_length, _default_excitation_ener
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
 from ..compare import deep_equal
-from .glauber_gribov import GG_KEYS, NUCLEON_KEYS, glauber_isotope_weighted, load_all_splines, make_nucleon_cs
+from .glauber_gribov import GG_KEYS, NUCLEON_KEYS, load_all_splines, make_nucleon_cs
+from .isotopes import ISOTOPES
 _materials_context = xo.ContextCpu()
 
 # CLASS INHERITANCE DOES NOT WORK WITH DYNAMIC XOFIELDS
@@ -144,13 +145,25 @@ class Material(xo.HybridClass):
            '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
            '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
            '_crystal_potential', '_eta', '_nuclear_collision_length',
-           '_cs_sqrt_s_min', '_cs_sqrt_s_max', '_cs_log_sqrt_s_min', '_cs_log_step'):
+           '_cs_sqrt_s', '_cs_log_sqrt_s_min', '_cs_log_step'):
             xokwargs[kk] = kwargs.pop(kk, -1.)
+
+        xokwargs['_n_points'] = kwargs.pop('_n_points', -1)
+        xokwargs['_cs_knots'] = kwargs.pop('_cs_knots', [-1.] * N_CS_POINTS)
 
         for kk in ('_cs_tot_hA', '_cs_inel_hA', '_cs_el_hA', '_cs_prod_hA',
                 '_cs_sd_hA', '_cs_qel_hA', '_cs_tot_pp', '_cs_el_pp',
                 '_cs_inel_pp', '_cs_tot_pn'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * N_CS_POINTS)
+
+        for kk in ('_cs_tot_hA_a',  '_cs_tot_hA_b',  '_cs_tot_hA_c',  '_cs_tot_hA_d',
+                '_cs_inel_hA_a', '_cs_inel_hA_b', '_cs_inel_hA_c', '_cs_inel_hA_d',
+                '_cs_el_hA_a',   '_cs_el_hA_b',   '_cs_el_hA_c',   '_cs_el_hA_d',
+                '_cs_prod_hA_a', '_cs_prod_hA_b', '_cs_prod_hA_c', '_cs_prod_hA_d',
+                '_cs_sd_hA_a',   '_cs_sd_hA_b',   '_cs_sd_hA_c',   '_cs_sd_hA_d',
+                '_cs_qel_hA_a',  '_cs_qel_hA_b',  '_cs_qel_hA_c',  '_cs_qel_hA_d'):
+            xokwargs[kk] = kwargs.pop(kk, [-1.] * (N_CS_POINTS - 1))
+
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
         xokwargs['_context'] = kwargs.pop('_context', _materials_context)  # This is needed to get all materials in the same buffer (otherwise Xtrack tests fail)
         xokwargs['__class__'] = kwargs.pop('__class__', Material)
@@ -180,6 +193,7 @@ class Material(xo.HybridClass):
         self._generated_geant4_code = None
         self._generated_fluka_code = None
         self._isotopes = None
+        self.isotopes = kwargs.pop('isotopes', None)
 
         # For the mandatory fields, decide how to initialise (elemental or compound)
         if ('Z' in kwargs or 'A' in kwargs) and ('components' in kwargs \
@@ -214,8 +228,6 @@ class Material(xo.HybridClass):
         self.radiation_length = kwargs.pop('radiation_length', None)   # Can be provided for more precision
         self.excitation_energy = kwargs.pop('excitation_energy', None) # Can be provided for more precision
         self.update_vars()
-        self.isotopes = kwargs.pop('isotopes', None)
-        self._get_element_cross_sections()
 
         # Assign optional properties
         for kk in ['nuclear_radius', 'nuclear_elastic_slope', 'cross_section', 'hcut',
@@ -243,7 +255,7 @@ class Material(xo.HybridClass):
             raise ValueError('Z must be provided for an elemental Material')
         if self.A is None:
             raise ValueError('A must be provided for an elemental Material')
-
+        self._get_element_cross_sections()
 
     def _init_compound(self, kwargs):
         self._resolve_components(kwargs)
@@ -414,6 +426,80 @@ class Material(xo.HybridClass):
         # Normalise mass fractions
         self._mass_fractions /= self._mass_fractions.sum()
 
+    def get_R(self, A=None):
+        """Nuclear radius [m]."""
+        A_eff = self.A if A is None else A
+        if A_eff > 21:
+            return 1.1 * A_eff**(1.0/3.0) * 1e-15 * 0.9
+        return 1.1 * A_eff**(1.0/3.0) * 1e-15 * 1.05
+
+    def pi_R2_mb(self, A=None):
+        """pi*R^2 in mb  (1 fm^2 = 10 mb)."""
+        R_fm = self.get_R(A=A) * 1e15
+        return np.pi * R_fm**2 * 10.0
+
+    def glauber_element_single(self, sqrt_s, cs_hN, A=None):
+        """
+        GG nucleus cross sections [mb] for one element at one energy.
+
+        Returns dict with keys: cs_tot_hA, cs_inel_hA, cs_el_hA,
+                                cs_prod_hA, cs_sd_hA, cs_qel_hA.
+
+        For A < 4, GG shadowing is not applied.
+        """
+        A_eff = self.A if A is None else A
+        piR2                      = self.pi_R2_mb(A=A_eff)
+        A_sig_tot, A_sig_inel, A_sig_el = cs_hN(A_eff, self.Z, sqrt_s)
+
+        if A_eff < 4:
+            return {
+                "cs_tot_hA":  A_sig_tot,
+                "cs_inel_hA": A_sig_inel,
+                "cs_el_hA":   A_sig_el,
+                "cs_prod_hA": A_sig_inel,
+                "cs_sd_hA":   0.0,
+                "cs_qel_hA":  0.0,
+            }
+
+        cs_tot_hA  = 2 * piR2 * np.log(1.0 + A_sig_tot  / (2 * piR2))
+        cs_inel_hA =     piR2 * np.log(1.0 + A_sig_tot /      piR2)
+        cs_el_hA   = max(0.0, cs_tot_hA - cs_inel_hA)
+        cs_prod_hA =     piR2 * np.log(1.0 + A_sig_inel  /      piR2)
+        alpha      =  A_sig_tot / (2 * piR2 + A_sig_tot)
+        cs_sd_hA   =     piR2 * (alpha - np.log(1.0 + alpha))
+        cs_qel_hA  = max(0.0, cs_inel_hA - cs_prod_hA)
+
+        return {
+            "cs_tot_hA":  cs_tot_hA,
+            "cs_inel_hA": cs_inel_hA,
+            "cs_el_hA":   cs_el_hA,
+            "cs_prod_hA": cs_prod_hA,
+            "cs_sd_hA":   cs_sd_hA,
+            "cs_qel_hA":  cs_qel_hA,
+        }
+
+    def glauber_isotope_weighted(self, sqrt_s_arr, cs_hN):
+        """
+        Compute isotope-abundance-weighted GG cross sections for one element.
+        """
+        stable = [] if self.isotopes is None else list(self.isotopes)
+
+        if stable:
+            total    = sum(iso.abundance for iso in stable)
+            combined = {k: np.zeros(len(sqrt_s_arr)) for k in GG_KEYS}
+            for iso in stable:
+                frac = iso.abundance / total
+                rows = [self.glauber_element_single(s, cs_hN, A=iso.atomic_mass)
+                        for s in sqrt_s_arr]
+                for k in GG_KEYS:
+                    combined[k] += frac * np.array([r[k] for r in rows])
+            return combined
+        else:
+            print(f"Element {self.A} has no stable isotopes with known abundance! ")
+            # Fallback: use mean atomic weight
+            rows = [self.glauber_element_single(s, cs_hN) for s in sqrt_s_arr]
+            return {k: np.array([r[k] for r in rows]) for k in GG_KEYS}
+ 
     def _get_element_cross_sections(self, n_points=None, sqrt_s_min=None, sqrt_s_max=None):
         splines, grid_min, grid_max = load_all_splines()
         n_points   = n_points   or N_CS_POINTS
@@ -423,11 +509,13 @@ class Material(xo.HybridClass):
         log_sqrt_s = np.log(sqrt_s_arr)
 
         _,_,_,_, cs_hN = make_nucleon_cs(splines)
-        gg = self.glauber_isotope_weighted(int(self.Z), self, sqrt_s_arr, cs_hN)
+        gg = self.glauber_isotope_weighted(sqrt_s_arr, cs_hN)
+
 
         # Store grid metadata
-        self._cs_sqrt_s_min     = float(sqrt_s_arr[0])
-        self._cs_sqrt_s_max     = float(sqrt_s_arr[-1])
+        # self._cs_sqrt_s_min     = float(sqrt_s_arr[0])
+        # self._cs_sqrt_s_max     = float(sqrt_s_arr[-1])
+        self._cs_sqrt_s            = sqrt_s_arr
         self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
         self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
         self._cs_knots          = log_sqrt_s
@@ -465,8 +553,8 @@ class Material(xo.HybridClass):
         self._cs_sd_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
         self._cs_sd_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
         self._cs_sd_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
-
-        return {"sqrt_s": sqrt_s_arr, **gg}
+        return
+        # return {"sqrt_s": sqrt_s_arr, **gg}
     # ===========
     # === API ===
     # ===========
@@ -1027,7 +1115,37 @@ class Material(xo.HybridClass):
 
     @isotopes.setter
     def isotopes(self, val):
-        self._isotopes = val
+        if val is None:
+            self._isotopes = None
+            return
+
+        if isinstance(val, str):
+            if val not in ISOTOPES:
+                raise ValueError(f"Unknown element symbol '{val}' for isotopes.")
+            val = ISOTOPES[val].get('isotopes', [])
+        elif isinstance(val, dict):
+            val = val.get('isotopes', [val])
+
+        if not hasattr(val, '__iter__') or isinstance(val, (str, bytes)):
+            raise ValueError("`isotopes` must be an iterable, dict, symbol string, or None.")
+
+        isotopes = []
+        for iso in val:
+            if isinstance(iso, IsotopeData):
+                this_iso = iso
+            elif isinstance(iso, dict):
+                this_iso = IsotopeData(
+                    mass_number=int(iso['mass_number']),
+                    atomic_mass=float(iso['atomic_mass']),
+                    abundance=None if iso.get('abundance', None) is None else float(iso['abundance']),
+                )
+            else:
+                raise ValueError("Each isotope must be IsotopeData or a dict.")
+
+            if this_iso.abundance is not None:
+                isotopes.append(this_iso)
+
+        self._isotopes = tuple(isotopes) if isotopes else None
 
     # =======================
     # === Meta Properties ===

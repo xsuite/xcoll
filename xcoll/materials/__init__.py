@@ -10,8 +10,7 @@ from .compounds import *
 from .mixtures import *
 from .sixtrack import *
 from .glauber_gribov import *
-from .element_cross_section import *
-from .materials_cross_section import *
+# from .materials_cross_section import *
 
 # Freeze all material instances (to prevent accidental modification)
 for name, obj in list(globals().items()):  # Have to wrap in list to take a snapshot (avoid updating in-place)

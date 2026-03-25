@@ -215,7 +215,7 @@ def glauber_element_single(A, Z, sqrt_s, cs_hN):
         "cs_qel_hA":  cs_qel_hA,
     }
 
-def glauber_isotope_weighted(Z, mat, sqrt_s_arr, cs_hN):
+def glauber_isotope_weighted(mat,Z, sqrt_s_arr, cs_hN):
     """
     Compute isotope-abundance-weighted GG cross sections for one element.
     """
@@ -235,7 +235,8 @@ def glauber_isotope_weighted(Z, mat, sqrt_s_arr, cs_hN):
         return combined
     else:
         # Fallback: use mean atomic weight
-        A    = float(mat.A)
+        print(mat.name)
+        A    = (mat.A)
         rows = [glauber_element_single(A, Z, s, cs_hN) for s in sqrt_s_arr]
         return {k: np.array([r[k] for r in rows]) for k in GG_KEYS}
  
