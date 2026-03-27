@@ -143,4 +143,4 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     }
     return pc;
 }
-#endif // XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H
+#endif /* XCOLL_EVEREST_NUCLEAR_INTERACTIONS_H */

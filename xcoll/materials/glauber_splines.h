@@ -7,26 +7,66 @@
 #define XCOLL_EVEREST_GLAUBER_SPLINES_H
 #include <math.h>
 
+/*gpufun*/
+void MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key) {
+    // Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive
+    int n_points = MaterialData_get__n_points(material);
+    double log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min(material);
+    double log_step = MaterialData_get__cs_log_step(material);
 
-double Material_evaluate_glauber_spline(Material material, double sqrt_s) {
-    double* knots = Material_get__cs_spline_knots(material);
-    double* a     = Material_get__cs_spline_a(material);
-    double* b     = Material_get__cs_spline_b(material);
-    double* c     = Material_get__cs_spline_c(material);
-    double* d     = Material_get__cs_spline_d(material);
-    int n_points   = Material_get__n_points(material);
-    double log_sqrt_s_min = Material_get__cs_log_sqrt_s_min(material);
-    double log_step = Material_get__cs_log_step(material);
+    if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
+        return;
+    }
 
-    // O(1) index
+    // O(1) index in log(sqrt_s) space
     int i = (int)((log(sqrt_s) - log_sqrt_s_min) / log_step);
-    if (i < 0){
+    if (i < 0) {
         i = 0;
-    } else if (i >= n_points-1) {
+    } else if (i >= n_points - 1) {
         i = n_points - 2;
     }
+
+    double ai, bi, ci, di;
+    switch (key) {
+        case 0:
+            ai = MaterialData_get__cs_tot_hA_a(material, i);
+            bi = MaterialData_get__cs_tot_hA_b(material, i);
+            ci = MaterialData_get__cs_tot_hA_c(material, i);
+            di = MaterialData_get__cs_tot_hA_d(material, i);
+            break;
+        case 1:
+            ai = MaterialData_get__cs_inel_hA_a(material, i);
+            bi = MaterialData_get__cs_inel_hA_b(material, i);
+            ci = MaterialData_get__cs_inel_hA_c(material, i);
+            di = MaterialData_get__cs_inel_hA_d(material, i);
+            break;
+        case 2:
+            ai = MaterialData_get__cs_el_hA_a(material, i);
+            bi = MaterialData_get__cs_el_hA_b(material, i);
+            ci = MaterialData_get__cs_el_hA_c(material, i);
+            di = MaterialData_get__cs_el_hA_d(material, i);
+            break;
+        case 3:
+            ai = MaterialData_get__cs_prod_hA_a(material, i);
+            bi = MaterialData_get__cs_prod_hA_b(material, i);
+            ci = MaterialData_get__cs_prod_hA_c(material, i);
+            di = MaterialData_get__cs_prod_hA_d(material, i);
+            break;
+        case 4:
+            ai = MaterialData_get__cs_sd_hA_a(material, i);
+            bi = MaterialData_get__cs_sd_hA_b(material, i);
+            ci = MaterialData_get__cs_sd_hA_c(material, i);
+            di = MaterialData_get__cs_sd_hA_d(material, i);
+            break;
+        default:
+            return;
+    }
+
+    double knot_i = MaterialData_get__cs_knots(material, i);
+    double dx = log(sqrt_s) - knot_i;
+    printf("Evaluating spline at sqrt_s = %f, key = %d\n", sqrt_s, key);
+    printf("Result: %f\n", ((ai*dx + bi)*dx + ci)*dx + di);
     // Horner's method
-    double dx = log(sqrt_s) - knots[i];
-    return ((a[i]*dx + b[i])*dx + c[i])*dx + d[i];
+    return;
 }
-s
+#endif /*XCOLL_EVEREST_GLAUBER_SPLINES_H*/

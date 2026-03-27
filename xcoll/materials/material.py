@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 import xobjects as xo
 
+from ..general import _pkg_root
 from .parameters import (_approximate_radiation_length, _default_excitation_energies,
                          _combine_radiation_lengths, _combine_excitation_energies,
                          _average_Z_over_A, _effective_Z2)
@@ -51,9 +52,9 @@ class Material(xo.HybridClass):
         '_num_nucleons_eff':        xo.Float64,     # Effective number of nucleons for nuclear interactions
 
         # # Cross sections
-        '_cs_knots':          xo.Float64[N_CS_POINTS],      # log(sqrt_s) knot positions
-        '_n_points':          xo.Int64,                    # Number of points in the GG arrays
-        '_cs_sqrt_s_min':     xo.Float64,                    # Minimum sqrt(s) for the spline
+        '_cs_knots':          xo.Float64[N_CS_POINTS],       # log(sqrt_s) knot positions
+        '_n_points':          xo.Int64,                      # Number of points in the GG arrays
+        '_cs_sqrt_s':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
         '_cs_log_sqrt_s_min': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
         '_cs_log_step':       xo.Float64,                    # Step size for the spline
         # GG raw values (for diagnostics)
@@ -125,11 +126,16 @@ class Material(xo.HybridClass):
                          'geant4_name', 'fluka_name','isotopes']
 
     _kernels = {'evaluate_glauber_spline': xo.Kernel(
-                                c_name='Material_evaluate_glauber_spline',
+                                c_name='MaterialData_evaluate_glauber_spline',
                                 args=[xo.Arg(xo.ThisClass, name="material"),
-                                      xo.Arg(xo.Float64, name="sqrt_s")],
-                                ret=xo.Float64),
+                                      xo.Arg(xo.Float64, name="sqrt_s"),
+                                      xo.Arg(xo.Int8, name="key")],
+                                ret=None),
                 }
+    _needs_compilation = True
+    _extra_c_sources = [
+        _pkg_root / 'materials' / 'glauber_splines.h'
+    ]
     # ======================
     # === Initialisation ===
     # ======================
@@ -145,7 +151,7 @@ class Material(xo.HybridClass):
            '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
            '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
            '_crystal_potential', '_eta', '_nuclear_collision_length',
-           '_cs_sqrt_s', '_cs_log_sqrt_s_min', '_cs_log_step'):
+           '_cs_log_sqrt_s_min', '_cs_log_step'):
             xokwargs[kk] = kwargs.pop(kk, -1.)
 
         xokwargs['_n_points'] = kwargs.pop('_n_points', -1)
@@ -153,7 +159,7 @@ class Material(xo.HybridClass):
 
         for kk in ('_cs_tot_hA', '_cs_inel_hA', '_cs_el_hA', '_cs_prod_hA',
                 '_cs_sd_hA', '_cs_qel_hA', '_cs_tot_pp', '_cs_el_pp',
-                '_cs_inel_pp', '_cs_tot_pn'):
+                '_cs_inel_pp', '_cs_tot_pn', '_cs_sqrt_s'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * N_CS_POINTS)
 
         for kk in ('_cs_tot_hA_a',  '_cs_tot_hA_b',  '_cs_tot_hA_c',  '_cs_tot_hA_d',
@@ -495,7 +501,6 @@ class Material(xo.HybridClass):
                     combined[k] += frac * np.array([r[k] for r in rows])
             return combined
         else:
-            print(f"Element {self.A} has no stable isotopes with known abundance! ")
             # Fallback: use mean atomic weight
             rows = [self.glauber_element_single(s, cs_hN) for s in sqrt_s_arr]
             return {k: np.array([r[k] for r in rows]) for k in GG_KEYS}
@@ -513,9 +518,7 @@ class Material(xo.HybridClass):
 
 
         # Store grid metadata
-        # self._cs_sqrt_s_min     = float(sqrt_s_arr[0])
-        # self._cs_sqrt_s_max     = float(sqrt_s_arr[-1])
-        self._cs_sqrt_s            = sqrt_s_arr
+        self._cs_sqrt_s         = sqrt_s_arr
         self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
         self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
         self._cs_knots          = log_sqrt_s
@@ -529,32 +532,39 @@ class Material(xo.HybridClass):
         self._cs_sd_hA = gg['cs_sd_hA']
         self._cs_qel_hA = gg['cs_qel_hA']
 
-        self._cs_tot_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[0]
-        self._cs_tot_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[1]
-        self._cs_tot_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[2]
-        self._cs_tot_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[3]
+        self._cs_tot_hA_a = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[0]
+        self._cs_tot_hA_b = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[1]
+        self._cs_tot_hA_c = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[2]
+        self._cs_tot_hA_d = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[3]
 
-        self._cs_inel_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[0]
-        self._cs_inel_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[1]
-        self._cs_inel_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[2]
-        self._cs_inel_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[3]
+        self._cs_inel_hA_a = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[0]
+        self._cs_inel_hA_b = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[1]
+        self._cs_inel_hA_c = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[2]
+        self._cs_inel_hA_d = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[3]
 
-        self._cs_el_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[0]
-        self._cs_el_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[1]
-        self._cs_el_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[2]
-        self._cs_el_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[3]
+        self._cs_el_hA_a = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[0]
+        self._cs_el_hA_b = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[1]
+        self._cs_el_hA_c = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[2]
+        self._cs_el_hA_d = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[3]
 
-        self._cs_prod_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[0]
-        self._cs_prod_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[1]
-        self._cs_prod_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[2]
-        self._cs_prod_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[3]
+        self._cs_prod_hA_a = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[0]
+        self._cs_prod_hA_b = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[1]
+        self._cs_prod_hA_c = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[2]
+        self._cs_prod_hA_d = CubicSpline(log_sqrt_s, gg['cs_prod_hA']).c[3]
 
-        self._cs_sd_hA_fit_a = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[0]
-        self._cs_sd_hA_fit_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
-        self._cs_sd_hA_fit_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
-        self._cs_sd_hA_fit_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
+        self._cs_sd_hA_a = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[0]
+        self._cs_sd_hA_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
+        self._cs_sd_hA_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
+        self._cs_sd_hA_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
         return
-        # return {"sqrt_s": sqrt_s_arr, **gg}
+
+    def evaluate_glauber_spline(self, sqrt_s, key):
+        self.compile_kernels(only_if_needed=True)
+        return self._context.kernels.evaluate_glauber_spline(
+            material=self,
+            sqrt_s=float(sqrt_s),
+            key=int(key),
+        )
     # ===========
     # === API ===
     # ===========
