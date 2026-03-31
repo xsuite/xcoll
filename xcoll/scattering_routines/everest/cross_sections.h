@@ -56,6 +56,19 @@ inline void E1_approx(double* E1_approx, double x) {
     }
 }
 
+
+/*gpufun*/
+void E2_approx(double* E2, double x) {
+    const double gamma = 0.5772156649015328606;
+    // small x: use series (stable)
+    if (x < 1e-3) {
+        *E2 = 1.0 - x * (log(x) + gamma - 1.0);
+        return;
+    }
+    double E1;
+    E1_approx(&E1, x);
+    *E2 = exp(-x) - x * E1;
+}
 // =======================================================
 // ====== Cross sections & Slopes =======================
 // =======================================================
@@ -86,7 +99,7 @@ void get_slope_single_diffraction(double s, double* b, LocalParticle* part){
 
 void get_coulomb_interaction_length(double Z, double A, double pc, double theta_init, double* lambda_coulomb){
     double b_coulomb;
-    double E1, cs_coulomb;
+    double E2, cs_coulomb;
     double R;
     double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
     double hbar_c = sqrt(0.389); // [mb*GeV^2]
@@ -94,8 +107,8 @@ void get_coulomb_interaction_length(double Z, double A, double pc, double theta_
 
     get_slope_hadron_nucleus(A, &b_coulomb);
     R = 2*hbar_c*sqrt(b_coulomb);
-    E1_approx(&E1, (R*R*(b_coulomb)*t_cut));
-    cs_coulomb = -constant * (R*R*(b_coulomb)*(E1) - exp(-R*R*(b_coulomb)*t_cut)/t_cut);
+    E2_approx(&E2, (R*R*(856.)*t_cut));
+    cs_coulomb = -constant * (R*R*856.*(E2))
     *lambda_coulomb = 1. / (N * cs_coulomb);
 }
 
