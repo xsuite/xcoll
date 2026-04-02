@@ -27,6 +27,11 @@ int8_t EverestCollimatorData_get_record_scatterings(EverestCollimatorData el){
     return (EverestCollimatorData_get__record_interactions(el) >> 2) % 2;
 }
 
+/*gpufun*/
+int8_t EverestCollimatorData_get_record_primary_hits(EverestCollimatorData el){
+    return (EverestCollimatorData_get__record_interactions(el) >> 3) % 2;
+}
+
 void EverestCollimator_set_material(EverestCollimatorData el){
     MaterialData material = EverestCollimatorData_getp__material(el);
     RandomRutherfordData rng = EverestCollimatorData_getp_rutherford_rng(el);
@@ -196,7 +201,9 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part) > 0){
-                    LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
+                    if (EverestCollimatorData_get_record_primary_hits(el)) {
+                        LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
+                    }
                     double const rpp_old  = LocalParticle_get_rpp(part);
                     LocalParticle_update_delta(part, pc_out*chi/p0c/qq0 - 1);
                     // Keep angles constant (this is also correct for exact angles): px_new = px_old*(1 + δ_new)/(1 + δ_old)

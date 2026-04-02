@@ -64,7 +64,8 @@ class BaseBlock(xt.BeamElement):
 
     _noexpr_fields = {'name'}
     _skip_in_to_dict  = ['_record_interactions']
-    _store_in_to_dict = ['name', 'record_impacts', 'record_exits', 'record_scatterings']
+    _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
+                         'record_scatterings', 'record_primary_hits']
 
     _depends_on = [InvalidXcoll]
 
@@ -87,6 +88,7 @@ class BaseBlock(xt.BeamElement):
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
+            to_assign['record_primary_hits'] = kwargs.pop('record_primary_hits', False)
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
@@ -161,9 +163,23 @@ class BaseBlock(xt.BeamElement):
         elif not val and self.record_scatterings:
             self._record_interactions -= 4
 
+    @property
+    def record_primary_hits(self):
+        return bool((self._record_interactions >> 3) % 2)
+
+    @record_primary_hits.setter
+    def record_primary_hits(self, val):
+        # If True, we flag particles that have hit a collimator and survived
+        if not isinstance(val, bool):
+            raise ValueError("`record_primary_hits` must be a boolean value.")
+        if val and not self.record_primary_hits:
+            self._record_interactions += 8
+        elif not val and self.record_primary_hits:
+            self._record_interactions -= 8
+
     def _verify_consistency(self):
         assert isinstance(self.active, bool) or self.active in [0, 1]
-        assert self._record_interactions in list(range(8))
+        assert self._record_interactions in list(range(16))
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return InvalidXcoll(length=-self.length,
