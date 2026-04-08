@@ -5,8 +5,6 @@
 import numpy as np
 from pathlib import Path
 from scipy.interpolate import CubicSpline
-
-from xcoll.materials.material import N_CS_POINTS
 from .isotopes import ISOTOPES
 from .glauber_gribov import GG_KEYS, make_nucleon_cs, load_all_splines
 

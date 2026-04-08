@@ -123,17 +123,17 @@ def make_nucleon_cs(splines):
     Returns (cs_tot_pp, cs_el_pp, cs_inel_pp, cs_tot_pn, cs_hN).
     """
     def cs_tot_pp(sqrt_s):
-        return float(splines["pp tot"](np.log(sqrt_s)))
+        return (splines["pp tot"](np.log(sqrt_s)))
 
     def cs_el_pp(sqrt_s):
-        return float(splines["pp el"](np.log(sqrt_s)))
+        return (splines["pp el"](np.log(sqrt_s)))
 
     def cs_inel_pp(sqrt_s):
         return max(0.0, cs_tot_pp(sqrt_s) - cs_el_pp(sqrt_s))
 
     def cs_tot_pn(sqrt_s):
-        pn = float(splines["pn tot"](np.log(sqrt_s)))
-        pp = float(splines["pp tot"](np.log(sqrt_s)))
+        pn = splines["pn tot"](np.log(sqrt_s))
+        pp = splines["pp tot"](np.log(sqrt_s))
         lo, hi = 25.0, 35.0
         if sqrt_s <= lo:
             return pn
