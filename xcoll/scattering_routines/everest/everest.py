@@ -27,7 +27,6 @@ class EverestEngine(xt.BeamElement):
         _pkg_root.joinpath('scattering_routines','everest','ionisation_loss.h'),
         _pkg_root.joinpath('scattering_routines','everest','multiple_coulomb_scattering.h'),
         _pkg_root.joinpath('scattering_routines','everest','nuclear_interaction.h'),
-        _pkg_root.joinpath('scattering_routines','everest','splines.h'),
         _pkg_root.joinpath('scattering_routines','everest','cross_sections.h'),
         _pkg_root.joinpath('scattering_routines','everest','nuclear_interactions.h'),
         _pkg_root.joinpath('scattering_routines','everest','crystal_parameters.h'),

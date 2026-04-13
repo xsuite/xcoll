@@ -62,6 +62,7 @@ class Material(xo.HybridClass):
         '_cs_sqrt_s':         xo.Float64[N_CS_POINTS],       # Minimum sqrt(s) for the spline
         '_cs_log_sqrt_s_min': xo.Float64,                    # Minimum log(sqrt(s)) for the spline
         '_cs_log_step':       xo.Float64,                    # Step size for the spline
+        '_nuclear_slope':     xo.Float64,                    # Nuclear slope parameter
         # GG raw values (for diagnostics)
         '_cs_tot_hA':        xo.Float64[N_CS_POINTS],
         '_cs_inel_hA':       xo.Float64[N_CS_POINTS],
@@ -120,7 +121,7 @@ class Material(xo.HybridClass):
                          '_nuclear_elastic_slope', '_cross_section',
                          '_crystal_plane_distance', '_crystal_potential',
                          '_nuclear_collision_length', '_eta',
-                         '_hcut']
+                         '_hcut', '_components']
     _store_in_to_dict = ['Z', 'A', 'components', 'n_atoms', 'mass_fractions',
                          'density', 'radiation_length', 'excitation_energy',
                          'nuclear_radius', 'nuclear_elastic_slope',
@@ -135,7 +136,7 @@ class Material(xo.HybridClass):
                                 args=[xo.Arg(xo.ThisClass, name="material"),
                                       xo.Arg(xo.Float64, name="sqrt_s"),
                                       xo.Arg(xo.Int8, name="key")],
-                                ret=None),
+                                ret=xo.Arg(xo.Float64, name="evaluate_glauber_spline")),
                 }
     _needs_compilation = True
     _extra_c_sources = [
@@ -152,7 +153,7 @@ class Material(xo.HybridClass):
 
         # Create xobject with all invalid values (-1)
         xokwargs = kwargs.pop('_xokwargs', {})
-        for kk in ('_ZA_mean', '_Z2_eff', '_radiation_length', '_excitation_energy',
+        for kk in ('_ZA_mean', '_Z2_eff', '_nuclear_slope', '_radiation_length', '_excitation_energy',
            '_atoms_per_volume', '_num_nucleons_eff', '_density', '_nuclear_radius',
            '_nuclear_elastic_slope', '_hcut', '_crystal_plane_distance',
            '_crystal_potential', '_eta', '_nuclear_collision_length',
@@ -553,8 +554,43 @@ class Material(xo.HybridClass):
         
         if self._components is None:
             gg = self._glauber_isotope_to_element(log_sqrt_s, cs_hN)
+            # nuclear slope
+            if self.A <= 62:
+                self._nuclear_slope = 14.5 * self.A**(2./3.)
+            else:
+                self._nuclear_slope = 60.0 * self.A**(1./3.)
         else:
             gg = self._glauber_component(log_sqrt_s, cs_hN)
+            fraction_14 = []
+            fraction_60 = []
+            nuclear_slope_14 = 0
+            nuclear_slope_60 = 0
+
+            # Separate the indices based on the condition
+            for i, comp in enumerate(self.components):
+                if comp.A <= 62:
+                    fraction_14.append(i)
+                else: 
+                    fraction_60.append(i)
+
+            # Calculate the slope for A <= 62
+            for i in fraction_14:
+                nuclear_slope_14 += self.molar_fractions[i] * self.components[i].A**(2./3.)
+            nuclear_slope_14 *= 14.5
+
+            # Calculate the slope for A > 62
+            for i in fraction_60:
+                nuclear_slope_60 += self.molar_fractions[i] * self.components[i].A**(1./3.)
+            nuclear_slope_60 *= 60.0
+
+            # Combine the results
+            self._nuclear_slope = nuclear_slope_14 + nuclear_slope_60
+        # Store grid metadata
+        self._cs_sqrt_s         = sqrt_s_arr
+        self._cs_log_sqrt_s_min = float(log_sqrt_s[0])
+        self._cs_log_step       = float((log_sqrt_s[-1] - log_sqrt_s[0]) / (n_points - 1))
+        self._cs_knots          = log_sqrt_s
+        self._n_points          = n_points
 
         # Store grid metadata
         self._cs_sqrt_s         = sqrt_s_arr
@@ -597,6 +633,7 @@ class Material(xo.HybridClass):
         self._cs_sd_hA_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
 
     def evaluate_glauber_spline(self, sqrt_s, key):
+        # Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive
         self.compile_kernels(only_if_needed=True)
         return self._context.kernels.evaluate_glauber_spline(
             material=self,

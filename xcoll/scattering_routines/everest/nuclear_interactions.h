@@ -19,8 +19,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     double cross_section_tot;
     double sqrt_t_p;
     int64_t i_slot = -1;
-    double A          = MaterialData_get_A(material);
-    double N          = MaterialData_get__atomic_per_volume(material);
+    // double A          = MaterialData_get__A(material);
+    double N          = MaterialData_get__atoms_per_volume(material);
     double Z          = sqrt(MaterialData_get__Z2_eff(material));
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
@@ -29,8 +29,9 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     RecordIndex record_index     = everest->coll->record_index;
     int8_t scatter               = everest->coll->record_scatterings;
 
-    total_cross_section(&interaction_length_tot, &cross_section_tot, A, Z, N, sqrt_s);
-    //FindRoot_find_path_length(finder, traj);
+    // I think we handled A inside the CS, so this is only CS
+    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0);
+    interaction_length_tot = (1.)/(N*cross_section_tot);
     //double mcs_path_length = FindRoot_get_path_length(finder);
     double mcs_path_length = length;
     if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
@@ -40,13 +41,14 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
         return pc; // false for nucl int.
     } else {
-        double interaction_lengths[6], coulomb_length;
+        double interaction_lengths[6];
+        double nuclear_slope = MaterialData_get__nuclear_slope(material);
         double Neff = MaterialData_get__num_nucleons_eff(material);
         // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
         double theta_init = atan2(LocalParticle_get_xp(part), 1);
 
-        get_interaction_length(material, interaction_lengths, cross_section_tot, A, Z, N, Neff, theta_init, sqrt_s, pc);
-        // 1 = inel, 2 = el, 3 = prod, 4 = sd, 5 = pp/pn, 6 = coulomb
+        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, Neff, theta_init, sqrt_s, pc);
+        // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
 
         // Finding the smallest length
         double min_length = interaction_lengths[0]; // Inelastic
@@ -64,13 +66,13 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
             min_length = interaction_lengths[3];
             min_index = 4;
         }
-        if (interaction_lengths[4] < min_length) { // Proton-proton / proton-neutron
+        // if (interaction_lengths[4] < min_length) { // Proton-proton / proton-neutron
+        //     min_length = interaction_lengths[4];
+        //     min_index = 5;
+        // }
+        if (interaction_lengths[4] < min_length) { // Coulomb
             min_length = interaction_lengths[4];
             min_index = 5;
-        }
-        if (interaction_lengths[5] < min_length) { // Coulomb
-            min_length = interaction_lengths[5];
-            min_index = 6;
         }
 
         // Ionisation loss to interaction point
@@ -87,10 +89,8 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
 
         } else if (min_index == 2){
             // Elastic
-            double b_nuclear_elastic;
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
-            get_slope_hadron_nucleus(A, &b_nuclear_elastic);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/b_nuclear_elastic)/pc;
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
 
         } else if (min_index == 4){
             // Single diffractive
@@ -106,19 +106,15 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
                 pc = 1.e-9; 
                 sqrt_t_p = 0;
             } else {
-                double b_sd;
-                get_slope_single_diffraction(everest->ecmsq, &b_sd, part);
-                sqrt_t_p = sqrt(RandomExponential_generate(part)/b_sd)/sqrt(pc_in*pc);
+                sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/sqrt(pc_in*pc);
             }
 
-        } else if (min_index == 5){
-            // Proton-proton / proton-neutron
-            double b_pp_pn;
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
-            get_slope_proton_proton(everest->ecmsq, &b_pp_pn);
-            sqrt_t_p = sqrt(RandomExponential_generate(part)/b_pp_pn)/pc;
+        // } else if (min_index == 5){
+        //     // Proton-proton / proton-neutron
+        //     if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+        //     sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
 
-        } else if (min_index == 6){
+        } else if (min_index == 5){
             // Coulomb
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_COULOMB);
             sqrt_t_p = sqrt(RandomRutherford_generate(everest->coll->rng, part))/pc;

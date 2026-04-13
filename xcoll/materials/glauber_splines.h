@@ -8,14 +8,14 @@
 #include <math.h>
 
 /*gpufun*/
-void MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key) {
+double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key) {
     // Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive
     int n_points = MaterialData_get__n_points(material);
     double log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min(material);
     double log_step = MaterialData_get__cs_log_step(material);
 
     if (n_points < 2 || log_step <= 0.0 || sqrt_s <= 0.0) {
-        return;
+        return 0.0;
     }
 
     // O(1) index in log(sqrt_s) space
@@ -59,14 +59,13 @@ void MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, 
             di = MaterialData_get__cs_sd_hA_d(material, i);
             break;
         default:
-            return;
+            return 0.0; // Invalid key
     }
 
     double knot_i = MaterialData_get__cs_knots(material, i);
     double dx = log(sqrt_s) - knot_i;
-    printf("Evaluating spline at sqrt_s = %f, key = %d\n", sqrt_s, key);
-    printf("Result: %f\n", ((ai*dx + bi)*dx + ci)*dx + di);
+    // printf("Evaluating spline at sqrt_s = %f, key = %d\n", sqrt_s, key);
     // Horner's method
-    return;
+    return ((ai*dx + bi)*dx + ci)*dx + di;
 }
 #endif /*XCOLL_EVEREST_GLAUBER_SPLINES_H*/
