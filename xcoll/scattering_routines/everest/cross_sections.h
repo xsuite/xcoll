@@ -60,6 +60,16 @@ inline void E1_approx(double* E1_approx, double x) {
 /*gpufun*/
 void E2_approx(double* E2, double x) {
     const double gamma = 0.5772156649015328606;
+    if (x > 10.0) {
+        double invx = 1.0 / x;
+        double invx2 = invx * invx;
+
+        *E2 = invx * (1.0
+            - 2.0 * invx
+            + 6.0 * invx2
+            - 24.0 * invx2 * invx);
+        return;
+    }
     // small x: use series (stable)
     if (x < 1e-3) {
         *E2 = 1.0 - x * (log(x) + gamma - 1.0);
@@ -70,90 +80,78 @@ void E2_approx(double* E2, double x) {
     *E2 = exp(-x) - x * E1;
 }
 // =======================================================
-// ====== Cross sections & Slopes =======================
+// ====== Coulomb Cross Sections =====================
 // =======================================================
-// /*gpufun*/
-// void get_slope_hadron_nucleus(double A, double* b){
-//     // we can add pions, its a bit different
-//     // From GEANT4
-//     if (A <= 62){
-//         *b = 14.5 * pow(A, 2.0/3.0); 
-//     } else {
-//         *b = 60.0 * pow(A, 1.0/3.0);
-//     }
-// }
-
-// I dont think we need this anymore
-// /*gpufun*/
-// void get_slope_proton_proton(double s, double* b){
-//     // from russian guy
-//     double B0 = 9.3; // +- 0.3 
-//     double alpha_1 = 0.11; // +- 0.06
-//     double alpha_2 = 0.03; // +- 0.01
-//     *b = B0 + 2*alpha_1*log(s) + alpha_2*log(sqrt(s))*log(sqrt(s));
-// }
-// /*gpufun*/
-// void get_slope_single_diffraction(double s, double* b, LocalParticle* part){
-//     // from pythia
-//     double M_2 = exp(RandomUniform_generate(part)*(log(0.15*s)));
-//     *b = 2*2.3 + 2*0.25*log((s/M_2));
-// }
-
+/*gpufun*/
 void get_coulomb_interaction_length(double Z, double pc, double N,
                                     double theta_init, double nuclear_slope, double* lambda_coulomb){
     double E2, cs_coulomb;
     double R;
     double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
-    double hbar_c = sqrt(0.389); // [mb*GeV^2]
-    double constant = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c*hbar_c));
-    R = 2*hbar_c*sqrt(nuclear_slope);
-    E2_approx(&E2, (R*R*(856.)*t_cut));
-    cs_coulomb = -constant * (R*R*856.*(E2));
-    *lambda_coulomb = 1. / (N * cs_coulomb);
+    double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
+    double hbar_c         = 0.197;                                              // [GeV*fm]
+    double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
+    double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
+    double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
+
+    E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
+    cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2));
+    if (cs_coulomb < 1e-15){
+        printf("Coulomb cross section is very small: %e mb.\n", cs_coulomb);
+    }
+    *lambda_coulomb = 1. / (N * cs_coulomb*1.0e-27);
 }
+/*gpufun*/
+void get_coulomb_cross_section(double Z, double pc, double N,
+                               double theta_init, double nuclear_slope, double* cs_coulomb){
+    double E2;
+    double R;
+    double t_cut = ((pc)*2.325*(theta_init))*((pc)*2.325*(theta_init));
+    double hbar_c_squared = 0.389;                                              // [mb*GeV^2]
+    double hbar_c         = 0.197;                                              // [GeV*fm]
+    double constant       = (4*M_PI*Z*Z*(1./137.)*(1./137.)*(hbar_c_squared));
+    double R_fm           = 2.0 * hbar_c * sqrt(nuclear_slope);                 // fm
+    double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
+
+    E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
+    *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2));
+    if (*cs_coulomb < 1e-15){
+        printf("Coulomb cross section is very small: %e mb.\n", *cs_coulomb);
+        *cs_coulomb = 1e-15; // Avoid negative cross section
+    }
+}
+
 
 // =======================================================
 // ====== Nuclear interaction length =====================
 // =======================================================
 
 /*gpufun*/
-void get_interaction_length(MaterialData restrict material, double interaction_lengths[6], 
-                            double cs_tot, double Z, double N, double Neff,
+void get_interaction_length(MaterialData restrict material, double interaction_lengths[5], 
+                            double cs_tot, double Z, double N,
                             double theta_init, double sqrt_s, double pc) {
-    // cs_type: Nucleus: 1 = inelastic, 2 = elastic, 3 = production, 4 = quasi-elastic, 
-    //          Nucleon: 5 = single diffractive, 6 = proton-proton/proton-neutron, 7 = Coulomb
-
-    // double cs_tot_hA  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0);
     double cs_inel_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1);
     double cs_el_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2);
     double cs_prod_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3);
     double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4);
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
     double lambda_coulomb;
-    // // Inelastic
-    // cs_inel_hA = M_PI*R*R * log(1 + (cs_tot)/(M_PI*(R*R))); // Glauber-Gribov approximation
-    interaction_lengths[0] = (1)/(N*cs_inel_hA);
+
+    // Inelastic
+    interaction_lengths[0] = (1)/(N*cs_inel_hA*1.0e-27);   // [m]
 
     // Elastic: Total - Inelastic
     if (cs_el_hA < 1e-15){
         cs_el_hA = 1e-12; // In case. Makes Lambda large
     } else {
-        interaction_lengths[1] = (1)/(N*cs_el_hA);
+        interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-27); // [m]
     }
 
     // Production
-    interaction_lengths[2] = (1)/(N*cs_prod_hA);
+    interaction_lengths[2] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
 
     // Single diffractive
-    interaction_lengths[3] = (1)/(N*cs_sd_hA);
-
-    // // Proton-proton / proton-neutron
-    // interaction_lengths[4] = ((A))/(N*cs_pp_hN*Neff);
-    interaction_lengths[4] = 1e21;
-
-    // Coulomb
-    get_coulomb_interaction_length(Z, pc, N, theta_init, nuclear_slope, &lambda_coulomb);
-    interaction_lengths[5] = lambda_coulomb;
+    interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);     // [m]
 }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H
