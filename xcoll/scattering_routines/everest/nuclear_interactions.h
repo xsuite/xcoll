@@ -22,6 +22,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     // double A          = MaterialData_get__A(material);
     double N          = MaterialData_get__atoms_per_volume(material);
     double Z          = sqrt(MaterialData_get__Z2_eff(material));
+    double X0         = MaterialData_get__radiation_length(material);
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
 
@@ -30,59 +31,88 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     int8_t scatter               = everest->coll->record_scatterings;
 
     // I think we handled A inside the CS, so this is only CS
-    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0);
-    interaction_length_tot = (1.)/(N*cross_section_tot);
+    cross_section_tot  = MaterialData_evaluate_glauber_spline(material, sqrt_s, 0); // [mb]
+    interaction_length_tot = (1.)/(N*cross_section_tot*1.0e-27); // [m]
     //double mcs_path_length = FindRoot_get_path_length(finder);
+    printf("sqrt(s) = %e GeV, total cross section = %e mb, interaction length = %e m\n", sqrt_s, cross_section_tot, interaction_length_tot);
     double mcs_path_length = length;
-    if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
-        // MCS to exit
+    double P_int = 1.0 - exp(-mcs_path_length / interaction_length_tot);
+    if (RandomUniform_generate(part) > P_int) {
         // Ionisation loss to interaction point
         calculate_ionisation_properties(everest, material, pc);
         pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
         return pc; // false for nucl int.
+    // if ( (mcs_path_length - interaction_length_tot) < 1e-12) {
+    //     // MCS to exit
+    //     // Ionisation loss to interaction point
+    //     calculate_ionisation_properties(everest, material, pc);
+    //     pc = calcionloss(everest, material, part, mcs_path_length, pc, 1);
+    //     return pc; // false for nucl int.
     } else {
         double interaction_lengths[6];
         double nuclear_slope = MaterialData_get__nuclear_slope(material);
         double Neff = MaterialData_get__num_nucleons_eff(material);
         // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
-        double theta_init = atan2(LocalParticle_get_xp(part), 1);
+        double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0));
 
-        get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, Neff, theta_init, sqrt_s, pc);
-        // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
+        // TESTING> THIS IS OLD 
+        // get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, Neff, theta_init, sqrt_s, pc);
+        // // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
+        // printf("Interaction lengths (m): Inel: %e, El: %e, Prod: %e, SD: %e, pp/pn: %e, Coulomb: %e\n", 
+        //         interaction_lengths[0], interaction_lengths[1], interaction_lengths[2], interaction_lengths[3], interaction_lengths[4], interaction_lengths[5]);
+        // // Finding the smallest length
+        // double min_length = interaction_lengths[0]; // Inelastic
+        // int min_index = 1;
 
-        // Finding the smallest length
-        double min_length = interaction_lengths[0]; // Inelastic
-        int min_index = 1;
-
-        if (interaction_lengths[1] < min_length) { // Elastic
-            min_length = interaction_lengths[1];
-            min_index = 2;
-        }
-        if (interaction_lengths[2] < min_length) { // Production
-            min_length = interaction_lengths[2];
-            min_index = 3;
-        }
-        if (interaction_lengths[3] < min_length) { // Single diffractive
-            min_length = interaction_lengths[3];
-            min_index = 4;
-        }
-        // if (interaction_lengths[4] < min_length) { // Proton-proton / proton-neutron
+        // if (interaction_lengths[1] < min_length) { // Elastic
+        //     min_length = interaction_lengths[1];
+        //     min_index = 2;
+        // }
+        // if (interaction_lengths[2] < min_length) { // Production
+        //     min_length = interaction_lengths[2];
+        //     min_index = 3;
+        // }
+        // if (interaction_lengths[3] < min_length) { // Single diffractive
+        //     min_length = interaction_lengths[3];
+        //     min_index = 4;
+        // }
+        // // if (interaction_lengths[4] < min_length) { // Proton-proton / proton-neutron
+        // //     min_length = interaction_lengths[4];
+        // //     min_index = 5;
+        // // }
+        // if (interaction_lengths[4] < min_length) { // Coulomb
         //     min_length = interaction_lengths[4];
         //     min_index = 5;
         // }
-        if (interaction_lengths[4] < min_length) { // Coulomb
-            min_length = interaction_lengths[4];
-            min_index = 5;
+        // printf("Chosen interaction index: %d with length %e m\n", min_index, min_length);
+// TESTING OLD ENDS HERE
+
+        // Draw a uniform random number and select process by weight
+        double fractions[5];
+        for (int i = 1; i < 5; i++) {
+            fractions[i] = MaterialData_evaluate_glauber_spline(material, sqrt_s, i); // [mb]
         }
 
+        double r = RandomUniform_generate(part) * cross_section_tot;
+        int chosen = 0;
+        double cumulative_sum = 0.0;
+        for (int i = 1; i < 5; i++) {
+            cumulative_sum += fractions[i];
+            if (r < cumulative_sum) { 
+                chosen = i;    
+                break; 
+            }
+        }
+        printf("Chosen interaction index: %d\n", chosen);
+        double min_index = chosen; // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
         // Ionisation loss to interaction point
         calculate_ionisation_properties(everest, material, pc);
-        pc = calcionloss(everest, material, part, min_length, pc, 1);
-
+        // pc = calcionloss(everest, material, part, min_length, pc, 1);
+        pc = calcionloss(everest, material, part, 1./(fractions[chosen]*N), pc, 1);
         // Doing the nuclear interaction
         if (min_index == 1 || min_index == 3){
             // Inelastic or Production: particle is absorbed
-            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_LOST_ON_EVEREST_COLL);
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
             pc = 1.e-9; 
             sqrt_t_p = 0;

@@ -64,7 +64,7 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
 
     double knot_i = MaterialData_get__cs_knots(material, i);
     double dx = log(sqrt_s) - knot_i;
-    // printf("Evaluating spline at sqrt_s = %f, key = %d\n", sqrt_s, key);
+
     // Horner's method
     return ((ai*dx + bi)*dx + ci)*dx + di;
 }

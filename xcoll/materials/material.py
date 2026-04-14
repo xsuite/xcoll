@@ -500,8 +500,7 @@ class Material(xo.HybridClass):
 
     def _load_isotopes(self):
         Z = self.Z
-        element = SYMBOL_TO_Z.get(Z)
-        file =  Path("isotopes")/ f"{Z_TO_SYMBOL.get(Z)}_isotopes.npz"
+        file = Path(__file__).resolve().parent / "isotopes" / f"{Z_TO_SYMBOL.get(Z)}_isotopes.npz"
         data = np.load(file, allow_pickle=True)
         return data
 
@@ -515,7 +514,6 @@ class Material(xo.HybridClass):
             return self._glauber_element_single(log_sqrt_s, cs_hN)
         symbol = Z_TO_SYMBOL.get(self.Z)
         iso_list = ISOTOPES[symbol]["isotopes"]
-        print(symbol)
         stable = [iso for iso in iso_list if iso["abundance"] is not None]
         if not stable:
             raise ValueError(f"No stable isotopes for {symbol}")
