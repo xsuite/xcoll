@@ -47,21 +47,24 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         // // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
         double min_length = (RandomExponential_generate(part) * interaction_lengths[0]); // Inelastic
         int chosen = 1;
-
-        if ((RandomExponential_generate(part) * interaction_lengths[1]) < min_length) { // Elastic
-            min_length = (RandomExponential_generate(part) * interaction_lengths[1]);
+        double elastic_length = (RandomExponential_generate(part) * interaction_lengths[1]);
+        double SD_length = (RandomExponential_generate(part) * interaction_lengths[3]);
+        double coulomb_length = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
+    
+        if (elastic_length < min_length) { // Elastic
+            min_length = elastic_length;
             chosen = 2;
         }
         if ((RandomExponential_generate(part) * interaction_lengths[2]) < min_length) { // Production
             min_length = (RandomExponential_generate(part) * interaction_lengths[2]);
             chosen = 3;
         }
-        if ((RandomExponential_generate(part) * interaction_lengths[3]) < min_length) { // Single diffractive
-            min_length = (RandomExponential_generate(part) * interaction_lengths[3]);
+        if (SD_length < min_length) { // Single diffractive
+            min_length = SD_length;
             chosen = 4;
         }
-        if ((RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27)) < min_length) { // Coulomb
-            min_length = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
+        if (coulomb_length < min_length) { // Coulomb
+            min_length = coulomb_length;
             chosen = 5;
         }
 

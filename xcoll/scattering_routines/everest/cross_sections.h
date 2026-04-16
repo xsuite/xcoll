@@ -136,6 +136,7 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4);
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
     double lambda_coulomb;
+    get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &lambda_coulomb);
 
     // Inelastic
     interaction_lengths[0] = (1)/(N*cs_inel_hA*1.0e-27);   // [m]
@@ -148,10 +149,12 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     }
 
     // Production
-    interaction_lengths[2] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
-
+    //interaction_lengths[2] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
+    interaction_lengths[2] = 1e21;
     // Single diffractive
     interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);     // [m]
+    printf("Glauber cross sections: Tot = %e mb, Inel = %e mb, El = %e mb, Prod = %e mb, SD = %e mb, Coulomb = %e mb\n", \
+    MaterialData_evaluate_glauber_spline(material, sqrt_s, 0), cs_inel_hA, cs_el_hA, cs_prod_hA, cs_sd_hA, lambda_coulomb);
 }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H
