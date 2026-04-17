@@ -3,6 +3,7 @@
     "name": "IPPIPE",
     "fedb_series": "lhc",
     "fedb_tag": "IPPIPE",
+    "container": "IPPIPEO",
     "side": null,
     "angle": 0,
     "length": null,

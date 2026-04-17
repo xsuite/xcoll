@@ -45,7 +45,7 @@ class FlukaPrototype:
             FlukaPrototype._registry.append(self)
         return self
 
-    def __init__(self, fedb_series=None, fedb_tag=None, *, angle=0, side=None, width=None,
+    def __init__(self, fedb_series=None, fedb_tag=None, container=None, *, angle=0, side=None, width=None,
                  height=None, length=None, material=None, info=None, extra_commands=None,
                  is_crystal=False, bending_radius=None, _allow_generic=False, is_broken=False,
                  _force_init=False, **kwargs):
@@ -61,6 +61,7 @@ class FlukaPrototype:
         if self._is_null:
             self._fedb_series = None
             self._fedb_tag = None
+            self._container = None
             self._name = None
             self._side = None
             self._angle = None
@@ -83,6 +84,7 @@ class FlukaPrototype:
         self._fedb_series = fedb_series
         self._fedb_tag = fedb_tag
         self._name = fedb_tag
+        self._container = container
         if side is not None:
             BaseCollimator.side.fset(self, side)  # This will overwrite the side in the FlukaCollimator
         else:
@@ -177,6 +179,7 @@ class FlukaPrototype:
             'name': self.name,
             'fedb_series': self.fedb_series,
             'fedb_tag': self.fedb_tag,
+            'container': self.container,
             'side': self.side,
             'angle': self.angle,
             'length': self.length,
@@ -237,6 +240,12 @@ class FlukaPrototype:
         if self._is_null:
             return None
         return self._fedb_tag
+
+    @property
+    def container(self):
+        if self._is_null:
+            return None
+        return self._container
 
     @property
     def body_file(self):
@@ -453,6 +462,8 @@ class FlukaPrototype:
         prot  = f"{_type:9}     {self.name}\n"
         prot += f"FEDB_SERIES   {self.fedb_series}\n"
         prot += f"FEDB_TAG      {self.fedb_tag}\n"
+        if isinstance(self, FlukaPrototype):
+            prot += f"CONTAINER     {self.container}\n"
         prot += f"ROT-DEFI  "
         self._idx = idx  # Store the index for fluka_position property
         for value in self.fluka_position:
