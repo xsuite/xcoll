@@ -98,7 +98,16 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
                 pc = 1.e-9; 
                 sqrt_t_p = 0;
             } else {
-                sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/sqrt(pc_in*pc);
+                printf("Nuclear slope is: %e GeV^-2\n", nuclear_slope);
+                double bsd;
+                if (xm2 < 2.) {
+                    bsd = 2*everest->bpp;
+                } else if (xm2 >= 2. && xm2 <= 5.) {
+                    bsd = ((106.0 - 17.0*xm2)*everest->bpp)/36.0;
+                } else {
+                    bsd = (7*everest->bpp)/12.0;
+                } // THIS IS THE REASON FOR THE TAILS
+                sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             }
 
         } else if (chosen == 5){
