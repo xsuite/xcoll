@@ -17,14 +17,16 @@ import pandas as pd
 path_in = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/xsuite")
 path_out = Path.cwd()
 
-beam          = 1
+beam = 1
+ions = True
+dump = False
 
 import matplotlib.pyplot as plt
 
 def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0c_b1, Z_b2, A_b2,
                         sigma_p_x2 = 0, sigma_p_y2 = 0, sigma_z = 0, sigma_dpp = 0):
 
-    _capacity = num_particles * 100
+    _capacity = num_particles * 10000
     tw = line.twiss()
     if ip == "ip1":
         xsx = line["on_x1"]
@@ -85,7 +87,8 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
 
     xc.fluka.engine.particle_ref = xt.Particles.reference_from_pdg_id(pdg_id=pdg_id_b1, p0c=p0c_b1)
     xc.fluka.engine.capacity = _capacity
-    xc.fluka.engine.relative_capacity = 20 #100
+    xc.fluka.engine.relative_capacity = 200 if ions else 20
+
     # xc.fluka.engine.seed = 5656565
     xc.fluka.engine.start(elements=coll_dummy, clean=False , verbose=True, include_showers=False, return_ions=True, bb_int=bb_int, touches=False)
 
@@ -127,33 +130,67 @@ def FlukaBeamBeamSource(line, colldb, int_type, ip, num_particles, pdg_id_b1, p0
 start_time = time.time()
 
 # Path to inputs
-path_out = Path('./')
 path_out.mkdir(exist_ok=True)
 
-num_particles = int(100) #0
+num_particles = int(100)
 
 line = xt.load(path_in / f'levelling.23_b{beam}.json')
 
 colldb = xc.CollimatorDatabase.from_yaml(path_in / ".." / "colldbs" / f'levelling.23.yaml', beam=beam)
 
-part = FlukaBeamBeamSource(
-    line=line,
-    colldb=colldb,
-    int_type=1.0, # 1.0 inelastic, 10.0 elastic, 100.0 Emd
-    ip="ip1",
-    num_particles=num_particles,
-    pdg_id_b1='proton',
-    p0c_b1=6.8e12,
-    Z_b2=1,
-    A_b2=1,
-    sigma_z = 8e-2,
-    sigma_dpp = 1.1e-4
-)
-import pdb; pdb.set_trace()
+if not ions:
+    # p-p example
+    part = FlukaBeamBeamSource(
+        line=line,
+        colldb=colldb,
+        int_type=1.0, # 1.0 inelastic, 10.0 elastic, 100.0 Emd
+        ip="ip1",
+        num_particles=num_particles,
+        pdg_id_b1='proton',
+        p0c_b1=6.8e12,
+        Z_b2=1,
+        A_b2=1,
+        sigma_z = 8e-2,
+        sigma_dpp = 1.1e-4
+    )
 
-import pickle
-part_pkl_init = path_out / f'part_init.pkl'
-part_dpp_cut_init = part.filter(part.pdg_id != -999999999)
-with open(part_pkl_init, 'wb') as fid_out:
-    pickle.dump(part_dpp_cut_init.to_dict(), fid_out)
+if ions:
+    # Pb-Pb example
+    part = FlukaBeamBeamSource(
+        line=line,
+        colldb=colldb,
+        int_type=1.0, # 1.0 inelastic, 10.0 elastic, 100.0 Emd
+        ip="ip1",
+        num_particles=num_particles,
+        pdg_id_b1='Pb208',
+        p0c_b1=6.8e12*82,
+        Z_b2=82,
+        A_b2=208,
+        sigma_z = 8e-2,
+        sigma_dpp = 1.1e-4
+    )
+
+
+part_alive = part.filter(part.state == 1)
+values, counts = np.unique(part_alive.pdg_id, return_counts=True)
+
+# Bar chart with string labels
+labels = [str(v) for v in values]
+
+plt.figure(figsize=(6,4))
+plt.yscale('log')
+plt.bar(labels, counts, color='skyblue', edgecolor='black')
+plt.xlabel('Particles')
+plt.ylabel('Counts')
+plt.tight_layout()
+plt.xticks(rotation=90)
+        
+plt.show()
+
+if dump:
+    import pickle
+    part_pkl_init = path_out / f'part_init.pkl'
+    part_dpp_cut_init = part.filter(part.pdg_id != -999999999)
+    with open(part_pkl_init, 'wb') as fid_out:
+        pickle.dump(part_dpp_cut_init.to_dict(), fid_out)
 
