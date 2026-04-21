@@ -114,9 +114,8 @@ void get_coulomb_cross_section(double Z, double pc, double N,
     double R_GeV          = R_fm / hbar_c;                                      // GeV^-1
 
     E2_approx(&E2, (R_GeV*R_GeV*(856.)*t_cut));
-    *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2));
+    *cs_coulomb = constant * (R_GeV*R_GeV*856.*(E2))/((R_GeV*R_GeV*(856.)*t_cut));
     if (*cs_coulomb < 1e-15){
-        printf("Coulomb cross section is very small: %e mb.\n", *cs_coulomb);
         *cs_coulomb = 1e-15; // Avoid negative cross section
     }
 }
