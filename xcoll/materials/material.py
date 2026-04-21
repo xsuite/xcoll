@@ -458,6 +458,7 @@ class Material(xo.HybridClass):
     def _glauber_element_single(self, sqrt_s, cs_hN, A=None):
         """
         GG nucleus cross sections [mb] for one element at one energy or array of energies.
+        CHANGE THIS!!!!!!!!
         """
         A_eff = self.A if A is None else A
         piR2 = self._pi_R2_mb(A=A_eff)

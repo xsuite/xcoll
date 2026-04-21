@@ -24,7 +24,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
     everest->ecmsq    = 2*XC_PROTON_MASS*1.0e-3*pc;
     double sqrt_s      = sqrt(everest->ecmsq);
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
-    double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0));
+    double theta_init = (13.6e-3 / pc) * sqrt(length / X0) * (1.0 + 0.038 * log(length / X0)); // add random part 
     // double theta_init = atan2(MultipleCoulombTrajectory_get_tan_t0( (MultipleCoulombTrajectory) LocalTrajectory_member(traj) ), 1);
 
     InteractionRecordData record = everest->coll->record;
@@ -45,18 +45,18 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double interaction_lengths[5];
         get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc);
         // // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
-        double min_length = (RandomExponential_generate(part) * interaction_lengths[0]); // Inelastic
+        double min_length = (RandomExponential_generate(part) * interaction_lengths[0]); // Inelastic : change to production.
         int chosen = 1;
         double elastic_length = (RandomExponential_generate(part) * interaction_lengths[1]);
+        double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
         double SD_length = (RandomExponential_generate(part) * interaction_lengths[3]);
         double coulomb_length = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
-    
         if (elastic_length < min_length) { // Elastic
             min_length = elastic_length;
             chosen = 2;
         }
-        if ((RandomExponential_generate(part) * interaction_lengths[2]) < min_length) { // Production
-            min_length = (RandomExponential_generate(part) * interaction_lengths[2]);
+        if (elastic_nucleon_length < min_length) { // Elastic nucleon 
+            min_length = elastic_nucleon_length;
             chosen = 3;
         }
         if (SD_length < min_length) { // Single diffractive
@@ -106,7 +106,7 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
                     bsd = ((106.0 - 17.0*xm2)*pp_new)/36.0;
                 } else {
                     bsd = (7*pp_new)/12.0;
-                } // THIS IS THE REASON FOR THE TAILS
+                } // THIS IS THE REASON FOR THE TAILS say ok here
                 sqrt_t_p = sqrt(RandomExponential_generate(part)/bsd)/sqrt(pc_in*pc);
             }
 

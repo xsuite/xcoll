@@ -131,7 +131,7 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
                             double theta_init, double sqrt_s, double pc) {
     double cs_inel_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1);
     double cs_el_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2);
-    double cs_prod_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3);
+    double cs_el_nucleon = cs_inel_hA - MaterialData_evaluate_glauber_spline(material, sqrt_s, 3); // el nucleon
     double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4);
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
     double lambda_coulomb;
@@ -147,13 +147,10 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
         interaction_lengths[1] = (1)/(N*cs_el_hA*1.0e-27); // [m]
     }
 
-    // Production
-    //interaction_lengths[2] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
-    interaction_lengths[2] = 1e21;
+    // Elastic nucleon
+    interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-27);   // [m]
     // Single diffractive
     interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);     // [m]
-    printf("Glauber cross sections: Tot = %e mb, Inel = %e mb, El = %e mb, Prod = %e mb, SD = %e mb, Coulomb = %e mb\n", \
-    MaterialData_evaluate_glauber_spline(material, sqrt_s, 0), cs_inel_hA, cs_el_hA, cs_prod_hA, cs_sd_hA, lambda_coulomb);
-}
+    }
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H
