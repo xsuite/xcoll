@@ -13,8 +13,8 @@ from pathlib import Path
 MP = 0.938270   # proton mass [GeV]
 
 GG_KEYS      = ["cs_tot_hA", "cs_inel_hA", "cs_el_hA",
-                "cs_prod_hA", "cs_sd_hA",  "cs_qel_hA"]
-NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"]
+                "cs_prod_hA", "cs_sd_hA",  "cs_el_nucleon"]
+NUCLEON_KEYS = ["cs_tot_pp", "cs_el_pp", "cs_inel_pp", "cs_tot_pn"] # Maybe call spline keys
 
 
 # ===========================================================================

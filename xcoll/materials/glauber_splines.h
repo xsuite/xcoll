@@ -9,7 +9,7 @@
 
 /*gpufun*/
 double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s, int key) {
-    // Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive
+    // Key: 0 = total, 1 = production, 2 = elastic nucleus, 3 = elastic nucleon, 4 = single diffractive
     int n_points = MaterialData_get__n_points(material);
     double log_sqrt_s_min = MaterialData_get__cs_log_sqrt_s_min(material);
     double log_step = MaterialData_get__cs_log_step(material);
@@ -35,10 +35,10 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
             di = MaterialData_get__cs_tot_hA_d(material, i);
             break;
         case 1:
-            ai = MaterialData_get__cs_inel_hA_a(material, i);
-            bi = MaterialData_get__cs_inel_hA_b(material, i);
-            ci = MaterialData_get__cs_inel_hA_c(material, i);
-            di = MaterialData_get__cs_inel_hA_d(material, i);
+            ai = MaterialData_get__cs_prod_hA_a(material, i);
+            bi = MaterialData_get__cs_prod_hA_b(material, i);
+            ci = MaterialData_get__cs_prod_hA_c(material, i);
+            di = MaterialData_get__cs_prod_hA_d(material, i);
             break;
         case 2:
             ai = MaterialData_get__cs_el_hA_a(material, i);
@@ -47,10 +47,10 @@ double MaterialData_evaluate_glauber_spline(MaterialData material, double sqrt_s
             di = MaterialData_get__cs_el_hA_d(material, i);
             break;
         case 3:
-            ai = MaterialData_get__cs_prod_hA_a(material, i);
-            bi = MaterialData_get__cs_prod_hA_b(material, i);
-            ci = MaterialData_get__cs_prod_hA_c(material, i);
-            di = MaterialData_get__cs_prod_hA_d(material, i);
+            ai = MaterialData_get__cs_el_nucleon_a(material, i);
+            bi = MaterialData_get__cs_el_nucleon_b(material, i);
+            ci = MaterialData_get__cs_el_nucleon_c(material, i);
+            di = MaterialData_get__cs_el_nucleon_d(material, i);
             break;
         case 4:
             ai = MaterialData_get__cs_sd_hA_a(material, i);

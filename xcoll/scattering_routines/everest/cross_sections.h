@@ -129,18 +129,19 @@ void get_coulomb_cross_section(double Z, double pc, double N,
 void get_interaction_length(MaterialData restrict material, double interaction_lengths[5], 
                             double cs_tot, double Z, double N,
                             double theta_init, double sqrt_s, double pc) {
-    double cs_inel_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1);
-    double cs_el_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2);
-    double cs_el_nucleon = cs_inel_hA - MaterialData_evaluate_glauber_spline(material, sqrt_s, 3); // el nucleon
-    double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4);
+
+    double cs_prod_hA = MaterialData_evaluate_glauber_spline(material, sqrt_s, 1); // production
+    double cs_el_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 2); // elastic nucleus
+    double cs_el_nucleon = MaterialData_evaluate_glauber_spline(material, sqrt_s, 3); // el nucleon
+    double cs_sd_hA   = MaterialData_evaluate_glauber_spline(material, sqrt_s, 4); // single diffractive
     double nuclear_slope = MaterialData_get__nuclear_slope(material);
-    double lambda_coulomb;
-    get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &lambda_coulomb);
+    // double lambda_coulomb;
+    // get_coulomb_cross_section(Z, pc, N, theta_init, nuclear_slope, &lambda_coulomb);
 
-    // Inelastic
-    interaction_lengths[0] = (1)/(N*cs_inel_hA*1.0e-27);   // [m]
+    // Production
+    interaction_lengths[0] = (1)/(N*cs_prod_hA*1.0e-27);   // [m]
 
-    // Elastic: Total - Inelastic
+    // Elastic Nucleus: Total - Inelastic
     if (cs_el_hA < 1e-15){
         cs_el_hA = 1e-12; // In case. Makes Lambda large
     } else {
@@ -151,6 +152,8 @@ void get_interaction_length(MaterialData restrict material, double interaction_l
     interaction_lengths[2] = 1/(N*cs_el_nucleon*1.0e-27);   // [m]
     // Single diffractive
     interaction_lengths[3] = (1)/(N*cs_sd_hA*1.0e-27);     // [m]
-    }
+    printf("Cross sections (mb): prod: %f, el nucleus: %f, el nucleon: %f, sd: %f\n", cs_prod_hA, cs_el_hA, cs_el_nucleon, cs_sd_hA);
+    printf("Interaction lengths: %f, %f, %f, %f\n", interaction_lengths[0], interaction_lengths[1], interaction_lengths[2], interaction_lengths[3]);
+}
 
 #endif // XCOLL_EVEREST_CROSS_SECTIONS_H

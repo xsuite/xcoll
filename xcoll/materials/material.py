@@ -65,20 +65,20 @@ class Material(xo.HybridClass):
         '_nuclear_slope':     xo.Float64,                    # Nuclear slope parameter
         # GG raw values (for diagnostics)
         '_cs_tot_hA':        xo.Float64[N_CS_POINTS],
-        '_cs_inel_hA':       xo.Float64[N_CS_POINTS],
+        # '_cs_inel_hA':       xo.Float64[N_CS_POINTS],
         '_cs_el_hA':         xo.Float64[N_CS_POINTS],
         '_cs_prod_hA':       xo.Float64[N_CS_POINTS],
         '_cs_sd_hA':         xo.Float64[N_CS_POINTS],
-        '_cs_qel_hA':        xo.Float64[N_CS_POINTS],
+        '_cs_el_nucleon':    xo.Float64[N_CS_POINTS],
         # Spline coefficients — shape (N_CS_POINTS - 1,) per coefficient
         '_cs_tot_hA_a':      xo.Float64[N_CS_POINTS-1],
         '_cs_tot_hA_b':      xo.Float64[N_CS_POINTS-1],
         '_cs_tot_hA_c':      xo.Float64[N_CS_POINTS-1],
         '_cs_tot_hA_d':      xo.Float64[N_CS_POINTS-1],
-        '_cs_inel_hA_a':     xo.Float64[N_CS_POINTS-1],
-        '_cs_inel_hA_b':     xo.Float64[N_CS_POINTS-1],
-        '_cs_inel_hA_c':     xo.Float64[N_CS_POINTS-1],
-        '_cs_inel_hA_d':     xo.Float64[N_CS_POINTS-1],
+        # '_cs_inel_hA_a':     xo.Float64[N_CS_POINTS-1],
+        # '_cs_inel_hA_b':     xo.Float64[N_CS_POINTS-1],
+        # '_cs_inel_hA_c':     xo.Float64[N_CS_POINTS-1],
+        # '_cs_inel_hA_d':     xo.Float64[N_CS_POINTS-1],
         '_cs_el_hA_a':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_hA_b':       xo.Float64[N_CS_POINTS-1],
         '_cs_el_hA_c':       xo.Float64[N_CS_POINTS-1],
@@ -91,10 +91,10 @@ class Material(xo.HybridClass):
         '_cs_sd_hA_b':       xo.Float64[N_CS_POINTS-1],
         '_cs_sd_hA_c':       xo.Float64[N_CS_POINTS-1],
         '_cs_sd_hA_d':       xo.Float64[N_CS_POINTS-1],
-        '_cs_qel_hA_a':      xo.Float64[N_CS_POINTS-1],
-        '_cs_qel_hA_b':      xo.Float64[N_CS_POINTS-1],
-        '_cs_qel_hA_c':      xo.Float64[N_CS_POINTS-1],
-        '_cs_qel_hA_d':      xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_a':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_b':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_c':  xo.Float64[N_CS_POINTS-1],
+        '_cs_el_nucleon_d':  xo.Float64[N_CS_POINTS-1],
         # Auto-calculated fields but can be provided for more precision
         '_radiation_length':        xo.Float64,     # [m]
         '_excitation_energy':       xo.Float64,     # [eV]
@@ -163,17 +163,17 @@ class Material(xo.HybridClass):
         xokwargs['_n_points'] = kwargs.pop('_n_points', -1)
         xokwargs['_cs_knots'] = kwargs.pop('_cs_knots', [-1.] * N_CS_POINTS)
 
-        for kk in ('_cs_tot_hA', '_cs_inel_hA', '_cs_el_hA', '_cs_prod_hA',
-                '_cs_sd_hA', '_cs_qel_hA', '_cs_tot_pp', '_cs_el_pp',
+        for kk in ('_cs_tot_hA', '_cs_el_hA', '_cs_prod_hA',
+                '_cs_sd_hA', '_cs_el_nucleon', '_cs_tot_pp', '_cs_el_pp',
                 '_cs_inel_pp', '_cs_tot_pn', '_cs_sqrt_s'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * N_CS_POINTS)
 
         for kk in ('_cs_tot_hA_a',  '_cs_tot_hA_b',  '_cs_tot_hA_c',  '_cs_tot_hA_d',
-                '_cs_inel_hA_a', '_cs_inel_hA_b', '_cs_inel_hA_c', '_cs_inel_hA_d',
+                # '_cs_inel_hA_a', '_cs_inel_hA_b', '_cs_inel_hA_c', '_cs_inel_hA_d',
                 '_cs_el_hA_a',   '_cs_el_hA_b',   '_cs_el_hA_c',   '_cs_el_hA_d',
                 '_cs_prod_hA_a', '_cs_prod_hA_b', '_cs_prod_hA_c', '_cs_prod_hA_d',
                 '_cs_sd_hA_a',   '_cs_sd_hA_b',   '_cs_sd_hA_c',   '_cs_sd_hA_d',
-                '_cs_qel_hA_a',  '_cs_qel_hA_b',  '_cs_qel_hA_c',  '_cs_qel_hA_d'):
+                '_cs_el_nucleon_a',  '_cs_el_nucleon_b',  '_cs_el_nucleon_c',  '_cs_el_nucleon_d'):
             xokwargs[kk] = kwargs.pop(kk, [-1.] * (N_CS_POINTS - 1))
 
         xokwargs['_cross_section'] = kwargs.pop('_cross_section', [-1., -1., -1., -1., -1., -1.])
@@ -458,45 +458,43 @@ class Material(xo.HybridClass):
     def _glauber_element_single(self, sqrt_s, cs_hN, A=None):
         """
         GG nucleus cross sections [mb] for one element at one energy or array of energies.
-        CHANGE THIS!!!!!!!!
         """
-        A_eff = self.A if A is None else A
-        piR2 = self._pi_R2_mb(A=A_eff)
+        A_eff  = self.A if A is None else A
+        piR2   = self._pi_R2_mb(A=A_eff)
         sqrt_s = np.asarray(sqrt_s)  # Ensure sqrt_s is an array
 
         # Compute sigma values for each element in sqrt_s
-        # A_sig_tot, A_sig_inel, A_sig_el = cs_hN(A_eff, self.Z, sqrt_s)
-        A_sig_tot = np.zeros_like(sqrt_s)
+        A_sig_tot  = np.zeros_like(sqrt_s)
         A_sig_inel = np.zeros_like(sqrt_s)
-        A_sig_el = np.zeros_like(sqrt_s)
+        A_sig_el   = np.zeros_like(sqrt_s)
         for i, s in enumerate(sqrt_s): 
             A_sig_tot[i], A_sig_inel[i], A_sig_el[i] = cs_hN(A_eff, self.Z, s)
                
         if A_eff < 4:
             return {
-                "cs_tot_hA":  A_sig_tot,
-                "cs_inel_hA": A_sig_inel,
-                "cs_el_hA":   A_sig_el,
-                "cs_prod_hA": A_sig_inel,
-                "cs_sd_hA":   np.zeros_like(A_sig_tot),
-                "cs_qel_hA":  np.zeros_like(A_sig_tot),
+                "cs_tot_hA"      : A_sig_tot,
+                "cs_inel_hA"     : A_sig_inel,
+                "cs_el_hA"       : A_sig_el,
+                "cs_prod_hA"     : np.zeros_like(A_sig_tot),
+                "cs_sd_hA"       : np.zeros_like(A_sig_tot),
+                "cs_el_nucleon"  : np.zeros_like(A_sig_tot),
             }
 
-        cs_tot_hA = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
-        cs_inel_hA = piR2 * np.log(1.0 + A_sig_tot / piR2)
-        cs_el_hA = np.maximum(0.0, cs_tot_hA - cs_inel_hA)
-        cs_prod_hA = piR2 * np.log(1.0 + A_sig_inel / piR2)
-        alpha = A_sig_tot / (2 * piR2 + A_sig_tot)
-        cs_sd_hA = piR2 * (alpha - np.log(1.0 + alpha))
-        cs_qel_hA = np.maximum(0.0, cs_inel_hA - cs_prod_hA)
+        cs_tot_hA       = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
+        cs_inel_hA      = piR2 * np.log(1.0 + A_sig_tot / piR2)
+        cs_el_hA        = np.maximum(0.0, cs_tot_hA - cs_inel_hA)
+        cs_prod_hA      = piR2 * np.log(1.0 + A_sig_inel / piR2)
+        alpha           = A_sig_tot / (2 * piR2 + A_sig_tot)
+        cs_sd_hA        = piR2 * (alpha - np.log(1.0 + alpha))
+        cs_el_nucleon   = np.maximum(0.0, cs_inel_hA - cs_prod_hA)
 
         return {
-            "cs_tot_hA":  cs_tot_hA,
-            "cs_inel_hA": cs_inel_hA,
-            "cs_el_hA":   cs_el_hA,
-            "cs_prod_hA": cs_prod_hA,
-            "cs_sd_hA":   cs_sd_hA,
-            "cs_qel_hA":  cs_qel_hA,
+            "cs_tot_hA"    : cs_tot_hA,
+            "cs_inel_hA"   : cs_inel_hA,
+            "cs_el_hA"     : cs_el_hA,
+            "cs_prod_hA"   : cs_prod_hA,
+            "cs_sd_hA"     : cs_sd_hA,
+            "cs_el_nucleon": cs_el_nucleon,
         }
 
     def _load_isotopes(self):
@@ -600,21 +598,21 @@ class Material(xo.HybridClass):
 
         # Store raw GG arrays and fit spline coefficients
         self._cs_tot_hA = gg['cs_tot_hA']
-        self._cs_inel_hA = gg['cs_inel_hA']
+        # self._cs_inel_hA = gg['cs_inel_hA']
         self._cs_el_hA = gg['cs_el_hA']
         self._cs_prod_hA = gg['cs_prod_hA']
         self._cs_sd_hA = gg['cs_sd_hA']
-        self._cs_qel_hA = gg['cs_qel_hA']
+        self._cs_el_nucleon = gg['cs_el_nucleon']
 
         self._cs_tot_hA_a = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[0]
         self._cs_tot_hA_b = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[1]
         self._cs_tot_hA_c = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[2]
         self._cs_tot_hA_d = CubicSpline(log_sqrt_s, gg['cs_tot_hA']).c[3]
 
-        self._cs_inel_hA_a = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[0]
-        self._cs_inel_hA_b = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[1]
-        self._cs_inel_hA_c = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[2]
-        self._cs_inel_hA_d = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[3]
+        # self._cs_inel_hA_a = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[0]
+        # self._cs_inel_hA_b = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[1]
+        # self._cs_inel_hA_c = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[2]
+        # self._cs_inel_hA_d = CubicSpline(log_sqrt_s, gg['cs_inel_hA']).c[3]
 
         self._cs_el_hA_a = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[0]
         self._cs_el_hA_b = CubicSpline(log_sqrt_s, gg['cs_el_hA']).c[1]
@@ -630,6 +628,11 @@ class Material(xo.HybridClass):
         self._cs_sd_hA_b = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[1]
         self._cs_sd_hA_c = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[2]
         self._cs_sd_hA_d = CubicSpline(log_sqrt_s, gg['cs_sd_hA']).c[3]
+
+        self._cs_el_nucleon_a = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[0]
+        self._cs_el_nucleon_b = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[1]
+        self._cs_el_nucleon_c = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[2]
+        self._cs_el_nucleon_d = CubicSpline(log_sqrt_s, gg['cs_el_nucleon']).c[3]
 
     def evaluate_glauber_spline(self, sqrt_s, key):
         # Key: 0 = total, 1 = inelastic, 2 = elastic, 3 = production, 4 = single diffractive

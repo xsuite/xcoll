@@ -45,12 +45,13 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         double interaction_lengths[5];
         get_interaction_length(material, interaction_lengths, cross_section_tot, Z, N, theta_init, sqrt_s, pc);
         // // 1 = inel, 2 = el, 3 = prod, 4 = sd, (5 = pp/pn), 5(6) = coulomb
-        double min_length = (RandomExponential_generate(part) * interaction_lengths[0]); // Inelastic : change to production.
-        int chosen = 1;
-        double elastic_length = (RandomExponential_generate(part) * interaction_lengths[1]);
+        // 1: Prod, 2: elastic nucleus, 3: elastic nucleon, 4: single diffractive, 5: Coulomb
+        double min_length             = (RandomExponential_generate(part) * interaction_lengths[0]); // Production.
+        int chosen                    = 1;
+        double elastic_length         = (RandomExponential_generate(part) * interaction_lengths[1]);
         double elastic_nucleon_length = (RandomExponential_generate(part) * interaction_lengths[2]);
-        double SD_length = (RandomExponential_generate(part) * interaction_lengths[3]);
-        double coulomb_length = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
+        double SD_length              = (RandomExponential_generate(part) * interaction_lengths[3]);
+        double coulomb_length         = (RandomExponential_generate(part) * 1./(N*cs_coulomb*1.0e-27));
         if (elastic_length < min_length) { // Elastic
             min_length = elastic_length;
             chosen = 2;
@@ -72,18 +73,24 @@ double do_nuclear_interaction_and_ionisation_loss(EverestData restrict everest, 
         pc = calcionloss(everest, material, part, min_length, pc, 1);
         // pc = calcionloss(everest, material, part, 1./(fractions[chosen]*N), pc, 1);
 
-        if (chosen == 1 || chosen == 3){
-            // Inelastic or Production: particle is absorbed
+        if (chosen == 1){
+            // Production: particle is absorbed
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_ABSORBED);
             LocalParticle_set_state(part, XC_LOST_ON_EVEREST_COLL);
             pc = 1.e-9; 
             sqrt_t_p = 0;
 
         } else if (chosen == 2){
-            // Elastic
+            // Elastic Nucleus
             if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PN_ELASTIC);
             sqrt_t_p = sqrt(RandomExponential_generate(part)/nuclear_slope)/pc;
 
+        } else if (chosen == 3){
+            // Elastic Nucleon
+            double pp_new = 9.3 + 0.22 * log(everest->ecmsq) + 0.03*(log(everest->ecmsq))*(log(everest->ecmsq)); //TODO: EVEREST->bpp
+            if (scatter) i_slot = InteractionRecordData_log(record, record_index, part, XC_PP_ELASTIC);
+            sqrt_t_p = sqrt(RandomExponential_generate(part)/pp_new)/pc;
+ 
         } else if (chosen == 4){
             // Single diffractive
             double pc_in = pc;

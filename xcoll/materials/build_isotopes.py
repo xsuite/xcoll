@@ -7,7 +7,7 @@ from pathlib import Path
 from scipy.interpolate import CubicSpline
 from .isotopes import ISOTOPES
 from .glauber_gribov import GG_KEYS, make_nucleon_cs, load_all_splines
-
+N_CS_POINTS = 1000
 # Map element symbol -> Z
 SYMBOL_TO_Z = {
     "H":1,"He":2,"Li":3,"Be":4,"B":5,"C":6,"N":7,"O":8,"F":9,"Ne":10,
@@ -61,18 +61,18 @@ def _glauber_isotope(A, Z, sqrt_s, cs_hN):
             "cs_tot_hA":  A_sig_tot,
             "cs_inel_hA": A_sig_inel,
             "cs_el_hA":   A_sig_el,
-            "cs_prod_hA": A_sig_inel,
+            "cs_prod_hA": np.zeros_like(A_sig_tot),
             "cs_sd_hA":   np.zeros_like(A_sig_tot),
-            "cs_qel_hA":  np.zeros_like(A_sig_tot),
+            "cs_el_nucleon":  np.zeros_like(A_sig_tot),
         }
 
-    cs_tot_hA = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
+    cs_tot_hA  = 2 * piR2 * np.log(1.0 + A_sig_tot / (2 * piR2))
     cs_inel_hA = piR2 * np.log(1.0 + A_sig_tot / piR2)
-    cs_el_hA = np.maximum(0.0, cs_tot_hA - cs_inel_hA)
+    cs_el_hA   = np.maximum(0.0, cs_tot_hA - cs_inel_hA)
     cs_prod_hA = piR2 * np.log(1.0 + A_sig_inel / piR2)
-    alpha = A_sig_tot / (2 * piR2 + A_sig_tot)
-    cs_sd_hA = piR2 * (alpha - np.log(1.0 + alpha))
-    cs_qel_hA = np.maximum(0.0, cs_inel_hA - cs_prod_hA)
+    alpha      = A_sig_tot / (2 * piR2 + A_sig_tot)
+    cs_sd_hA   = piR2 * (alpha - np.log(1.0 + alpha))
+    cs_el_nucleon  = np.maximum(0.0, cs_inel_hA - cs_prod_hA)
 
     return {
         "cs_tot_hA":  cs_tot_hA,
@@ -80,7 +80,7 @@ def _glauber_isotope(A, Z, sqrt_s, cs_hN):
         "cs_el_hA":   cs_el_hA,
         "cs_prod_hA": cs_prod_hA,
         "cs_sd_hA":   cs_sd_hA,
-        "cs_qel_hA":  cs_qel_hA,
+        "cs_el_nucleon":  cs_el_nucleon,
     }
 
 def build_element_file(
