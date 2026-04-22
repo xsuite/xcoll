@@ -10,7 +10,7 @@ import xtrack as xt
 
 from .base import BaseCollimator, BaseCrystal
 from ..general import _pkg_root
-from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core, track_post
+from ..scattering_routines.geant4 import Geant4Engine, track_pre, track_core
 from ..materials import _DEFAULT_MATERIAL, _resolve_material
 
 
@@ -102,7 +102,6 @@ class Geant4Collimator(BaseCollimator):
         if track_pre(self, part):
             super().track(part)
             track_core(self, part)
-            track_post(self, part)
         else:
             self._drift(part)
 
@@ -147,7 +146,6 @@ class Geant4Collimator(BaseCollimator):
 
 
 class Geant4CollimatorTip(Geant4Collimator):
-
     _xofields = Geant4Collimator._xofields | {
         'tip_thickness': xo.Float64
     }
