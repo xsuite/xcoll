@@ -115,6 +115,26 @@ class XcollLineAccessor:
         return "\n".join(res)
 
 
+class XcollLineAPI:
+    def __init__(self, line):
+        self._collimators = XcollCollimatorAPI(line=line)
+        self._scattering = XcollScatteringAPI(line=line)
+
+    @property
+    def collimators(self):
+        return self._collimators
+
+    @property
+    def scattering(self):
+        return self._scattering
+
+
+class XcollEnvironmentAPI:
+    # TODO
+    def __init__(self, environment):
+        self._environment = environment
+
+
 class XcollScatteringAPI(XcollLineAccessor):
 
     @property
