@@ -504,28 +504,34 @@ class Material(xo.HybridClass):
         return data
 
     def _glauber_isotope_to_element(self, log_sqrt_s, cs_hN):
-        """
-        Compute isotope-abundance-weighted GG cross sections for one element.
-        """
         try:
             data = self._load_isotopes()
         except FileNotFoundError:
             return self._glauber_element_single(log_sqrt_s, cs_hN)
+
         symbol = Z_TO_SYMBOL.get(self.Z)
         iso_list = ISOTOPES[symbol]["isotopes"]
         stable = [iso for iso in iso_list if iso["abundance"] is not None]
-        if not stable:
-            raise ValueError(f"No stable isotopes for {symbol}")
 
+        # If self.A matches a specific isotope mass number, use only that one
+        matching = [iso for iso in stable if iso["mass_number"] == self.A]
+        if matching:
+            # Pure isotope — find its index in stable list
+            idx = stable.index(matching[0])
+            combined = {}
+            for k in GG_KEYS:
+                spline = CubicSpline(data[k][idx]["knots"], data[k][idx]["y_values"], bc_type='not-a-knot')
+                combined[k] = spline(log_sqrt_s)
+            return combined
+
+        # Otherwise do abundance-weighted mix as before
         abundance = np.array([iso["abundance"] for iso in stable])
         fraction = abundance / np.sum(abundance)
         combined = {k: np.zeros_like(log_sqrt_s) for k in GG_KEYS}
         for k in GG_KEYS:
             for iso in range(len(stable)):
                 spline = CubicSpline(data[k][iso]["knots"], data[k][iso]["y_values"], bc_type='not-a-knot')
-                cross_section = spline(log_sqrt_s)
-                combined[k] += fraction[iso] * cross_section
-                del spline
+                combined[k] += fraction[iso] * spline(log_sqrt_s)
         return combined
 
     def _glauber_component(self, log_sqrt_s, cs_hN):
