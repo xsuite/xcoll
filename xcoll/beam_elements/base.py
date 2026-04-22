@@ -65,7 +65,7 @@ class BaseBlock(xt.BeamElement):
     _noexpr_fields = {'name'}
     _skip_in_to_dict  = ['_record_interactions']
     _store_in_to_dict = ['name', 'record_impacts', 'record_exits',
-                         'record_scatterings', 'record_primary_hits']
+                         'record_scatterings', 'mark_scattered_particles']
 
     _depends_on = [InvalidXcoll]
 
@@ -88,7 +88,7 @@ class BaseBlock(xt.BeamElement):
             to_assign['record_impacts'] = kwargs.pop('record_impacts', False)
             to_assign['record_exits'] = kwargs.pop('record_exits', False)
             to_assign['record_scatterings'] = kwargs.pop('record_scatterings', False)
-            to_assign['record_primary_hits'] = kwargs.pop('record_primary_hits', False)
+            to_assign['mark_scattered_particles'] = kwargs.pop('mark_scattered_particles', False)
         super().__init__(**kwargs)
         # Careful: non-xofields are not passed correctly between copy's / to_dict. This messes with flags etc..
         # We also have to manually initialise them for xobject generation
@@ -164,17 +164,17 @@ class BaseBlock(xt.BeamElement):
             self._record_interactions -= 4
 
     @property
-    def record_primary_hits(self):
+    def mark_scattered_particles(self):
         return bool((self._record_interactions >> 3) % 2)
 
-    @record_primary_hits.setter
-    def record_primary_hits(self, val):
+    @mark_scattered_particles.setter
+    def mark_scattered_particles(self, val):
         # If True, we flag particles that have hit a collimator and survived
         if not isinstance(val, bool):
-            raise ValueError("`record_primary_hits` must be a boolean value.")
-        if val and not self.record_primary_hits:
+            raise ValueError("`mark_scattered_particles` must be a boolean value.")
+        if val and not self.mark_scattered_particles:
             self._record_interactions += 8
-        elif not val and self.record_primary_hits:
+        elif not val and self.mark_scattered_particles:
             self._record_interactions -= 8
 
     def _verify_consistency(self):

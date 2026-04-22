@@ -22,31 +22,28 @@ class XcollParticleStates(Constants):
     LOST_ON_GEANT4_SEC      = constant(-336, "Secondary loss in a Geant4 element (block, collimator, crystal).")
     LOST_ON_ABSORBER_SEC    = constant(-337, "Secondary loss in a black absorber or black crystal.")
 
-    MASSLESS_OR_NEUTRAL     = constant(-350, "Primary loss: Massless or neutral particle.")
-    ACC_IONISATION_LOSS     = constant(-351, "Primary loss: Not a real particle: Accumulated ionisation loss.")
+    ACC_IONISATION_LOSS     = constant(-350, "Primary loss: Not a real particle: Accumulated ionisation loss.")
+    ACC_IONISATION_LOSS_SEC = constant(-351, "Secondary loss: Not a real particle: Accumulated ionisation loss.")
     VIRTUAL_ENERGY          = constant(-352, "Primary loss: Not a real particle: Virtual energy deposition.")
-    EXCITED_ION_STATE       = constant(-353, "Primary loss: An excited state of an ion (not supported by BDSIM or FLUKA).")
-
-    MASSLESS_OR_NEUTRAL_SEC = constant(-354, "Secondary loss: Massless or neutral particle.")
-    ACC_IONISATION_LOSS_SEC = constant(-355, "Secondary loss: Not a real particle: Accumulated ionisation loss.")
-    VIRTUAL_ENERGY_SEC      = constant(-356, "Secondary loss: Not a real particle: Virtual energy deposition.")
-    EXCITED_ION_STATE_SEC   = constant(-357, "Secondary loss: An excited state of an ion (not supported by BDSIM or FLUKA).")
+    VIRTUAL_ENERGY_SEC      = constant(-353, "Secondary loss: Not a real particle: Virtual energy deposition.")
+    MASSLESS_OR_NEUTRAL     = constant(-354, "Secondary loss: Massless or neutral particle.")
+    EXCITED_ION_STATE       = constant(-355, "Secondary loss: An excited state of an ion (not supported by BDSIM or FLUKA).")
 
     ERR_INVALID_TRACK       = constant(-390, "Invalid track through Xcoll element.")
     ERR_NOT_IMPLEMENTED     = constant(-391, "Not implemented in Xcoll.")
     ERR_INVALID_XOFIELD     = constant(-392, "Invalid xofield in Xcoll element.")
     ERR                     = constant(-399, "Unknown Xcoll error.")
 
-    SECONDARY_PARTICLE      = constant(2, "The particle has scattered off an Everest/ FLUKA/ Geant4 element before.")
-    HIT_ON_FLUKA            = constant(331, "Temporary variable to register hits. Should not be present in final states.")
-    HIT_ON_FLUKA_SEC        = constant(335, "Temporary variable to register hits. Should not be present in final states.")
-    HIT_ON_GEANT4           = constant(332, "Temporary variable to register hits. Should not be present in final states.")
-    HIT_ON_GEANT4_SEC       = constant(336, "Temporary variable to register hits. Should not be present in final states.")
+    SECONDARY_PARTICLE      = constant(2,   "The particle has scattered off an Everest/FLUKA/Geant4 element before.")
+    HIT_ON_FLUKA            = constant(310, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_FLUKA_SEC        = constant(311, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_GEANT4           = constant(312, "Temporary variable to register hits. Should not be present in final states.")
+    HIT_ON_GEANT4_SEC       = constant(313, "Temporary variable to register hits. Should not be present in final states.")
 
     # groups
-    LOST_AS_SPECIAL_STATE_PRIM = group(MASSLESS_OR_NEUTRAL, ACC_IONISATION_LOSS, VIRTUAL_ENERGY, EXCITED_ION_STATE,
+    LOST_AS_SPECIAL_STATE_PRIM = group(ACC_IONISATION_LOSS, VIRTUAL_ENERGY,
                                     info="Special states or unsupported particles (as primary loss).")
-    LOST_AS_SPECIAL_STATE_SEC  = group(MASSLESS_OR_NEUTRAL_SEC, ACC_IONISATION_LOSS_SEC, VIRTUAL_ENERGY_SEC, EXCITED_ION_STATE_SEC,
+    LOST_AS_SPECIAL_STATE_SEC  = group(ACC_IONISATION_LOSS_SEC, VIRTUAL_ENERGY_SEC, MASSLESS_OR_NEUTRAL, EXCITED_ION_STATE,
                                     info="Special states or unsupported particles (as secondary loss).")
     LOST_AS_SPECIAL_STATE      = group(LOST_AS_SPECIAL_STATE_PRIM, LOST_AS_SPECIAL_STATE_SEC,
                                     info="Special states or unsupported particles.")

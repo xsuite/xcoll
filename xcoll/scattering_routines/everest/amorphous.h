@@ -209,6 +209,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
     if (length_nucl < fmin(length_VI, length_exit)) {
         // MCS to nuclear interaction
         pc = amorphous_transport(everest, material, part, pc, length_nucl, 0);
+        // TODO: particle might have died due to ionisation loss
         // interact
         pc = nuclear_interaction(everest, (MaterialData) material, part, pc);
         if (LocalParticle_get_state(part) > 0){
@@ -219,6 +220,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
     } else if (length_VI <= length_exit && allow_VI == 1){
         // MCS to volume interaction
         pc = amorphous_transport(everest, material, part, pc, length_VI, 0);
+        // TODO: particle might have died due to ionisation loss
         pc = volume_interaction(everest, material, part, cg, pc, length - length_VI, 0);
 
     } else if (length_VR_trans <= length_exit && allow_VI == 1){
@@ -230,6 +232,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
         if (RandomUniform_generate(part) > prob_MCS){
             // We are on the VR side
             pc = amorphous_transport(everest, material, part, pc, length_VR_trans, 0);
+            // TODO: particle might have died due to ionisation loss
             pc = volume_interaction(everest, material, part, cg, pc, length - length_VR_trans, XC_VOLUME_REFLECTION_TRANS_MCS);
             // // Volume Reflection
             // volume_reflection(everest, part, XC_VOLUME_REFLECTION_TRANS_MCS);
@@ -239,6 +242,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
             // We are on the AM side
             // if (sc) InteractionRecordData_log(record, record_index, part, XC_MULTIPLE_COULOMB_TRANS_VR);
             pc = amorphous_transport(everest, material, part, pc, length_VR_trans, XC_MULTIPLE_COULOMB_TRANS_VR);
+            // TODO: particle might have died due to ionisation loss
             pc = Amorphous(everest, material, part, cg, pc, length - length_VR_trans, 0);
         }
 
@@ -246,6 +250,7 @@ double Amorphous(EverestData restrict everest, MaterialData restrict material,
         // Exit crystal
         // MCS to exit point
         pc = amorphous_transport(everest, material, part, pc, length_exit, 0);
+        // TODO: particle might have died due to ionisation loss
         // However, if we have exited at s3, and we encounter s4 before s2, we reenter:
         double s4 = dd*xp + sqrt( (R-d)*(R-d) / (1 + xp*xp) * dd*dd);  // second solution for smaller bend
         if (s3 < fmin(s1, s2) && s4 < s2){

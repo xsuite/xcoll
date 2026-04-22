@@ -28,7 +28,7 @@ int8_t EverestCrystalData_get_record_scatterings(EverestCrystalData el){
 }
 
 /*gpufun*/
-int8_t EverestCrystalData_get_record_primary_hits(EverestCrystalData el){
+int8_t EverestCrystalData_get_mark_scattered_particles(EverestCrystalData el){
     return (EverestCrystalData_get__record_interactions(el) >> 3) % 2;
 }
 
@@ -241,7 +241,7 @@ void EverestCrystal_track_local_particle(EverestCrystalData el, LocalParticle* p
 
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part) > 0){
-                    if (EverestCrystalData_get_record_primary_hits(el)) {
+                    if (EverestCrystalData_get_mark_scattered_particles(el)) {
                         LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
                     }
                     double const rpp_old  = LocalParticle_get_rpp(part);

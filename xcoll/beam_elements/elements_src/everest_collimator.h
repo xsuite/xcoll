@@ -28,7 +28,7 @@ int8_t EverestCollimatorData_get_record_scatterings(EverestCollimatorData el){
 }
 
 /*gpufun*/
-int8_t EverestCollimatorData_get_record_primary_hits(EverestCollimatorData el){
+int8_t EverestCollimatorData_get_mark_scattered_particles(EverestCollimatorData el){
     return (EverestCollimatorData_get__record_interactions(el) >> 3) % 2;
 }
 
@@ -201,7 +201,7 @@ void EverestCollimator_track_local_particle(EverestCollimatorData el, LocalParti
 
                 // Hit and survived particles need correcting:
                 if (is_hit!=0 && LocalParticle_get_state(part) > 0){
-                    if (EverestCollimatorData_get_record_primary_hits(el)) {
+                    if (EverestCollimatorData_get_mark_scattered_particles(el)) {
                         LocalParticle_set_state(part, XC_SECONDARY_PARTICLE);
                     }
                     double const rpp_old  = LocalParticle_get_rpp(part);

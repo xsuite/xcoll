@@ -215,6 +215,7 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
+        // TODO: particle might have died due to ionisation loss
 
         if (everest->coll->record_scatterings){
             InteractionRecordData record = everest->coll->record;
@@ -229,6 +230,7 @@ double Channel(EverestData restrict everest, MaterialData restrict material,
         double channeled_length = result_chan[0];
         pc = result_chan[1];
         free(result_chan);
+        // TODO: particle might have died due to ionisation loss
         // Rescale nuclear interaction parameters
         everest->rescale_scattering = avrrho;
 #ifndef XCOLL_REFINE_ENERGY

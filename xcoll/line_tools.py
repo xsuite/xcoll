@@ -150,6 +150,13 @@ class XcollScatteringAPI(XcollLineAccessor):
                 if hasattr(el, 'disable_scattering'):
                     el.disable_scattering()
 
+    def identify_primary_losses(self):
+        if len(self) == 0:
+            print("No xcoll elements found in line.")
+        else:
+            for el in self:
+                el.mark_scattered_particles = True
+
 
 class XcollCollimatorAPI(XcollLineAccessor):
     _typename = 'collimator'

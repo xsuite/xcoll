@@ -132,8 +132,16 @@ def _plot_lossmap_base(lossmap: dict, *,
         print("Warning: norm is 'deposited_energy_per_length', normalise_by_length set to True.")
 
     # Create arrays for plotting
+    identify_primary_losses = 'n_prim' in lossmap['collimator'] and 'e_prim' in lossmap['collimator']
     coll_s = lossmap['collimator']['s']
     coll_val = lossmap['collimator']['e'] if energy else lossmap['collimator']['n']
+    if identify_primary_losses:
+        if energy:
+            coll_val_prim = lossmap['collimator']['e_prim']
+        else:
+            coll_val_prim = lossmap['collimator']['n_prim']
+    else:
+        coll_val_prim = np.array([], dtype=np.float64)
     if lossmap['interpolation']:
         aper_s = lossmap['aperture']['s_bins']
         aper_val = lossmap['aperture']['e_bins'] if energy else lossmap['aperture']['n_bins']
@@ -204,11 +212,13 @@ def _plot_lossmap_base(lossmap: dict, *,
     warm_val = warm_val / scale
     aper_val = aper_val / scale
     coll_val = coll_val / scale
+    coll_val_prim = coll_val_prim / scale
     if normalise_by_length:
         cold_val = cold_val / cold_length
         warm_val = warm_val / warm_length
         aper_val = aper_val / aper_length
         coll_val = coll_val / lossmap['collimator']['length']
+        coll_val_prim = coll_val_prim / lossmap['collimator']['length']
 
     if xlim is None:
         xlim = [-0.01*L - xshift, 1.01*L - xshift]
@@ -221,7 +231,8 @@ def _plot_lossmap_base(lossmap: dict, *,
     aper_s = aper_s - xshift
     coll_s = coll_s - xshift
     if ylim is None:
-        minimum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).min()
+        minimum = np.concatenate([coll_val, aper_val, cold_val, warm_val])
+        minimum = minimum[minimum>0].min()
         maximum = np.concatenate([coll_val, aper_val, cold_val, warm_val]).max()
         # ylim = [1.e-7, 1.e1]
         ylim = [minimum * 0.9 if minimum>0 else 1.e-9, maximum * 1.5]
@@ -232,12 +243,13 @@ def _plot_lossmap_base(lossmap: dict, *,
     bar_common_kwargs = dict(width = 0.8, lw = 1, bottom = 1.e-9)
     if len(coll_s) > 0:
         ax.bar(coll_s, coll_val, color="k", edgecolor="k", label="Collimator", zorder=9, **bar_common_kwargs)
+        ax.bar(coll_s, coll_val_prim, color="goldenrod", edgecolor="goldenrod", label="Collimator (primary loss)", zorder=10, **bar_common_kwargs)
     if len(aper_s) > 0:
-        ax.bar(aper_s, aper_val, color="tab:orange", edgecolor="tab:orange", label="Aperture", zorder=10, **bar_common_kwargs)
+        ax.bar(aper_s, aper_val, color="tab:orange", edgecolor="tab:orange", label="Aperture", zorder=11, **bar_common_kwargs)
     if len(warm_s) > 0:
-        ax.bar(warm_s, warm_val, color="tab:red", edgecolor="tab:red", label="Warm",  zorder=11, **bar_common_kwargs)
+        ax.bar(warm_s, warm_val, color="tab:red", edgecolor="tab:red", label="Warm",  zorder=12, **bar_common_kwargs)
     if len(cold_s) > 0:
-        ax.bar(cold_s, cold_val, color="blue", edgecolor="blue", label="Cold",  zorder=12, **bar_common_kwargs)
+        ax.bar(cold_s, cold_val, color="blue", edgecolor="blue", label="Cold",  zorder=13, **bar_common_kwargs)
 
     ax.set_yscale("log")
     ax.set_ylim(ylim)
@@ -257,7 +269,6 @@ def _plot_lossmap_base(lossmap: dict, *,
 
     if legend:
         ax.legend(loc='upper right', fancybox=True, framealpha=0.8, fontsize="small")
-
 
 
 def _valid_single_zoom(zz, allow_str=False):

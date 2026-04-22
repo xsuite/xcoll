@@ -12,18 +12,17 @@ from concurrent.futures import ThreadPoolExecutor
 import xtrack as xt
 import xtrack.particles.pdg as pdg
 
-from .beam_elements import (collimator_classes, crystal_classes,
+from .beam_elements import (block_classes, collimator_classes, crystal_classes,
                             FlukaCollimator, FlukaCrystal,
                             Geant4Collimator, Geant4Crystal)
 from .compare import deep_equal
 from .json import json_load, json_dump
 from .general import __version__
 from .plot import plot_lossmap, _resolve_zoom
-from .constants import (USE_IN_LOSSMAP,
-    LOST_ON_EVEREST_BLOCK, LOST_ON_EVEREST_COLL, LOST_ON_EVEREST_CRYSTAL,
-    LOST_ON_FLUKA_BLOCK, LOST_ON_FLUKA_COLL, LOST_ON_FLUKA_CRYSTAL,
-    LOST_ON_GEANT4_BLOCK, LOST_ON_GEANT4_COLL, LOST_ON_GEANT4_CRYSTAL,
-    LOST_ON_BLACK_ABSORBER, LOST_ON_BLACK_CRYSTAL,)
+from .constants import (USE_IN_LOSSMAP, USE_IN_LOSSMAP_SEC, LOST_ON_EVEREST,
+                        LOST_ON_EVEREST_SEC, LOST_ON_FLUKA, LOST_ON_FLUKA_SEC,
+                        LOST_ON_GEANT4, LOST_ON_GEANT4_SEC, LOST_ON_ABSORBER,
+                        LOST_ON_ABSORBER_SEC)
 
 
 class LossMap:
@@ -50,6 +49,8 @@ class LossMap:
         self._coll_name = np.array([])
         self._coll_nabs = np.array([])
         self._coll_eabs = np.array([])
+        self._coll_nabs_prim = np.array([])
+        self._coll_eabs_prim = np.array([])
         self._coll_length = np.array([])
         self._coll_type = np.array([])
         self._num_initial = 0
@@ -60,6 +61,7 @@ class LossMap:
         self._s_range = {}
         self._xcoll = np.array([])
         self._date = np.array([])
+        self._identify_primary_losses = None
         if part and line:
             self.add_particles(part=part, line=line, line_is_reversed=line_is_reversed,
                                interpolation=interpolation, line_shift_s=line_shift_s,
@@ -130,6 +132,11 @@ class LossMap:
         return int(self._coll_nabs.sum())
 
     @property
+    def num_primary_collimator_losses(self):
+        if self._identify_primary_losses:
+            return int(self._coll_nabs_prim.sum())
+
+    @property
     def num_initial(self):
         return self._num_initial
 
@@ -140,6 +147,11 @@ class LossMap:
     @property
     def tot_energy_collimator(self):
         return self._coll_eabs.sum()
+
+    @property
+    def tot_primary_energy_collimator(self):
+        if self._identify_primary_losses:
+            return self._coll_eabs_prim.sum()
 
     @property
     def tot_energy_aperture(self):
@@ -164,14 +176,26 @@ class LossMap:
 
     @property
     def summary(self):
-        return pd.DataFrame({
-            'name':   self._coll_name,
-            'n':      self._coll_nabs,
-            'e':      self._coll_eabs,
-            'length': self._coll_length,
-            's':      self._coll_s,
-            'type':   self._coll_type,
-        }).sort_values("s")
+        if self._identify_primary_losses:
+            return pd.DataFrame({
+                'name':   self._coll_name,
+                'n_prim': self._coll_nabs_prim,
+                'n':      self._coll_nabs,
+                'e_prim': self._coll_eabs_prim,
+                'e':      self._coll_eabs,
+                'length': self._coll_length,
+                's':      self._coll_s,
+                'type':   self._coll_type,
+            }).sort_values("s")
+        else:
+            return pd.DataFrame({
+                'name':   self._coll_name,
+                'n':      self._coll_nabs,
+                'e':      self._coll_eabs,
+                'length': self._coll_length,
+                's':      self._coll_s,
+                'type':   self._coll_type,
+            }).sort_values("s")
 
     @property
     def aperture_losses(self):
@@ -397,6 +421,14 @@ class LossMap:
             self.interpolation = interpolation
         elif self.interpolation is None:
             self.interpolation = 0.1 # Default
+        blocks = line.get_elements_of_type(block_classes)[0]
+        prim = any([ee.mark_scattered_particles for ee in blocks])
+        if self._identify_primary_losses is None:
+            self._identify_primary_losses = prim
+        elif self._identify_primary_losses != prim:
+            raise ValueError("The presence of primary hit identification in the line "
+                             "is different from the one used to create the loss map.")
+
         if not isinstance(correct_aperture_absorption, dict):
             coll_classes = list(set(collimator_classes) - set(crystal_classes))
             coll_elements = line.get_elements_of_type(coll_classes)[1]
@@ -496,6 +528,10 @@ class LossMap:
         i = 0
         _xcoll = self._xcoll.tolist()
         _date = self._date.tolist()
+        if self._identify_primary_losses is None:
+            _identify_primary_losses = []
+        else:
+            _identify_primary_losses = [self._identify_primary_losses]
         for lossmap in iter_lossmaps(files, max_workers=max_workers,
                                      chunksize=chunksize):
             LossMap._assert_valid_json(lossmap)
@@ -518,7 +554,12 @@ class LossMap:
                 self.warm_regions = lossmap['warm_regions']
             if 's_range' in lossmap:
                 self.s_range = lossmap['s_range']
-            self._load_coll_summary(lossmap['collimator'])
+            lm_coll = lossmap['collimator']
+            if 'n_prim' in lm_coll and 'e_prim' in lm_coll:
+                _identify_primary_losses.append(True)
+            else:
+                _identify_primary_losses.append(False)
+            self._load_coll_summary(lm_coll)
             self._load_aperture_losses(lossmap['aperture'])
             if 'num_initial' in lossmap and 'tot_energy_initial' in lossmap:
                 self._num_initial += lossmap['num_initial']
@@ -531,9 +572,14 @@ class LossMap:
             raise ValueError("No valid files found.")
         _xcoll = np.unique(_xcoll)
         if verbose and len(_xcoll) > 1:
-                print("Warning: Multiple xcoll versions are used in this loss map.")
-        self._xcoll = np.unique(_xcoll)
+            print("Warning: Multiple xcoll versions are used in this loss map.")
+        self._xcoll = _xcoll
         self._date = np.array(_date)
+        _identify_primary_losses = np.unique(_identify_primary_losses)
+        if len(_identify_primary_losses) > 1:
+            raise ValueError("Inconsistent presence of primary hit "
+                             "identification across files.")
+        self._identify_primary_losses = _identify_primary_losses[0]
         if verbose:
             print(f"Loaded {i} file{'s' if i > 1 else ''} into loss map.")
 
@@ -558,28 +604,29 @@ class LossMap:
                 mask &= np.isclose(part.s, tt.rows[coll].s_end[0])
             part.at_element[mask] = elem
             what_type = line[elem].__class__.__name__
-            if what_type == 'EverestBlock':
-                part.state[mask] = LOST_ON_EVEREST_BLOCK
-            elif what_type == 'EverestCollimator':
-                part.state[mask] = LOST_ON_EVEREST_COLL
-            elif what_type == 'EverestCrystal':
-                part.state[mask] = LOST_ON_EVEREST_CRYSTAL
-            elif what_type == 'FlukaBlock':
-                part.state[mask] = LOST_ON_FLUKA_BLOCK
-            elif what_type == 'FlukaCollimator':
-                part.state[mask] = LOST_ON_FLUKA_COLL
-            elif what_type == 'FlukaCrystal':
-                part.state[mask] = LOST_ON_FLUKA_CRYSTAL
-            elif what_type == 'Geant4Block':
-                part.state[mask] = LOST_ON_GEANT4_BLOCK
-            elif what_type.startswith('Geant4Collimator'):
-                part.state[mask] = LOST_ON_GEANT4_COLL
-            elif what_type == 'Geant4Crystal':
-                part.state[mask] = LOST_ON_GEANT4_CRYSTAL
-            elif what_type == 'BlackAbsorber':
-                part.state[mask] = LOST_ON_BLACK_ABSORBER
-            elif what_type == 'BlackCrystal':
-                part.state[mask] = LOST_ON_BLACK_CRYSTAL
+            # Unfortunately, as the state is now 0 (aperture loss), there is no
+            # way to recognise primary from secondary losses anymore, so we
+            # mark them as secondary to be safe.
+            if what_type.startswith('Everest'):
+                if line[coll].mark_scattered_particles:
+                    part.state[mask] = LOST_ON_EVEREST_SEC
+                else:
+                    part.state[mask] = LOST_ON_EVEREST
+            elif what_type.startswith('Fluka'):
+                if line[coll].mark_scattered_particles:
+                    part.state[mask] = LOST_ON_FLUKA_SEC
+                else:
+                    part.state[mask] = LOST_ON_FLUKA
+            elif what_type.startswith('Geant4'):
+                if line[coll].mark_scattered_particles:
+                    part.state[mask] = LOST_ON_GEANT4_SEC
+                else:
+                    part.state[mask] = LOST_ON_GEANT4
+            elif what_type == 'BlackAbsorber' or what_type == 'BlackCrystal':
+                if line[coll].mark_scattered_particles:
+                    part.state[mask] = LOST_ON_ABSORBER_SEC
+                else:
+                    part.state[mask] = LOST_ON_ABSORBER
             else:
                 raise ValueError(f"Unknown collimator type {what_type}")
             if verbose and mask.sum() > 0:
@@ -611,33 +658,57 @@ class LossMap:
 
     def _make_coll_summary(self, part, line, line_shift_s, weights):
         names = np.unique(line.get_elements_of_type(collimator_classes)[1])
-        coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
-        coll_losses = np.array([line.element_names[i]
-                                for i in part.at_element[coll_mask]])
         coll_lengths = [line[name].length for name in names]
-
         L = self.machine_length
         coll_pos = np.array([(line.get_s_position(name) + cl/2 + line_shift_s)%L
                     for name, cl in zip(names, coll_lengths)])
         if self.line_is_reversed:
             coll_pos = L - coll_pos
-
         coll_types = [line[name].__class__.__name__
                       for name in names]
+
+        deposited_energy = {name: line[name]._acc_ionisation_loss
+                                if hasattr(line[name], '_acc_ionisation_loss')
+                                else 0.
+                            for name in names}
+
+        coll_mask = np.isin(part.state, USE_IN_LOSSMAP)
+        coll_losses = np.array([line.element_names[i]
+                                for i in part.at_element[coll_mask]])
         coll_weights = weights[coll_mask]
         nabs = [coll_weights[coll_losses == name].sum()
                 for name in names]
-
-        deposited_energy = {name: line[name]._acc_ionisation_loss
-                                  if hasattr(line[name], '_acc_ionisation_loss')
-                                  else 0.
-                            for name in names}
         energy_weights = coll_weights * part.energy[coll_mask]
-        eabs = [energy_weights[coll_losses == name].sum() + deposited_energy[name]
+        eabs = [energy_weights[coll_losses == name].sum()
+                + deposited_energy[name]
                 for name in names]
-        self._do_collimator_adding(coll_s=coll_pos, coll_name=names, coll_nabs=nabs,
-                                   coll_eabs=eabs, coll_length=coll_lengths,
-                                   coll_type=coll_types)
+
+        if self._identify_primary_losses:
+            coll_mask_prim = coll_mask
+            coll_mask_prim &= ~np.isin(part.state, USE_IN_LOSSMAP_SEC)
+            coll_losses = np.array([line.element_names[i]
+                                    for i in part.at_element[coll_mask_prim]])
+            coll_weights = weights[coll_mask_prim]
+            nabs_prim = [coll_weights[coll_losses == name].sum()
+                         for name in names]
+            energy_weights = coll_weights * part.energy[coll_mask_prim]
+            eabs_prim = [energy_weights[coll_losses == name].sum()
+                    for name in names]
+            self._do_collimator_adding(coll_s=coll_pos,
+                                       coll_name=names,
+                                       coll_nabs=nabs,
+                                       coll_eabs=eabs,
+                                       coll_length=coll_lengths,
+                                       coll_type=coll_types,
+                                       coll_nabs_prim=nabs_prim,
+                                       coll_eabs_prim=eabs_prim)
+        else:
+            self._do_collimator_adding(coll_s=coll_pos,
+                                       coll_name=names,
+                                       coll_nabs=nabs,
+                                       coll_eabs=eabs,
+                                       coll_length=coll_lengths,
+                                       coll_type=coll_types)
 
     def _load_coll_summary(self, colldata):
         coll_eabs = colldata['e'] if 'e' in colldata else np.zeros(len(colldata['s']))
@@ -645,19 +716,38 @@ class LossMap:
             coll_types = colldata['type']
         else:
             coll_types = np.full(len(colldata['s']), "Unknown", dtype=object)
-        self._do_collimator_adding(coll_s=colldata['s'], coll_name=colldata['name'],
-                                   coll_nabs=colldata['n'], coll_eabs=coll_eabs,
-                                   coll_length=colldata['length'], coll_type=coll_types)
+        if 'n_prim' in colldata and 'e_prim' in colldata:
+            self._do_collimator_adding(coll_s=colldata['s'],
+                                       coll_name=colldata['name'],
+                                       coll_nabs=colldata['n'],
+                                       coll_eabs=coll_eabs,
+                                       coll_length=colldata['length'],
+                                       coll_type=coll_types,
+                                       coll_nabs_prim=colldata['n_prim'],
+                                       coll_eabs_prim=colldata['e_prim'])
+        else:
+            self._do_collimator_adding(coll_s=colldata['s'],
+                                       coll_name=colldata['name'],
+                                       coll_nabs=colldata['n'],
+                                       coll_eabs=coll_eabs,
+                                       coll_length=colldata['length'],
+                                       coll_type=coll_types)
 
     def _do_collimator_adding(self, coll_s, coll_name, coll_nabs, coll_eabs,
-                              coll_length, coll_type):
+                              coll_length, coll_type, coll_nabs_prim=None,
+                              coll_eabs_prim=None):
         ds = 1e-6
-        s_all      = np.concatenate([self._coll_s,    coll_s])
-        nabs_all   = np.concatenate([self._coll_nabs, coll_nabs])
-        eabs_all   = np.concatenate([self._coll_eabs, coll_eabs])
-        name_all   = np.concatenate([self._coll_name,   coll_name])
-        type_all   = np.concatenate([self._coll_type,   coll_type])
-        length_all = np.concatenate([self._coll_length, coll_length])
+        identify = coll_nabs_prim is not None and len(coll_nabs_prim) > 0
+        identify = identify and coll_eabs_prim is not None and len(coll_eabs_prim) > 0
+        s_all         = np.concatenate([self._coll_s,    coll_s])
+        nabs_all      = np.concatenate([self._coll_nabs, coll_nabs])
+        eabs_all      = np.concatenate([self._coll_eabs, coll_eabs])
+        name_all      = np.concatenate([self._coll_name,   coll_name])
+        type_all      = np.concatenate([self._coll_type,   coll_type])
+        length_all    = np.concatenate([self._coll_length, coll_length])
+        if identify:
+            nabs_all_prim = np.concatenate([self._coll_nabs_prim, coll_nabs_prim])
+            eabs_all_prim = np.concatenate([self._coll_eabs_prim, coll_eabs_prim])
 
         key = np.rint(s_all / ds).astype(np.int64)
         _, first, inv = np.unique(key, return_index=True, return_inverse=True)
@@ -675,6 +765,9 @@ class LossMap:
         self._coll_s      = s_rep[order]
         self._coll_nabs   = np.bincount(inv, weights=nabs_all)[order]
         self._coll_eabs   = np.bincount(inv, weights=eabs_all)[order]
+        if identify:
+            self._coll_nabs_prim = np.bincount(inv, weights=nabs_all_prim)[order]
+            self._coll_eabs_prim = np.bincount(inv, weights=eabs_all_prim)[order]
         self._coll_name   = name_rep[order]
         self._coll_type   = type_rep[order]
         self._coll_length = length_rep[order]
@@ -1004,7 +1097,8 @@ class MultiLossMap(LossMap):
         self._tot_energy_initial += lm.tot_energy_initial
         self._do_collimator_adding(coll_s=lm._coll_s, coll_name=lm._coll_name,
                                    coll_nabs=lm._coll_nabs, coll_eabs=lm._coll_eabs,
-                                   coll_length=lm._coll_length, coll_type=lm._coll_type)
+                                   coll_length=lm._coll_length, coll_type=lm._coll_type,
+                                   coll_nabs_prim=lm._coll_nabs_prim, coll_eabs_prim=lm._coll_eabs_prim)
         if self.interpolation:
             if len(lm._aperbins) == 0:
                 # No aperture in this loss map
